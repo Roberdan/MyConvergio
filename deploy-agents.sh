@@ -50,11 +50,13 @@ fi
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENTS_DIR="$SCRIPT_DIR/claude-agents"
+VERSION_MANAGER="$SCRIPT_DIR/scripts/version-manager.sh"
 
 # Agent categories with descriptions
 CATEGORIES=(
@@ -79,13 +81,14 @@ CATEGORY_DESCRIPTIONS=(
 )
 
 # Helper functions for colored output
-print_error() { echo -e "${RED}❌ ERROR:${NC} $1"; }
-print_success() { echo -e "${GREEN}✅ SUCCESS:${NC} $1"; }
-print_info() { echo -e "${BLUE}ℹ️ INFO:${NC} $1"; }
+print_error() { echo -e "${RED} ERROR:${NC} $1"; }
+print_success() { echo -e "${GREEN} SUCCESS:${NC} $1"; }
+print_info() { echo -e "${BLUE} INFO:${NC} $1"; }
+print_warning() { echo -e "${YELLOW} WARNING:${NC} $1"; }
 print_header() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
-print_subheader() { echo -e "\n${BLUE}➤ $1${NC}"; }
+print_subheader() { echo -e "\n${BLUE} $1${NC}"; }
 
-# Check prerequisites
+# Check prerequisites and versions
 check_prerequisites() {
     if [ ! -d "$AGENTS_DIR" ]; then
         print_error "Agents directory not found: $AGENTS_DIR"
@@ -105,6 +108,15 @@ check_prerequisites() {
     else
         print_success "Found $agent_count agents in the repository"
     fi
+    
+    # Ensure version manager is executable
+    if [ -f "$VERSION_MANAGER" ]; then
+        chmod +x "$VERSION_MANAGER"
+        # Scan for new agents and update versions
+        "$VERSION_MANAGER" scan
+    else
+        print_warning "Version manager not found at $VERSION_MANAGER. Version tracking will be limited."
+    fi
 }
 
 # Main function
@@ -113,8 +125,8 @@ main() {
     check_prerequisites
     
     echo ""
-    echo " ${BLUE}MYCONVERGIO AGENTS INSTALLATION${NC}"
-    echo "${BLUE}==================================${NC}"
+    echo " MYCONVERGIO AGENTS INSTALLATION"
+    echo "=================================="
     echo ""
     echo "Welcome to MyConvergio - Your AI-Powered Strategic Partner"
     echo ""
@@ -122,34 +134,34 @@ main() {
     echo "your Claude Code experience. You can install agents globally (all projects)"
     echo "or locally (this project only)."
     echo ""
-    echo "${BLUE}AGENT CATEGORIES:${NC}"
-    echo "• Leadership & Strategy: Strategic decision-making and leadership"
-    echo "• Technical Development: Software architecture and implementation"
-    echo "• Business Operations: Process optimization and operations"
-    echo "• Design & UX: User experience and interface design"
-    echo "• Compliance & Legal: Regulatory and ethical considerations"
-    echo "• Specialized Experts: Niche expertise across domains"
-    echo "• Core Utilities: Essential tools and foundational agents"
+    echo "AGENT CATEGORIES:"
+    echo " Leadership & Strategy: Strategic decision-making and leadership"
+    echo " Technical Development: Software architecture and implementation"
+    echo " Business Operations: Process optimization and operations"
+    echo " Design & UX: User experience and interface design"
+    echo " Compliance & Legal: Regulatory and ethical considerations"
+    echo " Specialized Experts: Niche expertise across domains"
+    echo " Core Utilities: Essential tools and foundational agents"
     echo ""
-    echo "${BLUE}RECOMMENDED:${NC} Install all agents for the full MyConvergio experience."
+    echo "RECOMMENDED: Install all agents for the full MyConvergio experience."
     echo ""
-    echo "${BLUE}NOTE:${NC} This is an experimental project. See documentation for details."
+    echo "NOTE: This is an experimental project. See documentation for details."
     
     # WHERE TO INSTALL
     print_header "INSTALLATION LOCATION"
     echo "Choose where to install the agents:"
     echo ""
-    echo "${GREEN}A) All Projects (Recommended)${NC}"
-    echo "   • Installs agents in ~/.claude/agents/"
-    echo "   • Available across all your Claude Code projects"
-    echo "   • Best for most users who want system-wide access"
+    echo "A) All Projects (Recommended)"
+    echo "   Installs agents in ~/.claude/agents/"
+    echo "   Available across all your Claude Code projects"
+    echo "   Best for most users who want system-wide access"
     echo ""
-    echo "${YELLOW}B) This Project Only${NC}"
-    echo "   • Installs agents in .claude/agents/ (current directory)"
-    echo "   • Only available within this specific project"
-    echo "   • Useful for project-specific agent customizations"
+    echo "B) This Project Only"
+    echo "   Installs agents in .claude/agents/ (current directory)"
+    echo "   Only available within this specific project"
+    echo "   Useful for project-specific agent customizations"
     echo ""
-    echo "${BLUE}Note:${NC} You can always run this script again to modify your installation."
+    echo "Note: You can always run this script again to modify your installation."
     
     local where=""
     while true; do
@@ -165,22 +177,22 @@ main() {
     print_header "AGENT SELECTION"
     echo "Choose how to select agents for installation:"
     echo ""
-    echo "${GREEN}1) All Agents (Recommended)${NC}"
-    echo "   • Installs all 40+ specialized agents"
-    echo "   • Provides complete MyConvergio functionality"
-    echo "   • Recommended for most users"
+    echo "1) All Agents (Recommended)"
+    echo "   Installs all 40+ specialized agents"
+    echo "   Provides complete MyConvergio functionality"
+    echo "   Recommended for most users"
     echo ""
-    echo "${YELLOW}2) By Category${NC}"
-    echo "   • Select from predefined agent categories"
-    echo "   • Good for installing specific functional areas"
-    echo "   • Example: Install only Technical Development agents"
+    echo "2) By Category"
+    echo "   Select from predefined agent categories"
+    echo "   Good for installing specific functional areas"
+    echo "   Example: Install only Technical Development agents"
     echo ""
-    echo "${YELLOW}3) Custom Selection${NC}"
-    echo "   • Hand-pick individual agents to install"
-    echo "   • Advanced users can create custom configurations"
-    echo "   • Useful for minimal or specialized deployments"
+    echo "3) Custom Selection"
+    echo "   Hand-pick individual agents to install"
+    echo "   Advanced users can create custom configurations"
+    echo "   Useful for minimal or specialized deployments"
     echo ""
-    echo "${BLUE}Tip:${NC} You can always run this script again to add or remove agents."
+    echo "Tip: You can always run this script again to add or remove agents."
     
     local install_mode=""
     while true; do
@@ -212,7 +224,7 @@ main() {
             echo ""
         done
         
-        echo "${BLUE}Example:${NC} To select categories 1, 3, and 5, type: 1,3,5"
+        echo "Example: To select categories 1, 3, and 5, type: 1,3,5"
         read -p "Enter category numbers (comma-separated): " selected_categories
         
         # Convert to array and validate
@@ -269,17 +281,29 @@ main() {
         done
     elif [ "$install_mode" = "category" ]; then
         # Install by category
-        for category in "${selected_categories[@]}"; do
+        for category in "${selected_agents[@]}"; do
             if [ -d "$AGENTS_DIR/$category" ]; then
                 find "$AGENTS_DIR/$category" -name "*.md" -type f | while read -r agent_file; do
-                    agent_name=$(basename "$agent_file")
+                    local agent_name=$(basename "$agent_file" .md)
+                    local version=""
+                    
+                    # Get version if version manager is available
+                    if [ -f "$VERSION_MANAGER" ]; then
+                        version=$("$VERSION_MANAGER" agent-version "$agent_name" 2>/dev/null || echo "0.0.0")
+                    fi
+                    
                     if [ "$DRY_RUN" = true ]; then
-                        echo "[DRY-RUN] Would install: $agent_name"
+                        echo "[DRY-RUN] Would install: $agent_name ${version:+v$version}"
                     else
                         cp "$agent_file" "$target_dir/"
-                        echo "Installed: $agent_name"
+                        
+                        # Add version info to agent file if not present
+                        if ! grep -q "^version:" "$target_dir/$agent_name.md"; then
+                            echo -e "\n---\nversion: $version\n---\n" >> "$target_dir/$agent_name.md"
+                        fi
+                        
+                        print_success "Installed: $agent_name ${version:+v$version}"
                     fi
-                    count=$((count + 1))
                 done
             fi
         done

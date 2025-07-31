@@ -1,5 +1,150 @@
 <div align="center">
 
+# MyConvergio - Suite di Agenti per Claude Code
+
+<img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
+
+> *"L'intento è umano, lo slancio è agente"*  
+> — Il Manifesto Agente
+
+</div>
+
+## 🇮🇹 Benvenuti in MyConvergio
+
+### 🚪 **Inizia da qui: Chiedi ad Ali**
+
+**Per qualsiasi cosa, chiedi ad Ali - coordinerà l'intero ecosistema per te**
+
+```bash
+@ali-chief-of-staff [la tua richiesta qui]
+```
+
+Ali è il tuo **punto di contatto unico** che orchestra automaticamente tutti i 40 specialisti per fornire soluzioni complete e integrate. Che tu abbia bisogno di strategia, innovazione, analisi o esecuzione, Ali coordina tutto.
+
+---
+
+## 🚀 Informazioni sul Progetto
+
+MyConvergio è una **raccolta open-source sperimentale** di 40 agenti specializzati per Claude Code, progettati per dimostrare il potenziale degli ecosistemi di agenti AI coordinati per la gestione di progetti software aziendali, la leadership strategica e l'eccellenza organizzativa.
+
+**⚠️ Natura Sperimentale**: Questo è un progetto di ricerca e didattico fornito "così com'è" senza garanzie. Non affiliato ad Anthropic, OpenAI o Microsoft come entità aziendale.
+
+**👨‍💻 Nota dell'Autore**: Roberto D'Angelo è un dipendente Microsoft. Questo progetto è un'iniziativa personale creata in modo indipendente durante il tempo libero utilizzando tecnologie disponibili pubblicamente. Questo progetto NON è affiliato a, approvato da o rappresentante di Microsoft Corporation o di qualsiasi prodotto o servizio Microsoft. Qualsiasi riferimento a standard di settore o best practice non implica l'approvazione di Microsoft. Tutte le opinioni e le implementazioni sono esclusivamente quelle del creatore individuale.
+
+**🔄 Ispirazione**: Questo progetto trae ispirazione dall'eccezionale cultura e dai valori di Microsoft, adattati per ecosistemi di agenti AI, riconoscendo la leadership di Microsoft nello sviluppo tecnologico etico.
+
+## 🎯 Il Manifesto Agente
+
+*Scopo umano. Slancio AI.*  
+Milano — 23 Giugno 2025
+
+### Cosa crediamo
+1. **L'intento è umano, lo slancio è agente.**  
+2. **L'impatto deve raggiungere ogni mente e corpo.**  
+3. **La fiducia cresce dalla trasparenza delle origini.**  
+4. **Il progresso si giudica dai risultati, non dall'output.**
+
+### Come agiamo
+1. **Gli esseri umani rimangono responsabili delle decisioni e degli effetti.**  
+2. **Gli agenti amplificano le capacità, mai l'identità.**  
+3. **Progettiamo partendo dai margini: disabilità, lingua, connettività.**  
+4. **Le misure di sicurezza precedono la scalabilità.**  
+5. **Impariamo in piccoli cicli, distribuiamo valore in anticipo.**
+
+## 🌐 Struttura del Progetto
+
+### Livello di Leadership Strategica (8 Agenti)
+1. **Ali - Capo di Gabinetto** - Coordinamento e allineamento strategico
+2. **Satya - Consiglio di Amministrazione** - Governance e supervisione
+3. **Antonio - Esperto di Strategia** - Pianificazione strategica e analisi di mercato
+4. **Matteo - Architetto Aziendale Strategico** - Allineamento strategico e modellazione aziendale
+5. **Amy - Direttore Finanziario** - Pianificazione e analisi finanziaria
+6. **Dan - Direttore Generale Ingegneria** - Leadership tecnica e innovazione
+7. **Domik - Esperto McKinsey di Decisioni Strategiche** - Risoluzione di problemi complessi
+8. **Steve - Stratega di Comunicazione Aziendale** - Comunicazione e narrazione strategica
+
+### Livello di Sviluppo Tecnico (9 Agenti)
+9. **Baccio - Architetto Tecnico** - Architettura software e progettazione di sistema
+10. **Omri - Data Scientist** - Analisi predittiva e modellazione avanzata
+11. **Marco - Ingegnere DevOps** - CI/CD, Infrastructure as Code e automazione del deployment
+12. **Luca - Esperto di Sicurezza** - Sicurezza informatica, test di penetrazione e gestione del rischio
+
+### Livello di Esperienza Utente e Design (3 Agenti)
+13. **Sara - Designer UX/UI** - Design centrato sull'utente e eccellenza dell'interfaccia
+14. **Jony - Direttore Creativo** - Direzione creativa e design visivo
+15. **Stefano - Facilitatore di Design Thinking** - Facilitazione di workshop e innovazione
+
+### Livello di Operazioni Aziendali (8 Agenti)
+16. **Davide - Project Manager** - Pianificazione e coordinamento dei progetti
+17. **Enrico - Ingegnere dei Processi Aziendali** - Ottimizzazione e automazione dei processi
+18. **Andrea - Customer Success Manager** - Gestione delle relazioni con i clienti
+19. **Fabio - Vendite e Sviluppo Commerciale** - Strategie di vendita e crescita
+20. **Sofia - Stratega di Marketing** - Strategie di marketing e posizionamento
+21. **Dave - Specialista di Change Management** - Gestione del cambiamento organizzativo
+22. **Luke - Program Manager** - Coordinamento dei programmi e iniziative strategiche
+
+### Livello di Conformità e Regolamentazione (3 Agenti)
+23. **Elena - Esperta di Conformità Legale** - Conformità normativa e governance
+24. **Dr. Enzo - Responsabile Conformità Sanitaria** - Conformità sanitaria e regolamentazione
+25. **Luca - Esperto di Sicurezza** - Conformità e gestione del rischio di sicurezza
+
+### Livello di Esperti Specializzati (7 Agenti)
+26. **Ava - Esperta di Analisi e Approfondimenti** - Analisi dei dati e business intelligence
+27. **Behice - Coach Culturale** - Competenza culturale e inclusione
+28. **Coach - Coach di Team** - Sviluppo del team e performance
+29. **Giulia - HR e Talent Acquisition** - Gestione dei talenti e sviluppo organizzativo
+30. **Jenny - Campione di Accessibilità Inclusiva** - Accessibilità e design inclusivo
+31. **Riccardo - Storyteller** - Narrazione e comunicazione efficace
+32. **Sam - Imprenditore** - Mentalità imprenditoriale e innovazione
+33. **Wiz - Investitore e Capitalista di Rischio** - Strategia di investimento e crescita
+
+### Livello di Utilità Fondamentale (9 Agenti)
+34. **Diana - Cruscotto delle Prestazioni** - Monitoraggio e analisi delle prestazioni
+35. **Marcus - Custode della Memoria del Contesto** - Gestione della conoscenza e del contesto
+36. **PO - Ottimizzatore di Prompt** - Ottimizzazione delle richieste AI
+37. **Socrate - Ragionamento sui Primi Principi** - Analisi fondamentale e problem-solving
+38. **Taskmaster - Maestro della Scomposizione Strategica dei Compiti** - Pianificazione e gestione dei compiti
+39. **Thor - Guardiano dell'Assicurazione della Qualità** - Controllo qualità e test
+40. **Wanda - Orchestratore dei Flussi di Lavoro** - Automazione e ottimizzazione dei flussi di lavoro
+41. **Xavier - Modelli di Coordinamento** - Modelli e framework di coordinamento
+
+## 🚀 Come Iniziare
+
+### Prerequisiti
+- Accesso a Claude Code
+- Conoscenza di base dell'interfaccia a riga di comando
+
+### Installazione
+
+1. Clona il repository:
+   ```bash
+   git clone https://github.com/roberdan/MyConvergio.git
+   cd MyConvergio
+   ```
+
+2. Esegui lo script di distribuzione:
+   ```bash
+   ./deploy-agents.sh
+   ```
+
+3. Segui le istruzioni sullo schermo per selezionare la lingua italiana o inglese e la directory di destinazione.
+
+### Utilizzo
+
+Per utilizzare gli agenti, assicurati di essere nella directory in cui hai eseguito lo script di distribuzione, quindi inizia a interagire con Claude Code utilizzando i comandi degli agenti.
+
+## 🤝 Contributi
+
+I contributi sono benvenuti! Per favore leggi le nostre linee guida per i contributi prima di inviare le tue modifiche.
+
+## 📄 Licenza
+
+Questo progetto è concesso in licenza con la licenza Creative Commons Attribution-NonCommercial-ShareAlike 4.0 - vedi il file [LICENSE](LICENSE) per i dettagli.
+
+---
+
+<div align="center">
+
 # MyConvergio - Claude Code Subagents Suite
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>

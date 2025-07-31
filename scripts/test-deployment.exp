@@ -1,0 +1,85 @@
+#!/usr/bin/expect -f
+
+# =============================================================================
+# MYCONVERGIO DEPLOYMENT TEST SCRIPT (EXPECT VERSION)
+# =============================================================================
+# This script tests the deployment script with interactive prompts
+# =============================================================================
+
+# Set timeout to 10 seconds per test
+set timeout 10
+
+# Function to run a test case
+proc run_test {test_name spawn_cmd expect_prompts responses expected_output} {
+    puts "\n🔹 Running test: $test_name"
+    
+    # Start the command
+    spawn {*}$spawn_cmd
+    
+    # Process each prompt and response
+    foreach prompt $expect_prompts response $responses {
+        expect {
+            -re $prompt {
+                send "$response\r"
+                exp_continue
+            }
+            timeout {
+                puts "\n❌ Test '$test_name' failed: Timeout waiting for prompt"
+                puts "   Expected: $prompt"
+                exit 1
+            }
+        }
+    }
+    
+    # Check for expected output
+    expect {
+        -re $expected_output {
+            puts "✅ Test '$test_name' passed"
+            return 0
+        }
+        timeout {
+            puts "\n❌ Test '$test_name' failed: Expected output not found"
+            puts "   Expected: $expected_output"
+            exit 1
+        }
+    }
+}
+
+# Test 1: Default deployment (English)
+run_test \
+    "Default deployment (English)" \
+    {../deploy-agents.sh --dry-run} \
+    {"Scelta / Choice \\[1-2\\]:"} \
+    {2} \
+    "DRY-RUN MODE"
+
+# Test 2: Italian deployment
+run_test \
+    "Italian deployment" \
+    {../deploy-agents.sh --dry-run} \
+    {"Scelta / Choice \\[1-2\\]:"} \
+    {1} \
+    "MODALITÀ DRY-RUN"
+
+# Test 3: Custom directory
+set test_dir "/tmp/myconvergio-test"
+file delete -force $test_dir
+file mkdir $test_dir
+
+run_test \
+    "Custom directory" \
+    "../deploy-agents.sh --dir $test_dir --dry-run" \
+    {"Scelta / Choice \\[1-2\\]:"} \
+    {2} \
+    "DRY-RUN MODE"
+
+# Test 4: Invalid language (should fail)
+run_test \
+    "Invalid language handling" \
+    {../deploy-agents.sh --dry-run} \
+    {"Scelta / Choice \\[1-2\\]:"} \
+    {3} \
+    "(Invalid choice|Scelta non valida)"
+
+puts "\n✅ All tests completed successfully!"
+exit 0

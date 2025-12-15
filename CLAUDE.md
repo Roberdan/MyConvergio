@@ -142,6 +142,181 @@ make validate
 5. Test agent functionality with `make test`
 6. Deploy using `make install`
 
+### Git Worktree Workflow for Parallel Agent Development
+
+Git worktrees enable parallel development on multiple agents without branch switching overhead. This is particularly useful when working on independent agent improvements simultaneously.
+
+#### What are Git Worktrees?
+Git worktrees allow you to have multiple working directories attached to the same repository, each checking out different branches. This enables truly parallel development without the need to stash, commit, or switch branches.
+
+#### Setup and Usage
+
+**Create a worktree for a new feature:**
+```bash
+# Create a new branch and worktree in one command
+git worktree add ../MyConvergio-feature-branch feature-branch-name
+
+# Or create from existing branch
+git worktree add ../MyConvergio-existing existing-branch
+```
+
+**List all worktrees:**
+```bash
+git worktree list
+```
+
+**Working with worktrees:**
+```bash
+# Navigate to worktree
+cd ../MyConvergio-feature-branch
+
+# Work normally - all git commands work as expected
+git status
+git add .
+git commit -m "Update agent"
+git push
+
+# Return to main worktree
+cd ../MyConvergio
+```
+
+**Remove a worktree when done:**
+```bash
+# Remove the worktree directory
+git worktree remove ../MyConvergio-feature-branch
+
+# Or if already deleted manually, prune references
+git worktree prune
+```
+
+#### Parallel Agent Development Pattern
+
+**Scenario**: Update multiple agents simultaneously (e.g., Wave 5 optimization)
+
+```bash
+# Main repository: Continue regular work
+cd /Users/roberdan/GitHub/MyConvergio
+git checkout master
+
+# Worktree 1: Technical agents (W5A-W5B)
+git worktree add ../MyConvergio-wave5-technical wave5-technical-agents
+cd ../MyConvergio-wave5-technical
+# Work on rex, otto, dario, luca agents
+git add .claude/agents/technical_development/
+git commit -m "feat: add background execution support to technical agents"
+
+# Worktree 2: Documentation updates (W5D)
+git worktree add ../MyConvergio-wave5-docs wave5-documentation
+cd ../MyConvergio-wave5-docs
+# Work on CLAUDE.md and ali-chief-of-staff.md
+git add CLAUDE.md .claude/agents/leadership_strategy/
+git commit -m "docs: add git worktree workflow and parallel execution patterns"
+
+# Worktree 3: Testing and validation
+git worktree add ../MyConvergio-wave5-testing wave5-testing
+cd ../MyConvergio-wave5-testing
+# Run tests, validate changes
+make test
+make validate
+```
+
+#### Best Practices
+
+1. **Naming Convention**: Use descriptive worktree directory names
+   - `../MyConvergio-wave5-technical` (feature-specific)
+   - `../MyConvergio-hotfix-security` (urgency indicator)
+   - `../MyConvergio-experiment-ai` (experimental work)
+
+2. **Location**: Keep worktrees in parent directory for easy navigation
+   ```
+   /Users/roberdan/GitHub/
+   ├── MyConvergio/              # Main repository
+   ├── MyConvergio-wave5-tech/   # Worktree 1
+   ├── MyConvergio-wave5-docs/   # Worktree 2
+   └── MyConvergio-testing/      # Worktree 3
+   ```
+
+3. **Branch Strategy**: Each worktree checks out a different branch
+   - Never checkout the same branch in multiple worktrees
+   - Use feature branches for each worktree
+
+4. **Cleanup**: Remove worktrees after merging
+   ```bash
+   # After PR merged
+   git worktree remove ../MyConvergio-feature
+   git branch -d feature-branch  # Delete local branch
+   git push origin --delete feature-branch  # Delete remote branch
+   ```
+
+5. **Shared Objects**: All worktrees share the same .git database
+   - Commits in one worktree are immediately visible in others
+   - Reduces disk space (no duplicate .git folders)
+   - `git fetch` in any worktree updates all worktrees
+
+#### Common Workflows
+
+**Parallel Feature Development:**
+```bash
+# Work on Agent A in main repo
+cd MyConvergio
+git checkout -b agent-a-improvements
+# Edit .claude/agents/agent-a.md
+
+# Work on Agent B in worktree (without switching branches)
+git worktree add ../MyConvergio-agent-b agent-b-improvements
+cd ../MyConvergio-agent-b
+# Edit .claude/agents/agent-b.md
+
+# Both can be developed, tested, and committed independently
+```
+
+**Emergency Hotfix During Feature Work:**
+```bash
+# Currently working on feature in main repo
+cd MyConvergio
+git status  # Uncommitted changes, not ready to commit
+
+# Create hotfix worktree from master
+git worktree add ../MyConvergio-hotfix master
+cd ../MyConvergio-hotfix
+git checkout -b hotfix-security-issue
+# Fix issue, commit, push, create PR
+# Return to feature work without losing context
+cd ../MyConvergio
+```
+
+#### Troubleshooting
+
+**Error: "branch is already checked out"**
+- You cannot check out the same branch in multiple worktrees
+- Solution: Create a new branch or use a different existing branch
+
+**Error: "worktree already exists"**
+- Directory already exists at the specified path
+- Solution: Choose a different path or remove the existing directory
+
+**Worktree out of sync:**
+```bash
+# Fetch latest changes in any worktree
+git fetch origin
+
+# All worktrees now have access to latest commits
+# Checkout or merge as needed in each worktree
+```
+
+#### When to Use Worktrees vs. Branches
+
+**Use Worktrees when:**
+- Working on multiple independent features simultaneously
+- Need to quickly switch context without losing uncommitted work
+- Testing/reviewing code while developing another feature
+- Running long-running processes (tests, builds) in parallel
+
+**Use Branches (without worktrees) when:**
+- Sequential development on a single feature
+- Collaborating on a shared branch
+- Simple feature development that doesn't require parallel work
+
 ### Related Repository
 - **[ConvergioCLI](https://github.com/Roberdan/convergio-cli)** - Advanced local CLI with Apple Silicon optimization, offline mode, and Anna assistant
 
@@ -177,6 +352,7 @@ description: Agent specialization and role description
 tools: ["Tool1", "Tool2", "Tool3"]  # Based on role requirements
 color: "#HEX_COLOR"  # Visual identification
 model: "opus|sonnet|haiku"  # Model tier (cost optimization)
+version: "1.0.0"  # Semantic versioning (MAJOR.MINOR.PATCH)
 ---
 ```
 
@@ -187,6 +363,58 @@ All agents have a `model:` field for cost-optimized deployment:
 - **haiku** (34 agents): Workers, quick tasks, operational agents
 
 Expected cost reduction: **85%** ($42 → $6 per complex session)
+
+### Agent Versioning System
+
+MyConvergio implements comprehensive version management for both the system and individual agents.
+
+#### Version Structure
+- **System Version**: Tracked in `VERSION` file at repository root (`SYSTEM_VERSION=1.0.0`)
+- **Agent Versions**: Each agent maintains independent version in frontmatter (`version: "1.0.0"`)
+- **Format**: Semantic Versioning (SemVer 2.0.0) - `MAJOR.MINOR.PATCH`
+
+#### Semantic Versioning Rules
+- **MAJOR** (X.0.0): Breaking changes, incompatible modifications, fundamental role changes
+- **MINOR** (0.X.0): New features, enhanced capabilities, backward-compatible additions
+- **PATCH** (0.0.X): Bug fixes, documentation updates, security improvements, performance optimizations
+
+#### Version Management Tools
+```bash
+# List all agent versions
+./scripts/version-manager.sh list
+
+# Bump single agent version
+./scripts/bump-agent-version.sh patch ali-chief-of-staff "Fixed orchestration bug"
+./scripts/bump-agent-version.sh minor baccio-tech-architect "Added new patterns"
+./scripts/bump-agent-version.sh major domik-mckinsey "ISE framework overhaul"
+
+# Bump all agents at once
+./scripts/bump-agent-version.sh --all patch "Security framework updates"
+
+# Check system version
+./scripts/version-manager.sh system-version
+
+# Scan for new agents
+./scripts/version-manager.sh scan
+```
+
+#### Agent Changelogs
+Every agent maintains a changelog at the end of its file:
+```markdown
+## Changelog
+
+- **1.1.0** (2025-12-16): Added advanced coordination patterns
+- **1.0.0** (2025-12-15): Initial security framework and model optimization
+```
+
+#### Version Display
+All agents can report their version when asked:
+```
+User: @ali-chief-of-staff what version are you?
+Ali: I'm currently running version 1.0.0...
+```
+
+For complete versioning policy, see [docs/VERSIONING_POLICY.md](./docs/VERSIONING_POLICY.md)
 
 ### Security & Ethics Framework
 All agents implement:

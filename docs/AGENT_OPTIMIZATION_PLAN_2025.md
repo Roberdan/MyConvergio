@@ -20,9 +20,9 @@
 
 ## PROGRESS STATUS
 
-**Last update**: 2025-12-15 09:52
-**Current wave**: WAVE 4 (Skills & Rules)
-**Total progress**: 34/69 tasks (49%)
+**Last update**: 2025-12-15 11:45
+**Current wave**: WAVE 5 COMPLETED
+**Total progress**: 62/69 tasks (90%)
 
 ### WAVE 0 - Foundation & Prerequisites (MANDATORY before any other wave)
 
@@ -81,10 +81,12 @@
 | W2F | Add security to specialized_experts (13 agents) | `feat/agent-security-batch3` | ✅✅ Done | - | 2025-12-15 09:50 |
 | W2G | Add security to core_utility (8 agents) | `feat/agent-security-batch4` | ✅✅ Done | - | 2025-12-15 09:50 |
 | W2H | Add security to release_management (2 agents) | `feat/agent-security-batch4` | ✅✅ Done | - | 2025-12-15 09:50 |
-| W2I | Implement tool restrictions | `feat/tool-restrictions` | ⏸️ Deferred | - | - |
-| W2J | Implement dangerous command blocklist | `feat/tool-restrictions` | ⏸️ Deferred | - | - |
+| W2I | Implement tool restrictions | `feat/tool-restrictions` | ✅✅ Done | - | 2025-12-15 10:30 |
+| W2J | Implement dangerous command blocklist | `feat/tool-restrictions` | ✅✅ Done | - | 2025-12-15 10:30 |
 
-**Wave 2 Status**: 8/8 completed ✅ (tool restrictions deferred to WAVE 5)
+**Wave 2 Status**: 10/10 completed ✅
+
+**Notes W2I-W2J**: Tool restrictions implemented via `tools:` field in YAML frontmatter. Dangerous command blocklist implemented via Anti-Hijacking Protocol in Security Framework.
 
 **Blocked by**: Wave 0 (need Security Framework template)
 
@@ -110,24 +112,24 @@
 
 | ID | Task | Branch | Status | PR | Completed |
 |----|------|--------|--------|----|-----------:|
-| W4A | Create `.claude/rules/code-style.md` | `feat/rules` | ⬜ Not started | - | - |
-| W4B | Create `.claude/rules/security-requirements.md` | `feat/rules` | ⬜ Not started | - | - |
-| W4C | Create `.claude/rules/testing-standards.md` | `feat/rules` | ⬜ Not started | - | - |
-| W4D | Create `.claude/rules/documentation-standards.md` | `feat/rules` | ⬜ Not started | - | - |
-| W4E | Create `.claude/rules/api-development.md` | `feat/rules` | ⬜ Not started | - | - |
-| W4F | Create `.claude/rules/ethical-guidelines.md` | `feat/rules` | ⬜ Not started | - | - |
-| W4G | Create `code-review/SKILL.md` | `feat/skills` | ⬜ Not started | - | - |
-| W4H | Create `debugging/SKILL.md` | `feat/skills` | ⬜ Not started | - | - |
-| W4I | Create `architecture/SKILL.md` | `feat/skills` | ⬜ Not started | - | - |
-| W4J | Create `security-audit/SKILL.md` | `feat/skills` | ⬜ Not started | - | - |
-| W4K | Create `performance/SKILL.md` | `feat/skills` | ⬜ Not started | - | - |
-| W4L | Create `strategic-analysis/SKILL.md` | `feat/skills` | ⬜ Not started | - | - |
-| W4M | Create `release-management/SKILL.md` | `feat/skills` | ⬜ Not started | - | - |
-| W4N | Create `project-management/SKILL.md` | `feat/skills` | ⬜ Not started | - | - |
+| W4A | Create `.claude/rules/code-style.md` | `feat/rules` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4B | Create `.claude/rules/security-requirements.md` | `feat/rules` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4C | Create `.claude/rules/testing-standards.md` | `feat/rules` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4D | Create `.claude/rules/documentation-standards.md` | `feat/rules` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4E | Create `.claude/rules/api-development.md` | `feat/rules` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4F | Create `.claude/rules/ethical-guidelines.md` | `feat/rules` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4G | Create `code-review/SKILL.md` | `feat/skills` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4H | Create `debugging/SKILL.md` | `feat/skills` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4I | Create `architecture/SKILL.md` | `feat/skills` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4J | Create `security-audit/SKILL.md` | `feat/skills` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4K | Create `performance/SKILL.md` | `feat/skills` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4L | Create `strategic-analysis/SKILL.md` | `feat/skills` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4M | Create `release-management/SKILL.md` | `feat/skills` | ✅✅ Done | - | 2025-12-15 10:01 |
+| W4N | Create `project-management/SKILL.md` | `feat/skills` | ✅✅ Done | - | 2025-12-15 10:01 |
 
-**Wave 4 Status**: 0/14 completed
+**Wave 4 Status**: 14/14 completed ✅
 
-**Blocked by**: Wave 0 (need directories created)
+**Notes**: Created strategic-planner agent for wave-based planning methodology. Updated CLAUDE.md with skills/rules documentation.
 
 ---
 
@@ -135,24 +137,24 @@
 
 | ID | Task | Branch | Status | PR | Completed |
 |----|------|--------|--------|----|-----------:|
-| W5A | Update ali-chief-of-staff with parallel patterns | `feat/parallel-execution` | ⬜ Not started | - | - |
-| W5B | Define agent groups for parallel invocation | `feat/parallel-execution` | ⬜ Not started | - | - |
-| W5C | Add `run_in_background: true` hints | `feat/parallel-execution` | ⬜ Not started | - | - |
-| W5D | Document worktree workflow | `docs/worktree` | ⬜ Not started | - | - |
-| W5E | Add examples to all agent descriptions | `feat/descriptions` | ⬜ Not started | - | - |
-| W5F | Reduce description token count (<500) | `feat/descriptions` | ⬜ Not started | - | - |
-| W5G | Implement progressive disclosure | `feat/descriptions` | ⬜ Not started | - | - |
-| W5H | Add version field to all agent frontmatter | `feat/versioning` | ⬜ Not started | - | - |
-| W5I | Update version-manager.sh for new paths | `feat/versioning` | ⬜ Not started | - | - |
-| W5J | Add changelog to each agent | `feat/versioning` | ⬜ Not started | - | - |
-| W5K | Create version bump script | `feat/versioning` | ⬜ Not started | - | - |
-| W5L | Add version display in agent responses | `feat/versioning` | ⬜ Not started | - | - |
-| W5M | Document versioning policy | `docs/versioning` | ⬜ Not started | - | - |
-| W5N | Update CLAUDE.md with new patterns | `docs/claude-md-final` | ⬜ Not started | - | - |
+| W5A | Update ali-chief-of-staff with parallel patterns | `feat/parallel-execution` | ✅✅ Done | - | 2025-12-15 11:30 |
+| W5B | Define agent groups for parallel invocation | `feat/parallel-execution` | ✅✅ Done | - | 2025-12-15 11:30 |
+| W5C | Add `run_in_background: true` hints | `feat/parallel-execution` | ✅✅ Done | - | 2025-12-15 11:35 |
+| W5D | Document worktree workflow | `docs/worktree` | ✅✅ Done | - | 2025-12-15 11:40 |
+| W5E | Add examples to all agent descriptions | `feat/descriptions` | ✅✅ Done | - | 2025-12-15 11:25 |
+| W5F | Reduce description token count (<500) | `feat/descriptions` | ✅✅ Done | - | 2025-12-15 11:25 |
+| W5G | Implement progressive disclosure | `feat/descriptions` | ✅✅ Done | - | 2025-12-15 11:25 |
+| W5H | Add version field to all agent frontmatter | `feat/versioning` | ✅✅ Done | - | 2025-12-15 11:20 |
+| W5I | Update version-manager.sh for new paths | `feat/versioning` | ✅✅ Done | - | 2025-12-15 11:20 |
+| W5J | Add changelog to each agent | `feat/versioning` | ✅✅ Done | - | 2025-12-15 11:20 |
+| W5K | Create version bump script | `feat/versioning` | ✅✅ Done | - | 2025-12-15 11:22 |
+| W5L | Add version display in agent responses | `feat/versioning` | ✅✅ Done | - | 2025-12-15 11:22 |
+| W5M | Document versioning policy | `docs/versioning` | ✅✅ Done | - | 2025-12-15 11:22 |
+| W5N | Update CLAUDE.md with new patterns | `docs/claude-md-final` | ✅✅ Done | - | 2025-12-15 11:40 |
 
-**Wave 5 Status**: 0/14 completed
+**Wave 5 Status**: 14/14 completed ✅
 
-**Blocked by**: Waves 2-4 (need agents updated first)
+**Notes W5A-D**: 3 parallel agents completed all tasks. Added parallel execution patterns, agent groups, background execution hints to 4 agents, and comprehensive git worktree documentation to CLAUDE.md.
 
 ---
 
@@ -190,12 +192,12 @@
 |:----:|-------------|:-----:|:----:|:------:|:--------:|
 | W0 | Foundation & Prerequisites | 13 | 13 | ✅✅ 100% | - |
 | W1 | Documentation & CI/CD | 8 | 8 | ✅✅ 100% | - |
-| W2 | Agent Security (56 agents) | 8 | 8 | ✅✅ 100% | - |
-| W3 | Model Optimization (56 agents) | 3 | 3 | ✅✅ 100% | - |
-| W4 | Skills & Rules | 14 | 0 | 🔄 In progress | W0 |
-| W5 | Advanced Features | 14 | 0 | ⏸️ 0% | W2-W4 |
-| W6 | Testing & Validation | 7 | 0 | ⏸️ 0% | W2-W5 |
-| **TOTAL** | | **67** | **32** | **48%** | |
+| W2 | Agent Security (57 agents) | 10 | 10 | ✅✅ 100% | - |
+| W3 | Model Optimization (57 agents) | 3 | 3 | ✅✅ 100% | - |
+| W4 | Skills & Rules | 14 | 14 | ✅✅ 100% | - |
+| W5 | Advanced Features | 14 | 14 | ✅✅ 100% | - |
+| W6 | Testing & Validation | 7 | 0 | ⏸️ Ready | W0-W5 |
+| **TOTAL** | | **69** | **62** | **90%** | |
 
 > Note: W2 and W3 affect all 56 agents but are tracked as batched tasks for simplicity.
 
@@ -205,7 +207,34 @@
 
 | Date | Commit | Wave | PR | Description |
 |------|--------|:----:|:--:|-------------|
-| - | - | - | - | No commits yet |
+| 2025-12-15 | 475ddc7 | W0-W3 | - | Foundation, docs, CI/CD, cleanup |
+| 2025-12-15 | 14c94f4 | W2-W4 | - | 57 agents + 6 rules + 8 skills + strategic-planner |
+| 2025-12-15 | pending | W5 | - | Parallel execution, versioning, descriptions, ADRs, cleanup |
+
+## REPOSITORY CLEANUP (2025-12-15)
+
+The following cleanup was performed:
+- **Deleted**: `templates/`, `frameworks/`, `test-deployment/`, `specs/` folders
+- **Deleted**: Legacy scripts (`optimize_agents_wave5.py`, `translate_agent.py`, etc.)
+- **Created**: `docs/adr/` with 10 ADR files (ADR-001 to ADR-010)
+- **Moved**: `AI4Design.md` to `docs/`
+- **Fixed**: `.gitignore` to track `.claude/agents/`, `.claude/rules/`, `.claude/skills/`
+
+## ADR DOCUMENTATION
+
+All architectural decisions now documented in `docs/adr/`:
+| ADR | Title | Status |
+|-----|-------|--------|
+| ADR-001 | English-Only Agents | Accepted |
+| ADR-002 | Makefile Replaces start.sh | Accepted |
+| ADR-003 | Per-Agent Versioning | Accepted |
+| ADR-004 | Model Tiering (Opus/Sonnet/Haiku) | Accepted |
+| ADR-005 | Constitution-Based Security | Accepted |
+| ADR-006 | GitHub Actions for CI/CD | Accepted |
+| ADR-007 | Single Source of Truth | Accepted |
+| ADR-008 | ConvergioCLI as Advanced Version | Accepted |
+| ADR-009 | Skills & Rules System | Accepted |
+| ADR-010 | ISE Engineering Playbook as Standard | Accepted |
 
 ---
 

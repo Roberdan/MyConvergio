@@ -4,7 +4,8 @@
 # MYCONVERGIO VERSION MANAGER
 # =============================================================================
 # Handles version management for both the MyConvergio system and individual agents
-# Version: 1.0.0
+# Updated for .claude/agents/ directory structure (WAVE 5)
+# Version: 1.1.0
 # =============================================================================
 
 # Enable error handling and debugging
@@ -103,8 +104,12 @@ scan_agents() {
     # Keep the system version header
     grep -E '^#|^$|^SYSTEM_VERSION=' "$VERSION_FILE" > "$temp_file"
     
-    # Find all agent files and process them
-    find "$AGENTS_DIR" -type f -name "*.md" | while read -r agent_file; do
+    # Find all agent files and process them (excluding utility files)
+    find "$AGENTS_DIR" -type f -name "*.md" \
+        ! -name "CONSTITUTION.md" \
+        ! -name "MICROSOFT_VALUES.md" \
+        ! -name "CommonValuesAndPrinciples.md" \
+        ! -name "SECURITY_FRAMEWORK_TEMPLATE.md" | while read -r agent_file; do
         local agent_name=$(basename "$agent_file" .md)
         local current_version=$(get_agent_version "$agent_name")
         

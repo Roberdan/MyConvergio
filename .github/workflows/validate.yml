@@ -1,0 +1,109 @@
+name: Validate Constitution Compliance
+
+on:
+  pull_request:
+    paths:
+      - '.claude/agents/**'
+  push:
+    branches: [master, main]
+    paths:
+      - '.claude/agents/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Constitution exists
+        run: |
+          if [ ! -f ".claude/agents/core_utility/CONSTITUTION.md" ]; then
+            echo "❌ CONSTITUTION.md not found"
+            exit 1
+          fi
+          echo "✅ Constitution found"
+
+      - name: Validate Constitution structure
+        run: |
+          CONSTITUTION=".claude/agents/core_utility/CONSTITUTION.md"
+
+          # Check for required articles
+          REQUIRED_ARTICLES=("Article I" "Article II" "Article III" "Article IV" "Article V" "Article VI" "Article VII" "Article VIII")
+
+          for article in "${REQUIRED_ARTICLES[@]}"; do
+            if ! grep -q "$article" "$CONSTITUTION"; then
+              echo "❌ Missing $article in Constitution"
+              exit 1
+            fi
+          done
+          echo "✅ All required articles present"
+
+      - name: Check NON-NEGOTIABLE clause
+        run: |
+          if ! grep -q "NON-NEGOTIABLE" ".claude/agents/core_utility/CONSTITUTION.md"; then
+            echo "❌ Missing NON-NEGOTIABLE clause in Constitution"
+            exit 1
+          fi
+          echo "✅ NON-NEGOTIABLE clause present"
+
+      - name: Check accessibility section
+        run: |
+          CONSTITUTION=".claude/agents/core_utility/CONSTITUTION.md"
+
+          REQUIRED_TERMS=("Accessibility" "Inclusion" "Cultural" "disability" "discrimination")
+
+          for term in "${REQUIRED_TERMS[@]}"; do
+            if ! grep -qi "$term" "$CONSTITUTION"; then
+              echo "⚠️ Missing term: $term"
+            fi
+          done
+          echo "✅ Accessibility and inclusion terms checked"
+
+      - name: Validate agent security sections
+        run: |
+          MISSING=0
+          CHECKED=0
+
+          for file in $(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md'); do
+            CHECKED=$((CHECKED + 1))
+
+            # Check for security-related content
+            if ! grep -qi "Security\|Ethics\|Identity\|Anti-Hijacking" "$file"; then
+              echo "⚠️ Missing security framework: $(basename $file)"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+
+          echo ""
+          echo "Checked: $CHECKED agents"
+          echo "Missing security: $MISSING agents"
+
+          # Warning but don't fail (security is being added progressively)
+          if [ "$MISSING" -gt 0 ]; then
+            echo "⚠️ $MISSING agents need security framework update"
+          else
+            echo "✅ All agents have security framework"
+          fi
+
+      - name: Check for model field (cost optimization)
+        run: |
+          TOTAL=0
+          WITH_MODEL=0
+
+          for file in $(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md'); do
+            TOTAL=$((TOTAL + 1))
+            if grep -q '^model:' "$file"; then
+              WITH_MODEL=$((WITH_MODEL + 1))
+            fi
+          done
+
+          echo "Model field coverage: $WITH_MODEL / $TOTAL agents"
+
+          # Just report, don't fail
+          if [ "$WITH_MODEL" -eq "$TOTAL" ]; then
+            echo "✅ All agents have model field (cost optimized)"
+          else
+            echo "ℹ️ $(($TOTAL - $WITH_MODEL)) agents pending model field"
+          fi

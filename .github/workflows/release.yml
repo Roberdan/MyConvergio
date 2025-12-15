@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing version: $VERSION"
+
+      - name: Verify VERSION file matches tag
+        run: |
+          FILE_VERSION=$(grep '^SYSTEM_VERSION=' VERSION | cut -d'=' -f2)
+          TAG_VERSION=${{ steps.version.outputs.VERSION }}
+
+          if [ "$FILE_VERSION" != "$TAG_VERSION" ]; then
+            echo "❌ VERSION file ($FILE_VERSION) doesn't match tag ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "✅ Version matches: $FILE_VERSION"
+
+      - name: Count agents
+        id: count
+        run: |
+          AGENT_COUNT=$(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' | wc -l | tr -d ' ')
+          echo "AGENT_COUNT=$AGENT_COUNT" >> $GITHUB_OUTPUT
+          echo "Agent count: $AGENT_COUNT"
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          cat << EOF > release_notes.md
+          # MyConvergio v${{ steps.version.outputs.VERSION }}
+
+          ## 📦 What's Included
+
+          - **${{ steps.count.outputs.AGENT_COUNT }} specialized agents** for Claude Code
+          - **Constitution-based security** with ethical guardrails
+          - **Cost-optimized model tiering** (Opus/Sonnet/Haiku)
+
+          ## 🚀 Quick Start
+
+          \`\`\`bash
+          # Clone and install
+          git clone https://github.com/roberdan/MyConvergio.git
+          cd MyConvergio
+          make install
+
+          # Use agents
+          @ali-chief-of-staff Help me plan my project
+          \`\`\`
+
+          ## 📋 Agent Categories
+
+          - **Leadership & Strategy**: 7 agents
+          - **Technical Development**: 7 agents
+          - **Business Operations**: 11 agents
+          - **Design & UX**: 3 agents
+          - **Compliance & Legal**: 5 agents
+          - **Specialized Experts**: 13 agents
+          - **Core Utility**: 8 agents
+          - **Release Management**: 2 agents
+
+          ## 📖 Documentation
+
+          - [README](https://github.com/roberdan/MyConvergio#readme)
+          - [Agentic Manifesto](./AgenticManifesto.md)
+          - [Constitution](./claude/agents/core_utility/CONSTITUTION.md)
+
+          ## 🔗 Related
+
+          - [ConvergioCLI](https://github.com/Roberdan/convergio-cli) - Advanced local CLI with Apple Silicon optimization
+
+          ---
+
+          *Built with ❤️ following the Agentic Manifesto principles*
+          EOF
+
+          echo "Release notes generated"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: MyConvergio v${{ steps.version.outputs.VERSION }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

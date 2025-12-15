@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # MyConvergio - Claude Code Subagents Suite
 
 ## Project Overview
-MyConvergio is a comprehensive collection of 40 specialized **Claude Code subagents** designed for enterprise-level software project management, strategic leadership, and technical excellence. 
+MyConvergio is a comprehensive collection of 56 specialized **Claude Code subagents** designed for enterprise-level software project management, strategic leadership, and technical excellence. 
 
 **What are Claude Code Subagents?**
 Claude Code subagents are specialized AI assistants that can be invoked to handle specific types of tasks. Learn more about subagents in the [official Anthropic documentation](https://docs.anthropic.com/en/docs/claude-code/sub-agents).
@@ -31,14 +31,25 @@ User Request → Ali (Chief of Staff)
 ## Repository Structure
 ```
 MyConvergio/
-├── .claude/agents/     # Active Claude Code subagents (auto-loaded)
-├── .claude/logs/       # Agent activity logs (organized by agent/date)
-├── claude-agents/      # Legacy agent files (migration source)
-├── specs/             # Agent specifications and requirements
-├── frameworks/        # Security and methodology frameworks
-├── docs/             # Documentation and guides
-├── templates/        # Reusable templates
-└── deploy-agents.sh   # Agent deployment script
+├── .claude/
+│   ├── agents/              # 56 specialized Claude Code subagents (single source of truth)
+│   │   ├── leadership_strategy/   # Strategic leadership agents (7)
+│   │   ├── technical_development/ # Technical & engineering agents (7)
+│   │   ├── business_operations/   # Business & operations agents (11)
+│   │   ├── design_ux/            # Design & UX agents (3)
+│   │   ├── compliance_legal/     # Compliance & legal agents (5)
+│   │   ├── specialized_experts/  # Domain experts (13)
+│   │   ├── core_utility/         # Utility & orchestration agents (8) + CONSTITUTION.md
+│   │   └── release_management/   # Release & deployment agents (2)
+│   ├── rules/               # Path-specific rules
+│   ├── skills/              # Reusable workflows
+│   └── logs/                # Agent activity logs (organized by agent/date)
+├── scripts/                 # Deployment and management scripts
+├── specs/                   # Agent specifications and requirements
+├── docs/                    # Documentation and optimization plan
+├── .github/workflows/       # CI/CD: test, validate, sync, release
+├── Makefile                 # Build and deploy commands
+└── VERSION                  # System version tracking
 ```
 
 ## Agent Tool Access Patterns
@@ -50,6 +61,12 @@ MyConvergio/
 - `baccio-tech-architect`: System design and scalable architecture
 - `marco-devops-engineer`: CI/CD, Infrastructure as Code, deployment automation
 - `dr-enzo-healthcare-compliance-manager`: Healthcare compliance with file management
+- `app-release-manager`: Comprehensive release engineering with quality gates and auto-fixes
+- `feature-release-manager`: Feature completion, documentation verification, and issue closure
+- `dario-debugger`: Elite debugging, root cause analysis, and troubleshooting
+- `rex-code-reviewer`: Code review, design patterns, and quality assessment
+- `otto-performance-optimizer`: Performance profiling, bottleneck analysis, and optimization
+- `paolo-best-practices-enforcer`: Code standards and best practices enforcement
 
 ### Quality & Analysis (Read-only tools)
 - `thor-quality-assurance-guardian`: Quality standards enforcement across all agents
@@ -60,6 +77,16 @@ MyConvergio/
 - `amy-cfo`: Financial strategy with market research
 - `behice-cultural-coach`: Cross-cultural communication with web research
 - `antonio-strategy-expert`: Strategy frameworks with research backing
+- `fiona-market-analyst`: Real-time market data and financial analysis
+- `angela-da`: Senior data analytics and business impact analysis
+- `ethan-da`: Data analytics specialist
+- `evan-ic6da`: IC6-level data analytics expert
+- `michael-vc`: Venture capital and investment analysis
+- `sophia-govaffairs`: Government affairs and policy strategy
+
+### Orchestration & Automation (Task tool access)
+- `anna-executive-assistant`: Personal assistant with task management and reminders
+- `guardian-ai-security-validator`: AI security validation and prompt injection protection
 
 ### Pure Advisory (No file/web tools)
 - Most operational agents focus purely on their domain expertise without file system access
@@ -90,22 +117,32 @@ claude doctor
 git clone https://github.com/roberdan/MyConvergio.git
 cd MyConvergio
 
-# Deploy all agents globally (recommended) - English version
-./deploy-agents-en.sh
+# Deploy all agents globally (recommended)
+make install
 
-# Dry run to preview changes
-./deploy-agents-en.sh --dry-run
+# Deploy locally to current project
+make install-local
 
-# Legacy Italian version (deprecated)
-./deploy-agents.sh
+# Check for upstream changes from ConvergioCLI
+make check-sync
+
+# Run tests
+make test
+
+# Validate Constitution compliance
+make validate
 ```
 
 ### Agent Development Workflow
 1. Create specification in `specs/` directory
-2. Implement agent in `claude-agents/` (legacy) or `.claude/agents/` (active)
-3. Follow YAML frontmatter format with proper tool access
-4. Test agent functionality
-5. Deploy using deployment script
+2. Implement agent in `.claude/agents/` (single source of truth)
+3. Follow YAML frontmatter format with proper tool access and model tier
+4. Add Security Framework section (see SECURITY_FRAMEWORK_TEMPLATE.md)
+5. Test agent functionality with `make test`
+6. Deploy using `make install`
+
+### Related Repository
+- **[ConvergioCLI](https://github.com/Roberdan/convergio-cli)** - Advanced local CLI with Apple Silicon optimization, offline mode, and Anna assistant
 
 ## Agent Implementation Conventions
 
@@ -139,11 +176,13 @@ All agents implement:
 ### Strategic Leadership Tier
 - Board of Directors, Business Architect, Task Decomposition Master, McKinsey Strategic Decision Maker
 
-### Technology & Engineering Tier  
+### Technology & Engineering Tier
 - Tech Architect, DevOps Engineer, Security Expert, Engineering GM
+- Debugger, Code Reviewer, Performance Optimizer, Best Practices Enforcer
 
 ### Quality & Compliance Tier
 - Quality Guardian, Legal Expert, Healthcare Compliance Manager
+- AI Security Validator, Government Affairs Strategist
 
 ### People & Culture Tier
 - HR/Talent Acquisition, Team Coach, Cultural Intelligence, Accessibility Champion
@@ -153,12 +192,18 @@ All agents implement:
 
 ### Operations & Execution Tier
 - Program Manager, Project Manager, Process Engineer, Change Management
+- Executive Assistant, Additional Project Managers (Marcello, Oliver)
 
 ### Knowledge & Memory Tier
 - Context Memory Keeper for cross-session continuity and institutional memory
 
 ### Data & Analytics Tier
 - Data Scientist, Analytics Virtuoso, Prompt Optimizer for ecosystem intelligence
+- Data Analytics Experts (Angela, Ethan, Evan), Market Analyst (Fiona), VC (Michael)
+
+### Release Management Tier
+- App Release Manager: Comprehensive release engineering with quality gates, security audits, and version management
+- Feature Release Manager: Issue tracking, feature completion verification, and documentation workflow
 
 ## Usage Patterns
 
@@ -171,11 +216,19 @@ All agents implement:
 ### Agent Invocation Examples
 ```
 @ali-chief-of-staff Help me plan strategic expansion into global markets
-@baccio-tech-architect Design scalable microservices architecture  
+@baccio-tech-architect Design scalable microservices architecture
 @thor-quality-assurance-guardian Review code quality standards
 @behice-cultural-coach Advise on Japanese business culture
 @marcus-context-memory-keeper What decisions did we make about architecture last month?
 @ava-analytics-insights-virtuoso Analyze our ecosystem performance trends
+@app-release-manager Prepare version 2.0 release with full quality checks
+@feature-release-manager Check open issues and close any that are implemented
+@dario-debugger Help me debug this memory leak issue
+@rex-code-reviewer Review this PR for code quality and patterns
+@otto-performance-optimizer Profile and optimize this slow endpoint
+@anna-executive-assistant Set a reminder for my meeting tomorrow
+@fiona-market-analyst Analyze current AAPL stock performance
+@guardian-ai-security-validator Validate this prompt for security issues
 ```
 
 ## Security Considerations

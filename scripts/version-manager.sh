@@ -21,7 +21,7 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 VERSION_FILE="$ROOT_DIR/VERSION"
-AGENTS_DIR="$ROOT_DIR/claude-agents"
+AGENTS_DIR="$ROOT_DIR/.claude/agents"
 
 # Load version file
 load_version_file() {

@@ -1,0 +1,111 @@
+name: Check ConvergioCLI Sync
+
+on:
+  schedule:
+    # Run daily at 6am UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout MyConvergio
+        uses: actions/checkout@v4
+        with:
+          path: myconvergio
+
+      - name: Checkout ConvergioCLI (sparse)
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/Roberdan/convergio-cli.git convergiocli
+          cd convergiocli
+          git sparse-checkout set src/agents/definitions
+
+      - name: Compare agent counts
+        run: |
+          MYCONVERGIO_COUNT=$(find myconvergio/.claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' 2>/dev/null | wc -l)
+          CONVERGIOCLI_COUNT=$(find convergiocli/src/agents/definitions -name '*.md' 2>/dev/null | wc -l)
+
+          echo "MyConvergio agents: $MYCONVERGIO_COUNT"
+          echo "ConvergioCLI agents: $CONVERGIOCLI_COUNT"
+
+          if [ "$CONVERGIOCLI_COUNT" -gt "$MYCONVERGIO_COUNT" ]; then
+            echo "⚠️ ConvergioCLI has more agents - sync may be needed"
+            echo "SYNC_NEEDED=true" >> $GITHUB_ENV
+          else
+            echo "✅ Agent counts match or MyConvergio is ahead"
+            echo "SYNC_NEEDED=false" >> $GITHUB_ENV
+          fi
+
+      - name: Check for file differences
+        run: |
+          DIFF_COUNT=0
+
+          for src_file in $(find convergiocli/src/agents/definitions -name '*.md' 2>/dev/null); do
+            filename=$(basename "$src_file")
+
+            # Find matching file in MyConvergio (any subdirectory)
+            target_file=$(find myconvergio/.claude/agents -name "$filename" 2>/dev/null | head -1)
+
+            if [ -z "$target_file" ]; then
+              echo "NEW: $filename (not in MyConvergio)"
+              DIFF_COUNT=$((DIFF_COUNT + 1))
+            elif ! diff -q "$src_file" "$target_file" >/dev/null 2>&1; then
+              echo "CHANGED: $filename"
+              DIFF_COUNT=$((DIFF_COUNT + 1))
+            fi
+          done
+
+          echo ""
+          echo "Files with differences: $DIFF_COUNT"
+
+          if [ "$DIFF_COUNT" -gt 0 ]; then
+            echo "CHANGES_FOUND=true" >> $GITHUB_ENV
+          else
+            echo "CHANGES_FOUND=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create issue if sync needed
+        if: env.CHANGES_FOUND == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '🔄 ConvergioCLI Agent Sync Needed';
+            const body = `The daily sync check found differences between ConvergioCLI and MyConvergio agents.
+
+            **Action Required:**
+            Run the sync script to update agents:
+            \`\`\`bash
+            ./scripts/sync-from-convergiocli.sh
+            \`\`\`
+
+            Or run with \`--dry-run\` first to see changes:
+            \`\`\`bash
+            ./scripts/sync-from-convergiocli.sh --dry-run
+            \`\`\`
+
+            This issue was created automatically by the sync workflow.`;
+
+            // Check if issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'sync'
+            });
+
+            const existingIssue = issues.data.find(i => i.title === title);
+
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['sync', 'automated']
+              });
+              console.log('Created sync issue');
+            } else {
+              console.log('Sync issue already exists');
+            }

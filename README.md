@@ -283,11 +283,23 @@ A comprehensive ecosystem of 40 specialized agents with enterprise-grade orchest
 
 ```
 MyConvergio/
-├── claude-agents/   # Claude Code subagents
-├── specs/           # Detailed agent specifications
-├── templates/       # Reusable templates and frameworks
-├── frameworks/      # Methodologies and best practices
-└── docs/           # Documentation and guides
+├── .claude/
+│   ├── agents/              # 56 specialized Claude Code subagents
+│   │   ├── leadership_strategy/
+│   │   ├── technical_development/
+│   │   ├── business_operations/
+│   │   ├── design_ux/
+│   │   ├── compliance_legal/
+│   │   ├── specialized_experts/
+│   │   ├── core_utility/
+│   │   └── release_management/
+│   ├── rules/               # Path-specific rules
+│   └── skills/              # Reusable workflows
+├── scripts/                 # Deployment and management scripts
+├── specs/                   # Agent specifications
+├── docs/                    # Documentation and guides
+├── Makefile                 # Build and deploy commands
+└── VERSION                  # System version tracking
 ```
 
 ## Implementation Status
@@ -329,8 +341,14 @@ claude doctor
 git clone https://github.com/roberdan/MyConvergio.git
 cd MyConvergio
 
-# Deploy all agents
-./deploy-agents-en.sh
+# Deploy all agents globally
+make install
+
+# Or deploy locally to current project
+make install-local
+
+# Check sync status with ConvergioCLI
+make check-sync
 ```
 
 ### 2. Use Your Agent Ecosystem
@@ -379,7 +397,8 @@ Licensed under [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 Intern
 
 ### 🔗 Related Projects
 
-Part of the [Convergio.io](https://convergio.io) initiative (coming soon)
+- **[ConvergioCLI](https://github.com/Roberdan/convergio-cli)** - Advanced local CLI with Apple Silicon optimization, Anna executive assistant, offline mode with local models, and macOS-native features
+- Part of the [Convergio.io](https://convergio.io) initiative (coming soon)
 
 ### 🤝 Contributing
 

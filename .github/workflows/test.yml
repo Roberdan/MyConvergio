@@ -1,0 +1,86 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [master, main]
+  push:
+    branches: [master, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify directory structure
+        run: |
+          echo "Checking directory structure..."
+          test -d .claude/agents || (echo "Missing .claude/agents/" && exit 1)
+          test -d .claude/rules || (echo "Missing .claude/rules/" && exit 1)
+          test -d .claude/skills || (echo "Missing .claude/skills/" && exit 1)
+          test -f Makefile || (echo "Missing Makefile" && exit 1)
+          test -f VERSION || (echo "Missing VERSION" && exit 1)
+          echo "✅ Directory structure OK"
+
+      - name: Count agents
+        run: |
+          AGENT_COUNT=$(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' | wc -l)
+          echo "Found $AGENT_COUNT agents"
+          if [ "$AGENT_COUNT" -lt 50 ]; then
+            echo "❌ Expected at least 50 agents, found $AGENT_COUNT"
+            exit 1
+          fi
+          echo "✅ Agent count OK"
+
+      - name: Validate YAML frontmatter
+        run: |
+          ERRORS=0
+          for file in $(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md'); do
+            if ! head -1 "$file" | grep -q '^---$'; then
+              echo "❌ Missing YAML frontmatter: $file"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "Found $ERRORS files with missing frontmatter"
+            exit 1
+          fi
+          echo "✅ YAML frontmatter OK"
+
+      - name: Check required fields
+        run: |
+          ERRORS=0
+          for file in $(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md'); do
+            if ! grep -q '^name:' "$file"; then
+              echo "❌ Missing name field: $file"
+              ERRORS=$((ERRORS + 1))
+            fi
+            if ! grep -q '^description:' "$file"; then
+              echo "❌ Missing description field: $file"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          if [ "$ERRORS" -gt 0 ]; then
+            exit 1
+          fi
+          echo "✅ Required fields OK"
+
+      - name: Verify Constitution exists
+        run: |
+          test -f .claude/agents/core_utility/CONSTITUTION.md || (echo "Missing CONSTITUTION.md" && exit 1)
+          grep -q 'Article VII' .claude/agents/core_utility/CONSTITUTION.md || (echo "Missing Article VII" && exit 1)
+          grep -q 'NON-NEGOTIABLE' .claude/agents/core_utility/CONSTITUTION.md || (echo "Missing NON-NEGOTIABLE clause" && exit 1)
+          echo "✅ Constitution OK"
+
+      - name: Check for legacy files (should not exist)
+        run: |
+          if [ -d "claude-agents" ] || [ -d "claude-agenti" ] || [ -f "start.sh" ]; then
+            echo "❌ Legacy files still present"
+            exit 1
+          fi
+          echo "✅ No legacy files"
+
+      - name: Run Makefile lint
+        run: make lint

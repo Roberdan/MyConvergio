@@ -15,15 +15,15 @@
 
 ---
 
-## Start Here: Just Ask Ali
+## How It Works
 
-**For everything, just ask Ali - he'll coordinate the entire ecosystem for you**
+**Each agent is a specialized AI assistant you invoke directly:**
 
 ```bash
-@ali-chief-of-staff [your request here]
+@agent-name [your request here]
 ```
 
-Ali is your **single point of contact** who automatically orchestrates all 60 specialists to deliver comprehensive, integrated solutions.
+**Important**: Agents operate in **isolated contexts** - they don't automatically communicate with each other. If you need coordination between agents, you must explicitly ask one agent (like Ali) to invoke others and pass context manually.
 
 ---
 
@@ -118,7 +118,7 @@ make help
 ### Usage Examples
 
 ```bash
-# Strategic coordination (Ali orchestrates everything)
+# Strategic planning
 @ali-chief-of-staff Help me design our global expansion strategy
 
 # Technical architecture
@@ -155,14 +155,14 @@ make help
 
 | Tier | Count | Agents | Use Case |
 |------|-------|--------|----------|
-| **Opus** | 2 | ali-chief-of-staff, satya-board-of-directors | Complex orchestration |
+| **Opus** | 2 | ali-chief-of-staff, satya-board-of-directors | Complex reasoning |
 | **Sonnet** | 14 | Strategic specialists (baccio, domik, thor, etc.) | Strategic decisions |
 | **Haiku** | 41 | Workers and specialists | Quick tasks |
 
 ### Key Agents
 
-**Orchestrators:**
-- `ali-chief-of-staff` - Master coordinator for all agents
+**Leadership:**
+- `ali-chief-of-staff` - Strategic coordination and planning (can invoke other agents if asked)
 - `satya-board-of-directors` - Strategic vision and governance
 
 **Technical:**

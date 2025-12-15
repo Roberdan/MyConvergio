@@ -58,7 +58,7 @@ test:
 
 lint:
 	@echo "$(BLUE)Linting agent YAML frontmatter...$(NC)"
-	@for file in $$(find $(AGENTS_SRC) -name '*.md'); do \
+	@for file in $$(find $(AGENTS_SRC) -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'MICROSOFT_VALUES.md'); do \
 		if ! head -1 "$$file" | grep -q '^---$$'; then \
 			echo "$(YELLOW)Warning: $$file missing YAML frontmatter$(NC)"; \
 		fi; \

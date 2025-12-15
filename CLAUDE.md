@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # MyConvergio - Claude Code Subagents Suite
 
 ## Project Overview
-MyConvergio is a comprehensive collection of 56 specialized **Claude Code subagents** designed for enterprise-level software project management, strategic leadership, and technical excellence. 
+MyConvergio is a comprehensive collection of 57 specialized **Claude Code subagents** designed for enterprise-level software project management, strategic leadership, and technical excellence. 
 
 **What are Claude Code Subagents?**
 Claude Code subagents are specialized AI assistants that can be invoked to handle specific types of tasks. Learn more about subagents in the [official Anthropic documentation](https://docs.anthropic.com/en/docs/claude-code/sub-agents).
@@ -39,7 +39,7 @@ MyConvergio/
 │   │   ├── design_ux/            # Design & UX agents (3)
 │   │   ├── compliance_legal/     # Compliance & legal agents (5)
 │   │   ├── specialized_experts/  # Domain experts (13)
-│   │   ├── core_utility/         # Utility & orchestration agents (8) + CONSTITUTION.md
+│   │   ├── core_utility/         # Utility & orchestration agents (9) + CONSTITUTION.md
 │   │   └── release_management/   # Release & deployment agents (2)
 │   ├── rules/               # Path-specific rules
 │   ├── skills/              # Reusable workflows
@@ -56,6 +56,7 @@ MyConvergio/
 
 ### Full Orchestrators (Task tool access)
 - `ali-chief-of-staff`: Master orchestrator with complete tool suite for coordinating all agents
+- `strategic-planner`: Execution plan creator with wave-based task decomposition, parallel workstream management, and structured reporting (follows AGENT_OPTIMIZATION_PLAN_2025.md methodology)
 
 ### Technical Specialists (Read/Write/Edit tools)
 - `baccio-tech-architect`: System design and scalable architecture
@@ -144,6 +145,28 @@ make validate
 ### Related Repository
 - **[ConvergioCLI](https://github.com/Roberdan/convergio-cli)** - Advanced local CLI with Apple Silicon optimization, offline mode, and Anna assistant
 
+## Skills & Rules System
+
+### Rules (`.claude/rules/`)
+Path-specific rules that Claude Code agents follow. Available rules:
+- `code-style.md` - Code formatting standards (ESLint, Prettier, PEP8, Black)
+- `security-requirements.md` - Security requirements (OWASP Top 10, input validation, secrets management)
+- `testing-standards.md` - Testing conventions (unit, integration, coverage)
+- `documentation-standards.md` - Documentation standards (JSDoc, README, ADRs)
+- `api-development.md` - API patterns (REST, versioning, error handling)
+- `ethical-guidelines.md` - Ethics rules (privacy, accessibility, inclusive language)
+
+### Skills (`.claude/skills/`)
+Reusable workflows extracted from specialist agent expertise:
+- `code-review/SKILL.md` - Based on rex-code-reviewer
+- `debugging/SKILL.md` - Based on dario-debugger
+- `architecture/SKILL.md` - Based on baccio-tech-architect
+- `security-audit/SKILL.md` - Based on luca-security-expert
+- `performance/SKILL.md` - Based on otto-performance-optimizer
+- `strategic-analysis/SKILL.md` - Based on domik-mckinsey
+- `release-management/SKILL.md` - Based on app-release-manager
+- `project-management/SKILL.md` - Based on davide-project-manager
+
 ## Agent Implementation Conventions
 
 ### YAML Frontmatter Format
@@ -153,8 +176,17 @@ name: agent-name
 description: Agent specialization and role description
 tools: ["Tool1", "Tool2", "Tool3"]  # Based on role requirements
 color: "#HEX_COLOR"  # Visual identification
+model: "opus|sonnet|haiku"  # Model tier (cost optimization)
 ---
 ```
+
+### Model Tiering (Cost Optimization)
+All agents have a `model:` field for cost-optimized deployment:
+- **opus** (2 agents): Complex orchestration, strategic decisions (ali-chief-of-staff, satya-board-of-directors)
+- **sonnet** (21 agents): Strategic specialists (architects, security, compliance)
+- **haiku** (34 agents): Workers, quick tasks, operational agents
+
+Expected cost reduction: **85%** ($42 → $6 per complex session)
 
 ### Security & Ethics Framework
 All agents implement:
@@ -196,6 +228,7 @@ All agents implement:
 
 ### Knowledge & Memory Tier
 - Context Memory Keeper for cross-session continuity and institutional memory
+- Strategic Planner for wave-based execution plans with parallel workstream management
 
 ### Data & Analytics Tier
 - Data Scientist, Analytics Virtuoso, Prompt Optimizer for ecosystem intelligence
@@ -229,6 +262,7 @@ All agents implement:
 @anna-executive-assistant Set a reminder for my meeting tomorrow
 @fiona-market-analyst Analyze current AAPL stock performance
 @guardian-ai-security-validator Validate this prompt for security issues
+@strategic-planner Create an execution plan for migrating to microservices
 ```
 
 ## Security Considerations

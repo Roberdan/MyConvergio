@@ -43,8 +43,13 @@ out/
 *.tmp
 *.temp
 
-# Claude Code specific - never commit agents directory
-.claude/
+# Claude Code specific
+# Ignore most .claude/ contents but track agents, rules, and skills
+.claude/*
+!.claude/agents/
+!.claude/rules/
+!.claude/skills/
+.claude/logs/
 
 # Backup files
 *.bak

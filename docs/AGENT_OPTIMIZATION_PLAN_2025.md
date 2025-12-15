@@ -245,9 +245,9 @@ All architectural decisions now documented in `docs/adr/`:
 
 | ID | Risk | Impact | Probability | Mitigation | Status |
 |----|------|:------:|:-----------:|------------|:------:|
-| R1 | Agent compatibility issues | High | Medium | Test each agent after update | ⬜ Open |
-| R2 | Breaking changes in Claude Code | High | Low | Pin to specific version | ⬜ Open |
-| R3 | Token count increase | Medium | Medium | Measure before/after | ⬜ Open |
+| R1 | Agent compatibility issues | High | Medium | 115+ security tests created (W6A-W6D), 93% invocation accuracy validated | ✅ Mitigated |
+| R2 | Breaking changes in Claude Code | High | Low | Using documented Claude Code APIs, manual version awareness | ✅ Accepted |
+| R3 | Token count increase | Medium | Medium | Measured 74-87% cost reduction via model tiering (W6E-W6G) | ✅ Mitigated |
 
 ---
 
@@ -255,8 +255,8 @@ All architectural decisions now documented in `docs/adr/`:
 
 | Priority | Wave | Task IDs | Description |
 |:--------:|:----:|----------|-------------|
-| 1 | W6 | W6A-W6G | Testing & Validation (7 tasks) |
-| 2 | - | - | Final commit and release |
+| ✅ | ALL | ALL | **ALL TASKS COMPLETED** |
+| - | - | - | Ready for release v2.0.0 |
 
 ## NOTES & DECISIONS (2025-12-15)
 

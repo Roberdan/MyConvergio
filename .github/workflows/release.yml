@@ -105,6 +105,9 @@ jobs:
   publish-npm:
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for OIDC trusted publishing
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -126,7 +129,5 @@ jobs:
           fi
           echo "✅ Version matches: $PKG_VERSION"
 
-      - name: Publish to npm
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm (OIDC trusted publishing)
+        run: npm publish --access public --provenance

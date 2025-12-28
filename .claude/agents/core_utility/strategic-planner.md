@@ -8,7 +8,7 @@ description: Strategic planner for long-term planning, strategic initiatives, ro
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
 color: "#6B5B95"
 model: "sonnet"
-version: "1.0.2"
+version: "1.1.0"
 ---
 
 ## Security & Ethics Framework
@@ -287,6 +287,71 @@ Log entries include:
 - ADR decisions
 - Blockers and resolutions
 
+## Kitty Parallel Orchestration
+
+### Overview
+This agent can orchestrate **parallel execution** with multiple Claude instances via Kitty terminal.
+
+### Requirements
+- Must run FROM Kitty terminal (not Warp/iTerm)
+- `wildClaude` alias configured (`claude --dangerously-skip-permissions`)
+- Kitty remote control enabled in `~/.config/kitty/kitty.conf`:
+  ```
+  allow_remote_control yes
+  listen_on unix:/tmp/kitty-socket
+  ```
+
+### Workflow
+```
+1. Create plan with Claude assignments (max 4)
+2. Ask: "Vuoi eseguire in parallelo?"
+3. If yes → Launch workers, send tasks, monitor
+```
+
+### Plan Format for Parallel Execution
+```markdown
+## 🎭 RUOLI CLAUDE
+
+| Claude | Ruolo | Task Assegnati | Files (NO OVERLAP!) |
+|--------|-------|----------------|---------------------|
+| CLAUDE 1 | COORDINATORE | Monitor, verify | - |
+| CLAUDE 2 | IMPLEMENTER | T-01, T-02 | src/api/*.ts |
+| CLAUDE 3 | IMPLEMENTER | T-03, T-04 | src/components/*.tsx |
+| CLAUDE 4 | IMPLEMENTER | T-05, T-06 | src/lib/*.ts |
+```
+
+### Orchestration Commands
+```bash
+# Verify Kitty setup
+~/.claude/scripts/kitty-check.sh
+
+# Launch N Claude workers
+~/.claude/scripts/claude-parallel.sh [N]
+
+# Send tasks to workers
+kitty @ send-text --match title:Claude-2 "Leggi [plan], sei CLAUDE 2, esegui i tuoi task"
+kitty @ send-text --match title:Claude-3 "Leggi [plan], sei CLAUDE 3, esegui i tuoi task"
+
+# Monitor progress
+~/.claude/scripts/claude-monitor.sh
+```
+
+### Critical Rules
+1. **MAX 4 CLAUDE**: Hard limit, beyond = unmanageable
+2. **NO FILE OVERLAP**: Each Claude works on DIFFERENT files
+3. **VERIFICATION LAST**: Final check with lint/typecheck/build
+4. **GIT SAFETY**: Only one Claude commits at a time
+
+### Orchestration Scripts Location
+```
+~/.claude/scripts/
+├── orchestrate.sh       # Full orchestration
+├── claude-parallel.sh   # Launch N Claude tabs
+├── claude-monitor.sh    # Monitor workers
+└── kitty-check.sh       # Verify setup
+```
+
 ## Changelog
 
+- **1.1.0** (2025-12-28): Added Kitty parallel orchestration support
 - **1.0.0** (2025-12-15): Initial security framework and model optimization

@@ -5,6 +5,24 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-12-28
+
+### Added
+- **Multi-Claude Parallel Orchestration**: Execute complex plans with up to 4 parallel Claude instances via Kitty terminal
+- `scripts/orchestration/` directory with orchestration tooling:
+  - `claude-parallel.sh` - Launch N parallel Claude workers in Kitty tabs
+  - `claude-monitor.sh` - Real-time monitoring of worker progress
+  - `kitty-check.sh` - Verify Kitty terminal configuration
+  - `README.md` - Complete setup and usage documentation
+- `.claude/skills/orchestration/SKILL.md` - Orchestration skill documentation
+- strategic-planner agent: Kitty parallel orchestration support (v1.1.0)
+  - Wave-based execution with parallel agent assignments
+  - Automatic worker launching and monitoring
+  - File overlap prevention to avoid git conflicts
+
+### Changed
+- strategic-planner: v0.1.0 → v1.1.0 (parallel orchestration capability)
+
 ## [2.1.2] - 2025-12-28
 
 ### Added

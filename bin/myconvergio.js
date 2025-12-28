@@ -131,18 +131,37 @@ function createBackup() {
   return null;
 }
 
+function hasExistingContent() {
+  const dirs = ['agents', 'rules', 'skills'];
+  for (const dir of dirs) {
+    const dirPath = path.join(CLAUDE_HOME, dir);
+    if (fs.existsSync(dirPath) && fs.readdirSync(dirPath).length > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function install(skipBackup = false) {
   log(colors.blue, 'Installing MyConvergio to ~/.claude/...\n');
 
-  // Check for existing installation
+  // Check for existing content and ALWAYS backup if found
   const existingManifest = loadManifest();
-  if (existingManifest.version && !skipBackup) {
-    log(colors.yellow, `Existing installation found (v${existingManifest.version})`);
-    log(colors.yellow, 'Creating backup before upgrade...\n');
+  const hasContent = hasExistingContent();
+
+  if (!skipBackup && hasContent) {
+    if (existingManifest.version) {
+      log(colors.yellow, `Upgrading from v${existingManifest.version}...`);
+    } else {
+      log(colors.yellow, 'Existing ~/.claude/ content detected.');
+    }
+    log(colors.yellow, 'Creating backup before installation...\n');
     const backupDir = createBackup();
     if (backupDir) {
       log(colors.green, `  ✓ Backup created: ${backupDir}\n`);
     }
+  } else if (!hasContent) {
+    log(colors.blue, 'Fresh installation to ~/.claude/\n');
   }
 
   const srcAgents = path.join(PACKAGE_ROOT, '.claude', 'agents');

@@ -111,6 +111,17 @@ function countDirs(dir) {
   ).length;
 }
 
+function hasExistingContent() {
+  const dirs = ['agents', 'rules', 'skills'];
+  for (const dir of dirs) {
+    const dirPath = path.join(CLAUDE_HOME, dir);
+    if (fs.existsSync(dirPath) && fs.readdirSync(dirPath).length > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function main() {
   // Skip if running in CI or if MYCONVERGIO_SKIP_POSTINSTALL is set
   if (process.env.CI || process.env.MYCONVERGIO_SKIP_POSTINSTALL) {
@@ -130,15 +141,24 @@ function main() {
     return;
   }
 
-  // Check for existing installation and backup
+  // Check for existing content and ALWAYS backup if found
   const existingManifest = loadManifest();
+  const hasContent = hasExistingContent();
+
   if (existingManifest.version) {
-    log(colors.yellow, `Existing installation found (v${existingManifest.version})`);
-    log(colors.yellow, 'Creating backup before upgrade...\n');
+    log(colors.yellow, `Upgrading from v${existingManifest.version}...`);
+  } else if (hasContent) {
+    log(colors.yellow, 'Existing ~/.claude/ content detected (not installed via npm).');
+  }
+
+  if (hasContent) {
+    log(colors.yellow, 'Creating backup before installation...\n');
     const backupDir = createBackup();
     if (backupDir) {
       log(colors.green, `  ✓ Backup created: ${backupDir}\n`);
     }
+  } else {
+    log(colors.blue, 'Fresh installation to ~/.claude/\n');
   }
 
   const installedFiles = [];

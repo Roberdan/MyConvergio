@@ -29,7 +29,8 @@ const colors = {
 };
 
 function log(color, message) {
-  console.log(`${color}${message}${colors.reset}`);
+  // Use stderr for npm postinstall visibility (npm suppresses stdout)
+  process.stderr.write(`${color}${message}${colors.reset}\n`);
 }
 
 function copyRecursive(src, dest, installedFiles = []) {
@@ -181,12 +182,12 @@ function main() {
   saveManifest(installedFiles, version);
   log(colors.green, `  ✓ Saved manifest (${installedFiles.length} files)`);
 
-  console.log('');
+  process.stderr.write('\n');
   log(colors.green, '✅ MyConvergio installed successfully!');
-  console.log('');
+  process.stderr.write('\n');
   log(colors.yellow, 'Your ~/.claude/CLAUDE.md was NOT modified.');
-  console.log('Create your own configuration file if needed.\n');
-  console.log('Run `myconvergio help` for available commands.\n');
+  process.stderr.write('Create your own configuration file if needed.\n');
+  process.stderr.write('Run `myconvergio help` for available commands.\n\n');
 }
 
 main();

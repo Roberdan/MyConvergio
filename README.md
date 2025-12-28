@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v2.1.0** | 60 Specialized Agents | Enterprise-Grade AI Ecosystem
+**v2.1.1** | 60 Specialized Agents | Enterprise-Grade AI Ecosystem
 
 > *"Intent is human, momentum is agent"*
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -36,7 +36,7 @@ MyConvergio is an **open-source collection** of 60 specialized Claude Code subag
 
 Claude Code subagents are specialized AI assistants that can be invoked to handle specific types of tasks within the Claude Code environment. [Learn more in the official Anthropic documentation](https://docs.anthropic.com/en/docs/claude-code/sub-agents).
 
-### Key Features (v2.1.0)
+### Key Features (v2.1.1)
 
 | Feature | Description |
 |---------|-------------|
@@ -253,7 +253,7 @@ MyConvergio/
 │   ├── version-manager.sh
 │   └── bump-agent-version.sh
 ├── Makefile                       # Build and deploy commands
-├── VERSION                        # System version (2.1.0)
+├── VERSION                        # System version (2.1.1)
 └── CLAUDE.md                      # Project instructions
 ```
 
@@ -267,6 +267,7 @@ MyConvergio/
 myconvergio help        # Show available commands
 myconvergio install     # Install/reinstall to ~/.claude/
 myconvergio uninstall   # Remove from ~/.claude/
+myconvergio agents      # List all agents with versions and model tiers
 myconvergio version     # Show version and installation status
 ```
 
@@ -315,6 +316,7 @@ All major decisions are documented in `docs/adr/`:
 | ADR-008 | ConvergioCLI relationship |
 | ADR-009 | Skills & Rules system |
 | ADR-010 | ISE Engineering Playbook standard |
+| ADR-011 | Modular Execution Plans and Security Framework |
 
 ---
 
@@ -374,6 +376,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 *Built with AI assistance in Milano, following the Agentic Manifesto principles*
 
-**v2.0.0** | December 2025
+**v2.1.1** | December 2025
 
 </div>

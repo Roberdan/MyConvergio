@@ -272,6 +272,56 @@ function showVersion() {
   console.log(`  Skills: ${counts.skills > 0 ? counts.skills : colors.red + 'not installed' + colors.reset}`);
 }
 
+function listAgents() {
+  log(colors.blue, 'Installed Agents:\n');
+
+  const agentsDir = path.join(CLAUDE_HOME, 'agents');
+  if (!fs.existsSync(agentsDir)) {
+    log(colors.red, 'No agents installed. Run: myconvergio install');
+    return;
+  }
+
+  const categories = fs.readdirSync(agentsDir).filter(f =>
+    fs.statSync(path.join(agentsDir, f)).isDirectory()
+  );
+
+  let totalAgents = 0;
+
+  for (const category of categories.sort()) {
+    const categoryPath = path.join(agentsDir, category);
+    const agents = fs.readdirSync(categoryPath).filter(f =>
+      f.endsWith('.md') &&
+      !['CONSTITUTION.md', 'CommonValuesAndPrinciples.md', 'SECURITY_FRAMEWORK_TEMPLATE.md', 'MICROSOFT_VALUES.md'].includes(f)
+    );
+
+    if (agents.length === 0) continue;
+
+    log(colors.yellow, `\n${category}/`);
+
+    for (const agent of agents.sort()) {
+      const agentPath = path.join(categoryPath, agent);
+      const content = fs.readFileSync(agentPath, 'utf8');
+
+      // Extract version from YAML frontmatter
+      const versionMatch = content.match(/^version:\s*["']?([^"'\n]+)["']?/m);
+      const version = versionMatch ? versionMatch[1] : 'unknown';
+
+      // Extract model from YAML frontmatter
+      const modelMatch = content.match(/^model:\s*["']?([^"'\n]+)["']?/m);
+      const model = modelMatch ? modelMatch[1] : 'haiku';
+
+      const agentName = agent.replace('.md', '');
+      const modelColor = model === 'opus' ? colors.red : model === 'sonnet' ? colors.yellow : colors.reset;
+
+      console.log(`  ${agentName.padEnd(45)} v${version.padEnd(8)} ${modelColor}${model}${colors.reset}`);
+      totalAgents++;
+    }
+  }
+
+  console.log('');
+  log(colors.green, `Total: ${totalAgents} agents`);
+}
+
 function showHelp() {
   console.log(`
 ${colors.blue}MyConvergio - Claude Code Subagents Suite${colors.reset}
@@ -282,11 +332,13 @@ ${colors.yellow}Usage:${colors.reset}
 ${colors.yellow}Commands:${colors.reset}
   install     Install/reinstall agents, rules, and skills to ~/.claude/
   uninstall   Remove all installed components from ~/.claude/
+  agents      List all installed agents with versions
   version     Show version and installation status
   help        Show this help message
 
 ${colors.yellow}Examples:${colors.reset}
   myconvergio install     # Install or update components
+  myconvergio agents      # List all agents with versions
   myconvergio version     # Check what's installed
   myconvergio uninstall   # Remove everything
 
@@ -308,6 +360,10 @@ switch (command) {
   case 'uninstall':
   case 'remove':
     uninstall();
+    break;
+  case 'agents':
+  case 'list':
+    listAgents();
     break;
   case 'version':
   case '-v':

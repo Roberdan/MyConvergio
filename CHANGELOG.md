@@ -5,12 +5,13 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.1] - 2025-12-28
+## [2.1.2] - 2025-12-28
 
 ### Added
 - `myconvergio agents` command to list all installed agents with versions and model tiers
 
 ### Fixed
+- Repository URL case sensitivity for npm OIDC trusted publishing (Roberdan vs roberdan)
 - Postinstall now always creates backup if existing content found (not just if manifest exists)
 - Postinstall output now visible during npm install (uses stderr)
 - Consistent backup behavior between postinstall.js and CLI

@@ -3,7 +3,7 @@
 # Follows Semantic Versioning 2.0.0 (https://semver.org/)
 
 # System Version
-SYSTEM_VERSION=2.1.1
+SYSTEM_VERSION=2.1.2
 
 # Version Schema
 # AGENT_NAME=MAJOR.MINOR.PATCH[-PRERELEASE] TIMESTAMP

@@ -1,6 +1,6 @@
 {
   "name": "myconvergio",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "60 specialized Claude Code subagents for enterprise software development, strategic leadership, and organizational excellence",
   "keywords": [
     "claude",
@@ -11,13 +11,13 @@
     "enterprise",
     "productivity"
   ],
-  "homepage": "https://github.com/roberdan/MyConvergio",
+  "homepage": "https://github.com/Roberdan/MyConvergio",
   "bugs": {
-    "url": "https://github.com/roberdan/MyConvergio/issues"
+    "url": "https://github.com/Roberdan/MyConvergio/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/roberdan/MyConvergio.git"
+    "url": "git+https://github.com/Roberdan/MyConvergio.git"
   },
   "license": "CC-BY-NC-SA-4.0",
   "author": "Roberto D'Angelo <roberdan@fightthestroke.org>",

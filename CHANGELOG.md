@@ -5,6 +5,24 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-12-28
+
+### Added
+- **npm distribution**: `npm install -g myconvergio` (cross-platform: macOS, Linux, Windows)
+- `myconvergio` CLI with install, uninstall, version commands
+- ADR-011: Modular Execution Plans and Enhanced Security Framework
+- Modular Execution Plan Structure for large projects (15+ tasks) in taskmaster and davide agents
+- Mandatory test requirements per phase in execution plans
+- Security & Anti-Manipulation framework in CommonValuesAndPrinciples (prompt injection protection, ethical boundaries, inclusive language)
+
+### Changed
+- taskmaster-strategic-task-decomposition-master: v1.0.2 → v1.0.3
+- davide-project-manager: v1.0.2 → v1.0.3
+- CommonValuesAndPrinciples: Added ~90 lines of security guidelines
+- Makefile: Now installs agents, rules, AND skills (was agents-only)
+- Makefile: Added `make upgrade` command for existing users
+- README: Complete rewrite of installation section with npm as primary method
+
 ## [2.0.1] - 2025-12-15
 
 ### Fixed

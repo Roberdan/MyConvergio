@@ -4,12 +4,13 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v2.0.0** | 60 Specialized Agents | Enterprise-Grade AI Ecosystem
+**v2.1.0** | 60 Specialized Agents | Enterprise-Grade AI Ecosystem
 
 > *"Intent is human, momentum is agent"*
 > — [The Agentic Manifesto](./AgenticManifesto.md)
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+[![npm version](https://img.shields.io/npm/v/myconvergio.svg)](https://www.npmjs.com/package/myconvergio)
 
 </div>
 
@@ -35,10 +36,11 @@ MyConvergio is an **open-source collection** of 60 specialized Claude Code subag
 
 Claude Code subagents are specialized AI assistants that can be invoked to handle specific types of tasks within the Claude Code environment. [Learn more in the official Anthropic documentation](https://docs.anthropic.com/en/docs/claude-code/sub-agents).
 
-### Key Features (v2.0.0)
+### Key Features (v2.1.0)
 
 | Feature | Description |
 |---------|-------------|
+| **npm Distribution** | Cross-platform install: `npm install -g myconvergio` |
 | **60 Specialized Agents** | Organized in 8 categories covering all enterprise domains |
 | **Constitution-Based Security** | Anti-hijacking protocol with 8 articles of protection |
 | **Model Tiering** | 2 Opus / 14 Sonnet / 41 Haiku for 74-87% cost reduction |
@@ -64,7 +66,7 @@ Claude Code subagents are specialized AI assistants that can be invoked to handl
 | **CONSTITUTION.md** | Security framework with 8 articles protecting all agents |
 | **6 Rules** | Code style, security, testing, documentation, API, ethics |
 | **8 Skills** | Reusable workflows for common tasks |
-| **10 ADRs** | Documented architectural decisions |
+| **11 ADRs** | Documented architectural decisions |
 | **115+ Security Tests** | Comprehensive jailbreak/injection test suite |
 
 ### Infrastructure
@@ -94,25 +96,53 @@ claude doctor
 ```
 
 **System Requirements:**
-- macOS 10.15+, Ubuntu 20.04+/Debian 10+, or Windows 10+ (WSL)
+- macOS 10.15+, Ubuntu 20.04+/Debian 10+, or Windows 10+ (via WSL or native)
 - Node.js 18+
 - 4GB+ RAM
 
 ### Installation
 
+#### Option 1: npm (Recommended)
+
+Works on **all platforms** (macOS, Linux, Windows):
+
 ```bash
-# Clone repository
+# Install
+npm install -g myconvergio
+
+# Verify installation
+myconvergio version
+```
+
+#### Option 2: Git Clone
+
+For development or customization:
+
+```bash
 git clone https://github.com/roberdan/MyConvergio.git
 cd MyConvergio
-
-# Install agents globally (recommended)
 make install
+```
 
-# Or install locally to current project only
-make install-local
+### Updating
 
-# Preview what will be installed
-make help
+```bash
+# npm users
+npm update -g myconvergio
+
+# Git users
+git pull && make upgrade
+```
+
+### Uninstalling
+
+```bash
+# npm users
+myconvergio uninstall
+npm uninstall -g myconvergio
+
+# Git users
+make clean
 ```
 
 ### Usage Examples
@@ -213,7 +243,7 @@ MyConvergio/
 │       ├── release-management/
 │       └── project-management/
 ├── docs/
-│   ├── adr/                       # 10 Architecture Decision Records
+│   ├── adr/                       # 11 Architecture Decision Records
 │   └── AGENT_OPTIMIZATION_PLAN_2025.md
 ├── tests/
 │   ├── security_tests.md          # 115+ security tests
@@ -223,22 +253,31 @@ MyConvergio/
 │   ├── version-manager.sh
 │   └── bump-agent-version.sh
 ├── Makefile                       # Build and deploy commands
-├── VERSION                        # System version (2.0.0)
+├── VERSION                        # System version (2.1.0)
 └── CLAUDE.md                      # Project instructions
 ```
 
 ---
 
-## Make Commands
+## CLI Commands
+
+### npm CLI (`myconvergio`)
 
 ```bash
-make help           # Show all available commands
-make install        # Install agents globally (~/.claude/agents/)
-make install-local  # Install agents locally (./.claude/agents/)
-make test           # Run agent tests
-make clean          # Remove installed agents
-make version        # Show version info
-make check-sync     # Check for ConvergioCLI updates
+myconvergio help        # Show available commands
+myconvergio install     # Install/reinstall to ~/.claude/
+myconvergio uninstall   # Remove from ~/.claude/
+myconvergio version     # Show version and installation status
+```
+
+### Make Commands (Git users)
+
+```bash
+make install        # Install agents, rules, skills to ~/.claude/
+make upgrade        # Update to latest version (clean + install)
+make install-local  # Install to current project only
+make clean          # Remove all installed components
+make version        # Show installed version info
 ```
 
 ---

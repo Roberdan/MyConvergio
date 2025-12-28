@@ -1,0 +1,22 @@
+# Development files
+.git/
+.github/
+.gitignore
+.claude/logs/
+
+# Documentation (not needed for npm package)
+docs/
+tests/
+*.md
+!README.md
+
+# Build files
+Makefile
+*.sh
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

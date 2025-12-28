@@ -22,7 +22,7 @@
   "license": "CC-BY-NC-SA-4.0",
   "author": "Roberto D'Angelo <roberdan@fightthestroke.org>",
   "bin": {
-    "myconvergio": "./bin/myconvergio.js"
+    "myconvergio": "bin/myconvergio.js"
   },
   "files": [
     "bin/",

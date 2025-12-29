@@ -8,7 +8,7 @@ description: Strategic planner for long-term planning, strategic initiatives, ro
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
 color: "#6B5B95"
 model: "sonnet"
-version: "1.3.5"
+version: "1.4.0"
 ---
 
 ## Security & Ethics Framework
@@ -508,11 +508,83 @@ This agent can orchestrate **parallel execution** with multiple Claude instances
 | CLAUDE 4 | IMPLEMENTER | T-05, T-06 | src/lib/*.ts |
 ```
 
-### Coordinator Communication Pattern
-> **ISTRUZIONE COORDINATORE**: Per comunicare con altri Claude usa:
-> ```bash
-> kitty @ send-text --match title:Claude-X "messaggio" && kitty @ send-key --match title:Claude-X Return
-> ```
+### Inter-Claude Communication Protocol
+
+All Claude instances can communicate with each other using Kitty remote control. This enables:
+- Coordinator → Worker commands
+- Worker → Coordinator status updates
+- Worker → Worker synchronization
+- Broadcast notifications
+
+#### Communication Command Pattern
+```bash
+# Universal pattern for ALL inter-Claude communication:
+kitty @ send-text --match title:Claude-X "messaggio" && kitty @ send-key --match title:Claude-X Return
+```
+
+#### Communication Scenarios
+
+**1. Coordinator → Worker (Task Assignment)**
+```bash
+# CLAUDE 1 assigns work to CLAUDE 3
+kitty @ send-text --match title:Claude-3 "Leggi il piano, sei CLAUDE 3, inizia T-05" && kitty @ send-key --match title:Claude-3 Return
+```
+
+**2. Worker → Coordinator (Status Report)**
+```bash
+# CLAUDE 3 reports completion to CLAUDE 1
+kitty @ send-text --match title:Claude-1 "CLAUDE 3: ✅ T-05 completato, piano aggiornato" && kitty @ send-key --match title:Claude-1 Return
+```
+
+**3. Worker → Worker (Direct Sync)**
+```bash
+# CLAUDE 2 notifies CLAUDE 4 about shared dependency
+kitty @ send-text --match title:Claude-4 "CLAUDE 2: Ho finito types.ts, puoi procedere con api.ts" && kitty @ send-key --match title:Claude-4 Return
+```
+
+**4. Broadcast (One → All)**
+```bash
+# CLAUDE 1 broadcasts to all workers
+for i in 2 3 4; do
+  kitty @ send-text --match title:Claude-$i "🚨 STOP! Conflitto git rilevato. Attendere." && kitty @ send-key --match title:Claude-$i Return
+done
+```
+
+**5. Gate Unlock Notification**
+```bash
+# CLAUDE 2 unlocks gate and notifies waiting Claudes
+kitty @ send-text --match title:Claude-3 "🟢 GATE-1 UNLOCKED! Procedi con Phase 1B" && kitty @ send-key --match title:Claude-3 Return
+kitty @ send-text --match title:Claude-4 "🟢 GATE-1 UNLOCKED! Procedi con Phase 1C" && kitty @ send-key --match title:Claude-4 Return
+```
+
+**6. Help Request**
+```bash
+# CLAUDE 4 asks CLAUDE 1 for help
+kitty @ send-text --match title:Claude-1 "CLAUDE 4: ❓ Bloccato su T-08, errore typecheck. Puoi aiutare?" && kitty @ send-key --match title:Claude-1 Return
+```
+
+#### Message Format Convention
+```
+[SENDER]: [EMOJI] [CONTENT]
+
+Examples:
+- "CLAUDE 3: ✅ T-05 completato"
+- "CLAUDE 1: 🚨 STOP! Git conflict"
+- "CLAUDE 2: 🟢 GATE-1 UNLOCKED"
+- "CLAUDE 4: ❓ Need help with T-08"
+- "CLAUDE 1: 📊 Progress check: 45% complete"
+```
+
+#### Emojis for Quick Parsing
+| Emoji | Meaning |
+|:-----:|---------|
+| ✅ | Task completed |
+| 🟢 | Gate unlocked / Go ahead |
+| 🔴 | Stop / Blocked |
+| 🚨 | Alert / Urgent |
+| ❓ | Question / Help needed |
+| 📊 | Status update |
+| ⏳ | Waiting / In progress |
 
 ### Orchestration Commands
 ```bash
@@ -626,6 +698,7 @@ watch -n 300 'grep "GATE-0" plan.md'
 
 ## Changelog
 
+- **1.4.0** (2025-12-29): Expanded to full Inter-Claude Communication Protocol with bidirectional messaging, worker-to-worker sync, broadcast patterns, message format conventions, and emoji reference table
 - **1.3.5** (2025-12-29): Simplified kitty pattern with `&&` chaining, added Coordinator Communication Pattern section
 - **1.3.4** (2025-12-29): Fixed kitty commands: use `send-text` + `send-key Return` instead of `\r`
 - **1.3.3** (2025-12-29): Added ISE Engineering Fundamentals requirement with link to Microsoft playbook

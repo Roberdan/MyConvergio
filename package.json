@@ -1,7 +1,7 @@
 {
   "name": "myconvergio",
-  "version": "2.1.2",
-  "description": "60 specialized Claude Code subagents for enterprise software development, strategic leadership, and organizational excellence",
+  "version": "3.0.0",
+  "description": "Enterprise Agent Suite: 57 specialized AI agents for strategy, development, compliance, and operations - Claude Code Plugin",
   "keywords": [
     "claude",
     "claude-code",
@@ -9,7 +9,8 @@
     "subagents",
     "anthropic",
     "enterprise",
-    "productivity"
+    "productivity",
+    "claude-plugin"
   ],
   "homepage": "https://github.com/Roberdan/MyConvergio",
   "bugs": {
@@ -30,6 +31,11 @@
     ".claude/agents/",
     ".claude/rules/",
     ".claude/skills/",
+    ".claude-plugin/",
+    "agents/",
+    "commands/",
+    "skills/",
+    "hooks/",
     "VERSION",
     "LICENSE"
   ],

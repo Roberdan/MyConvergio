@@ -31,16 +31,24 @@
 
 ### Installation
 
-**From Claude Code:**
+#### Option A: Clone & Use (Recommended)
 ```bash
-# Install the plugin
-claude plugins install myconvergio
-
-# Or clone and install locally
 git clone https://github.com/roberdan/MyConvergio.git
 cd MyConvergio
 claude --plugin-dir .
 ```
+
+#### Option B: Global npm Install
+```bash
+npm install -g myconvergio
+```
+Copies agents to `~/.claude/agents/` for global access.
+
+#### Option C: Claude Marketplace (Coming Soon)
+```bash
+claude plugins install myconvergio
+```
+*Pending Anthropic approval*
 
 ### Usage
 

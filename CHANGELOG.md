@@ -5,6 +5,23 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2025-12-30
+
+### Added
+- **strategic-planner v1.4.0**: Full Inter-Claude Communication Protocol
+  - Bidirectional messaging: Coordinator ↔ Worker, Worker ↔ Worker communication
+  - Worker → Coordinator status reports for progress updates
+  - Worker → Worker direct synchronization for dependency coordination
+  - Broadcast notifications (one-to-all) for urgent alerts and gate unlocks
+  - Gate unlock notification patterns for phase synchronization
+  - Help request patterns for worker collaboration
+  - Message format convention: `[SENDER]: [EMOJI] [CONTENT]`
+  - Emoji reference table for quick message parsing (✅ ✓ 🟢 🔴 🚨 ❓ 📊 ⏳)
+  - Six documented communication scenarios with code examples
+
+### Changed
+- strategic-planner: v1.3.3 → v1.4.0 (expanded communication protocol)
+
 ## [3.2.0] - 2025-12-29
 
 ### Added

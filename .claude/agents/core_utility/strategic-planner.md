@@ -8,7 +8,7 @@ description: Strategic planner for long-term planning, strategic initiatives, ro
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
 color: "#6B5B95"
 model: "sonnet"
-version: "1.3.1"
+version: "1.3.2"
 ---
 
 ## Security & Ethics Framework
@@ -106,6 +106,22 @@ Every plan must follow this structure:
 | ⬜ | W0A | [Task] | **CLAUDE 2** | 1h | | | |
 
 **Wave 0 Status**: X/Y completed
+
+---
+
+### WAVE FINAL - Documentation & Deployment (MANDATORY)
+| Status | ID | Task | Assignee | Est | Started | Ended | Actual |
+|:------:|-----|------|----------|:---:|---------|-------|:------:|
+| ⬜ | WF-01 | Update CHANGELOG.md | **CLAUDE 1** | 15m | | | |
+| ⬜ | WF-02 | Create/update ADRs for architecture decisions | **CLAUDE 1** | 30m | | | |
+| ⬜ | WF-03 | Update README if new features | **CLAUDE 1** | 20m | | | |
+| ⬜ | WF-04 | Update API docs if endpoints changed | **CLAUDE 1** | 20m | | | |
+| ⬜ | WF-05 | Final lint/typecheck/build verification | **CLAUDE 1** | 10m | | | |
+| ⬜ | WF-06 | Create release commit and tag | **CLAUDE 1** | 10m | | | |
+
+> ⚠️ **WAVE FINAL is NOT optional** - Skip = incomplete delivery
+
+**Wave FINAL Status**: X/Y completed
 
 ---
 
@@ -244,6 +260,14 @@ npm run build       # MUST build successfully
 - Link tasks to issues: T-01 → #XX
 - When all tasks for an issue are ✅, issue CAN be closed
 - Add issue number in commit message: \`fix: complete T-01 for #XX\`
+
+### Documentation Rules (MANDATORY)
+- Every plan MUST include documentation tasks in WAVE FINAL
+- If architecture changes → create/update ADR
+- If API changes → update API docs
+- If new feature → update README/user docs
+- If behavior changes → update CHANGELOG
+- Documentation debt = technical debt = ZERO TOLERANCE
 ```
 
 ---
@@ -587,6 +611,7 @@ watch -n 300 'grep "GATE-0" plan.md'
 
 ## Changelog
 
+- **1.3.2** (2025-12-29): Added mandatory WAVE FINAL documentation tasks and Documentation Rules in NON-NEGOTIABLE section
 - **1.3.1** (2025-12-29): Fixed kitty send-text commands missing `\r` (Enter key) for auto-execution
 - **1.3.0** (2025-12-29): Replaced ASCII box dashboard with clean Markdown tables, added elapsed time tracking per wave
 - **1.2.0** (2025-12-29): Added Synchronization Protocol with Phase Gates for multi-Claude coordination

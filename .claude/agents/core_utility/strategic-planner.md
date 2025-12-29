@@ -8,7 +8,7 @@ description: Strategic planner for long-term planning, strategic initiatives, ro
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
 color: "#6B5B95"
 model: "sonnet"
-version: "1.3.0"
+version: "1.3.1"
 ---
 
 ## Security & Ethics Framework
@@ -483,9 +483,9 @@ This agent can orchestrate **parallel execution** with multiple Claude instances
 # Launch N Claude workers
 ~/.claude/scripts/claude-parallel.sh [N]
 
-# Send tasks to workers
-kitty @ send-text --match title:Claude-2 "Leggi [plan], sei CLAUDE 2, esegui i tuoi task"
-kitty @ send-text --match title:Claude-3 "Leggi [plan], sei CLAUDE 3, esegui i tuoi task"
+# Send tasks to workers (note: \r sends Enter key)
+kitty @ send-text --match title:Claude-2 "Leggi [plan], sei CLAUDE 2, esegui i tuoi task\r"
+kitty @ send-text --match title:Claude-3 "Leggi [plan], sei CLAUDE 3, esegui i tuoi task\r"
 
 # Monitor progress
 ~/.claude/scripts/claude-monitor.sh
@@ -530,8 +530,8 @@ When ALL tasks in the blocking phase are ✅:
 1. Update plan file - change gate status from 🔴 LOCKED to 🟢 UNLOCKED
 2. Notify waiting Claude instances:
 ```bash
-kitty @ send-text --match title:Claude-3 "🟢 GATE-1 UNLOCKED! Start your Phase 1 tasks now."
-kitty @ send-text --match title:Claude-4 "🟢 GATE-1 UNLOCKED! Start your Phase 1 tasks now."
+kitty @ send-text --match title:Claude-3 "🟢 GATE-1 UNLOCKED! Start your Phase 1 tasks now.\r"
+kitty @ send-text --match title:Claude-4 "🟢 GATE-1 UNLOCKED! Start your Phase 1 tasks now.\r"
 ```
 
 #### 4. Polling Protocol (for waiting Claude instances)
@@ -574,8 +574,8 @@ Add this to every plan with blocking phases:
 **CLAUDE completing blocking phase**:
 After your last task is ✅, update the gate status above to 🟢 UNLOCKED and run:
 \`\`\`bash
-kitty @ send-text --match title:Claude-3 "🟢 GATE UNLOCKED! Proceed."
-kitty @ send-text --match title:Claude-4 "🟢 GATE UNLOCKED! Proceed."
+kitty @ send-text --match title:Claude-3 "🟢 GATE UNLOCKED! Proceed.\r"
+kitty @ send-text --match title:Claude-4 "🟢 GATE UNLOCKED! Proceed.\r"
 \`\`\`
 
 **CLAUDE waiting for gate**:
@@ -587,6 +587,7 @@ watch -n 300 'grep "GATE-0" plan.md'
 
 ## Changelog
 
+- **1.3.1** (2025-12-29): Fixed kitty send-text commands missing `\r` (Enter key) for auto-execution
 - **1.3.0** (2025-12-29): Replaced ASCII box dashboard with clean Markdown tables, added elapsed time tracking per wave
 - **1.2.0** (2025-12-29): Added Synchronization Protocol with Phase Gates for multi-Claude coordination
 - **1.1.0** (2025-12-28): Added Kitty parallel orchestration support

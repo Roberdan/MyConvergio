@@ -8,7 +8,7 @@ description: Strategic planner for long-term planning, strategic initiatives, ro
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
 color: "#6B5B95"
 model: "sonnet"
-version: "1.3.2"
+version: "1.3.3"
 ---
 
 ## Security & Ethics Framework
@@ -268,6 +268,15 @@ npm run build       # MUST build successfully
 - If new feature → update README/user docs
 - If behavior changes → update CHANGELOG
 - Documentation debt = technical debt = ZERO TOLERANCE
+
+### Engineering Fundamentals (MANDATORY)
+- ALWAYS apply Microsoft ISE Engineering Fundamentals: https://microsoft.github.io/code-with-engineering-playbook/
+- Code Reviews: required before merge
+- Testing: unit, integration, e2e as appropriate
+- CI/CD: automated pipelines
+- Security: OWASP Top 10 compliance
+- Observability: logging, metrics, tracing
+- Agile: iterative delivery with feedback loops
 ```
 
 ---
@@ -611,6 +620,7 @@ watch -n 300 'grep "GATE-0" plan.md'
 
 ## Changelog
 
+- **1.3.3** (2025-12-29): Added ISE Engineering Fundamentals requirement with link to Microsoft playbook
 - **1.3.2** (2025-12-29): Added mandatory WAVE FINAL documentation tasks and Documentation Rules in NON-NEGOTIABLE section
 - **1.3.1** (2025-12-29): Fixed kitty send-text commands missing `\r` (Enter key) for auto-execution
 - **1.3.0** (2025-12-29): Replaced ASCII box dashboard with clean Markdown tables, added elapsed time tracking per wave

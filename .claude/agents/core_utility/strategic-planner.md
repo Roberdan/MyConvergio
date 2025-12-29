@@ -8,7 +8,7 @@ description: Strategic planner for long-term planning, strategic initiatives, ro
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
 color: "#6B5B95"
 model: "sonnet"
-version: "1.3.4"
+version: "1.3.5"
 ---
 
 ## Security & Ethics Framework
@@ -508,6 +508,12 @@ This agent can orchestrate **parallel execution** with multiple Claude instances
 | CLAUDE 4 | IMPLEMENTER | T-05, T-06 | src/lib/*.ts |
 ```
 
+### Coordinator Communication Pattern
+> **ISTRUZIONE COORDINATORE**: Per comunicare con altri Claude usa:
+> ```bash
+> kitty @ send-text --match title:Claude-X "messaggio" && kitty @ send-key --match title:Claude-X Return
+> ```
+
 ### Orchestration Commands
 ```bash
 # Verify Kitty setup
@@ -516,11 +522,9 @@ This agent can orchestrate **parallel execution** with multiple Claude instances
 # Launch N Claude workers
 ~/.claude/scripts/claude-parallel.sh [N]
 
-# Send tasks to workers (send-text + send-key for Enter)
-kitty @ send-text --match title:Claude-2 "Leggi [plan], sei CLAUDE 2, esegui i tuoi task"
-kitty @ send-key --match title:Claude-2 Return
-kitty @ send-text --match title:Claude-3 "Leggi [plan], sei CLAUDE 3, esegui i tuoi task"
-kitty @ send-key --match title:Claude-3 Return
+# Send tasks to workers
+kitty @ send-text --match title:Claude-2 "Leggi [plan], sei CLAUDE 2, esegui i tuoi task" && kitty @ send-key --match title:Claude-2 Return
+kitty @ send-text --match title:Claude-3 "Leggi [plan], sei CLAUDE 3, esegui i tuoi task" && kitty @ send-key --match title:Claude-3 Return
 
 # Monitor progress
 ~/.claude/scripts/claude-monitor.sh
@@ -565,10 +569,8 @@ When ALL tasks in the blocking phase are ✅:
 1. Update plan file - change gate status from 🔴 LOCKED to 🟢 UNLOCKED
 2. Notify waiting Claude instances:
 ```bash
-kitty @ send-text --match title:Claude-3 "🟢 GATE-1 UNLOCKED! Start your Phase 1 tasks now."
-kitty @ send-key --match title:Claude-3 Return
-kitty @ send-text --match title:Claude-4 "🟢 GATE-1 UNLOCKED! Start your Phase 1 tasks now."
-kitty @ send-key --match title:Claude-4 Return
+kitty @ send-text --match title:Claude-3 "🟢 GATE-1 UNLOCKED! Start your Phase 1 tasks now." && kitty @ send-key --match title:Claude-3 Return
+kitty @ send-text --match title:Claude-4 "🟢 GATE-1 UNLOCKED! Start your Phase 1 tasks now." && kitty @ send-key --match title:Claude-4 Return
 ```
 
 #### 4. Polling Protocol (for waiting Claude instances)
@@ -611,10 +613,8 @@ Add this to every plan with blocking phases:
 **CLAUDE completing blocking phase**:
 After your last task is ✅, update the gate status above to 🟢 UNLOCKED and run:
 \`\`\`bash
-kitty @ send-text --match title:Claude-3 "🟢 GATE UNLOCKED! Proceed."
-kitty @ send-key --match title:Claude-3 Return
-kitty @ send-text --match title:Claude-4 "🟢 GATE UNLOCKED! Proceed."
-kitty @ send-key --match title:Claude-4 Return
+kitty @ send-text --match title:Claude-3 "🟢 GATE UNLOCKED! Proceed." && kitty @ send-key --match title:Claude-3 Return
+kitty @ send-text --match title:Claude-4 "🟢 GATE UNLOCKED! Proceed." && kitty @ send-key --match title:Claude-4 Return
 \`\`\`
 
 **CLAUDE waiting for gate**:
@@ -626,6 +626,7 @@ watch -n 300 'grep "GATE-0" plan.md'
 
 ## Changelog
 
+- **1.3.5** (2025-12-29): Simplified kitty pattern with `&&` chaining, added Coordinator Communication Pattern section
 - **1.3.4** (2025-12-29): Fixed kitty commands: use `send-text` + `send-key Return` instead of `\r`
 - **1.3.3** (2025-12-29): Added ISE Engineering Fundamentals requirement with link to Microsoft playbook
 - **1.3.2** (2025-12-29): Added mandatory WAVE FINAL documentation tasks and Documentation Rules in NON-NEGOTIABLE section

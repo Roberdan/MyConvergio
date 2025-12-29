@@ -5,6 +5,22 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2025-12-29
+
+### Added
+- **strategic-planner v1.3.3**: Critical improvements for execution quality and compliance
+  - Mandatory WAVE FINAL with 6 documentation tasks (README, CHANGELOG, Tests, Docs, PR Description, ADRs)
+  - Documentation Rules in NON-NEGOTIABLE section ensuring all deliverables are properly documented
+  - ISE Engineering Fundamentals requirement with Microsoft playbook link (https://microsoft.github.io/code-with-engineering-playbook/)
+
+### Fixed
+- **strategic-planner v1.3.3**: Kitty send-text commands now include `\r` for auto-execution
+  - Previously commands were sent but not executed, requiring manual Enter key press
+  - Now all worker commands execute automatically when sent via `kitty @ send-text`
+
+### Changed
+- strategic-planner: v1.3.0 → v1.3.3 (execution quality and documentation enforcement)
+
 ## [3.1.0] - 2025-12-29
 
 ### Added

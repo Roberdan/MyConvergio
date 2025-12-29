@@ -5,6 +5,23 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2025-12-29
+
+### Added
+- **strategic-planner v1.3.0**: Complete multi-Claude orchestration framework
+  - Phase Gates synchronization system for coordinating parallel workers
+  - Polling protocol for Claude instance progress tracking
+  - Coordinator responsibilities and delegation rules
+  - NON-NEGOTIABLE RULES for execution discipline
+  - CLAUDE ROLES STRUCTURE defining Worker/Coordinator behaviors
+  - EXECUTION TRACKER with GitHub Issue linkage (#xxx syntax)
+  - TIME STATISTICS dashboard for wave/phase duration tracking
+  - Clean Markdown dashboard format without code fences
+  - Enhanced parallel execution patterns for complex projects
+
+### Changed
+- strategic-planner: v1.1.0 → v1.3.0 (major orchestration framework update)
+
 ## [2.2.0] - 2025-12-28
 
 ### Added

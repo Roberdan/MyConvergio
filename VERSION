@@ -3,7 +3,7 @@
 # Follows Semantic Versioning 2.0.0 (https://semver.org/)
 
 # System Version
-SYSTEM_VERSION=3.0.0
+SYSTEM_VERSION=3.1.0
 
 # Version Schema
 # AGENT_NAME=MAJOR.MINOR.PATCH[-PRERELEASE] TIMESTAMP
@@ -24,6 +24,6 @@ evan-ic6da=0.1.0 2025-12-15T09:09:44Z
 marcello-pm=0.1.0 2025-12-15T09:09:45Z
 anna-executive-assistant=0.1.0 2025-12-15T09:09:45Z
 oliver-pm=0.1.0 2025-12-15T09:09:45Z
-strategic-planner=1.1.0 2025-12-28T18:00:00Z
+strategic-planner=1.3.0 2025-12-29T10:00:00Z
 taskmaster-strategic-task-decomposition-master=1.0.3 2025-12-28T13:14:06Z
 davide-project-manager=1.0.3 2025-12-28T13:14:06Z

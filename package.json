@@ -1,6 +1,6 @@
 {
   "name": "myconvergio",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "Enterprise Agent Suite: 57 specialized AI agents for strategy, development, compliance, and operations - Claude Code Plugin",
   "keywords": [
     "claude",
@@ -31,6 +31,7 @@
     ".claude/agents/",
     ".claude/rules/",
     ".claude/skills/",
+    ".claude/protocols/",
     ".claude-plugin/",
     "agents/",
     "commands/",

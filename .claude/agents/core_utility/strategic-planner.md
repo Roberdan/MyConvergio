@@ -8,7 +8,7 @@ description: Strategic planner for long-term planning, strategic initiatives, ro
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
 color: "#6B5B95"
 model: "sonnet"
-version: "1.4.0"
+version: "1.5.0"
 ---
 
 ## Security & Ethics Framework
@@ -608,6 +608,102 @@ kitty @ send-text --match title:Claude-3 "Leggi [plan], sei CLAUDE 3, esegui i t
 3. **VERIFICATION LAST**: Final check with lint/typecheck/build
 4. **GIT SAFETY**: Only one Claude commits at a time
 
+### GIT WORKFLOW (OBBLIGATORIO)
+
+**Ogni Claude lavora in un worktree separato. Ogni fase = 1 PR. Zero conflitti.**
+
+#### STEP 0: Setup Worktrees (CLAUDE 1 fa questo PRIMA di tutto)
+
+```bash
+cd [project_root]
+
+# Crea branch per ogni fase
+git checkout [main_branch]
+git branch feature/[plan]-phase1
+git branch feature/[plan]-phase2
+git branch feature/[plan]-phase3
+
+# Crea worktree per ogni Claude
+git worktree add ../[project]-C2 feature/[plan]-phase1
+git worktree add ../[project]-C3 feature/[plan]-phase2
+git worktree add ../[project]-C4 feature/[plan]-phase3
+
+# Verifica
+git worktree list
+```
+
+#### Mapping Claude → Worktree → Branch
+
+| Claude | Worktree | Branch | PR |
+|--------|----------|--------|-----|
+| CLAUDE 1 | `[project_root]` | [main_branch] | Coordina solo |
+| CLAUDE 2 | `../[project]-C2` | feature/[plan]-phase1 | PR #1 |
+| CLAUDE 3 | `../[project]-C3` | feature/[plan]-phase2 | PR #2 |
+| CLAUDE 4 | `../[project]-C4` | feature/[plan]-phase3 | PR #3 |
+
+#### Send Claude to Worktrees
+```bash
+kitty @ send-text --match title:Claude-2 "cd ../[project]-C2" && kitty @ send-key --match title:Claude-2 Return
+kitty @ send-text --match title:Claude-3 "cd ../[project]-C3" && kitty @ send-key --match title:Claude-3 Return
+kitty @ send-text --match title:Claude-4 "cd ../[project]-C4" && kitty @ send-key --match title:Claude-4 Return
+```
+
+#### PR Workflow (ogni Claude fa questo quando completa)
+
+```bash
+# 1. Commit
+git add .
+git commit -m "feat([scope]): Phase X - [description]
+
+🤖 Generated with Claude Code
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# 2. Push
+git push -u origin feature/[plan]-phaseX
+
+# 3. Crea PR
+gh pr create --title "feat([scope]): Phase X - [description]" --body "## Summary
+- [bullet points]
+
+## Issues Closed
+- Closes #XX
+
+## Verification
+- [x] npm run lint ✅
+- [x] npm run typecheck ✅
+- [x] npm run build ✅
+
+🤖 Generated with Claude Code" --base [main_branch]
+```
+
+#### Merge & Cleanup (CLAUDE 1 fa questo alla fine)
+
+```bash
+cd [project_root]
+
+# 1. Merge tutte le PR (in ordine!)
+gh pr merge [PR-1] --merge
+gh pr merge [PR-2] --merge
+gh pr merge [PR-3] --merge
+
+# 2. Pull changes
+git pull origin [main_branch]
+
+# 3. Cleanup worktrees
+git worktree remove ../[project]-C2
+git worktree remove ../[project]-C3
+git worktree remove ../[project]-C4
+
+# 4. Cleanup branches
+git branch -d feature/[plan]-phase1
+git branch -d feature/[plan]-phase2
+git branch -d feature/[plan]-phase3
+
+# 5. Verifica finale
+npm run lint && npm run typecheck && npm run build
+```
+
 ### Orchestration Scripts Location
 ```
 ~/.claude/scripts/
@@ -698,6 +794,7 @@ watch -n 300 'grep "GATE-0" plan.md'
 
 ## Changelog
 
+- **1.5.0** (2025-12-30): Added mandatory GIT WORKFLOW section with worktrees per Claude, PR per phase, and cleanup protocol
 - **1.4.0** (2025-12-29): Expanded to full Inter-Claude Communication Protocol with bidirectional messaging, worker-to-worker sync, broadcast patterns, message format conventions, and emoji reference table
 - **1.3.5** (2025-12-29): Simplified kitty pattern with `&&` chaining, added Coordinator Communication Pattern section
 - **1.3.4** (2025-12-29): Fixed kitty commands: use `send-text` + `send-key Return` instead of `\r`

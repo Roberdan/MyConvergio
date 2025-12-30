@@ -5,6 +5,49 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2025-12-30
+
+### Added
+- **Thor Quality Assurance System**: Complete validation gatekeeper for multi-Claude orchestration
+  - `thor-quality-assurance-guardian` v2.0.0: Brutal quality gatekeeper with full tool access
+  - Queue-based validation service at `/tmp/thor-queue/`
+  - Dual-channel communication: file-based (persistent) + Kitty (real-time)
+  - 7 validation gates: Task Compliance, Code Quality, Engineering Fundamentals, Repository Compliance, Documentation, Git Hygiene, Brutal Challenge
+  - 10 mandatory challenge questions asked to every worker
+  - Specialist delegation: Thor can invoke Baccio (architecture), Luca (security), Otto (performance), Rex (code review)
+  - Response types: APPROVED, REJECTED, CHALLENGED, ESCALATED
+  - Retry management with escalation to Roberto after 3 failures
+  - Validates orchestrators too (Planner, Ali) - no one exempt
+
+- **Thor Validation Protocol** v1.0.1: Complete communication specification
+  - Request/response JSON formats
+  - Worker submission flow with evidence gathering
+  - Audit logging in JSONL format
+
+- **Thor Worker Instructions** v1.0.0: Mandatory rules for all Claude workers
+  - Step-by-step validation flow
+  - "You are NOT done until Thor says you are done" enforcement
+  - Common mistakes that get rejected
+
+- **Scripts for Thor System**:
+  - `scripts/thor-queue-setup.sh`: Initialize validation queue directories
+  - `scripts/thor-worker-submit.sh`: Submit validation requests with auto-evidence gathering
+  - `scripts/thor-monitor.sh`: Monitor queue status and recent validations
+
+### Changed
+- **strategic-planner** v1.6.0 → v1.6.1: Added mandatory THOR VALIDATION GATE section
+  - All workers must get Thor approval before claiming task complete
+  - Thor launch instructions for Kitty tab
+  - Worker validation flow with bash examples
+  - Fixed heredoc quoting bug preventing variable expansion
+- **.gitignore**: Added `.claude/protocols/` to tracked directories
+
+### Fixed
+- Heredoc variable expansion bugs in planner and protocol documentation
+- JSON escaping for git output in thor-worker-submit.sh (newlines/quotes)
+- Architecture diagram role labels (Claude-1 is Planner, not Claude-4)
+- Missing Return key press in Kitty notifications
+
 ## [3.4.0] - 2025-12-30
 
 ### Added

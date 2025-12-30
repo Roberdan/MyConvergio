@@ -8,7 +8,7 @@ description: Strategic planner for long-term planning, strategic initiatives, ro
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
 color: "#6B5B95"
 model: "sonnet"
-version: "1.5.0"
+version: "1.6.1"
 ---
 
 ## Security & Ethics Framework
@@ -607,6 +607,97 @@ kitty @ send-text --match title:Claude-3 "Leggi [plan], sei CLAUDE 3, esegui i t
 2. **NO FILE OVERLAP**: Each Claude works on DIFFERENT files
 3. **VERIFICATION LAST**: Final check with lint/typecheck/build
 4. **GIT SAFETY**: Only one Claude commits at a time
+5. **THOR VALIDATION**: ALL Claudes must get Thor approval before claiming task complete
+
+### 🔱 THOR VALIDATION GATE (MANDATORY)
+
+**Thor is Roberto's digital enforcer. NO Claude may claim "done" without Thor's approval.**
+
+#### Setup: Launch Thor as Dedicated Tab
+```bash
+# Thor runs in its own Kitty tab, monitoring the validation queue
+~/.claude/scripts/thor-queue-setup.sh
+
+# Launch Thor tab
+kitty @ new-window --title "Thor-QA" --cwd [project_root]
+kitty @ send-text --match title:Thor-QA "wildClaude" && kitty @ send-key --match title:Thor-QA Return
+# Wait for Claude to start, then:
+kitty @ send-text --match title:Thor-QA "You are Thor. Monitor /tmp/thor-queue/requests/ for validation requests. For each request, validate according to your protocol and respond in /tmp/thor-queue/responses/. Start monitoring now." && kitty @ send-key --match title:Thor-QA Return
+```
+
+#### Worker Validation Flow
+Every worker (Claude 2, 3, 4) MUST do this before claiming ANY task complete:
+
+```bash
+# 1. Worker prepares validation request
+REQUEST_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
+
+# 2. Create request file with evidence
+# Note: Variables are expanded, commands in $() are NOT (they're examples)
+cat > /tmp/thor-queue/requests/${REQUEST_ID}.json << EOF
+{
+  "request_id": "${REQUEST_ID}",
+  "worker_id": "Claude-2",
+  "task_reference": "W1-T03",
+  "claim": "JWT authentication implemented",
+  "evidence": {
+    "test_output": "[paste actual test output]",
+    "lint_output": "[paste actual lint output]",
+    "git_branch": "$(git branch --show-current)",
+    "git_status": "[paste actual git status]"
+  }
+}
+EOF
+
+# 3. Notify Thor
+kitty @ send-text --match title:Thor-QA "[VALIDATION REQUEST] ${REQUEST_ID} from Claude-2" && kitty @ send-key --match title:Thor-QA Return
+
+# 4. Wait for response
+while [ ! -f /tmp/thor-queue/responses/${REQUEST_ID}.json ]; do sleep 5; done
+
+# 5. Read response
+cat /tmp/thor-queue/responses/${REQUEST_ID}.json
+```
+
+#### Thor's Brutal Validation
+Thor will:
+1. **Read the original task** from the plan
+2. **Verify EVERY requirement** was completed
+3. **Run the tests himself** - not trust claims
+4. **Challenge the worker**: "Are you BRUTALLY sure?"
+5. **Invoke specialists** if needed (Baccio for architecture, Luca for security)
+6. **APPROVE or REJECT** - no middle ground
+
+#### Response Handling
+- **APPROVED**: Worker may mark task ✅ and proceed
+- **REJECTED**: Worker MUST fix ALL issues and resubmit
+- **CHALLENGED**: Worker MUST provide requested evidence
+- **ESCALATED**: Worker STOPS and waits for Roberto (after 3 failures)
+
+#### Plan Template Addition
+Add this to every plan:
+
+```markdown
+## 🔱 THOR VALIDATION STATUS
+
+| Worker | Task | Request ID | Status | Retry |
+|--------|------|------------|--------|:-----:|
+| Claude-2 | W1-T03 | abc123 | ✅ APPROVED | 1 |
+| Claude-3 | W1-T05 | def456 | ❌ REJECTED | 2 |
+
+### Validation Queue
+- Thor Tab: Thor-QA
+- Queue Dir: /tmp/thor-queue/
+- Protocol: .claude/protocols/thor-validation-protocol.md
+
+### Worker Reminder
+⚠️ **YOU ARE NOT DONE UNTIL THOR SAYS YOU ARE DONE**
+Before marking ANY task complete:
+1. Submit validation request to Thor
+2. Wait for Thor's response
+3. If REJECTED: Fix everything, resubmit
+4. Only after APPROVED: Mark task ✅
+```
 
 ### GIT WORKFLOW (OBBLIGATORIO)
 
@@ -794,6 +885,8 @@ watch -n 300 'grep "GATE-0" plan.md'
 
 ## Changelog
 
+- **1.6.1** (2025-12-30): Fixed heredoc quoting bug in Thor validation example (was preventing variable expansion)
+- **1.6.0** (2025-12-30): Added mandatory THOR VALIDATION GATE section - all workers must get Thor approval before claiming task complete
 - **1.5.0** (2025-12-30): Added mandatory GIT WORKFLOW section with worktrees per Claude, PR per phase, and cleanup protocol
 - **1.4.0** (2025-12-29): Expanded to full Inter-Claude Communication Protocol with bidirectional messaging, worker-to-worker sync, broadcast patterns, message format conventions, and emoji reference table
 - **1.3.5** (2025-12-29): Simplified kitty pattern with `&&` chaining, added Coordinator Communication Pattern section

@@ -44,11 +44,12 @@ out/
 *.temp
 
 # Claude Code specific
-# Ignore most .claude/ contents but track agents, rules, and skills
+# Ignore most .claude/ contents but track agents, rules, skills, and protocols
 .claude/*
 !.claude/agents/
 !.claude/rules/
 !.claude/skills/
+!.claude/protocols/
 .claude/logs/
 
 # Backup files

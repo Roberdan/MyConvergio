@@ -5,6 +5,38 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0] - 2025-12-31 15:01 CET
+
+### Added
+- **Universal Multi-Terminal Orchestration**: Expanded beyond Kitty to support all terminals
+  - `orchestrate.sh`: Universal entry point with automatic terminal detection
+  - `detect-terminal.sh`: Smart terminal type detection (kitty/tmux/plain)
+  - **tmux Support**: Full tmux-based orchestration for Zed, Warp, iTerm, and any terminal
+    - `tmux-parallel.sh`: Launch N parallel Claude instances in tmux windows
+    - `tmux-monitor.sh`: Monitor tmux workers with live status updates
+    - `tmux-send-all.sh`: Broadcast messages to all workers simultaneously
+  - **Terminal Detection Matrix**:
+    - Kitty → Uses native `kitty @ send-text` remote control
+    - Zed/Warp/iTerm → Uses tmux session orchestration
+    - tmux (already running) → Uses existing tmux session
+    - Plain terminal → Prompts to install tmux
+
+### Changed
+- **scripts/orchestration/README.md**: Complete rewrite for multi-terminal support
+  - Quick Start section with auto-detection workflow
+  - Terminal support comparison table (Kitty vs tmux vs plain)
+  - Separate setup instructions for Kitty users vs Other terminal users
+  - tmux navigation guide (Ctrl+B shortcuts)
+  - Zed editor integration examples with keymap/tasks.json
+  - Updated troubleshooting for both Kitty and tmux scenarios
+
+### Improved
+- **Orchestration Accessibility**: No longer requires Kitty terminal
+  - Works from ANY terminal (Zed, Warp, iTerm, VS Code integrated terminal, etc.)
+  - Automatically falls back to tmux if Kitty not detected
+  - Maintains backward compatibility with existing Kitty-based workflows
+  - Enables parallel Claude orchestration for all users regardless of terminal choice
+
 ## [3.5.0] - 2025-12-30
 
 ### Added

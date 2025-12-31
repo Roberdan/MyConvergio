@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v3.0.0** | 57 Specialized Agents | Claude Code Plugin for Marketplace
+**v3.6.0** | 57 Specialized Agents | Claude Code Plugin for Marketplace
 
 > *"Intent is human, momentum is agent"*
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,11 +15,17 @@
 
 ---
 
-## What's New in v3.0.0
+## What's New in v3.6.0
 
-**MyConvergio is now a Claude Code Plugin!**
+**Universal Multi-Terminal Orchestration!**
 
-- **Marketplace Ready**: Install directly from Claude Code plugin system
+- **Multi-Terminal Support**: Works with Kitty, tmux, Zed, Warp, iTerm2, and any terminal
+- **Parallel Claude Execution**: Run multiple Claude instances simultaneously
+- **Auto-Detection**: Smart terminal detection chooses the best orchestration method
+- **Thor Quality Guardian**: Brutal quality validation with zero tolerance for shortcuts
+- **Optimized Release Manager**: 5x faster parallel execution (v2.0.0)
+
+### Previous Highlights (v3.0.0)
 - **57 Specialized Agents**: Enterprise-grade AI assistants for every domain
 - **3 Slash Commands**: `/myconvergio:status`, `/myconvergio:team`, `/myconvergio:plan`
 - **9 Reusable Skills**: Architecture, debugging, code review, and more
@@ -305,6 +311,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 *Built with AI assistance in Milano, following the Agentic Manifesto principles*
 
-**v3.0.0** | December 2025 | Claude Code Plugin
+**v3.6.0** | December 2025 | Claude Code Plugin
 
 </div>

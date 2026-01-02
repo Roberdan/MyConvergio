@@ -5,6 +5,7 @@
 # =============================================================================
 
 .PHONY: install install-local upgrade test clean update check-sync version help lint validate
+.PHONY: install-tier install-categories install-agents generate-lean list-tiers list-categories
 
 # Directories
 AGENTS_SRC := .claude/agents
@@ -26,10 +27,25 @@ NC := \033[0m
 .DEFAULT_GOAL := help
 
 help:
-	@echo "$(BLUE)MyConvergio Agent Management$(NC)"
+	@echo "$(BLUE)MyConvergio Agent Management v3.7.0$(NC)"
 	@echo ""
 	@echo "$(YELLOW)For New Users:$(NC)"
-	@echo "  make install        Install agents, rules, and skills to ~/.claude/"
+	@echo "  make install        Install ALL agents, rules, and skills to ~/.claude/"
+	@echo ""
+	@echo "$(YELLOW)Modular Installation (NEW):$(NC)"
+	@echo "  make list-tiers                       List available installation tiers"
+	@echo "  make list-categories                  List available agent categories"
+	@echo "  make install-tier TIER=minimal        Install a specific tier"
+	@echo "  make install-categories CATEGORIES=X  Install specific categories"
+	@echo "  make install-agents AGENTS=X          Install specific agents"
+	@echo ""
+	@echo "$(BLUE)Modular Options:$(NC)"
+	@echo "  TIER=minimal|standard|full            Choose installation size"
+	@echo "  VARIANT=lean|full                     Lean (50%% smaller) or full agents"
+	@echo "  RULES=consolidated|detailed|none      Rules system"
+	@echo ""
+	@echo "$(YELLOW)Example:$(NC)"
+	@echo "  make install-tier TIER=standard VARIANT=lean RULES=consolidated"
 	@echo ""
 	@echo "$(YELLOW)For Existing Users:$(NC)"
 	@echo "  make upgrade        Update to latest version (clean + install)"
@@ -43,6 +59,7 @@ help:
 	@echo "  make test           Run agent tests"
 	@echo "  make lint           Lint agent YAML frontmatter"
 	@echo "  make validate       Validate Constitution compliance"
+	@echo "  make generate-lean  Generate lean variants for all agents"
 
 install:
 	@echo "$(BLUE)Installing MyConvergio to $(CLAUDE_HOME)/...$(NC)"
@@ -160,6 +177,42 @@ validate:
 	else \
 		echo "$(GREEN)✅ All agents have security framework$(NC)"; \
 	fi
+
+# =============================================================================
+# Modular Installation (v3.7.0)
+# =============================================================================
+
+install-tier:
+	@bash scripts/selective-install.sh --tier $(TIER) --variant $(or $(VARIANT),full) --rules $(or $(RULES),consolidated)
+
+install-categories:
+	@bash scripts/selective-install.sh --categories $(CATEGORIES) --variant $(or $(VARIANT),full) --rules $(or $(RULES),consolidated)
+
+install-agents:
+	@bash scripts/selective-install.sh --agents $(AGENTS) --variant $(or $(VARIANT),full) --rules $(or $(RULES),consolidated)
+
+generate-lean:
+	@bash scripts/generate-lean-variants.sh --all
+
+list-tiers:
+	@echo "$(BLUE)Available Installation Tiers:$(NC)"
+	@echo ""
+	@echo "$(YELLOW)minimal$(NC)  - 5 core agents (~50KB context)"
+	@echo "  Core QA, debugging, code review, release management"
+	@echo ""
+	@echo "$(YELLOW)standard$(NC) - 20 common agents (~200KB context)"
+	@echo "  Technical development + strategic planning + release management"
+	@echo ""
+	@echo "$(YELLOW)full$(NC)     - All 57 agents (~600KB context)"
+	@echo "  Complete ecosystem with all specializations"
+	@echo ""
+	@echo "$(BLUE)Usage:$(NC)"
+	@echo "  make install-tier TIER=minimal VARIANT=lean RULES=consolidated"
+
+list-categories:
+	@echo "$(BLUE)Available Categories:$(NC)"
+	@echo ""
+	@bash scripts/selective-install.sh --list | grep -A100 "Available Categories:"
 
 # =============================================================================
 # Maintainer Commands (not in help - for internal use)

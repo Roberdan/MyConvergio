@@ -1,0 +1,56 @@
+// MyConvergio Optimized Settings Template
+// Copy to ~/.claude/settings.json and adjust for your hardware
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  // Context Optimization (adjust based on your RAM)
+  "env": {
+    // Maximum output tokens (default: 8000, max: 64000)
+    // Lower values reduce context usage
+    // Recommended: 32000 for 16GB+, 16000 for 8GB, 8000 for 4GB
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "32000",
+
+    // Maximum thinking tokens (default: 10000, max: 31999)
+    // Recommended: 31999 for complex tasks, 16000 for standard, 8000 for simple
+    "MAX_THINKING_TOKENS": "31999",
+
+    // Bash command timeout in milliseconds (default: 60000)
+    "BASH_DEFAULT_TIMEOUT_MS": "60000",
+
+    // Disable non-essential traffic to reduce context
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+
+    // Node.js memory limit (adjust to ~50% of your total RAM)
+    // Examples:
+    //   32GB RAM: "--max-old-space-size=16384" (16GB)
+    //   16GB RAM: "--max-old-space-size=8192"  (8GB)
+    //    8GB RAM: "--max-old-space-size=4096"  (4GB)
+    "NODE_OPTIONS": "--max-old-space-size=8192",
+
+    // UV thread pool size (match your CPU core count, max 8)
+    // Examples:
+    //   M3 Max (12 cores): "12"
+    //   M2 Pro (10 cores): "10"
+    //   M1/M2 (8 cores):   "8"
+    //   Intel i5 (4 cores): "4"
+    "UV_THREADPOOL_SIZE": "8"
+  },
+
+  // Permissions (bypassPermissions is fastest but least secure)
+  "permissions": {
+    "allow": [],
+    "deny": [],
+    "defaultMode": "bypassPermissions"
+  },
+
+  // Status line customization (optional)
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); model=$(echo \"$input\" | jq -r '.model.display_name'); branch=''; if [ -d \"$cwd/.git\" ]; then cd \"$cwd\" 2>/dev/null && branch=$(git branch --show-current 2>/dev/null); fi; printf '\\033[2;38;5;117m%s\\033[0m' \"$(basename \"$cwd\")${branch:+ ($branch)} • $model\""
+  },
+
+  // Enabled plugins
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true
+  }
+}

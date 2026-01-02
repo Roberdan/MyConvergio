@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "description": "MID-TIER: For systems with 16GB RAM, 8 cores (M1/M2 MacBook Pro, standard workstations)",
+  "env": {
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
+    "MAX_THINKING_TOKENS": "31999",
+    "BASH_DEFAULT_TIMEOUT_MS": "60000",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "NODE_OPTIONS": "--max-old-space-size=8192",
+    "UV_THREADPOOL_SIZE": "8"
+  },
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "recommended_profile": "standard",
+  "notes": [
+    "Use standard profile: myconvergio install --standard (20 agents)",
+    "Optimal balance between functionality and performance",
+    "Consider lean variants if experiencing memory pressure"
+  ]
+}

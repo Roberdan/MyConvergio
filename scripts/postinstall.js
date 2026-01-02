@@ -123,6 +123,91 @@ function hasExistingContent() {
   return false;
 }
 
+function getInstallProfile() {
+  const profile = process.env.MYCONVERGIO_PROFILE || 'minimal';
+  const validProfiles = ['minimal', 'standard', 'full', 'lean'];
+  if (!validProfiles.includes(profile)) {
+    log(colors.yellow, `Unknown profile "${profile}", using "minimal"`);
+    return 'minimal';
+  }
+  return profile;
+}
+
+function getAgentsForProfile(profile, srcAgents) {
+  const minimal = [
+    'leadership_strategy/ali-chief-of-staff.md',
+    'core_utility/thor-quality-assurance-guardian.md',
+    'technical_development/baccio-tech-architect.md',
+    'technical_development/rex-code-reviewer.md',
+    'technical_development/dario-debugger.md',
+    'technical_development/otto-performance-optimizer.md',
+    'release_management/app-release-manager.md',
+    'release_management/feature-release-manager.md',
+  ];
+
+  const standard = [
+    'leadership_strategy',
+    'technical_development',
+    'release_management',
+    'compliance_legal',
+    'core_utility',
+  ];
+
+  if (profile === 'minimal') {
+    return { type: 'files', list: minimal };
+  } else if (profile === 'standard') {
+    return { type: 'categories', list: standard };
+  } else {
+    return { type: 'full', list: [] };
+  }
+}
+
+function copyAgentsByProfile(srcAgents, destAgents, profile) {
+  const agentSpec = getAgentsForProfile(profile, srcAgents);
+  const installedFiles = [];
+
+  fs.mkdirSync(destAgents, { recursive: true });
+
+  // Always copy core utility files (CONSTITUTION, etc)
+  const coreUtilSrc = path.join(srcAgents, 'core_utility');
+  const coreUtilDest = path.join(destAgents, 'core_utility');
+  if (fs.existsSync(coreUtilSrc)) {
+    copyRecursive(coreUtilSrc, coreUtilDest, installedFiles);
+  }
+
+  if (agentSpec.type === 'files') {
+    // Copy specific files
+    for (const agentPath of agentSpec.list) {
+      const srcPath = path.join(srcAgents, agentPath);
+      const category = path.dirname(agentPath);
+      const fileName = path.basename(agentPath);
+      const destCategoryDir = path.join(destAgents, category);
+      const destPath = path.join(destCategoryDir, fileName);
+
+      if (fs.existsSync(srcPath)) {
+        fs.mkdirSync(destCategoryDir, { recursive: true });
+        fs.copyFileSync(srcPath, destPath);
+        installedFiles.push(destPath);
+      }
+    }
+  } else if (agentSpec.type === 'categories') {
+    // Copy entire categories
+    for (const category of agentSpec.list) {
+      if (category === 'core_utility') continue; // Already copied
+      const srcCat = path.join(srcAgents, category);
+      const destCat = path.join(destAgents, category);
+      if (fs.existsSync(srcCat)) {
+        copyRecursive(srcCat, destCat, installedFiles);
+      }
+    }
+  } else {
+    // Full install
+    copyRecursive(srcAgents, destAgents, installedFiles);
+  }
+
+  return installedFiles;
+}
+
 function main() {
   // Skip if running in CI or if MYCONVERGIO_SKIP_POSTINSTALL is set
   if (process.env.CI || process.env.MYCONVERGIO_SKIP_POSTINSTALL) {
@@ -130,7 +215,8 @@ function main() {
     return;
   }
 
-  log(colors.blue, '\n📦 MyConvergio Post-Install\n');
+  const profile = getInstallProfile();
+  log(colors.blue, `\n📦 MyConvergio Post-Install (${profile} profile)\n`);
 
   const srcAgents = path.join(PACKAGE_ROOT, '.claude', 'agents');
   const srcRules = path.join(PACKAGE_ROOT, '.claude', 'rules');
@@ -162,11 +248,13 @@ function main() {
     log(colors.blue, 'Fresh installation to ~/.claude/\n');
   }
 
-  const installedFiles = [];
+  let installedFiles = [];
 
-  // Install agents
-  copyRecursive(srcAgents, path.join(CLAUDE_HOME, 'agents'), installedFiles);
-  log(colors.green, `  ✓ Installed agents`);
+  // Install agents based on profile
+  installedFiles = copyAgentsByProfile(srcAgents, path.join(CLAUDE_HOME, 'agents'), profile);
+  const agentCount = installedFiles.filter(f => f.endsWith('.md') &&
+    !f.includes('CONSTITUTION') && !f.includes('CommonValues')).length;
+  log(colors.green, `  ✓ Installed ${agentCount} agents`);
 
   // Install rules
   copyRecursive(srcRules, path.join(CLAUDE_HOME, 'rules'), installedFiles);
@@ -185,6 +273,15 @@ function main() {
   process.stderr.write('\n');
   log(colors.green, '✅ MyConvergio installed successfully!');
   process.stderr.write('\n');
+
+  if (profile === 'minimal') {
+    log(colors.yellow, '💡 Minimal installation complete (8 core agents)');
+    process.stderr.write('    To install more agents, run:\n');
+    process.stderr.write('    • myconvergio install --standard  (20 agents)\n');
+    process.stderr.write('    • myconvergio install --full      (all 57 agents)\n');
+    process.stderr.write('    • myconvergio install --lean      (optimized)\n\n');
+  }
+
   log(colors.yellow, 'Your ~/.claude/CLAUDE.md was NOT modified.');
   process.stderr.write('Create your own configuration file if needed.\n');
   process.stderr.write('Run `myconvergio help` for available commands.\n\n');

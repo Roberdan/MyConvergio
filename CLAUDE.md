@@ -110,19 +110,96 @@ claude doctor
 - 4GB+ RAM
 - Internet connection
 
-## Key Development Commands
+## Installation
 
-### Agent Deployment
+### Quick Start (Full Installation)
 ```bash
 # Clone repository
 git clone https://github.com/roberdan/MyConvergio.git
 cd MyConvergio
 
-# Deploy all agents globally (recommended)
+# Deploy all agents globally (600KB context)
 make install
 
+# Check installation
+make version
+```
+
+### Modular Installation (NEW in v3.7.0)
+
+**Context Optimization**: Choose what you need instead of installing everything.
+
+#### Installation Tiers
+
+**Minimal (~50KB context)** - 5 core agents for essential development:
+```bash
+make install-tier TIER=minimal VARIANT=lean RULES=consolidated
+```
+
+**Standard (~200KB context)** - 20 common agents for most projects (recommended):
+```bash
+make install-tier TIER=standard VARIANT=lean RULES=consolidated
+```
+
+**Full (~600KB context)** - All 57 agents for maximum capability:
+```bash
+make install-tier TIER=full VARIANT=full RULES=detailed
+```
+
+#### Installation Options
+
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `TIER` | `minimal`, `standard`, `full` | Number of agents to install |
+| `VARIANT` | `lean`, `full` | Lean agents are 50% smaller (no verbose docs) |
+| `RULES` | `consolidated`, `detailed`, `none` | Consolidated rules are 93% smaller |
+
+#### Category Installation
+
+Install only specific categories:
+```bash
+# Technical development agents only
+make install-categories CATEGORIES=technical_development VARIANT=lean
+
+# Multiple categories
+make install-categories CATEGORIES=technical_development,release_management VARIANT=lean
+
+# List available categories
+make list-categories
+```
+
+#### Individual Agent Installation
+
+Install specific agents:
+```bash
+# Install specific agents
+make install-agents AGENTS=dario,rex,thor,baccio VARIANT=lean
+
+# With full documentation
+make install-agents AGENTS=ali-chief-of-staff VARIANT=full
+```
+
+### Context Optimization
+
+See [CONTEXT_OPTIMIZATION.md](./docs/CONTEXT_OPTIMIZATION.md) for comprehensive guide on:
+- Choosing the right installation tier
+- Understanding context usage
+- Lean vs full agent variants
+- Consolidated vs detailed rules
+- Settings optimization
+- Skills archiving strategies
+
+### Other Commands
+
+```bash
 # Deploy locally to current project
 make install-local
+
+# Upgrade existing installation
+make upgrade
+
+# Clean installation
+make clean
 
 # Check for upstream changes from ConvergioCLI
 make check-sync
@@ -132,6 +209,12 @@ make test
 
 # Validate Constitution compliance
 make validate
+
+# Generate lean variants (maintainers)
+make generate-lean
+
+# List available tiers
+make list-tiers
 ```
 
 ### Agent Development Workflow

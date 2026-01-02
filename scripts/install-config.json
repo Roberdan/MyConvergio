@@ -1,0 +1,88 @@
+{
+  "tiers": {
+    "minimal": {
+      "description": "Core agents for essential development (5 agents, ~50KB context)",
+      "categories": ["technical_development", "core_utility"],
+      "agents": [
+        "baccio-tech-architect",
+        "dario-debugger",
+        "rex-code-reviewer",
+        "thor-quality-assurance-guardian",
+        "strategic-planner"
+      ]
+    },
+    "standard": {
+      "description": "Common agents for most projects (20 agents, ~200KB context)",
+      "categories": [
+        "technical_development",
+        "core_utility",
+        "release_management",
+        "leadership_strategy"
+      ],
+      "agents": [
+        "baccio-tech-architect",
+        "dario-debugger",
+        "rex-code-reviewer",
+        "otto-performance-optimizer",
+        "paolo-best-practices-enforcer",
+        "marco-devops-engineer",
+        "thor-quality-assurance-guardian",
+        "strategic-planner",
+        "app-release-manager",
+        "feature-release-manager",
+        "ali-chief-of-staff",
+        "amy-cfo",
+        "domik-mckinsey-strategic-decision-maker",
+        "luca-security-expert",
+        "elena-legal-compliance-expert",
+        "davide-project-manager",
+        "marcello-pm",
+        "oliver-pm",
+        "steve-executive-communication-strategist",
+        "socrates-first-principles-reasoning"
+      ]
+    },
+    "full": {
+      "description": "All agents for comprehensive coverage (57 agents, ~600KB context)",
+      "categories": "all"
+    }
+  },
+  "variants": {
+    "lean": {
+      "description": "Stripped agents without Security Framework (~50% smaller)",
+      "removes": [
+        "Security & Ethics Framework",
+        "Copyright notice",
+        "Anti-Hijacking Protocol",
+        "Identity Lock details",
+        "Verbose examples"
+      ]
+    },
+    "full": {
+      "description": "Complete agents with all documentation (default)",
+      "includes": "everything"
+    }
+  },
+  "rules": {
+    "consolidated": {
+      "description": "Single engineering-standards.md file (3.6KB, 93% smaller)",
+      "files": ["engineering-standards.md"],
+      "source": "~/.claude/rules/engineering-standards.md"
+    },
+    "detailed": {
+      "description": "Separate files with verbose examples (52KB)",
+      "files": [
+        "api-development.md",
+        "code-style.md",
+        "documentation-standards.md",
+        "ethical-guidelines.md",
+        "security-requirements.md",
+        "testing-standards.md"
+      ]
+    },
+    "none": {
+      "description": "No rules, agents only",
+      "files": []
+    }
+  }
+}

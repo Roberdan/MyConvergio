@@ -47,9 +47,11 @@ out/
 # Ignore most .claude/ contents but track agents, rules, skills, and protocols
 .claude/*
 !.claude/agents/
+!.claude/agents-lean/
 !.claude/rules/
 !.claude/skills/
 !.claude/protocols/
+!.claude/settings-templates/
 .claude/logs/
 
 # Backup files

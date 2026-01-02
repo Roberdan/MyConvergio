@@ -142,8 +142,88 @@ function hasExistingContent() {
   return false;
 }
 
-function install(skipBackup = false) {
-  log(colors.blue, 'Installing MyConvergio to ~/.claude/...\n');
+function getAgentsForProfile(profile) {
+  const minimal = [
+    'leadership_strategy/ali-chief-of-staff.md',
+    'core_utility/thor-quality-assurance-guardian.md',
+    'core_utility/strategic-planner.md',
+    'technical_development/baccio-tech-architect.md',
+    'technical_development/rex-code-reviewer.md',
+    'technical_development/dario-debugger.md',
+    'technical_development/otto-performance-optimizer.md',
+    'release_management/app-release-manager.md',
+    'release_management/feature-release-manager.md',
+  ];
+
+  const standard = [
+    'leadership_strategy',
+    'technical_development',
+    'release_management',
+    'compliance_legal',
+    'core_utility',
+  ];
+
+  if (profile === 'minimal') {
+    return { type: 'files', list: minimal };
+  } else if (profile === 'standard') {
+    return { type: 'categories', list: standard };
+  } else {
+    // 'full' and 'lean' both install all agents (lean uses agents-lean directory)
+    return { type: 'full', list: [] };
+  }
+}
+
+function copyAgentsByProfile(srcAgents, destAgents, profile) {
+  const agentSpec = getAgentsForProfile(profile);
+  const installedFiles = [];
+
+  fs.mkdirSync(destAgents, { recursive: true });
+
+  // Always copy core utility files (CONSTITUTION, etc)
+  const coreUtilSrc = path.join(srcAgents, 'core_utility');
+  const coreUtilDest = path.join(destAgents, 'core_utility');
+  if (fs.existsSync(coreUtilSrc)) {
+    copyRecursive(coreUtilSrc, coreUtilDest, installedFiles);
+  }
+
+  if (agentSpec.type === 'files') {
+    // Copy specific files
+    for (const agentPath of agentSpec.list) {
+      const srcPath = path.join(srcAgents, agentPath);
+      const category = path.dirname(agentPath);
+      const fileName = path.basename(agentPath);
+      const destCategoryDir = path.join(destAgents, category);
+      const destPath = path.join(destCategoryDir, fileName);
+
+      if (fs.existsSync(srcPath)) {
+        fs.mkdirSync(destCategoryDir, { recursive: true });
+        fs.copyFileSync(srcPath, destPath);
+        installedFiles.push(destPath);
+      }
+    }
+  } else if (agentSpec.type === 'categories') {
+    // Copy entire categories
+    for (const category of agentSpec.list) {
+      if (category === 'core_utility') continue; // Already copied
+      const srcCat = path.join(srcAgents, category);
+      const destCat = path.join(destAgents, category);
+      if (fs.existsSync(srcCat)) {
+        copyRecursive(srcCat, destCat, installedFiles);
+      }
+    }
+  } else {
+    // Full install
+    copyRecursive(srcAgents, destAgents, installedFiles);
+  }
+
+  return installedFiles;
+}
+
+function install(options = {}) {
+  const profile = options.profile || 'full';
+  const skipBackup = options.skipBackup || false;
+
+  log(colors.blue, `Installing MyConvergio (${profile} profile) to ~/.claude/...\n`);
 
   // Check for existing content and ALWAYS backup if found
   const existingManifest = loadManifest();
@@ -164,15 +244,27 @@ function install(skipBackup = false) {
     log(colors.blue, 'Fresh installation to ~/.claude/\n');
   }
 
-  const srcAgents = path.join(PACKAGE_ROOT, '.claude', 'agents');
-  const srcRules = path.join(PACKAGE_ROOT, '.claude', 'rules');
+  // For lean profile, use agents-lean directory if available
+  const agentsLeanDir = path.join(PACKAGE_ROOT, '.claude', 'agents-lean');
+  const srcAgents = (profile === 'lean' && fs.existsSync(agentsLeanDir))
+    ? agentsLeanDir
+    : path.join(PACKAGE_ROOT, '.claude', 'agents');
+
+  // For minimal/lean profiles, use consolidated rules if available
+  const consolidatedRules = path.join(PACKAGE_ROOT, '.claude', 'rules', 'consolidated');
+  const srcRules = ((profile === 'minimal' || profile === 'lean') && fs.existsSync(consolidatedRules))
+    ? consolidatedRules
+    : path.join(PACKAGE_ROOT, '.claude', 'rules');
+
   const srcSkills = path.join(PACKAGE_ROOT, '.claude', 'skills');
 
-  const installedFiles = [];
+  let installedFiles = [];
 
-  // Install agents
-  copyRecursive(srcAgents, path.join(CLAUDE_HOME, 'agents'), installedFiles);
-  log(colors.green, '  ✓ Installed agents');
+  // Install agents based on profile
+  installedFiles = copyAgentsByProfile(srcAgents, path.join(CLAUDE_HOME, 'agents'), profile);
+  const agentCount = installedFiles.filter(f => f.endsWith('.md') &&
+    !f.includes('CONSTITUTION') && !f.includes('CommonValues')).length;
+  log(colors.green, `  ✓ Installed ${agentCount} agents`);
 
   // Install rules
   copyRecursive(srcRules, path.join(CLAUDE_HOME, 'rules'), installedFiles);
@@ -190,6 +282,18 @@ function install(skipBackup = false) {
   console.log('');
   log(colors.green, '✅ Installation complete!');
   console.log('');
+
+  if (profile === 'minimal') {
+    log(colors.yellow, '💡 Minimal installation (9 core agents + consolidated rules)');
+    console.log('    To install more: myconvergio install --standard or --full\n');
+  } else if (profile === 'standard') {
+    log(colors.yellow, '💡 Standard installation (~25 agents)');
+    console.log('    To install all: myconvergio install --full\n');
+  } else if (profile === 'lean') {
+    log(colors.yellow, '💡 Lean installation (all 57 agents, 20% smaller + consolidated rules)');
+    console.log('    Optimized for reduced context usage.\n');
+  }
+
   log(colors.yellow, 'Note: Your ~/.claude/CLAUDE.md was NOT modified.');
   console.log('      Create your own configuration file if needed.');
 }
@@ -322,25 +426,100 @@ function listAgents() {
   log(colors.green, `Total: ${totalAgents} agents`);
 }
 
+function detectHardware() {
+  const cpuCount = require('os').cpus().length;
+  const totalMem = Math.round(require('os').totalmem() / (1024 * 1024 * 1024)); // GB
+
+  if (totalMem >= 32 && cpuCount >= 10) {
+    return 'high';
+  } else if (totalMem >= 16 && cpuCount >= 6) {
+    return 'mid';
+  } else {
+    return 'low';
+  }
+}
+
+function showSettings() {
+  const os = require('os');
+  const cpuCount = os.cpus().length;
+  const totalMem = Math.round(os.totalmem() / (1024 * 1024 * 1024));
+  const cpuModel = os.cpus()[0].model;
+  const recommendedProfile = detectHardware();
+
+  log(colors.blue, '\nHardware Detection\n');
+  console.log(`  CPU: ${cpuModel}`);
+  console.log(`  Cores: ${cpuCount}`);
+  console.log(`  RAM: ${totalMem}GB`);
+  console.log('');
+
+  log(colors.yellow, `Recommended settings profile: ${recommendedProfile}-spec`);
+  console.log('');
+
+  const templatePath = path.join(PACKAGE_ROOT, '.claude', 'settings-templates', `${recommendedProfile}-spec.json`);
+  const settingsPath = path.join(CLAUDE_HOME, 'settings.json');
+
+  if (fs.existsSync(settingsPath)) {
+    log(colors.yellow, 'You already have a settings.json file.');
+    console.log(`To apply recommended settings, run:\n`);
+    console.log(`  cp "${templatePath}" "${settingsPath}"`);
+  } else {
+    console.log('To apply recommended settings, run:\n');
+    console.log(`  mkdir -p ~/.claude && cp "${templatePath}" "${settingsPath}"`);
+  }
+
+  console.log('');
+  log(colors.blue, 'Available templates:');
+  console.log('  low-spec.json   - 8GB RAM, 4 cores (conservative)');
+  console.log('  mid-spec.json   - 16GB RAM, 8 cores (balanced)');
+  console.log('  high-spec.json  - 32GB+ RAM, 10+ cores (maximum performance)');
+  console.log('');
+  console.log(`Templates located in: ${path.join(PACKAGE_ROOT, '.claude', 'settings-templates')}`);
+}
+
 function showHelp() {
   console.log(`
 ${colors.blue}MyConvergio - Claude Code Subagents Suite${colors.reset}
 
 ${colors.yellow}Usage:${colors.reset}
-  myconvergio [command]
+  myconvergio [command] [options]
 
 ${colors.yellow}Commands:${colors.reset}
   install     Install/reinstall agents, rules, and skills to ~/.claude/
   uninstall   Remove all installed components from ~/.claude/
   agents      List all installed agents with versions
+  settings    Detect hardware and recommend settings profile
   version     Show version and installation status
   help        Show this help message
 
+${colors.yellow}Install Options:${colors.reset}
+  --minimal   Install 8 core agents (~50KB)
+              ali, thor, baccio, rex, dario, otto, release managers
+
+  --standard  Install 20 essential agents (~200KB)
+              Leadership, technical, release, compliance categories
+
+  --full      Install all 57 agents (~800KB) [default]
+              Complete ecosystem
+
+  --lean      Install optimized agents with reduced context (~400KB)
+              All agents but stripped Security Frameworks
+
 ${colors.yellow}Examples:${colors.reset}
-  myconvergio install     # Install or update components
-  myconvergio agents      # List all agents with versions
-  myconvergio version     # Check what's installed
-  myconvergio uninstall   # Remove everything
+  npm install -g myconvergio                  # Installs minimal by default
+  MYCONVERGIO_PROFILE=full npm install -g myconvergio
+
+  myconvergio install --minimal               # 8 core agents
+  myconvergio install --standard              # 20 agents
+  myconvergio install --full                  # All 57 agents
+  myconvergio install --lean                  # Optimized
+
+  myconvergio agents                          # List installed
+  myconvergio version                         # Check version
+  myconvergio uninstall                       # Remove all
+
+${colors.yellow}Environment Variables:${colors.reset}
+  MYCONVERGIO_PROFILE=minimal|standard|full|lean
+    Set default profile for npm postinstall
 
 ${colors.yellow}More info:${colors.reset}
   https://github.com/roberdan/MyConvergio
@@ -351,11 +530,19 @@ ${colors.yellow}More info:${colors.reset}
 const args = process.argv.slice(2);
 const command = args[0] || 'help';
 
+// Parse flags
+const hasFlag = (flag) => args.includes(flag);
+const profile = hasFlag('--minimal') ? 'minimal' :
+                hasFlag('--standard') ? 'standard' :
+                hasFlag('--lean') ? 'lean' :
+                hasFlag('--full') ? 'full' :
+                'full'; // default for CLI
+
 switch (command) {
   case 'install':
   case 'reinstall':
   case 'update':
-    install();
+    install({ profile, skipBackup: false });
     break;
   case 'uninstall':
   case 'remove':
@@ -364,6 +551,10 @@ switch (command) {
   case 'agents':
   case 'list':
     listAgents();
+    break;
+  case 'settings':
+  case 'hardware':
+    showSettings();
     break;
   case 'version':
   case '-v':

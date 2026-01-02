@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v3.6.0** | 57 Specialized Agents | Claude Code Plugin for Marketplace
+**v3.7.0** | 57 Specialized Agents | Claude Code Plugin for Marketplace
 
 > *"Intent is human, momentum is agent"*
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,15 +15,25 @@
 
 ---
 
-## What's New in v3.6.0
+## What's New in v3.7.0
 
-**Universal Multi-Terminal Orchestration!**
+**Context Optimization Release!**
 
-- **Multi-Terminal Support**: Works with Kitty, tmux, Zed, Warp, iTerm2, and any terminal
-- **Parallel Claude Execution**: Run multiple Claude instances simultaneously
-- **Auto-Detection**: Smart terminal detection chooses the best orchestration method
-- **Thor Quality Guardian**: Brutal quality validation with zero tolerance for shortcuts
-- **Optimized Release Manager**: 5x faster parallel execution (v2.0.0)
+- **Installation Profiles**: Choose your footprint - minimal (50KB), standard (200KB), lean (600KB), or full (800KB)
+- **Lean Agent Variants**: 57 optimized agents with 20% smaller context in `.claude/agents-lean/`
+- **Hardware-Aware Settings**: Auto-detect your hardware and get optimized configurations
+- **`myconvergio settings`**: New command to configure Claude Code for your machine
+
+```bash
+# Install with profile
+myconvergio install --minimal    # 9 core agents, 50KB context
+myconvergio install --lean       # All 57 agents, 20% smaller
+MYCONVERGIO_PROFILE=lean npm install -g myconvergio  # Via npm
+```
+
+### Previous Highlights (v3.6.0)
+- **Multi-Terminal Support**: Works with Kitty, tmux, Zed, Warp, iTerm2
+- **Thor Quality Guardian**: Brutal quality validation with zero tolerance
 
 ### Previous Highlights (v3.0.0)
 - **57 Specialized Agents**: Enterprise-grade AI assistants for every domain
@@ -46,9 +56,14 @@ claude --plugin-dir .
 
 #### Option B: Global npm Install
 ```bash
+# Full install (all 57 agents)
 npm install -g myconvergio
+
+# Or choose a profile for lower context usage:
+MYCONVERGIO_PROFILE=minimal npm install -g myconvergio  # 9 agents, ~50KB
+MYCONVERGIO_PROFILE=lean npm install -g myconvergio     # 57 agents, ~600KB
 ```
-Copies agents to `~/.claude/agents/` for global access.
+Copies agents to `~/.claude/agents/`. See [Context Optimization Guide](./docs/CONTEXT_OPTIMIZATION.md) for details.
 
 #### Option C: Claude Marketplace (Coming Soon)
 ```bash

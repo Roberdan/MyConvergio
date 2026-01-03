@@ -1,0 +1,215 @@
+// Voltrex-style Plan Dashboard
+let data = null;
+
+async function init() {
+  try {
+    const res = await fetch('plan.json');
+    data = await res.json();
+    render();
+  } catch (e) {
+    document.querySelector('.content').innerHTML = `<div style="padding:40px;color:var(--red);">Error: ${e.message}</div>`;
+  }
+}
+
+function render() {
+  // Header
+  document.getElementById('projectName').textContent = data.meta.project;
+  document.getElementById('planLabel').textContent = data.meta.project;
+  document.getElementById('throughputBadge').textContent = data.metrics.throughput.percent + '%';
+  document.getElementById('ownerBadge').textContent = data.meta.owner;
+
+  // Stats
+  document.getElementById('tasksDone').textContent = data.metrics.throughput.done;
+  document.getElementById('velocity').textContent = data.metrics.velocity.value + '/h';
+  document.getElementById('cycleTime').textContent = data.metrics.cycleTime.value + ' min';
+  document.getElementById('bugsFixed').textContent = `${data.bugs.fixed}/${data.bugs.total}`;
+  document.getElementById('quality').textContent = data.metrics.quality.score + '%';
+
+  // Epoch
+  const currentWave = data.waves.find(w => w.status === 'in_progress') || data.waves[data.waves.length - 1];
+  document.getElementById('currentWave').textContent = `${currentWave.id} - ${currentWave.name}`;
+  document.getElementById('epochDates').textContent = `${data.timeline.start.slice(0, 10)} ${data.timeline.start.slice(11, 16)} - ${data.timeline.eta.slice(0, 10)} ${data.timeline.eta.slice(11, 16)}`;
+  document.getElementById('countdown').textContent = data.timeline.remaining + ' left';
+
+  // PR
+  if (data.github) {
+    document.getElementById('prAdditions').textContent = '+' + data.github.pr.additions;
+    document.getElementById('prDeletions').textContent = '-' + data.github.pr.deletions;
+    document.getElementById('prNumber').textContent = data.github.pr.number;
+    document.getElementById('prFiles').textContent = data.github.pr.files;
+    document.getElementById('prTitle').value = data.github.pr.title;
+    document.getElementById('prProgress').textContent = data.metrics.throughput.percent + '%';
+    document.querySelector('.slider').value = data.metrics.throughput.percent;
+    document.getElementById('viewPrBtn').onclick = () => window.open(data.github.pr.url, '_blank');
+  }
+
+  // Git
+  if (data.git) {
+    document.getElementById('gitBranch').textContent = data.git.currentBranch;
+  }
+
+  // Alert
+  if (data.alerts && data.alerts.length > 0) {
+    const blocker = data.alerts.find(a => a.type === 'blocker') || data.alerts[0];
+    document.querySelector('.leader-name').textContent = blocker.title;
+    document.querySelector('.leader-handle').textContent = blocker.desc;
+  }
+
+  // Chart
+  renderChart();
+
+  // Agents
+  renderAgents();
+}
+
+function renderChart() {
+  const times = data.timeline.data.map(d => d.time);
+  const done = data.timeline.data.map(d => d.done);
+  const target = data.timeline.data.map(d => d.target);
+
+  new ApexCharts(document.getElementById('mainChart'), {
+    series: [
+      { name: 'Completed', data: done },
+      { name: 'Target', data: target }
+    ],
+    chart: {
+      type: 'area',
+      height: 280,
+      toolbar: { show: false },
+      background: 'transparent',
+      zoom: { enabled: false }
+    },
+    colors: ['#f7931a', '#6b7280'],
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.4,
+        opacityTo: 0.1,
+        stops: [0, 90, 100]
+      }
+    },
+    stroke: { width: [3, 2], curve: 'smooth', dashArray: [0, 5] },
+    markers: {
+      size: [5, 0],
+      colors: ['#f7931a'],
+      strokeColors: '#0d0a14',
+      strokeWidth: 2,
+      hover: { size: 7 }
+    },
+    xaxis: {
+      categories: times,
+      labels: { style: { colors: '#6b7280', fontSize: '11px' } },
+      axisBorder: { show: false },
+      axisTicks: { show: false }
+    },
+    yaxis: {
+      labels: { style: { colors: '#6b7280', fontSize: '11px' }, formatter: v => Math.round(v) },
+      min: 0
+    },
+    grid: {
+      borderColor: 'rgba(139, 92, 246, 0.1)',
+      strokeDashArray: 4,
+      xaxis: { lines: { show: true } }
+    },
+    legend: { show: false },
+    tooltip: {
+      theme: 'dark',
+      custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+        const time = w.globals.categoryLabels[dataPointIndex];
+        const val = series[0][dataPointIndex];
+        const tgt = series[1][dataPointIndex];
+        return `<div style="background:#1e1529;padding:12px;border-radius:8px;border:1px solid rgba(139,92,246,0.3);">
+          <div style="color:#9ca3af;font-size:11px;margin-bottom:4px;">${time}</div>
+          <div style="color:#f7931a;font-size:14px;font-weight:600;">Done: ${val}</div>
+          <div style="color:#22c55e;font-size:12px;">vs Target: ${tgt}</div>
+        </div>`;
+      }
+    },
+    annotations: {
+      yaxis: [{
+        y: data.metrics.throughput.done,
+        borderColor: '#22c55e',
+        strokeDashArray: 4,
+        label: {
+          borderColor: '#22c55e',
+          style: { color: '#000', background: '#22c55e', fontSize: '11px', padding: { left: 8, right: 8, top: 2, bottom: 2 } },
+          text: data.metrics.throughput.done.toString()
+        }
+      }]
+    }
+  }).render();
+}
+
+function renderAgents() {
+  const grid = document.getElementById('agentsGrid');
+  grid.innerHTML = data.contributors.map((c, i) => {
+    const sparkData = generateSparkline(c.tasks);
+    return `
+      <div class="trader-card">
+        <div class="trader-header">
+          <div class="trader-avatar" style="display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg, #667eea, #764ba2);">${c.avatar}</div>
+          <div class="trader-info">
+            <div class="trader-name">${c.name}</div>
+            <div class="trader-followers">${c.role}</div>
+          </div>
+          <div class="trader-star">${c.status === 'active' ? '&#9733;' : '&#9734;'}</div>
+        </div>
+        <div class="trader-profit">+${c.tasks}</div>
+        <div class="trader-roi">Tasks completed${c.efficiency ? ` | ${c.efficiency}% efficiency` : ''}</div>
+        <div class="trader-chart" id="spark${i}"></div>
+        <div class="trader-stats">
+          <div class="trader-stat">
+            <div class="trader-stat-label">Status</div>
+            <div class="trader-stat-value">${c.status}</div>
+          </div>
+          <div class="trader-stat">
+            <div class="trader-stat-label">Current</div>
+            <div class="trader-stat-value">${c.currentTask || '-'}</div>
+          </div>
+          <div class="trader-stat">
+            <div class="trader-stat-label">Efficiency</div>
+            <div class="trader-stat-value">${c.efficiency ? c.efficiency + '%' : '-'}</div>
+          </div>
+        </div>
+        <div class="trader-actions">
+          <button class="trader-btn mock">Details</button>
+          <button class="trader-btn copy">Assign</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Render sparklines
+  data.contributors.forEach((c, i) => {
+    const sparkData = generateSparkline(c.tasks);
+    new ApexCharts(document.getElementById(`spark${i}`), {
+      series: [{ data: sparkData }],
+      chart: { type: 'line', height: 40, sparkline: { enabled: true } },
+      stroke: { width: 2, curve: 'smooth' },
+      colors: ['#f7931a'],
+      tooltip: { enabled: false }
+    }).render();
+  });
+}
+
+function generateSparkline(tasks) {
+  const points = [];
+  let val = 0;
+  for (let i = 0; i < 10; i++) {
+    val += Math.random() * (tasks / 5);
+    points.push(Math.round(val));
+  }
+  return points;
+}
+
+// Export
+document.getElementById('exportBtn')?.addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.download = `${data.meta.project}-plan.json`;
+  link.href = URL.createObjectURL(blob);
+  link.click();
+});
+
+document.addEventListener('DOMContentLoaded', init);

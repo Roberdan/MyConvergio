@@ -1,0 +1,34 @@
+# Database locale
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# Logs
+*.log
+logs/
+
+# Secrets
+.env
+.env.*
+secrets/
+credentials/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.temp
+.cache/
+
+# Node modules
+node_modules/
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/

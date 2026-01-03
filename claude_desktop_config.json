@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "azure-devops": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure-devops/mcp",
+        "IndustrySolutions",
+        "-a",
+        "interactive",
+        "-d",
+        "work"
+      ]
+    }
+  }
+}

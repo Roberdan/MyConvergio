@@ -1,0 +1,25 @@
+2026-01-03T17:05:38.586Z [DEBUG] Watching for changes in setting files /Users/roberdan/.claude...
+2026-01-03T17:05:38.619Z [DEBUG] [SLOW OPERATION DETECTED] execSyncWithDefaults_DEPRECATED (31.5ms): security find-generic-password -a "roberdan" -w -s "Claude Code-credentials"
+2026-01-03T17:05:38.630Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-01-03T17:05:38.630Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-01-03T17:05:38.630Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-01-03T17:05:38.639Z [DEBUG] [SLOW OPERATION DETECTED] fs.readFileSync (6.9ms)
+2026-01-03T17:05:38.639Z [DEBUG] LSP server manager initialized successfully
+2026-01-03T17:05:38.639Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-01-03T17:05:38.651Z [DEBUG] [SLOW OPERATION DETECTED] fs.readFileSync (11.5ms)
+2026-01-03T17:05:38.653Z [DEBUG] Loading plugin frontend-design from source: "./plugins/frontend-design"
+2026-01-03T17:05:38.659Z [DEBUG] [SLOW OPERATION DETECTED] fs.readFileSync (5.4ms)
+2026-01-03T17:05:38.682Z [DEBUG] Git remote URL: null
+2026-01-03T17:05:38.682Z [DEBUG] No git remote URL found
+2026-01-03T17:05:38.682Z [DEBUG] Not in a GitHub repository, skipping path mapping update
+2026-01-03T17:05:38.682Z [DEBUG] Using git SHA for frontend-design@claude-plugins-official: 6d3752c000e2
+2026-01-03T17:05:38.683Z [DEBUG] Plugin frontend-design@claude-plugins-official version 6d3752c000e2 already cached at /Users/roberdan/.claude/plugins/cache/claude-plugins-official/frontend-design/6d3752c000e2
+2026-01-03T17:05:38.683Z [DEBUG] Copied local plugin frontend-design to versioned cache: /Users/roberdan/.claude/plugins/cache/claude-plugins-official/frontend-design/6d3752c000e2
+2026-01-03T17:05:38.687Z [DEBUG] Found 1 plugins (1 enabled, 0 disabled)
+2026-01-03T17:05:38.833Z [DEBUG] Remote settings: No settings found (404)
+2026-01-03T17:05:38.833Z [DEBUG] Programmatic settings change notification for policySettings
+2026-01-03T18:04:40.629Z [DEBUG] Detected change to /Users/roberdan/.claude/settings.json
+2026-01-03T18:05:39.150Z [DEBUG] Remote settings: No settings found (404)
+2026-01-03T19:05:39.065Z [DEBUG] Remote settings: No settings found (404)
+2026-01-03T20:05:39.163Z [DEBUG] Remote settings: No settings found (404)
+2026-01-03T21:05:39.189Z [DEBUG] Remote settings: No settings found (404)

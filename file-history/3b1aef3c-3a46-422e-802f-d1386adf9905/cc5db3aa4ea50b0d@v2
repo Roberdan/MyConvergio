@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">C</div>
+      <nav class="sidebar-nav">
+        <div class="nav-icon active" title="Dashboard">&#x1F4CA;</div>
+        <div class="nav-icon" title="Waves">&#x1F4CB;</div>
+        <div class="nav-icon" title="Bugs">&#x1F41B;</div>
+        <div class="nav-icon" title="Quality">&#x2705;</div>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="nav-icon" id="themeToggle" title="Toggle Theme">&#x1F319;</div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <h1 id="planName">Loading...</h1>
+          <p class="subtitle" id="branchInfo">branch: --</p>
+        </div>
+        <div class="header-right">
+          <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+          <div class="clock" id="clock">--:--:--</div>
+          <button class="btn btn-secondary" id="exportBtn">Export</button>
+        </div>
+      </header>
+
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-value" id="velocity">--</div>
+          <div class="stat-label">Velocity</div>
+          <div class="stat-trend up" id="velocityTrend">-- --</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="cycleTime">--</div>
+          <div class="stat-label">Cycle Time</div>
+          <div class="stat-trend down" id="cycleTrend">-- --</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value orange" id="throughput">--%</div>
+          <div class="stat-label">Throughput</div>
+          <div class="stat-trend" id="throughputSub">--/-- tasks</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="quality">--%</div>
+          <div class="stat-label">Quality Score</div>
+          <div class="stat-trend up" id="qualityTrend">-- --</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value red" id="bugs">--</div>
+          <div class="stat-label">Bugs Fixed</div>
+          <div class="stat-trend" id="bugsSub">P0: - P1: - P2: -</div>
+        </div>
+      </div>
+
+      <!-- Main Grid -->
+      <div class="grid-2">
+        <!-- Timeline Chart -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Progress Timeline</h3>
+            <span class="badge" id="timeRemaining">--</span>
+          </div>
+          <div id="mainChart"></div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot done"></div>Completed</div>
+            <div class="legend-item"><div class="legend-dot target"></div>Target</div>
+          </div>
+        </div>
+
+        <!-- PR Status -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Pull Request</h3>
+            <span class="badge" id="prNumber">#--</span>
+          </div>
+          <div class="pr-status" id="prStatus">
+            <div class="pr-icon">&#x1F4DD;</div>
+            <div class="pr-info">
+              <h4 id="prTitle">Loading...</h4>
+              <p id="prMeta">-- files changed</p>
+            </div>
+            <div class="pr-stats">
+              <div class="additions" id="prAdditions">+--</div>
+              <div class="deletions" id="prDeletions">---</div>
+            </div>
+          </div>
+          <div class="card-header" style="margin-top:16px;margin-bottom:8px;">
+            <h3>CI Checks</h3>
+          </div>
+          <div class="checks-grid" id="checksGrid"></div>
+        </div>
+      </div>
+
+      <!-- Contributors -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header">
+          <h3>Contributors</h3>
+          <span class="badge" id="activeCount">-- active</span>
+        </div>
+        <div class="contributors-grid" id="contributorsGrid"></div>
+      </div>
+
+      <!-- Git Log -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header">
+          <h3>Git History</h3>
+          <span class="badge" id="gitBranch">--</span>
+        </div>
+        <div id="gitContainer"></div>
+      </div>
+
+      <!-- Waves + Alerts -->
+      <div class="grid-2-equal">
+        <!-- Waves -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Waves</h3>
+            <span class="badge" id="waveProgress">--/--</span>
+          </div>
+          <div id="wavesContainer"></div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Alerts</h3>
+            <span class="badge" id="alertCount">--</span>
+          </div>
+          <div id="alertsContainer"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Export Modal -->
+  <div class="modal-overlay" id="exportModal">
+    <div class="modal">
+      <h3>Export Dashboard</h3>
+      <button class="modal-btn" id="exportPng">&#x1F4F8; PNG Screenshot</button>
+      <button class="modal-btn" id="exportCsv">&#x1F4CB; Azure DevOps CSV</button>
+      <button class="modal-btn" id="exportJson">&#x1F4C4; Raw JSON</button>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

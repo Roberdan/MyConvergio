@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "project": "ConvergioEdu",
+    "plan": "Sprint 3 Gennaio",
+    "version": "2.0",
+    "branch": "development",
+    "status": "in_progress",
+    "created": "2026-01-03T17:15:00+01:00",
+    "updated": "2026-01-03T22:30:00+01:00",
+    "owner": "Roberto"
+  },
+  "metrics": {
+    "velocity": { "value": 12.5, "unit": "tasks/h", "trend": 15, "trendDir": "up" },
+    "cycleTime": { "value": 8.5, "unit": "min", "trend": 2, "trendDir": "down" },
+    "throughput": { "done": 54, "total": 62, "percent": 87 },
+    "quality": { "score": 98.2, "trend": 1.2, "trendDir": "up" }
+  },
+  "bugs": {
+    "total": 21,
+    "fixed": 21,
+    "p0": { "count": 7, "fixed": 7 },
+    "p1": { "count": 9, "fixed": 9 },
+    "p2": { "count": 5, "fixed": 5 }
+  },
+  "github": {
+    "pr": {
+      "number": 106,
+      "title": "feat: Sprint 3 Gennaio - Bug fixes + Features",
+      "status": "open",
+      "url": "https://github.com/Roberdan/ConvergioEdu/pull/106",
+      "additions": 890,
+      "deletions": 234,
+      "files": 23,
+      "comments": 3,
+      "reviewers": ["thor", "roberto"]
+    },
+    "checks": [
+      { "name": "TypeCheck", "status": "pass" },
+      { "name": "Lint", "status": "pass" },
+      { "name": "Build", "status": "pass" },
+      { "name": "Tests", "status": "pass", "detail": "142/142" },
+      { "name": "Thor QA", "status": "pending" }
+    ]
+  },
+  "contributors": [
+    { "id": "claude-a", "name": "Claude-A", "role": "Executor", "avatar": "🤖", "tasks": 44, "status": "active", "currentTask": "W5.1", "efficiency": 125.73 },
+    { "id": "thor", "name": "Thor", "role": "QA Guardian", "avatar": "⚡", "tasks": 9, "status": "pending", "currentTask": null, "efficiency": 100 },
+    { "id": "rex", "name": "Rex", "role": "Code Reviewer", "avatar": "🦖", "tasks": 3, "status": "idle", "currentTask": null, "efficiency": 98.5 },
+    { "id": "roberto", "name": "Roberto", "role": "Owner", "avatar": "👤", "tasks": 6, "status": "active", "currentTask": "Review", "efficiency": null }
+  ],
+  "timeline": {
+    "start": "2026-01-03T17:15:00+01:00",
+    "eta": "2026-01-03T23:30:00+01:00",
+    "elapsed": "5h 15m",
+    "remaining": "1h 00m",
+    "data": [
+      { "time": "17:15", "done": 0, "target": 62 },
+      { "time": "18:00", "done": 3, "target": 55 },
+      { "time": "19:00", "done": 15, "target": 47 },
+      { "time": "20:00", "done": 33, "target": 39 },
+      { "time": "21:00", "done": 44, "target": 31 },
+      { "time": "22:00", "done": 53, "target": 23 },
+      { "time": "22:30", "done": 54, "target": 15 }
+    ]
+  },
+  "waves": [
+    { "id": "W0", "name": "QA + Plan", "status": "done", "assignee": "Roberto", "done": 3, "total": 3, "start": "17:15", "end": "18:44" },
+    { "id": "W1-2", "name": "Bug Fixes", "status": "done", "assignee": "Claude-A", "done": 21, "total": 21, "start": "18:44", "end": "20:00" },
+    { "id": "W3", "name": "Welcome", "status": "done", "assignee": "Claude-A", "done": 9, "total": 9, "start": "20:00", "end": "21:00" },
+    { "id": "W4", "name": "Supporti", "status": "done", "assignee": "Claude-A", "done": 11, "total": 11, "start": "21:00", "end": "22:00" },
+    { "id": "W5", "name": "Thor QA", "status": "in_progress", "assignee": "Thor", "done": 1, "total": 9, "start": "22:00", "end": null }
+  ],
+  "alerts": [
+    { "type": "blocker", "title": "PR #106 NOT Merging", "desc": "6/10 QA failures" },
+    { "type": "warning", "title": "Wave 5 Pending", "desc": "Thor QA waiting" }
+  ],
+  "git": {
+    "currentBranch": "development",
+    "commits": [
+      { "hash": "a1b2c3d", "message": "feat(dashboard): add Voltrex style", "author": "claude", "time": "now" },
+      { "hash": "e4f5g6h", "message": "fix(bugs): resolve all P0-P2 issues", "author": "claude", "time": "2h ago" },
+      { "hash": "i7j8k9l", "message": "feat(welcome): implement onboarding flow", "author": "claude", "time": "3h ago" }
+    ],
+    "branches": ["main", "development", "feature/sprint-3"]
+  },
+  "files": {
+    "plan": "docs/plans/doing/TODAYDocs/TODAY.md",
+    "waves": "waves/",
+    "qa": "qa/manual-qa.md"
+  }
+}

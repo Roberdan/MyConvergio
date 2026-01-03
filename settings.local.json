@@ -1,0 +1,10 @@
+{
+  "enableAllProjectMcpServers": false,
+  "permissions": {
+    "allow": [
+      "Bash(npm update:*)",
+      "Bash(npm run:*)",
+      "Bash(git:*)"
+    ]
+  }
+}

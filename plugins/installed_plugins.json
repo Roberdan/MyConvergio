@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "plugins": {
+    "frontend-design@claude-plugins-official": [
+      {
+        "scope": "project",
+        "projectPath": "/Users/roberdan/GitHub/ConvergioEdu",
+        "installPath": "/Users/roberdan/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
+        "version": "unknown",
+        "installedAt": "2025-12-29T09:12:33.798Z",
+        "lastUpdated": "2026-01-01T11:28:45.798Z",
+        "isLocal": true
+      }
+    ],
+    "code-review@claude-plugins-official": [
+      {
+        "scope": "project",
+        "installPath": "/Users/roberdan/.claude/plugins/cache/claude-plugins-official/code-review/6d3752c000e2",
+        "version": "6d3752c000e2",
+        "installedAt": "2026-01-01T12:34:53.699Z",
+        "lastUpdated": "2026-01-01T12:34:53.699Z",
+        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14",
+        "isLocal": true,
+        "projectPath": "/Users/roberdan/GitHub/ConvergioEdu"
+      }
+    ],
+    "feature-dev@claude-plugins-official": [
+      {
+        "scope": "project",
+        "installPath": "/Users/roberdan/.claude/plugins/cache/claude-plugins-official/feature-dev/6d3752c000e2",
+        "version": "6d3752c000e2",
+        "installedAt": "2026-01-01T12:34:53.699Z",
+        "lastUpdated": "2026-01-01T12:34:53.699Z",
+        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14",
+        "isLocal": true,
+        "projectPath": "/Users/roberdan/GitHub/ConvergioEdu"
+      }
+    ],
+    "pr-review-toolkit@claude-plugins-official": [
+      {
+        "scope": "project",
+        "installPath": "/Users/roberdan/.claude/plugins/cache/claude-plugins-official/pr-review-toolkit/6d3752c000e2",
+        "version": "6d3752c000e2",
+        "installedAt": "2026-01-01T12:34:53.699Z",
+        "lastUpdated": "2026-01-01T12:34:53.699Z",
+        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14",
+        "isLocal": true,
+        "projectPath": "/Users/roberdan/GitHub/ConvergioEdu"
+      }
+    ]
+  }
+}

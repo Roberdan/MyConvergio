@@ -1,0 +1,984 @@
+// ============================================================================
+// MIRRORBUDDY WEB - DATABASE SCHEMA
+// SQLite for local, PostgreSQL for cloud (same schema works for both)
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================================
+// USER & PROFILE
+// ============================================================================
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile       Profile?
+  settings      Settings?
+  progress      Progress?
+  sessions          StudySession[]
+  flashcards        FlashcardProgress[]
+  quizResults       QuizResult[]
+  conversations     Conversation[]
+  learnings         Learning[]
+  pushSubscriptions PushSubscription[]
+
+  // Issue #64: Consolidated localStorage data
+  accessibility     AccessibilitySettings?
+  onboarding        OnboardingState?
+  pomodoroStats     PomodoroStats?
+  calendarEvents    CalendarEvent[]
+  htmlSnippets      HtmlSnippet[]
+  homeworkSessions  HomeworkSession[]
+}
+
+model Profile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name          String?
+  age           Int?
+  schoolYear    Int?
+  schoolLevel   String   @default("superiore")
+  gradeLevel    String?
+  learningGoals String   @default("[]")
+
+  // Character preferences (coach and buddy selection)
+  preferredCoach String?  // melissa, roberto, chiara, andrea, favij
+  preferredBuddy String?  // mario, noemi, enea, bruno, sofia
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ============================================================================
+// SETTINGS
+// ============================================================================
+
+model Settings {
+  id            String  @id @default(cuid())
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Appearance
+  theme         String  @default("system")
+  language      String  @default("it")
+  accentColor   String  @default("blue")
+
+  // Accessibility
+  fontSize           String  @default("medium")
+  highContrast       Boolean @default(false)
+  dyslexiaFont       Boolean @default(false)
+  reducedMotion      Boolean @default(false)
+  voiceEnabled       Boolean @default(true)
+  simplifiedLanguage Boolean @default(false)
+  adhdMode           Boolean @default(false)
+
+  // AI Provider
+  provider      String  @default("azure")
+  model         String  @default("gpt-4o")
+  budgetLimit   Float   @default(50.0)
+  totalSpent    Float   @default(0.0)
+
+  // Parent Mode Consent (Issue #63)
+  parentChatConsentAt DateTime?  // When parent consented to chat with professors
+
+  // Parent Dashboard (Issue #64)
+  parentDashboardLastViewed DateTime?  // When parent last viewed the dashboard
+
+  // Azure Cost Configuration
+  azureCostConfig String?  // JSON: {token_cost, audio_cost, etc.}
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ============================================================================
+// PROGRESS & GAMIFICATION
+// ============================================================================
+
+model Progress {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  xp                Int       @default(0)
+  level             Int       @default(1)
+
+  // Streak
+  streakCurrent     Int       @default(0)
+  streakLongest     Int       @default(0)
+  lastStudyDate     DateTime?
+
+  // Aggregates
+  totalStudyMinutes Int       @default(0)
+  questionsAsked    Int       @default(0)
+  sessionsThisWeek  Int       @default(0)
+
+  // Complex data as JSON
+  achievements      String    @default("[]")
+  masteries         String    @default("[]")
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model StudySession {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  maestroId   String
+  subject     String
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  duration    Int?
+  xpEarned    Int       @default(0)
+  questions   Int       @default(0)
+
+  // Student self-evaluation (1-5 stars)
+  studentRating    Int?
+  studentFeedback  String?
+
+  // AI Maestro evaluation (1-10 score)
+  maestroScore     Int?
+  maestroFeedback  String?
+  strengths        String?   // JSON array
+  areasToImprove   String?   // JSON array
+
+  // Session context
+  topics           String    @default("[]") // JSON array of topics covered
+  conversationId   String?   // Link to Conversation
+
+  // Tools created during session
+  materials        Material[]
+
+  @@index([userId])
+  @@index([startedAt])
+  @@index([conversationId])
+}
+
+// ============================================================================
+// EDUCATION: FLASHCARDS & QUIZZES
+// ============================================================================
+
+model FlashcardProgress {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  cardId         String
+  deckId         String?
+
+  // FSRS Algorithm State
+  difficulty     Float     @default(0.0)
+  stability      Float     @default(0.0)
+  retrievability Float     @default(1.0)
+  state          String    @default("new")
+
+  // Review tracking
+  reps           Int       @default(0)
+  lapses         Int       @default(0)
+  lastReview     DateTime?
+  nextReview     DateTime?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, cardId])
+  @@index([userId])
+  @@index([nextReview])
+}
+
+model QuizResult {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  quizId         String
+  subject        String?
+  score          Int
+  totalQuestions Int
+  percentage     Float
+
+  // Detailed answers as JSON
+  answers        String   @default("[]")
+
+  completedAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([completedAt])
+}
+
+// ============================================================================
+// CONVERSATIONS & MEMORY
+// ============================================================================
+
+model Conversation {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  maestroId    String
+  title        String?
+
+  // Summary system
+  summary      String?
+  keyFacts     String?
+  topics       String    @default("[]")
+
+  // Message management
+  messageCount Int       @default(0)
+  messages     Message[]
+
+  // Status
+  isActive     Boolean   @default(true)
+  lastMessageAt DateTime?
+
+  // Parent Mode (Issue #63)
+  isParentMode Boolean   @default(false)
+  studentId    String?   // The student being discussed (for parent conversations)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([maestroId])
+  @@index([updatedAt])
+  @@index([isParentMode])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role           String
+  content        String
+
+  // Optional metadata
+  toolCalls      String?
+  tokenCount     Int?
+
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// LEARNINGS (Cross-session insights)
+// ============================================================================
+
+model Learning {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Context
+  maestroId   String?
+  subject     String?
+
+  // The learning itself
+  category    String
+  insight     String
+
+  // Confidence tracking
+  confidence  Float    @default(0.5)
+  occurrences Int      @default(1)
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  lastSeen    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([category])
+  @@index([confidence])
+}
+
+// ============================================================================
+// STUDENT INSIGHT PROFILES (Multi-Maestro Learning Insights for Parents)
+// Related: Issue #31
+// ============================================================================
+
+model StudentInsightProfile {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  studentName  String
+
+  // Access control (GDPR)
+  visibleTo    String    @default("parents") // parents | teachers | both
+
+  // Consent tracking
+  parentConsent   Boolean  @default(false)
+  studentConsent  Boolean  @default(false)
+  consentDate     DateTime?
+  deletionRequested DateTime?
+
+  // Synthesized profile data as JSON
+  insights     String    @default("[]") // MaestroInsight[]
+  strengths    String    @default("[]") // StrengthArea[]
+  growthAreas  String    @default("[]") // GrowthArea[]
+  learningStyle String   @default("{}") // LearningStyle
+  strategies   String    @default("[]") // Strategy[]
+
+  // Historical snapshots
+  progressHistory String  @default("[]") // ProfileSnapshot[]
+
+  // Metadata
+  sessionCount  Int       @default(0)
+  lastSessionId String?
+  confidenceScore Float   @default(0.0)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Access log for GDPR audit
+  accessLogs   ProfileAccessLog[]
+
+  @@index([userId])
+}
+
+model ProfileAccessLog {
+  id         String   @id @default(cuid())
+  profileId  String
+  profile    StudentInsightProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  userId     String
+  action     String   // view | download | share | edit | delete_request
+  details    String?
+  ipAddress  String?
+  userAgent  String?
+
+  timestamp  DateTime @default(now())
+
+  @@index([profileId])
+  @@index([timestamp])
+}
+
+// ============================================================================
+// NOTIFICATIONS (Server-side persistence for cross-device sync)
+// ============================================================================
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+
+  type        String   // achievement | streak | reminder | break | session_end | level_up | calendar | system | flashcard_due | scheduled_session | suggestion
+  title       String
+  message     String
+  actionUrl   String?
+  metadata    String?  // JSON for additional data
+
+  // Scheduler-specific fields (Issue #27)
+  priority     String?  // high | medium | low
+  relatedId    String?  // Reference to flashcard deck, session, etc.
+  melissaVoice String?  // Voice script for Melissa TTS
+
+  read        Boolean  @default(false)
+  dismissed   Boolean  @default(false)
+
+  // Scheduling for future notifications
+  scheduledFor DateTime?
+  sentAt       DateTime?
+
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime? // Auto-delete after expiry
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@index([scheduledFor])
+}
+
+// ============================================================================
+// TELEMETRY (Usage Analytics & Grafana Integration)
+// ============================================================================
+
+model TelemetryEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique // Client-generated event ID for deduplication
+
+  // Event data
+  timestamp   DateTime
+  category    String   // navigation | education | conversation | maestro | tools | accessibility | error | performance
+  action      String   // Specific action (page_view, quiz_started, etc.)
+  label       String?  // Additional context (page name, maestro ID, etc.)
+  value       Float?   // Numeric value (duration, count, etc.)
+  metadata    String?  // JSON for additional key-value pairs
+
+  // Session & user tracking
+  sessionId   String
+  userId      String?  // Optional, only if authenticated
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([timestamp])
+  @@index([category])
+  @@index([action])
+}
+
+// ============================================================================
+// METHOD PROGRESS (Autonomy Tracking - Issue #28)
+// ============================================================================
+
+model MethodProgress {
+  id        String @id @default(cuid())
+  userId    String @unique
+
+  // Skill progress (JSON stored)
+  mindMaps       String @default("{}") // MindMapProgress JSON
+  flashcards     String @default("{}") // FlashcardProgress JSON
+  selfAssessment String @default("{}") // SelfAssessmentProgress JSON
+  helpBehavior   String @default("{}") // HelpBehavior JSON
+  methodTransfer String @default("{}") // MethodTransfer JSON
+
+  // Events history (JSON array)
+  events String @default("[]") // MethodEvent[] JSON
+
+  // Computed scores
+  autonomyScore Float @default(0) // 0-1
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([autonomyScore])
+}
+
+// ============================================================================
+// MATERIALS (Persisted tool outputs - T-20)
+// ============================================================================
+
+model Material {
+  id          String   @id @default(cuid())
+  userId      String
+  toolId      String   @unique // Client-generated tool ID
+  toolType    String   // mindmap, quiz, flashcard, demo, etc.
+  title       String
+  content     String   // JSON string
+
+  // Context
+  maestroId   String?
+  sessionId   String?
+  session     StudySession? @relation(fields: [sessionId], references: [id])
+  subject     String?
+  preview     String?  // Preview text for lists
+
+  // Migrated from CreatedTool
+  topic          String?
+  conversationId String?
+
+  // Status
+  status      String   @default("active") // active, archived, deleted
+
+  // User interaction (Issue #37 - Archive features)
+  userRating   Int?     // 1-5 stars
+  isBookmarked Boolean  @default(false)
+  viewCount    Int      @default(0)
+
+  // Full-text search (ADR 0022 - Knowledge Hub)
+  searchableText String?  // Pre-computed searchable content for Fuse.js
+
+  // Organization (ADR 0022 - Knowledge Hub)
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id])
+  tags         MaterialTag[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([toolType])
+  @@index([status])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([isBookmarked])
+  @@index([collectionId])
+}
+
+// ============================================================================
+// COLLECTIONS (ADR 0022 - Knowledge Hub)
+// Folders for organizing materials
+// ============================================================================
+
+model Collection {
+  id          String       @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  color       String?      // Hex color for folder icon
+  icon        String?      // Optional icon name
+  parentId    String?      // Nested folders support
+  parent      Collection?  @relation("CollectionTree", fields: [parentId], references: [id])
+  children    Collection[] @relation("CollectionTree")
+  materials   Material[]
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([userId, name, parentId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+// ============================================================================
+// TAGS (ADR 0022 - Knowledge Hub)
+// User-defined tags for materials
+// ============================================================================
+
+model Tag {
+  id        String        @id @default(cuid())
+  userId    String
+  name      String
+  color     String?       // Hex color for tag badge
+  materials MaterialTag[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model MaterialTag {
+  id         String   @id @default(cuid())
+  materialId String
+  tagId      String
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([materialId, tagId])
+  @@index([materialId])
+  @@index([tagId])
+}
+
+// ============================================================================
+// PARENT NOTES (Auto-generated session summaries for parents)
+// ============================================================================
+
+model ParentNote {
+  id          String    @id @default(cuid())
+  userId      String
+  sessionId   String
+  maestroId   String
+  subject     String
+  duration    Int       // minutes
+
+  // Content
+  summary     String    // Brief summary for parents
+  highlights  String    // JSON array of achievements
+  concerns    String?   // JSON array of concerns (can be empty)
+  suggestions String?   // JSON array of suggestions
+
+  // Timestamps
+  generatedAt DateTime  @default(now())
+  viewedAt    DateTime?
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([generatedAt])
+}
+
+// ============================================================================
+// CREATED TOOLS (Maestro-generated interactive tools - Issue #39, #37)
+// DEPRECATED: Use Material table instead. Kept for migration buffer.
+// ============================================================================
+
+model CreatedTool {
+  id             String   @id @default(cuid())
+  userId         String
+
+  // Tool metadata
+  type           String   // mindmap, quiz, demo, flashcard, search, summary, diagram, timeline
+  title          String
+  topic          String?
+  content        String   @default("{}") // JSON data
+
+  // Context
+  maestroId      String?
+  conversationId String?
+  sessionId      String?
+
+  // User interaction
+  userRating     Int?     // 1-5 stars
+  isBookmarked   Boolean  @default(false)
+  viewCount      Int      @default(0)
+
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([isBookmarked])
+}
+
+// ============================================================================
+// STUDY SCHEDULER (Smart Notifications & Scheduling - Issue #27)
+// ============================================================================
+
+model StudySchedule {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+
+  // Notification preferences (JSON)
+  preferences String   @default("{}") // NotificationPreferences JSON
+
+  sessions    ScheduledSession[]
+  reminders   CustomReminder[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ScheduledSession {
+  id            String   @id @default(cuid())
+  userId        String
+  scheduleId    String
+  schedule      StudySchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  // Session details
+  dayOfWeek     Int      // 0-6 (Sunday-Saturday)
+  time          String   // "16:00" format
+  duration      Int      @default(30) // minutes
+  subject       String
+  maestroId     String?
+  topic         String?
+
+  // Scheduling options
+  active        Boolean  @default(true)
+  reminderOffset Int     @default(5) // minutes before notification
+  repeat        String   @default("weekly") // daily | weekly | weekdays | none
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([scheduleId])
+  @@index([dayOfWeek])
+  @@index([active])
+}
+
+model CustomReminder {
+  id            String   @id @default(cuid())
+  userId        String
+  scheduleId    String
+  schedule      StudySchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  // Reminder details
+  datetime      DateTime
+  message       String
+  subject       String?
+  maestroId     String?
+
+  // Scheduling options
+  repeat        String   @default("none") // daily | weekly | none
+  active        Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([scheduleId])
+  @@index([datetime])
+  @@index([active])
+}
+
+// ============================================================================
+// PWA PUSH NOTIFICATIONS (ADR-0014)
+// Push subscription storage for background notifications
+// ============================================================================
+
+model PushSubscription {
+  id        String    @id @default(cuid())
+  userId    String
+  endpoint  String    @unique // Push service endpoint URL
+  p256dh    String    // Public key for encryption
+  auth      String    // Auth secret for encryption
+  userAgent String?   // Browser/device info for debugging
+  createdAt DateTime  @default(now())
+  expiresAt DateTime? // Optional expiration
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============================================================================
+// ACCESSIBILITY SETTINGS (Issue #64 - localStorage consolidation)
+// Migrated from: accessibility-store.ts
+// ============================================================================
+
+model AccessibilitySettings {
+  id        String @id @default(cuid())
+  userId    String @unique
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Dyslexia support
+  dyslexiaFont        Boolean @default(false)
+  extraLetterSpacing  Boolean @default(false)
+  increasedLineHeight Boolean @default(false)
+
+  // Visual support
+  highContrast   Boolean @default(false)
+  largeText      Boolean @default(false)
+  reducedMotion  Boolean @default(false)
+
+  // Text-to-Speech
+  ttsEnabled  Boolean @default(false)
+  ttsSpeed    Float   @default(1.0) // 0.5 to 2.0
+  ttsAutoRead Boolean @default(false)
+
+  // ADHD support
+  adhdMode           Boolean @default(false)
+  distractionFreeMode Boolean @default(false)
+  breakReminders     Boolean @default(false)
+
+  // General accessibility
+  lineSpacing        Float   @default(1.0) // 1.0 to 2.0
+  fontSize           Float   @default(1.0) // 0.8 to 1.5
+  colorBlindMode     Boolean @default(false)
+  keyboardNavigation Boolean @default(true)
+
+  // Custom colors
+  customBackgroundColor String @default("#ffffff")
+  customTextColor       String @default("#000000")
+
+  // ADHD Session Config (JSON)
+  adhdConfig String @default("{}") // ADHDSessionConfig JSON
+  adhdStats  String @default("{}") // ADHDSessionStats JSON
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============================================================================
+// ONBOARDING STATE (Issue #64 - localStorage consolidation)
+// Migrated from: onboarding-store.ts
+// ============================================================================
+
+model OnboardingState {
+  id        String @id @default(cuid())
+  userId    String @unique
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Flow state
+  hasCompletedOnboarding Boolean  @default(false)
+  onboardingCompletedAt  DateTime?
+  currentStep            String   @default("welcome") // OnboardingStep
+  isReplayMode           Boolean  @default(false)
+  isVoiceMuted           Boolean  @default(false)
+
+  // Collected data (JSON)
+  data String @default("{}") // OnboardingData JSON
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============================================================================
+// POMODORO STATS (Issue #64 - localStorage consolidation)
+// Migrated from: pomodoro-store.ts
+// ============================================================================
+
+model PomodoroStats {
+  id        String @id @default(cuid())
+  userId    String @unique
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Persistent stats
+  completedPomodoros Int @default(0)
+  totalFocusTime     Int @default(0) // in seconds
+  todayPomodoros     Int @default(0)
+  todayFocusMinutes  Int @default(0)
+  lastActiveDate     String @default("")
+
+  // Settings (JSON)
+  settings String @default("{}") // PomodoroSettings JSON
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============================================================================
+// CALENDAR EVENTS (Issue #64 - localStorage consolidation)
+// Migrated from: calendar-store.ts
+// ============================================================================
+
+model CalendarEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  subject     String?
+  maestroId   String?
+
+  // Timing
+  date        DateTime
+  startTime   String?  // "16:00" format
+  endTime     String?
+  duration    Int?     // in minutes
+  allDay      Boolean  @default(false)
+
+  // Recurrence
+  recurring   Boolean  @default(false)
+  recurrence  String?  // daily | weekly | monthly | none
+
+  // Status
+  completed   Boolean  @default(false)
+  reminded    Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([date])
+}
+
+// ============================================================================
+// HTML SNIPPETS (Issue #64 - localStorage consolidation)
+// Migrated from: app-store.ts HTMLSnippetsStore
+// ============================================================================
+
+model HtmlSnippet {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  snippetId String   @unique // Client-generated ID
+  html      String
+  css       String?
+  js        String?
+  title     String?
+  subject   String?
+  maestroId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([snippetId])
+}
+
+// ============================================================================
+// HOMEWORK SESSIONS (Issue #64 - localStorage consolidation)
+// Migrated from: homework-help-view.tsx session storage
+// ============================================================================
+
+model HomeworkSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Session data
+  subject     String?
+  topic       String?
+  problemType String?
+  status      String   @default("active") // active | completed | abandoned
+
+  // Messages and steps (JSON arrays)
+  messages String @default("[]")
+  steps    String @default("[]")
+
+  // Timing
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ============================================================================
+// STUDY KITS (Wave 2 - PDF Upload to Study Materials Generator)
+// ============================================================================
+
+model StudyKit {
+  id          String   @id @default(cuid())
+  userId      String
+  sourceFile  String   // PDF filename or path
+  title       String
+
+  // Generated materials (JSON strings)
+  summary     String?  // Plain text summary
+  mindmap     String?  // MindmapData JSON
+  demo        String?  // DemoData JSON
+  quiz        String?  // QuizData JSON
+
+  // Processing status
+  status      String   @default("processing") // processing | ready | error
+  errorMessage String?
+
+  // Metadata
+  subject     String?
+  pageCount   Int?
+  wordCount   Int?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// RATE LIMIT EVENTS (Dashboard Analytics - Wave 2)
+// ============================================================================
+
+model RateLimitEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  endpoint  String
+  limit     Int
+  window    Int      // Window in seconds
+  ipAddress String?
+  timestamp DateTime @default(now())
+
+  @@index([userId, timestamp])
+  @@index([endpoint, timestamp])
+}
+
+// ============================================================================
+// SAFETY EVENTS (Dashboard Analytics - Wave 2)
+// ============================================================================
+
+model SafetyEvent {
+  id              String    @id @default(cuid())
+  userId          String?
+  type            String    // content_filter | age_verification | harassment | etc.
+  severity        String    // low | medium | high | critical
+  conversationId  String?
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  resolution      String?
+  timestamp       DateTime  @default(now())
+
+  @@index([userId, timestamp])
+  @@index([severity, timestamp])
+}
+

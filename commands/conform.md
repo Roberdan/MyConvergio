@@ -35,15 +35,18 @@ Run `/conform` in any repository to bootstrap a compliant `CLAUDE.md`.
 ## Generation Process
 
 ```
-1. Check if ./CLAUDE.md exists
-2. If exists → analyze missing sections, propose additions
-3. If not exists → generate from template
-4. Extract commands from package.json scripts (if Node.js)
-5. Detect architecture from folder structure
-6. Prompt user for Project Rules (constraints, processes)
-7. Write CLAUDE.md
-8. Register project: ~/.claude/scripts/register-project.sh $(pwd)
+1. Register project: ~/.claude/scripts/register-project.sh $(pwd)
+2. Check if ./CLAUDE.md exists
+3. If exists AND complete → skip to step 8 (already conformant)
+4. If exists but incomplete → analyze missing sections, propose additions
+5. If not exists → generate from template
+6. Extract commands from package.json scripts (if Node.js)
+7. Detect architecture from folder structure
+8. Write CLAUDE.md (only if changes needed)
+9. Confirm registration complete
 ```
+
+**Key behavior**: Registration ALWAYS happens. CLAUDE.md only touched if needed.
 
 ## Output Structure
 

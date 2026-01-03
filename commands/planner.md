@@ -202,7 +202,7 @@ Checklist: [ ] ADR [ ] CHANGELOG [ ] README [ ] Code docs
 | **TOTAL** | 0/N |
 ```
 
-## DASHBOARD (Visual Monitoring)
+## DASHBOARD (Visual Monitoring V2)
 
 Real-time plan visualization at `http://127.0.0.1:31415`
 
@@ -211,15 +211,32 @@ Real-time plan visualization at `http://127.0.0.1:31415`
 npx live-server ~/.claude/dashboard --port=31415 --no-browser &
 ```
 
-**Data file**: Create `plan.json` in dashboard folder or project root.
+**Data file**: `~/.claude/dashboard/plan.json` (V2 schema)
 
-**Update during execution**:
-1. After each task: update `metrics.throughput.done`
+**Schema V2 Features**:
+- Drill-down: Plan > Wave > Task navigation
+- Git tree: Staged/unstaged/untracked files
+- Technical debt tracking: TODO/FIXME/HACK counts
+- Quality fundamentals: Tests, coverage, linting, security checks
+
+**Schema**: See `~/.claude/dashboard/SCHEMA-V2.md`
+
+**Auto-update with collectors**:
+```bash
+~/.claude/scripts/collect-all.sh [project_path] --update-plan
+```
+
+Available collectors:
+- `collect-git.sh` - Git status, branches, uncommitted files
+- `collect-github.sh` - PR status, workflows, issues (requires gh CLI)
+- `collect-debt.sh` - TODO/FIXME/HACK scanning
+- `collect-quality.sh` - Engineering fundamentals checklist
+
+**Manual update during execution**:
+1. After each task: update `waves[n].tasks[m].status = "done"`
 2. After wave completion: update `waves[n].status = "done"`
-3. On git activity: update `git.commits` with latest
+3. Run `collect-all.sh --update-plan` to refresh git/debt/quality
 4. On blocker: add to `alerts` array
-
-**Schema**: See `~/.claude/dashboard/SCHEMA.md`
 
 **Contributors mapping**:
 | Claude Role | Dashboard Entry |
@@ -227,11 +244,6 @@ npx live-server ~/.claude/dashboard --port=31415 --no-browser &
 | CLAUDE 1 (Planner) | `{ "id": "planner", "role": "Coordinator", "avatar": "brain" }` |
 | CLAUDE 2 (Executor) | `{ "id": "claude-2", "role": "Executor", "avatar": "robot" }` |
 | Thor | `{ "id": "thor", "role": "QA Guardian", "avatar": "zap" }` |
-
-**Git integration**: Populate `git.commits` with:
-```bash
-git log --oneline -5 --format='{"hash":"%h","message":"%s","author":"%an","time":"%cr"}'
-```
 
 ---
 

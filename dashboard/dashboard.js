@@ -244,8 +244,7 @@ function renderAgents() {
           </div>
         </div>
         <div class="trader-actions">
-          <button class="trader-btn mock">Details</button>
-          <button class="trader-btn copy">Assign</button>
+          <button class="trader-btn mock" onclick="showAgentDetails('${c.id}')">Details</button>
         </div>
       </div>
     `;
@@ -309,5 +308,214 @@ document.querySelector('.max-btn')?.addEventListener('click', () => {
 document.getElementById('themeSelect')?.addEventListener('change', (e) => {
   setTheme(e.target.value);
 });
+
+// ==========================================
+// DRILL-DOWN & NAVIGATION (V2)
+// ==========================================
+
+let drilldownState = { level: 'plan', waveId: null, taskId: null };
+
+function renderWaves() {
+  const wavesList = document.getElementById('wavesList');
+  if (!wavesList || !data.waves) return;
+
+  wavesList.innerHTML = data.waves.map(w => {
+    const progress = w.total > 0 ? Math.round((w.done / w.total) * 100) : 0;
+    const statusClass = w.status === 'done' ? 'green' : w.status === 'in_progress' ? 'orange' : '';
+    return `
+      <div class="wave-item" onclick="drillIntoWave('${w.id}')">
+        <div class="wave-item-header">
+          <span class="wave-id">${w.id}</span>
+          <span class="wave-name">${w.name}</span>
+          <span class="wave-status ${statusClass}">${w.status}</span>
+        </div>
+        <div class="wave-item-progress">
+          <div class="wave-bar">
+            <div class="wave-bar-fill" style="width:${progress}%"></div>
+          </div>
+          <span class="wave-count">${w.done}/${w.total}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function drillIntoWave(waveId) {
+  const wave = data.waves.find(w => w.id === waveId);
+  if (!wave) return;
+
+  drilldownState = { level: 'wave', waveId, taskId: null };
+  document.getElementById('wavesSummary').style.display = 'none';
+  document.getElementById('drilldownPanel').style.display = 'block';
+  document.getElementById('drilldownTitle').textContent = `${wave.id} - ${wave.name}`;
+  document.getElementById('drilldownBack').style.display = 'inline-block';
+
+  const tasks = wave.tasks || [];
+  if (tasks.length === 0) {
+    document.getElementById('drilldownContent').innerHTML = `
+      <div class="no-tasks">No task details available for this wave.</div>
+    `;
+    return;
+  }
+
+  document.getElementById('drilldownContent').innerHTML = tasks.map(t => {
+    const statusClass = t.status === 'done' ? 'green' : t.status === 'in_progress' ? 'orange' : t.status === 'blocked' ? 'red' : '';
+    return `
+      <div class="task-item" onclick="drillIntoTask('${waveId}', '${t.id}')">
+        <span class="task-id">${t.id}</span>
+        <span class="task-title">${t.title}</span>
+        <span class="task-status ${statusClass}">${t.status}</span>
+        ${t.timing?.duration ? `<span class="task-duration">${t.timing.duration}m</span>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function drillIntoTask(waveId, taskId) {
+  const wave = data.waves.find(w => w.id === waveId);
+  const task = wave?.tasks?.find(t => t.id === taskId);
+  if (!task) return;
+
+  drilldownState = { level: 'task', waveId, taskId };
+  document.getElementById('drilldownTitle').textContent = `Task ${task.id}`;
+
+  document.getElementById('drilldownContent').innerHTML = `
+    <div class="task-detail">
+      <h3>${task.title}</h3>
+      <div class="task-meta">
+        <div><strong>Status:</strong> ${task.status}</div>
+        <div><strong>Assignee:</strong> ${task.assignee || '-'}</div>
+        <div><strong>Priority:</strong> ${task.priority || '-'}</div>
+        <div><strong>Type:</strong> ${task.type || '-'}</div>
+      </div>
+      ${task.timing ? `
+        <div class="task-timing">
+          <div><strong>Started:</strong> ${task.timing.started || '-'}</div>
+          <div><strong>Completed:</strong> ${task.timing.completed || '-'}</div>
+          <div><strong>Duration:</strong> ${task.timing.duration ? task.timing.duration + ' min' : '-'}</div>
+        </div>
+      ` : ''}
+      ${task.files?.length ? `
+        <div class="task-files">
+          <strong>Files:</strong>
+          <ul>${task.files.map(f => `<li>${f}</li>`).join('')}</ul>
+        </div>
+      ` : ''}
+      ${task.notes ? `<div class="task-notes"><strong>Notes:</strong> ${task.notes}</div>` : ''}
+    </div>
+  `;
+}
+
+function navigateBack() {
+  if (drilldownState.level === 'task') {
+    drillIntoWave(drilldownState.waveId);
+  } else if (drilldownState.level === 'wave') {
+    drilldownState = { level: 'plan', waveId: null, taskId: null };
+    document.getElementById('drilldownPanel').style.display = 'none';
+    document.getElementById('wavesSummary').style.display = 'block';
+  }
+}
+
+function refreshWaves() {
+  renderWaves();
+}
+
+// ==========================================
+// TAB SWITCHING
+// ==========================================
+
+function showTab(tabName) {
+  ['alerts', 'git', 'debt'].forEach(t => {
+    const tab = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+    const btn = document.querySelector(`.about-tab[onclick="showTab('${t}')"]`);
+    if (tab) tab.style.display = t === tabName ? 'block' : 'none';
+    if (btn) btn.classList.toggle('active', t === tabName);
+  });
+
+  if (tabName === 'git' && data.git?.uncommitted) {
+    renderGitTree();
+  }
+  if (tabName === 'debt' && data.debt) {
+    renderDebt();
+  }
+}
+
+// ==========================================
+// GIT TREE
+// ==========================================
+
+function renderGitTree() {
+  const uncommitted = data.git?.uncommitted || { staged: [], unstaged: [], untracked: [] };
+
+  document.getElementById('stagedCount').textContent = uncommitted.staged?.length || 0;
+  document.getElementById('unstagedCount').textContent = uncommitted.unstaged?.length || 0;
+  document.getElementById('untrackedCount').textContent = uncommitted.untracked?.length || 0;
+
+  document.getElementById('stagedFiles').innerHTML = (uncommitted.staged || []).map(f =>
+    `<div class="git-file"><span class="git-status ${f.status}">${f.status}</span> ${f.path}</div>`
+  ).join('') || '<div class="git-empty">No staged files</div>';
+
+  document.getElementById('unstagedFiles').innerHTML = (uncommitted.unstaged || []).map(f =>
+    `<div class="git-file"><span class="git-status ${f.status}">${f.status}</span> ${f.path}</div>`
+  ).join('') || '<div class="git-empty">No unstaged changes</div>';
+
+  document.getElementById('untrackedFiles').innerHTML = (uncommitted.untracked || []).map(f =>
+    `<div class="git-file">? ${f}</div>`
+  ).join('') || '<div class="git-empty">No untracked files</div>';
+}
+
+function toggleGitSection(section) {
+  const filesEl = document.getElementById(section + 'Files');
+  if (filesEl) {
+    filesEl.style.display = filesEl.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+function copyBranch() {
+  const branch = document.getElementById('gitBranch')?.textContent;
+  if (branch) {
+    navigator.clipboard.writeText(branch);
+  }
+}
+
+// ==========================================
+// DEBT PANEL
+// ==========================================
+
+function renderDebt() {
+  if (!data.debt) return;
+
+  document.getElementById('debtTotal').textContent = data.debt.total || 0;
+  document.getElementById('debtTodo').textContent = data.debt.byType?.todo?.length || 0;
+  document.getElementById('debtFixme').textContent = data.debt.byType?.fixme?.length || 0;
+  document.getElementById('debtHack').textContent = data.debt.byType?.hack?.length || 0;
+
+  if (data.debt.lastScan) {
+    document.getElementById('debtUpdated').textContent = 'Last scan: ' + new Date(data.debt.lastScan).toLocaleString();
+  }
+}
+
+// ==========================================
+// AGENT DETAILS
+// ==========================================
+
+function showAgentDetails(agentId) {
+  const agent = data.contributors?.find(c => c.id === agentId);
+  if (!agent) return;
+
+  alert(`Agent: ${agent.name}\nRole: ${agent.role}\nTasks: ${agent.tasks}\nStatus: ${agent.status}\nEfficiency: ${agent.efficiency || '-'}%`);
+}
+
+// ==========================================
+// ENHANCED RENDER (V2)
+// ==========================================
+
+const originalRender = render;
+render = function() {
+  originalRender();
+  renderWaves();
+  if (data.git?.uncommitted) renderGitTree();
+  if (data.debt) renderDebt();
+};
 
 document.addEventListener('DOMContentLoaded', init);

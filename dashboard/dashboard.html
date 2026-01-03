@@ -85,6 +85,25 @@
         <div class="epoch-countdown" id="countdown">1h 00m left</div>
       </div>
 
+      <!-- Drill-Down Panel -->
+      <div class="drilldown-panel" id="drilldownPanel" style="display:none;">
+        <div class="drilldown-header">
+          <button class="drilldown-back" id="drilldownBack" onclick="navigateBack()">&#x2190; Back</button>
+          <span class="drilldown-title" id="drilldownTitle">Waves</span>
+          <span class="drilldown-updated" id="drilldownUpdated"></span>
+        </div>
+        <div class="drilldown-content" id="drilldownContent"></div>
+      </div>
+
+      <!-- Waves Summary -->
+      <div class="waves-summary" id="wavesSummary">
+        <div class="waves-header">
+          <span>Waves</span>
+          <button class="refresh-btn" onclick="refreshWaves()" title="Refresh">&#x21BB;</button>
+        </div>
+        <div class="waves-list" id="wavesList"></div>
+      </div>
+
       <!-- Chart Card -->
       <div class="chart-card">
         <div class="chart-header">
@@ -100,15 +119,7 @@
           <span>Remaining: 8</span>
           <span>Other: 0</span>
         </div>
-        <!-- Floating chart tools -->
-        <div class="chart-tools">
-          <div class="chart-tool">&#x2795;</div>
-          <div class="chart-tool">&#x270F;</div>
-          <div class="chart-tool">&#x2702;</div>
-          <div class="chart-tool">&#x2194;</div>
-          <div class="chart-tool">&#x2B50;</div>
-          <div class="chart-tool">&#x1F4CF;</div>
-        </div>
+        <!-- Chart tools removed (were non-functional) -->
         <div id="mainChart"></div>
       </div>
 
@@ -190,28 +201,82 @@
         <button class="action-btn" id="viewPrBtn">View PR</button>
 
         <div class="about-tabs">
-          <div class="about-tab active">Alerts</div>
-          <div class="about-tab">Git</div>
+          <div class="about-tab active" onclick="showTab('alerts')">Alerts</div>
+          <div class="about-tab" onclick="showTab('git')">Git</div>
+          <div class="about-tab" onclick="showTab('debt')">Debt</div>
         </div>
 
-        <div class="leader-section">
-          <div class="leader-label">Blocker</div>
-          <div class="leader-info">
-            <div class="leader-avatar" style="background: var(--red);"></div>
-            <div>
-              <div class="leader-name" id="blockerTitle">PR #106 NOT Merging</div>
-              <div class="leader-handle" id="blockerDesc">6/10 QA failures</div>
+        <!-- Alerts Tab -->
+        <div class="tab-content" id="tabAlerts">
+          <div class="leader-section">
+            <div class="leader-label">Blocker</div>
+            <div class="leader-info">
+              <div class="leader-avatar" style="background: var(--red);"></div>
+              <div>
+                <div class="leader-name" id="blockerTitle">PR #106 NOT Merging</div>
+                <div class="leader-handle" id="blockerDesc">6/10 QA failures</div>
+              </div>
             </div>
+          </div>
+          <div class="description" id="alertDesc">
+            Thor QA validation is pending. Wave 5 cannot complete until all quality gates pass.
           </div>
         </div>
 
-        <div class="description" id="alertDesc">
-          Thor QA validation is pending. Wave 5 cannot complete until all quality gates pass.
+        <!-- Git Tab -->
+        <div class="tab-content" id="tabGit" style="display:none;">
+          <div class="git-tree" id="gitTree">
+            <div class="git-section">
+              <div class="git-section-header" onclick="toggleGitSection('staged')">
+                <span>&#x25BC; Staged</span>
+                <span class="git-count" id="stagedCount">0</span>
+              </div>
+              <div class="git-files" id="stagedFiles"></div>
+            </div>
+            <div class="git-section">
+              <div class="git-section-header" onclick="toggleGitSection('unstaged')">
+                <span>&#x25BC; Unstaged</span>
+                <span class="git-count" id="unstagedCount">0</span>
+              </div>
+              <div class="git-files" id="unstagedFiles"></div>
+            </div>
+            <div class="git-section">
+              <div class="git-section-header" onclick="toggleGitSection('untracked')">
+                <span>&#x25BC; Untracked</span>
+                <span class="git-count" id="untrackedCount">0</span>
+              </div>
+              <div class="git-files" id="untrackedFiles"></div>
+            </div>
+          </div>
+          <div class="contract-box">
+            <span id="gitBranch">development</span>
+            <button onclick="copyBranch()">&#x1F4CB;</button>
+          </div>
         </div>
 
-        <div class="contract-box">
-          <span id="gitBranch">development</span>
-          <button>&#x1F4CB;</button>
+        <!-- Debt Tab -->
+        <div class="tab-content" id="tabDebt" style="display:none;">
+          <div class="debt-summary">
+            <div class="debt-total">
+              <span class="debt-number" id="debtTotal">0</span>
+              <span class="debt-label">Total Items</span>
+            </div>
+          </div>
+          <div class="debt-breakdown" id="debtBreakdown">
+            <div class="debt-type">
+              <span class="debt-type-label">TODO</span>
+              <span class="debt-type-count" id="debtTodo">0</span>
+            </div>
+            <div class="debt-type">
+              <span class="debt-type-label">FIXME</span>
+              <span class="debt-type-count" id="debtFixme">0</span>
+            </div>
+            <div class="debt-type">
+              <span class="debt-type-label">HACK</span>
+              <span class="debt-type-count" id="debtHack">0</span>
+            </div>
+          </div>
+          <div class="debt-updated" id="debtUpdated"></div>
         </div>
       </div>
     </aside>

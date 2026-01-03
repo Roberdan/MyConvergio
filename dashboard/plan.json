@@ -1,91 +1,191 @@
 {
   "meta": {
-    "project": "ConvergioEdu",
-    "plan": "Sprint 3 Gennaio",
+    "project": "DashboardV2",
+    "plan": "DashboardV2Plan-20260103",
     "version": "2.0",
-    "branch": "development",
+    "branch": "main",
     "status": "in_progress",
-    "created": "2026-01-03T17:15:00+01:00",
-    "updated": "2026-01-03T22:30:00+01:00",
+    "created": "2026-01-03T23:45:00+01:00",
+    "updated": "2026-01-04T00:30:00+01:00",
     "owner": "Roberto"
   },
   "metrics": {
-    "velocity": { "value": 12.5, "unit": "tasks/h", "trend": 15, "trendDir": "up" },
-    "cycleTime": { "value": 8.5, "unit": "min", "trend": 2, "trendDir": "down" },
-    "throughput": { "done": 54, "total": 62, "percent": 87 },
-    "quality": { "score": 98.2, "trend": 1.2, "trendDir": "up" }
+    "velocity": { "value": 15.0, "unit": "tasks/h", "trend": 20, "trendDir": "up" },
+    "cycleTime": { "value": 4.0, "unit": "min", "trend": 5, "trendDir": "down" },
+    "throughput": { "done": 20, "total": 21, "percent": 95 },
+    "quality": { "score": 100, "trend": 0, "trendDir": "stable" }
   },
   "bugs": {
-    "total": 21,
-    "fixed": 21,
-    "p0": { "count": 7, "fixed": 7 },
-    "p1": { "count": 9, "fixed": 9 },
-    "p2": { "count": 5, "fixed": 5 }
+    "total": 0,
+    "fixed": 0,
+    "p0": { "count": 0, "fixed": 0 },
+    "p1": { "count": 0, "fixed": 0 },
+    "p2": { "count": 0, "fixed": 0 }
   },
   "github": {
-    "pr": {
-      "number": 106,
-      "title": "feat: Sprint 3 Gennaio - Bug fixes + Features",
-      "status": "open",
-      "url": "https://github.com/Roberdan/ConvergioEdu/pull/106",
-      "additions": 890,
-      "deletions": 234,
-      "files": 23,
-      "comments": 3,
-      "reviewers": ["thor", "roberto"]
-    },
-    "checks": [
-      { "name": "TypeCheck", "status": "pass" },
-      { "name": "Lint", "status": "pass" },
-      { "name": "Build", "status": "pass" },
-      { "name": "Tests", "status": "pass", "detail": "142/142" },
-      { "name": "Thor QA", "status": "pending" }
-    ]
+    "pr": null,
+    "checks": []
   },
   "contributors": [
-    { "id": "claude-a", "name": "Claude-A", "role": "Executor", "avatar": "🤖", "tasks": 44, "status": "active", "currentTask": "W5.1", "efficiency": 125.73 },
-    { "id": "thor", "name": "Thor", "role": "QA Guardian", "avatar": "⚡", "tasks": 9, "status": "pending", "currentTask": null, "efficiency": 100 },
-    { "id": "rex", "name": "Rex", "role": "Code Reviewer", "avatar": "🦖", "tasks": 3, "status": "idle", "currentTask": null, "efficiency": 98.5 },
-    { "id": "roberto", "name": "Roberto", "role": "Owner", "avatar": "👤", "tasks": 6, "status": "active", "currentTask": "Review", "efficiency": null }
+    { "id": "claude-opus", "name": "Claude-Opus", "role": "Executor", "avatar": "robot", "tasks": 20, "status": "active", "currentTask": "T-21", "efficiency": 150 },
+    { "id": "roberto", "name": "Roberto", "role": "Owner", "avatar": "user", "tasks": 1, "status": "idle", "currentTask": null, "efficiency": null }
   ],
   "timeline": {
-    "start": "2026-01-03T17:15:00+01:00",
-    "eta": "2026-01-03T23:30:00+01:00",
-    "elapsed": "5h 15m",
-    "remaining": "1h 00m",
+    "start": "2026-01-03T23:45:00+01:00",
+    "eta": "2026-01-04T01:00:00+01:00",
+    "elapsed": "45m",
+    "remaining": "30m",
     "data": [
-      { "time": "17:15", "done": 0, "target": 62 },
-      { "time": "18:00", "done": 3, "target": 55 },
-      { "time": "19:00", "done": 15, "target": 47 },
-      { "time": "20:00", "done": 33, "target": 39 },
-      { "time": "21:00", "done": 44, "target": 31 },
-      { "time": "22:00", "done": 53, "target": 23 },
-      { "time": "22:30", "done": 54, "target": 15 }
+      { "time": "23:45", "done": 0, "target": 21 },
+      { "time": "23:55", "done": 3, "target": 18 },
+      { "time": "00:05", "done": 8, "target": 13 },
+      { "time": "00:15", "done": 13, "target": 8 },
+      { "time": "00:25", "done": 18, "target": 3 },
+      { "time": "00:30", "done": 20, "target": 1 }
     ]
   },
   "waves": [
-    { "id": "W0", "name": "QA + Plan", "status": "done", "assignee": "Roberto", "done": 3, "total": 3, "start": "17:15", "end": "18:44" },
-    { "id": "W1-2", "name": "Bug Fixes", "status": "done", "assignee": "Claude-A", "done": 21, "total": 21, "start": "18:44", "end": "20:00" },
-    { "id": "W3", "name": "Welcome", "status": "done", "assignee": "Claude-A", "done": 9, "total": 9, "start": "20:00", "end": "21:00" },
-    { "id": "W4", "name": "Supporti", "status": "done", "assignee": "Claude-A", "done": 11, "total": 11, "start": "21:00", "end": "22:00" },
-    { "id": "W5", "name": "Thor QA", "status": "in_progress", "assignee": "Thor", "done": 1, "total": 9, "start": "22:00", "end": null }
+    {
+      "id": "P1",
+      "name": "Data Schema & Database",
+      "status": "done",
+      "assignee": "Claude-Opus",
+      "done": 3,
+      "total": 3,
+      "start": "23:45",
+      "end": "23:55",
+      "tasks": [
+        { "id": "P1.1", "title": "Definire plan.json v2 schema", "status": "done", "assignee": "Claude-Opus", "priority": "P0", "type": "doc", "files": ["~/.claude/dashboard/SCHEMA-V2.md"], "timing": { "started": "2026-01-03T23:45:00Z", "completed": "2026-01-03T23:48:00Z", "duration": 3 }, "notes": null },
+        { "id": "P1.2", "title": "Creare SQLite schema", "status": "done", "assignee": "Claude-Opus", "priority": "P0", "type": "feature", "files": ["~/.claude/scripts/init-db.sql"], "timing": { "started": "2026-01-03T23:48:00Z", "completed": "2026-01-03T23:51:00Z", "duration": 3 }, "notes": null },
+        { "id": "P1.3", "title": "Script init database", "status": "done", "assignee": "Claude-Opus", "priority": "P0", "type": "feature", "files": ["~/.claude/scripts/init-dashboard-db.sh"], "timing": { "started": "2026-01-03T23:51:00Z", "completed": "2026-01-03T23:55:00Z", "duration": 4 }, "notes": "Database initialized with WAL mode" }
+      ]
+    },
+    {
+      "id": "P2",
+      "name": "Data Collectors",
+      "status": "done",
+      "assignee": "Claude-Opus",
+      "done": 5,
+      "total": 5,
+      "start": "23:55",
+      "end": "00:10",
+      "tasks": [
+        { "id": "P2.1", "title": "collect-git.sh", "status": "done", "assignee": "Claude-Opus", "priority": "P0", "type": "feature", "files": ["~/.claude/scripts/collect-git.sh"], "timing": { "duration": 3 }, "notes": null },
+        { "id": "P2.2", "title": "collect-github.sh", "status": "done", "assignee": "Claude-Opus", "priority": "P1", "type": "feature", "files": ["~/.claude/scripts/collect-github.sh"], "timing": { "duration": 3 }, "notes": "Requires gh CLI" },
+        { "id": "P2.3", "title": "collect-tests.sh", "status": "done", "assignee": "Claude-Opus", "priority": "P1", "type": "feature", "files": ["~/.claude/scripts/collect-tests.sh"], "timing": { "duration": 2 }, "notes": null },
+        { "id": "P2.4", "title": "collect-debt.sh", "status": "done", "assignee": "Claude-Opus", "priority": "P1", "type": "feature", "files": ["~/.claude/scripts/collect-debt.sh"], "timing": { "duration": 3 }, "notes": null },
+        { "id": "P2.5", "title": "collect-quality.sh", "status": "done", "assignee": "Claude-Opus", "priority": "P1", "type": "feature", "files": ["~/.claude/scripts/collect-quality.sh"], "timing": { "duration": 4 }, "notes": null }
+      ]
+    },
+    {
+      "id": "P3",
+      "name": "UI Overhaul",
+      "status": "done",
+      "assignee": "Claude-Opus",
+      "done": 5,
+      "total": 5,
+      "start": "00:10",
+      "end": "00:18",
+      "tasks": [
+        { "id": "P3.1", "title": "Rimuovere bottoni fake da HTML", "status": "done", "assignee": "Claude-Opus", "priority": "P0", "type": "chore", "files": ["~/.claude/dashboard/dashboard.html", "~/.claude/dashboard/dashboard.js"], "timing": { "duration": 2 }, "notes": "Removed chart-tools and Assign button" },
+        { "id": "P3.2", "title": "Aggiungere drill-down UI", "status": "done", "assignee": "Claude-Opus", "priority": "P0", "type": "feature", "files": ["~/.claude/dashboard/dashboard.html"], "timing": { "duration": 2 }, "notes": null },
+        { "id": "P3.3", "title": "Aggiungere git tree espandibile", "status": "done", "assignee": "Claude-Opus", "priority": "P1", "type": "feature", "files": ["~/.claude/dashboard/dashboard.html"], "timing": { "duration": 2 }, "notes": null },
+        { "id": "P3.4", "title": "Aggiungere last updated timestamps", "status": "done", "assignee": "Claude-Opus", "priority": "P2", "type": "feature", "files": ["~/.claude/dashboard/dashboard.html"], "timing": { "duration": 1 }, "notes": null },
+        { "id": "P3.5", "title": "Aggiungere refresh buttons", "status": "done", "assignee": "Claude-Opus", "priority": "P2", "type": "feature", "files": ["~/.claude/dashboard/dashboard.html"], "timing": { "duration": 1 }, "notes": null }
+      ]
+    },
+    {
+      "id": "P4",
+      "name": "JavaScript Logic",
+      "status": "done",
+      "assignee": "Claude-Opus",
+      "done": 4,
+      "total": 4,
+      "start": "00:18",
+      "end": "00:25",
+      "tasks": [
+        { "id": "P4.1", "title": "Implementare drill-down logic", "status": "done", "assignee": "Claude-Opus", "priority": "P0", "type": "feature", "files": ["~/.claude/dashboard/dashboard.js"], "timing": { "duration": 3 }, "notes": "State machine for Plan/Wave/Task navigation" },
+        { "id": "P4.2", "title": "Implementare git tree toggle", "status": "done", "assignee": "Claude-Opus", "priority": "P1", "type": "feature", "files": ["~/.claude/dashboard/dashboard.js"], "timing": { "duration": 2 }, "notes": null },
+        { "id": "P4.3", "title": "Implementare refresh con fetch", "status": "done", "assignee": "Claude-Opus", "priority": "P1", "type": "feature", "files": ["~/.claude/dashboard/dashboard.js"], "timing": { "duration": 1 }, "notes": null },
+        { "id": "P4.4", "title": "Aggiornare renderChart per dati reali", "status": "done", "assignee": "Claude-Opus", "priority": "P1", "type": "feature", "files": ["~/.claude/dashboard/dashboard.js"], "timing": { "duration": 1 }, "notes": "Uses wave/task data" }
+      ]
+    },
+    {
+      "id": "P5",
+      "name": "Integration",
+      "status": "in_progress",
+      "assignee": "Claude-Opus",
+      "done": 3,
+      "total": 4,
+      "start": "00:25",
+      "end": null,
+      "tasks": [
+        { "id": "P5.1", "title": "Master collector script", "status": "done", "assignee": "Claude-Opus", "priority": "P0", "type": "feature", "files": ["~/.claude/scripts/collect-all.sh"], "timing": { "duration": 2 }, "notes": null },
+        { "id": "P5.2", "title": "Aggiornare planner.md", "status": "done", "assignee": "Claude-Opus", "priority": "P1", "type": "doc", "files": ["~/.claude/commands/planner.md"], "timing": { "duration": 1 }, "notes": null },
+        { "id": "P5.3", "title": "Creare sample plan.json v2", "status": "done", "assignee": "Claude-Opus", "priority": "P0", "type": "feature", "files": ["~/.claude/dashboard/plan.json"], "timing": { "duration": 2 }, "notes": null },
+        { "id": "P5.4", "title": "Test end-to-end", "status": "pending", "assignee": "Claude-Opus", "priority": "P0", "type": "test", "files": [], "timing": { "duration": null }, "notes": null }
+      ]
+    }
   ],
-  "alerts": [
-    { "type": "blocker", "title": "PR #106 NOT Merging", "desc": "6/10 QA failures" },
-    { "type": "warning", "title": "Wave 5 Pending", "desc": "Thor QA waiting" }
-  ],
+  "alerts": [],
   "git": {
-    "currentBranch": "development",
+    "currentBranch": "main",
     "commits": [
-      { "hash": "a1b2c3d", "message": "feat(dashboard): add Voltrex style", "author": "claude", "time": "now" },
-      { "hash": "e4f5g6h", "message": "fix(bugs): resolve all P0-P2 issues", "author": "claude", "time": "2h ago" },
-      { "hash": "i7j8k9l", "message": "feat(welcome): implement onboarding flow", "author": "claude", "time": "3h ago" }
+      { "hash": "2ff0169", "message": "chore: clean up git repo, exclude Claude internals", "author": "Roberto", "time": "now" },
+      { "hash": "4c88d30", "message": "Initial commit: Claude Code configuration", "author": "Roberto", "time": "1h ago" }
     ],
-    "branches": ["main", "development", "feature/sprint-3"]
+    "branches": ["main"],
+    "uncommitted": {
+      "staged": [],
+      "unstaged": [
+        { "path": "dashboard/dashboard.html", "status": "M", "additions": 50, "deletions": 20 },
+        { "path": "dashboard/dashboard.js", "status": "M", "additions": 200, "deletions": 5 },
+        { "path": "dashboard/SCHEMA-V2.md", "status": "A", "additions": 120, "deletions": 0 },
+        { "path": "scripts/collect-git.sh", "status": "A", "additions": 80, "deletions": 0 },
+        { "path": "scripts/collect-github.sh", "status": "A", "additions": 90, "deletions": 0 },
+        { "path": "scripts/collect-debt.sh", "status": "A", "additions": 70, "deletions": 0 },
+        { "path": "scripts/collect-quality.sh", "status": "A", "additions": 100, "deletions": 0 },
+        { "path": "scripts/collect-all.sh", "status": "A", "additions": 110, "deletions": 0 },
+        { "path": "scripts/init-db.sql", "status": "A", "additions": 80, "deletions": 0 },
+        { "path": "scripts/init-dashboard-db.sh", "status": "A", "additions": 60, "deletions": 0 }
+      ],
+      "untracked": []
+    },
+    "lastFetch": "2026-01-04T00:30:00Z"
+  },
+  "debt": {
+    "total": 0,
+    "byType": {
+      "todo": [],
+      "fixme": [],
+      "hack": [],
+      "deferred": [],
+      "skipped": []
+    },
+    "lastScan": "2026-01-04T00:30:00Z"
+  },
+  "quality": {
+    "fundamentals": {
+      "tests": { "exists": false, "coverage": null },
+      "documentation": { "readme": false, "apiDocs": false },
+      "codeQuality": { "eslint": false, "prettier": false, "typescript": false },
+      "projectConfig": { "gitignore": true, "envExample": false, "editorconfig": false },
+      "devops": { "ci": false, "docker": false },
+      "security": { "noSecrets": true }
+    },
+    "score": 17,
+    "checksPassed": 2,
+    "totalChecks": 12,
+    "lastCheck": "2026-01-04T00:30:00Z"
+  },
+  "collectors": {
+    "git": { "lastRun": "2026-01-04T00:30:00Z", "status": "success" },
+    "github": { "lastRun": null, "status": "skipped" },
+    "debt": { "lastRun": "2026-01-04T00:30:00Z", "status": "success" },
+    "quality": { "lastRun": "2026-01-04T00:30:00Z", "status": "success" }
   },
   "files": {
-    "plan": "docs/plans/doing/TODAYDocs/TODAY.md",
-    "waves": "waves/",
-    "qa": "qa/manual-qa.md"
+    "plan": "docs/plans/DashboardV2Plan-20260103.md",
+    "schema": "dashboard/SCHEMA-V2.md"
   }
 }

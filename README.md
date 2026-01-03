@@ -15,21 +15,19 @@
 
 ---
 
-## What's New in v3.7.0
+## What's New in v3.8.0
 
-**Context Optimization Release!**
+**Self-Contained Repository Release!**
 
-- **Installation Profiles**: Choose your footprint - minimal (50KB), standard (200KB), lean (600KB), or full (800KB)
-- **Lean Agent Variants**: 57 optimized agents with 20% smaller context in `.claude/agents-lean/`
-- **Hardware-Aware Settings**: Auto-detect your hardware and get optimized configurations
-- **`myconvergio settings`**: New command to configure Claude Code for your machine
+- **EXECUTION_DISCIPLINE.md**: Single source of truth for all execution rules (planning, verification, quality gates, git discipline)
+- **Reference Model**: `.claude/CLAUDE.md` reduced 54% - no more duplicated rules
+- **Fully Self-Contained**: Repository works without any external dependencies
+- **Document Hierarchy**: Clear priority order (CONSTITUTION > EXECUTION_DISCIPLINE > Values)
 
-```bash
-# Install with profile
-myconvergio install --minimal    # 9 core agents, 50KB context
-myconvergio install --lean       # All 57 agents, 20% smaller
-MYCONVERGIO_PROFILE=lean npm install -g myconvergio  # Via npm
-```
+### Previous Highlights (v3.7.0)
+- **Installation Profiles**: Choose your footprint - minimal (50KB), standard (200KB), or full (600KB)
+- **Lean Agent Variants**: 57 optimized agents with 20% smaller context
+- **Hardware-Aware Settings**: Auto-detect and configure for your machine
 
 ### Previous Highlights (v3.6.0)
 - **Multi-Terminal Support**: Works with Kitty, tmux, Zed, Warp, iTerm2

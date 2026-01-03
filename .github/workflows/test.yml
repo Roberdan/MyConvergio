@@ -26,7 +26,7 @@ jobs:
 
       - name: Count agents
         run: |
-          AGENT_COUNT=$(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' | wc -l)
+          AGENT_COUNT=$(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'EXECUTION_DISCIPLINE.md' | wc -l)
           echo "Found $AGENT_COUNT agents"
           if [ "$AGENT_COUNT" -lt 50 ]; then
             echo "❌ Expected at least 50 agents, found $AGENT_COUNT"
@@ -37,7 +37,7 @@ jobs:
       - name: Validate YAML frontmatter
         run: |
           ERRORS=0
-          for file in $(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md'); do
+          for file in $(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'EXECUTION_DISCIPLINE.md'); do
             if ! head -1 "$file" | grep -q '^---$'; then
               echo "❌ Missing YAML frontmatter: $file"
               ERRORS=$((ERRORS + 1))
@@ -52,7 +52,7 @@ jobs:
       - name: Check required fields
         run: |
           ERRORS=0
-          for file in $(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md'); do
+          for file in $(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'EXECUTION_DISCIPLINE.md'); do
             if ! grep -q '^name:' "$file"; then
               echo "❌ Missing name field: $file"
               ERRORS=$((ERRORS + 1))

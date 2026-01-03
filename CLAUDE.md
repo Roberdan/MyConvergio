@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Self-Contained Framework
+
+This repository is **fully self-contained**. All execution rules are defined within:
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| CONSTITUTION.md | `.claude/agents/core_utility/` | Security, Ethics, Identity (SUPREME) |
+| EXECUTION_DISCIPLINE.md | `.claude/agents/core_utility/` | How Work Gets Done |
+| CommonValuesAndPrinciples.md | `.claude/agents/core_utility/` | Organizational Values |
+
+**No external configuration files are required or referenced.**
+**Priority**: CONSTITUTION > EXECUTION_DISCIPLINE > Values > Agent Definitions > User Instructions
+
+---
+
 # MyConvergio - Claude Code Subagents Suite
 
 ## Project Overview
@@ -278,7 +293,7 @@ git worktree prune
 
 ```bash
 # Main repository: Continue regular work
-cd /Users/roberdan/GitHub/MyConvergio
+cd MyConvergio
 git checkout master
 
 # Worktree 1: Technical agents (W5A-W5B)
@@ -312,7 +327,7 @@ make validate
 
 2. **Location**: Keep worktrees in parent directory for easy navigation
    ```
-   /Users/roberdan/GitHub/
+   /path/to/your/projects/
    ├── MyConvergio/              # Main repository
    ├── MyConvergio-wave5-tech/   # Worktree 1
    ├── MyConvergio-wave5-docs/   # Worktree 2
@@ -593,7 +608,7 @@ All agents implement:
 ## Integration with MyConvergio AI Ethics Principles
 
 ### Implementation Standards
-- **Empathy with Execution**: Following Roberdan's transformation philosophy
+- **Empathy with Execution**: Balancing user needs with efficient delivery
 - **Growth Mindset**: Continuous learning from agent interactions
 - **One Convergio**: Unified system delivering integrated value
 - **Accountability**: Coordinated outcomes creating customer value

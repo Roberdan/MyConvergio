@@ -4,7 +4,7 @@
 
 ### 1. Setup (One-time)
 ```bash
-cd /Users/roberdan/GitHub/MyConvergio/tests
+cd ./tests  # From repository root
 ./run_security_tests.sh --setup
 ```
 
@@ -195,8 +195,8 @@ Found a vulnerability?
 
 ---
 
-**Quick Access**: `cat /Users/roberdan/GitHub/MyConvergio/tests/QUICK_TEST_REFERENCE.md`
+**Quick Access**: `cat ./tests/QUICK_TEST_REFERENCE.md`
 
-**Full Docs**: `cat /Users/roberdan/GitHub/MyConvergio/tests/README.md`
+**Full Docs**: `cat ./tests/README.md`
 
-**Test Suite**: `cat /Users/roberdan/GitHub/MyConvergio/tests/security_tests.md`
+**Test Suite**: `cat ./tests/security_tests.md`

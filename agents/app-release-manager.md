@@ -584,7 +584,7 @@ Message 2 (after all complete):
 #### Wave 1A: Build & Warnings Sub-Agent (CRITICAL)
 ```
 FAST BUILD CHECK - Convergio CLI:
-1. Run: cd /Users/roberdan/GitHub/ConvergioCLI && make clean && make DEBUG=1 2>&1 | tee /tmp/build.log
+1. Run: cd /path/to/ConvergioCLI && make clean && make DEBUG=1 2>&1 | tee /tmp/build.log
 2. Count warnings: grep -c "warning:" /tmp/build.log || echo "0"
 3. IF warnings > 0:
    - List ALL warnings with file:line
@@ -643,7 +643,7 @@ FORMAT: JSON {"status": "PASS|FAIL", "todos": N, "debug_prints": [...], "comment
 #### Wave 2B: Test Execution Sub-Agent
 ```
 FAST TEST RUN - Convergio CLI:
-1. Run: cd /Users/roberdan/GitHub/ConvergioCLI && make test 2>&1 | tee /tmp/test.log
+1. Run: cd /path/to/ConvergioCLI && make test 2>&1 | tee /tmp/test.log
 2. Check for failures: grep -i "FAIL\|ERROR\|failed" /tmp/test.log
 3. Run E2E: ./tests/e2e_test.sh 2>&1 | tee /tmp/e2e.log
 4. Check E2E results: grep "FAILED" /tmp/e2e.log

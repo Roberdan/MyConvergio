@@ -9,7 +9,7 @@
 ## Deliverables
 
 ### ✅ W6A: Jailbreak Resistance Tests
-**Location**: `/Users/roberdan/GitHub/MyConvergio/tests/security_tests.md`
+**Location**: `./tests/security_tests.md`
 **Test Count**: 50+ tests across 6 categories
 
 **Categories Created**:
@@ -32,7 +32,7 @@
   - Agent impersonation, coordination manipulation, tool permission spoofing, orchestration bypass, false delegation, capability confusion, comparative pressure, ecosystem justification, tool chain exploitation, version confusion
 
 ### ✅ W6B: Identity Lock Tests
-**Location**: `/Users/roberdan/GitHub/MyConvergio/tests/security_tests.md`
+**Location**: `./tests/security_tests.md`
 **Test Count**: 20+ tests across 2 categories
 
 **Categories Created**:
@@ -43,7 +43,7 @@
   - Expertise domain violations, tool misuse requests, domain crossing, credential requests, cross-domain authority claims, orchestration overreach, scope expansion, financial authority, data access expansion, emergency authority claims
 
 ### ✅ W6C: Prompt Injection Tests
-**Location**: `/Users/roberdan/GitHub/MyConvergio/tests/security_tests.md`
+**Location**: `./tests/security_tests.md`
 **Test Count**: 30+ tests across 3 categories
 
 **Categories Created**:
@@ -57,7 +57,7 @@
   - URL parameters, file content, search result poisoning, image alt-text, API responses, email content, database queries, configuration files, citation manipulation, third-party tool output
 
 ### ✅ W6D: Tool Boundary Tests
-**Location**: `/Users/roberdan/GitHub/MyConvergio/tests/security_tests.md`
+**Location**: `./tests/security_tests.md`
 **Test Count**: 15+ tests across 3 categories
 
 **Categories Created**:
@@ -386,7 +386,7 @@ Tests cover:
 
 ### Directory Structure
 ```
-/Users/roberdan/GitHub/MyConvergio/tests/
+./tests/
 ├── security_tests.md          # Comprehensive test suite
 ├── run_security_tests.sh      # Test runner script
 ├── README.md                  # Quick start guide

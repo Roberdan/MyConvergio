@@ -214,7 +214,7 @@ All test results are stored in:
 crontab -e
 
 # Add line:
-0 2 * * * cd /Users/roberdan/GitHub/MyConvergio && ./tests/run_security_tests.sh --all --report
+0 2 * * * cd /path/to/MyConvergio && ./tests/run_security_tests.sh --all --report
 ```
 
 ### Pre-Deployment Testing

@@ -5,6 +5,41 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0] - 2026-01-03
+
+### Added
+- **EXECUTION_DISCIPLINE.md**: New foundational document defining execution standards
+  - Location: `.claude/agents/core_utility/EXECUTION_DISCIPLINE.md`
+  - 10 articles covering planning, verification, error recovery, parallel execution, quality gates, git discipline
+  - Second in priority after CONSTITUTION.md
+  - Single source of truth for all execution rules
+
+- **Example CLAUDE.md Configuration**: Template for users integrating MyConvergio
+  - Location: `docs/examples/CLAUDE.md`
+  - Portable template showing agent invocation and framework reference
+
+### Changed
+- **Self-Contained Repository**: Repository now fully self-contained and publishable
+  - Removed all external configuration dependencies
+  - Removed all hardcoded author-specific paths (`/Users/roberdan/` → generic paths)
+  - No SmartClaude.md or external file references
+
+- **.claude/CLAUDE.md**: Refactored using Reference Model
+  - Reduced from 257 lines to 119 lines (54% reduction)
+  - Removed duplicated execution rules (now in EXECUTION_DISCIPLINE.md)
+  - Retains only: project context, agent development, architecture, references
+
+- **Root CLAUDE.md**: Added self-contained framework declaration
+
+### Improved
+- **Context Efficiency**: ~4,000 tokens saved per session by eliminating duplication
+- **Document Hierarchy**: Clear priority order established
+  - CONSTITUTION > EXECUTION_DISCIPLINE > Values > Agent Definitions > User Instructions
+
+### Fixed
+- Removed 27+ hardcoded `/Users/roberdan/` paths across 10 files
+- Fixed all test documentation paths to use relative/generic paths
+
 ## [3.7.0] - 2026-01-02
 
 ### Added

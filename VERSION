@@ -3,7 +3,11 @@
 # Follows Semantic Versioning 2.0.0 (https://semver.org/)
 
 # System Version
-SYSTEM_VERSION=3.7.0
+SYSTEM_VERSION=3.8.0
+
+# Framework Documents
+# These are foundational documents that govern all agents
+EXECUTION_DISCIPLINE=1.0.0 2026-01-03T00:00:00Z
 
 # Version Schema
 # AGENT_NAME=MAJOR.MINOR.PATCH[-PRERELEASE] TIMESTAMP

@@ -283,7 +283,7 @@ cd /tmp
 git clone --depth 1 --filter=blob:none --sparse https://github.com/Roberdan/convergio-cli.git
 cd convergio-cli
 git sparse-checkout set src/agents/definitions
-diff -rq src/agents/definitions /Users/roberdan/GitHub/MyConvergio/.claude/agents/
+diff -rq src/agents/definitions /path/to/MyConvergio/.claude/agents/
 ```
 
 ### Sync History
@@ -386,8 +386,8 @@ git worktree remove ../myconvergio-<branch-name>
 ## QUICK COMMANDS
 
 ```bash
-# Create all Wave 0 worktrees at once
-cd /Users/roberdan/GitHub/MyConvergio
+# Create all Wave 0 worktrees at once (from repository root)
+cd /path/to/MyConvergio
 git worktree add ../myconvergio-cleanup -b cleanup/legacy-folders
 git worktree add ../myconvergio-makefile -b feat/makefile
 git worktree add ../myconvergio-scripts -b fix/script-paths

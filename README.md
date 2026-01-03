@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v3.7.0** | 57 Specialized Agents | Claude Code Plugin for Marketplace
+**v3.8.0** | 57 Specialized Agents | Claude Code Plugin for Marketplace
 
 > *"Intent is human, momentum is agent"*
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -209,6 +209,10 @@ MyConvergio/
 │   ├── project-management/
 │   └── orchestration/
 └── .claude/
+    ├── agents/core_utility/
+    │   ├── CONSTITUTION.md        # Security & Ethics (Supreme)
+    │   ├── EXECUTION_DISCIPLINE.md # How Work Gets Done
+    │   └── CommonValuesAndPrinciples.md
     └── rules/                 # 6 coding rules
 ```
 
@@ -242,6 +246,20 @@ Copy these to your project's `.claude/rules/` for consistent standards:
 - `documentation-standards.md` - JSDoc, README, ADRs
 - `api-development.md` - REST, versioning
 - `ethical-guidelines.md` - Privacy, accessibility
+
+---
+
+## Execution Framework
+
+This repository is **fully self-contained**. All agents operate under these foundational documents:
+
+| Document | Purpose | Priority |
+|----------|---------|----------|
+| [CONSTITUTION.md](./agents/CONSTITUTION.md) | Security, Ethics, Identity | SUPREME |
+| [EXECUTION_DISCIPLINE.md](./.claude/agents/core_utility/EXECUTION_DISCIPLINE.md) | How Work Gets Done | 2nd |
+| CommonValuesAndPrinciples.md | Organizational Values | 3rd |
+
+**No external configuration files are required.**
 
 ---
 
@@ -326,6 +344,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 *Built with AI assistance in Milano, following the Agentic Manifesto principles*
 
-**v3.6.0** | December 2025 | Claude Code Plugin
+**v3.8.0** | January 2026 | Claude Code Plugin
 
 </div>

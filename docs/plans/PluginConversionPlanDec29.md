@@ -175,7 +175,7 @@ Aggiorna README.md con:
 
 ```bash
 # Test che il plugin si carichi
-claude --plugin-dir /Users/roberdan/GitHub/MyConvergio --help
+claude --plugin-dir /path/to/MyConvergio --help
 
 # Verifica agents scoperti
 ls -la agents/ | wc -l  # Deve essere 57+
@@ -635,7 +635,7 @@ ls commands/*.md | wc -l         # Deve essere 3
 ls hooks/hooks.json              # Deve esistere
 
 # Test plugin load
-claude --plugin-dir /Users/roberdan/GitHub/MyConvergio
+claude --plugin-dir /path/to/MyConvergio
 
 # Git status pulito
 git status

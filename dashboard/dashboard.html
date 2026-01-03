@@ -10,15 +10,29 @@
 <body>
   <!-- Top Navigation -->
   <nav class="top-nav">
-    <div class="logo">
-      <div class="logo-dot"></div>
-      <span id="projectName">ConvergioEdu</span>
+    <div class="logo" onclick="toggleProjectMenu()" style="cursor:pointer;">
+      <div class="logo-dot" id="projectDot"></div>
+      <span id="projectName">Select Project</span>
+      <span class="project-dropdown">&#x25BE;</span>
+    </div>
+    <!-- Project Selector Menu -->
+    <div class="project-menu" id="projectMenu" style="display:none;">
+      <div class="project-menu-header">
+        <span>Projects</span>
+        <button class="refresh-btn" onclick="refreshProjects()" title="Refresh">&#x21BB;</button>
+      </div>
+      <div class="project-list" id="projectList">
+        <div class="project-loading">Loading projects...</div>
+      </div>
+      <div class="project-menu-footer">
+        <a href="#" onclick="showLearningStats()">View Learning Stats</a>
+      </div>
     </div>
     <div class="nav-menu">
       <a href="#" class="active">Dashboard</a>
       <a href="#">Waves</a>
       <a href="#">&#x1F525; Bugs</a>
-      <a href="#">&#x1F525; Activity</a>
+      <a href="#">History</a>
       <a href="#">Agents</a>
       <a href="#">More &#x25BE;</a>
     </div>
@@ -204,6 +218,7 @@
           <div class="about-tab active" onclick="showTab('alerts')">Alerts</div>
           <div class="about-tab" onclick="showTab('git')">Git</div>
           <div class="about-tab" onclick="showTab('debt')">Debt</div>
+          <div class="about-tab" onclick="showTab('history')">History</div>
         </div>
 
         <!-- Alerts Tab -->
@@ -277,6 +292,27 @@
             </div>
           </div>
           <div class="debt-updated" id="debtUpdated"></div>
+        </div>
+
+        <!-- History Tab (Plan Versions) -->
+        <div class="tab-content" id="tabHistory" style="display:none;">
+          <div class="history-summary">
+            <div class="history-stat">
+              <span class="history-number" id="historyVersions">0</span>
+              <span class="history-label">Versions</span>
+            </div>
+            <div class="history-stat">
+              <span class="history-number" id="historyEdits">0</span>
+              <span class="history-label">Edits</span>
+            </div>
+            <div class="history-stat">
+              <span class="history-number" id="historyBlockers">0</span>
+              <span class="history-label">Blockers</span>
+            </div>
+          </div>
+          <div class="history-timeline" id="historyTimeline">
+            <div class="history-empty">No version history yet</div>
+          </div>
         </div>
       </div>
     </aside>

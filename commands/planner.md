@@ -202,48 +202,62 @@ Checklist: [ ] ADR [ ] CHANGELOG [ ] README [ ] Code docs
 | **TOTAL** | 0/N |
 ```
 
-## DASHBOARD (Visual Monitoring V2)
+## CENTRALIZED PLANS (V3)
 
-Real-time plan visualization at `http://127.0.0.1:31415`
+All plans are stored centrally in `~/.claude/plans/` with multi-project support.
 
-**Setup**:
+### Structure
+
+```
+~/.claude/plans/
+├── registry.json              # Project index
+└── {project_id}/
+    ├── {PlanName}.md          # Plan markdown
+    └── current.json           # Active plan state (V2 schema)
+```
+
+### Workflow on Plan Creation
+
+When `/planner` executes from any project folder:
+
+1. **Auto-register project**: `~/.claude/scripts/register-project.sh $(pwd)`
+   - Detects project_id from folder name
+   - Captures git remote, GitHub URL
+   - Creates `~/.claude/plans/{project_id}/`
+
+2. **Create plan files**:
+   - `~/.claude/plans/{project_id}/{PlanName}.md`
+   - `~/.claude/plans/{project_id}/current.json`
+
+3. **Track changes**: `~/.claude/scripts/track-plan-change.sh`
+   - Records every modification with type and reason
+   - Enables learning/optimization over time
+
+### Plan Change Types
+
+| Type | When Used |
+|------|-----------|
+| `created` | Initial plan creation |
+| `user_edit` | User modifies tasks/scope |
+| `scope_add` | New requirements added |
+| `scope_remove` | Requirements removed |
+| `blocker` | Blocker discovered |
+| `task_split` | Task broken into smaller units |
+| `completed` | Plan finished |
+
+### Dashboard (V3 Multi-Project)
+
+**URL**: `http://127.0.0.1:31415`
+
+**Start**:
 ```bash
 npx live-server ~/.claude/dashboard --port=31415 --no-browser &
 ```
 
-**Data file**: `~/.claude/dashboard/plan.json` (V2 schema)
-
-**Schema V2 Features**:
-- Drill-down: Plan > Wave > Task navigation
-- Git tree: Staged/unstaged/untracked files
-- Technical debt tracking: TODO/FIXME/HACK counts
-- Quality fundamentals: Tests, coverage, linting, security checks
-
-**Schema**: See `~/.claude/dashboard/SCHEMA-V2.md`
-
-**Auto-update with collectors**:
-```bash
-~/.claude/scripts/collect-all.sh [project_path] --update-plan
-```
-
-Available collectors:
-- `collect-git.sh` - Git status, branches, uncommitted files
-- `collect-github.sh` - PR status, workflows, issues (requires gh CLI)
-- `collect-debt.sh` - TODO/FIXME/HACK scanning
-- `collect-quality.sh` - Engineering fundamentals checklist
-
-**Manual update during execution**:
-1. After each task: update `waves[n].tasks[m].status = "done"`
-2. After wave completion: update `waves[n].status = "done"`
-3. Run `collect-all.sh --update-plan` to refresh git/debt/quality
-4. On blocker: add to `alerts` array
-
-**Contributors mapping**:
-| Claude Role | Dashboard Entry |
-|-------------|-----------------|
-| CLAUDE 1 (Planner) | `{ "id": "planner", "role": "Coordinator", "avatar": "brain" }` |
-| CLAUDE 2 (Executor) | `{ "id": "claude-2", "role": "Executor", "avatar": "robot" }` |
-| Thor | `{ "id": "thor", "role": "QA Guardian", "avatar": "zap" }` |
+**Features**:
+- Project menu: Switch between registered projects
+- History tab: View plan modifications timeline
+- Learning stats: Track optimization patterns
 
 ---
 

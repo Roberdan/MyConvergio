@@ -124,3 +124,65 @@ WHERE recorded_at = (
   WHERE m2.project_id = m1.project_id
   AND m2.metric_name = m1.metric_name
 );
+
+-- Plans table for centralized plan management
+CREATE TABLE IF NOT EXISTS plans (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id TEXT NOT NULL,
+  plan_name TEXT NOT NULL,
+  plan_file TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('draft', 'active', 'completed', 'abandoned')),
+  tasks_total INTEGER DEFAULT 0,
+  tasks_done INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  UNIQUE(project_id, plan_name)
+);
+
+-- Plan versions for tracking modifications and learning
+CREATE TABLE IF NOT EXISTS plan_versions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id TEXT NOT NULL,
+  plan_name TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  change_type TEXT NOT NULL CHECK(change_type IN ('created', 'user_edit', 'scope_add', 'scope_remove', 'blocker', 'replan', 'task_split', 'completed')),
+  change_reason TEXT,
+  tasks_before INTEGER,
+  tasks_after INTEGER,
+  diff_summary TEXT,
+  git_commit_hash TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+-- Indexes for plan queries
+CREATE INDEX IF NOT EXISTS idx_plans_project ON plans(project_id, status);
+CREATE INDEX IF NOT EXISTS idx_plan_versions_project ON plan_versions(project_id, plan_name, version);
+
+-- View for plan intervention statistics (learning/optimization)
+CREATE VIEW IF NOT EXISTS v_plan_intervention_stats AS
+SELECT
+  project_id,
+  plan_name,
+  COUNT(*) as total_versions,
+  SUM(CASE WHEN change_type = 'user_edit' THEN 1 ELSE 0 END) as user_edits,
+  SUM(CASE WHEN change_type = 'blocker' THEN 1 ELSE 0 END) as blockers,
+  SUM(CASE WHEN change_type = 'scope_add' THEN 1 ELSE 0 END) as scope_additions,
+  SUM(CASE WHEN change_type = 'task_split' THEN 1 ELSE 0 END) as task_splits,
+  MAX(version) as latest_version,
+  MIN(created_at) as first_created,
+  MAX(created_at) as last_modified
+FROM plan_versions
+GROUP BY project_id, plan_name;
+
+-- View for aggregate learning metrics
+CREATE VIEW IF NOT EXISTS v_learning_metrics AS
+SELECT
+  COUNT(DISTINCT project_id || '/' || plan_name) as total_plans,
+  AVG(total_versions) as avg_versions_per_plan,
+  SUM(user_edits) as total_user_edits,
+  SUM(blockers) as total_blockers,
+  CAST(SUM(user_edits) AS REAL) / COUNT(DISTINCT project_id || '/' || plan_name) as avg_edits_per_plan,
+  CAST(SUM(blockers) AS REAL) / COUNT(DISTINCT project_id || '/' || plan_name) as avg_blockers_per_plan
+FROM v_plan_intervention_stats;

@@ -1,7 +1,9 @@
-// Voltrex-style Plan Dashboard - Pixel Perfect
+// Voltrex-style Plan Dashboard - Pixel Perfect (Multi-Project V3)
 let data = null;
 let mainChart = null;
 let sparkCharts = [];
+let registry = null;
+let currentProjectId = null;
 
 // Theme colors for ApexCharts
 const themeColors = {
@@ -40,13 +42,125 @@ function destroyCharts() {
 async function init() {
   initTheme();
   try {
-    const res = await fetch('plan.json');
-    data = await res.json();
-    render();
+    // Load registry first
+    await loadProjects();
+
+    // Try to load last selected project or default plan
+    const lastProject = localStorage.getItem('dashboard-current-project');
+    if (lastProject && registry?.projects?.[lastProject]) {
+      await selectProject(lastProject);
+    } else {
+      // Fallback to local plan.json
+      const res = await fetch('plan.json');
+      data = await res.json();
+      currentProjectId = data.meta?.project_id || null;
+      render();
+    }
   } catch (e) {
     document.querySelector('.main-content').innerHTML = `<div style="padding:40px;color:#ef4444;">Error: ${e.message}</div>`;
   }
 }
+
+// ==========================================
+// PROJECT MANAGEMENT (V3)
+// ==========================================
+
+async function loadProjects() {
+  try {
+    const res = await fetch('../plans/registry.json');
+    registry = await res.json();
+    renderProjectList();
+  } catch (e) {
+    console.log('No registry found, using local plan.json');
+    registry = { projects: {} };
+  }
+}
+
+function renderProjectList() {
+  const list = document.getElementById('projectList');
+  if (!list || !registry) return;
+
+  const projects = Object.entries(registry.projects || {});
+  if (projects.length === 0) {
+    list.innerHTML = '<div class="project-loading">No projects registered yet</div>';
+    return;
+  }
+
+  list.innerHTML = projects.map(([id, p]) => {
+    const isActive = id === currentProjectId;
+    const plan = p.current_plan || 'No active plan';
+    const statusClass = p.status === 'active' ? 'in-progress' : '';
+    return `
+      <div class="project-item ${isActive ? 'active' : ''} ${statusClass}" onclick="selectProject('${id}')">
+        <div class="project-item-dot"></div>
+        <div class="project-item-info">
+          <div class="project-item-name">${p.name}</div>
+          <div class="project-item-plan">${plan}</div>
+        </div>
+        ${p.github_url ? '<span title="GitHub">&#x1F517;</span>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+async function selectProject(projectId) {
+  const project = registry?.projects?.[projectId];
+  if (!project) return;
+
+  currentProjectId = projectId;
+  localStorage.setItem('dashboard-current-project', projectId);
+
+  // Update project indicator
+  document.getElementById('projectName').textContent = project.name;
+  const dot = document.getElementById('projectDot');
+  if (dot) dot.style.background = '#22c55e';
+
+  // Hide menu
+  document.getElementById('projectMenu').style.display = 'none';
+
+  // Load project's current.json
+  try {
+    const res = await fetch(`../plans/${projectId}/current.json`);
+    data = await res.json();
+    render();
+    renderProjectList();
+  } catch (e) {
+    console.error('Failed to load project plan:', e);
+    // Fallback to local plan.json
+    const res = await fetch('plan.json');
+    data = await res.json();
+    render();
+  }
+}
+
+function toggleProjectMenu() {
+  const menu = document.getElementById('projectMenu');
+  if (menu) {
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+async function refreshProjects() {
+  await loadProjects();
+}
+
+function showLearningStats() {
+  // TODO: Fetch from SQLite via API or show modal with stats
+  const stats = {
+    totalPlans: Object.keys(registry?.projects || {}).length,
+    message: 'Learning stats will show plan modification patterns and optimization insights.'
+  };
+  alert(`Learning Stats\n\nTotal Projects: ${stats.totalPlans}\n\n${stats.message}`);
+}
+
+// Close project menu when clicking outside
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('projectMenu');
+  const logo = document.querySelector('.logo');
+  if (menu && !menu.contains(e.target) && !logo.contains(e.target)) {
+    menu.style.display = 'none';
+  }
+});
 
 function render() {
   // Header
@@ -425,7 +539,7 @@ function refreshWaves() {
 // ==========================================
 
 function showTab(tabName) {
-  ['alerts', 'git', 'debt'].forEach(t => {
+  ['alerts', 'git', 'debt', 'history'].forEach(t => {
     const tab = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
     const btn = document.querySelector(`.about-tab[onclick="showTab('${t}')"]`);
     if (tab) tab.style.display = t === tabName ? 'block' : 'none';
@@ -437,6 +551,9 @@ function showTab(tabName) {
   }
   if (tabName === 'debt' && data.debt) {
     renderDebt();
+  }
+  if (tabName === 'history') {
+    renderHistory();
   }
 }
 
@@ -493,6 +610,57 @@ function renderDebt() {
   if (data.debt.lastScan) {
     document.getElementById('debtUpdated').textContent = 'Last scan: ' + new Date(data.debt.lastScan).toLocaleString();
   }
+}
+
+// ==========================================
+// HISTORY PANEL (Plan Versions)
+// ==========================================
+
+function renderHistory() {
+  const history = data.history || [];
+
+  // Update summary stats
+  const versions = history.length;
+  const edits = history.filter(h => h.change_type === 'user_edit').length;
+  const blockers = history.filter(h => h.change_type === 'blocker').length;
+
+  document.getElementById('historyVersions').textContent = versions || 0;
+  document.getElementById('historyEdits').textContent = edits || 0;
+  document.getElementById('historyBlockers').textContent = blockers || 0;
+
+  const timeline = document.getElementById('historyTimeline');
+  if (!timeline) return;
+
+  if (history.length === 0) {
+    timeline.innerHTML = '<div class="history-empty">No version history yet</div>';
+    return;
+  }
+
+  timeline.innerHTML = history.map(h => {
+    const typeLabel = {
+      'created': 'Created',
+      'user_edit': 'User Edit',
+      'scope_add': 'Scope Added',
+      'scope_remove': 'Scope Removed',
+      'blocker': 'Blocker',
+      'replan': 'Replanned',
+      'task_split': 'Task Split',
+      'completed': 'Completed'
+    }[h.change_type] || h.change_type;
+
+    const time = h.created_at ? new Date(h.created_at).toLocaleString() : '';
+
+    return `
+      <div class="history-item">
+        <div class="history-item-dot ${h.change_type}"></div>
+        <div class="history-item-content">
+          <div class="history-item-type">v${h.version} - ${typeLabel}</div>
+          ${h.change_reason ? `<div class="history-item-reason">${h.change_reason}</div>` : ''}
+          <div class="history-item-time">${time}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // ==========================================

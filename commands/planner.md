@@ -50,6 +50,20 @@ Before planning, check `./CLAUDE.md` for project-specific rules:
 1. Read project context → 2. Gather requirements → 3. Create plan file → 4. Ask "Eseguire?" → 5. Orchestrate
 ```
 
+## QUICK COMMANDS
+
+| Request | Action |
+|---------|--------|
+| "mostra stato" / "dashboard" | Launch dashboard for current project |
+| "stato progetti" | Show all registered projects |
+| "pianifica X" | Create new plan for X |
+| "esegui piano" | Execute current plan |
+
+When user says "mostra stato" or "dashboard":
+1. Get project_id from current folder: `basename $(pwd)`
+2. Launch server: `npx live-server ~/.claude --port=31415 --no-browser &`
+3. Open: `open http://127.0.0.1:31415/dashboard/dashboard.html`
+
 ## ANTI-CRASH RULES
 
 1. **ALWAYS write plan file BEFORE launching agents**
@@ -247,17 +261,19 @@ When `/planner` executes from any project folder:
 
 ### Dashboard (V3 Multi-Project)
 
-**URL**: `http://127.0.0.1:31415`
+**URL**: `http://127.0.0.1:31415/dashboard/`
 
-**Start**:
+**Start** (from any folder):
 ```bash
-npx live-server ~/.claude/dashboard --port=31415 --no-browser &
+npx live-server ~/.claude --port=31415 --no-browser &
+open http://127.0.0.1:31415/dashboard/dashboard.html
 ```
 
 **Features**:
 - Project menu: Switch between registered projects
 - History tab: View plan modifications timeline
 - Learning stats: Track optimization patterns
+- Auto-selects project based on last used
 
 ---
 

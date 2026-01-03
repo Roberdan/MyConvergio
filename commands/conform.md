@@ -42,6 +42,7 @@ Run `/conform` in any repository to bootstrap a compliant `CLAUDE.md`.
 5. Detect architecture from folder structure
 6. Prompt user for Project Rules (constraints, processes)
 7. Write CLAUDE.md
+8. Register project: ~/.claude/scripts/register-project.sh $(pwd)
 ```
 
 ## Output Structure
@@ -107,5 +108,17 @@ Please fill in:
 
 After conformance, project works with:
 - `/prompt` → Detects project context
-- `/planner` → Uses project verification commands
+- `/planner` → Uses project verification commands, shows dashboard
 - `thor` → Validates against project rules
+
+### Centralized Plans
+
+When `/conform` runs:
+1. Creates `CLAUDE.md` in project root
+2. Registers project in `~/.claude/plans/registry.json`
+3. Creates plan folder: `~/.claude/plans/{project_id}/`
+
+All plans are stored centrally, enabling:
+- Multi-project dashboard view
+- Plan version history for learning
+- Cross-project analytics

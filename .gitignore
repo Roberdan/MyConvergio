@@ -32,3 +32,31 @@ node_modules/
 *~
 .idea/
 .vscode/
+
+# ========================================
+# Claude Code Internals (DO NOT COMMIT)
+# ========================================
+
+# Session data
+projects/
+session-env/
+shell-snapshots/
+history.jsonl
+*.jsonl
+
+# Debug and cache
+debug/
+file-history/
+image-cache/
+stats-cache.json
+
+# Telemetry and analytics
+telemetry/
+statsig/
+.anthropic/
+
+# Runtime state
+todos/
+/plans/
+ide/
+/data/

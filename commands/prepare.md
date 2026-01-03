@@ -1,10 +1,10 @@
-# Conform - Project Context Bootstrap
+# Prepare - Project Context Bootstrap
 
-Generate or update `CLAUDE.md` to conform to project context standard.
+Prepare a project for Claude: register + generate/update `CLAUDE.md`.
 
 ## Activation
 
-Run `/conform` in any repository to bootstrap a compliant `CLAUDE.md`.
+Run `/prepare` in any repository to bootstrap the project.
 
 ## Behavior
 
@@ -76,7 +76,7 @@ Per `docs/project-context-spec.md`:
 ## Example Execution
 
 ```
-> /conform
+> /prepare
 
 Detected: Node.js project (package.json)
 Stack: Next.js 14 + TypeScript + Prisma
@@ -109,14 +109,14 @@ Please fill in:
 
 ## Integration
 
-After conformance, project works with:
+After preparation, project works with:
 - `/prompt` → Detects project context
 - `/planner` → Uses project verification commands, shows dashboard
 - `thor` → Validates against project rules
 
 ### Centralized Plans
 
-When `/conform` runs:
+When `/prepare` runs:
 1. Creates `CLAUDE.md` in project root
 2. Registers project in `~/.claude/plans/registry.json`
 3. Creates plan folder: `~/.claude/plans/{project_id}/`

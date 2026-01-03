@@ -29,12 +29,11 @@
       </div>
     </div>
     <div class="nav-menu">
-      <a href="#" class="active">Dashboard</a>
-      <a href="#">Waves</a>
+      <a href="#" class="active" onclick="showView('dashboard')">Dashboard</a>
+      <a href="#" onclick="showView('kanban')">Kanban</a>
+      <a href="#" onclick="showView('waves')">Waves</a>
       <a href="#">&#x1F525; Bugs</a>
-      <a href="#">History</a>
       <a href="#">Agents</a>
-      <a href="#">More &#x25BE;</a>
     </div>
     <div class="nav-right">
       <div class="nav-badge highlight" id="throughputBadge">87%</div>
@@ -116,6 +115,40 @@
           <button class="refresh-btn" onclick="refreshWaves()" title="Refresh">&#x21BB;</button>
         </div>
         <div class="waves-list" id="wavesList"></div>
+      </div>
+
+      <!-- Kanban View (hidden by default) -->
+      <div class="kanban-view" id="kanbanView" style="display:none;">
+        <div class="kanban-header">
+          <span>All Projects - Kanban Board</span>
+          <button class="refresh-btn" onclick="loadKanban()" title="Refresh">&#x21BB;</button>
+        </div>
+        <div class="kanban-board">
+          <div class="kanban-column" data-status="todo">
+            <div class="kanban-column-header">
+              <span class="kanban-status-dot todo"></span>
+              <span>TODO</span>
+              <span class="kanban-count" id="kanbanTodoCount">0</span>
+            </div>
+            <div class="kanban-cards" id="kanbanTodo"></div>
+          </div>
+          <div class="kanban-column" data-status="doing">
+            <div class="kanban-column-header">
+              <span class="kanban-status-dot doing"></span>
+              <span>DOING</span>
+              <span class="kanban-count" id="kanbanDoingCount">0</span>
+            </div>
+            <div class="kanban-cards" id="kanbanDoing"></div>
+          </div>
+          <div class="kanban-column" data-status="done">
+            <div class="kanban-column-header">
+              <span class="kanban-status-dot done"></span>
+              <span>DONE</span>
+              <span class="kanban-count" id="kanbanDoneCount">0</span>
+            </div>
+            <div class="kanban-cards" id="kanbanDone"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Chart Card -->

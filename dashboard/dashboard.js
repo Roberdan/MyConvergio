@@ -686,4 +686,147 @@ render = function() {
   if (data.debt) renderDebt();
 };
 
+// ==========================================
+// KANBAN VIEW
+// ==========================================
+
+let currentView = 'dashboard';
+
+function showView(view) {
+  currentView = view;
+
+  // Update nav menu active state
+  document.querySelectorAll('.nav-menu a').forEach(a => {
+    a.classList.remove('active');
+    if (a.textContent.toLowerCase().includes(view)) {
+      a.classList.add('active');
+    }
+  });
+
+  // Toggle view visibility
+  const dashboardElements = ['wavesSummary', 'drilldownPanel'];
+  const chartCard = document.querySelector('.chart-card');
+  const tradersSection = document.querySelector('.traders-section');
+  const kanbanView = document.getElementById('kanbanView');
+  const statsRow = document.querySelector('.stats-row');
+  const epochBar = document.querySelector('.epoch-bar');
+
+  if (view === 'kanban') {
+    dashboardElements.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    if (chartCard) chartCard.style.display = 'none';
+    if (tradersSection) tradersSection.style.display = 'none';
+    if (statsRow) statsRow.style.display = 'none';
+    if (epochBar) epochBar.style.display = 'none';
+    if (kanbanView) kanbanView.style.display = 'block';
+    loadKanban();
+  } else {
+    dashboardElements.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = '';
+    });
+    if (chartCard) chartCard.style.display = '';
+    if (tradersSection) tradersSection.style.display = '';
+    if (statsRow) statsRow.style.display = '';
+    if (epochBar) epochBar.style.display = '';
+    if (kanbanView) kanbanView.style.display = 'none';
+  }
+}
+
+async function loadKanban() {
+  if (!registry) await loadProjects();
+
+  const kanban = { todo: [], doing: [], done: [] };
+
+  // Scan all projects for plans
+  for (const [projectId, project] of Object.entries(registry.projects || {})) {
+    for (const status of ['todo', 'doing', 'done']) {
+      try {
+        // Try to fetch plan list from each status folder
+        const planFiles = await fetchPlanList(projectId, status);
+        planFiles.forEach(plan => {
+          kanban[status].push({
+            project: project.name,
+            projectId: projectId,
+            name: plan.name,
+            file: plan.file,
+            progress: plan.progress || 0,
+            updated: plan.updated
+          });
+        });
+      } catch (e) {
+        // Folder might not exist or be empty
+      }
+    }
+  }
+
+  renderKanban(kanban);
+}
+
+async function fetchPlanList(projectId, status) {
+  // Try to read current.json to get plan info
+  try {
+    const res = await fetch(`plans/${projectId}/current.json`);
+    if (!res.ok) return [];
+    const current = await res.json();
+
+    // If we have an active plan and status is 'doing', include it
+    if (status === 'doing' && current.active_plan) {
+      return [{
+        name: current.active_plan,
+        file: `${current.active_plan}.json`,
+        progress: 50, // Default, would need to read actual file
+        updated: current.updated
+      }];
+    }
+
+    // For done, check if last_completed exists
+    if (status === 'done' && current.last_completed) {
+      return [{
+        name: current.last_completed,
+        file: `${current.last_completed}.json`,
+        progress: 100,
+        updated: current.updated
+      }];
+    }
+
+    return [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function renderKanban(kanban) {
+  ['todo', 'doing', 'done'].forEach(status => {
+    const container = document.getElementById(`kanban${status.charAt(0).toUpperCase() + status.slice(1)}`);
+    const countEl = document.getElementById(`kanban${status.charAt(0).toUpperCase() + status.slice(1)}Count`);
+
+    if (!container) return;
+
+    const plans = kanban[status] || [];
+    countEl.textContent = plans.length;
+
+    if (plans.length === 0) {
+      container.innerHTML = '<div class="kanban-empty">No plans</div>';
+      return;
+    }
+
+    container.innerHTML = plans.map(plan => `
+      <div class="kanban-card" onclick="selectProject('${plan.projectId}'); showView('dashboard');">
+        <div class="kanban-card-project">${plan.project}</div>
+        <div class="kanban-card-title">${plan.name}</div>
+        <div class="kanban-card-meta">
+          <span>${plan.progress}%</span>
+          <span>${plan.updated ? new Date(plan.updated).toLocaleDateString() : ''}</span>
+        </div>
+        <div class="kanban-card-progress">
+          <div class="kanban-card-progress-fill" style="width: ${plan.progress}%"></div>
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
 document.addEventListener('DOMContentLoaded', init);

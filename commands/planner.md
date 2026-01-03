@@ -259,7 +259,7 @@ When `/planner` executes from any project folder:
 | `task_split` | Task broken into smaller units |
 | `completed` | Plan finished |
 
-### Dashboard (V3 Multi-Project)
+### Dashboard (V3 Multi-Project + Kanban)
 
 **URL**: `http://127.0.0.1:31415/dashboard/`
 
@@ -270,10 +270,20 @@ open http://127.0.0.1:31415/dashboard/dashboard.html
 ```
 
 **Features**:
+- **Kanban view**: All projects/plans in TODO/DOING/DONE columns
 - Project menu: Switch between registered projects
 - History tab: View plan modifications timeline
 - Learning stats: Track optimization patterns
 - Auto-selects project based on last used
+
+**Plan Kanban Structure**:
+```
+~/.claude/plans/{project_id}/
+├── todo/           # Planned
+├── doing/          # In progress
+├── done/           # Completed
+└── current.json    # Active plan pointer
+```
 
 ---
 

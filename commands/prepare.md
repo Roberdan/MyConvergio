@@ -36,17 +36,56 @@ Run `/prepare` in any repository to bootstrap the project.
 
 ```
 1. Register project: ~/.claude/scripts/register-project.sh $(pwd)
-2. Check if ./CLAUDE.md exists
-3. If exists AND complete → skip to step 8 (already conformant)
-4. If exists but incomplete → analyze missing sections, propose additions
-5. If not exists → generate from template
-6. Extract commands from package.json scripts (if Node.js)
-7. Detect architecture from folder structure
-8. Write CLAUDE.md (only if changes needed)
-9. Confirm registration complete
+2. Check/create .claudeignore (optimize token usage)
+3. Check if ./CLAUDE.md exists
+4. If exists AND complete → skip to step 9 (already conformant)
+5. If exists but incomplete → analyze missing sections, propose additions
+6. If not exists → generate from template
+7. Extract commands from package.json scripts (if Node.js)
+8. Detect architecture from folder structure
+9. Write CLAUDE.md (only if changes needed)
+10. Confirm registration complete
 ```
 
 **Key behavior**: Registration ALWAYS happens. CLAUDE.md only touched if needed.
+
+## .claudeignore Optimization
+
+If `.claudeignore` doesn't exist, create one based on project type:
+
+**Node.js**:
+```
+node_modules/
+dist/
+.next/
+coverage/
+*.log
+```
+
+**Python**:
+```
+__pycache__/
+.venv/
+venv/
+*.pyc
+.pytest_cache/
+```
+
+**iOS/Swift**:
+```
+.build/
+DerivedData/
+*.xcworkspace
+Pods/
+```
+
+**General** (always include):
+```
+.git/
+.DS_Store
+*.min.js
+*.min.css
+```
 
 ## Output Structure
 

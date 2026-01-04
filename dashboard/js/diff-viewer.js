@@ -2,6 +2,11 @@
 
 let currentDiffFile = null;
 
+// Helper to encode file paths while preserving slashes
+function encodeFilePath(filePath) {
+  return filePath.split('/').map(encodeURIComponent).join('/');
+}
+
 async function openFileDiff(filePath) {
   if (!currentProjectId) {
     showToast('No project selected', 'warning');
@@ -14,7 +19,7 @@ async function openFileDiff(filePath) {
   showDiffView(filePath);
 
   try {
-    const res = await fetch(`${API_BASE}/project/${currentProjectId}/git/diff/${encodeURIComponent(filePath)}`);
+    const res = await fetch(`${API_BASE}/project/${currentProjectId}/git/diff/${encodeFilePath(filePath)}`);
     const data = await res.json();
 
     if (data.error) {
@@ -129,7 +134,7 @@ function renderDiff(data) {
 }
 
 function renderImagePreview(container, filePath) {
-  const imgUrl = `${API_BASE}/project/${currentProjectId}/file-raw/${encodeURIComponent(filePath)}`;
+  const imgUrl = `${API_BASE}/project/${currentProjectId}/file-raw/${encodeFilePath(filePath)}`;
   container.innerHTML = `
     <div class="diff-image-preview">
       <img src="${imgUrl}" alt="${filePath}" onerror="this.src=''; this.alt='Failed to load image';" />
@@ -176,7 +181,7 @@ async function checkFileChanged(filePath) {
     return;
   }
   try {
-    const res = await fetch(`${API_BASE}/project/${currentProjectId}/file/mtime/${encodeURIComponent(filePath)}`);
+    const res = await fetch(`${API_BASE}/project/${currentProjectId}/file/mtime/${encodeFilePath(filePath)}`);
     const result = await res.json();
     if (result.mtime && result.mtime > lastFileModTime) {
       lastFileModTime = result.mtime;

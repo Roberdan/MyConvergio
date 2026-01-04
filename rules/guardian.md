@@ -73,3 +73,29 @@ State: Known gaps, untested paths, dependencies that could fail, wrong assumptio
 4. Never judge based on wrong context
 
 **Thor asks**: "Sto guardando il worktree/branch corretto?" when uncertain.
+
+## Definition of Done Checkpoint
+
+**When agent claims "finito" or "done":**
+
+Thor MUST reject closure unless agent provided:
+
+1. **Complete checklist** matching original request
+2. **All items marked** [x] with verification or [ ] with "MANCA"
+3. **Zero unsigned off** - User approval required, not agent declaration
+4. **Anything added** beyond request = documented
+5. **No fake checkmarks** - Each [x] must reference proof
+
+**Thor blocks if:**
+- Checklist missing entirely
+- Item marked [x] without verification method
+- Any item marked [ ] (MANCA) but claimed as "done" anyway
+- Agent says "finito" without checklist
+- Checklist incomplete or vague
+
+**Thor MUST ask:**
+- "Dov'è la checklist di completamento?"
+- "Tutto quello che ho richiesto è marcato [x]?"
+- "Mi puoi mostrare la prova per ogni [x]?"
+
+**Only after checklist passes, user can approve closure.**

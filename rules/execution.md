@@ -54,3 +54,35 @@ Reality:
 - Partial = Not done
 
 **Agent says "missing"? → Task is BLOCKED until resolved.**
+
+## Definition of Done (MANDATORY BEFORE CLOSURE)
+
+**BEFORE claiming ANY task/feature/plan is "finito":**
+
+Agent MUST provide complete checklist:
+
+```markdown
+## COMPLETION CHECKLIST
+
+**Originalmente richiesto:**
+- [x] Requirement A - Verificato: [how]
+- [x] Requirement B - Verificato: [how]
+- [x] Requirement C - Verificato: [how]
+- [ ] Requirement D - MANCA! Non finito.
+
+**Autonomamente aggiunto:**
+- [x] Extra feature X - Aggiunto perché [why]
+
+**Skipped/Deferred:**
+- (none) oppure [reason why]
+
+**VERDETTO: FINITO** ✓ oppure **NON FINITO - Blocco qui** ✗
+```
+
+**RULES:**
+1. Agent lists EVERYTHING originally requested (from task/plan/user message)
+2. Each item gets [x] with verification method or [ ] with "MANCA"
+3. If ANY item = [ ], task is NOT finito
+4. User must approve closure, NOT agent
+5. Anything added beyond request = disclose it
+6. No fake checkmarks - each [x] must have proof

@@ -76,6 +76,12 @@ async function selectProject(projectId) {
   currentProjectId = projectId;
   localStorage.setItem('dashboard-current-project', projectId);
 
+  // Show sidebars when a project is selected
+  const gitPanel = document.querySelector('.git-panel');
+  const rightPanel = document.querySelector('.right-panel');
+  if (gitPanel) gitPanel.style.display = '';
+  if (rightPanel) rightPanel.style.display = '';
+
   document.getElementById('projectName').textContent = project.name;
   const dot = document.getElementById('projectDot');
   if (dot) dot.style.background = '#22c55e';

@@ -34,21 +34,32 @@ function render() {
   document.getElementById('wavesStatus').textContent = `${wavesDone}/${data.waves.length}`;
   document.getElementById('progressPercent').textContent = data.metrics.throughput.percent + '%';
 
-  // Epoch bar
-  const currentWave = data.waves.find(w => w.status === 'in_progress') || data.waves[data.waves.length - 1];
-  if (currentWave) {
-    document.getElementById('currentWave').textContent = currentWave.id + ' - ' + currentWave.name;
+  // Epoch bar - only show if there are waves
+  const waveIndicator = document.getElementById('waveIndicator');
+  if (data.waves && data.waves.length > 0) {
+    const currentWave = data.waves.find(w => w.status === 'in_progress') || data.waves[data.waves.length - 1];
+    if (currentWave) {
+      document.getElementById('currentWave').textContent = currentWave.id + ' - ' + currentWave.name;
+    }
+
+    const start = data.timeline?.start ? data.timeline.start.replace('T', ' ').slice(0, 16) : '-';
+    const eta = data.timeline?.eta ? data.timeline.eta.replace('T', ' ').slice(0, 16) : '-';
+    document.getElementById('epochDates').innerHTML = start + ' &#8212; ' + eta;
+    document.getElementById('countdown').textContent = data.timeline?.remaining ? data.timeline.remaining + ' left' : '-';
+
+    const totalTasks = data.metrics.throughput.total;
+    const doneTasks = data.metrics.throughput.done;
+    const epochProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+    document.getElementById('epochFill').style.width = epochProgress + '%';
+
+    if (waveIndicator) waveIndicator.style.display = '';
+  } else {
+    // No waves - hide indicator
+    if (waveIndicator) waveIndicator.style.display = 'none';
+    document.getElementById('currentWave').textContent = '-';
+    document.getElementById('countdown').textContent = '-';
+    document.getElementById('epochFill').style.width = '0%';
   }
-
-  const start = data.timeline.start.replace('T', ' ').slice(0, 16);
-  const eta = data.timeline.eta.replace('T', ' ').slice(0, 16);
-  document.getElementById('epochDates').innerHTML = start + ' &#8212; ' + eta;
-  document.getElementById('countdown').textContent = data.timeline.remaining + ' left';
-
-  const totalTasks = data.metrics.throughput.total;
-  const doneTasks = data.metrics.throughput.done;
-  const epochProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-  document.getElementById('epochFill').style.width = epochProgress + '%';
 
   // Git
   if (data.git) {
@@ -64,6 +75,12 @@ function render() {
   renderTokensTab();
   renderWavesGantt();
   updateNavCounts();
+
+  // Show/hide waves summary based on data
+  const wavesSummary = document.getElementById('wavesSummary');
+  if (wavesSummary) {
+    wavesSummary.style.display = (data.waves && data.waves.length > 0) ? '' : 'none';
+  }
 
   // Charts
   if (chartMode === 'tokens') {

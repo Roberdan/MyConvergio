@@ -180,30 +180,37 @@ async function loadWavesView() {
   const content = document.getElementById('wavesViewContent');
   if (!content) return;
 
+  // Check if project is selected
+  if (!currentProjectId) {
+    content.innerHTML = '<div class="cc-empty">Select a project to view waves</div>';
+    return;
+  }
+
   content.innerHTML = '<div class="waves-loading">Loading waves...</div>';
 
   try {
-    const res = await fetch(`${API_BASE}/kanban`);
+    // Only load plans for the current project
+    const res = await fetch(`${API_BASE}/plans/${currentProjectId}`);
     const plans = await res.json();
     const allWaves = [];
 
     for (const plan of plans) {
       try {
-        const planRes = await fetch(`${API_BASE}/plan/${plan.plan_id}`);
+        const planRes = await fetch(`${API_BASE}/plan/${plan.id}`);
         const planData = await planRes.json();
         if (planData.waves) {
           planData.waves.forEach(wave => {
             allWaves.push({
               ...wave,
-              projectName: plan.project_name,
-              projectId: plan.project_id,
-              planName: plan.plan_name,
-              planId: plan.plan_id
+              projectName: registry?.projects?.[currentProjectId]?.name || currentProjectId,
+              projectId: currentProjectId,
+              planName: plan.name,
+              planId: plan.id
             });
           });
         }
       } catch (e) {
-        console.log('Failed to load plan:', plan.plan_id);
+        console.log('Failed to load plan:', plan.id);
       }
     }
 
@@ -213,32 +220,32 @@ async function loadWavesView() {
     });
 
     if (allWaves.length === 0) {
-      content.innerHTML = '<div class="waves-loading">No waves found</div>';
+      content.innerHTML = '<div class="cc-empty">No waves in this project</div>';
       return;
     }
 
     content.innerHTML = allWaves.map(wave => {
       const progress = wave.tasks_total > 0 ? Math.round((wave.tasks_done / wave.tasks_total) * 100) : 0;
       return `
-        <div class="wave-timeline-item" onclick="selectProject('${wave.projectId}'); loadPlanDetails(${wave.planId}); showView('dashboard'); drillIntoWave('${wave.wave_id}');">
+        <div class="wave-timeline-item" onclick="loadPlanDetails(${wave.planId}); showView('dashboard'); drillIntoWave('${wave.wave_id}');">
           <div class="wave-timeline-status ${wave.status}"></div>
           <div class="wave-timeline-content">
             <div class="wave-timeline-header">
               <span class="wave-timeline-title">${wave.wave_id} - ${wave.name}</span>
-              <span class="wave-timeline-project">${wave.projectName}</span>
+              <span class="wave-timeline-project">${wave.planName}</span>
             </div>
             <div class="wave-timeline-progress">
               <div class="wave-timeline-progress-fill" style="width: ${progress}%"></div>
             </div>
             <div class="wave-timeline-meta">
-              <span>Plan: ${wave.planName}</span>
               <span>Tasks: ${wave.tasks_done || 0}/${wave.tasks_total || 0}</span>
+              <span>${wave.status}</span>
             </div>
           </div>
         </div>
       `;
     }).join('');
   } catch (e) {
-    content.innerHTML = '<div class="waves-loading">Error: ' + e.message + '</div>';
+    content.innerHTML = '<div class="cc-empty">Error: ' + e.message + '</div>';
   }
 }

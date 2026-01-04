@@ -11,32 +11,15 @@ function initKanbanDragDrop() {
 
   ['todo', 'doing', 'done'].forEach(status => {
     const container = document.getElementById(`kanban${status.charAt(0).toUpperCase() + status.slice(1)}`);
+    const column = document.querySelector(`.cc-kanban-column[data-status="${status}"]`);
+
     if (!container) {
       console.warn('Kanban container not found:', status);
       return;
     }
 
-    // IMPORTANT: Both dragenter and dragover must preventDefault() to allow drop
-    container.addEventListener('dragenter', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      container.classList.add('drag-over');
-    });
-
-    container.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      e.dataTransfer.dropEffect = 'move';
-    });
-
-    container.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      if (!container.contains(e.relatedTarget)) {
-        container.classList.remove('drag-over');
-      }
-    });
-
-    container.addEventListener('drop', async (e) => {
+    // Handle drop on both container and entire column
+    const handleDrop = async (e) => {
       e.preventDefault();
       e.stopPropagation();
       container.classList.remove('drag-over');
@@ -61,7 +44,6 @@ function initKanbanDragDrop() {
         if (result.success) {
           showToast(`Plan moved to ${status}`, 'success');
           await loadKanban();
-          // Refresh project list to reflect status changes
           await loadProjects();
         } else {
           showToast(result.error || 'Failed to move plan', 'error');
@@ -72,7 +54,47 @@ function initKanbanDragDrop() {
 
       draggedPlanId = null;
       draggedFromStatus = null;
+    };
+
+    // Listeners for cards container
+    container.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      container.classList.add('drag-over');
     });
+
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move';
+      container.classList.add('drag-over');
+    });
+
+    container.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      if (!container.contains(e.relatedTarget)) {
+        container.classList.remove('drag-over');
+      }
+    });
+
+    container.addEventListener('drop', handleDrop);
+
+    // Also handle drop on entire column (including header)
+    if (column) {
+      column.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        container.classList.add('drag-over');
+      });
+
+      column.addEventListener('dragleave', (e) => {
+        if (!column.contains(e.relatedTarget)) {
+          container.classList.remove('drag-over');
+        }
+      });
+
+      column.addEventListener('drop', handleDrop);
+    }
   });
 
   kanbanDragInitialized = true;
@@ -115,8 +137,9 @@ function renderKanban(kanban) {
     }
   }
 
-  // Update gauges
+  // Update gauges and status
   updateControlCenterGauges(kanban);
+  updateSystemStatus(kanban);
 
   // Render kanban columns
   ['todo', 'doing', 'done'].forEach(status => {
@@ -229,36 +252,38 @@ async function loadBugsView() {
   const content = document.getElementById('bugsContent');
   if (!content) return;
 
+  // Check if project is selected
+  if (!currentProjectId) {
+    content.innerHTML = '<div class="cc-empty">Select a project to view issues</div>';
+    document.getElementById('bugsOpenCount').textContent = '0';
+    document.getElementById('bugsBlockersCount').textContent = '0';
+    document.getElementById('bugsPrsCount').textContent = '0';
+    return;
+  }
+
   content.innerHTML = '<div class="bugs-loading">Loading issues...</div>';
 
   try {
-    const projects = await fetch(`${API_BASE}/projects`).then(r => r.json());
     const allIssues = [];
     const allBlockers = [];
     let totalPRs = 0;
 
-    const githubPromises = projects.map(async (project) => {
-      try {
-        const res = await fetch(`${API_BASE}/project/${project.project_id}/github`);
-        const data = await res.json();
+    // Only load GitHub data for the current project
+    const res = await fetch(`${API_BASE}/project/${currentProjectId}/github`);
+    const data = await res.json();
+    const projectName = registry?.projects?.[currentProjectId]?.name || currentProjectId;
 
-        if (data.issues) {
-          data.issues.forEach(issue => {
-            const isBlocker = issue.labels?.some(l =>
-              l.name.toLowerCase().includes('blocker') || l.name.toLowerCase().includes('critical')
-            );
-            const item = { ...issue, projectName: project.project_name, projectId: project.project_id, repo: data.repo, isBlocker };
-            allIssues.push(item);
-            if (isBlocker) allBlockers.push(item);
-          });
-        }
-        if (data.prs) totalPRs += data.prs.length;
-      } catch (e) {
-        console.log('Failed to load GitHub data for:', project.project_id);
-      }
-    });
-
-    await Promise.all(githubPromises);
+    if (data.issues) {
+      data.issues.forEach(issue => {
+        const isBlocker = issue.labels?.some(l =>
+          l.name.toLowerCase().includes('blocker') || l.name.toLowerCase().includes('critical')
+        );
+        const item = { ...issue, projectName, projectId: currentProjectId, repo: data.repo, isBlocker };
+        allIssues.push(item);
+        if (isBlocker) allBlockers.push(item);
+      });
+    }
+    if (data.prs) totalPRs = data.prs.length;
 
     document.getElementById('bugsOpenCount').textContent = allIssues.length;
     document.getElementById('bugsBlockersCount').textContent = allBlockers.length;
@@ -297,16 +322,28 @@ async function loadAgentsView() {
   const grid = document.getElementById('agentsGridView');
   if (!grid) return;
 
+  // Check if project is selected
+  if (!currentProjectId) {
+    grid.innerHTML = '<div class="cc-empty">Select a project to view agents</div>';
+    document.getElementById('agentsTotalTasks').textContent = '0';
+    document.getElementById('agentsActiveCount').textContent = '0';
+    document.getElementById('agentsAvgEfficiency').textContent = '0%';
+    return;
+  }
+
   grid.innerHTML = '<div class="waves-loading">Loading agents...</div>';
 
   try {
-    const res = await fetch(`${API_BASE}/kanban`);
+    // Only load plans for the current project
+    const res = await fetch(`${API_BASE}/plans/${currentProjectId}`);
     const plans = await res.json();
     const agentStats = {};
 
+    const projectName = registry?.projects?.[currentProjectId]?.name || currentProjectId;
+
     for (const plan of plans) {
       try {
-        const planRes = await fetch(`${API_BASE}/plan/${plan.plan_id}`);
+        const planRes = await fetch(`${API_BASE}/plan/${plan.id}`);
         const planData = await planRes.json();
 
         if (planData.waves) {
@@ -318,7 +355,7 @@ async function loadAgentsView() {
                   agentStats[agent] = { name: agent, totalTasks: 0, doneTasks: 0, inProgressTasks: 0, projects: new Set() };
                 }
                 agentStats[agent].totalTasks++;
-                agentStats[agent].projects.add(plan.project_name);
+                agentStats[agent].projects.add(projectName);
                 if (task.status === 'done') agentStats[agent].doneTasks++;
                 if (task.status === 'in_progress') agentStats[agent].inProgressTasks++;
               });
@@ -326,7 +363,7 @@ async function loadAgentsView() {
           });
         }
       } catch (e) {
-        console.log('Failed to load plan:', plan.plan_id);
+        console.log('Failed to load plan:', plan.id);
       }
     }
 
@@ -374,5 +411,157 @@ async function loadAgentsView() {
     }).join('');
   } catch (e) {
     grid.innerHTML = '<div class="waves-loading">Error: ' + e.message + '</div>';
+  }
+}
+
+// Status indicator functions
+function toggleStatusDropdown() {
+  const dropdown = document.getElementById('ccStatusDropdown');
+  if (dropdown) {
+    dropdown.classList.toggle('show');
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('ccStatusDropdown');
+  const indicator = e.target.closest('.cc-status-indicator');
+  if (dropdown && !indicator) {
+    dropdown.classList.remove('show');
+  }
+});
+
+function updateSystemStatus(kanban) {
+  const icon = document.getElementById('ccStatusIcon');
+  const activePlans = kanban.doing?.length || 0;
+  const blockedTasks = 0; // TODO: get from API if available
+  const openIssues = 0; // TODO: get from API if available
+
+  // Update counts in dropdown
+  const activeEl = document.querySelector('#statusActivePlans .cc-status-count');
+  const blockedEl = document.querySelector('#statusBlockedTasks .cc-status-count');
+  const issuesEl = document.querySelector('#statusOpenIssues .cc-status-count');
+
+  if (activeEl) activeEl.textContent = activePlans;
+  if (blockedEl) blockedEl.textContent = blockedTasks;
+  if (issuesEl) issuesEl.textContent = openIssues;
+
+  // Update dots
+  const activeDot = document.querySelector('#statusActivePlans .cc-status-dot');
+  const blockedDot = document.querySelector('#statusBlockedTasks .cc-status-dot');
+  const issuesDot = document.querySelector('#statusOpenIssues .cc-status-dot');
+
+  if (activeDot) {
+    activeDot.className = 'cc-status-dot ' + (activePlans > 0 ? 'green' : 'gray');
+  }
+  if (blockedDot) {
+    blockedDot.className = 'cc-status-dot ' + (blockedTasks > 0 ? 'orange' : 'gray');
+  }
+  if (issuesDot) {
+    issuesDot.className = 'cc-status-dot ' + (openIssues > 5 ? 'red' : openIssues > 0 ? 'orange' : 'gray');
+  }
+
+  // Update main icon color
+  if (icon) {
+    icon.className = 'cc-status-icon';
+    if (blockedTasks > 0 || openIssues > 5) {
+      icon.classList.add('error');
+    } else if (openIssues > 0) {
+      icon.classList.add('warning');
+    }
+    // Default is green (no class added)
+  }
+}
+
+// Metric drill-down functions
+function scrollToKanban(status) {
+  const kanbanSection = document.querySelector('.cc-kanban');
+  if (kanbanSection) {
+    kanbanSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Highlight specific column if status provided
+  if (status) {
+    const column = document.querySelector(`.cc-kanban-column[data-status="${status}"]`);
+    if (column) {
+      column.classList.add('highlight-pulse');
+      setTimeout(() => column.classList.remove('highlight-pulse'), 2000);
+    }
+  }
+}
+
+function openProjectMenu() {
+  const menu = document.getElementById('projectMenu');
+  if (menu) {
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+function showTokensBreakdown() {
+  // Show a modal/panel with tokens breakdown by project
+  const modal = document.createElement('div');
+  modal.className = 'cc-tokens-modal';
+  modal.innerHTML = `
+    <div class="cc-tokens-content">
+      <div class="cc-tokens-header">
+        <span>Tokens & Cost Breakdown</span>
+        <button onclick="this.closest('.cc-tokens-modal').remove()">×</button>
+      </div>
+      <div class="cc-tokens-body" id="tokensBreakdownBody">
+        <div class="waves-loading">Loading...</div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Load token data for all projects
+  loadTokensBreakdown();
+}
+
+async function loadTokensBreakdown() {
+  const body = document.getElementById('tokensBreakdownBody');
+  if (!body) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/kanban`);
+    const plans = await res.json();
+
+    const projectIds = [...new Set(plans.map(p => p.project_id))];
+    const projectData = [];
+
+    for (const projectId of projectIds) {
+      try {
+        const tokRes = await fetch(`${API_BASE}/project/${projectId}/tokens`);
+        const tokData = await tokRes.json();
+        const project = plans.find(p => p.project_id === projectId);
+        projectData.push({
+          name: project?.project_name || projectId,
+          projectId,
+          tokens: tokData.stats?.total_tokens || 0,
+          cost: tokData.stats?.total_cost || 0
+        });
+      } catch (e) {
+        console.log('Failed to load tokens for', projectId);
+      }
+    }
+
+    projectData.sort((a, b) => b.tokens - a.tokens);
+
+    if (projectData.length === 0) {
+      body.innerHTML = '<div class="cc-empty">No token data available</div>';
+      return;
+    }
+
+    body.innerHTML = projectData.map(p => `
+      <div class="cc-tokens-row" onclick="selectProject('${p.projectId}'); document.querySelector('.cc-tokens-modal').remove();">
+        <div class="cc-tokens-project">${p.name}</div>
+        <div class="cc-tokens-stats">
+          <span class="cc-tokens-value">${p.tokens.toLocaleString()} tokens</span>
+          <span class="cc-tokens-cost">$${p.cost.toFixed(2)}</span>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    body.innerHTML = '<div class="cc-empty">Error loading data</div>';
   }
 }

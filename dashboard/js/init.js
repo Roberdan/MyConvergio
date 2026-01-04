@@ -59,6 +59,12 @@ function clearProjectSelection() {
   currentProjectId = null;
   localStorage.removeItem('dashboard-current-project');
 
+  // Clear global data
+  if (typeof data !== 'undefined') {
+    data = { meta: {}, waves: [], tasks: [], github: {} };
+  }
+
+  // Clear project header
   const projectName = document.getElementById('projectName');
   if (projectName) projectName.textContent = 'Select Project';
 
@@ -70,6 +76,64 @@ function clearProjectSelection() {
 
   const gitRepoName = document.getElementById('gitRepoName');
   if (gitRepoName) gitRepoName.textContent = 'Project';
+
+  // Clear nav counts and throughput
+  const navCounts = ['navKanbanCount', 'navWavesCount', 'navIssuesCount'];
+  navCounts.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '';
+  });
+
+  const throughputBadge = document.getElementById('throughputBadge');
+  if (throughputBadge) throughputBadge.textContent = '-';
+
+  // Clear waves
+  const wavesList = document.getElementById('wavesList');
+  if (wavesList) wavesList.innerHTML = '<div class="cc-empty">Select a project</div>';
+
+  const wavesSummary = document.getElementById('wavesSummary');
+  if (wavesSummary) wavesSummary.style.display = 'none';
+
+  const wavesStatus = document.getElementById('wavesStatus');
+  if (wavesStatus) wavesStatus.textContent = '-';
+
+  // Clear issues tab
+  const tabIssues = document.getElementById('tabIssues');
+  if (tabIssues) tabIssues.innerHTML = '<div class="issues-loading">Select a project</div>';
+
+  // Clear health indicators
+  const healthItems = ['healthWave', 'healthBuild', 'healthTests', 'healthIssues'];
+  healthItems.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.className = 'health-item';
+      const value = el.querySelector('.health-value');
+      if (value) value.textContent = '-';
+    }
+  });
+
+  // Clear drilldown
+  const drilldownPanel = document.getElementById('drilldownPanel');
+  if (drilldownPanel) drilldownPanel.style.display = 'none';
+
+  // Clear wave indicator
+  const waveIndicator = document.getElementById('waveIndicator');
+  if (waveIndicator) waveIndicator.style.display = 'none';
+
+  const currentWave = document.getElementById('currentWave');
+  if (currentWave) currentWave.textContent = '-';
+
+  const countdown = document.getElementById('countdown');
+  if (countdown) countdown.textContent = '-';
+
+  const epochFill = document.getElementById('epochFill');
+  if (epochFill) epochFill.style.width = '0%';
+
+  // Hide sidebars in Control Center mode
+  const gitPanel = document.querySelector('.git-panel');
+  const rightPanel = document.querySelector('.right-panel');
+  if (gitPanel) gitPanel.style.display = 'none';
+  if (rightPanel) rightPanel.style.display = 'none';
 }
 
 // Wrap loadGitData to also render the git tab

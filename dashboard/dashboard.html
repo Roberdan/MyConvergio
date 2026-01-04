@@ -41,7 +41,7 @@
       <a href="#" onclick="showView('agents')">Agents</a>
     </div>
     <div class="nav-right">
-      <div class="nav-badge highlight" id="throughputBadge">87%</div>
+      <div class="nav-badge highlight" id="throughputBadge">-</div>
       <div class="notification-bell" onclick="showView('notifications')" title="Notifications">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -172,15 +172,15 @@
       </div>
 
       <!-- Active Wave Indicator (compact) -->
-      <div class="wave-indicator" id="waveIndicator">
+      <div class="wave-indicator" id="waveIndicator" style="display:none;">
         <div class="wave-pulse" id="wavePulse"></div>
         <div class="wave-info">
-          <span class="wave-name" id="currentWave">Wave 5</span>
-          <span class="wave-time" id="countdown">1h 00m left</span>
+          <span class="wave-name" id="currentWave">-</span>
+          <span class="wave-time" id="countdown">-</span>
           <span class="wave-dates" id="epochDates"></span>
         </div>
         <div class="wave-mini-progress">
-          <div class="wave-mini-fill" id="epochFill" style="width: 83%;"></div>
+          <div class="wave-mini-fill" id="epochFill" style="width: 0%;"></div>
         </div>
       </div>
 
@@ -195,7 +195,7 @@
       </div>
 
       <!-- Waves Summary -->
-      <div class="waves-summary" id="wavesSummary">
+      <div class="waves-summary" id="wavesSummary" style="display:none;">
         <div class="waves-header">
           <span>Waves</span>
           <button class="refresh-btn" onclick="refreshWaves()" title="Refresh">&#x21BB;</button>
@@ -294,42 +294,65 @@
               <div class="cc-subtitle">Mission Operations</div>
             </div>
           </div>
-          <div class="cc-status">
-            <span class="cc-status-dot" id="ccStatusDot"></span>
-            <span class="cc-status-text" id="ccStatusText">ALL SYSTEMS NOMINAL</span>
+          <div class="cc-header-right">
+            <button class="refresh-btn" onclick="loadKanban()" title="Refresh">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+            <div class="cc-status-indicator" onclick="toggleStatusDropdown()">
+              <div class="cc-status-icon" id="ccStatusIcon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><circle cx="12" cy="12" r="10"/></svg>
+              </div>
+              <div class="cc-status-dropdown" id="ccStatusDropdown">
+                <div class="cc-status-header">System Status</div>
+                <div class="cc-status-item" id="statusActivePlans">
+                  <span class="cc-status-dot green"></span>
+                  <span>Active Plans</span>
+                  <span class="cc-status-count">0</span>
+                </div>
+                <div class="cc-status-item" id="statusBlockedTasks">
+                  <span class="cc-status-dot gray"></span>
+                  <span>Blocked Tasks</span>
+                  <span class="cc-status-count">0</span>
+                </div>
+                <div class="cc-status-item" id="statusOpenIssues">
+                  <span class="cc-status-dot gray"></span>
+                  <span>Open Issues</span>
+                  <span class="cc-status-count">0</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <button class="refresh-btn" onclick="loadKanban()" title="Refresh" style="font-size:18px;">&#x21BB;</button>
         </div>
 
         <!-- Metrics Dashboard -->
         <div class="cc-metrics">
-          <div class="cc-metric">
-            <div class="cc-metric-icon">&#x1F4C1;</div>
+          <div class="cc-metric" onclick="openProjectMenu()">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
             <div class="cc-metric-value blue" id="kanbanTotalProjects">0</div>
             <div class="cc-metric-label">Projects</div>
           </div>
-          <div class="cc-metric">
-            <div class="cc-metric-icon">&#x1F4CB;</div>
+          <div class="cc-metric" onclick="scrollToKanban()">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h8M8 12h8M8 17h5"/></svg></div>
             <div class="cc-metric-value" id="kanbanTotalPlans">0</div>
             <div class="cc-metric-label">Total Plans</div>
           </div>
-          <div class="cc-metric">
-            <div class="cc-metric-icon">&#x26A1;</div>
+          <div class="cc-metric" onclick="scrollToKanban('doing')">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
             <div class="cc-metric-value orange" id="kanbanActivePlans">0</div>
             <div class="cc-metric-label">Active</div>
           </div>
-          <div class="cc-metric">
-            <div class="cc-metric-icon">&#x2705;</div>
+          <div class="cc-metric" onclick="scrollToKanban('done')">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
             <div class="cc-metric-value green" id="kanbanCompletedPlans">0</div>
             <div class="cc-metric-label">Completed</div>
           </div>
-          <div class="cc-metric">
-            <div class="cc-metric-icon">&#x1F4B0;</div>
+          <div class="cc-metric" onclick="showTokensBreakdown()">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
             <div class="cc-metric-value" id="kanbanTotalTokens">0</div>
             <div class="cc-metric-label">Tokens</div>
           </div>
-          <div class="cc-metric">
-            <div class="cc-metric-icon">&#x1F4B5;</div>
+          <div class="cc-metric" onclick="showTokensBreakdown()">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
             <div class="cc-metric-value red" id="kanbanTotalCost">$0</div>
             <div class="cc-metric-label">Cost</div>
           </div>

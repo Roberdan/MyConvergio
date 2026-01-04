@@ -99,6 +99,104 @@
   white-space: nowrap;
 }
 
+/* Scrollable Git Graph */
+.git-graph-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.git-commit-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.git-commit-row:hover {
+  background: var(--bg-input);
+}
+
+.git-commit-row .git-graph-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 20px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.git-commit-row .git-graph-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-card);
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.git-commit-row .git-graph-dot.merge {
+  background: var(--orange);
+  width: 12px;
+  height: 12px;
+}
+
+.git-commit-row .git-graph-connector {
+  width: 2px;
+  flex: 1;
+  min-height: 16px;
+  background: var(--border);
+  margin-top: 2px;
+}
+
+.git-commit-row.merge .git-graph-connector {
+  background: var(--orange);
+}
+
+.git-commit-row .git-commit-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.git-commit-row .git-commit-hash {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  margin-right: 8px;
+}
+
+.git-commit-row .git-commit-message {
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.git-commit-row.merge .git-commit-message {
+  color: var(--orange);
+}
+
+.git-commit-row .git-commit-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.git-commit-row .git-commit-author {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.git-commit-row .git-commit-date {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
 /* Branch visualization */
 .git-branch-line {
   position: absolute;

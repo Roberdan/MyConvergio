@@ -26,9 +26,16 @@ function setChartFilter(range, event) {
   chartFilterRange = range;
 
   // Update label
-  const labels = { 'all': 'All time', '30d': 'Last 30 days', '7d': 'Last 7 days', 'today': 'Today' };
+  const labels = {
+    'all': 'All time',
+    '30d': 'Last 30 days',
+    '7d': 'Last 7 days',
+    '1d': 'Last 24 hours',
+    '1h': 'Last hour',
+    '30m': 'Last 30 min'
+  };
   const label = document.getElementById('chartFilterLabel');
-  if (label) label.innerHTML = `&#x1F4C5; ${labels[range]}`;
+  if (label) label.innerHTML = `&#x1F4C5; ${labels[range] || range}`;
 
   // Update active state
   document.querySelectorAll('.chart-filter-option').forEach(opt => {
@@ -157,20 +164,36 @@ function renderGitGraph() {
   const graphContainer = document.getElementById('gitFilesList');
   if (!graphContainer || !data.git?.commits) return;
 
-  const commits = data.git.commits.slice(0, 8);
+  // Show all commits with scroll
+  const commits = data.git.commits;
 
   graphContainer.innerHTML = `
-    <div class="git-graph">
-      ${commits.map(c => `
-        <div class="git-commit-row">
-          <div class="git-graph-line">
-            <div class="git-graph-dot"></div>
+    <div class="git-graph-scroll">
+      ${commits.map((c, i) => {
+        const isMerge = c.message?.toLowerCase().startsWith('merge');
+        const isLast = i === commits.length - 1;
+        return `
+          <div class="git-commit-row ${isMerge ? 'merge' : ''}">
+            <div class="git-graph-line">
+              <div class="git-graph-dot ${isMerge ? 'merge' : ''}"></div>
+              ${!isLast ? '<div class="git-graph-connector"></div>' : ''}
+            </div>
+            <div class="git-commit-info">
+              <span class="git-commit-hash">${c.hash}</span>
+              <span class="git-commit-message" title="${c.message}">${truncateMessage(c.message, 50)}</span>
+            </div>
+            <div class="git-commit-meta">
+              <span class="git-commit-author">${c.author || ''}</span>
+              <span class="git-commit-date">${c.date}</span>
+            </div>
           </div>
-          <span class="git-commit-hash">${c.hash}</span>
-          <span class="git-commit-message">${c.message}</span>
-          <span class="git-commit-date">${c.date}</span>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
     </div>
   `;
+}
+
+function truncateMessage(msg, maxLen) {
+  if (!msg) return '';
+  return msg.length > maxLen ? msg.substring(0, maxLen) + '...' : msg;
 }

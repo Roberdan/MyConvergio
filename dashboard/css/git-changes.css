@@ -86,16 +86,27 @@
 .git-tree-folder-header:hover { background: var(--bg-input); }
 
 .git-tree-arrow {
-  font-size: 8px;
-  width: 12px;
-  text-align: center;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-muted);
   transition: transform 0.15s;
+  transform: rotate(90deg); /* Points down when expanded */
 }
-.git-tree-folder.collapsed .git-tree-arrow { transform: rotate(-90deg); }
+.git-tree-arrow svg { width: 10px; height: 10px; }
+.git-tree-folder.collapsed .git-tree-arrow { transform: rotate(0deg); } /* Points right when collapsed */
 .git-tree-folder.collapsed .git-tree-folder-content { display: none; }
 
-.git-tree-folder-icon { font-size: 14px; color: var(--orange); }
+.git-tree-folder-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+.git-tree-folder-icon svg { width: 16px; height: 16px; }
 .git-tree-folder-name { color: var(--text); font-weight: 500; }
 .git-tree-folder-count { margin-left: auto; font-size: 10px; color: var(--text-dim); }
 .git-tree-folder-content { padding-left: 12px; }

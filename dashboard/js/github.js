@@ -1,15 +1,20 @@
 // GitHub and External Data Loading
 
 async function loadGitHubData() {
-  if (!currentProjectId) return;
+  const projectId = currentProjectId;
+  if (!projectId) return;
 
   try {
-    const res = await fetch(`${API_BASE}/project/${currentProjectId}/github`);
+    const res = await fetch(`${API_BASE}/project/${projectId}/github`);
     const github = await res.json();
+
+    // Check if project changed during fetch
+    if (projectId !== currentProjectId) return;
 
     if (github.error) {
       console.log('GitHub data not available:', github.error);
       data.github = null;
+      updateHealthStatus();
       return;
     }
 
@@ -31,6 +36,10 @@ async function loadGitHubData() {
     renderGitHubPanel();
   } catch (e) {
     console.error('Failed to load GitHub data:', e);
+    if (projectId === currentProjectId) {
+      data.github = null;
+      updateHealthStatus();
+    }
   }
 }
 
@@ -43,6 +52,8 @@ async function loadGitData() {
 
     if (git.error) {
       console.log('Git data not available:', git.error);
+      data.git = { error: git.error, currentBranch: null, uncommitted: null, commits: [], totalChanges: 0 };
+      updateHealthStatus();
       return;
     }
 
@@ -54,8 +65,11 @@ async function loadGitData() {
     };
 
     renderGitPanel();
+    updateHealthStatus();
   } catch (e) {
     console.error('Failed to load git data:', e);
+    data.git = { error: e.message, currentBranch: null, uncommitted: null, commits: [], totalChanges: 0 };
+    updateHealthStatus();
   }
 }
 
@@ -203,16 +217,21 @@ function updateHealthStatus() {
   if (gitHealth) {
     gitHealth.className = 'health-item';
     if (data.git) {
-      const uncommitted = data.git.totalChanges || 0;
-      if (uncommitted > 10) {
+      if (data.git.error) {
         gitHealth.classList.add('yellow');
-        gitHealth.querySelector('.health-value').textContent = uncommitted + ' changes';
-      } else if (uncommitted > 0) {
-        gitHealth.classList.add('green');
-        gitHealth.querySelector('.health-value').textContent = uncommitted + ' changes';
+        gitHealth.querySelector('.health-value').textContent = 'No remote';
       } else {
-        gitHealth.classList.add('green');
-        gitHealth.querySelector('.health-value').textContent = 'Clean';
+        const uncommitted = data.git.totalChanges || 0;
+        if (uncommitted > 10) {
+          gitHealth.classList.add('yellow');
+          gitHealth.querySelector('.health-value').textContent = uncommitted + ' changes';
+        } else if (uncommitted > 0) {
+          gitHealth.classList.add('green');
+          gitHealth.querySelector('.health-value').textContent = uncommitted + ' changes';
+        } else {
+          gitHealth.classList.add('green');
+          gitHealth.querySelector('.health-value').textContent = 'Clean';
+        }
       }
     } else {
       gitHealth.querySelector('.health-value').textContent = 'Loading...';

@@ -2,13 +2,13 @@
 
 > Global rule for maintainability and token optimization.
 
-**Last Updated**: 3 Gennaio 2026, 16:52 CET
+**Last Updated**: 4 Gennaio 2026, 11:45 CET
 
 ---
 
 ## Core Rule
 
-**Maximum 250 lines per file.** No exceptions without explicit approval.
+**Maximum 300 lines per file.** No exceptions without explicit approval.
 
 ### Why
 
@@ -23,16 +23,16 @@
 
 ### Plans (docs/plans/)
 
-When a plan exceeds 250 lines, split into:
+When a plan exceeds 300 lines, split into:
 
 ```
 docs/plans/
-├── ProjectPlan-Main.md      # Tracker only (max 250 lines)
+├── ProjectPlan-Main.md      # Tracker only (max 300 lines)
 │   ├── Overview & objectives
 │   ├── Phase list with status
 │   ├── Progress summary table
 │   └── Links to phase files
-├── ProjectPlan-Phase1.md    # Phase details (max 250 lines each)
+├── ProjectPlan-Phase1.md    # Phase details (max 300 lines each)
 ├── ProjectPlan-Phase2.md
 └── ProjectPlan-Phase3.md
 ```
@@ -55,7 +55,7 @@ docs/plans/
 
 ### Code Files
 
-When a code file exceeds 250 lines:
+When a code file exceeds 300 lines:
 
 1. **Extract modules**: Move related functions to separate files
 2. **Split by responsibility**: One concern per file
@@ -64,22 +64,22 @@ When a code file exceeds 250 lines:
 ```
 src/auth/
 ├── index.ts           # Re-exports (< 50 lines)
-├── login.ts           # Login logic (< 250 lines)
-├── logout.ts          # Logout logic (< 250 lines)
-├── token.ts           # Token management (< 250 lines)
-└── types.ts           # Type definitions (< 250 lines)
+├── login.ts           # Login logic (< 300 lines)
+├── logout.ts          # Logout logic (< 300 lines)
+├── token.ts           # Token management (< 300 lines)
+└── types.ts           # Type definitions (< 300 lines)
 ```
 
 ### Agent/Command Files
 
-When an agent or command exceeds 250 lines:
+When an agent or command exceeds 300 lines:
 
 1. **Core file**: Identity, main behavior, key rules
 2. **Reference files**: Detailed examples, edge cases, historical learnings
 
 ```
 agents/
-├── thor-quality-assurance-guardian.md       # Core (< 250 lines)
+├── thor-quality-assurance-guardian.md       # Core (< 300 lines)
 └── thor-quality-assurance-guardian-ref.md   # Reference material
 ```
 
@@ -87,7 +87,7 @@ agents/
 
 ## Exceptions
 
-Files that MAY exceed 250 lines:
+Files that MAY exceed 300 lines:
 
 - `package.json`, `tsconfig.json` (generated/config)
 - Vendor/third-party files
@@ -103,11 +103,11 @@ Files that MAY exceed 250 lines:
 Before committing, check:
 
 ```bash
-# Find files exceeding 250 lines
-find . -name "*.md" -o -name "*.ts" -o -name "*.tsx" | xargs wc -l | awk '$1 > 250'
+# Find files exceeding 300 lines
+find . -name "*.md" -o -name "*.ts" -o -name "*.tsx" | xargs wc -l | awk '$1 > 300'
 ```
 
-Thor validates this gate. Files > 250 lines without exception = REJECTED.
+Thor validates this gate. Files > 300 lines without exception = REJECTED.
 
 ---
 
@@ -118,4 +118,4 @@ Thor validates this gate. Files > 250 lines without exception = REJECTED.
 | `/planner` | Create split plans by default |
 | `/prompt` | Include split requirement in prompts |
 | Agents | Self-check before output |
-| `thor` | Validate all files < 250 lines |
+| `thor` | Validate all files < 300 lines |

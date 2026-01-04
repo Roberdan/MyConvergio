@@ -79,6 +79,28 @@ const routes = {
     return { success: true, wave_id: params.id, status: body.status };
   },
 
+  // Update plan status (for Kanban drag & drop)
+  'POST /api/plan/:id/status': (params, body) => {
+    const { status } = body;
+    const validStatuses = ['todo', 'doing', 'done'];
+    if (!validStatuses.includes(status)) {
+      return { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` };
+    }
+
+    // Set appropriate timestamps based on new status
+    let timestampUpdate = '';
+    if (status === 'doing') {
+      timestampUpdate = ", started_at = COALESCE(started_at, datetime('now'))";
+    } else if (status === 'done') {
+      timestampUpdate = ", completed_at = datetime('now')";
+    } else if (status === 'todo') {
+      timestampUpdate = ", started_at = NULL, completed_at = NULL";
+    }
+
+    query(`UPDATE plans SET status = '${status}'${timestampUpdate} WHERE id = ${params.id}`);
+    return { success: true, plan_id: parseInt(params.id), status };
+  },
+
   // Validate plan (Thor)
   'POST /api/plan/:id/validate': (params, body) => {
     execSync(`${CLAUDE_HOME}/scripts/plan-db.sh validate ${params.id} ${body.by || 'thor'}`, {

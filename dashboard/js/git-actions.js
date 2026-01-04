@@ -257,10 +257,10 @@ async function showBranchMenu() {
       </div>
       <div class="branch-items" id="branchItems">
         ${branches.map(b => `
-          <div class="branch-item ${b === current ? 'current' : ''}" onclick="checkoutBranch('${b}')">
-            <span class="branch-check">${b === current ? '&#x2713;' : ''}</span>
-            <span class="branch-name">${b}</span>
-            ${b.startsWith('origin/') ? '<span class="branch-remote">remote</span>' : ''}
+          <div class="branch-item ${b.name === current ? 'current' : ''}" onclick="checkoutBranch('${b.name}')">
+            <span class="branch-check">${b.name === current ? '&#x2713;' : ''}</span>
+            <span class="branch-name">${b.name}</span>
+            ${b.remote ? '<span class="branch-remote">remote</span>' : ''}
           </div>
         `).join('')}
       </div>

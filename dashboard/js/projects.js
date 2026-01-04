@@ -109,6 +109,7 @@ async function loadPlanDetails(planId) {
 
     data = transformPlanToData(plan);
     render();
+    updateNavCounts(); // Update nav after loading plan data
 
     const histRes = await fetch(`${API_BASE}/plan/${planId}/history`);
     const history = await histRes.json();

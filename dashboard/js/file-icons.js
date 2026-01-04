@@ -75,7 +75,7 @@ const FILE_ICONS = {
   sql: `<svg viewBox="0 0 24 24" class="file-icon"><path fill="#e38c00" d="M12 3C7.58 3 4 4.79 4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7c0-2.21-3.58-4-8-4zm0 2c3.87 0 6 1.5 6 2s-2.13 2-6 2-6-1.5-6-2 2.13-2 6-2zM6 17v-2.78c1.61.85 3.72 1.28 6 1.28s4.39-.43 6-1.28V17c0 .5-2.13 2-6 2s-6-1.5-6-2zm0-5v-2.78c1.61.85 3.72 1.28 6 1.28s4.39-.43 6-1.28V12c0 .5-2.13 2-6 2s-6-1.5-6-2z"/></svg>`,
 };
 
-// Folder icons
+// Folder icons (VS Code Great Icons style)
 const FOLDER_ICONS = {
   default: `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#90a4ae" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
   src: `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#e8a838" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
@@ -88,6 +88,14 @@ const FOLDER_ICONS = {
   js: `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#f7df1e" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.89 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
   server: `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#66bb6a" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.89 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
   modules: `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#ab47bc" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.89 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
+  // Additional folders
+  commands: `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#e8a838" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
+  dashboard: `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#e8a838" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
+  rules: `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#e8a838" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
+  agents: `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#ab47bc" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
+  icons: `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#ab47bc" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
+  'test-results': `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#ef5350" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
+  'playwright-report': `<svg viewBox="0 0 24 24" class="file-icon folder"><path fill="#2EAD33" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
 };
 
 // Special filename icons (exact match)
@@ -119,5 +127,6 @@ function getFileIcon(filename) {
 
 function getFolderIcon(folderName) {
   const lowerName = folderName.toLowerCase();
-  return FOLDER_ICONS[lowerName] || FOLDER_ICONS.default;
+  // Try exact match first, then try with hyphens converted
+  return FOLDER_ICONS[lowerName] || FOLDER_ICONS[lowerName.replace(/-/g, '_')] || FOLDER_ICONS.default;
 }

@@ -13,29 +13,18 @@ Apply to: Plan headers, checkpoint logs, Last Updated, Created timestamps.
 
 ## File Size Limit (MANDATORY)
 
-Per `rules/file-size-limits.md`: **Max 250 lines per file.**
+Per `rules/file-size-limits.md`: **Max 300 lines per file.**
 
 ### Plan Split Strategy
 
-When a plan exceeds 250 lines, split into:
+When a plan exceeds 300 lines, split into:
 
 ```
 docs/plans/
-├── ProjectPlan-Main.md       # Tracker only (< 250 lines)
-├── ProjectPlan-Phase1.md     # Phase 1 details (< 250 lines)
-├── ProjectPlan-Phase2.md     # Phase 2 details (< 250 lines)
+├── ProjectPlan-Main.md       # Tracker only (< 300 lines)
+├── ProjectPlan-Phase1.md     # Phase 1 details (< 300 lines)
 └── ...
 ```
-
-**Main file contains**:
-- Overview, objectives, global progress
-- Phase list with links to phase files
-- Checkpoint log (summary)
-
-**Phase files contain**:
-- Detailed task breakdown
-- Phase-specific checkpoint log
-- Implementation details
 
 ## PROJECT CONTEXT
 
@@ -67,7 +56,7 @@ When user says "mostra stato" or "dashboard":
 ## ANTI-CRASH RULES
 
 1. **ALWAYS write plan file BEFORE launching agents**
-2. Agents checkpoint progress in plan file (✅/❌)
+2. Agents checkpoint progress in plan file
 3. **Use `haiku` for simple tasks** (default - fast, cheap, no context issues)
 4. **Max 3 parallel agents** (4 = crash risk)
 5. If crash: read plan, resume from last checkpoint
@@ -85,11 +74,11 @@ When user says "mostra stato" or "dashboard":
 OPUS/Planner responsibility: Tasks MUST be atomic and file-specific.
 
 **BAD** (causes executor crash):
-- `T-01: Refactor authentication` ❌ (executor explores 50 files)
+- `T-01: Refactor authentication` (executor explores 50 files)
 
 **GOOD** (executor executes without exploration):
-- `T-01: Add logout() to src/lib/auth.ts line 45` ✅
-- `T-02: Update src/app/api/logout/route.ts` ✅
+- `T-01: Add logout() to src/lib/auth.ts line 45`
+- `T-02: Update src/app/api/logout/route.ts`
 
 **Rule**: If executor needs to explore >3 files, task is too vague.
 
@@ -106,8 +95,8 @@ OPUS/Planner responsibility: Tasks MUST be atomic and file-specific.
 
 | Timestamp | Agent | Task | Status | Notes |
 |-----------|-------|------|--------|-------|
-| HH:MM | CLAUDE 2 | T-01 | ✅ | Completed |
-| HH:MM | CLAUDE 3 | T-02 | ❌ | CRASHED - resume here |
+| HH:MM | CLAUDE 2 | T-01 | Done | Completed |
+| HH:MM | CLAUDE 3 | T-02 | CRASHED | resume here |
 
 **Last Good State**: [description of what was completed]
 **Resume Instructions**: [what to do if resuming after crash]
@@ -118,7 +107,7 @@ OPUS/Planner responsibility: Tasks MUST be atomic and file-specific.
 
 | Claude | Ruolo | Task | Model |
 |--------|-------|------|-------|
-| CLAUDE 1 | PLANNER/COORDINATOR | Crea piano, monitora | **opus** (pianificazione complessa) |
+| CLAUDE 1 | PLANNER/COORDINATOR | Crea piano, monitora | **opus** |
 | CLAUDE 2 | EXECUTOR | [Task IDs semplici] | haiku |
 | CLAUDE 3 | EXECUTOR | [Task IDs semplici] | haiku |
 
@@ -132,7 +121,7 @@ OPUS/Planner responsibility: Tasks MUST be atomic and file-specific.
 ## REGOLE (TUTTI I CLAUDE)
 
 1. Leggi TUTTO il piano prima di iniziare
-2. Per ogni task: implementa → verifica → **AGGIORNA CHECKPOINT LOG** → marca ✅
+2. Per ogni task: implementa, verifica, **AGGIORNA CHECKPOINT LOG**, marca done
 3. **Verifica OBBLIGATORIA**: `npm run lint && npm run typecheck && npm run build`
 4. NON "FATTO" senza checkpoint aggiornato
 5. Se crash/blocco: scrivi stato nel CHECKPOINT LOG prima di morire
@@ -141,9 +130,9 @@ OPUS/Planner responsibility: Tasks MUST be atomic and file-specific.
 ## EXECUTOR RULES (anti-crash)
 
 **Executors read ONLY files in task. No exploration.**
-- Task says "update auth.ts" → read auth.ts ONLY
+- Task says "update auth.ts" read auth.ts ONLY
 - Need context? Grep, don't read whole files
-- If task unclear → checkpoint "Task vague", signal CLAUDE 1
+- If task unclear, checkpoint "Task vague", signal CLAUDE 1
 
 ---
 
@@ -154,18 +143,11 @@ Every plan MUST include functional requirements that Thor will verify.
 | ID | Requisito Funzionale | Criterio di Accettazione | Verificato |
 |----|---------------------|-------------------------|------------|
 | F-01 | [Cosa deve FUNZIONARE] | [Come si verifica che funziona] | [ ] |
-| F-02 | ... | ... | [ ] |
 
 **Rules:**
 - Each feature = at least 1 functional requirement
 - Criteria must be TESTABLE (not vague)
 - Thor verifies each `[ ]` before approval
-
-**Example:**
-| ID | Requisito | Criterio | Verificato |
-|----|-----------|----------|------------|
-| F-01 | Logout disconnette utente | Dopo click logout, API /me ritorna 401 | [ ] |
-| F-02 | Redirect a login | Dopo logout, URL = /login | [ ] |
 
 ---
 
@@ -185,143 +167,16 @@ Checklist: [ ] ADR [ ] CHANGELOG [ ] README [ ] Code docs
 
 | Status | ID | Task | Assignee | Files |
 |:------:|-----|------|----------|-------|
-| ⬜ | T-01 | Add logout() after line 45 | CLAUDE 2 | `src/lib/auth.ts` |
-| ⬜ | T-02 | Update route to call logout | CLAUDE 2 | `src/app/api/logout/route.ts` |
-| ⬜ | T-FINAL | ✅ THOR VALIDATION | thor | All |
+| [ ] | T-01 | Add logout() after line 45 | CLAUDE 2 | `src/lib/auth.ts` |
+| [ ] | T-FINAL | THOR VALIDATION | thor | All |
 
 **Note**: Tasks MUST specify exact file paths. Vague tasks cause crashes.
 
 ---
-
-## THOR APPROVAL SECTION
-
-**Status**: PENDING
-**Validated**: ___ / ___ functional requirements
-**Gates Passed**: ___ / ___
-
-- [ ] F-01 verified and working
-- [ ] F-02 verified and working
-- [ ] Build/lint/typecheck pass
-- [ ] Documentation complete
-
-**Thor Signature**: _____________ **Date**: _______
-
----
-
-## PROGRESS
-
-| Phase | Done/Total |
-|-------|------------|
-| 1 | 0/N |
-| **TOTAL** | 0/N |
 ```
 
-## CENTRALIZED PLANS (V3)
-
-All plans are stored centrally in `~/.claude/plans/` with multi-project support.
-
-### Structure
-
-```
-~/.claude/plans/
-├── registry.json              # Project index
-└── {project_id}/
-    ├── {PlanName}.md          # Plan markdown
-    └── current.json           # Active plan state (V2 schema)
-```
-
-### Workflow on Plan Creation
-
-When `/planner` executes from any project folder:
-
-1. **Auto-register project**: `~/.claude/scripts/register-project.sh $(pwd)`
-   - Detects project_id from folder name
-   - Captures git remote, GitHub URL
-   - Creates `~/.claude/plans/{project_id}/`
-
-2. **Create plan files**:
-   - `~/.claude/plans/{project_id}/{PlanName}.md`
-   - `~/.claude/plans/{project_id}/current.json`
-
-3. **Track changes**: `~/.claude/scripts/track-plan-change.sh`
-   - Records every modification with type and reason
-   - Enables learning/optimization over time
-
-### Plan Change Types
-
-| Type | When Used |
-|------|-----------|
-| `created` | Initial plan creation |
-| `user_edit` | User modifies tasks/scope |
-| `scope_add` | New requirements added |
-| `scope_remove` | Requirements removed |
-| `blocker` | Blocker discovered |
-| `task_split` | Task broken into smaller units |
-| `completed` | Plan finished |
-
-### Dashboard (V3 Multi-Project + Kanban)
-
-**URL**: `http://127.0.0.1:31415/dashboard/`
-
-**Start** (from any folder):
-```bash
-npx live-server ~/.claude --port=31415 --no-browser &
-open http://127.0.0.1:31415/dashboard/dashboard.html
-```
-
-**Features**:
-- **Kanban view**: All projects/plans in TODO/DOING/DONE columns
-- Project menu: Switch between registered projects
-- History tab: View plan modifications timeline
-- Learning stats: Track optimization patterns
-- Auto-selects project based on last used
-
-**Plan Kanban Structure**:
-```
-~/.claude/plans/{project_id}/
-├── todo/           # Planned
-├── doing/          # In progress
-├── done/           # Completed
-└── current.json    # Active plan pointer
-```
-
----
-
-## GIT/ORCHESTRATION
-
-**Worktree**: `git worktree add ../proj-C2 feature/plan-phase1`
-**Launch**: `~/.claude/scripts/claude-parallel.sh 3`
-**Recovery**: `cat docs/plans/*.md | grep "CHECKPOINT"`
-**PR**: `git commit -m "feat: X" && gh pr create`
+**See also**: [planner-reference.md](./planner-reference.md) for Git/PR templates, Dashboard, Agent routing
 
 ## STATUS LEGEND
 
-⬜ Not started | 🔄 In progress | ✅ Done | ❌ Crashed/Blocked | 🔴 LOCKED | 🟢 UNLOCKED
-
-## AGENT DISCOVERY
-
-Per `rules/agent-discovery.md`: Check MyConvergio specialists first.
-1. MyConvergio (`/Users/roberdan/GitHub/MyConvergio/agents/`) = 50+ domain experts
-2. Local (`~/.claude/agents/`) = fallback
-
-## EXECUTOR DELEGATION
-
-| Domain | MyConvergio Specialist | Default Fallback |
-|--------|------------------------|------------------|
-| Marketing | `sofia-marketing-strategist` | - |
-| Sales/BD | `fabio-sales-business-development` | - |
-| Strategy | `domik-mckinsey-strategic-decision-maker` | - |
-| Finance | `amy-cfo` | - |
-| Architecture | `baccio-tech-architect` | `baccio-tech-architect` |
-| Code review | `rex-code-reviewer` | `rex-code-reviewer` |
-| Debugging | `dario-debugger` | `dario-debugger` |
-| Performance | `otto-performance-optimizer` | `otto-performance-optimizer` |
-| DevOps | `marco-devops-engineer` | `marco-devops-engineer` |
-| Security | `luca-security-expert` | - |
-| UX/Design | `sara-ux-ui-designer` | - |
-| Data Science | `omri-data-scientist` | - |
-| QA | `thor-quality-assurance-guardian` | `thor-quality-assurance-guardian` |
-
-### Delegation Rules
-
-1. **MyConvergio first** → 2. Simple=haiku, Complex=specialist → 3. Max 3 parallel → 4. Thor validates
+[ ] Not started | [~] In progress | [x] Done | [!] Crashed/Blocked

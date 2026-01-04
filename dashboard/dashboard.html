@@ -349,7 +349,9 @@
               <div class="chart-filter-option active" data-range="all" onclick="setChartFilter('all', event)">All time</div>
               <div class="chart-filter-option" data-range="30d" onclick="setChartFilter('30d', event)">Last 30 days</div>
               <div class="chart-filter-option" data-range="7d" onclick="setChartFilter('7d', event)">Last 7 days</div>
-              <div class="chart-filter-option" data-range="today" onclick="setChartFilter('today', event)">Today</div>
+              <div class="chart-filter-option" data-range="1d" onclick="setChartFilter('1d', event)">Last 24 hours</div>
+              <div class="chart-filter-option" data-range="1h" onclick="setChartFilter('1h', event)">Last hour</div>
+              <div class="chart-filter-option" data-range="30m" onclick="setChartFilter('30m', event)">Last 30 min</div>
             </div>
           </div>
         </div>
@@ -475,6 +477,7 @@
   <script src="js/gantt.js"></script>
   <script src="js/git-panel.js"></script>
   <script src="js/git-actions.js"></script>
+  <script src="js/diff-utils.js"></script>
   <script src="js/diff-viewer.js"></script>
   <script src="js/views.js"></script>
   <script src="js/views-kanban.js"></script>

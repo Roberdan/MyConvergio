@@ -37,10 +37,10 @@ const routes = {
         }
       });
 
-      // Recent commits
+      // Recent commits (50 for scrollable history)
       let commits = [];
       try {
-        const logJson = execSync('git log --oneline -10 --format="%H|%s|%an|%ar"', { cwd, encoding: 'utf-8' });
+        const logJson = execSync('git log --oneline -50 --format="%H|%s|%an|%ar"', { cwd, encoding: 'utf-8' });
         commits = logJson.split('\n').filter(l => l).map(line => {
           const [hash, message, author, date] = line.split('|');
           return { hash: hash.substring(0, 7), message, author, date };

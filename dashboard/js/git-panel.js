@@ -58,11 +58,14 @@ function renderTreeNode(tree, depth = 0, parentPath = '') {
   folders.forEach(folder => {
     const folderPath = parentPath ? `${parentPath}/${folder}` : folder;
     const fileCount = countFilesInTree(tree[folder]);
+    const folderIcon = getFolderIcon(folder);
     html += `
       <div class="git-tree-folder" data-path="${folderPath}">
         <div class="git-tree-folder-header" onclick="toggleTreeFolder(this)">
-          <span class="git-tree-arrow">&#x25BC;</span>
-          <span class="git-tree-folder-icon">&#x1F4C1;</span>
+          <span class="git-tree-arrow">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </span>
+          <span class="git-tree-folder-icon">${folderIcon}</span>
           <span class="git-tree-folder-name">${folder}</span>
           <span class="git-tree-folder-count">${fileCount}</span>
         </div>

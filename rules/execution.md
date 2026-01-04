@@ -86,3 +86,30 @@ Agent MUST provide complete checklist:
 4. User must approve closure, NOT agent
 5. Anything added beyond request = disclose it
 6. No fake checkmarks - each [x] must have proof
+
+## Pull Request Rules (NON-NEGOTIABLE)
+
+**Before opening a PR:**
+1. ALL Copilot comments/suggestions resolved (not just fixed, but MARKED RESOLVED)
+2. Zero unresolved conversation threads
+3. NO "farò dopo", NO "will improve later", NO deferred debt
+4. Build passes (`npm run lint && npm run typecheck && npm run build`)
+5. Tests pass (100% if new code, minimum critical paths)
+6. Code review comments addressed AND marked resolved
+
+**When agent resolves a Copilot comment:**
+- Fix the code/issue
+- Then MARK COMMENT AS RESOLVED (not optional)
+- Don't leave comments hanging with "resolved in code"
+
+**Forbidden on PR:**
+- "I'll fix this in the next PR"
+- "This can be improved later"
+- "Deferred to future iteration"
+- Unresolved Copilot comments
+- Unresolved review threads
+
+**PR State:**
+- "Ready to merge" = ALL comments resolved, 0 unresolved
+- "In progress" = has unresolved items (then DON'T claim ready)
+- "Draft" = explicitly marked as not ready (better than false "ready")

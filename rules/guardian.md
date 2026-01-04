@@ -99,3 +99,34 @@ Thor MUST reject closure unless agent provided:
 - "Mi puoi mostrare la prova per ogni [x]?"
 
 **Only after checklist passes, user can approve closure.**
+
+## Pull Request Enforcement
+
+**When PR is opened, Thor MUST verify:**
+
+1. **Zero unresolved Copilot comments** - Count them: `git log -p` or PR interface
+2. **Zero unresolved review threads** - All addressed, all marked resolved
+3. **Build passes** - No lint/typecheck/build errors
+4. **Tests pass** - Run and show output
+5. **No deferred tech debt** - No "will fix later" comments in code
+
+**Thor blocks PR if:**
+- Any Copilot comment unresolved (even if fixed in code, must be MARKED)
+- Any review thread unresolved
+- Build/lint/typecheck fails
+- Tests not run or failing
+- Code contains "TODO: will fix", "FIXME: later", "defer to next PR"
+- Agent says "ready" but comments unresolved
+
+**Thor MUST ask:**
+- "Copilot comments unresolved rimanenti?"
+- "Quanti review thread irrisolti?"
+- "Tutti marcati come resolved?"
+- "Non c'è niente 'lasciato per dopo'?"
+
+**Thor rejects:**
+- "I'll resolve this comment later" → NO, resolve now
+- "Will improve in next iteration" → NO, improve now
+- "Deferred to follow-up PR" → NO, do it in this PR
+
+**Only after ALL resolved, user can merge.**

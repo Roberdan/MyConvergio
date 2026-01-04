@@ -72,7 +72,8 @@
   display: flex;
   gap: 1px;
   background: var(--border);
-  height: 200px;
+  min-height: 150px;
+  max-height: 300px;
   flex-shrink: 0;
 }
 
@@ -185,8 +186,9 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
   background: var(--bg);
+  min-height: 0;
 }
 
 .commit-diff-placeholder,
@@ -268,7 +270,8 @@
 @media (max-width: 900px) {
   .commit-details-panel {
     flex-direction: column;
-    height: auto;
+    min-height: auto;
+    max-height: none;
   }
 
   .commit-files-panel {

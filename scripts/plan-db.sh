@@ -124,24 +124,52 @@ cmd_start() {
     log_info "Started plan ID: $plan_id"
 }
 
-# Add wave to plan
+# Add wave to plan with Gantt support
+# Usage: add-wave <plan_id> <wave_id> <name> [--planned-start "YYYY-MM-DD HH:MM"] [--planned-end "..."] [--estimated-hours N] [--depends-on wave_id] [--assignee name]
 cmd_add_wave() {
     local plan_id="$1"
     local wave_id="$2"
     local name="$3"
-    local assignee="${4:-}"
+    shift 3
+
+    # Defaults
+    local assignee=""
+    local planned_start=""
+    local planned_end=""
+    local estimated_hours="8"
+    local depends_on=""
+
+    # Parse optional flags
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --assignee) assignee="$2"; shift 2 ;;
+            --planned-start) planned_start="$2"; shift 2 ;;
+            --planned-end) planned_end="$2"; shift 2 ;;
+            --estimated-hours) estimated_hours="$2"; shift 2 ;;
+            --depends-on) depends_on="$2"; shift 2 ;;
+            *) assignee="$1"; shift ;;  # Backwards compat: positional assignee
+        esac
+    done
 
     # Get project_id from plan
     local project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM plans WHERE id = $plan_id;")
     local position=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(position), 0) + 1 FROM waves WHERE plan_id = $plan_id;")
 
+    # Build INSERT with optional Gantt fields
+    local start_val="NULL"
+    local end_val="NULL"
+    local depends_val="NULL"
+    [[ -n "$planned_start" ]] && start_val="'$planned_start'"
+    [[ -n "$planned_end" ]] && end_val="'$planned_end'"
+    [[ -n "$depends_on" ]] && depends_val="'$depends_on'"
+
     sqlite3 "$DB_FILE" "
-        INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position)
-        VALUES ('$project_id', $plan_id, '$wave_id', '$name', 'pending', '$assignee', $position);
+        INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position, estimated_hours, planned_start, planned_end, depends_on)
+        VALUES ('$project_id', $plan_id, '$wave_id', '$name', 'pending', '$assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val);
     "
 
     local db_wave_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE plan_id=$plan_id AND wave_id='$wave_id';")
-    log_info "Added wave: $name (ID: $db_wave_id)"
+    log_info "Added wave: $name (ID: $db_wave_id, depends: ${depends_on:-none})"
     echo "$db_wave_id"
 }
 
@@ -372,8 +400,14 @@ case "${1:-help}" in
         echo "  list <project_id>              List plans for project"
         echo "  create <project_id> <name>     Create new plan"
         echo "  start <plan_id>                Start plan execution"
-        echo "  add-wave <plan_id> <id> <name> Add wave to plan"
-        echo "  add-task <wave_id> <id> <title> [priority] [type] [assignee] [files]"
+        echo "  add-wave <plan_id> <id> <name> [options]"
+        echo "          Options: --planned-start \"YYYY-MM-DD HH:MM\""
+        echo "                   --planned-end \"YYYY-MM-DD HH:MM\""
+        echo "                   --estimated-hours N"
+        echo "                   --depends-on wave_id"
+        echo "                   --assignee name"
+        echo "  add-task <wave_id> <id> <title> [priority] [type] [assignee]"
+        echo "          priority: P0|P1|P2|P3  type: feature|bug|chore|doc|test"
         echo "  update-task <task_id> <status> Update task (pending|in_progress|done|blocked)"
         echo "  update-wave <wave_id> <status> Update wave status"
         echo "  complete <plan_id>             Mark plan as done"

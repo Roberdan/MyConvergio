@@ -254,13 +254,28 @@ function showAgentDetails(agentId) {
   alert(`Agent: ${agent.name}\nRole: ${agent.role}\nTasks: ${agent.tasks}\nStatus: ${agent.status}\nEfficiency: ${agent.efficiency || '-'}%`);
 }
 
-// Export button handler
-document.getElementById('exportBtn')?.addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const link = document.createElement('a');
-  link.download = `${data.meta.project}-plan.json`;
-  link.href = URL.createObjectURL(blob);
-  link.click();
+// Export button handler - Screenshot
+document.getElementById('exportBtn')?.addEventListener('click', async () => {
+  try {
+    showToast('Capturing screenshot...', 'info');
+    const mainWrap = document.querySelector('.main-wrap');
+    if (!mainWrap) return;
+
+    // Use html2canvas if available, otherwise use browser print
+    if (typeof html2canvas !== 'undefined') {
+      const canvas = await html2canvas(mainWrap, { backgroundColor: '#0d1117', scale: 2 });
+      const link = document.createElement('a');
+      link.download = `dashboard-${data.meta?.project || 'export'}-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('Screenshot saved!', 'success');
+    } else {
+      // Fallback: open print dialog
+      window.print();
+    }
+  } catch (e) {
+    showToast('Screenshot failed: ' + e.message, 'error');
+  }
 });
 
 // Open PR button

@@ -15,6 +15,12 @@
   font-size: 16px;
 }
 
+.logo-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
 .logo-dot {
   width: 10px;
   height: 10px;

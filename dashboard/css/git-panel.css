@@ -68,7 +68,9 @@
 }
 
 .git-section.git-graph-section {
-  max-height: 250px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .git-section-header {

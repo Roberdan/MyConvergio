@@ -132,6 +132,24 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Raw file serving for images/binary
+  const rawMatch = pathname.match(/^\/api\/project\/([^/]+)\/file-raw\/(.+)$/);
+  if (rawMatch) {
+    const project = require('./server/db').query(`SELECT path FROM projects WHERE id = '${rawMatch[1]}'`)[0];
+    if (project?.path) {
+      const fullPath = path.join(project.path, decodeURIComponent(rawMatch[2]));
+      if (fs.existsSync(fullPath)) {
+        const ext = path.extname(fullPath);
+        res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+        res.end(fs.readFileSync(fullPath));
+        return;
+      }
+    }
+    res.writeHead(404);
+    res.end('Not found');
+    return;
+  }
+
   // API routes
   if (pathname.startsWith('/api/')) {
     const route = matchRoute(req.method, pathname);

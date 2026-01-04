@@ -141,22 +141,138 @@ function renderGitPanel() {
   renderGitHistory();
 }
 
+// Git graph lazy loading state
+let gitGraphState = {
+  commits: [],
+  hasMore: true,
+  loading: false,
+  skip: 0,
+  limit: 30,
+  showAllBranches: false
+};
+
 function renderGitHistory() {
   const graphContainer = document.getElementById('gitGraphContainer');
-  if (!graphContainer || !data.git?.commits) return;
+  if (!graphContainer) return;
 
-  const commits = data.git.commits.slice(0, 15);
-  graphContainer.innerHTML = commits.map((c, i) => `
-    <div class="git-commit-item" title="${c.message}">
-      <div class="git-commit-graph">
-        <div class="git-commit-dot"></div>
-        ${i < commits.length - 1 ? '<div class="git-commit-line"></div>' : ''}
-      </div>
-      <div class="git-commit-info">
-        <span class="git-commit-hash">${c.hash}</span>
-        <span class="git-commit-message">${c.message?.substring(0, 40) || ''}${c.message?.length > 40 ? '...' : ''}</span>
-      </div>
-      <span class="git-commit-date">${c.date}</span>
-    </div>
-  `).join('') || '<div class="git-empty">No commits</div>';
+  // Initialize with commits from data.git if available
+  if (data.git?.commits && gitGraphState.commits.length === 0) {
+    gitGraphState.commits = data.git.commits;
+    gitGraphState.skip = data.git.commits.length;
+  }
+
+  renderCommitGraph(graphContainer);
+  setupGraphScrollListener(graphContainer);
+}
+
+function renderCommitGraph(container) {
+  const commits = gitGraphState.commits;
+  if (commits.length === 0) {
+    container.innerHTML = '<div class="git-empty">No commits</div>';
+    return;
+  }
+
+  container.innerHTML = commits.map((c, i) => {
+    const isMerge = c.isMerge || false;
+    const dotClass = isMerge ? 'git-graph-dot merge' : 'git-graph-dot';
+    const rowClass = isMerge ? 'git-commit-row merge' : 'git-commit-row';
+    const showConnector = i < commits.length - 1 || gitGraphState.hasMore;
+
+    // Branch labels
+    const branchLabels = (c.branches || []).concat(c.refs || [])
+      .filter(b => b && !b.includes('HEAD'))
+      .slice(0, 2)
+      .map(b => {
+        const isRemote = b.includes('origin/');
+        const shortName = b.replace('origin/', '');
+        return `<span class="git-branch-label ${isRemote ? 'remote' : 'local'}">${escapeHtml(shortName)}</span>`;
+      }).join('');
+
+    return `
+      <div class="${rowClass}" title="${escapeHtml(c.message || '')}">
+        <div class="git-graph-line">
+          <div class="${dotClass}"></div>
+          ${showConnector ? '<div class="git-graph-connector"></div>' : ''}
+        </div>
+        <div class="git-commit-info">
+          <span class="git-commit-hash">${c.hash}</span>
+          ${branchLabels}
+          <span class="git-commit-message">${escapeHtml((c.message || '').substring(0, 30))}${(c.message || '').length > 30 ? '...' : ''}</span>
+        </div>
+        <div class="git-commit-meta">
+          <span class="git-commit-date">${c.date || ''}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  if (gitGraphState.loading) {
+    container.innerHTML += '<div class="git-loading">Loading...</div>';
+  }
+}
+
+function toggleAllBranches() {
+  gitGraphState.showAllBranches = !gitGraphState.showAllBranches;
+  gitGraphState.commits = [];
+  gitGraphState.skip = 0;
+  gitGraphState.hasMore = true;
+
+  const btn = document.getElementById('gitShowAllBranches');
+  if (btn) btn.classList.toggle('active', gitGraphState.showAllBranches);
+
+  loadMoreCommits();
+}
+
+function setupGraphScrollListener(container) {
+  const scrollContainer = container.closest('.git-graph-content') || container;
+
+  scrollContainer.removeEventListener('scroll', handleGraphScroll);
+  scrollContainer.addEventListener('scroll', handleGraphScroll);
+}
+
+function handleGraphScroll(e) {
+  const container = e.target;
+  const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+  if (nearBottom && gitGraphState.hasMore && !gitGraphState.loading) {
+    loadMoreCommits();
+  }
+}
+
+async function loadMoreCommits() {
+  if (!currentProjectId || gitGraphState.loading || !gitGraphState.hasMore) return;
+
+  gitGraphState.loading = true;
+  const graphContainer = document.getElementById('gitGraphContainer');
+
+  try {
+    const allParam = gitGraphState.showAllBranches ? '&all=true' : '';
+    const res = await fetch(
+      `${API_BASE}/project/${currentProjectId}/git/commits?skip=${gitGraphState.skip}&limit=${gitGraphState.limit}${allParam}`
+    );
+    const result = await res.json();
+
+    if (result.error) {
+      console.log('Failed to load commits:', result.error);
+      gitGraphState.hasMore = false;
+    } else {
+      gitGraphState.commits = [...gitGraphState.commits, ...result.commits];
+      gitGraphState.skip += result.commits.length;
+      gitGraphState.hasMore = result.hasMore;
+    }
+  } catch (e) {
+    console.error('Error loading commits:', e);
+    gitGraphState.hasMore = false;
+  }
+
+  gitGraphState.loading = false;
+  if (graphContainer) renderCommitGraph(graphContainer);
+}
+
+function resetGitGraphState() {
+  gitGraphState = { commits: [], hasMore: true, loading: false, skip: 0, limit: 30 };
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

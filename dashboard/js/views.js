@@ -3,6 +3,9 @@
 function showView(view) {
   currentView = view;
 
+  // Close diff view if open
+  if (typeof closeDiffView === 'function') closeDiffView();
+
   // Update nav menu
   document.querySelectorAll('.nav-menu a').forEach(a => {
     a.classList.remove('active');

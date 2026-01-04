@@ -8,6 +8,7 @@ async function loadProjects() {
     projectsList.forEach(p => {
       registry.projects[p.project_id] = {
         name: p.project_name,
+        github_url: p.github_url,
         plans_todo: p.plans_todo,
         plans_doing: p.plans_doing,
         plans_done: p.plans_done,
@@ -65,6 +66,22 @@ async function selectProject(projectId) {
   document.getElementById('projectName').textContent = project.name;
   const dot = document.getElementById('projectDot');
   if (dot) dot.style.background = '#22c55e';
+
+  // Update project avatar from GitHub if available
+  const avatarEl = document.getElementById('projectAvatar');
+  if (avatarEl && project.github_url) {
+    const owner = extractGitHubOwner(project.github_url);
+    if (owner) {
+      avatarEl.src = `https://github.com/${owner}.png?size=48`;
+      avatarEl.alt = owner;
+      avatarEl.style.display = 'block';
+      avatarEl.onerror = () => { avatarEl.style.display = 'none'; };
+    } else {
+      avatarEl.style.display = 'none';
+    }
+  } else if (avatarEl) {
+    avatarEl.style.display = 'none';
+  }
 
   document.getElementById('projectMenu').style.display = 'none';
 
@@ -229,6 +246,13 @@ function showLearningStats() {
     message: 'Learning stats will show plan modification patterns and optimization insights.'
   };
   alert(`Learning Stats\n\nTotal Projects: ${stats.totalPlans}\n\n${stats.message}`);
+}
+
+function extractGitHubOwner(githubUrl) {
+  if (!githubUrl) return null;
+  // Handle URLs like https://github.com/owner/repo or git@github.com:owner/repo
+  const match = githubUrl.match(/github\.com[/:]([\w-]+)/);
+  return match ? match[1] : null;
 }
 
 // Close project menu when clicking outside

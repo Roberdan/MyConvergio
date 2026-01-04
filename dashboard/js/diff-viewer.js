@@ -46,9 +46,10 @@ function showDiffView(filePath) {
   const fileName = filePath.split('/').pop();
   const ext = fileName.split('.').pop().toLowerCase();
   const isMarkdown = ext === 'md' || ext === 'markdown';
+  const isImage = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico'].includes(ext);
 
-  // Eye icon for markdown preview toggle
-  const previewBtn = isMarkdown ? `
+  // Preview button for markdown/images
+  const previewBtn = (isMarkdown || isImage) ? `
     <button class="diff-action-btn diff-preview-btn" onclick="toggleMarkdownPreview()" title="Toggle preview" id="previewToggleBtn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -66,6 +67,7 @@ function showDiffView(filePath) {
       </div>
       <div class="diff-actions">
         ${previewBtn}
+        <button class="diff-action-btn" onclick="openFileExternally('${filePath}')" title="Open in editor">Edit</button>
         <button class="diff-action-btn" onclick="stageFile('${filePath}')" title="Stage file">+ Stage</button>
         <button class="diff-action-btn" onclick="discardFile('${filePath}')" title="Discard changes">Discard</button>
       </div>
@@ -98,7 +100,14 @@ function renderDiff(data) {
   const container = document.getElementById('diffContent');
   if (!container) return;
 
-  // Handle markdown files - show both diff and preview
+  // Handle image files
+  const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico'];
+  if (imageExts.includes(data.extension)) {
+    renderImagePreview(container, data.path);
+    return;
+  }
+
+  // Handle markdown files
   if (data.language === 'markdown') {
     renderMarkdownWithDiff(container, data);
     return;
@@ -117,6 +126,64 @@ function renderDiff(data) {
   }
 
   container.innerHTML = '<div class="diff-empty">No changes to display</div>';
+}
+
+function renderImagePreview(container, filePath) {
+  const imgUrl = `${API_BASE}/project/${currentProjectId}/file-raw/${encodeURIComponent(filePath)}`;
+  container.innerHTML = `
+    <div class="diff-image-preview">
+      <img src="${imgUrl}" alt="${filePath}" onerror="this.src=''; this.alt='Failed to load image';" />
+    </div>
+  `;
+}
+
+async function openFileExternally(filePath) {
+  if (!currentProjectId) return;
+  try {
+    const res = await fetch(`${API_BASE}/project/${currentProjectId}/file/open`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: filePath })
+    });
+    const result = await res.json();
+    if (!result.success) showToast(result.error || 'Failed to open file', 'error');
+    else startFileWatcher(filePath); // Start watching for changes
+  } catch (e) {
+    showToast('Failed to open file: ' + e.message, 'error');
+  }
+}
+
+// File watcher for auto-refresh when file is modified externally
+let fileWatchInterval = null;
+let lastFileModTime = null;
+
+function startFileWatcher(filePath) {
+  stopFileWatcher();
+  lastFileModTime = Date.now();
+  fileWatchInterval = setInterval(() => checkFileChanged(filePath), 2000);
+}
+
+function stopFileWatcher() {
+  if (fileWatchInterval) {
+    clearInterval(fileWatchInterval);
+    fileWatchInterval = null;
+  }
+}
+
+async function checkFileChanged(filePath) {
+  if (!currentProjectId || !currentDiffFile) {
+    stopFileWatcher();
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/project/${currentProjectId}/file/mtime/${encodeURIComponent(filePath)}`);
+    const result = await res.json();
+    if (result.mtime && result.mtime > lastFileModTime) {
+      lastFileModTime = result.mtime;
+      showToast('File changed, refreshing...', 'info');
+      openFileDiff(filePath); // Reload the diff
+    }
+  } catch (e) { /* ignore */ }
 }
 
 function renderGitDiff(container, diff, language) {

@@ -6,7 +6,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 140px);
+  height: 100%;
+  min-height: 0;
 }
 
 .diff-header {
@@ -247,6 +248,22 @@
   background: var(--accent) !important;
   border-color: var(--accent) !important;
   color: white !important;
+}
+
+/* Image Preview */
+.diff-image-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  min-height: 200px;
+  background: var(--bg-dark);
+}
+.diff-image-preview img {
+  max-width: 100%;
+  max-height: calc(100vh - 200px);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 /* Markdown Container - Diff only by default */

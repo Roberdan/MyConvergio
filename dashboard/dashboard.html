@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Plan Dashboard</title>
+  <title>Convergio Dashboard</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="css/main.css">
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
   <!-- Toast Container -->
@@ -14,7 +16,7 @@
   <!-- Top Navigation -->
   <nav class="top-nav">
     <div class="logo" onclick="toggleProjectMenu()" style="cursor:pointer;">
-      <div class="logo-dot" id="projectDot"></div>
+      <img src="assets/logo.png" alt="Convergio" class="logo-img">
       <span id="projectName">Select Project</span>
       <span class="project-dropdown">&#x25BE;</span>
     </div>
@@ -119,7 +121,7 @@
           <span class="git-arrow">&#x25BC;</span>
           <span>GRAPH</span>
           <div class="git-graph-actions">
-            <button class="git-graph-btn active" title="Auto">&#x2699; Auto</button>
+            <button class="git-graph-btn" id="gitShowAllBranches" onclick="toggleAllBranches()" title="Show all branches">All</button>
             <button class="git-graph-btn" onclick="gitFetch()" title="Fetch">&#x2193;</button>
             <button class="git-graph-btn" onclick="gitPull()" title="Pull">&#x2193;&#x2193;</button>
             <button class="git-graph-btn" onclick="gitPush()" title="Push">&#x2191;</button>
@@ -133,8 +135,11 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Stats Label -->
-      <div class="stats-label" id="planLabel">ConvergioEdu</div>
+      <!-- Stats Label with Project Avatar -->
+      <div class="stats-header">
+        <img src="" alt="" class="project-avatar" id="projectAvatar" style="display:none;">
+        <div class="stats-label" id="planLabel">ConvergioEdu</div>
+      </div>
 
       <!-- Stats Row -->
       <div class="stats-row">
@@ -160,20 +165,16 @@
         </div>
       </div>
 
-      <!-- Epoch Bar -->
-      <div class="epoch-bar">
-        <div class="epoch-icon">&#x1F4C5;</div>
-        <div class="epoch-info">
-          <div class="label">Current Wave</div>
-          <div class="value" id="currentWave">Wave 5</div>
+      <!-- Active Wave Indicator (compact) -->
+      <div class="wave-indicator" id="waveIndicator">
+        <div class="wave-pulse" id="wavePulse"></div>
+        <div class="wave-info">
+          <span class="wave-name" id="currentWave">Wave 5</span>
+          <span class="wave-time" id="countdown">1h 00m left</span>
         </div>
-        <div class="epoch-progress">
-          <div class="epoch-dates" id="epochDates">2026.01.03 17:15 &#8212; 2026.01.03 23:30</div>
-          <div class="epoch-bar-track">
-            <div class="epoch-bar-fill" id="epochFill" style="width: 83%;"></div>
-          </div>
+        <div class="wave-mini-progress">
+          <div class="wave-mini-fill" id="epochFill" style="width: 83%;"></div>
         </div>
-        <div class="epoch-countdown" id="countdown">1h 00m left</div>
       </div>
 
       <!-- Drill-Down Panel -->
@@ -264,8 +265,8 @@
           </div>
         </div>
         <div class="notifications-filters">
-          <button class="notifications-filter active" onclick="filterNotifications('all')">All</button>
-          <button class="notifications-filter" onclick="filterNotifications('unread')">Unread</button>
+          <button class="notifications-filter" onclick="filterNotifications('all')">All</button>
+          <button class="notifications-filter active" onclick="filterNotifications('unread')">Unread</button>
           <button class="notifications-filter" onclick="filterNotifications('success')">Success</button>
           <button class="notifications-filter" onclick="filterNotifications('error')">Errors</button>
           <input type="text" class="notifications-search" id="notificationSearch" placeholder="Search notifications..." onkeyup="searchNotifications(this.value)">

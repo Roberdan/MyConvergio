@@ -37,13 +37,25 @@ const routes = {
         }
       });
 
-      // Recent commits (50 for scrollable history)
+      // Recent commits (initial batch)
       let commits = [];
       try {
-        const logJson = execSync('git log --oneline -50 --format="%H|%s|%an|%ar"', { cwd, encoding: 'utf-8' });
+        const logJson = execSync('git log --oneline -30 --format="%H|%P|%s|%an|%ar"', { cwd, encoding: 'utf-8' });
         commits = logJson.split('\n').filter(l => l).map(line => {
-          const [hash, message, author, date] = line.split('|');
-          return { hash: hash.substring(0, 7), message, author, date };
+          const parts = line.split('|');
+          const hash = parts[0];
+          const parents = parts[1] ? parts[1].split(' ').filter(p => p) : [];
+          const message = parts[2] || '';
+          const author = parts[3] || '';
+          const date = parts[4] || '';
+          return {
+            hash: hash.substring(0, 7),
+            fullHash: hash,
+            message,
+            author,
+            date,
+            isMerge: parents.length > 1
+          };
         });
       } catch (e) {}
 
@@ -129,6 +141,65 @@ const routes = {
       return { success: true };
     } catch (e) {
       return { error: e.message };
+    }
+  },
+
+  // Get paginated commits for lazy scroll with multi-branch support
+  'GET /api/project/:id/git/commits': (params, body, url) => {
+    const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
+    if (!project || !project.path) return { error: 'Project not found' };
+
+    const skip = parseInt(url.searchParams.get('skip') || '0');
+    const limit = parseInt(url.searchParams.get('limit') || '30');
+    const allBranches = url.searchParams.get('all') === 'true';
+
+    try {
+      const cwd = project.path;
+
+      // Get all branches for decoration
+      const branchMap = {};
+      try {
+        const branchForCommit = execSync('git branch -a --format="%(refname:short)|%(objectname:short)"', { cwd, encoding: 'utf-8' });
+        branchForCommit.split('\n').filter(l => l).forEach(line => {
+          const [branch, hash] = line.split('|');
+          if (!branchMap[hash]) branchMap[hash] = [];
+          branchMap[hash].push(branch);
+        });
+      } catch (e) {}
+
+      // Get commits from all branches if requested
+      const branchArg = allBranches ? '--all' : '';
+      const logCmd = `git log ${branchArg} --skip=${skip} -${limit} --format="%H|%P|%s|%an|%ar|%D"`;
+      const logJson = execSync(logCmd, { cwd, encoding: 'utf-8' });
+
+      const commits = logJson.split('\n').filter(l => l).map(line => {
+        const parts = line.split('|');
+        const hash = parts[0];
+        const parents = parts[1] ? parts[1].split(' ').filter(p => p) : [];
+        const refs = parts[5] ? parts[5].split(', ').filter(r => r) : [];
+        const shortHash = hash.substring(0, 7);
+
+        return {
+          hash: shortHash,
+          fullHash: hash,
+          message: parts[2] || '',
+          author: parts[3] || '',
+          date: parts[4] || '',
+          isMerge: parents.length > 1,
+          parentCount: parents.length,
+          branches: branchMap[shortHash] || [],
+          refs: refs
+        };
+      });
+
+      // Check if there are more commits
+      const countCmd = allBranches ? 'git rev-list --all --count' : 'git rev-list --count HEAD';
+      const totalCount = parseInt(execSync(countCmd, { cwd, encoding: 'utf-8' }).trim()) || 0;
+      const hasMore = skip + commits.length < totalCount;
+
+      return { commits, hasMore, total: totalCount };
+    } catch (e) {
+      return { error: e.message, commits: [], hasMore: false };
     }
   }
 };

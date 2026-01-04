@@ -50,19 +50,31 @@ const routes = {
     }
   },
 
-  // Discard file changes
+  // Discard file changes (handles both tracked and untracked files)
   'POST /api/project/:id/git/discard': (params, body) => {
     const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
     if (!project || !project.path) return { error: 'Project not found' };
 
     try {
       const cwd = project.path;
+      const fs = require('fs');
+      const path = require('path');
 
-      if (body.files && body.files.length > 0) {
-        const files = body.files.map(f => `"${f}"`).join(' ');
-        execSync(`git checkout -- ${files}`, { cwd, encoding: 'utf-8' });
-      } else {
+      if (!body.files || body.files.length === 0) {
         return { error: 'No files specified' };
+      }
+
+      for (const file of body.files) {
+        const fullPath = path.join(cwd, file);
+        // Check if file is untracked
+        try {
+          execSync(`git ls-files --error-unmatch "${file}"`, { cwd, encoding: 'utf-8', stdio: 'pipe' });
+          // File is tracked - use checkout
+          execSync(`git checkout -- "${file}"`, { cwd, encoding: 'utf-8' });
+        } catch (e) {
+          // File is untracked - delete it
+          if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+        }
       }
 
       return { success: true };
@@ -230,6 +242,38 @@ const routes = {
         content,
         language: getLanguage(ext)
       };
+    } catch (e) {
+      return { error: e.message };
+    }
+  },
+
+  // Open file externally with default app
+  'POST /api/project/:id/file/open': (params, body) => {
+    const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
+    if (!project || !project.path) return { error: 'Project not found' };
+
+    try {
+      const path = require('path');
+      const fullPath = path.join(project.path, body.path);
+      const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+      execSync(`${cmd} "${fullPath}"`, { encoding: 'utf-8' });
+      return { success: true };
+    } catch (e) {
+      return { error: e.message };
+    }
+  },
+
+  // Get file modification time (for auto-refresh)
+  'GET /api/project/:id/file/mtime/:file(*)': (params) => {
+    const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
+    if (!project || !project.path) return { error: 'Project not found' };
+
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const fullPath = path.join(project.path, params.file);
+      const stats = fs.statSync(fullPath);
+      return { mtime: stats.mtimeMs };
     } catch (e) {
       return { error: e.message };
     }

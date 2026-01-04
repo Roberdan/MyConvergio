@@ -28,6 +28,8 @@ Projects use `CLAUDE.md` at repository root for project-specific context. Claude
 
 [One-line project description]
 
+icon: public/logo.png   <!-- Optional: project icon for dashboard -->
+
 ## Commands
 
 [Essential dev commands - build, test, lint, run]
@@ -51,6 +53,14 @@ Projects use `CLAUDE.md` at repository root for project-specific context. Claude
 ---
 
 ## Section Details
+
+### Icon (OPTIONAL)
+```markdown
+icon: public/logo.png
+```
+
+Purpose: Project icon displayed in dashboard git panel. Path relative to project root.
+Common locations: `public/logo.png`, `assets/icon.png`, `.claude/icon.png`
 
 ### Commands (REQUIRED)
 ```markdown

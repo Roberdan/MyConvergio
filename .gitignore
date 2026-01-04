@@ -60,3 +60,10 @@ todos/
 /plans/
 ide/
 /data/
+
+# Backup files
+*.backup
+
+# Test results and reports
+playwright-report/
+test-results/

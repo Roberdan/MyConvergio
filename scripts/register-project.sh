@@ -44,6 +44,7 @@ fi
 GIT_REMOTE=""
 GIT_BRANCH=""
 GITHUB_URL=""
+ICON_PATH=""
 
 if [[ -d "${PROJECT_PATH}/.git" ]]; then
     cd "$PROJECT_PATH"
@@ -56,6 +57,24 @@ if [[ -d "${PROJECT_PATH}/.git" ]]; then
         GITHUB_REPO="${BASH_REMATCH[2]%.git}"
         GITHUB_URL="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}"
     fi
+fi
+
+# Detect icon from CLAUDE.md or auto-detect
+cd "$PROJECT_PATH"
+if [[ -f "CLAUDE.md" ]]; then
+    ICON_PATH=$(grep -E "^icon:\s*" CLAUDE.md 2>/dev/null | sed 's/^icon:\s*//' | tr -d ' ' || echo "")
+fi
+
+# Auto-detect icon if not in CLAUDE.md
+if [[ -z "$ICON_PATH" ]]; then
+    for pattern in "public/logo"*.png "public/logo"*.svg "assets/icon"*.png ".claude/icon.png" "favicon".*; do
+        # shellcheck disable=SC2086
+        FOUND=$(ls $pattern 2>/dev/null | head -1 || echo "")
+        if [[ -n "$FOUND" ]]; then
+            ICON_PATH="$FOUND"
+            break
+        fi
+    done
 fi
 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -80,6 +99,7 @@ UPDATED_REGISTRY=$(jq --arg id "$PROJECT_ID" \
     --arg remote "$GIT_REMOTE" \
     --arg branch "$GIT_BRANCH" \
     --arg github "$GITHUB_URL" \
+    --arg icon "$ICON_PATH" \
     --arg ts "$TIMESTAMP" \
     '
     .projects[$id] = {
@@ -88,6 +108,7 @@ UPDATED_REGISTRY=$(jq --arg id "$PROJECT_ID" \
         "git_remote": $remote,
         "git_branch": $branch,
         "github_url": $github,
+        "icon_path": $icon,
         "current_plan": (if .projects[$id] then .projects[$id].current_plan else null end),
         "last_active": $ts,
         "registered_at": (if .projects[$id] then .projects[$id].registered_at else $ts end)
@@ -99,12 +120,14 @@ echo "$UPDATED_REGISTRY" > "$REGISTRY_FILE"
 # Update SQLite database
 if [[ -f "$DB_FILE" ]]; then
     sqlite3 "$DB_FILE" <<EOF
-INSERT INTO projects (id, name, path, branch, created_at, updated_at)
-VALUES ('$PROJECT_ID', '$DISPLAY_NAME', '$PROJECT_PATH', '$GIT_BRANCH', '$TIMESTAMP', '$TIMESTAMP')
+INSERT INTO projects (id, name, path, branch, github_url, icon_path, created_at, updated_at)
+VALUES ('$PROJECT_ID', '$DISPLAY_NAME', '$PROJECT_PATH', '$GIT_BRANCH', '$GITHUB_URL', '$ICON_PATH', '$TIMESTAMP', '$TIMESTAMP')
 ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
     path = excluded.path,
     branch = excluded.branch,
+    github_url = excluded.github_url,
+    icon_path = excluded.icon_path,
     updated_at = excluded.updated_at;
 EOF
     log_info "Database updated"
@@ -118,6 +141,7 @@ jq -n \
     --arg path "$PROJECT_PATH" \
     --arg remote "$GIT_REMOTE" \
     --arg github "$GITHUB_URL" \
+    --arg icon "$ICON_PATH" \
     --arg plan_folder "$PLAN_FOLDER" \
     '{
         "status": "success",
@@ -128,6 +152,7 @@ jq -n \
             "path": $path,
             "git_remote": $remote,
             "github_url": $github,
+            "icon_path": $icon,
             "plan_folder": $plan_folder
         }
     }'
@@ -135,3 +160,4 @@ jq -n \
 log_info "Project $ACTION: $PROJECT_ID"
 log_info "Plans folder: $PLAN_FOLDER"
 [[ -n "$GITHUB_URL" ]] && log_info "GitHub: $GITHUB_URL"
+[[ -n "$ICON_PATH" ]] && log_info "Icon: $ICON_PATH"

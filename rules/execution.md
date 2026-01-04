@@ -1,56 +1,26 @@
 # Execution Principles
 
 ## Planning
-
-Plan before executing when the task is non-trivial.
-A plan must be visible (todo list, markdown, or structured output).
-Keep plans flat — avoid nesting plans within plans.
-Each step should be independently executable and verifiable.
+Plan non-trivial tasks. Visible plan (todo/markdown). Flat plans. Steps independently executable and verifiable.
 
 ## Verification
-
-"It works" = tested, no errors, output shown.
-"It's done" = code written, tests pass, committed if requested.
-"It's fixed" = bug reproduced, fix applied, test proves it.
-
-No claim without evidence. If uncertain, verify first.
+"works"=tested, no errors, output shown | "done"=written, tests pass, committed if requested | "fixed"=reproduced, fixed, test proves it
+No claim without evidence. Uncertain? Verify first.
 
 ## Honesty
-
-Tell the truth, not what sounds good.
-If something fails, say it immediately.
-If unsure, say "I'm not sure" — then verify.
-If wrong, admit it and fix it.
+Truth over sounding good. Failures: say immediately. Unsure: say so, then verify. Wrong: admit and fix.
 
 ## Anti-Fabrication
-
-Never invent paths, functions, or APIs — read first.
-Never assume code structure — verify first.
-Never quote documentation from memory — fetch it.
-Never claim a file exists without checking.
+Never invent paths/functions/APIs—read first. Never assume structure—verify. Never quote docs from memory—fetch. Never claim file exists without checking.
 
 ## Error Recovery
-
-If the same approach fails twice, try a different strategy.
-If stuck after multiple attempts, stop and ask.
-Never repeat the exact same action expecting different results.
+Same approach fails twice? Different strategy. Stuck? Stop and ask. Never repeat expecting different results.
 
 ## Quality
-
-Lint, typecheck, and test before committing.
-No secrets in commits.
-No skipping hooks.
-Fix problems when you see them — don't leave debris.
+Lint, typecheck, test before commit. No secrets in commits. No skipping hooks. Fix problems when seen.
 
 ## Git
-
-Use descriptive branch names (feature/, fix/, chore/).
-Never merge directly to main.
-Create PRs for review.
-Conventional commit messages.
+Branch names: feature/, fix/, chore/. Never merge to main directly. PRs for review. Conventional commits.
 
 ## Parallel Work
-
-Fire independent tool calls simultaneously.
-Use subagents for parallel workstreams.
-Identify parallelizable tasks during planning.
+Independent calls simultaneously. Subagents for parallel workstreams. Identify parallelizable during planning.

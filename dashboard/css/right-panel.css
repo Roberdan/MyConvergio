@@ -1,0 +1,182 @@
+/* Right Panel Cards */
+.panel-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.panel-header {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* Health Status Grid */
+.health-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.health-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border-radius: 8px;
+}
+
+.health-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+.health-item.green .health-dot { background: var(--green); }
+.health-item.yellow .health-dot { background: var(--orange); }
+.health-item.red .health-dot { background: #ef4444; }
+
+.health-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.health-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-left: auto;
+}
+
+/* Blockers Section */
+.blockers-section {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 16px;
+}
+
+.blockers-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ef4444;
+  margin-bottom: 8px;
+}
+
+.blockers-list { font-size: 12px; color: var(--text); }
+
+.blocker-item {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+}
+.blocker-item:last-child { border-bottom: none; }
+
+/* Focus Section */
+.focus-section {
+  margin-bottom: 16px;
+  padding: 14px;
+  background: var(--bg-input);
+  border-radius: 10px;
+  border-left: 3px solid var(--accent);
+}
+
+.focus-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.focus-wave {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 6px;
+}
+
+.focus-task {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* Tab System */
+.about-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.about-tab {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--bg-input);
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  text-align: center;
+  transition: all 0.15s;
+}
+.about-tab:hover { color: var(--text); border-color: var(--border); }
+.about-tab.active {
+  background: var(--bg-card-solid);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* Token Stats */
+.tokens-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.token-stat { text-align: center; }
+.token-value { display: block; font-size: 16px; font-weight: 700; color: var(--text); }
+.token-label { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+
+/* History */
+.history-stats { display: flex; justify-content: space-around; margin-bottom: 12px; }
+.history-stat { text-align: center; }
+.history-value { display: block; font-size: 18px; font-weight: 700; color: var(--text); }
+.history-label { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+.history-timeline { max-height: 150px; overflow-y: auto; }
+.history-empty { text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px; }
+
+/* Issues */
+.alert-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 8px;
+}
+.alert-item:hover { background: rgba(255,255,255,0.03); }
+.alert-icon { font-size: 11px; font-weight: 700; color: var(--orange); min-width: 40px; }
+.alert-content { flex: 1; }
+.alert-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.alert-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.alert-label { font-size: 10px; background: var(--bg-card-solid); padding: 2px 6px; border-radius: 4px; color: var(--text-muted); }
+.alert-author { font-size: 10px; color: var(--text-dim); }
+.alert-empty, .issues-loading { text-align: center; color: var(--text-dim); font-size: 12px; padding: 20px; }

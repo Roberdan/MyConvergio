@@ -1,0 +1,213 @@
+/* Chart Card */
+.chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.chart-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.chart-tab {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+}
+
+.chart-tab.active {
+  background: var(--green-dim);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.chart-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  position: relative;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.chart-filter:hover { background: var(--bg-input); }
+
+.chart-filter-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-width: 140px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  z-index: 100;
+  overflow: hidden;
+}
+.chart-filter-menu.visible { display: block; }
+
+.chart-filter-option {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.chart-filter-option:hover {
+  background: var(--bg-input);
+  color: var(--text);
+}
+.chart-filter-option.active {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.chart-legend {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.chart-legend .orange { color: var(--orange); }
+.chart-legend .purple { color: var(--purple); }
+
+/* Token Chart Legend */
+.token-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
+
+.token-chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.token-chart-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.token-chart-legend-dot.input { background: var(--orange); }
+.token-chart-legend-dot.output { background: var(--accent); }
+
+/* Floating Chart Tools */
+.chart-tools {
+  position: absolute;
+  left: 8px;
+  top: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chart-tool {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.chart-tool:hover { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
+#mainChart { height: 260px; margin-left: 30px; }
+
+/* Traders/Agents Section */
+.traders-section { margin-top: 8px; }
+
+.traders-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.traders-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.trader-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trader-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trader-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.trader-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.trader-badge.positive { background: var(--green-dim); color: var(--green); }
+.trader-badge.negative { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+
+.trader-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.trader-stat {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.trader-stat span { color: var(--text); font-weight: 700; }
+
+.trader-chart { height: 50px; margin-top: 4px; }

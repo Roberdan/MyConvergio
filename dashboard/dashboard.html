@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Plan Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="css/main.css">
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
 <body>
@@ -33,9 +33,9 @@
     </div>
     <div class="nav-menu">
       <a href="#" class="active" onclick="showView('dashboard')">Dashboard</a>
-      <a href="#" onclick="showView('kanban')">Kanban</a>
-      <a href="#" onclick="showView('waves')">Waves</a>
-      <a href="#" onclick="showView('bugs')"><span class="nav-icon">&#x1F41B;</span>Bugs</a>
+      <a href="#" onclick="showView('kanban')">Kanban <span class="nav-count" id="navKanbanCount"></span></a>
+      <a href="#" onclick="showView('waves')">Waves <span class="nav-count" id="navWavesCount"></span></a>
+      <a href="#" onclick="showView('issues')">Issues <span class="nav-count" id="navIssuesCount"></span></a>
       <a href="#" onclick="showView('agents')">Agents</a>
     </div>
     <div class="nav-right">
@@ -58,6 +58,79 @@
 
   <!-- Main Layout -->
   <div class="main-wrap">
+    <!-- Left Git Panel (VS Code Style) -->
+    <aside class="git-panel" id="gitPanel">
+      <div class="git-panel-header">
+        <span>SOURCE CONTROL</span>
+        <div class="git-panel-actions">
+          <button class="git-header-btn" onclick="gitFetch()" title="Refresh">&#x21BB;</button>
+          <button class="git-header-btn" onclick="showGitMenu(event)" title="More">&#x22EF;</button>
+        </div>
+      </div>
+
+      <!-- REPOSITORIES Section -->
+      <div class="git-section">
+        <div class="git-section-header" onclick="toggleGitSection('repos')">
+          <span class="git-arrow">&#x25BC;</span>
+          <span>REPOSITORIES</span>
+        </div>
+        <div class="git-section-content" id="gitRepos">
+          <div class="git-repo-item" id="gitRepoItem">
+            <span class="git-repo-icon">&#x1F4C1;</span>
+            <span class="git-repo-name" id="gitRepoName">Project</span>
+            <span class="git-repo-branch" id="gitRepoBranch" onclick="showBranchMenu()">
+              <span class="branch-icon">&#x2387;</span>
+              <span id="gitCurrentBranchName">main</span>
+              <span class="branch-dirty" id="gitBranchDirty">*</span>
+            </span>
+            <button class="git-repo-action" onclick="gitFetch()" title="Fetch">&#x21BB;</button>
+            <button class="git-repo-action" onclick="showRepoMenu(event)" title="More">&#x22EF;</button>
+          </div>
+          <div class="git-branch-list" id="gitBranchList"></div>
+        </div>
+      </div>
+
+      <!-- CHANGES Section -->
+      <div class="git-section git-changes-section">
+        <div class="git-section-header" onclick="toggleGitSection('changes')">
+          <span class="git-arrow">&#x25BC;</span>
+          <span>CHANGES</span>
+          <span class="git-badge" id="gitChangesCount">0</span>
+        </div>
+        <div class="git-section-content" id="gitChanges">
+          <!-- Commit Message -->
+          <div class="git-commit-box">
+            <input type="text" class="git-commit-input" id="gitCommitMessage" placeholder="Message (&#x2318;Enter to commit on &quot;main&quot;)">
+            <div class="git-commit-btn-wrap">
+              <button class="git-commit-btn" onclick="commitChanges()">
+                <span class="commit-icon">&#x1F512;</span> Commit
+              </button>
+              <button class="git-commit-dropdown" onclick="showCommitMenu(event)">&#x25BC;</button>
+            </div>
+          </div>
+          <!-- File Tree -->
+          <div class="git-tree" id="gitFileTree"></div>
+        </div>
+      </div>
+
+      <!-- GRAPH Section -->
+      <div class="git-section git-graph-section">
+        <div class="git-section-header" onclick="toggleGitSection('graph')">
+          <span class="git-arrow">&#x25BC;</span>
+          <span>GRAPH</span>
+          <div class="git-graph-actions">
+            <button class="git-graph-btn active" title="Auto">&#x2699; Auto</button>
+            <button class="git-graph-btn" onclick="gitFetch()" title="Fetch">&#x2193;</button>
+            <button class="git-graph-btn" onclick="gitPull()" title="Pull">&#x2193;&#x2193;</button>
+            <button class="git-graph-btn" onclick="gitPush()" title="Push">&#x2191;</button>
+          </div>
+        </div>
+        <div class="git-section-content git-graph-content" id="gitGraphSection">
+          <div class="git-graph-container" id="gitGraphContainer"></div>
+        </div>
+      </div>
+    </aside>
+
     <!-- Main Content -->
     <main class="main-content">
       <!-- Stats Label -->
@@ -270,7 +343,15 @@
             <div class="chart-tab active" onclick="switchChartMode('tokens')">Tokens</div>
             <div class="chart-tab" onclick="switchChartMode('burndown')">Burndown</div>
           </div>
-          <div class="chart-filter">&#x1F4C5; All time &#x25BE;</div>
+          <div class="chart-filter" id="chartFilter" onclick="showChartFilterMenu(event)">
+            <span id="chartFilterLabel">&#x1F4C5; All time</span> &#x25BE;
+            <div class="chart-filter-menu" id="chartFilterMenu">
+              <div class="chart-filter-option active" data-range="all" onclick="setChartFilter('all', event)">All time</div>
+              <div class="chart-filter-option" data-range="30d" onclick="setChartFilter('30d', event)">Last 30 days</div>
+              <div class="chart-filter-option" data-range="7d" onclick="setChartFilter('7d', event)">Last 7 days</div>
+              <div class="chart-filter-option" data-range="today" onclick="setChartFilter('today', event)">Today</div>
+            </div>
+          </div>
         </div>
         <div class="token-chart-legend" id="chartLegend">
           <div class="token-chart-legend-item">
@@ -331,40 +412,13 @@
 
         <!-- Tabs -->
         <div class="about-tabs">
-          <div class="about-tab active" onclick="showTab('git')">Git</div>
-          <div class="about-tab" onclick="showTab('issues')">Issues</div>
+          <div class="about-tab active" onclick="showTab('issues')">Issues</div>
           <div class="about-tab" onclick="showTab('tokens')">Tokens</div>
           <div class="about-tab" onclick="showTab('history')">History</div>
         </div>
 
-        <!-- Git Tab -->
-        <div class="tab-content" id="tabGit">
-          <div class="git-info">
-            <div class="git-branch-row">
-              <span class="git-branch-icon">&#x1F33F;</span>
-              <span class="git-branch-name" id="gitBranch">-</span>
-              <button class="copy-btn" onclick="copyBranch()">Copy</button>
-            </div>
-            <div class="git-stats">
-              <div class="git-stat">
-                <span class="git-stat-value" id="gitUncommitted">0</span>
-                <span class="git-stat-label">Uncommitted</span>
-              </div>
-              <div class="git-stat">
-                <span class="git-stat-value" id="gitAhead">0</span>
-                <span class="git-stat-label">Ahead</span>
-              </div>
-              <div class="git-stat">
-                <span class="git-stat-value" id="gitBehind">0</span>
-                <span class="git-stat-label">Behind</span>
-              </div>
-            </div>
-            <div class="git-files" id="gitFilesList"></div>
-          </div>
-        </div>
-
         <!-- Issues Tab -->
-        <div class="tab-content" id="tabIssues" style="display:none;">
+        <div class="tab-content" id="tabIssues">
           <div class="issues-loading">Loading...</div>
         </div>
 
@@ -407,6 +461,24 @@
     </aside>
   </div>
 
-  <script src="dashboard.js"></script>
+  <!-- Dashboard JS Modules -->
+  <script src="js/file-icons.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/projects.js"></script>
+  <script src="js/github.js"></script>
+  <script src="js/tabs.js"></script>
+  <script src="js/drilldown.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/gantt.js"></script>
+  <script src="js/git-panel.js"></script>
+  <script src="js/git-actions.js"></script>
+  <script src="js/diff-viewer.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/views-kanban.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/init.js"></script>
 </body>
 </html>

@@ -8,6 +8,9 @@
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
 <body>
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
   <!-- Top Navigation -->
   <nav class="top-nav">
     <div class="logo" onclick="toggleProjectMenu()" style="cursor:pointer;">
@@ -32,13 +35,15 @@
       <a href="#" class="active" onclick="showView('dashboard')">Dashboard</a>
       <a href="#" onclick="showView('kanban')">Kanban</a>
       <a href="#" onclick="showView('waves')">Waves</a>
-      <a href="#">&#x1F525; Bugs</a>
-      <a href="#">Agents</a>
+      <a href="#" onclick="showView('bugs')"><span class="nav-icon">&#x1F41B;</span>Bugs</a>
+      <a href="#" onclick="showView('agents')">Agents</a>
     </div>
     <div class="nav-right">
       <div class="nav-badge highlight" id="throughputBadge">87%</div>
-      <div class="nav-badge" id="ownerBadge">&#x1F464; Roberto</div>
-      <div class="nav-badge">&#x1F30D; IT</div>
+      <div class="notification-bell" onclick="showView('notifications')" title="Notifications">
+        <span>&#x1F514;</span>
+        <span class="notification-count hidden" id="notificationCount">0</span>
+      </div>
       <div class="theme-selector">
         <select id="themeSelect">
           <option value="voltrex">Voltrex</option>
@@ -61,24 +66,24 @@
       <!-- Stats Row -->
       <div class="stats-row">
         <div class="stat-item">
-          <div class="label">Tasks Done</div>
-          <div class="value green" id="tasksDone">$54</div>
+          <div class="label">Tasks</div>
+          <div class="value green" id="tasksDone">-/-</div>
         </div>
         <div class="stat-item">
-          <div class="label">Velocity</div>
-          <div class="value" id="velocity">12.5/h</div>
+          <div class="label">Tokens Used</div>
+          <div class="value" id="tokensUsed">n/d</div>
         </div>
         <div class="stat-item">
-          <div class="label">Cycle Time</div>
-          <div class="value" id="cycleTime">8.5min</div>
+          <div class="label">Avg per Task</div>
+          <div class="value" id="avgTokensPerTask">n/d</div>
         </div>
         <div class="stat-item">
-          <div class="label">Bugs Fixed</div>
-          <div class="value" id="bugsFixed">21/21</div>
+          <div class="label">Waves</div>
+          <div class="value" id="wavesStatus">-/-</div>
         </div>
         <div class="stat-item">
-          <div class="label">Quality Score</div>
-          <div class="value" id="quality">98.2%</div>
+          <div class="label">Progress</div>
+          <div class="value" id="progressPercent">0%</div>
         </div>
       </div>
 
@@ -117,11 +122,118 @@
         <div class="waves-list" id="wavesList"></div>
       </div>
 
+      <!-- Waves View (hidden by default) -->
+      <div class="waves-view" id="wavesView" style="display:none;">
+        <div class="waves-view-header">
+          <span>All Waves - Timeline View</span>
+          <button class="refresh-btn" onclick="loadWavesView()" title="Refresh">&#x21BB;</button>
+        </div>
+        <div class="waves-view-content" id="wavesViewContent">
+          <div class="waves-loading">Loading waves...</div>
+        </div>
+      </div>
+
+      <!-- Bugs View (hidden by default) -->
+      <div class="bugs-view" id="bugsView" style="display:none;">
+        <div class="bugs-view-header">
+          <span>Issues &amp; Blockers</span>
+          <button class="refresh-btn" onclick="loadBugsView()" title="Refresh">&#x21BB;</button>
+        </div>
+        <div class="bugs-summary" id="bugsSummary">
+          <div class="bugs-stat">
+            <span class="bugs-stat-value" id="bugsOpenCount">0</span>
+            <span class="bugs-stat-label">Open Issues</span>
+          </div>
+          <div class="bugs-stat">
+            <span class="bugs-stat-value" id="bugsBlockersCount">0</span>
+            <span class="bugs-stat-label">Blockers</span>
+          </div>
+          <div class="bugs-stat">
+            <span class="bugs-stat-value" id="bugsPrsCount">0</span>
+            <span class="bugs-stat-label">Open PRs</span>
+          </div>
+        </div>
+        <div class="bugs-content" id="bugsContent">
+          <div class="bugs-loading">Loading issues...</div>
+        </div>
+      </div>
+
+      <!-- Agents View (hidden by default) -->
+      <div class="agents-view" id="agentsView" style="display:none;">
+        <div class="agents-view-header">
+          <span>Agent Performance Overview</span>
+          <button class="refresh-btn" onclick="loadAgentsView()" title="Refresh">&#x21BB;</button>
+        </div>
+        <div class="agents-summary" id="agentsSummary">
+          <div class="agents-stat">
+            <span class="agents-stat-value" id="agentsTotalTasks">0</span>
+            <span class="agents-stat-label">Total Tasks</span>
+          </div>
+          <div class="agents-stat">
+            <span class="agents-stat-value" id="agentsActiveCount">0</span>
+            <span class="agents-stat-label">Active Agents</span>
+          </div>
+          <div class="agents-stat">
+            <span class="agents-stat-value" id="agentsAvgEfficiency">0%</span>
+            <span class="agents-stat-label">Avg Efficiency</span>
+          </div>
+        </div>
+        <div class="agents-grid-view" id="agentsGridView"></div>
+      </div>
+
+      <!-- Notifications Archive View (hidden by default) -->
+      <div class="notifications-view" id="notificationsView" style="display:none;">
+        <div class="notifications-header">
+          <span>Notification Archive</span>
+          <div style="display:flex;gap:8px;">
+            <button class="refresh-btn" onclick="markAllNotificationsRead()" title="Mark all read">&#x2713;</button>
+            <button class="refresh-btn" onclick="loadNotificationsView()" title="Refresh">&#x21BB;</button>
+          </div>
+        </div>
+        <div class="notifications-filters">
+          <button class="notifications-filter active" onclick="filterNotifications('all')">All</button>
+          <button class="notifications-filter" onclick="filterNotifications('unread')">Unread</button>
+          <button class="notifications-filter" onclick="filterNotifications('success')">Success</button>
+          <button class="notifications-filter" onclick="filterNotifications('error')">Errors</button>
+          <input type="text" class="notifications-search" id="notificationSearch" placeholder="Search notifications..." onkeyup="searchNotifications(this.value)">
+        </div>
+        <div class="notifications-list" id="notificationsList">
+          <div class="notifications-empty">No notifications yet</div>
+        </div>
+      </div>
+
       <!-- Kanban View (hidden by default) -->
       <div class="kanban-view" id="kanbanView" style="display:none;">
         <div class="kanban-header">
           <span>All Projects - Kanban Board</span>
           <button class="refresh-btn" onclick="loadKanban()" title="Refresh">&#x21BB;</button>
+        </div>
+        <!-- Kanban Summary Stats -->
+        <div class="kanban-summary" id="kanbanSummary">
+          <div class="kanban-stat">
+            <span class="kanban-stat-value" id="kanbanTotalProjects">0</span>
+            <span class="kanban-stat-label">Projects</span>
+          </div>
+          <div class="kanban-stat">
+            <span class="kanban-stat-value" id="kanbanTotalPlans">0</span>
+            <span class="kanban-stat-label">Plans</span>
+          </div>
+          <div class="kanban-stat">
+            <span class="kanban-stat-value" id="kanbanActivePlans">0</span>
+            <span class="kanban-stat-label">Active</span>
+          </div>
+          <div class="kanban-stat">
+            <span class="kanban-stat-value" id="kanbanCompletedPlans">0</span>
+            <span class="kanban-stat-label">Completed</span>
+          </div>
+          <div class="kanban-stat">
+            <span class="kanban-stat-value" id="kanbanTotalTokens">0</span>
+            <span class="kanban-stat-label">Total Tokens</span>
+          </div>
+          <div class="kanban-stat">
+            <span class="kanban-stat-value" id="kanbanTotalCost">$0</span>
+            <span class="kanban-stat-label">Est. Cost</span>
+          </div>
         </div>
         <div class="kanban-board">
           <div class="kanban-column" data-status="todo">
@@ -151,22 +263,26 @@
         </div>
       </div>
 
-      <!-- Chart Card -->
+      <!-- Chart Card - Token Usage -->
       <div class="chart-card">
         <div class="chart-header">
           <div class="chart-tabs">
-            <div class="chart-tab active">Progress</div>
-            <div class="chart-tab">Burndown</div>
+            <div class="chart-tab active" onclick="switchChartMode('tokens')">Tokens</div>
+            <div class="chart-tab" onclick="switchChartMode('burndown')">Burndown</div>
           </div>
           <div class="chart-filter">&#x1F4C5; All time &#x25BE;</div>
         </div>
-        <div class="chart-legend">
-          <span><span class="orange">Done:</span> 54</span>
-          <span><span class="purple">Target:</span> 62</span>
-          <span>Remaining: 8</span>
-          <span>Other: 0</span>
+        <div class="token-chart-legend" id="chartLegend">
+          <div class="token-chart-legend-item">
+            <span class="token-chart-legend-dot input"></span>
+            <span>Input: <span id="legendInputTokens">0</span></span>
+          </div>
+          <div class="token-chart-legend-item">
+            <span class="token-chart-legend-dot output"></span>
+            <span>Output: <span id="legendOutputTokens">0</span></span>
+          </div>
+          <span style="margin-left:auto;color:var(--text-muted);">Total: <span id="legendTotalTokens" style="color:var(--green);font-weight:700;">0</span></span>
         </div>
-        <!-- Chart tools removed (were non-functional) -->
         <div id="mainChart"></div>
       </div>
 
@@ -179,172 +295,112 @@
 
     <!-- Right Panel -->
     <aside class="right-panel">
-      <!-- PR Card -->
+      <!-- Health Status Card -->
       <div class="panel-card">
-        <div class="panel-tabs">
-          <div class="panel-tab active">PR STATUS</div>
-          <div class="panel-tab">CI/CD</div>
-        </div>
-
-        <div class="panel-stats">
-          <div class="panel-stat">
-            <div class="label">Additions</div>
-            <div class="value" id="prAdditions">+890</div>
+        <div class="panel-header">Health Status</div>
+        <div class="health-grid">
+          <div class="health-item" id="healthPlan">
+            <span class="health-dot"></span>
+            <span class="health-label">Plan</span>
+            <span class="health-value">-</span>
           </div>
-          <div class="panel-stat">
-            <div class="label">All-time Merged</div>
-            <div class="value green" id="prDeletions">-234</div>
+          <div class="health-item" id="healthGit">
+            <span class="health-dot"></span>
+            <span class="health-label">Git</span>
+            <span class="health-value">-</span>
           </div>
-        </div>
-
-        <div class="panel-available">PR #<span id="prNumber">106</span> - <span id="prFiles">23</span> files</div>
-
-        <div class="input-group">
-          <label>PR Title</label>
-          <div class="input-row">
-            <input type="text" id="prTitle" value="feat: Sprint 3 Gennaio" readonly>
-            <button class="max-btn">OPEN</button>
+          <div class="health-item" id="healthIssues">
+            <span class="health-dot"></span>
+            <span class="health-label">Issues</span>
+            <span class="health-value">-</span>
           </div>
         </div>
 
-        <div class="slider-group">
-          <div class="slider-header">
-            <span>Progress</span>
-            <span id="sliderValue">87%</span>
-          </div>
-          <div class="slider-track">
-            <div class="slider-thumb" id="sliderThumb" style="left: 87%;"></div>
-          </div>
-          <div class="slider-labels">
-            <span>0</span>
-            <span>25</span>
-            <span>50</span>
-            <span>75</span>
-            <span>100</span>
-          </div>
+        <!-- Blockers Section -->
+        <div class="blockers-section" id="blockersSection" style="display:none;">
+          <div class="blockers-header">Blockers</div>
+          <div class="blockers-list" id="blockersList"></div>
         </div>
 
-        <div class="info-row">
-          <span>TypeCheck</span>
-          <span class="green">Pass</span>
-        </div>
-        <div class="info-row">
-          <span>Lint</span>
-          <span class="green">Pass</span>
-        </div>
-        <div class="info-row">
-          <span>Build</span>
-          <span class="green">Pass</span>
-        </div>
-        <div class="info-row">
-          <span>Tests</span>
-          <span class="green">142/142</span>
-        </div>
-        <div class="info-row">
-          <span>Thor QA</span>
-          <span class="orange">Pending</span>
+        <!-- Current Focus -->
+        <div class="focus-section">
+          <div class="focus-header">Current Focus</div>
+          <div class="focus-wave" id="focusWave">No active wave</div>
+          <div class="focus-task" id="focusTask">-</div>
         </div>
 
-        <button class="action-btn" id="viewPrBtn">View PR</button>
-
+        <!-- Tabs -->
         <div class="about-tabs">
-          <div class="about-tab active" onclick="showTab('alerts')">Alerts</div>
-          <div class="about-tab" onclick="showTab('git')">Git</div>
-          <div class="about-tab" onclick="showTab('debt')">Debt</div>
+          <div class="about-tab active" onclick="showTab('git')">Git</div>
+          <div class="about-tab" onclick="showTab('issues')">Issues</div>
+          <div class="about-tab" onclick="showTab('tokens')">Tokens</div>
           <div class="about-tab" onclick="showTab('history')">History</div>
         </div>
 
-        <!-- Alerts Tab -->
-        <div class="tab-content" id="tabAlerts">
-          <div class="leader-section">
-            <div class="leader-label">Blocker</div>
-            <div class="leader-info">
-              <div class="leader-avatar" style="background: var(--red);"></div>
-              <div>
-                <div class="leader-name" id="blockerTitle">PR #106 NOT Merging</div>
-                <div class="leader-handle" id="blockerDesc">6/10 QA failures</div>
-              </div>
-            </div>
-          </div>
-          <div class="description" id="alertDesc">
-            Thor QA validation is pending. Wave 5 cannot complete until all quality gates pass.
-          </div>
-        </div>
-
         <!-- Git Tab -->
-        <div class="tab-content" id="tabGit" style="display:none;">
-          <div class="git-tree" id="gitTree">
-            <div class="git-section">
-              <div class="git-section-header" onclick="toggleGitSection('staged')">
-                <span>&#x25BC; Staged</span>
-                <span class="git-count" id="stagedCount">0</span>
-              </div>
-              <div class="git-files" id="stagedFiles"></div>
+        <div class="tab-content" id="tabGit">
+          <div class="git-info">
+            <div class="git-branch-row">
+              <span class="git-branch-icon">&#x1F33F;</span>
+              <span class="git-branch-name" id="gitBranch">-</span>
+              <button class="copy-btn" onclick="copyBranch()">Copy</button>
             </div>
-            <div class="git-section">
-              <div class="git-section-header" onclick="toggleGitSection('unstaged')">
-                <span>&#x25BC; Unstaged</span>
-                <span class="git-count" id="unstagedCount">0</span>
+            <div class="git-stats">
+              <div class="git-stat">
+                <span class="git-stat-value" id="gitUncommitted">0</span>
+                <span class="git-stat-label">Uncommitted</span>
               </div>
-              <div class="git-files" id="unstagedFiles"></div>
-            </div>
-            <div class="git-section">
-              <div class="git-section-header" onclick="toggleGitSection('untracked')">
-                <span>&#x25BC; Untracked</span>
-                <span class="git-count" id="untrackedCount">0</span>
+              <div class="git-stat">
+                <span class="git-stat-value" id="gitAhead">0</span>
+                <span class="git-stat-label">Ahead</span>
               </div>
-              <div class="git-files" id="untrackedFiles"></div>
+              <div class="git-stat">
+                <span class="git-stat-value" id="gitBehind">0</span>
+                <span class="git-stat-label">Behind</span>
+              </div>
             </div>
-          </div>
-          <div class="contract-box">
-            <span id="gitBranch">development</span>
-            <button onclick="copyBranch()">&#x1F4CB;</button>
+            <div class="git-files" id="gitFilesList"></div>
           </div>
         </div>
 
-        <!-- Debt Tab -->
-        <div class="tab-content" id="tabDebt" style="display:none;">
-          <div class="debt-summary">
-            <div class="debt-total">
-              <span class="debt-number" id="debtTotal">0</span>
-              <span class="debt-label">Total Items</span>
-            </div>
-          </div>
-          <div class="debt-breakdown" id="debtBreakdown">
-            <div class="debt-type">
-              <span class="debt-type-label">TODO</span>
-              <span class="debt-type-count" id="debtTodo">0</span>
-            </div>
-            <div class="debt-type">
-              <span class="debt-type-label">FIXME</span>
-              <span class="debt-type-count" id="debtFixme">0</span>
-            </div>
-            <div class="debt-type">
-              <span class="debt-type-label">HACK</span>
-              <span class="debt-type-count" id="debtHack">0</span>
-            </div>
-          </div>
-          <div class="debt-updated" id="debtUpdated"></div>
+        <!-- Issues Tab -->
+        <div class="tab-content" id="tabIssues" style="display:none;">
+          <div class="issues-loading">Loading...</div>
         </div>
 
-        <!-- History Tab (Plan Versions) -->
+        <!-- Tokens Tab -->
+        <div class="tab-content" id="tabTokens" style="display:none;">
+          <div class="tokens-stats">
+            <div class="token-stat">
+              <span class="token-value" id="tokenTotal">n/d</span>
+              <span class="token-label">Total Tokens</span>
+            </div>
+            <div class="token-stat">
+              <span class="token-value" id="tokenCost">n/d</span>
+              <span class="token-label">Est. Cost</span>
+            </div>
+            <div class="token-stat">
+              <span class="token-value" id="tokenCalls">0</span>
+              <span class="token-label">API Calls</span>
+            </div>
+          </div>
+          <div class="token-breakdown" id="tokenBreakdown"></div>
+        </div>
+
+        <!-- History Tab -->
         <div class="tab-content" id="tabHistory" style="display:none;">
-          <div class="history-summary">
+          <div class="history-stats">
             <div class="history-stat">
-              <span class="history-number" id="historyVersions">0</span>
+              <span class="history-value" id="historyVersions">0</span>
               <span class="history-label">Versions</span>
             </div>
             <div class="history-stat">
-              <span class="history-number" id="historyEdits">0</span>
+              <span class="history-value" id="historyEdits">0</span>
               <span class="history-label">Edits</span>
-            </div>
-            <div class="history-stat">
-              <span class="history-number" id="historyBlockers">0</span>
-              <span class="history-label">Blockers</span>
             </div>
           </div>
           <div class="history-timeline" id="historyTimeline">
-            <div class="history-empty">No version history yet</div>
+            <div class="history-empty">No history yet</div>
           </div>
         </div>
       </div>

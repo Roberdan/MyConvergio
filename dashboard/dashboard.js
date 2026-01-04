@@ -65,14 +65,35 @@ async function init() {
 // PROJECT MANAGEMENT (V3)
 // ==========================================
 
+// API base URL - change this if server runs on different port
+const API_BASE = '/api';
+
 async function loadProjects() {
   try {
-    const res = await fetch('../plans/registry.json');
-    registry = await res.json();
+    const res = await fetch(`${API_BASE}/projects`);
+    const projectsList = await res.json();
+    // Convert array to object keyed by project_id
+    registry = { projects: {} };
+    projectsList.forEach(p => {
+      registry.projects[p.project_id] = {
+        name: p.project_name,
+        plans_todo: p.plans_todo,
+        plans_doing: p.plans_doing,
+        plans_done: p.plans_done,
+        plans_total: p.plans_total
+      };
+    });
     renderProjectList();
   } catch (e) {
-    console.log('No registry found, using local plan.json');
-    registry = { projects: {} };
+    console.log('API not available, trying registry.json fallback');
+    try {
+      const res = await fetch('../plans/registry.json');
+      registry = await res.json();
+      renderProjectList();
+    } catch (e2) {
+      console.log('No registry found');
+      registry = { projects: {} };
+    }
   }
 }
 
@@ -118,19 +139,155 @@ async function selectProject(projectId) {
   // Hide menu
   document.getElementById('projectMenu').style.display = 'none';
 
-  // Load project's current.json
+  // Load project plans from API
   try {
-    const res = await fetch(`../plans/${projectId}/current.json`);
-    data = await res.json();
-    render();
+    const res = await fetch(`${API_BASE}/plans/${projectId}`);
+    const plans = await res.json();
+
+    // Find active (doing) plan or first plan
+    const activePlan = plans.find(p => p.status === 'doing') || plans[0];
+
+    if (activePlan) {
+      await loadPlanDetails(activePlan.id);
+    } else {
+      // No plans yet - show empty state
+      data = createEmptyPlanData(projectId, project.name);
+      render();
+    }
     renderProjectList();
+
+    // Load real GitHub, git, and token data in parallel
+    loadGitHubData();
+    loadGitData();
+    loadTokenData();
   } catch (e) {
-    console.error('Failed to load project plan:', e);
+    console.error('Failed to load project plans:', e);
     // Fallback to local plan.json
-    const res = await fetch('plan.json');
-    data = await res.json();
-    render();
+    try {
+      const res = await fetch('plan.json');
+      data = await res.json();
+      render();
+    } catch (e2) {
+      data = createEmptyPlanData(projectId, project.name);
+      render();
+    }
   }
+}
+
+async function loadPlanDetails(planId) {
+  try {
+    const res = await fetch(`${API_BASE}/plan/${planId}`);
+    const plan = await res.json();
+
+    if (plan.error) {
+      console.error('Plan not found:', planId);
+      return;
+    }
+
+    // Transform DB plan to dashboard data format
+    data = transformPlanToData(plan);
+    render();
+
+    // Load history
+    const histRes = await fetch(`${API_BASE}/plan/${planId}/history`);
+    const history = await histRes.json();
+    data.history = history;
+    renderHistory();
+  } catch (e) {
+    console.error('Failed to load plan details:', e);
+  }
+}
+
+function transformPlanToData(plan) {
+  const now = new Date().toISOString();
+  const waves = plan.waves || [];
+
+  return {
+    meta: {
+      project: plan.name,
+      project_id: plan.project_id,
+      plan_id: plan.id,
+      owner: plan.validated_by || 'planner',
+      created: plan.created_at,
+      updated: plan.started_at || plan.created_at
+    },
+    metrics: {
+      throughput: {
+        done: plan.tasks_done || 0,
+        total: plan.tasks_total || 1,
+        percent: plan.tasks_total > 0 ? Math.round(100 * plan.tasks_done / plan.tasks_total) : 0
+      },
+      velocity: { value: '2.5' },
+      cycleTime: { value: '45' },
+      quality: { score: 95 }
+    },
+    bugs: { fixed: 0, total: 0 },
+    timeline: {
+      start: plan.started_at || plan.created_at || now,
+      eta: plan.completed_at || now,
+      remaining: plan.status === 'done' ? 'Done' : 'In progress',
+      data: generateTimelineData(plan.tasks_done, plan.tasks_total)
+    },
+    waves: waves.map(w => ({
+      id: w.wave_id,
+      name: w.name,
+      status: w.status === 'pending' ? 'pending' : w.status === 'in_progress' ? 'in_progress' : 'done',
+      done: w.tasks_done || 0,
+      total: w.tasks_total || 0,
+      tasks: (w.tasks || []).map(t => ({
+        id: t.task_id,
+        title: t.title,
+        status: t.status,
+        assignee: t.assignee,
+        priority: t.priority,
+        type: t.type,
+        files: t.files ? t.files.split(',') : [],
+        notes: t.notes,
+        timing: {
+          started: t.started_at,
+          completed: t.completed_at,
+          duration: t.duration_minutes
+        }
+      }))
+    })),
+    contributors: [
+      { id: 'planner', name: 'Planner', avatar: 'P', role: 'planning', tasks: 0, status: 'idle' },
+      { id: 'executor', name: 'Executor', avatar: 'E', role: 'execution', tasks: plan.tasks_done || 0, status: plan.status === 'doing' ? 'active' : 'idle' },
+      { id: 'thor', name: 'Thor', avatar: 'T', role: 'validation', tasks: plan.validated_at ? 1 : 0, status: plan.validated_at ? 'done' : 'pending' }
+    ],
+    history: []
+  };
+}
+
+function generateTimelineData(done, total) {
+  const data = [];
+  const steps = 8;
+  for (let i = 0; i <= steps; i++) {
+    const progress = Math.round((done / Math.max(total, 1)) * (i / steps) * total);
+    data.push({
+      time: `T${i}`,
+      done: progress,
+      target: Math.round((i / steps) * total)
+    });
+  }
+  return data;
+}
+
+function createEmptyPlanData(projectId, projectName) {
+  return {
+    meta: { project: projectName, project_id: projectId, owner: 'none' },
+    metrics: {
+      throughput: { done: 0, total: 0, percent: 0 },
+      velocity: { value: '0' },
+      cycleTime: { value: '0' },
+      quality: { score: 0 }
+    },
+    bugs: { fixed: 0, total: 0 },
+    timeline: { start: new Date().toISOString(), eta: new Date().toISOString(), remaining: 'No plan', data: [] },
+    waves: [],
+    contributors: [],
+    history: []
+  };
 }
 
 function toggleProjectMenu() {
@@ -145,12 +302,266 @@ async function refreshProjects() {
 }
 
 function showLearningStats() {
-  // TODO: Fetch from SQLite via API or show modal with stats
   const stats = {
     totalPlans: Object.keys(registry?.projects || {}).length,
     message: 'Learning stats will show plan modification patterns and optimization insights.'
   };
   alert(`Learning Stats\n\nTotal Projects: ${stats.totalPlans}\n\n${stats.message}`);
+}
+
+// Load real GitHub data for current project
+async function loadGitHubData() {
+  if (!currentProjectId) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/project/${currentProjectId}/github`);
+    const github = await res.json();
+
+    if (github.error) {
+      console.log('GitHub data not available:', github.error);
+      data.github = null;
+      return;
+    }
+
+    data.github = {
+      repo: github.repo,
+      issues: github.issues || [],
+      pr: github.prs?.[0] ? {
+        number: `#${github.prs[0].number}`,
+        title: github.prs[0].title,
+        additions: github.prs[0].additions || 0,
+        deletions: github.prs[0].deletions || 0,
+        files: github.prs[0].files?.length || 0,
+        url: `https://github.com/${github.repo}/pull/${github.prs[0].number}`,
+        branch: github.prs[0].headRefName
+      } : null,
+      prs: github.prs || []
+    };
+
+    renderGitHubPanel();
+  } catch (e) {
+    console.error('Failed to load GitHub data:', e);
+  }
+}
+
+// Load real git status for current project
+async function loadGitData() {
+  if (!currentProjectId) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/project/${currentProjectId}/git`);
+    const git = await res.json();
+
+    if (git.error) {
+      console.log('Git data not available:', git.error);
+      return;
+    }
+
+    data.git = {
+      currentBranch: git.branch,
+      uncommitted: git.uncommitted,
+      commits: git.commits,
+      totalChanges: git.totalChanges
+    };
+
+    renderGitTree();
+  } catch (e) {
+    console.error('Failed to load git data:', e);
+  }
+}
+
+// Render GitHub panel with real data
+function renderGitHubPanel() {
+  if (!data.github) return;
+  renderIssuesPanel();
+  updateHealthStatus();
+}
+
+// Render GitHub issues in Issues tab
+function renderIssuesPanel() {
+  const tabIssues = document.getElementById('tabIssues');
+  if (!tabIssues) return;
+
+  if (!data.github?.issues) {
+    tabIssues.innerHTML = '<div class="issues-loading">No GitHub data</div>';
+    return;
+  }
+
+  const issues = data.github.issues;
+  if (issues.length === 0) {
+    tabIssues.innerHTML = '<div class="alert-empty">No open issues</div>';
+    return;
+  }
+
+  tabIssues.innerHTML = issues.slice(0, 5).map(issue => `
+    <div class="alert-item" onclick="window.open('https://github.com/${data.github.repo}/issues/${issue.number}', '_blank')">
+      <div class="alert-icon">#${issue.number}</div>
+      <div class="alert-content">
+        <div class="alert-title">${issue.title}</div>
+        <div class="alert-meta">
+          ${issue.labels?.map(l => `<span class="alert-label">${l.name}</span>`).join('') || ''}
+          <span class="alert-author">by ${issue.author?.login || 'unknown'}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Load token usage data
+async function loadTokenData() {
+  if (!currentProjectId) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/project/${currentProjectId}/tokens`);
+    const tokenData = await res.json();
+
+    data.tokens = {
+      total: tokenData.stats?.total_tokens || 0,
+      cost: tokenData.stats?.total_cost || 0,
+      calls: tokenData.stats?.api_calls || 0,
+      avgPerTask: 0
+    };
+
+    // Calculate avg per task if we have tasks
+    if (data.metrics?.throughput?.done > 0 && data.tokens.total > 0) {
+      data.tokens.avgPerTask = Math.round(data.tokens.total / data.metrics.throughput.done);
+    }
+
+    // Update display
+    document.getElementById('tokensUsed').textContent = data.tokens.total ? data.tokens.total.toLocaleString() : 'n/d';
+    document.getElementById('avgTokensPerTask').textContent = data.tokens.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
+
+    // Also update tokens tab
+    renderTokensTab();
+  } catch (e) {
+    console.log('Token data not available:', e.message);
+    data.tokens = null;
+  }
+}
+
+// Render Git tab with real data
+function renderGitTab() {
+  if (!data.git) {
+    document.getElementById('gitBranch').textContent = 'No git data';
+    return;
+  }
+
+  document.getElementById('gitBranch').textContent = data.git.currentBranch || '-';
+
+  // Count uncommitted files
+  const uncommitted = data.git.uncommitted || {};
+  const stagedCount = uncommitted.staged?.length || 0;
+  const unstagedCount = uncommitted.unstaged?.length || 0;
+  const untrackedCount = uncommitted.untracked?.length || 0;
+  const totalUncommitted = stagedCount + unstagedCount + untrackedCount;
+
+  document.getElementById('gitUncommitted').textContent = totalUncommitted;
+  document.getElementById('gitAhead').textContent = '-'; // TODO: calculate from commits
+  document.getElementById('gitBehind').textContent = '-';
+
+  // Render file list
+  const gitFilesList = document.getElementById('gitFilesList');
+  if (gitFilesList) {
+    const files = [];
+    (uncommitted.unstaged || []).forEach(f => files.push({ status: f.status, path: f.path }));
+    (uncommitted.staged || []).forEach(f => files.push({ status: 'A', path: f.path }));
+    (uncommitted.untracked || []).slice(0, 5).forEach(f => files.push({ status: 'U', path: f }));
+
+    gitFilesList.innerHTML = files.slice(0, 10).map(f => `
+      <div class="git-file">
+        <span class="git-file-status ${f.status}">${f.status}</span>
+        <span class="git-file-path">${f.path}</span>
+      </div>
+    `).join('') || '<div class="git-file">No uncommitted files</div>';
+  }
+}
+
+// Render Tokens tab
+function renderTokensTab() {
+  if (!data.tokens) {
+    document.getElementById('tokenTotal').textContent = 'n/d';
+    document.getElementById('tokenCost').textContent = 'n/d';
+    document.getElementById('tokenCalls').textContent = '0';
+    return;
+  }
+
+  document.getElementById('tokenTotal').textContent = data.tokens.total ? data.tokens.total.toLocaleString() : 'n/d';
+  document.getElementById('tokenCost').textContent = data.tokens.cost ? '$' + data.tokens.cost.toFixed(2) : 'n/d';
+  document.getElementById('tokenCalls').textContent = data.tokens.calls || 0;
+}
+
+// Update health status indicators
+function updateHealthStatus() {
+  // Plan health
+  const planHealth = document.getElementById('healthPlan');
+  if (planHealth) {
+    const progress = data.metrics?.throughput?.percent || 0;
+    const blockedTasks = data.waves?.filter(w => w.status === 'blocked').length || 0;
+
+    planHealth.className = 'health-item';
+    if (blockedTasks > 0) {
+      planHealth.classList.add('red');
+      planHealth.querySelector('.health-value').textContent = 'Blocked';
+    } else if (progress > 50) {
+      planHealth.classList.add('green');
+      planHealth.querySelector('.health-value').textContent = progress + '%';
+    } else if (progress > 0) {
+      planHealth.classList.add('yellow');
+      planHealth.querySelector('.health-value').textContent = progress + '%';
+    } else {
+      planHealth.querySelector('.health-value').textContent = 'Not started';
+    }
+  }
+
+  // Git health
+  const gitHealth = document.getElementById('healthGit');
+  if (gitHealth && data.git) {
+    const uncommitted = data.git.totalChanges || 0;
+    gitHealth.className = 'health-item';
+    if (uncommitted > 10) {
+      gitHealth.classList.add('yellow');
+      gitHealth.querySelector('.health-value').textContent = uncommitted + ' changes';
+    } else if (uncommitted > 0) {
+      gitHealth.classList.add('green');
+      gitHealth.querySelector('.health-value').textContent = uncommitted + ' changes';
+    } else {
+      gitHealth.classList.add('green');
+      gitHealth.querySelector('.health-value').textContent = 'Clean';
+    }
+  }
+
+  // Issues health
+  const issuesHealth = document.getElementById('healthIssues');
+  if (issuesHealth && data.github) {
+    const openIssues = data.github.issues?.length || 0;
+    issuesHealth.className = 'health-item';
+    if (openIssues > 10) {
+      issuesHealth.classList.add('red');
+    } else if (openIssues > 5) {
+      issuesHealth.classList.add('yellow');
+    } else {
+      issuesHealth.classList.add('green');
+    }
+    issuesHealth.querySelector('.health-value').textContent = openIssues + ' open';
+  }
+
+  // Current focus
+  const activeWave = data.waves?.find(w => w.status === 'in_progress');
+  const focusWave = document.getElementById('focusWave');
+  const focusTask = document.getElementById('focusTask');
+
+  if (focusWave) {
+    if (activeWave) {
+      focusWave.textContent = activeWave.id + ' - ' + activeWave.name;
+      const activeTask = activeWave.tasks?.find(t => t.status === 'in_progress');
+      if (focusTask) {
+        focusTask.textContent = activeTask ? activeTask.title : 'No active task';
+      }
+    } else {
+      focusWave.textContent = 'No active wave';
+      if (focusTask) focusTask.textContent = '-';
+    }
+  }
 }
 
 // Close project menu when clicking outside
@@ -169,12 +580,13 @@ function render() {
   document.getElementById('throughputBadge').textContent = data.metrics.throughput.percent + '%';
   document.getElementById('ownerBadge').innerHTML = '&#x1F464; ' + data.meta.owner;
 
-  // Stats - format like Voltrex with $ prefix for first value
-  document.getElementById('tasksDone').textContent = '$' + data.metrics.throughput.done;
-  document.getElementById('velocity').textContent = data.metrics.velocity.value + '/h';
-  document.getElementById('cycleTime').textContent = data.metrics.cycleTime.value + 'min';
-  document.getElementById('bugsFixed').textContent = `${data.bugs.fixed}/${data.bugs.total}`;
-  document.getElementById('quality').textContent = data.metrics.quality.score + '%';
+  // Stats - real data or n/d
+  document.getElementById('tasksDone').textContent = `${data.metrics.throughput.done}/${data.metrics.throughput.total}`;
+  document.getElementById('tokensUsed').textContent = data.tokens?.total ? data.tokens.total.toLocaleString() : 'n/d';
+  document.getElementById('avgTokensPerTask').textContent = data.tokens?.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
+  const wavesDone = data.waves.filter(w => w.status === 'done').length;
+  document.getElementById('wavesStatus').textContent = `${wavesDone}/${data.waves.length}`;
+  document.getElementById('progressPercent').textContent = data.metrics.throughput.percent + '%';
 
   // Epoch bar
   const currentWave = data.waves.find(w => w.status === 'in_progress') || data.waves[data.waves.length - 1];
@@ -191,29 +603,16 @@ function render() {
   const epochProgress = Math.round((doneTasks / totalTasks) * 100);
   document.getElementById('epochFill').style.width = epochProgress + '%';
 
-  // PR panel
-  if (data.github) {
-    document.getElementById('prAdditions').textContent = '+' + data.github.pr.additions;
-    document.getElementById('prDeletions').textContent = '-' + data.github.pr.deletions;
-    document.getElementById('prNumber').textContent = data.github.pr.number;
-    document.getElementById('prFiles').textContent = data.github.pr.files;
-    document.getElementById('prTitle').value = data.github.pr.title;
-    document.getElementById('sliderValue').textContent = data.metrics.throughput.percent + '%';
-    document.getElementById('sliderThumb').style.left = data.metrics.throughput.percent + '%';
-    document.getElementById('viewPrBtn').onclick = () => window.open(data.github.pr.url, '_blank');
-  }
-
   // Git branch
   if (data.git) {
     document.getElementById('gitBranch').textContent = data.git.currentBranch;
+    renderGitTab();
   }
 
-  // Alert/blocker
-  if (data.alerts && data.alerts.length > 0) {
-    const blocker = data.alerts.find(a => a.type === 'blocker') || data.alerts[0];
-    document.getElementById('blockerTitle').textContent = blocker.title;
-    document.getElementById('blockerDesc').textContent = blocker.desc;
-  }
+  // Update right panel
+  updateHealthStatus();
+  renderIssuesPanel();
+  renderTokensTab();
 
   renderChart();
   renderAgents();
@@ -539,18 +938,22 @@ function refreshWaves() {
 // ==========================================
 
 function showTab(tabName) {
-  ['alerts', 'git', 'debt', 'history'].forEach(t => {
-    const tab = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+  ['git', 'issues', 'tokens', 'history'].forEach(t => {
+    const tabId = 'tab' + t.charAt(0).toUpperCase() + t.slice(1);
+    const tab = document.getElementById(tabId);
     const btn = document.querySelector(`.about-tab[onclick="showTab('${t}')"]`);
     if (tab) tab.style.display = t === tabName ? 'block' : 'none';
     if (btn) btn.classList.toggle('active', t === tabName);
   });
 
-  if (tabName === 'git' && data.git?.uncommitted) {
-    renderGitTree();
+  if (tabName === 'git') {
+    renderGitTab();
   }
-  if (tabName === 'debt' && data.debt) {
-    renderDebt();
+  if (tabName === 'issues') {
+    renderIssuesPanel();
+  }
+  if (tabName === 'tokens') {
+    renderTokensTab();
   }
   if (tabName === 'history') {
     renderHistory();
@@ -698,104 +1101,156 @@ function showView(view) {
   // Update nav menu active state
   document.querySelectorAll('.nav-menu a').forEach(a => {
     a.classList.remove('active');
-    if (a.textContent.toLowerCase().includes(view)) {
+    const linkText = a.textContent.toLowerCase();
+    if (linkText.includes(view) || (view === 'bugs' && linkText.includes('bugs'))) {
       a.classList.add('active');
     }
   });
 
-  // Toggle view visibility
+  // All view elements
   const dashboardElements = ['wavesSummary', 'drilldownPanel'];
   const chartCard = document.querySelector('.chart-card');
   const tradersSection = document.querySelector('.traders-section');
   const kanbanView = document.getElementById('kanbanView');
+  const wavesView = document.getElementById('wavesView');
+  const bugsView = document.getElementById('bugsView');
+  const agentsView = document.getElementById('agentsView');
   const statsRow = document.querySelector('.stats-row');
   const epochBar = document.querySelector('.epoch-bar');
+  const planLabel = document.querySelector('.stats-label');
 
-  if (view === 'kanban') {
-    dashboardElements.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-    if (chartCard) chartCard.style.display = 'none';
-    if (tradersSection) tradersSection.style.display = 'none';
-    if (statsRow) statsRow.style.display = 'none';
-    if (epochBar) epochBar.style.display = 'none';
-    if (kanbanView) kanbanView.style.display = 'block';
-    loadKanban();
-  } else {
-    dashboardElements.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = '';
-    });
-    if (chartCard) chartCard.style.display = '';
-    if (tradersSection) tradersSection.style.display = '';
-    if (statsRow) statsRow.style.display = '';
-    if (epochBar) epochBar.style.display = '';
-    if (kanbanView) kanbanView.style.display = 'none';
+  // Hide all specialized views first
+  [kanbanView, wavesView, bugsView, agentsView].forEach(v => {
+    if (v) v.style.display = 'none';
+  });
+
+  // Hide/show dashboard elements based on view
+  const hideDashboard = view !== 'dashboard';
+  dashboardElements.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = hideDashboard ? 'none' : '';
+  });
+  if (chartCard) chartCard.style.display = hideDashboard ? 'none' : '';
+  if (tradersSection) tradersSection.style.display = hideDashboard ? 'none' : '';
+  if (statsRow) statsRow.style.display = hideDashboard ? 'none' : '';
+  if (epochBar) epochBar.style.display = hideDashboard ? 'none' : '';
+  if (planLabel) planLabel.style.display = hideDashboard ? 'none' : '';
+
+  // Show the selected view and load its data
+  switch (view) {
+    case 'kanban':
+      if (kanbanView) kanbanView.style.display = 'block';
+      loadKanban();
+      break;
+    case 'waves':
+      if (wavesView) wavesView.style.display = 'block';
+      loadWavesView();
+      break;
+    case 'bugs':
+      if (bugsView) bugsView.style.display = 'block';
+      loadBugsView();
+      break;
+    case 'agents':
+      if (agentsView) agentsView.style.display = 'block';
+      loadAgentsView();
+      break;
+    case 'dashboard':
+    default:
+      // Dashboard elements are already shown
+      break;
   }
 }
 
 async function loadKanban() {
-  if (!registry) await loadProjects();
-
   const kanban = { todo: [], doing: [], done: [] };
+  let totalTokens = 0;
+  let totalCost = 0;
+  const projectIds = new Set();
 
-  // Scan all projects for plans
-  for (const [projectId, project] of Object.entries(registry.projects || {})) {
-    for (const status of ['todo', 'doing', 'done']) {
+  try {
+    const res = await fetch(`${API_BASE}/kanban`);
+    const plans = await res.json();
+
+    // Collect all project IDs first
+    plans.forEach(plan => projectIds.add(plan.project_id));
+
+    // Fetch token data for all projects in parallel
+    const tokenPromises = Array.from(projectIds).map(async (projectId) => {
       try {
-        // Try to fetch plan list from each status folder
-        const planFiles = await fetchPlanList(projectId, status);
-        planFiles.forEach(plan => {
-          kanban[status].push({
-            project: project.name,
-            projectId: projectId,
-            name: plan.name,
-            file: plan.file,
-            progress: plan.progress || 0,
-            updated: plan.updated
-          });
-        });
+        const tokRes = await fetch(`${API_BASE}/project/${projectId}/tokens`);
+        const tokData = await tokRes.json();
+        return { projectId, tokens: tokData.stats?.total_tokens || 0, cost: tokData.stats?.total_cost || 0 };
       } catch (e) {
-        // Folder might not exist or be empty
+        return { projectId, tokens: 0, cost: 0 };
+      }
+    });
+
+    const tokenResults = await Promise.all(tokenPromises);
+    const tokensByProject = {};
+    tokenResults.forEach(t => {
+      tokensByProject[t.projectId] = t;
+      totalTokens += t.tokens;
+      totalCost += t.cost;
+    });
+
+    plans.forEach(plan => {
+      const status = plan.status || 'todo';
+      const projectTokens = tokensByProject[plan.project_id] || { tokens: 0, cost: 0 };
+
+      // Determine if plan is "running" (has recent activity)
+      const updatedAt = plan.completed_at || plan.started_at || plan.created_at;
+      const lastUpdate = updatedAt ? new Date(updatedAt) : null;
+      const isRecent = lastUpdate && (Date.now() - lastUpdate.getTime()) < 3600000; // < 1 hour
+      const isRunning = status === 'doing' && isRecent;
+
+      kanban[status].push({
+        project: plan.project_name,
+        projectId: plan.project_id,
+        planId: plan.plan_id,
+        name: plan.plan_name,
+        isMaster: plan.is_master,
+        progress: plan.progress || 0,
+        tasksDone: plan.tasks_done || 0,
+        tasksTotal: plan.tasks_total || 0,
+        startedAt: plan.started_at,
+        completedAt: plan.completed_at,
+        updatedAt: updatedAt,
+        isRunning: isRunning,
+        tokens: projectTokens.tokens,
+        cost: projectTokens.cost,
+        validatedBy: plan.validated_by,
+        validatedAt: plan.validated_at
+      });
+    });
+  } catch (e) {
+    console.error('Failed to load kanban from API:', e);
+    // Fallback to registry scan if API not available
+    if (!registry) await loadProjects();
+
+    for (const [projectId, project] of Object.entries(registry.projects || {})) {
+      projectIds.add(projectId);
+      if (project.plans_doing > 0) {
+        kanban.doing.push({ project: project.name, projectId, name: 'Active plan', progress: 50, isRunning: false });
+      }
+      if (project.plans_todo > 0) {
+        kanban.todo.push({ project: project.name, projectId, name: 'Pending plan', progress: 0, isRunning: false });
+      }
+      if (project.plans_done > 0) {
+        kanban.done.push({ project: project.name, projectId, name: 'Completed plan', progress: 100, isRunning: false });
       }
     }
   }
 
+  // Update summary stats
+  const totalPlans = kanban.todo.length + kanban.doing.length + kanban.done.length;
+  document.getElementById('kanbanTotalProjects').textContent = projectIds.size;
+  document.getElementById('kanbanTotalPlans').textContent = totalPlans;
+  document.getElementById('kanbanActivePlans').textContent = kanban.doing.length;
+  document.getElementById('kanbanCompletedPlans').textContent = kanban.done.length;
+  document.getElementById('kanbanTotalTokens').textContent = totalTokens ? totalTokens.toLocaleString() : '0';
+  document.getElementById('kanbanTotalCost').textContent = totalCost ? '$' + totalCost.toFixed(2) : '$0';
+
   renderKanban(kanban);
-}
-
-async function fetchPlanList(projectId, status) {
-  // Try to read current.json to get plan info
-  try {
-    const res = await fetch(`plans/${projectId}/current.json`);
-    if (!res.ok) return [];
-    const current = await res.json();
-
-    // If we have an active plan and status is 'doing', include it
-    if (status === 'doing' && current.active_plan) {
-      return [{
-        name: current.active_plan,
-        file: `${current.active_plan}.json`,
-        progress: 50, // Default, would need to read actual file
-        updated: current.updated
-      }];
-    }
-
-    // For done, check if last_completed exists
-    if (status === 'done' && current.last_completed) {
-      return [{
-        name: current.last_completed,
-        file: `${current.last_completed}.json`,
-        progress: 100,
-        updated: current.updated
-      }];
-    }
-
-    return [];
-  } catch (e) {
-    return [];
-  }
 }
 
 function renderKanban(kanban) {
@@ -813,20 +1268,1049 @@ function renderKanban(kanban) {
       return;
     }
 
-    container.innerHTML = plans.map(plan => `
-      <div class="kanban-card" onclick="selectProject('${plan.projectId}'); showView('dashboard');">
-        <div class="kanban-card-project">${plan.project}</div>
-        <div class="kanban-card-title">${plan.name}</div>
-        <div class="kanban-card-meta">
-          <span>${plan.progress}%</span>
-          <span>${plan.updated ? new Date(plan.updated).toLocaleDateString() : ''}</span>
+    container.innerHTML = plans.map(plan => {
+      const masterBadge = plan.isMaster ? '<span class="kanban-master-badge">MASTER</span>' : '';
+      const taskInfo = plan.tasksTotal ? `${plan.tasksDone}/${plan.tasksTotal}` : '';
+
+      // Format updated date
+      let updatedStr = '';
+      if (plan.updatedAt) {
+        const updated = new Date(plan.updatedAt);
+        const now = new Date();
+        const diffMs = now - updated;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 60) {
+          updatedStr = diffMins + 'm ago';
+        } else if (diffHours < 24) {
+          updatedStr = diffHours + 'h ago';
+        } else {
+          updatedStr = diffDays + 'd ago';
+        }
+      }
+
+      // Running indicator for active plans
+      let runningIndicator = '';
+      if (status === 'doing') {
+        runningIndicator = plan.isRunning
+          ? '<span class="kanban-running-indicator active">Running</span>'
+          : '<span class="kanban-running-indicator stopped">Paused</span>';
+      }
+
+      // Token info
+      const tokenStr = plan.tokens ? plan.tokens.toLocaleString() : '0';
+
+      // Stats section for completed plans
+      let statsSection = '';
+      if (status === 'done' && plan.completedAt) {
+        const duration = plan.startedAt
+          ? Math.ceil((new Date(plan.completedAt) - new Date(plan.startedAt)) / 86400000)
+          : '-';
+        const avgTokensPerTask = plan.tasksDone > 0 && plan.tokens > 0
+          ? Math.round(plan.tokens / plan.tasksDone).toLocaleString()
+          : '-';
+
+        statsSection = `
+          <div class="kanban-card-stats">
+            <div class="kanban-card-stats-item">
+              <span class="kanban-card-stats-value">${plan.tasksDone}</span>
+              <span class="kanban-card-stats-label">Tasks</span>
+            </div>
+            <div class="kanban-card-stats-item">
+              <span class="kanban-card-stats-value">${duration}d</span>
+              <span class="kanban-card-stats-label">Duration</span>
+            </div>
+            <div class="kanban-card-stats-item">
+              <span class="kanban-card-stats-value">${avgTokensPerTask}</span>
+              <span class="kanban-card-stats-label">Tok/Task</span>
+            </div>
+            ${plan.validatedBy ? `
+            <div class="kanban-card-stats-item">
+              <span class="kanban-card-stats-value">${plan.validatedBy}</span>
+              <span class="kanban-card-stats-label">Validated</span>
+            </div>` : ''}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="kanban-card ${plan.isMaster ? 'master' : ''}" onclick="loadPlanDetails(${plan.planId}); showView('dashboard');">
+          <div class="kanban-card-header">
+            <span class="kanban-card-project">${plan.project}</span>
+            ${masterBadge}
+          </div>
+          <div class="kanban-card-status">
+            ${runningIndicator}
+          </div>
+          <div class="kanban-card-title">${plan.name}</div>
+          <div class="kanban-card-meta">
+            <span>${plan.progress}%</span>
+            <span>${taskInfo}</span>
+          </div>
+          <div class="kanban-card-progress">
+            <div class="kanban-card-progress-fill" style="width: ${plan.progress}%"></div>
+          </div>
+          <div class="kanban-card-tokens">
+            <span class="token-icon">&#x1F4B0;</span>
+            <span>${tokenStr} tokens</span>
+          </div>
+          ${updatedStr ? `<div class="kanban-card-updated">Updated ${updatedStr}</div>` : ''}
+          ${statsSection}
         </div>
-        <div class="kanban-card-progress">
-          <div class="kanban-card-progress-fill" style="width: ${plan.progress}%"></div>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   });
 }
+
+// ==========================================
+// WAVES VIEW
+// ==========================================
+
+async function loadWavesView() {
+  const content = document.getElementById('wavesViewContent');
+  if (!content) return;
+
+  content.innerHTML = '<div class="waves-loading">Loading waves...</div>';
+
+  try {
+    // Get all plans from all projects
+    const res = await fetch(`${API_BASE}/kanban`);
+    const plans = await res.json();
+
+    // Collect all waves from all plans
+    const allWaves = [];
+
+    for (const plan of plans) {
+      try {
+        const planRes = await fetch(`${API_BASE}/plan/${plan.plan_id}`);
+        const planData = await planRes.json();
+
+        if (planData.waves) {
+          planData.waves.forEach(wave => {
+            allWaves.push({
+              ...wave,
+              projectName: plan.project_name,
+              projectId: plan.project_id,
+              planName: plan.plan_name,
+              planId: plan.plan_id
+            });
+          });
+        }
+      } catch (e) {
+        console.log('Failed to load plan:', plan.plan_id);
+      }
+    }
+
+    // Sort waves: in_progress first, then pending, then done
+    allWaves.sort((a, b) => {
+      const order = { 'in_progress': 0, 'pending': 1, 'done': 2 };
+      return (order[a.status] || 3) - (order[b.status] || 3);
+    });
+
+    if (allWaves.length === 0) {
+      content.innerHTML = '<div class="waves-loading">No waves found</div>';
+      return;
+    }
+
+    content.innerHTML = allWaves.map(wave => {
+      const progress = wave.tasks_total > 0
+        ? Math.round((wave.tasks_done / wave.tasks_total) * 100)
+        : 0;
+
+      return `
+        <div class="wave-timeline-item" onclick="selectProject('${wave.projectId}'); loadPlanDetails(${wave.planId}); showView('dashboard'); drillIntoWave('${wave.wave_id}');">
+          <div class="wave-timeline-status ${wave.status}"></div>
+          <div class="wave-timeline-content">
+            <div class="wave-timeline-header">
+              <span class="wave-timeline-title">${wave.wave_id} - ${wave.name}</span>
+              <span class="wave-timeline-project">${wave.projectName}</span>
+            </div>
+            <div class="wave-timeline-progress">
+              <div class="wave-timeline-progress-fill" style="width: ${progress}%"></div>
+            </div>
+            <div class="wave-timeline-meta">
+              <span>Plan: ${wave.planName}</span>
+              <span>Tasks: ${wave.tasks_done || 0}/${wave.tasks_total || 0}</span>
+              <span>Assignee: ${wave.assignee || '-'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    content.innerHTML = '<div class="waves-loading">Error loading waves: ' + e.message + '</div>';
+  }
+}
+
+// ==========================================
+// BUGS VIEW
+// ==========================================
+
+async function loadBugsView() {
+  const content = document.getElementById('bugsContent');
+  if (!content) return;
+
+  content.innerHTML = '<div class="bugs-loading">Loading issues...</div>';
+
+  try {
+    const projects = await fetch(`${API_BASE}/projects`).then(r => r.json());
+
+    const allIssues = [];
+    const allBlockers = [];
+    let totalPRs = 0;
+
+    // Fetch GitHub data for all projects in parallel
+    const githubPromises = projects.map(async (project) => {
+      try {
+        const res = await fetch(`${API_BASE}/project/${project.project_id}/github`);
+        const data = await res.json();
+
+        if (data.issues) {
+          data.issues.forEach(issue => {
+            const isBlocker = issue.labels?.some(l =>
+              l.name.toLowerCase().includes('blocker') ||
+              l.name.toLowerCase().includes('critical')
+            );
+
+            const item = {
+              ...issue,
+              projectName: project.project_name,
+              projectId: project.project_id,
+              repo: data.repo,
+              isBlocker
+            };
+
+            allIssues.push(item);
+            if (isBlocker) allBlockers.push(item);
+          });
+        }
+
+        if (data.prs) {
+          totalPRs += data.prs.length;
+        }
+      } catch (e) {
+        console.log('Failed to load GitHub data for:', project.project_id);
+      }
+    });
+
+    await Promise.all(githubPromises);
+
+    // Update stats
+    document.getElementById('bugsOpenCount').textContent = allIssues.length;
+    document.getElementById('bugsBlockersCount').textContent = allBlockers.length;
+    document.getElementById('bugsPrsCount').textContent = totalPRs;
+
+    if (allIssues.length === 0) {
+      content.innerHTML = '<div class="bugs-loading">No open issues found</div>';
+      return;
+    }
+
+    // Sort: blockers first, then by date
+    allIssues.sort((a, b) => {
+      if (a.isBlocker && !b.isBlocker) return -1;
+      if (!a.isBlocker && b.isBlocker) return 1;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    content.innerHTML = allIssues.map(issue => {
+      const url = `https://github.com/${issue.repo}/issues/${issue.number}`;
+      const labels = issue.labels?.map(l => `<span class="bug-label">${l.name}</span>`).join('') || '';
+
+      return `
+        <div class="bug-item ${issue.isBlocker ? 'blocker' : ''}" onclick="window.open('${url}', '_blank')">
+          <div class="bug-icon ${issue.isBlocker ? 'blocker' : ''}">#${issue.number}</div>
+          <div class="bug-content">
+            <div class="bug-title">${issue.title}</div>
+            <div class="bug-meta">
+              ${labels}
+              <span class="bug-project">${issue.projectName}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    content.innerHTML = '<div class="bugs-loading">Error loading issues: ' + e.message + '</div>';
+  }
+}
+
+// ==========================================
+// AGENTS VIEW
+// ==========================================
+
+async function loadAgentsView() {
+  const grid = document.getElementById('agentsGridView');
+  if (!grid) return;
+
+  grid.innerHTML = '<div class="waves-loading">Loading agents...</div>';
+
+  try {
+    // Get all plans and aggregate agent data
+    const res = await fetch(`${API_BASE}/kanban`);
+    const plans = await res.json();
+
+    const agentStats = {};
+
+    // Aggregate from all plans
+    for (const plan of plans) {
+      try {
+        const planRes = await fetch(`${API_BASE}/plan/${plan.plan_id}`);
+        const planData = await planRes.json();
+
+        // Count tasks by assignee
+        if (planData.waves) {
+          planData.waves.forEach(wave => {
+            if (wave.tasks) {
+              wave.tasks.forEach(task => {
+                const agent = task.assignee || 'unassigned';
+                if (!agentStats[agent]) {
+                  agentStats[agent] = {
+                    name: agent,
+                    totalTasks: 0,
+                    doneTasks: 0,
+                    inProgressTasks: 0,
+                    projects: new Set()
+                  };
+                }
+                agentStats[agent].totalTasks++;
+                agentStats[agent].projects.add(plan.project_name);
+                if (task.status === 'done') agentStats[agent].doneTasks++;
+                if (task.status === 'in_progress') agentStats[agent].inProgressTasks++;
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.log('Failed to load plan:', plan.plan_id);
+      }
+    }
+
+    const agents = Object.values(agentStats);
+
+    // Calculate totals
+    const totalTasks = agents.reduce((sum, a) => sum + a.totalTasks, 0);
+    const activeAgents = agents.filter(a => a.inProgressTasks > 0).length;
+    const avgEfficiency = agents.length > 0
+      ? Math.round(agents.reduce((sum, a) => sum + (a.totalTasks > 0 ? (a.doneTasks / a.totalTasks) * 100 : 0), 0) / agents.length)
+      : 0;
+
+    document.getElementById('agentsTotalTasks').textContent = totalTasks;
+    document.getElementById('agentsActiveCount').textContent = activeAgents;
+    document.getElementById('agentsAvgEfficiency').textContent = avgEfficiency + '%';
+
+    if (agents.length === 0) {
+      grid.innerHTML = '<div class="waves-loading">No agent data available</div>';
+      return;
+    }
+
+    // Sort by tasks done
+    agents.sort((a, b) => b.doneTasks - a.doneTasks);
+
+    grid.innerHTML = agents.filter(a => a.name !== 'unassigned').map(agent => {
+      const efficiency = agent.totalTasks > 0
+        ? Math.round((agent.doneTasks / agent.totalTasks) * 100)
+        : 0;
+      const isActive = agent.inProgressTasks > 0;
+      const projectCount = agent.projects.size;
+
+      return `
+        <div class="trader-card">
+          <div class="trader-top">
+            <div class="trader-avatar">${agent.name.charAt(0).toUpperCase()}</div>
+            <div class="trader-info">
+              <div class="trader-name">${agent.name}</div>
+              <div class="trader-followers">${projectCount} project${projectCount !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="trader-star ${isActive ? '' : 'inactive'}">&#9733;</div>
+          </div>
+          <div class="trader-profit">+${agent.doneTasks}</div>
+          <div class="trader-roi">${efficiency}% completion</div>
+          <div class="trader-stats">
+            <div class="trader-stat">
+              <div class="trader-stat-label">Total</div>
+              <div class="trader-stat-value">${agent.totalTasks}</div>
+            </div>
+            <div class="trader-stat">
+              <div class="trader-stat-label">Done</div>
+              <div class="trader-stat-value">${agent.doneTasks}</div>
+            </div>
+            <div class="trader-stat">
+              <div class="trader-stat-label">Active</div>
+              <div class="trader-stat-value">${agent.inProgressTasks}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    grid.innerHTML = '<div class="waves-loading">Error loading agents: ' + e.message + '</div>';
+  }
+}
+
+// ==========================================
+// TOAST NOTIFICATIONS
+// ==========================================
+
+let lastNotificationId = 0;
+let notificationPollingInterval = null;
+
+function showToast(notification) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const severityIcons = {
+    info: '&#x2139;',
+    success: '&#x2713;',
+    warning: '&#x26A0;',
+    error: '&#x2717;'
+  };
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${notification.severity || 'info'}`;
+  toast.dataset.id = notification.id;
+
+  toast.innerHTML = `
+    <div class="toast-icon">${severityIcons[notification.severity] || severityIcons.info}</div>
+    <div class="toast-content">
+      <div class="toast-title">${notification.title}</div>
+      ${notification.message ? `<div class="toast-message">${notification.message}</div>` : ''}
+      <div class="toast-project">${notification.project_name || notification.project_id}</div>
+      ${notification.link ? `
+        <div class="toast-actions">
+          <button class="toast-action primary" onclick="handleNotificationAction(${notification.id}, '${notification.link}', '${notification.link_type}')">View</button>
+          <button class="toast-action" onclick="dismissToast(this.closest('.toast'))">Dismiss</button>
+        </div>
+      ` : ''}
+    </div>
+    <button class="toast-close" onclick="dismissToast(this.closest('.toast'))">&times;</button>
+  `;
+
+  // Click to navigate if has link
+  if (notification.link) {
+    toast.style.cursor = 'pointer';
+  }
+
+  container.appendChild(toast);
+
+  // Auto-dismiss after 8 seconds (longer for errors)
+  const duration = notification.severity === 'error' ? 12000 : 8000;
+  setTimeout(() => dismissToast(toast), duration);
+}
+
+function dismissToast(toast) {
+  if (!toast || toast.classList.contains('dismissing')) return;
+  toast.classList.add('dismissing');
+
+  // Mark as read in DB
+  const id = toast.dataset.id;
+  if (id) {
+    fetch(`${API_BASE}/notifications/${id}/read`, { method: 'POST' });
+  }
+
+  setTimeout(() => toast.remove(), 300);
+}
+
+function handleNotificationAction(id, link, linkType) {
+  // Mark as read
+  fetch(`${API_BASE}/notifications/${id}/read`, { method: 'POST' });
+
+  if (linkType === 'project') {
+    selectProject(link);
+    showView('dashboard');
+  } else if (linkType === 'github') {
+    window.open(link, '_blank');
+  } else if (linkType === 'plan') {
+    loadPlanDetails(parseInt(link));
+    showView('dashboard');
+  } else if (link.startsWith('http')) {
+    window.open(link, '_blank');
+  }
+}
+
+// Poll for new notifications
+async function pollNotifications() {
+  try {
+    const res = await fetch(`${API_BASE}/notifications/unread`);
+    const data = await res.json();
+
+    // Update bell badge
+    const countEl = document.getElementById('notificationCount');
+    if (countEl) {
+      if (data.total > 0) {
+        countEl.textContent = data.total > 99 ? '99+' : data.total;
+        countEl.classList.remove('hidden');
+      } else {
+        countEl.classList.add('hidden');
+      }
+    }
+
+    // Show toasts for new notifications
+    if (data.notifications) {
+      data.notifications.forEach(n => {
+        if (n.id > lastNotificationId) {
+          showToast(n);
+          lastNotificationId = n.id;
+        }
+      });
+    }
+  } catch (e) {
+    console.log('Failed to poll notifications:', e.message);
+  }
+}
+
+function startNotificationPolling() {
+  // Poll immediately
+  pollNotifications();
+  // Then every 10 seconds
+  notificationPollingInterval = setInterval(pollNotifications, 10000);
+}
+
+function stopNotificationPolling() {
+  if (notificationPollingInterval) {
+    clearInterval(notificationPollingInterval);
+    notificationPollingInterval = null;
+  }
+}
+
+// ==========================================
+// NOTIFICATION ARCHIVE VIEW
+// ==========================================
+
+let notificationsFilter = 'all';
+let notificationsSearch = '';
+
+async function loadNotificationsView() {
+  const list = document.getElementById('notificationsList');
+  if (!list) return;
+
+  list.innerHTML = '<div class="notifications-empty">Loading...</div>';
+
+  try {
+    let url = `${API_BASE}/notifications?limit=50`;
+    if (notificationsFilter === 'unread') url += '&unread=true';
+    if (notificationsFilter === 'success') url += '&severity=success';
+    if (notificationsFilter === 'error') url += '&severity=error';
+    if (notificationsSearch) url += `&search=${encodeURIComponent(notificationsSearch)}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.notifications || data.notifications.length === 0) {
+      list.innerHTML = '<div class="notifications-empty">No notifications found</div>';
+      return;
+    }
+
+    list.innerHTML = data.notifications.map(n => {
+      const time = n.created_at ? formatRelativeTime(new Date(n.created_at)) : '';
+      const severityIcons = { info: '&#x2139;', success: '&#x2713;', warning: '&#x26A0;', error: '&#x2717;' };
+
+      return `
+        <div class="notification-item ${n.is_read ? '' : 'unread'}" onclick="handleNotificationClick(${n.id}, '${n.link || ''}', '${n.link_type || ''}')">
+          <div class="notification-item-icon ${n.severity}">${severityIcons[n.severity] || severityIcons.info}</div>
+          <div class="notification-item-content">
+            <div class="notification-item-header">
+              <span class="notification-item-title">${n.title}</span>
+              <span class="notification-item-time">${time}</span>
+            </div>
+            ${n.message ? `<div class="notification-item-message">${n.message}</div>` : ''}
+            <div class="notification-item-project">${n.project_name || n.project_id}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="notifications-empty">Error: ${e.message}</div>`;
+  }
+}
+
+function handleNotificationClick(id, link, linkType) {
+  // Mark as read
+  fetch(`${API_BASE}/notifications/${id}/read`, { method: 'POST' }).then(() => {
+    // Refresh view
+    loadNotificationsView();
+    pollNotifications();
+  });
+
+  // Navigate if has link
+  if (link) {
+    handleNotificationAction(id, link, linkType);
+  }
+}
+
+function filterNotifications(filter) {
+  notificationsFilter = filter;
+
+  // Update filter buttons
+  document.querySelectorAll('.notifications-filter').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(filter) || (filter === 'all' && btn.textContent === 'All'));
+  });
+
+  loadNotificationsView();
+}
+
+function searchNotifications(query) {
+  notificationsSearch = query;
+  // Debounce search
+  clearTimeout(window.notificationSearchTimeout);
+  window.notificationSearchTimeout = setTimeout(loadNotificationsView, 300);
+}
+
+async function markAllNotificationsRead() {
+  await fetch(`${API_BASE}/notifications/read-all`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  loadNotificationsView();
+  pollNotifications();
+}
+
+function formatRelativeTime(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return diffMins + 'm ago';
+  if (diffHours < 24) return diffHours + 'h ago';
+  if (diffDays < 7) return diffDays + 'd ago';
+  return date.toLocaleDateString();
+}
+
+// ==========================================
+// TOKEN CHART
+// ==========================================
+
+let chartMode = 'tokens';
+
+function switchChartMode(mode) {
+  chartMode = mode;
+
+  // Update tab active state
+  document.querySelectorAll('.chart-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.textContent.toLowerCase() === mode);
+  });
+
+  // Re-render chart
+  destroyCharts();
+  if (mode === 'tokens') {
+    renderTokenChart();
+  } else {
+    renderChart(); // Original burndown chart
+  }
+}
+
+async function renderTokenChart() {
+  // Fetch token history for the project
+  let tokenHistory = [];
+
+  try {
+    // For now, generate sample data based on current token usage
+    // In production, this would fetch from /api/project/:id/tokens/history
+    const totalTokens = data.tokens?.total || 0;
+    const calls = data.tokens?.calls || 0;
+
+    if (calls > 0) {
+      // Generate historical data points
+      const days = 7;
+      const avgPerDay = Math.round(totalTokens / days);
+      let cumulative = 0;
+
+      for (let i = days; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dayTokens = i === 0 ? totalTokens - cumulative : Math.round(avgPerDay * (0.5 + Math.random()));
+        cumulative += dayTokens;
+        tokenHistory.push({
+          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          input: Math.round(dayTokens * 0.7),
+          output: Math.round(dayTokens * 0.3)
+        });
+      }
+    } else {
+      // No data - show empty chart
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        tokenHistory.push({
+          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          input: 0,
+          output: 0
+        });
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load token history:', e);
+  }
+
+  const theme = document.documentElement.getAttribute('data-theme') || 'voltrex';
+  const colors = themeColors[theme];
+
+  // Update legend
+  const totalInput = tokenHistory.reduce((sum, d) => sum + d.input, 0);
+  const totalOutput = tokenHistory.reduce((sum, d) => sum + d.output, 0);
+  document.getElementById('legendInputTokens').textContent = totalInput.toLocaleString();
+  document.getElementById('legendOutputTokens').textContent = totalOutput.toLocaleString();
+  document.getElementById('legendTotalTokens').textContent = (totalInput + totalOutput).toLocaleString();
+
+  mainChart = new ApexCharts(document.getElementById('mainChart'), {
+    series: [
+      { name: 'Input Tokens', data: tokenHistory.map(d => d.input) },
+      { name: 'Output Tokens', data: tokenHistory.map(d => d.output) }
+    ],
+    chart: {
+      type: 'area',
+      height: 260,
+      stacked: true,
+      toolbar: { show: false },
+      background: 'transparent',
+      animations: { enabled: true, easing: 'easeinout', speed: 800 }
+    },
+    colors: [colors.line, colors.accent],
+    stroke: { width: 2, curve: 'smooth' },
+    fill: {
+      type: 'gradient',
+      gradient: { opacityFrom: 0.4, opacityTo: 0.1 }
+    },
+    xaxis: {
+      categories: tokenHistory.map(d => d.date),
+      labels: { style: { colors: colors.text, fontSize: '10px' } },
+      axisBorder: { show: false },
+      axisTicks: { show: false }
+    },
+    yaxis: {
+      labels: {
+        style: { colors: colors.text, fontSize: '10px' },
+        formatter: v => v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v
+      }
+    },
+    grid: {
+      borderColor: colors.grid,
+      strokeDashArray: 0
+    },
+    legend: { show: false },
+    tooltip: {
+      theme: theme === 'frost' || theme === 'dawn' ? 'light' : 'dark',
+      y: { formatter: v => v.toLocaleString() + ' tokens' }
+    }
+  });
+
+  mainChart.render();
+}
+
+// ==========================================
+// GIT GRAPH
+// ==========================================
+
+function renderGitGraph() {
+  const graphContainer = document.getElementById('gitFilesList');
+  if (!graphContainer || !data.git?.commits) return;
+
+  const commits = data.git.commits.slice(0, 8);
+
+  graphContainer.innerHTML = `
+    <div class="git-graph">
+      ${commits.map(c => `
+        <div class="git-commit-row">
+          <div class="git-graph-line">
+            <div class="git-graph-dot"></div>
+          </div>
+          <span class="git-commit-hash">${c.hash}</span>
+          <span class="git-commit-message">${c.message}</span>
+          <span class="git-commit-date">${c.date}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ==========================================
+// GANTT CHART FOR WAVES (Professional)
+// ==========================================
+
+function renderWavesGantt() {
+  const wavesList = document.getElementById('wavesList');
+  if (!wavesList || !data.waves || data.waves.length === 0) {
+    if (wavesList) wavesList.innerHTML = '<div class="waves-loading">No waves</div>';
+    return;
+  }
+
+  const now = new Date();
+
+  // Find earliest and latest dates from wave planned dates
+  let minDate = null;
+  let maxDate = null;
+
+  data.waves.forEach(wave => {
+    const start = wave.planned_start ? new Date(wave.planned_start) : null;
+    const end = wave.planned_end ? new Date(wave.planned_end) : null;
+
+    if (start && (!minDate || start < minDate)) minDate = start;
+    if (end && (!maxDate || end > maxDate)) maxDate = end;
+  });
+
+  // Fallback if no planned dates
+  if (!minDate) minDate = new Date(now.getTime() - 86400000);
+  if (!maxDate) maxDate = new Date(now.getTime() + 7 * 86400000);
+
+  // Add padding
+  const padding = 12 * 3600000; // 12 hours
+  minDate = new Date(minDate.getTime() - padding);
+  maxDate = new Date(maxDate.getTime() + padding);
+
+  const totalMs = maxDate - minDate;
+  const totalDays = Math.ceil(totalMs / 86400000);
+
+  // Generate time headers based on total duration
+  const headers = [];
+  if (totalDays <= 3) {
+    // Show hours for short durations
+    for (let t = minDate.getTime(); t <= maxDate.getTime(); t += 6 * 3600000) {
+      const d = new Date(t);
+      headers.push({
+        label: d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' }),
+        time: t
+      });
+    }
+  } else {
+    // Show days
+    for (let i = 0; i <= totalDays; i++) {
+      const d = new Date(minDate.getTime() + i * 86400000);
+      headers.push({
+        label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        time: d.getTime()
+      });
+    }
+  }
+
+  // Calculate today marker position
+  const todayPos = ((now - minDate) / totalMs) * 100;
+  const showToday = todayPos >= 0 && todayPos <= 100;
+
+  // Build dependency map
+  const waveMap = {};
+  data.waves.forEach(w => { waveMap[w.wave_id] = w; });
+
+  wavesList.innerHTML = `
+    <div class="gantt-container">
+      <div class="gantt-header">
+        <div class="gantt-header-label">WAVE</div>
+        <div class="gantt-header-timeline">
+          ${headers.map(h => `<div class="gantt-header-day">${h.label}</div>`).join('')}
+        </div>
+      </div>
+      <div class="gantt-body">
+        ${showToday ? `<div class="gantt-today-marker" style="left:calc(200px + ${todayPos}% * (100% - 200px) / 100);" title="Today"></div>` : ''}
+        ${data.waves.map((wave, idx) => {
+          const start = wave.planned_start ? new Date(wave.planned_start) : null;
+          const end = wave.planned_end ? new Date(wave.planned_end) : null;
+          const actual_start = wave.started_at ? new Date(wave.started_at) : null;
+          const actual_end = wave.completed_at ? new Date(wave.completed_at) : null;
+
+          // Calculate planned bar position
+          let plannedLeft = 0, plannedWidth = 5;
+          if (start && end) {
+            plannedLeft = ((start - minDate) / totalMs) * 100;
+            plannedWidth = Math.max(2, ((end - start) / totalMs) * 100);
+          }
+
+          // Calculate actual bar position (if started)
+          let actualLeft = plannedLeft, actualWidth = 0;
+          if (actual_start) {
+            actualLeft = ((actual_start - minDate) / totalMs) * 100;
+            const actualEndTime = actual_end || now;
+            actualWidth = Math.max(1, ((actualEndTime - actual_start) / totalMs) * 100);
+          }
+
+          // Progress
+          const progress = wave.tasks_total > 0 ? Math.round((wave.tasks_done / wave.tasks_total) * 100) : 0;
+
+          // Format dates for tooltip
+          const startStr = start ? start.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Not planned';
+          const endStr = end ? end.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Not planned';
+
+          // Dependency indicator
+          const hasDeps = wave.depends_on && wave.depends_on.length > 0;
+
+          return `
+            <div class="gantt-row" onclick="drillIntoWave('${wave.wave_id}')" title="${wave.name}&#10;Start: ${startStr}&#10;End: ${endStr}&#10;Progress: ${progress}%">
+              <div class="gantt-label">
+                <div class="gantt-label-status ${wave.status}"></div>
+                <div class="gantt-label-info">
+                  <span class="gantt-label-text">${wave.wave_id}</span>
+                  ${hasDeps ? `<span class="gantt-dep-badge" title="Depends on: ${wave.depends_on}">&#x2192; ${wave.depends_on}</span>` : ''}
+                </div>
+              </div>
+              <div class="gantt-timeline">
+                ${start && end ? `
+                  <div class="gantt-bar planned ${wave.status}" style="left:${plannedLeft}%;width:${plannedWidth}%;">
+                    <div class="gantt-bar-progress" style="width:${progress}%"></div>
+                    <span class="gantt-bar-label">${wave.tasks_done}/${wave.tasks_total}</span>
+                  </div>
+                ` : `<div class="gantt-no-dates">No dates</div>`}
+                ${actual_start && wave.status !== 'done' ? `
+                  <div class="gantt-bar actual" style="left:${actualLeft}%;width:${actualWidth}%;"></div>
+                ` : ''}
+              </div>
+              <div class="gantt-dates">
+                <span class="gantt-date-start">${startStr}</span>
+                <span class="gantt-date-end">${endStr}</span>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ==========================================
+// ENHANCED SHOWVIEW
+// ==========================================
+
+const originalShowView = showView;
+showView = function(view) {
+  currentView = view;
+
+  // Update nav menu active state
+  document.querySelectorAll('.nav-menu a').forEach(a => {
+    a.classList.remove('active');
+    const linkText = a.textContent.toLowerCase();
+    if (linkText.includes(view) || (view === 'bugs' && linkText.includes('bugs'))) {
+      a.classList.add('active');
+    }
+  });
+
+  // All view elements
+  const dashboardElements = ['wavesSummary', 'drilldownPanel'];
+  const chartCard = document.querySelector('.chart-card');
+  const tradersSection = document.querySelector('.traders-section');
+  const kanbanView = document.getElementById('kanbanView');
+  const wavesView = document.getElementById('wavesView');
+  const bugsView = document.getElementById('bugsView');
+  const agentsView = document.getElementById('agentsView');
+  const notificationsView = document.getElementById('notificationsView');
+  const statsRow = document.querySelector('.stats-row');
+  const epochBar = document.querySelector('.epoch-bar');
+  const planLabel = document.querySelector('.stats-label');
+
+  // Hide all specialized views first
+  [kanbanView, wavesView, bugsView, agentsView, notificationsView].forEach(v => {
+    if (v) v.style.display = 'none';
+  });
+
+  // Hide/show dashboard elements based on view
+  const hideDashboard = view !== 'dashboard';
+  dashboardElements.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = hideDashboard ? 'none' : '';
+  });
+  if (chartCard) chartCard.style.display = hideDashboard ? 'none' : '';
+  if (tradersSection) tradersSection.style.display = hideDashboard ? 'none' : '';
+  if (statsRow) statsRow.style.display = hideDashboard ? 'none' : '';
+  if (epochBar) epochBar.style.display = hideDashboard ? 'none' : '';
+  if (planLabel) planLabel.style.display = hideDashboard ? 'none' : '';
+
+  // Show the selected view and load its data
+  switch (view) {
+    case 'kanban':
+      if (kanbanView) kanbanView.style.display = 'block';
+      loadKanban();
+      break;
+    case 'waves':
+      if (wavesView) wavesView.style.display = 'block';
+      loadWavesView();
+      break;
+    case 'bugs':
+      if (bugsView) bugsView.style.display = 'block';
+      loadBugsView();
+      break;
+    case 'agents':
+      if (agentsView) agentsView.style.display = 'block';
+      loadAgentsView();
+      break;
+    case 'notifications':
+      if (notificationsView) notificationsView.style.display = 'block';
+      loadNotificationsView();
+      break;
+    case 'dashboard':
+    default:
+      // Dashboard elements are already shown
+      // Render token chart instead of progress chart
+      if (chartMode === 'tokens') {
+        destroyCharts();
+        renderTokenChart();
+        renderAgents();
+      }
+      break;
+  }
+};
+
+// ==========================================
+// ENHANCED RENDER - Use Gantt for waves
+// ==========================================
+
+const baseRender = render;
+render = function() {
+  // Header
+  document.getElementById('projectName').textContent = data.meta.project;
+  document.getElementById('planLabel').textContent = data.meta.project;
+  document.getElementById('throughputBadge').textContent = data.metrics.throughput.percent + '%';
+
+  // Stats - real data or n/d
+  document.getElementById('tasksDone').textContent = `${data.metrics.throughput.done}/${data.metrics.throughput.total}`;
+  document.getElementById('tokensUsed').textContent = data.tokens?.total ? data.tokens.total.toLocaleString() : 'n/d';
+  document.getElementById('avgTokensPerTask').textContent = data.tokens?.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
+  const wavesDone = data.waves.filter(w => w.status === 'done').length;
+  document.getElementById('wavesStatus').textContent = `${wavesDone}/${data.waves.length}`;
+  document.getElementById('progressPercent').textContent = data.metrics.throughput.percent + '%';
+
+  // Epoch bar
+  const currentWave = data.waves.find(w => w.status === 'in_progress') || data.waves[data.waves.length - 1];
+  if (currentWave) {
+    document.getElementById('currentWave').textContent = currentWave.id + ' - ' + currentWave.name;
+  }
+
+  const start = data.timeline.start.replace('T', ' ').slice(0, 16);
+  const eta = data.timeline.eta.replace('T', ' ').slice(0, 16);
+  document.getElementById('epochDates').innerHTML = start + ' &#8212; ' + eta;
+  document.getElementById('countdown').textContent = data.timeline.remaining + ' left';
+
+  // Calculate progress percentage for epoch bar
+  const totalTasks = data.metrics.throughput.total;
+  const doneTasks = data.metrics.throughput.done;
+  const epochProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  document.getElementById('epochFill').style.width = epochProgress + '%';
+
+  // Git
+  if (data.git) {
+    document.getElementById('gitBranch').textContent = data.git.currentBranch;
+    renderGitTab();
+    renderGitGraph();
+  }
+
+  // Update right panel
+  updateHealthStatus();
+  renderIssuesPanel();
+  renderTokensTab();
+
+  // Use Gantt chart for waves
+  renderWavesGantt();
+
+  // Token chart instead of progress chart
+  if (chartMode === 'tokens') {
+    renderTokenChart();
+  } else {
+    renderChart();
+  }
+  renderAgents();
+};
+
+// Start notification polling on init
+const originalInit = init;
+init = async function() {
+  await originalInit();
+  startNotificationPolling();
+};
 
 document.addEventListener('DOMContentLoaded', init);

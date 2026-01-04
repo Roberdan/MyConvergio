@@ -34,8 +34,8 @@
       </div>
     </div>
     <div class="nav-menu">
+      <a href="#" onclick="showView('kanban')">Control Center <span class="nav-count" id="navKanbanCount"></span></a>
       <a href="#" class="active" onclick="showView('dashboard')">Dashboard</a>
-      <a href="#" onclick="showView('kanban')">Kanban <span class="nav-count" id="navKanbanCount"></span></a>
       <a href="#" onclick="showView('waves')">Waves <span class="nav-count" id="navWavesCount"></span></a>
       <a href="#" onclick="showView('issues')">Issues <span class="nav-count" id="navIssuesCount"></span></a>
       <a href="#" onclick="showView('agents')">Agents</a>
@@ -58,6 +58,7 @@
         </select>
       </div>
       <button class="nav-btn" id="exportBtn">Export</button>
+      <button class="nav-btn nav-btn-danger" id="shutdownBtn" onclick="shutdownDashboard()" title="Shutdown server and close dashboard">Shutdown</button>
     </div>
   </nav>
 
@@ -501,6 +502,15 @@
           <div class="blockers-list" id="blockersList"></div>
         </div>
 
+        <!-- Pull Requests Section -->
+        <div class="pr-section" id="prSection" style="display:none;">
+          <div class="pr-header">
+            <span>Open Pull Requests</span>
+            <span class="pr-count" id="prCount">0</span>
+          </div>
+          <div class="pr-list" id="prList"></div>
+        </div>
+
         <!-- Current Focus -->
         <div class="focus-section">
           <div class="focus-header">Current Focus</div>
@@ -574,12 +584,14 @@
   <script src="js/git-panel.js"></script>
   <script src="js/git-commit-viewer.js"></script>
   <script src="js/git-actions.js"></script>
+  <script src="js/git-watcher.js"></script>
   <script src="js/diff-utils.js"></script>
   <script src="js/diff-viewer.js"></script>
   <script src="js/views.js"></script>
   <script src="js/views-kanban.js"></script>
   <script src="js/views-secondary.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/system.js"></script>
   <script src="js/init.js"></script>
 </body>
 </html>

@@ -120,6 +120,7 @@ async function selectProject(projectId) {
     loadGitHubData();
     loadGitData();
     loadTokenData();
+    connectGitWatcher(projectId);
   } catch (e) {
     console.error('Failed to load project plans:', e);
     try {

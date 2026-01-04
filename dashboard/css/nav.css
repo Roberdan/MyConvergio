@@ -110,6 +110,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.nav-btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.nav-btn-danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
 }
 
 /* Theme Selector */

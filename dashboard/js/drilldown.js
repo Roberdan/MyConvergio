@@ -43,17 +43,83 @@ function drillIntoWave(waveId) {
     return;
   }
 
-  document.getElementById('drilldownContent').innerHTML = tasks.map(t => {
-    const statusClass = t.status === 'done' ? 'green' : t.status === 'in_progress' ? 'orange' : t.status === 'blocked' ? 'red' : '';
-    return `
-      <div class="task-item" onclick="drillIntoTask('${waveId}', '${t.id}')">
-        <span class="task-id">${t.id}</span>
-        <span class="task-title">${t.title}</span>
-        <span class="task-status ${statusClass}">${t.status}</span>
-        ${t.timing?.duration ? `<span class="task-duration">${t.timing.duration}m</span>` : ''}
-      </div>
-    `;
-  }).join('');
+  // Helper function for status icon
+  const getStatusIcon = (status) => {
+    if (status === 'done') return '✓';
+    if (status === 'in_progress') return '●';
+    if (status === 'blocked') return '✖';
+    return '○';
+  };
+
+  // Helper function for priority badge
+  const getPriorityBadge = (priority) => {
+    if (!priority) return '<span class="task-priority-badge">-</span>';
+    const pClass = priority === 'P0' || priority === 'P1' ? 'high' : priority === 'P2' ? 'medium' : 'low';
+    return `<span class="task-priority-badge ${pClass}">${priority}</span>`;
+  };
+
+  // Build table
+  const tableHTML = `
+    <div class="task-table-container">
+      <table class="task-table">
+        <thead>
+          <tr>
+            <th class="task-col-id">ID</th>
+            <th class="task-col-title">Task</th>
+            <th class="task-col-status">Status</th>
+            <th class="task-col-priority">Priority</th>
+            <th class="task-col-assignee">Assignee</th>
+            <th class="task-col-tokens">Tokens</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tasks.map(t => {
+            const statusClass = t.status === 'done' ? 'done' : t.status === 'in_progress' ? 'in-progress' : t.status === 'blocked' ? 'blocked' : 'pending';
+            const tokens = t.tokens ? t.tokens.toLocaleString() : '-';
+            const assignee = t.assignee || '-';
+
+            return `
+              <tr class="task-row" onclick="drillIntoTask('${waveId}', '${t.id}')">
+                <td class="task-col-id">
+                  <span class="task-id-badge">${t.id}</span>
+                </td>
+                <td class="task-col-title">
+                  <div class="task-title-cell">
+                    <span class="task-title-text">${t.title}</span>
+                    ${t.type ? `<span class="task-type-badge">${t.type}</span>` : ''}
+                  </div>
+                </td>
+                <td class="task-col-status">
+                  <span class="task-status-badge ${statusClass}">
+                    <span class="task-status-icon">${getStatusIcon(t.status)}</span>
+                    ${t.status.replace('_', ' ')}
+                  </span>
+                </td>
+                <td class="task-col-priority">
+                  ${getPriorityBadge(t.priority)}
+                </td>
+                <td class="task-col-assignee">
+                  <span class="task-assignee-badge">${assignee}</span>
+                </td>
+                <td class="task-col-tokens">
+                  <span class="task-tokens-value">${tokens}</span>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="task-table-footer">
+      <span>${tasks.length} task${tasks.length !== 1 ? 's' : ''}</span>
+      <span>•</span>
+      <span>${tasks.filter(t => t.status === 'done').length} completed</span>
+      <span>•</span>
+      <span>${tasks.filter(t => t.status === 'in_progress').length} in progress</span>
+    </div>
+  `;
+
+  document.getElementById('drilldownContent').innerHTML = tableHTML;
 }
 
 function drillIntoTask(waveId, taskId) {
@@ -71,38 +137,108 @@ function drillIntoTask(waveId, taskId) {
   };
 
   const thorBadge = task.validated_by
-    ? `<span class="thor-badge approved" title="Validated ${formatDate(task.validated_at)}">Thor Approved</span>`
+    ? `<span class="thor-badge approved" title="Validated ${formatDate(task.validated_at)}">✓ Thor Approved</span>`
     : task.status === 'done'
-    ? `<span class="thor-badge pending">Pending Validation</span>`
+    ? `<span class="thor-badge pending">⏳ Pending Validation</span>`
     : '';
 
+  const statusIcon = task.status === 'done' ? '✓' : task.status === 'in_progress' ? '●' : task.status === 'blocked' ? '✖' : '○';
+  const statusClass = task.status === 'done' ? 'done' : task.status === 'in_progress' ? 'in-progress' : task.status === 'blocked' ? 'blocked' : 'pending';
+
   document.getElementById('drilldownContent').innerHTML = `
-    <div class="task-detail">
-      <div class="task-header-row">
-        <h3>${task.title}</h3>
-        ${thorBadge}
-      </div>
-      <div class="task-meta">
-        <div><strong>Status:</strong> ${task.status}</div>
-        <div><strong>Assignee:</strong> ${task.assignee || '-'}</div>
-        <div><strong>Priority:</strong> ${task.priority || '-'}</div>
-        <div><strong>Type:</strong> ${task.type || '-'}</div>
-      </div>
-      <div class="task-timing">
-        <div><strong>Started:</strong> ${formatDate(task.started_at)}</div>
-        <div><strong>Completed:</strong> ${formatDate(task.completed_at)}</div>
-        <div><strong>Duration:</strong> ${task.duration_minutes ? task.duration_minutes + ' min' : '-'}</div>
-      </div>
-      <div class="task-tokens">
-        <strong>Tokens:</strong> ${task.tokens ? task.tokens.toLocaleString() : '0'}
-      </div>
-      ${task.files?.length ? `
-        <div class="task-files">
-          <strong>Files:</strong>
-          <ul>${task.files.map(f => `<li>${f}</li>`).join('')}</ul>
+    <div class="task-detail-card">
+      <!-- Header -->
+      <div class="task-detail-header">
+        <div class="task-detail-title-row">
+          <h2 class="task-detail-title">${task.title}</h2>
+          ${thorBadge}
         </div>
-      ` : ''}
-      ${task.notes ? `<div class="task-notes"><strong>Notes:</strong> ${task.notes}</div>` : ''}
+        <div class="task-detail-meta-row">
+          <span class="task-detail-status ${statusClass}">
+            <span class="task-status-icon">${statusIcon}</span>
+            ${task.status.replace('_', ' ').toUpperCase()}
+          </span>
+          <span class="task-detail-separator">•</span>
+          <span class="task-detail-id">${task.id}</span>
+        </div>
+      </div>
+
+      <!-- Info Grid -->
+      <div class="task-detail-grid">
+        <div class="task-detail-section">
+          <div class="task-detail-section-title">Overview</div>
+          <div class="task-detail-info-grid">
+            <div class="task-detail-info-item">
+              <span class="task-detail-label">Assignee</span>
+              <span class="task-detail-value">${task.assignee || '-'}</span>
+            </div>
+            <div class="task-detail-info-item">
+              <span class="task-detail-label">Priority</span>
+              <span class="task-detail-value priority-${task.priority || 'none'}">${task.priority || '-'}</span>
+            </div>
+            <div class="task-detail-info-item">
+              <span class="task-detail-label">Type</span>
+              <span class="task-detail-value">${task.type || '-'}</span>
+            </div>
+            <div class="task-detail-info-item">
+              <span class="task-detail-label">Tokens</span>
+              <span class="task-detail-value tokens">${task.tokens ? task.tokens.toLocaleString() : '0'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-detail-section">
+          <div class="task-detail-section-title">Timeline</div>
+          <div class="task-detail-timeline">
+            <div class="task-detail-timeline-item">
+              <div class="task-detail-timeline-dot start"></div>
+              <div class="task-detail-timeline-content">
+                <span class="task-detail-timeline-label">Started</span>
+                <span class="task-detail-timeline-value">${formatDate(task.started_at)}</span>
+              </div>
+            </div>
+            ${task.completed_at ? `
+              <div class="task-detail-timeline-item">
+                <div class="task-detail-timeline-dot end"></div>
+                <div class="task-detail-timeline-content">
+                  <span class="task-detail-timeline-label">Completed</span>
+                  <span class="task-detail-timeline-value">${formatDate(task.completed_at)}</span>
+                </div>
+              </div>
+            ` : ''}
+            ${task.duration_minutes ? `
+              <div class="task-detail-timeline-item">
+                <div class="task-detail-timeline-dot duration"></div>
+                <div class="task-detail-timeline-content">
+                  <span class="task-detail-timeline-label">Duration</span>
+                  <span class="task-detail-timeline-value">${task.duration_minutes} min</span>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        ${task.files?.length ? `
+          <div class="task-detail-section">
+            <div class="task-detail-section-title">Files Modified (${task.files.length})</div>
+            <div class="task-detail-files">
+              ${task.files.map(f => `
+                <div class="task-detail-file">
+                  <span class="task-file-icon">📄</span>
+                  <span class="task-file-path">${f}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        ${task.notes ? `
+          <div class="task-detail-section full-width">
+            <div class="task-detail-section-title">Notes</div>
+            <div class="task-detail-notes">${task.notes}</div>
+          </div>
+        ` : ''}
+      </div>
     </div>
   `;
 }

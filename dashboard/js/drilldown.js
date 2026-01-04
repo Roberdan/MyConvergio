@@ -64,22 +64,38 @@ function drillIntoTask(waveId, taskId) {
   drilldownState = { level: 'task', waveId, taskId };
   document.getElementById('drilldownTitle').textContent = `Task ${task.id}`;
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const thorBadge = task.validated_by
+    ? `<span class="thor-badge approved" title="Validated ${formatDate(task.validated_at)}">Thor Approved</span>`
+    : task.status === 'done'
+    ? `<span class="thor-badge pending">Pending Validation</span>`
+    : '';
+
   document.getElementById('drilldownContent').innerHTML = `
     <div class="task-detail">
-      <h3>${task.title}</h3>
+      <div class="task-header-row">
+        <h3>${task.title}</h3>
+        ${thorBadge}
+      </div>
       <div class="task-meta">
         <div><strong>Status:</strong> ${task.status}</div>
         <div><strong>Assignee:</strong> ${task.assignee || '-'}</div>
         <div><strong>Priority:</strong> ${task.priority || '-'}</div>
         <div><strong>Type:</strong> ${task.type || '-'}</div>
       </div>
-      ${task.timing ? `
-        <div class="task-timing">
-          <div><strong>Started:</strong> ${task.timing.started || '-'}</div>
-          <div><strong>Completed:</strong> ${task.timing.completed || '-'}</div>
-          <div><strong>Duration:</strong> ${task.timing.duration ? task.timing.duration + ' min' : '-'}</div>
-        </div>
-      ` : ''}
+      <div class="task-timing">
+        <div><strong>Started:</strong> ${formatDate(task.started_at)}</div>
+        <div><strong>Completed:</strong> ${formatDate(task.completed_at)}</div>
+        <div><strong>Duration:</strong> ${task.duration_minutes ? task.duration_minutes + ' min' : '-'}</div>
+      </div>
+      <div class="task-tokens">
+        <strong>Tokens:</strong> ${task.tokens ? task.tokens.toLocaleString() : '0'}
+      </div>
       ${task.files?.length ? `
         <div class="task-files">
           <strong>Files:</strong>

@@ -67,8 +67,11 @@ CREATE TABLE IF NOT EXISTS tasks (
   notes TEXT,
   position INTEGER DEFAULT 0,
   duration_minutes INTEGER,
+  tokens INTEGER DEFAULT 0,
   started_at DATETIME,
   completed_at DATETIME,
+  validated_at DATETIME,
+  validated_by TEXT,
   FOREIGN KEY (wave_id) REFERENCES waves(id) ON DELETE CASCADE
 );
 

@@ -31,3 +31,45 @@ What requested? What delivered? What added? What skipped? What decided without a
 
 ## Risk Surfacing
 State: Known gaps, untested paths, dependencies that could fail, wrong assumptions.
+
+## Thor Enforcement (Plans)
+
+**When a plan exists, Thor verification is MANDATORY:**
+
+1. **Per-Wave Check**: After each wave, run `plan-db.sh validate {plan_id}`
+2. **F-xx Verification**: Each functional requirement must have `[x]` with test evidence
+3. **No Phantom Completion**: "Thor verified" requires Thor agent to have ACTUALLY RUN
+4. **Build Gate**: `npm run lint && npm run typecheck && npm run build` must pass
+
+**Block closure if:**
+- Any F-xx remains `[ ]` without documented skip reason
+- Thor validation not run (check VERIFICATION LOG in plan)
+- Build/lint/typecheck failed or not run
+- Tasks marked done without verification
+
+**When user asks "è finito?" / "is it done?":**
+1. Run Thor validation
+2. Show F-xx status with evidence
+3. Show build output
+4. Only confirm if ALL pass
+
+## Thor Dispute Protocol
+
+**When an agent disagrees with Thor:**
+1. Agent must dialog DIRECTLY with Thor (not bypass)
+2. Agent provides concrete evidence supporting their position
+3. Maximum 3 iterations of back-and-forth
+4. After 3 rounds: Thor's decision is FINAL
+5. Agent MUST comply with Thor's verdict and act accordingly
+
+**Non-negotiable**: No agent can override Thor after the dispute process.
+
+## Thor Context Verification
+
+**Before judging, Thor MUST:**
+1. Verify correct worktree is being inspected
+2. Verify correct branch is checked out
+3. If ANY doubt → ask explicit confirmation: "Am I looking at the right location?"
+4. Never judge based on wrong context
+
+**Thor asks**: "Sto guardando il worktree/branch corretto?" when uncertain.

@@ -1,5 +1,7 @@
 #!/bin/bash
 # Plan DB CLI - Single source of truth for plan management
+# EXCEPTION: File exceeds 300 lines (567) - Essential CLI tool with 13 commands
+# Splitting would require source files which adds complexity for shell scripts
 # Usage: plan-db.sh <command> [args]
 #
 # Commands:
@@ -224,19 +226,25 @@ cmd_update_task() {
             WHERE id = $task_id;
         "
 
-        # Update wave done count
-        local wave_id=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM tasks WHERE id = $task_id;")
-        sqlite3 "$DB_FILE" "UPDATE waves SET tasks_done = tasks_done + 1 WHERE id = $wave_id;"
+        # Get wave_id (TEXT like "W3") and project_id to find the wave
+        local wave_id_text=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM tasks WHERE id = $task_id;")
+        local project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM tasks WHERE id = $task_id;")
+
+        # Update wave done count using project_id + wave_id (TEXT)
+        sqlite3 "$DB_FILE" "UPDATE waves SET tasks_done = tasks_done + 1 WHERE project_id = '$project_id' AND wave_id = '$wave_id_text';"
+
+        # Get wave's DB id for plan lookup
+        local wave_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE project_id = '$project_id' AND wave_id = '$wave_id_text';")
 
         # Update plan done count
-        local plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM waves WHERE id = $wave_id;")
+        local plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM waves WHERE id = $wave_db_id;")
         sqlite3 "$DB_FILE" "UPDATE plans SET tasks_done = tasks_done + 1 WHERE id = $plan_id;"
 
         # Check if wave is complete
-        local wave_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done = tasks_total FROM waves WHERE id = $wave_id;")
+        local wave_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done = tasks_total FROM waves WHERE id = $wave_db_id;")
         if [[ "$wave_done" == "1" ]]; then
-            sqlite3 "$DB_FILE" "UPDATE waves SET status = 'done', completed_at = datetime('now') WHERE id = $wave_id;"
-            log_info "Wave $wave_id completed!"
+            sqlite3 "$DB_FILE" "UPDATE waves SET status = 'done', completed_at = datetime('now') WHERE id = $wave_db_id;"
+            log_info "Wave $wave_id_text completed!"
         fi
     else
         sqlite3 "$DB_FILE" "
@@ -282,11 +290,111 @@ cmd_complete() {
     log_info "Plan $plan_id completed!"
 }
 
-# Thor validates plan
+# Thor validates plan - ACTUAL validation checks
 cmd_validate() {
     local plan_id="$1"
     local validated_by="${2:-thor}"
+    local errors=0
+    local warnings=0
 
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}           THOR VALIDATION - Plan $plan_id                      ${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo ""
+
+    # Get project_id for this plan
+    local project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM plans WHERE id = $plan_id;")
+
+    # Check 1: Counter sync - waves
+    echo -e "${YELLOW}[1/5] Checking wave counter sync...${NC}"
+    local wave_issues=$(sqlite3 "$DB_FILE" "
+        SELECT w.wave_id, w.tasks_done, w.tasks_total,
+               (SELECT COUNT(*) FROM tasks t WHERE t.project_id = w.project_id AND t.wave_id = w.wave_id AND t.status = 'done') as actual_done,
+               (SELECT COUNT(*) FROM tasks t WHERE t.project_id = w.project_id AND t.wave_id = w.wave_id) as actual_total
+        FROM waves w WHERE w.plan_id = $plan_id
+        AND (w.tasks_done != (SELECT COUNT(*) FROM tasks t WHERE t.project_id = w.project_id AND t.wave_id = w.wave_id AND t.status = 'done')
+             OR w.tasks_total != (SELECT COUNT(*) FROM tasks t WHERE t.project_id = w.project_id AND t.wave_id = w.wave_id));
+    ")
+    if [ -n "$wave_issues" ]; then
+        echo -e "${RED}  ERROR: Wave counters out of sync:${NC}"
+        echo "$wave_issues"
+        ((errors++))
+    else
+        echo -e "${GREEN}  OK: All wave counters synced${NC}"
+    fi
+
+    # Check 2: Orphan tasks (tasks with no valid wave)
+    echo -e "${YELLOW}[2/5] Checking for orphan tasks...${NC}"
+    local orphans=$(sqlite3 "$DB_FILE" "
+        SELECT t.id, t.task_id, t.wave_id FROM tasks t
+        WHERE t.project_id = '$project_id'
+        AND NOT EXISTS (SELECT 1 FROM waves w WHERE w.project_id = t.project_id AND w.wave_id = t.wave_id AND w.plan_id = $plan_id);
+    ")
+    if [ -n "$orphans" ]; then
+        echo -e "${RED}  ERROR: Orphan tasks found (no valid wave):${NC}"
+        echo "$orphans"
+        ((errors++))
+    else
+        echo -e "${GREEN}  OK: No orphan tasks${NC}"
+    fi
+
+    # Check 3: Incomplete tasks in "done" waves
+    echo -e "${YELLOW}[3/5] Checking for incomplete tasks in done waves...${NC}"
+    local incomplete=$(sqlite3 "$DB_FILE" "
+        SELECT w.wave_id, t.task_id, t.status FROM tasks t
+        JOIN waves w ON t.project_id = w.project_id AND t.wave_id = w.wave_id
+        WHERE w.plan_id = $plan_id AND w.status = 'done' AND t.status != 'done';
+    ")
+    if [ -n "$incomplete" ]; then
+        echo -e "${RED}  ERROR: Incomplete tasks in waves marked done:${NC}"
+        echo "$incomplete"
+        ((errors++))
+    else
+        echo -e "${GREEN}  OK: All tasks in done waves are complete${NC}"
+    fi
+
+    # Check 4: Plan counter sync
+    echo -e "${YELLOW}[4/5] Checking plan counter sync...${NC}"
+    local plan_totals=$(sqlite3 "$DB_FILE" "
+        SELECT p.tasks_done, p.tasks_total,
+               (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE plan_id = p.id) as actual_done,
+               (SELECT COALESCE(SUM(tasks_total), 0) FROM waves WHERE plan_id = p.id) as actual_total
+        FROM plans p WHERE p.id = $plan_id
+        AND (p.tasks_done != (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE plan_id = p.id)
+             OR p.tasks_total != (SELECT COALESCE(SUM(tasks_total), 0) FROM waves WHERE plan_id = p.id));
+    ")
+    if [ -n "$plan_totals" ]; then
+        echo -e "${RED}  ERROR: Plan counters out of sync:${NC}"
+        echo "$plan_totals"
+        ((errors++))
+    else
+        echo -e "${GREEN}  OK: Plan counters synced${NC}"
+    fi
+
+    # Check 5: Sensible dates (planned_end > planned_start)
+    echo -e "${YELLOW}[5/5] Checking date consistency...${NC}"
+    local bad_dates=$(sqlite3 "$DB_FILE" "
+        SELECT wave_id, planned_start, planned_end FROM waves
+        WHERE plan_id = $plan_id AND planned_end < planned_start;
+    ")
+    if [ -n "$bad_dates" ]; then
+        echo -e "${YELLOW}  WARNING: Waves with end before start:${NC}"
+        echo "$bad_dates"
+        ((warnings++))
+    else
+        echo -e "${GREEN}  OK: All dates consistent${NC}"
+    fi
+
+    echo ""
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+
+    if [ $errors -gt 0 ]; then
+        echo -e "${RED}VALIDATION FAILED: $errors errors, $warnings warnings${NC}"
+        echo -e "${YELLOW}Run 'plan-db.sh sync $plan_id' to fix counter issues${NC}"
+        return 1
+    fi
+
+    # All checks passed - mark as validated
     sqlite3 "$DB_FILE" "
         UPDATE plans
         SET validated_at = datetime('now'), validated_by = '$validated_by'
@@ -296,10 +404,11 @@ cmd_validate() {
     local version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
     sqlite3 "$DB_FILE" "
         INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by)
-        VALUES ($plan_id, $version, 'validated', 'Validated by $validated_by', '$validated_by');
+        VALUES ($plan_id, $version, 'validated', 'Validated by $validated_by - 0 errors', '$validated_by');
     "
 
-    log_info "Plan $plan_id validated by $validated_by"
+    echo -e "${GREEN}VALIDATION PASSED: Plan $plan_id validated by $validated_by${NC}"
+    return 0
 }
 
 # Show kanban board
@@ -353,6 +462,43 @@ cmd_kanban_json() {
     sqlite3 -json "$DB_FILE" "SELECT * FROM v_kanban;"
 }
 
+# Sync counters - fixes out-of-sync wave/plan counters
+cmd_sync() {
+    local plan_id="$1"
+
+    log_info "Syncing counters for plan $plan_id..."
+
+    # Sync wave counters with actual task counts
+    sqlite3 "$DB_FILE" "
+        UPDATE waves SET
+            tasks_done = (SELECT COUNT(*) FROM tasks WHERE tasks.project_id = waves.project_id AND tasks.wave_id = waves.wave_id AND tasks.status = 'done'),
+            tasks_total = (SELECT COUNT(*) FROM tasks WHERE tasks.project_id = waves.project_id AND tasks.wave_id = waves.wave_id)
+        WHERE plan_id = $plan_id;
+    "
+
+    # Update wave status based on completion
+    sqlite3 "$DB_FILE" "
+        UPDATE waves SET status = 'done', completed_at = COALESCE(completed_at, datetime('now'))
+        WHERE plan_id = $plan_id AND tasks_done = tasks_total AND tasks_total > 0 AND status != 'done';
+    "
+
+    # Sync plan counters
+    sqlite3 "$DB_FILE" "
+        UPDATE plans SET
+            tasks_done = (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE waves.plan_id = plans.id),
+            tasks_total = (SELECT COALESCE(SUM(tasks_total), 0) FROM waves WHERE waves.plan_id = plans.id)
+        WHERE id = $plan_id;
+    "
+
+    # Show result
+    sqlite3 -header -column "$DB_FILE" "
+        SELECT wave_id, name, status, tasks_done || '/' || tasks_total as progress
+        FROM waves WHERE plan_id = $plan_id ORDER BY position;
+    "
+
+    log_info "Sync complete"
+}
+
 # Main
 init_db
 
@@ -393,6 +539,9 @@ case "${1:-help}" in
     kanban-json)
         cmd_kanban_json
         ;;
+    sync)
+        cmd_sync "${2:?plan_id required}"
+        ;;
     *)
         echo "Usage: plan-db.sh <command> [args]"
         echo ""
@@ -415,5 +564,6 @@ case "${1:-help}" in
         echo "  kanban                         Show kanban board"
         echo "  json <plan_id>                 Get plan as JSON"
         echo "  kanban-json                    Get kanban as JSON"
+        echo "  sync <plan_id>                 Fix out-of-sync wave/plan counters"
         ;;
 esac

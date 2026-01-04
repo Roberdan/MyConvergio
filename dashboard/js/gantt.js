@@ -21,30 +21,48 @@ function renderWavesGantt() {
   if (!minDate) minDate = new Date(now.getTime() - 86400000);
   if (!maxDate) maxDate = new Date(now.getTime() + 7 * 86400000);
 
-  const padding = 12 * 3600000;
-  minDate = new Date(minDate.getTime() - padding);
-  maxDate = new Date(maxDate.getTime() + padding);
+  // Smart padding: 15% of data range, min 30min, max 6h
+  const dataRange = maxDate - minDate;
+  const dynamicPadding = Math.max(30 * 60000, Math.min(6 * 3600000, dataRange * 0.15));
+  minDate = new Date(minDate.getTime() - dynamicPadding);
+  maxDate = new Date(maxDate.getTime() + dynamicPadding);
 
   const totalMs = maxDate - minDate;
   const totalDays = Math.ceil(totalMs / 86400000);
+  const totalHours = totalMs / 3600000;
 
+  // Smart header intervals based on total time range
   const headers = [];
-  if (totalDays <= 3) {
-    for (let t = minDate.getTime(); t <= maxDate.getTime(); t += 6 * 3600000) {
-      const d = new Date(t);
-      headers.push({
-        label: d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' }),
-        time: t
-      });
-    }
+  let interval, formatOpts;
+
+  if (totalHours <= 3) {
+    // Under 3 hours: 30-minute intervals
+    interval = 30 * 60000;
+    formatOpts = { hour: '2-digit', minute: '2-digit' };
+  } else if (totalHours <= 8) {
+    // 3-8 hours: 1-hour intervals
+    interval = 3600000;
+    formatOpts = { hour: '2-digit', minute: '2-digit' };
+  } else if (totalDays <= 2) {
+    // 8h - 2 days: 3-hour intervals
+    interval = 3 * 3600000;
+    formatOpts = { month: 'short', day: 'numeric', hour: '2-digit' };
+  } else if (totalDays <= 7) {
+    // 2-7 days: 6-hour intervals
+    interval = 6 * 3600000;
+    formatOpts = { month: 'short', day: 'numeric', hour: '2-digit' };
   } else {
-    for (let i = 0; i <= totalDays; i++) {
-      const d = new Date(minDate.getTime() + i * 86400000);
-      headers.push({
-        label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        time: d.getTime()
-      });
-    }
+    // Over 7 days: daily intervals
+    interval = 86400000;
+    formatOpts = { month: 'short', day: 'numeric' };
+  }
+
+  for (let t = minDate.getTime(); t <= maxDate.getTime(); t += interval) {
+    const d = new Date(t);
+    headers.push({
+      label: d.toLocaleString('en-US', formatOpts),
+      time: t
+    });
   }
 
   const todayPos = ((now - minDate) / totalMs) * 100;

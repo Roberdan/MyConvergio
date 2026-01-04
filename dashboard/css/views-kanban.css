@@ -16,6 +16,14 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   min-height: 400px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .kanban-board {
+    grid-template-columns: 1fr;
+  }
 }
 
 .kanban-column {

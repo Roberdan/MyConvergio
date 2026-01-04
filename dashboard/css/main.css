@@ -21,10 +21,13 @@
 /* Views */
 @import url('./views-kanban.css');
 @import url('./views-other.css');
-@import url('./control-center.css');
+@import url('./control-center-layout.css');
+@import url('./control-center-kanban.css');
+@import url('./control-center-modal.css');
 @import url('./commit-viewer.css');
 @import url('./drilldown.css');
 @import url('./diff-viewer.css');
+@import url('./diff-viewer-markdown.css');
 
 /* Right Panel */
 @import url('./right-panel.css');

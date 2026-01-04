@@ -24,3 +24,33 @@ Branch names: feature/, fix/, chore/. Never merge to main directly. PRs for revi
 
 ## Parallel Work
 Independent calls simultaneously. Subagents for parallel workstreams. Identify parallelizable during planning.
+
+## Full Plan Execution (NON-NEGOTIABLE)
+
+**If a plan is requested to be executed fully:**
+1. Execute 100% of tasks - no exceptions
+2. No unilateral "skip" of any task
+3. No scope negotiation mid-execution
+4. Plan incomplete = Plan FAILED
+
+**Forbidden phrases:**
+- "I'll skip this for now"
+- "This can be done later"
+- "Not critical, moving on"
+- "Out of scope" (if it was IN the plan)
+
+## No "Non-Blocking Missing"
+
+**If something is missing, it IS blocking.**
+
+Forbidden:
+- "Missing but non-blocking"
+- "Not implemented but doesn't affect..."
+- "We can live without..."
+
+Reality:
+- Missing = Blocking
+- Incomplete = Failed
+- Partial = Not done
+
+**Agent says "missing"? → Task is BLOCKED until resolved.**

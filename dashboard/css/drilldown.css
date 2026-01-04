@@ -235,3 +235,99 @@
   border-radius: 10px;
   font-size: 10px;
 }
+
+/* Task Detail */
+.task-detail { padding: 8px 0; }
+
+.task-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.task-header-row h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.thor-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.thor-badge.approved {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+
+.thor-badge.pending {
+  background: rgba(247, 147, 26, 0.15);
+  color: var(--orange);
+  border: 1px solid var(--orange);
+}
+
+.task-meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+  padding: 12px;
+  background: var(--bg-input);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.task-timing {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-input);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.task-tokens {
+  padding: 12px;
+  background: var(--bg-input);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.task-files {
+  padding: 12px;
+  background: var(--bg-input);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.task-files ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.task-files li {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+.task-notes {
+  padding: 12px;
+  background: var(--bg-input);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}

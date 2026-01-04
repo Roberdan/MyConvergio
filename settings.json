@@ -13,6 +13,20 @@
     "deny": [],
     "defaultMode": "bypassPermissions"
   },
+  "model": "haiku",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/session-end-tokens.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "input=$(cat); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); model=$(echo \"$input\" | jq -r '.model.display_name'); branch=''; if [ -d \"$cwd/.git\" ]; then cd \"$cwd\" 2>/dev/null && branch=$(git branch --show-current 2>/dev/null); fi; printf '\\033[2;38;5;117m%s\\033[0m' \"$(basename \"$cwd\")${branch:+ ($branch)} • $model\""

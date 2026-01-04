@@ -54,7 +54,7 @@ const routes = {
     for (const wave of waves) {
       wave.tasks = query(`
         SELECT id, task_id, title, status, assignee, priority, type,
-               started_at, completed_at
+               started_at, completed_at, duration_minutes, tokens, validated_at, validated_by
         FROM tasks WHERE project_id = '${plan.project_id}' AND wave_id = '${wave.wave_id}'
         ORDER BY task_id
       `);

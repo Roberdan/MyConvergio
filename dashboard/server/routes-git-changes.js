@@ -174,29 +174,7 @@ const routes = {
         diff = '';
       }
 
-      // Get file content - always for markdown (for preview), otherwise only for new files
-      let content = '';
-      let isNew = false;
       const language = getLanguage(ext);
-
-      if (fs.existsSync(fullPath)) {
-        if (!diff) {
-          // New file - get content
-          try {
-            content = fs.readFileSync(fullPath, 'utf-8');
-            isNew = true;
-          } catch (e) {
-            content = '';
-          }
-        } else if (language === 'markdown') {
-          // Modified markdown file - get content for preview
-          try {
-            content = fs.readFileSync(fullPath, 'utf-8');
-          } catch (e) {
-            content = '';
-          }
-        }
-      }
 
       // Get staged diff if file is staged
       let stagedDiff = '';
@@ -206,10 +184,46 @@ const routes = {
         stagedDiff = '';
       }
 
+      // Determine if file is truly new (untracked, not in git history)
+      let isNew = false;
+      let content = '';
+
+      if (!diff && !stagedDiff) {
+        // No diff at all - check if file is untracked
+        try {
+          const gitStatus = execSync(`git status --porcelain -- "${filePath}"`, { cwd, encoding: 'utf-8' });
+          isNew = gitStatus.trim().startsWith('??') || gitStatus.trim().startsWith('A ');
+        } catch (e) {
+          isNew = false;
+        }
+      }
+
+      // Get file content for new files or markdown preview
+      if (fs.existsSync(fullPath)) {
+        if (isNew || language === 'markdown') {
+          try {
+            content = fs.readFileSync(fullPath, 'utf-8');
+          } catch (e) {
+            content = '';
+          }
+        }
+      }
+
+      // Combine staged and unstaged diffs, or use whichever is available
+      let combinedDiff = '';
+      if (diff && stagedDiff) {
+        // Both staged and unstaged changes
+        combinedDiff = `=== Staged Changes ===\n${stagedDiff}\n\n=== Unstaged Changes ===\n${diff}`;
+      } else {
+        combinedDiff = stagedDiff || diff;
+      }
+
       return {
         path: filePath,
         extension: ext,
-        diff: diff || stagedDiff,
+        diff: combinedDiff,
+        stagedDiff: stagedDiff,
+        unstagedDiff: diff,
         content,
         isNew,
         language

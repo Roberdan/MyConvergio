@@ -110,8 +110,25 @@ function renderGitPanel() {
   const branchName = document.getElementById('gitCurrentBranchName');
   const dirtyIndicator = document.getElementById('gitBranchDirty');
 
-  if (repoName) repoName.textContent = data.project?.name || 'Project';
+  if (repoName) repoName.textContent = data.meta?.project || 'Project';
   if (branchName) branchName.textContent = git.currentBranch || 'main';
+
+  // Update repo avatar from GitHub
+  const avatarEl = document.getElementById('gitRepoAvatar');
+  const iconFallback = document.getElementById('gitRepoIconFallback');
+  if (avatarEl && data.github?.repo) {
+    const owner = data.github.repo.split('/')[0];
+    if (owner) {
+      avatarEl.src = `https://github.com/${owner}.png?size=40`;
+      avatarEl.alt = owner;
+      avatarEl.style.display = 'block';
+      avatarEl.onerror = () => {
+        avatarEl.style.display = 'none';
+        if (iconFallback) iconFallback.style.display = 'block';
+      };
+      if (iconFallback) iconFallback.style.display = 'none';
+    }
+  }
 
   const uncommitted = git.uncommitted || { staged: [], unstaged: [], untracked: [] };
   const totalChanges = (uncommitted.staged?.length || 0) + (uncommitted.unstaged?.length || 0) + (uncommitted.untracked?.length || 0);

@@ -3,20 +3,34 @@
 // Drag state
 let draggedPlanId = null;
 let draggedFromStatus = null;
+let kanbanDragInitialized = false;
 
 function initKanbanDragDrop() {
+  // Prevent duplicate listeners
+  if (kanbanDragInitialized) return;
+
   ['todo', 'doing', 'done'].forEach(status => {
     const container = document.getElementById(`kanban${status.charAt(0).toUpperCase() + status.slice(1)}`);
-    if (!container) return;
+    if (!container) {
+      console.warn('Kanban container not found:', status);
+      return;
+    }
 
-    container.addEventListener('dragover', (e) => {
+    // IMPORTANT: Both dragenter and dragover must preventDefault() to allow drop
+    container.addEventListener('dragenter', (e) => {
       e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
+      e.stopPropagation();
       container.classList.add('drag-over');
     });
 
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
     container.addEventListener('dragleave', (e) => {
-      // Only remove if leaving the container entirely
+      e.preventDefault();
       if (!container.contains(e.relatedTarget)) {
         container.classList.remove('drag-over');
       }
@@ -24,7 +38,10 @@ function initKanbanDragDrop() {
 
     container.addEventListener('drop', async (e) => {
       e.preventDefault();
+      e.stopPropagation();
       container.classList.remove('drag-over');
+
+      console.log('Drop event:', { draggedPlanId, draggedFromStatus, targetStatus: status });
 
       if (!draggedPlanId || draggedFromStatus === status) {
         draggedPlanId = null;
@@ -44,6 +61,8 @@ function initKanbanDragDrop() {
         if (result.success) {
           showToast(`Plan moved to ${status}`, 'success');
           await loadKanban();
+          // Refresh project list to reflect status changes
+          await loadProjects();
         } else {
           showToast(result.error || 'Failed to move plan', 'error');
         }
@@ -55,18 +74,28 @@ function initKanbanDragDrop() {
       draggedFromStatus = null;
     });
   });
+
+  kanbanDragInitialized = true;
+  console.log('Kanban drag & drop initialized');
 }
 
 function handleKanbanDragStart(e, planId, status) {
+  console.log('Drag start:', { planId, status });
   draggedPlanId = planId;
   draggedFromStatus = status;
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', planId);
-  e.target.classList.add('dragging');
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', planId);
+  }
+  if (e.target) {
+    e.target.classList.add('dragging');
+  }
 }
 
 function handleKanbanDragEnd(e) {
-  e.target.classList.remove('dragging');
+  if (e.target) {
+    e.target.classList.remove('dragging');
+  }
   document.querySelectorAll('.kanban-cards').forEach(c => c.classList.remove('drag-over'));
 }
 
@@ -171,12 +200,10 @@ function renderKanban(kanban) {
         </div>
       `;
     }).join('');
-
-    // Initialize drag & drop after first render
-    if (status === 'done') {
-      setTimeout(initKanbanDragDrop, 0);
-    }
   });
+
+  // Initialize drag & drop after all columns are rendered
+  requestAnimationFrame(initKanbanDragDrop);
 }
 
 async function loadBugsView() {

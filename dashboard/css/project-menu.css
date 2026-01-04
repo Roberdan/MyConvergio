@@ -55,6 +55,7 @@
 
 .project-item.active .project-item-dot { background: var(--green); }
 .project-item.in-progress .project-item-dot { background: var(--orange); }
+.project-item.pending .project-item-dot { background: var(--text-muted); }
 
 .project-item-info { flex: 1; }
 .project-item-name { font-weight: 600; font-size: 14px; }

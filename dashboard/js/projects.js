@@ -33,22 +33,35 @@ function renderProjectList() {
   const list = document.getElementById('projectList');
   if (!list || !registry) return;
 
-  const projects = Object.entries(registry.projects || {});
-  if (projects.length === 0) {
-    list.innerHTML = '<div class="project-loading">No projects registered yet</div>';
+  const allProjects = Object.entries(registry.projects || {});
+
+  // Filter: only show projects with active (doing) or pending (todo) plans
+  const activeProjects = allProjects.filter(([id, p]) => p.plans_doing > 0 || p.plans_todo > 0);
+
+  if (activeProjects.length === 0) {
+    list.innerHTML = '<div class="project-loading">No active projects</div>';
     return;
   }
 
-  list.innerHTML = projects.map(([id, p]) => {
+  // Sort: doing projects first, then todo
+  activeProjects.sort(([, a], [, b]) => {
+    if (a.plans_doing > 0 && b.plans_doing === 0) return -1;
+    if (a.plans_doing === 0 && b.plans_doing > 0) return 1;
+    return 0;
+  });
+
+  list.innerHTML = activeProjects.map(([id, p]) => {
     const isActive = id === currentProjectId;
-    const plan = p.current_plan || 'No active plan';
-    const statusClass = p.status === 'active' ? 'in-progress' : '';
+    const isDoing = p.plans_doing > 0;
+    const statusLabel = isDoing ? 'In Progress' : 'Pending';
+    const statusClass = isDoing ? 'in-progress' : 'pending';
+
     return `
       <div class="project-item ${isActive ? 'active' : ''} ${statusClass}" onclick="selectProject('${id}')">
         <div class="project-item-dot"></div>
         <div class="project-item-info">
           <div class="project-item-name">${p.name}</div>
-          <div class="project-item-plan">${plan}</div>
+          <div class="project-item-plan">${statusLabel} (${p.plans_doing + p.plans_todo} plans)</div>
         </div>
         ${p.github_url ? '<span title="GitHub">&#x1F517;</span>' : ''}
       </div>

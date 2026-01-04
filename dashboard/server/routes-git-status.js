@@ -33,7 +33,17 @@ const routes = {
           unstaged.push({ status: status[1], path: file });
         }
         if (status === '??') {
-          untracked.push(file);
+          // Expand directories to individual files
+          if (file.endsWith('/')) {
+            try {
+              const dirFiles = execSync(`git ls-files --others --exclude-standard "${file}"`, { cwd, encoding: 'utf-8' });
+              dirFiles.split('\n').filter(f => f.trim()).forEach(f => untracked.push(f));
+            } catch (e) {
+              untracked.push(file);
+            }
+          } else {
+            untracked.push(file);
+          }
         }
       });
 

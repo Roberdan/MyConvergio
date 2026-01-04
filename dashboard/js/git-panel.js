@@ -34,7 +34,7 @@ function buildFileTree(files) {
   files.forEach(file => {
     const path = typeof file === 'string' ? file : file.path;
     const status = typeof file === 'string' ? 'U' : file.status;
-    const parts = path.split('/');
+    const parts = path.split('/').filter(p => p); // Filter empty parts
     let current = tree;
     parts.forEach((part, i) => {
       if (i === parts.length - 1) {

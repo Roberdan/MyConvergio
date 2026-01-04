@@ -13,6 +13,7 @@
   min-width: 0;
   overflow-y: auto;
   height: 100%;
+  position: relative;
 }
 
 .main-content.full-width {

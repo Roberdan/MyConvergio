@@ -9,7 +9,7 @@ test.describe('Dashboard Basic Tests', () => {
   });
 
   test('page loads and has title', async ({ page }) => {
-    await expect(page).toHaveTitle('Plan Dashboard');
+    await expect(page).toHaveTitle('Convergio Dashboard');
   });
 
   test('navigation menu is visible', async ({ page }) => {
@@ -230,9 +230,9 @@ test.describe('Stats Section Tests', () => {
     await expect(statsRow).toBeVisible();
   });
 
-  test('epoch bar is visible', async ({ page }) => {
-    const epochBar = page.locator('.epoch-bar');
-    await expect(epochBar).toBeVisible();
+  test('wave indicator is visible', async ({ page }) => {
+    const waveIndicator = page.locator('.wave-indicator');
+    await expect(waveIndicator).toBeVisible();
   });
 
   test('waves summary is visible', async ({ page }) => {
@@ -302,6 +302,6 @@ test.describe('Responsive Tests', () => {
     await page.waitForLoadState('networkidle');
 
     // Page should still load
-    await expect(page).toHaveTitle('Plan Dashboard');
+    await expect(page).toHaveTitle('Convergio Dashboard');
   });
 });

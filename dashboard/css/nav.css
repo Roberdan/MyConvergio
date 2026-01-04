@@ -163,9 +163,14 @@
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.notification-bell:hover { background: var(--bg-input); }
+.notification-bell:hover { background: var(--bg-input); color: var(--text); }
+.notification-bell svg { display: block; }
 
 .notification-count {
   position: absolute;

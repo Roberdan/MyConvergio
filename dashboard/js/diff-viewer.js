@@ -92,8 +92,8 @@ function closeDiffView() {
     }
   });
 
-  // Reset view to dashboard
-  showView('dashboard');
+  // Don't call showView here - it creates a recursive loop
+  // showView already handles the diff viewer cleanup
 }
 
 function renderDiff(data) {

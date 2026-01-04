@@ -24,9 +24,9 @@ function showView(view) {
   const bugsView = document.getElementById('bugsView');
   const agentsView = document.getElementById('agentsView');
   const notificationsView = document.getElementById('notificationsView');
+  const statsHeader = document.querySelector('.stats-header');
   const statsRow = document.querySelector('.stats-row');
-  const epochBar = document.querySelector('.epoch-bar');
-  const planLabel = document.querySelector('.stats-label');
+  const waveIndicator = document.querySelector('.wave-indicator');
 
   // Hide all views
   [kanbanView, wavesView, bugsView, agentsView, notificationsView].forEach(v => {
@@ -41,9 +41,9 @@ function showView(view) {
   });
   if (chartCard) chartCard.style.display = hideDashboard ? 'none' : '';
   if (tradersSection) tradersSection.style.display = hideDashboard ? 'none' : '';
+  if (statsHeader) statsHeader.style.display = hideDashboard ? 'none' : '';
   if (statsRow) statsRow.style.display = hideDashboard ? 'none' : '';
-  if (epochBar) epochBar.style.display = hideDashboard ? 'none' : '';
-  if (planLabel) planLabel.style.display = hideDashboard ? 'none' : '';
+  if (waveIndicator) waveIndicator.style.display = hideDashboard ? 'none' : '';
 
   // Show selected view
   switch (view) {

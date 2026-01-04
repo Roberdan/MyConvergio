@@ -118,6 +118,11 @@
   font-weight: 600;
 }
 
+.wave-dates {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
 .wave-mini-progress {
   flex: 1;
   height: 4px;

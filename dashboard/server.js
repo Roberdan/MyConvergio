@@ -112,7 +112,15 @@ function serveStatic(res, filePath) {
   const ext = path.extname(fullPath);
   const contentType = MIME[ext] || 'application/octet-stream';
 
-  res.writeHead(200, { 'Content-Type': contentType });
+  // No cache for JS/CSS/HTML to force reload during development
+  const headers = { 'Content-Type': contentType };
+  if (['.js', '.css', '.html'].includes(ext)) {
+    headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    headers['Pragma'] = 'no-cache';
+    headers['Expires'] = '0';
+  }
+
+  res.writeHead(200, headers);
   res.end(fs.readFileSync(fullPath));
 }
 

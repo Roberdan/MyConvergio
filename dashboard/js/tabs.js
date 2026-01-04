@@ -23,13 +23,20 @@ function showTab(tabName) {
 function renderDebt() {
   if (!data.debt) return;
 
-  document.getElementById('debtTotal').textContent = data.debt.total || 0;
-  document.getElementById('debtTodo').textContent = data.debt.byType?.todo?.length || 0;
-  document.getElementById('debtFixme').textContent = data.debt.byType?.fixme?.length || 0;
-  document.getElementById('debtHack').textContent = data.debt.byType?.hack?.length || 0;
+  // All debt elements may not exist in all views
+  const debtTotalEl = document.getElementById('debtTotal');
+  const debtTodoEl = document.getElementById('debtTodo');
+  const debtFixmeEl = document.getElementById('debtFixme');
+  const debtHackEl = document.getElementById('debtHack');
+  const debtUpdatedEl = document.getElementById('debtUpdated');
 
-  if (data.debt.lastScan) {
-    document.getElementById('debtUpdated').textContent = 'Last scan: ' + new Date(data.debt.lastScan).toLocaleString();
+  if (debtTotalEl) debtTotalEl.textContent = data.debt.total || 0;
+  if (debtTodoEl) debtTodoEl.textContent = data.debt.byType?.todo?.length || 0;
+  if (debtFixmeEl) debtFixmeEl.textContent = data.debt.byType?.fixme?.length || 0;
+  if (debtHackEl) debtHackEl.textContent = data.debt.byType?.hack?.length || 0;
+
+  if (debtUpdatedEl && data.debt.lastScan) {
+    debtUpdatedEl.textContent = 'Last scan: ' + new Date(data.debt.lastScan).toLocaleString();
   }
 }
 
@@ -40,9 +47,13 @@ function renderHistory() {
   const edits = history.filter(h => h.change_type === 'user_edit').length;
   const blockers = history.filter(h => h.change_type === 'blocker').length;
 
-  document.getElementById('historyVersions').textContent = versions || 0;
-  document.getElementById('historyEdits').textContent = edits || 0;
-  document.getElementById('historyBlockers').textContent = blockers || 0;
+  const historyVersionsEl = document.getElementById('historyVersions');
+  const historyEditsEl = document.getElementById('historyEdits');
+  const historyBlockersEl = document.getElementById('historyBlockers');
+
+  if (historyVersionsEl) historyVersionsEl.textContent = versions || 0;
+  if (historyEditsEl) historyEditsEl.textContent = edits || 0;
+  if (historyBlockersEl) historyBlockersEl.textContent = blockers || 0;
 
   const timeline = document.getElementById('historyTimeline');
   if (!timeline) return;

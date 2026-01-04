@@ -124,12 +124,16 @@ async function loadTokenData() {
 }
 
 function renderGitTab() {
+  // This function is deprecated - git panel uses git-panel.js instead
+  // But we keep it with null checks for backwards compatibility
+  const gitBranchEl = document.getElementById('gitCurrentBranchName');
+
   if (!data.git) {
-    document.getElementById('gitBranch').textContent = 'No git data';
+    if (gitBranchEl) gitBranchEl.textContent = 'No git data';
     return;
   }
 
-  document.getElementById('gitBranch').textContent = data.git.currentBranch || '-';
+  if (gitBranchEl) gitBranchEl.textContent = data.git.currentBranch || '-';
 
   const uncommitted = data.git.uncommitted || {};
   const stagedCount = uncommitted.staged?.length || 0;
@@ -137,9 +141,13 @@ function renderGitTab() {
   const untrackedCount = uncommitted.untracked?.length || 0;
   const totalUncommitted = stagedCount + unstagedCount + untrackedCount;
 
-  document.getElementById('gitUncommitted').textContent = totalUncommitted;
-  document.getElementById('gitAhead').textContent = '-';
-  document.getElementById('gitBehind').textContent = '-';
+  // These elements may not exist in the new UI
+  const gitUncommittedEl = document.getElementById('gitUncommitted');
+  const gitAheadEl = document.getElementById('gitAhead');
+  const gitBehindEl = document.getElementById('gitBehind');
+  if (gitUncommittedEl) gitUncommittedEl.textContent = totalUncommitted;
+  if (gitAheadEl) gitAheadEl.textContent = '-';
+  if (gitBehindEl) gitBehindEl.textContent = '-';
 
   const gitFilesList = document.getElementById('gitFilesList');
   if (gitFilesList) {

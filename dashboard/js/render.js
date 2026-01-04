@@ -52,7 +52,8 @@ function render() {
 
   // Git
   if (data.git) {
-    document.getElementById('gitBranch').textContent = data.git.currentBranch;
+    const gitBranchEl = document.getElementById('gitCurrentBranchName');
+    if (gitBranchEl) gitBranchEl.textContent = data.git.currentBranch;
     renderGitTab();
     renderGitGraph();
   }

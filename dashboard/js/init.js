@@ -41,6 +41,9 @@ async function init() {
 
   // Start notification polling
   startNotificationPolling();
+
+  // Start data auto-refresh (every 30 seconds)
+  startDataRefresh();
 }
 
 async function checkForActivePlans() {
@@ -142,5 +145,49 @@ loadGitData = async function() {
   await originalLoadGitData();
   if (typeof renderGitTab === 'function') renderGitTab();
 };
+
+// Data auto-refresh - refreshes project data every 30 seconds
+async function refreshData() {
+  if (!currentProjectId) return;
+
+  try {
+    // Refresh project data silently (no loading spinners)
+    const res = await fetch(`${API_BASE}/project/${currentProjectId}/dashboard`);
+    if (res.ok) {
+      const newData = await res.json();
+      // Only update if data changed
+      if (JSON.stringify(newData.meta) !== JSON.stringify(data?.meta) ||
+          JSON.stringify(newData.waves) !== JSON.stringify(data?.waves) ||
+          JSON.stringify(newData.tasks) !== JSON.stringify(data?.tasks)) {
+        data = newData;
+        // Re-render current view
+        if (currentView === 'kanban') {
+          renderKanban();
+        } else if (currentView === 'waves') {
+          renderWaves();
+        } else if (currentView === 'issues') {
+          renderIssues();
+        }
+        // Update git panel
+        if (typeof loadGitData === 'function') loadGitData();
+      }
+    }
+  } catch (e) {
+    // Silent fail - don't interrupt user
+    console.log('Data refresh failed:', e.message);
+  }
+}
+
+function startDataRefresh() {
+  // Initial refresh not needed - data already loaded
+  dataRefreshInterval = setInterval(refreshData, 30000);
+}
+
+function stopDataRefresh() {
+  if (dataRefreshInterval) {
+    clearInterval(dataRefreshInterval);
+    dataRefreshInterval = null;
+  }
+}
 
 document.addEventListener('DOMContentLoaded', init);

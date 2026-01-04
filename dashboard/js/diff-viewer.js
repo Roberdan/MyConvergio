@@ -39,6 +39,10 @@ function showDiffView(filePath) {
     el.style.display = 'none';
   });
 
+  // Disable scroll on main-content to prevent competition
+  const mainContent = document.querySelector('.main-content');
+  if (mainContent) mainContent.style.overflow = 'hidden';
+
   // Create or show diff viewer
   let diffViewer = document.getElementById('diffViewer');
   if (!diffViewer) {
@@ -89,6 +93,10 @@ function closeDiffView() {
 
   const diffViewer = document.getElementById('diffViewer');
   if (diffViewer) diffViewer.style.display = 'none';
+
+  // Restore scroll on main-content
+  const mainContent = document.querySelector('.main-content');
+  if (mainContent) mainContent.style.overflow = '';
 
   // Restore main content
   document.querySelectorAll('.main-content > *').forEach(el => {

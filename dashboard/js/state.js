@@ -11,6 +11,7 @@ let drilldownState = { level: 'plan', waveId: null, taskId: null };
 let chartMode = 'tokens';
 let lastNotificationId = 0;
 let notificationPollingInterval = null;
+let dataRefreshInterval = null;
 let notificationsFilter = 'unread';
 let notificationsSearch = '';
 

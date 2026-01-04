@@ -99,8 +99,17 @@ Agent MUST provide complete checklist:
 
 **When agent resolves a Copilot comment:**
 - Fix the code/issue
-- Then MARK COMMENT AS RESOLVED (not optional)
-- Don't leave comments hanging with "resolved in code"
+- Commit the fix
+- Push to PR
+- **GO TO GITHUB PR PAGE**
+- **CLICK "Resolve conversation" button on the Copilot comment**
+- **Verify the comment shows ✓ (green checkmark, not still open)**
+- Don't leave comments hanging with "resolved in code" while thread is still OPEN
+
+**FORBIDDEN:**
+- "Codice fixato, commento risolto" ← NO! Only if you clicked the button on GitHub
+- Leaving comment thread in "Conversation" state (white dot) after saying "risolto"
+- Counting resolved comments by counting your fixes, not by GitHub state
 
 **Forbidden on PR:**
 - "I'll fix this in the next PR"

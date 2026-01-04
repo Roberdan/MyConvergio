@@ -102,13 +102,14 @@ Thor MUST reject closure unless agent provided:
 
 ## Pull Request Enforcement
 
-**When PR is opened, Thor MUST verify:**
+**When PR is opened, Thor MUST verify (looking at GITHUB PR PAGE):**
 
-1. **Zero unresolved Copilot comments** - Count them: `git log -p` or PR interface
-2. **Zero unresolved review threads** - All addressed, all marked resolved
-3. **Build passes** - No lint/typecheck/build errors
-4. **Tests pass** - Run and show output
-5. **No deferred tech debt** - No "will fix later" comments in code
+1. **Zero OPEN Copilot comments** - Look at PR: all comments must have ✓ green checkmark, ZERO white dots (open threads)
+2. **ACTUALLY CLICKED "Resolve conversation"** - Don't count "fixed in code", verify button was clicked on GitHub
+3. **Zero unresolved review threads** - All marked resolved on GitHub, not just fixed
+4. **Build passes** - No lint/typecheck/build errors
+5. **Tests pass** - Run and show output
+6. **No deferred tech debt** - No "will fix later" comments in code
 
 **Thor blocks PR if:**
 - Any Copilot comment unresolved (even if fixed in code, must be MARKED)
@@ -128,5 +129,17 @@ Thor MUST reject closure unless agent provided:
 - "I'll resolve this comment later" → NO, resolve now
 - "Will improve in next iteration" → NO, improve now
 - "Deferred to follow-up PR" → NO, do it in this PR
+- "Commento risolto" with white dot still open on GitHub → NO! Click "Resolve conversation" button
+- Comments showing as "Conversation" instead of "Resolved" → NO, fix before merge
 
-**Only after ALL resolved, user can merge.**
+**Thor verification checklist:**
+```
+PR check:
+□ Go to GitHub PR page
+□ Count white dots (open threads) - must be ZERO
+□ Count green checkmarks (resolved) - must equal total Copilot comments
+□ For each comment: verify "Resolve conversation" was clicked
+□ No "unresolved conversation" tags visible
+```
+
+**Only after ALL resolved (green checkmark, not white dot), user can merge.**

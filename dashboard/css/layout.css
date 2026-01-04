@@ -15,6 +15,10 @@
   height: 100%;
 }
 
+.main-content.full-width {
+  max-width: 100%;
+}
+
 /* Right Panel */
 .right-panel {
   width: 320px;

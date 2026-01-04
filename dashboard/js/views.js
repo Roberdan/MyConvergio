@@ -28,6 +28,13 @@ function showView(view) {
   const statsRow = document.querySelector('.stats-row');
   const waveIndicator = document.querySelector('.wave-indicator');
 
+  // Sidebars for full-page views
+  const gitPanel = document.querySelector('.git-panel');
+  const rightPanel = document.querySelector('.right-panel');
+  const mainWrap = document.querySelector('.main-wrap');
+  const mainContent = document.querySelector('.main-content');
+  const isFullPageView = view === 'kanban';
+
   // Hide all views
   [kanbanView, wavesView, bugsView, agentsView, notificationsView].forEach(v => {
     if (v) v.style.display = 'none';
@@ -44,6 +51,12 @@ function showView(view) {
   if (statsHeader) statsHeader.style.display = hideDashboard ? 'none' : '';
   if (statsRow) statsRow.style.display = hideDashboard ? 'none' : '';
   if (waveIndicator) waveIndicator.style.display = hideDashboard ? 'none' : '';
+
+  // Full-page mode: hide sidebars
+  if (gitPanel) gitPanel.style.display = isFullPageView ? 'none' : '';
+  if (rightPanel) rightPanel.style.display = isFullPageView ? 'none' : '';
+  if (mainContent) mainContent.classList.toggle('full-width', isFullPageView);
+  if (mainWrap) mainWrap.style.padding = isFullPageView ? '0' : '';
 
   // Show selected view
   switch (view) {

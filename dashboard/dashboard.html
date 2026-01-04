@@ -283,63 +283,128 @@
         </div>
       </div>
 
-      <!-- Kanban View (hidden by default) -->
-      <div class="kanban-view" id="kanbanView" style="display:none;">
-        <div class="kanban-header">
-          <span>All Projects - Kanban Board</span>
-          <button class="refresh-btn" onclick="loadKanban()" title="Refresh">&#x21BB;</button>
+      <!-- Control Center (Full-Page Kanban) -->
+      <div class="control-center" id="kanbanView" style="display:none;">
+        <!-- Header -->
+        <div class="cc-header">
+          <div class="cc-brand">
+            <img src="assets/logo.png" alt="Convergio" class="cc-logo">
+            <div>
+              <div class="cc-title">Control Center</div>
+              <div class="cc-subtitle">Mission Operations</div>
+            </div>
+          </div>
+          <div class="cc-status">
+            <span class="cc-status-dot" id="ccStatusDot"></span>
+            <span class="cc-status-text" id="ccStatusText">ALL SYSTEMS NOMINAL</span>
+          </div>
+          <button class="refresh-btn" onclick="loadKanban()" title="Refresh" style="font-size:18px;">&#x21BB;</button>
         </div>
-        <!-- Kanban Summary Stats -->
-        <div class="kanban-summary" id="kanbanSummary">
-          <div class="kanban-stat">
-            <span class="kanban-stat-value" id="kanbanTotalProjects">0</span>
-            <span class="kanban-stat-label">Projects</span>
+
+        <!-- Metrics Dashboard -->
+        <div class="cc-metrics">
+          <div class="cc-metric">
+            <div class="cc-metric-icon">&#x1F4C1;</div>
+            <div class="cc-metric-value blue" id="kanbanTotalProjects">0</div>
+            <div class="cc-metric-label">Projects</div>
           </div>
-          <div class="kanban-stat">
-            <span class="kanban-stat-value" id="kanbanTotalPlans">0</span>
-            <span class="kanban-stat-label">Plans</span>
+          <div class="cc-metric">
+            <div class="cc-metric-icon">&#x1F4CB;</div>
+            <div class="cc-metric-value" id="kanbanTotalPlans">0</div>
+            <div class="cc-metric-label">Total Plans</div>
           </div>
-          <div class="kanban-stat">
-            <span class="kanban-stat-value" id="kanbanActivePlans">0</span>
-            <span class="kanban-stat-label">Active</span>
+          <div class="cc-metric">
+            <div class="cc-metric-icon">&#x26A1;</div>
+            <div class="cc-metric-value orange" id="kanbanActivePlans">0</div>
+            <div class="cc-metric-label">Active</div>
           </div>
-          <div class="kanban-stat">
-            <span class="kanban-stat-value" id="kanbanCompletedPlans">0</span>
-            <span class="kanban-stat-label">Completed</span>
+          <div class="cc-metric">
+            <div class="cc-metric-icon">&#x2705;</div>
+            <div class="cc-metric-value green" id="kanbanCompletedPlans">0</div>
+            <div class="cc-metric-label">Completed</div>
           </div>
-          <div class="kanban-stat">
-            <span class="kanban-stat-value" id="kanbanTotalTokens">0</span>
-            <span class="kanban-stat-label">Total Tokens</span>
+          <div class="cc-metric">
+            <div class="cc-metric-icon">&#x1F4B0;</div>
+            <div class="cc-metric-value" id="kanbanTotalTokens">0</div>
+            <div class="cc-metric-label">Tokens</div>
           </div>
-          <div class="kanban-stat">
-            <span class="kanban-stat-value" id="kanbanTotalCost">$0</span>
-            <span class="kanban-stat-label">Est. Cost</span>
+          <div class="cc-metric">
+            <div class="cc-metric-icon">&#x1F4B5;</div>
+            <div class="cc-metric-value red" id="kanbanTotalCost">$0</div>
+            <div class="cc-metric-label">Cost</div>
           </div>
         </div>
-        <div class="kanban-board">
-          <div class="kanban-column" data-status="todo">
-            <div class="kanban-column-header">
-              <span class="kanban-status-dot todo"></span>
-              <span>TODO</span>
-              <span class="kanban-count" id="kanbanTodoCount">0</span>
+
+        <!-- Gauges Row -->
+        <div class="cc-gauges">
+          <div class="cc-gauge-card">
+            <div class="cc-gauge-title">Completion Rate</div>
+            <div class="cc-gauge">
+              <div class="cc-gauge-bg">
+                <div class="cc-gauge-fill green" id="gaugeCompletion" style="transform: rotate(-90deg) scaleX(0.5);"></div>
+              </div>
+              <div class="cc-gauge-value" id="gaugeCompletionValue">0%</div>
             </div>
-            <div class="kanban-cards" id="kanbanTodo"></div>
+            <div class="cc-gauge-label">Plans Completed</div>
           </div>
-          <div class="kanban-column" data-status="doing">
-            <div class="kanban-column-header">
-              <span class="kanban-status-dot doing"></span>
-              <span>DOING</span>
-              <span class="kanban-count" id="kanbanDoingCount">0</span>
+          <div class="cc-gauge-card">
+            <div class="cc-gauge-title">Active Workload</div>
+            <div class="cc-gauge">
+              <div class="cc-gauge-bg">
+                <div class="cc-gauge-fill orange" id="gaugeWorkload" style="transform: rotate(-90deg) scaleX(0);"></div>
+              </div>
+              <div class="cc-gauge-value" id="gaugeWorkloadValue">0</div>
             </div>
-            <div class="kanban-cards" id="kanbanDoing"></div>
+            <div class="cc-gauge-label">Plans in Progress</div>
           </div>
-          <div class="kanban-column" data-status="done">
-            <div class="kanban-column-header">
-              <span class="kanban-status-dot done"></span>
-              <span>DONE</span>
-              <span class="kanban-count" id="kanbanDoneCount">0</span>
+          <div class="cc-gauge-card">
+            <div class="cc-gauge-title">Efficiency Score</div>
+            <div class="cc-gauge">
+              <div class="cc-gauge-bg">
+                <div class="cc-gauge-fill blue" id="gaugeEfficiency" style="transform: rotate(-90deg) scaleX(0.75);"></div>
+              </div>
+              <div class="cc-gauge-value" id="gaugeEfficiencyValue">-</div>
             </div>
-            <div class="kanban-cards" id="kanbanDone"></div>
+            <div class="cc-gauge-label">Avg Tokens/Task</div>
+          </div>
+        </div>
+
+        <!-- Kanban Section -->
+        <div class="cc-kanban">
+          <div class="cc-kanban-header">
+            <div class="cc-kanban-title">Mission Pipeline</div>
+          </div>
+          <div class="cc-kanban-grid">
+            <div class="cc-kanban-column" data-status="todo">
+              <div class="cc-column-header">
+                <div class="cc-column-title">
+                  <span class="cc-column-dot todo"></span>
+                  <span>QUEUE</span>
+                </div>
+                <span class="cc-column-count" id="kanbanTodoCount">0</span>
+              </div>
+              <div class="cc-column-cards" id="kanbanTodo"></div>
+            </div>
+            <div class="cc-kanban-column" data-status="doing">
+              <div class="cc-column-header">
+                <div class="cc-column-title">
+                  <span class="cc-column-dot doing"></span>
+                  <span>IN FLIGHT</span>
+                </div>
+                <span class="cc-column-count" id="kanbanDoingCount">0</span>
+              </div>
+              <div class="cc-column-cards" id="kanbanDoing"></div>
+            </div>
+            <div class="cc-kanban-column" data-status="done">
+              <div class="cc-column-header">
+                <div class="cc-column-title">
+                  <span class="cc-column-dot done"></span>
+                  <span>LANDED</span>
+                </div>
+                <span class="cc-column-count" id="kanbanDoneCount">0</span>
+              </div>
+              <div class="cc-column-cards" id="kanbanDone"></div>
+            </div>
           </div>
         </div>
       </div>

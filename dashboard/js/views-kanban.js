@@ -96,10 +96,29 @@ function handleKanbanDragEnd(e) {
   if (e.target) {
     e.target.classList.remove('dragging');
   }
-  document.querySelectorAll('.kanban-cards').forEach(c => c.classList.remove('drag-over'));
+  document.querySelectorAll('.cc-column-cards').forEach(c => c.classList.remove('drag-over'));
 }
 
 function renderKanban(kanban) {
+  // Update status indicator
+  const statusDot = document.getElementById('ccStatusDot');
+  const statusText = document.getElementById('ccStatusText');
+  const activePlans = kanban.doing?.length || 0;
+
+  if (statusDot && statusText) {
+    if (activePlans > 0) {
+      statusDot.style.animation = 'pulse 2s infinite';
+      statusText.textContent = `${activePlans} MISSION${activePlans > 1 ? 'S' : ''} IN FLIGHT`;
+    } else {
+      statusDot.style.animation = 'none';
+      statusText.textContent = 'ALL SYSTEMS NOMINAL';
+    }
+  }
+
+  // Update gauges
+  updateControlCenterGauges(kanban);
+
+  // Render kanban columns
   ['todo', 'doing', 'done'].forEach(status => {
     const container = document.getElementById(`kanban${status.charAt(0).toUpperCase() + status.slice(1)}`);
     const countEl = document.getElementById(`kanban${status.charAt(0).toUpperCase() + status.slice(1)}Count`);
@@ -110,93 +129,32 @@ function renderKanban(kanban) {
     if (countEl) countEl.textContent = plans.length;
 
     if (plans.length === 0) {
-      container.innerHTML = '<div class="kanban-empty">No plans</div>';
+      container.innerHTML = '<div class="cc-empty">No missions</div>';
       return;
     }
 
     container.innerHTML = plans.map(plan => {
-      const masterBadge = plan.isMaster ? '<span class="kanban-master-badge">MASTER</span>' : '';
-      const taskInfo = plan.tasksTotal ? `${plan.tasksDone}/${plan.tasksTotal}` : '';
-
-      let updatedStr = '';
-      if (plan.updatedAt) {
-        const updated = new Date(plan.updatedAt);
-        const diffMs = Date.now() - updated;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-
-        if (diffMins < 60) updatedStr = diffMins + 'm ago';
-        else if (diffHours < 24) updatedStr = diffHours + 'h ago';
-        else updatedStr = diffDays + 'd ago';
-      }
-
-      let runningIndicator = '';
-      if (status === 'doing') {
-        runningIndicator = plan.isRunning
-          ? '<span class="kanban-running-indicator active">Running</span>'
-          : '<span class="kanban-running-indicator stopped">Paused</span>';
-      }
-
-      const tokenStr = plan.tokens ? plan.tokens.toLocaleString() : '0';
-
-      let statsSection = '';
-      if (status === 'done' && plan.completedAt) {
-        const duration = plan.startedAt
-          ? Math.ceil((new Date(plan.completedAt) - new Date(plan.startedAt)) / 86400000)
-          : '-';
-        const avgTokensPerTask = plan.tasksDone > 0 && plan.tokens > 0
-          ? Math.round(plan.tokens / plan.tasksDone).toLocaleString()
-          : '-';
-
-        statsSection = `
-          <div class="kanban-card-stats">
-            <div class="kanban-card-stats-item">
-              <span class="kanban-card-stats-value">${plan.tasksDone}</span>
-              <span class="kanban-card-stats-label">Tasks</span>
-            </div>
-            <div class="kanban-card-stats-item">
-              <span class="kanban-card-stats-value">${duration}d</span>
-              <span class="kanban-card-stats-label">Duration</span>
-            </div>
-            <div class="kanban-card-stats-item">
-              <span class="kanban-card-stats-value">${avgTokensPerTask}</span>
-              <span class="kanban-card-stats-label">Tok/Task</span>
-            </div>
-            ${plan.validatedBy ? `
-            <div class="kanban-card-stats-item">
-              <span class="kanban-card-stats-value">${plan.validatedBy}</span>
-              <span class="kanban-card-stats-label">Validated</span>
-            </div>` : ''}
-          </div>
-        `;
-      }
+      const taskInfo = plan.tasksTotal ? `${plan.tasksDone}/${plan.tasksTotal}` : '0/0';
+      const statusDotClass = plan.isRunning ? 'running' : '';
 
       return `
-        <div class="kanban-card ${plan.isMaster ? 'master' : ''}"
+        <div class="cc-plan-card"
              draggable="true"
              ondragstart="handleKanbanDragStart(event, ${plan.planId}, '${status}')"
              ondragend="handleKanbanDragEnd(event)"
-             onclick="loadPlanDetails(${plan.planId}); showView('dashboard');">
-          <div class="kanban-card-header">
-            <span class="kanban-card-project">${plan.project}</span>
-            ${masterBadge}
+             onclick="activatePlanAndNavigate(${plan.planId}, '${plan.projectId}')">
+          <div class="cc-plan-project">${plan.project}</div>
+          <div class="cc-plan-name">${plan.name}</div>
+          <div class="cc-plan-progress">
+            <div class="cc-plan-progress-fill" style="width: ${plan.progress}%"></div>
           </div>
-          <div class="kanban-card-status">${runningIndicator}</div>
-          <div class="kanban-card-title">${plan.name}</div>
-          <div class="kanban-card-meta">
-            <span>${plan.progress}%</span>
-            <span>${taskInfo}</span>
+          <div class="cc-plan-meta">
+            <span class="cc-plan-tasks">${taskInfo} tasks</span>
+            <span class="cc-plan-status">
+              <span class="cc-plan-status-dot ${statusDotClass}"></span>
+              ${plan.progress}%
+            </span>
           </div>
-          <div class="kanban-card-progress">
-            <div class="kanban-card-progress-fill" style="width: ${plan.progress}%"></div>
-          </div>
-          <div class="kanban-card-tokens">
-            <span class="token-icon">&#x1F4B0;</span>
-            <span>${tokenStr} tokens</span>
-          </div>
-          ${updatedStr ? `<div class="kanban-card-updated">Updated ${updatedStr}</div>` : ''}
-          ${statsSection}
         </div>
       `;
     }).join('');
@@ -204,6 +162,67 @@ function renderKanban(kanban) {
 
   // Initialize drag & drop after all columns are rendered
   requestAnimationFrame(initKanbanDragDrop);
+}
+
+function updateControlCenterGauges(kanban) {
+  const totalPlans = (kanban.todo?.length || 0) + (kanban.doing?.length || 0) + (kanban.done?.length || 0);
+  const completedPlans = kanban.done?.length || 0;
+  const activePlans = kanban.doing?.length || 0;
+
+  // Completion Rate Gauge
+  const completionRate = totalPlans > 0 ? Math.round((completedPlans / totalPlans) * 100) : 0;
+  const completionGauge = document.getElementById('gaugeCompletion');
+  const completionValue = document.getElementById('gaugeCompletionValue');
+  if (completionGauge) {
+    const rotation = -90 + (completionRate / 100) * 180;
+    completionGauge.style.transform = `rotate(${rotation}deg)`;
+  }
+  if (completionValue) completionValue.textContent = completionRate + '%';
+
+  // Active Workload Gauge (max 10 for scale)
+  const workloadGauge = document.getElementById('gaugeWorkload');
+  const workloadValue = document.getElementById('gaugeWorkloadValue');
+  const workloadPercent = Math.min(activePlans / 10, 1);
+  if (workloadGauge) {
+    const rotation = -90 + workloadPercent * 180;
+    workloadGauge.style.transform = `rotate(${rotation}deg)`;
+  }
+  if (workloadValue) workloadValue.textContent = activePlans;
+
+  // Efficiency Score (calculate from completed plans)
+  let totalTokens = 0;
+  let totalTasks = 0;
+  (kanban.done || []).forEach(plan => {
+    totalTokens += plan.tokens || 0;
+    totalTasks += plan.tasksDone || 0;
+  });
+
+  const avgTokensPerTask = totalTasks > 0 ? Math.round(totalTokens / totalTasks) : 0;
+  const efficiencyGauge = document.getElementById('gaugeEfficiency');
+  const efficiencyValue = document.getElementById('gaugeEfficiencyValue');
+
+  // Scale: < 5000 = excellent, > 50000 = poor
+  const efficiencyPercent = avgTokensPerTask > 0 ? Math.max(0, 1 - (avgTokensPerTask - 5000) / 45000) : 0.5;
+  if (efficiencyGauge) {
+    const rotation = -90 + Math.min(efficiencyPercent, 1) * 180;
+    efficiencyGauge.style.transform = `rotate(${rotation}deg)`;
+  }
+  if (efficiencyValue) {
+    efficiencyValue.textContent = avgTokensPerTask > 0 ? (avgTokensPerTask / 1000).toFixed(1) + 'K' : '-';
+  }
+}
+
+async function activatePlanAndNavigate(planId, projectId) {
+  // First select the project
+  if (projectId && typeof selectProject === 'function') {
+    await selectProject(projectId);
+  }
+  // Then load the plan details
+  if (typeof loadPlanDetails === 'function') {
+    await loadPlanDetails(planId);
+  }
+  // Navigate to dashboard
+  showView('dashboard');
 }
 
 async function loadBugsView() {

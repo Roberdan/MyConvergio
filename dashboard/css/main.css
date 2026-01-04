@@ -21,6 +21,8 @@
 /* Views */
 @import url('./views-kanban.css');
 @import url('./views-other.css');
+@import url('./control-center.css');
+@import url('./commit-viewer.css');
 @import url('./drilldown.css');
 @import url('./diff-viewer.css');
 

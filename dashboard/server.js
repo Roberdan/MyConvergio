@@ -14,6 +14,8 @@ const routesGithub = require('./server/routes-github');
 const routesNotifications = require('./server/routes-notifications');
 const routesGitStatus = require('./server/routes-git-status');
 const routesGitChanges = require('./server/routes-git-changes');
+const routesSystem = require('./server/routes-system');
+const gitWatcher = require('./server/routes-git-watcher');
 
 const PORT = process.argv[2] || 31415;
 const CLAUDE_HOME = process.env.HOME + '/.claude';
@@ -35,7 +37,8 @@ const routes = {
   ...routesGithub,
   ...routesNotifications,
   ...routesGitStatus,
-  ...routesGitChanges
+  ...routesGitChanges,
+  ...routesSystem
 };
 
 // Match route with params (supports wildcards like :file(*) for file paths)
@@ -155,6 +158,13 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(404);
     res.end('Not found');
+    return;
+  }
+
+  // SSE route for git watching (special handling - not JSON response)
+  const sseMatch = pathname.match(/^\/api\/project\/([^/]+)\/git\/watch$/);
+  if (sseMatch && req.method === 'GET') {
+    gitWatcher.handleSSE(sseMatch[1], req, res);
     return;
   }
 

@@ -13,7 +13,7 @@
     "deny": [],
     "defaultMode": "bypassPermissions"
   },
-  "model": "haiku",
+  "model": "sonnet",
   "hooks": {
     "Stop": [
       {

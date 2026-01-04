@@ -215,6 +215,14 @@
   gap: 8px;
 }
 
+.pr-empty {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 16px;
+  font-style: italic;
+}
+
 .pr-item {
   background: var(--bg-card);
   border: 1px solid var(--border);

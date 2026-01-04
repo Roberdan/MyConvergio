@@ -117,13 +117,15 @@ function renderPRsPanel() {
 
   if (!prSection || !prList || !prCount) return;
 
+  prSection.style.display = 'block';
+
   if (!data.github?.prs || data.github.prs.length === 0) {
-    prSection.style.display = 'none';
+    prCount.textContent = '0';
+    prList.innerHTML = '<div class="pr-empty">No open pull requests</div>';
     return;
   }
 
   const prs = data.github.prs;
-  prSection.style.display = 'block';
   prCount.textContent = prs.length;
 
   prList.innerHTML = prs.map(pr => {

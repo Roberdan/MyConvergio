@@ -70,7 +70,6 @@ function renderProjectList() {
 }
 
 async function selectProject(projectId) {
-  console.log('[PROJECTS] selectProject() called for:', projectId);
   const project = registry?.projects?.[projectId];
   if (!project) return;
 

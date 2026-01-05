@@ -20,8 +20,12 @@ function saveBugList() {
 // Render bug list
 function renderBugList() {
   const container = document.getElementById('bugListContainer');
-  if (!container) return;
+  if (!container) {
+    console.warn('Bug list container not found - may not be in DOM yet');
+    return;
+  }
 
+  // Always show empty state properly styled
   if (bugListItems.length === 0) {
     container.innerHTML = `
       <div class="bug-list-empty">
@@ -32,6 +36,7 @@ function renderBugList() {
     return;
   }
 
+  // Wrap content with proper structure
   const html = `
     <div class="bug-list-header">
       <h4>Bugs & Todos (${bugListItems.length})</h4>

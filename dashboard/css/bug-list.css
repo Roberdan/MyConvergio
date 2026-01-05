@@ -6,6 +6,9 @@
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 20px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Header */
@@ -72,6 +75,11 @@
 .bug-list-empty {
   padding: 40px 20px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
 }
 
 .bug-list-empty p {

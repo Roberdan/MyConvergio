@@ -15,12 +15,12 @@ async function loadProjects() {
         plans_total: p.plans_total
       };
     });
-    renderProjectList();
+    renderConsolidatedProjectMenu();
   } catch (e) {
     try {
       const res = await fetch('../plans/registry.json');
       registry = await res.json();
-      renderProjectList();
+      renderConsolidatedProjectMenu();
     } catch (e2) {
       registry = { projects: {} };
     }
@@ -116,7 +116,7 @@ async function selectProject(projectId) {
       data = createEmptyPlanData(projectId, project.name);
       render();
     }
-    renderProjectList();
+    renderConsolidatedProjectMenu();
 
     loadGitHubData();
     loadGitData();
@@ -279,6 +279,7 @@ function toggleProjectMenu() {
 
 async function refreshProjects() {
   await loadProjects();
+  renderConsolidatedProjectMenu();
 }
 
 function showLearningStats() {

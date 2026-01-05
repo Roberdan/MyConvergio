@@ -193,18 +193,30 @@ const routes = {
     const project = query(`SELECT path FROM projects WHERE id = '${plan.project_id}'`)[0];
     if (!project) return { error: 'Project not found' };
 
-    // Wave ID format: W1 -> Phase1, W2 -> Phase2, etc.
-    const waveNumber = params.waveId.replace('W', '');
+    // Extract wave number from wave ID format: 8-W1 -> 1, 8-W2 -> 2
+    const waveMatch = params.waveId.match(/W(\d+)$/);
+    if (!waveMatch) return { error: 'Invalid wave ID format' };
+    const waveNumber = waveMatch[1];
+
     const planName = plan.name.replace(/-Main$/, '');
     const phaseFile = `${planName}-Phase${waveNumber}.md`;
     const phasePath = path.join(CLAUDE_HOME, 'plans', plan.project_id, phaseFile);
 
+    // Try phase file first, fallback to main file if not found
     try {
-      if (!fs.existsSync(phasePath)) {
-        return { error: `Wave file not found: ${phaseFile}` };
+      if (fs.existsSync(phasePath)) {
+        const content = fs.readFileSync(phasePath, 'utf-8');
+        return { success: true, content, filename: phaseFile, waveId: params.waveId };
       }
-      const content = fs.readFileSync(phasePath, 'utf-8');
-      return { success: true, content, filename: phaseFile, waveId: params.waveId };
+
+      // Fallback to main file
+      const mainFile = `${plan.name}-Main.md`;
+      const mainPath = path.join(CLAUDE_HOME, 'plans', plan.project_id, mainFile);
+      if (!fs.existsSync(mainPath)) {
+        return { error: `Plan file not found: ${mainFile}` };
+      }
+      const content = fs.readFileSync(mainPath, 'utf-8');
+      return { success: true, content, filename: mainFile, waveId: params.waveId };
     } catch (e) {
       return { error: e.message };
     }

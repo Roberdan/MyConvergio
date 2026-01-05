@@ -1,0 +1,145 @@
+/* Mobile Navigation - Hamburger Menu */
+
+/* Hamburger button - always visible structure, display controlled by media queries */
+.hamburger-menu {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  margin: 0;
+  z-index: 1001;
+}
+
+.hamburger-line {
+  width: 24px;
+  height: 2px;
+  background-color: var(--text);
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+
+/* Mobile breakpoint (< 767px) */
+@media (max-width: 767px) {
+  .hamburger-menu {
+    display: flex;
+  }
+
+  /* Toggle state - transform hamburger to X */
+  .hamburger-menu.active .hamburger-line:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .hamburger-menu.active .hamburger-line:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger-menu.active .hamburger-line:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* Mobile nav menu - transform to slide down */
+  .nav-menu {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--nav-bg, var(--bg-secondary));
+    border-bottom: 1px solid var(--border);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    z-index: 999;
+  }
+
+  .hamburger-menu.active ~ .nav-menu {
+    max-height: 300px;
+  }
+
+  .nav-menu a {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+  }
+
+  .nav-menu a:hover,
+  .nav-menu a:focus {
+    background-color: var(--bg-hover, rgba(255, 255, 255, 0.1));
+    outline: none;
+  }
+
+  .nav-menu a.active {
+    background-color: var(--accent-hover);
+    font-weight: 500;
+  }
+
+  .nav-count {
+    background-color: var(--accent);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-left: 8px;
+  }
+
+  /* Prevent body scroll when menu is open */
+  body.menu-open {
+    overflow: hidden;
+  }
+}
+
+/* Small mobile devices (< 480px) */
+@media (max-width: 479px) {
+  .hamburger-menu {
+    padding: 6px;
+  }
+
+  .hamburger-line {
+    width: 20px;
+  }
+
+  .nav-menu {
+    top: 50px;
+  }
+
+  .nav-menu a {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .nav-count {
+    padding: 2px 5px;
+    font-size: 11px;
+  }
+}
+
+/* Accessibility - focus visible states */
+.hamburger-menu:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.nav-menu a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* Landscape mode adjustments */
+@media (max-height: 500px) and (max-width: 767px) {
+  .hamburger-menu.active ~ .nav-menu {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .nav-menu a {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}

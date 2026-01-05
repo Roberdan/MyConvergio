@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Convergio Dashboard</title>
   <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/mobile.css">
   <link rel="stylesheet" href="css/unified-waves.css">
   <link rel="stylesheet" href="css/conversation-viewer.css">
   <link rel="stylesheet" href="css/bug-list.css">
@@ -36,7 +38,12 @@
         <a href="#" onclick="showLearningStats()">View Learning Stats</a>
       </div>
     </div>
-    <div class="nav-menu">
+    <button class="hamburger-menu" id="hamburgerMenu" aria-label="Toggle menu" title="Menu">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+    <div class="nav-menu" id="navMenu">
       <a href="#" onclick="showView('kanban')">Control Center <span class="nav-count" id="navKanbanCount"></span></a>
       <a href="#" class="active" onclick="showView('dashboard')">Dashboard</a>
       <a href="#" onclick="showView('waves')">Waves <span class="nav-count" id="navWavesCount"></span></a>
@@ -598,6 +605,7 @@
   <script src="js/bug-list.js"></script>
   <script src="js/render.js"></script>
   <script src="js/system.js"></script>
+  <script src="js/menu.js"></script>
   <script src="js/init.js"></script>
 </body>
 </html>

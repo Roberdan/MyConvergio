@@ -5,11 +5,30 @@ let bugListEditing = null;
 
 // Initialize bug list from localStorage
 function initBugList() {
+  console.log('[BUG-LIST] initBugList() called for project:', currentProjectId);
   const saved = localStorage.getItem(`bugList_${currentProjectId}`);
   if (saved) {
     bugListItems = JSON.parse(saved);
+    console.log('[BUG-LIST] Loaded', bugListItems.length, 'items from localStorage');
+  } else {
+    console.log('[BUG-LIST] No saved items in localStorage');
   }
   renderBugList();
+
+  // Monitor container for changes
+  const container = document.getElementById('bugListContainer');
+  if (container && !window.bugListObserverActive) {
+    window.bugListObserverActive = true;
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        console.log('[BUG-LIST] Container modified! innerHTML length:', container.innerHTML.length);
+        const stack = new Error().stack.split('\n').slice(0, 5).join('\n');
+        console.log('[BUG-LIST] Stack trace:', stack);
+      });
+    });
+    observer.observe(container, { childList: true, subtree: true, characterData: true });
+    console.log('[BUG-LIST] Mutation observer activated');
+  }
 }
 
 // Save bug list to localStorage
@@ -21,6 +40,7 @@ function saveBugList() {
 function renderBugList() {
   const container = document.getElementById('bugListContainer');
   if (!container) return;
+  console.log('[BUG-LIST] renderBugList() called. Items:', bugListItems.length, 'Container HTML length before:', container.innerHTML.length);
 
   if (bugListItems.length === 0) {
     container.innerHTML = `
@@ -46,6 +66,7 @@ function renderBugList() {
   `;
 
   container.innerHTML = html;
+  console.log('[BUG-LIST] renderBugList() finished. Container HTML length after:', container.innerHTML.length);
 }
 
 // Render single bug item

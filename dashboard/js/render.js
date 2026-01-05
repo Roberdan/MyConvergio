@@ -79,10 +79,14 @@ function render() {
   }
   updateNavCounts();
 
-  // Show/hide waves summary based on data
-  const wavesSummary = document.getElementById('wavesSummary');
-  if (wavesSummary) {
-    wavesSummary.style.display = (data.waves && data.waves.length > 0) ? '' : 'none';
+  // Render unified waves card
+  if (typeof renderUnifiedWaves === 'function') {
+    renderUnifiedWaves();
+  }
+
+  // Initialize bug list
+  if (typeof initBugList === 'function') {
+    initBugList();
   }
 
   // Charts

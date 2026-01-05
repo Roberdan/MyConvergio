@@ -6,6 +6,9 @@
   <title>Convergio Dashboard</title>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/unified-waves.css">
+  <link rel="stylesheet" href="css/conversation-viewer.css">
+  <link rel="stylesheet" href="css/bug-list.css">
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -195,14 +198,8 @@
         <div class="drilldown-content" id="drilldownContent"></div>
       </div>
 
-      <!-- Waves Summary -->
-      <div class="waves-summary" id="wavesSummary" style="display:none;">
-        <div class="waves-header">
-          <span>Waves</span>
-          <button class="refresh-btn" onclick="refreshWaves()" title="Refresh">&#x21BB;</button>
-        </div>
-        <div class="waves-list" id="wavesList"></div>
-      </div>
+      <!-- Unified Waves Card - Tree Navigation -->
+      <div class="unified-waves-card" id="unifiedWavesCard"></div>
 
       <!-- Waves View (hidden by default) -->
       <div class="waves-view" id="wavesView" style="display:none;">
@@ -475,6 +472,9 @@
 
     <!-- Right Panel -->
     <aside class="right-panel">
+      <!-- Bug/Todo List Card -->
+      <div class="bug-list-card" id="bugListContainer"></div>
+
       <!-- Health Status Card -->
       <div class="panel-card">
         <div class="panel-header">Health Status</div>
@@ -593,6 +593,9 @@
   <script src="js/views.js"></script>
   <script src="js/views-kanban.js"></script>
   <script src="js/views-secondary.js"></script>
+  <script src="js/unified-waves.js"></script>
+  <script src="js/conversation-viewer.js"></script>
+  <script src="js/bug-list.js"></script>
   <script src="js/render.js"></script>
   <script src="js/system.js"></script>
   <script src="js/init.js"></script>

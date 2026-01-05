@@ -1,0 +1,393 @@
+/* Unified Waves Card - Tree Navigation */
+
+.unified-waves-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+/* Header */
+.unified-waves-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(139, 92, 246, 0.05);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.unified-waves-header:hover {
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.unified-wave-current {
+  flex: 1;
+  min-width: 0;
+}
+
+.unified-wave-id {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.unified-wave-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unified-wave-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 20px;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.in_progress {
+  background: rgba(247, 147, 26, 0.15);
+  color: var(--orange);
+}
+
+.status-badge.done,
+.status-badge.completed {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--green);
+}
+
+.status-badge.pending {
+  background: rgba(100, 100, 100, 0.15);
+  color: var(--text-muted);
+}
+
+.status-badge.blocked,
+.status-badge.failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.unified-wave-progress {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.unified-progress-bar {
+  width: 120px;
+  height: 6px;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.unified-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.unified-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  margin-left: 12px;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.unified-toggle-btn:hover {
+  color: var(--text);
+}
+
+.unified-toggle-btn.open {
+  transform: rotate(180deg);
+}
+
+/* Tree */
+.unified-waves-tree {
+  padding: 16px;
+}
+
+.unified-tree-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.tree-action-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tree-action-btn:hover {
+  background: var(--bg-input);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* Tree Nodes */
+.tree-node {
+  margin-bottom: 4px;
+}
+
+.tree-node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tree-node-header:hover {
+  background: var(--bg-input);
+}
+
+.tree-expand-icon {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 12px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.tree-node.expanded .tree-expand-icon {
+  transform: rotate(0deg);
+}
+
+.tree-node-status {
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+}
+
+.tree-node-status.done,
+.tree-node-status.completed {
+  color: var(--green);
+}
+
+.tree-node-status.in_progress,
+.tree-node-status.running {
+  color: var(--orange);
+}
+
+.tree-node-status.pending {
+  color: var(--text-dim);
+}
+
+.tree-node-status.blocked,
+.tree-node-status.failed {
+  color: #ef4444;
+}
+
+.tree-node-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tree-node-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.tree-node-name {
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.live-indicator {
+  font-size: 8px;
+  color: var(--orange);
+  animation: none;
+}
+
+.live-indicator.pulsing {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.tree-node-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.tree-node-priority {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tree-node-priority.P0 {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.tree-node-priority.P1 {
+  background: rgba(247, 147, 26, 0.15);
+  color: var(--orange);
+}
+
+.tree-node-priority.P2 {
+  background: rgba(100, 100, 100, 0.15);
+  color: var(--text-muted);
+}
+
+.tree-node-action {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tree-node-header:hover .tree-node-action {
+  opacity: 0.7;
+}
+
+.tree-node-action:hover {
+  opacity: 1 !important;
+  color: var(--accent);
+}
+
+/* Task Node Children */
+.tree-node-children {
+  margin-left: 20px;
+  margin-top: 4px;
+}
+
+.task-node {
+  margin-left: 24px;
+}
+
+.tree-node-details {
+  margin-left: 44px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.task-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.task-detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 80px;
+}
+
+.detail-value {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.task-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.task-action-btn:hover {
+  background: var(--bg-input);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.task-action-btn.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.task-action-btn.primary:hover {
+  background: var(--purple);
+}
+
+.tree-empty {
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.waves-empty {
+  padding: 40px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-dim);
+}

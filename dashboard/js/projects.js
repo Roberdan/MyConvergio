@@ -17,13 +17,11 @@ async function loadProjects() {
     });
     renderProjectList();
   } catch (e) {
-    console.log('API not available, trying registry.json fallback');
     try {
       const res = await fetch('../plans/registry.json');
       registry = await res.json();
       renderProjectList();
     } catch (e2) {
-      console.log('No registry found');
       registry = { projects: {} };
     }
   }

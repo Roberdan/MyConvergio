@@ -12,7 +12,6 @@ async function loadGitHubData() {
     if (projectId !== currentProjectId) return;
 
     if (github.error) {
-      console.log('GitHub data not available:', github.error);
       data.github = null;
       updateHealthStatus();
       return;
@@ -51,7 +50,6 @@ async function loadGitData() {
     const git = await res.json();
 
     if (git.error) {
-      console.log('Git data not available:', git.error);
       data.git = { error: git.error, currentBranch: null, uncommitted: null, commits: [], totalChanges: 0 };
       updateHealthStatus();
       return;
@@ -233,7 +231,6 @@ async function loadTokenData() {
 
     renderTokensTab();
   } catch (e) {
-    console.log('Token data not available:', e.message);
     data.tokens = null;
   }
 }

@@ -16,7 +16,6 @@
     if (!exportBtn) return;
 
     exportBtn.addEventListener('click', handleExport);
-    console.log('Export handler initialized');
   }
 
   /**
@@ -34,7 +33,6 @@
     try {
       // Load html2canvas on demand
       const html2canvas = await window.loadHtml2Canvas();
-      console.log('html2canvas loaded for export');
 
       // Get the main content to export
       const mainContent = document.querySelector('.main-wrap');

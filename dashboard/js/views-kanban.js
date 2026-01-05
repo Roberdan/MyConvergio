@@ -24,8 +24,6 @@ function initKanbanDragDrop() {
       e.stopPropagation();
       container.classList.remove('drag-over');
 
-      console.log('Drop event:', { draggedPlanId, draggedFromStatus, targetStatus: status });
-
       if (!draggedPlanId || draggedFromStatus === status) {
         draggedPlanId = null;
         draggedFromStatus = null;
@@ -98,11 +96,9 @@ function initKanbanDragDrop() {
   });
 
   kanbanDragInitialized = true;
-  console.log('Kanban drag & drop initialized');
 }
 
 function handleKanbanDragStart(e, planId, status) {
-  console.log('Drag start:', { planId, status });
   draggedPlanId = planId;
   draggedFromStatus = status;
   if (e.dataTransfer) {

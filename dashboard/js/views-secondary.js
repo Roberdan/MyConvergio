@@ -115,7 +115,7 @@ async function loadAgentsView() {
           });
         }
       } catch (e) {
-        console.log('Failed to load plan:', plan.id);
+        // Failed to load plan - continue with next
       }
     }
 
@@ -234,7 +234,7 @@ async function loadTokensBreakdown() {
           cost: tokData.stats?.total_cost || 0
         });
       } catch (e) {
-        console.log('Failed to load tokens for', projectId);
+        // Failed to load tokens for project - continue
       }
     }
 

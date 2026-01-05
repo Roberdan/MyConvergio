@@ -24,17 +24,13 @@ function connectGitWatcher(projectId) {
     currentWatchedProjectId = projectId;
 
     gitWatcherConnection.onopen = () => {
-      console.log(`Git watcher connected for project ${projectId}`);
     };
 
     gitWatcherConnection.onmessage = (event) => {
       const message = JSON.parse(event.data);
 
       if (message.type === 'connected') {
-        console.log('Git watcher: Connection confirmed');
       } else if (message.type === 'git-change') {
-        console.log('Git change detected, refreshing git panel...');
-
         // Only refresh if still watching this project
         if (message.projectId === currentProjectId) {
           loadGitData();
@@ -61,7 +57,6 @@ function disconnectGitWatcher() {
   if (gitWatcherConnection) {
     gitWatcherConnection.close();
     gitWatcherConnection = null;
-    console.log(`Git watcher disconnected for project ${currentWatchedProjectId}`);
     currentWatchedProjectId = null;
   }
 }

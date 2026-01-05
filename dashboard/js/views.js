@@ -210,7 +210,7 @@ async function loadWavesView() {
           });
         }
       } catch (e) {
-        console.log('Failed to load plan:', plan.id);
+        // Failed to load plan - continue with next
       }
     }
 

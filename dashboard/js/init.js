@@ -58,7 +58,6 @@ async function checkForActivePlans() {
     const doingPlans = plans.filter(p => p.status === 'doing');
     return doingPlans.length > 0;
   } catch (e) {
-    console.log('Could not check plan status:', e.message);
     return false;
   }
 }

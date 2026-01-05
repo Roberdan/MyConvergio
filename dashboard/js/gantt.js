@@ -77,7 +77,7 @@ function renderWavesGantt() {
         </div>
       </div>
       <div class="gantt-body">
-        ${showToday ? `<div class="gantt-today-marker" style="left:calc(200px + ${todayPos}% * (100% - 200px) / 100);" title="Today"></div>` : ''}
+        ${showToday ? `<div class="gantt-today-marker" style="left:calc(200px + ${todayPos}% * (100% - 200px - 180px) / 100);" title="Today"></div>` : ''}
         ${data.waves.map(wave => {
           const start = wave.planned_start ? new Date(wave.planned_start) : null;
           const end = wave.planned_end ? new Date(wave.planned_end) : null;
@@ -107,8 +107,11 @@ function renderWavesGantt() {
               <div class="gantt-label">
                 <div class="gantt-label-status ${wave.status}"></div>
                 <div class="gantt-label-info">
-                  <span class="gantt-label-text">${wave.wave_id}</span>
-                  ${hasDeps ? `<span class="gantt-dep-badge" title="Depends on: ${wave.depends_on}">&#x2192; ${wave.depends_on}</span>` : ''}
+                  <div class="gantt-label-header">
+                    <span class="gantt-label-text">${wave.wave_id}</span>
+                    ${hasDeps ? `<span class="gantt-dep-badge" title="Depends on: ${wave.depends_on}">&#x2192; ${wave.depends_on}</span>` : ''}
+                  </div>
+                  <div class="gantt-label-summary" title="${wave.name}">${wave.name}</div>
                 </div>
               </div>
               <div class="gantt-timeline">

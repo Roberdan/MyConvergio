@@ -221,6 +221,7 @@ function main() {
   const srcAgents = path.join(PACKAGE_ROOT, '.claude', 'agents');
   const srcRules = path.join(PACKAGE_ROOT, '.claude', 'rules');
   const srcSkills = path.join(PACKAGE_ROOT, '.claude', 'skills');
+  const srcTemplates = path.join(PACKAGE_ROOT, '.claude', 'templates');
 
   // Check if source directories exist
   if (!fs.existsSync(srcAgents)) {
@@ -265,6 +266,12 @@ function main() {
   const skillsCount = countDirs(path.join(CLAUDE_HOME, 'skills'));
   log(colors.green, `  ✓ Installed ${skillsCount} skills`);
 
+  // Install templates (FIX: was missing)
+  if (fs.existsSync(srcTemplates)) {
+    copyRecursive(srcTemplates, path.join(CLAUDE_HOME, 'templates'), installedFiles);
+    log(colors.green, `  ✓ Installed templates`);
+  }
+
   // Save manifest for safe uninstall
   const version = getVersion();
   saveManifest(installedFiles, version);
@@ -284,7 +291,9 @@ function main() {
 
   log(colors.yellow, 'Your ~/.claude/CLAUDE.md was NOT modified.');
   process.stderr.write('Create your own configuration file if needed.\n');
-  process.stderr.write('Run `myconvergio help` for available commands.\n\n');
+  process.stderr.write('\n💡 For safer installation with conflict detection, run:\n');
+  process.stderr.write('   myconvergio install-interactive\n');
+  process.stderr.write('\nRun `myconvergio help` for available commands.\n\n');
 }
 
 main();

@@ -10,6 +10,11 @@ const PACKAGE_ROOT = path.join(__dirname, '..');
 const VERSION_FILE = path.join(PACKAGE_ROOT, 'VERSION');
 const MANIFEST_FILE = path.join(CLAUDE_HOME, '.myconvergio-manifest.json');
 
+// Import new modules
+const backupManager = require('../scripts/backup-manager');
+const gitManager = require('../scripts/git-manager');
+const postinstallInteractive = require('../scripts/postinstall-interactive');
+
 // Colors for terminal output
 const colors = {
   reset: '\x1b[0m',
@@ -484,12 +489,22 @@ ${colors.yellow}Usage:${colors.reset}
   myconvergio [command] [options]
 
 ${colors.yellow}Commands:${colors.reset}
-  install     Install/reinstall agents, rules, and skills to ~/.claude/
-  uninstall   Remove all installed components from ~/.claude/
-  agents      List all installed agents with versions
-  settings    Detect hardware and recommend settings profile
-  version     Show version and installation status
-  help        Show this help message
+  install              Install/reinstall agents, rules, and skills to ~/.claude/
+  install-interactive  Interactive installation with conflict detection
+  uninstall            Remove all installed components from ~/.claude/
+  agents               List all installed agents with versions
+  settings             Detect hardware and recommend settings profile
+  version              Show version and installation status
+
+  backup               Create manual backup of ~/.claude
+  restore <dir>        Restore from backup directory
+  list-backups         List all available backups
+
+  git-init             Initialize git tracking for ~/.claude (opt-in)
+  git-status           Show git status of ~/.claude
+  git-commit [msg]     Commit changes to ~/.claude git repo
+
+  help                 Show this help message
 
 ${colors.yellow}Install Options:${colors.reset}
   --minimal   Install 8 core agents (~50KB)
@@ -513,6 +528,11 @@ ${colors.yellow}Examples:${colors.reset}
   myconvergio install --full                  # All 57 agents
   myconvergio install --lean                  # Optimized
 
+  myconvergio install-interactive             # Safe interactive install
+  myconvergio backup                          # Create backup
+  myconvergio restore ~/.claude-backup-...    # Restore backup
+  myconvergio git-init                        # Enable git tracking
+
   myconvergio agents                          # List installed
   myconvergio version                         # Check version
   myconvergio uninstall                       # Remove all
@@ -524,6 +544,153 @@ ${colors.yellow}Environment Variables:${colors.reset}
 ${colors.yellow}More info:${colors.reset}
   https://github.com/roberdan/MyConvergio
 `);
+}
+
+// Backup commands
+function createManualBackup() {
+  log(colors.blue, 'Creating backup of ~/.claude/...\n');
+  const backupDir = backupManager.createBackup('manual');
+
+  if (backupDir) {
+    log(colors.green, `✅ Backup created: ${backupDir}`);
+    console.log(`   Restore script: ${path.join(backupDir, 'restore.sh')}`);
+    console.log(`   Manifest: ${path.join(backupDir, 'MANIFEST.json')}`);
+  } else {
+    log(colors.yellow, 'ℹ️  No content to backup (empty ~/.claude directory)');
+  }
+}
+
+function restoreFromBackup(backupDir) {
+  if (!backupDir) {
+    log(colors.red, '❌ Error: Please specify backup directory');
+    console.log('   Usage: myconvergio restore <backup-directory>');
+    console.log('\n   List available backups: myconvergio list-backups');
+    return;
+  }
+
+  if (!fs.existsSync(backupDir)) {
+    log(colors.red, `❌ Error: Backup directory not found: ${backupDir}`);
+    return;
+  }
+
+  const manifestPath = path.join(backupDir, 'MANIFEST.json');
+  if (!fs.existsSync(manifestPath)) {
+    log(colors.red, '❌ Error: Invalid backup (MANIFEST.json not found)');
+    return;
+  }
+
+  log(colors.blue, `Restoring from: ${backupDir}\n`);
+
+  const safetyBackup = backupManager.restoreBackup(backupDir);
+
+  log(colors.green, '✅ Restore complete!');
+  console.log(`   Safety backup created: ${safetyBackup}`);
+  console.log('   (in case you need to undo this restore)');
+}
+
+function listBackupsCommand() {
+  const backups = backupManager.listBackups();
+
+  if (backups.length === 0) {
+    log(colors.yellow, 'No backups found.');
+    console.log('   Create one with: myconvergio backup');
+    return;
+  }
+
+  log(colors.blue, `Found ${backups.length} backup(s):\n`);
+
+  for (const backup of backups) {
+    const date = new Date(backup.timestamp);
+    const dateStr = date.toLocaleString();
+    const sizeKB = Math.round(backup.size / 1024);
+
+    console.log(`${colors.yellow}${backup.name}${colors.reset}`);
+    console.log(`  Date:   ${dateStr}`);
+    console.log(`  Reason: ${backup.reason}`);
+    console.log(`  Files:  ${backup.fileCount} (${sizeKB}KB)`);
+    console.log(`  Path:   ${backup.path}`);
+    console.log('');
+  }
+}
+
+// Git commands
+function initGitCommand() {
+  if (gitManager.isGitInitialized()) {
+    log(colors.yellow, '⚠️  Git already initialized in ~/.claude');
+    console.log('   Use: myconvergio git-status');
+    return;
+  }
+
+  log(colors.blue, 'Initializing git tracking for ~/.claude...\n');
+
+  const result = gitManager.initGit();
+
+  if (result.success) {
+    log(colors.green, '✅ Git tracking initialized!');
+    console.log('   .gitignore created');
+    console.log('   Initial commit created');
+
+    if (result.hasChanges) {
+      console.log(`\n   ${result.changes.length} file(s) ready to commit`);
+      console.log('   Use: myconvergio git-commit');
+    }
+  } else {
+    log(colors.red, `❌ ${result.message}`);
+    if (result.error) {
+      console.log(`   Error: ${result.error}`);
+    }
+  }
+}
+
+function gitStatusCommand() {
+  if (!gitManager.isGitInitialized()) {
+    log(colors.yellow, '⚠️  Git not initialized in ~/.claude');
+    console.log('   Enable with: myconvergio git-init');
+    return;
+  }
+
+  const status = gitManager.getGitStatus();
+
+  if (status.error) {
+    log(colors.red, `❌ Error: ${status.error}`);
+    return;
+  }
+
+  log(colors.blue, 'Git Status (~/.claude):\n');
+
+  if (status.hasChanges) {
+    console.log(status.status);
+    console.log('');
+    log(colors.yellow, `${status.changes.length} file(s) with changes`);
+    console.log('   Commit with: myconvergio git-commit');
+  } else {
+    log(colors.green, '✓ Working tree clean (no changes)');
+  }
+}
+
+function gitCommitCommand(message) {
+  if (!gitManager.isGitInitialized()) {
+    log(colors.yellow, '⚠️  Git not initialized in ~/.claude');
+    console.log('   Enable with: myconvergio git-init');
+    return;
+  }
+
+  const result = gitManager.commitChanges(message);
+
+  if (result.success) {
+    log(colors.green, '✅ Changes committed!');
+    console.log(`   Message: ${result.commitMessage}`);
+  } else {
+    log(colors.yellow, result.message);
+  }
+}
+
+function installInteractiveCommand() {
+  log(colors.blue, 'Starting interactive installation...\n');
+  postinstallInteractive.main().catch(err => {
+    log(colors.red, `❌ Installation failed: ${err.message}`);
+    process.exit(1);
+  });
 }
 
 // Main
@@ -544,6 +711,9 @@ switch (command) {
   case 'update':
     install({ profile, skipBackup: false });
     break;
+  case 'install-interactive':
+    installInteractiveCommand();
+    break;
   case 'uninstall':
   case 'remove':
     uninstall();
@@ -560,6 +730,25 @@ switch (command) {
   case '-v':
   case '--version':
     showVersion();
+    break;
+  case 'backup':
+    createManualBackup();
+    break;
+  case 'restore':
+    restoreFromBackup(args[1]);
+    break;
+  case 'list-backups':
+  case 'backups':
+    listBackupsCommand();
+    break;
+  case 'git-init':
+    initGitCommand();
+    break;
+  case 'git-status':
+    gitStatusCommand();
+    break;
+  case 'git-commit':
+    gitCommitCommand(args.slice(1).join(' '));
     break;
   case 'help':
   case '-h':

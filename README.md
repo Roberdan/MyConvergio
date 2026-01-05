@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v3.9.0** | 57 Specialized Agents | Dashboard | Claude 4.5 Best Practices
+**v4.0.0** | 57 Specialized Agents | Safe Installation | Dashboard | Claude 4.5 Best Practices
 
 > *"Intent is human, momentum is agent"*
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,17 +15,24 @@
 
 ---
 
-## What's New in v3.9.0
+## What's New in v4.0.0
 
-**Production Dashboard + Anthropic Claude 4.5 Best Practices!**
+**Safe Installation System + Production Dashboard + Claude 4.5 Best Practices!**
 
-### Dashboard (NEW)
+### Safe Installation (NEW)
+- **Interactive Installation**: Conflict detection with file-by-file resolution
+- **Backup/Restore System**: Automatic backups with manifest tracking and SHA256 verification
+- **Git Tracking (Opt-In)**: Optional version control for `~/.claude` configuration
+- **Backward Compatible**: Silent installation for CI/CD environments
+- **Commands**: `myconvergio backup`, `restore`, `list-backups`, `git-init`, `git-status`, `git-commit`
+
+### Dashboard
 - **Real-Time Git Monitoring**: Auto-refresh git panel with Server-Sent Events + chokidar
 - **Project Management UI**: Visualize git status, diff, log, branches in real-time
 - **System Shutdown**: Graceful server termination with one click
 - **Start**: `cd dashboard && node server.js` → http://127.0.0.1:31415
 
-### Execution Rules (UPDATED - Claude 4.5 Best Practices)
+### Execution Rules (Claude 4.5 Best Practices)
 Based on [Anthropic's official best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-4-best-practices):
 - **Context Awareness**: Multi-window workflows with automatic context compaction
 - **Parallel Tool Calling**: Execute independent operations simultaneously
@@ -126,6 +133,22 @@ npm install  # First time only (installs chokidar)
 node server.js
 # Open http://127.0.0.1:31415 in browser
 ```
+
+### Screenshots
+
+**Dashboard Overview**
+
+<img src="./docs/images/dashboard-overview.png" alt="Dashboard Overview" width="800"/>
+
+**Real-Time Git Panel**
+
+<img src="./docs/images/dashboard-git-panel.png" alt="Dashboard Git Panel" width="800"/>
+
+The git panel automatically refreshes when you:
+- Make commits
+- Switch branches
+- Pull/push changes
+- Stage/unstage files
 
 ### Architecture
 - **Backend**: Node.js HTTP server with SQLite database (`~/.claude/data/dashboard.db`)

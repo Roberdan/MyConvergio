@@ -20,11 +20,11 @@
 
   <!-- Top Navigation -->
   <nav class="top-nav">
-    <div class="logo" onclick="toggleProjectMenu()" style="cursor:pointer;">
+    <button class="logo" onclick="toggleProjectMenu()" style="cursor:pointer;" aria-label="Toggle project menu" aria-expanded="false" id="projectMenuButton">
       <img src="assets/logo.png" alt="Convergio" class="logo-img">
       <span id="projectName">Select Project</span>
       <span class="project-dropdown">&#x25BE;</span>
-    </div>
+    </button>
     <!-- Project Selector Menu -->
     <div class="project-menu" id="projectMenu" style="display:none;">
       <div class="project-menu-header">
@@ -52,13 +52,13 @@
     </div>
     <div class="nav-right">
       <div class="nav-badge highlight" id="throughputBadge">-</div>
-      <div class="notification-bell" onclick="showView('notifications')" title="Notifications">
+      <button class="notification-bell" onclick="showView('notifications')" title="Notifications" aria-label="View notifications" id="notificationsButton">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
         <span class="notification-count hidden" id="notificationCount">0</span>
-      </div>
+      </button>
       <div class="theme-selector">
         <select id="themeSelect">
           <option value="voltrex">Voltrex</option>
@@ -603,6 +603,7 @@
   <script src="js/unified-waves.js"></script>
   <script src="js/conversation-viewer.js"></script>
   <script src="js/bug-list.js"></script>
+  <script src="js/utils.js"></script>
   <script src="js/render.js"></script>
   <script src="js/system.js"></script>
   <script src="js/menu.js"></script>

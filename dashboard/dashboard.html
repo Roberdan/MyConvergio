@@ -11,14 +11,8 @@
   <link rel="stylesheet" href="css/unified-waves.css">
   <link rel="stylesheet" href="css/conversation-viewer.css">
   <link rel="stylesheet" href="css/bug-list.css">
-  <link rel="stylesheet" href="css/bug-dropdown.css">
-  <link rel="stylesheet" href="css/accessibility.css">
-  <link rel="stylesheet" href="css/error-boundary.css">
-  <link rel="stylesheet" href="css/issues-filter.css">
-  <!-- ApexCharts Loader - Self-hosted with CDN fallback -->
-  <script src="libs/apexcharts/loader.js"></script>
-  <!-- html2canvas - Lazy loaded on demand -->
-  <script src="libs/html2canvas/loader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
   <!-- Toast Container -->
@@ -72,35 +66,6 @@
           <option value="frost">Frost</option>
           <option value="dawn">Dawn</option>
         </select>
-      </div>
-      <!-- Bug Dropdown Component -->
-      <div class="bug-dropdown">
-        <button class="bug-dropdown-toggle"
-                aria-label="View saved bugs"
-                aria-expanded="false"
-                aria-haspopup="menu">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10 2a10 10 0 1 0 10 10M8 12l2 2 4-4"/>
-          </svg>
-          <span class="bug-count">0</span>
-        </button>
-
-        <div class="bug-dropdown-menu" role="menu">
-          <div class="bug-dropdown-header">
-            <h3>Saved Bugs</h3>
-            <button class="add-bug-btn" aria-label="Add bug" title="Add new bug">
-              <span>+</span>
-            </button>
-          </div>
-
-          <div class="bug-list-container">
-            <ul class="bug-list" id="bugList"></ul>
-          </div>
-
-          <div class="bug-dropdown-footer">
-            <button class="archive-btn" id="archiveBtn">Archive Completed</button>
-          </div>
-        </div>
       </div>
       <button class="nav-btn" id="exportBtn">Export</button>
       <button class="nav-btn nav-btn-danger" id="shutdownBtn" onclick="shutdownDashboard()" title="Shutdown server and close dashboard">Shutdown</button>
@@ -638,12 +603,6 @@
   <script src="js/unified-waves.js"></script>
   <script src="js/conversation-viewer.js"></script>
   <script src="js/bug-list.js"></script>
-  <script src="js/bug-dropdown.js"></script>
-  <script src="js/export-handler.js"></script>
-  <script src="js/wave-pagination.js"></script>
-  <script src="js/accessibility-audit.js"></script>
-  <script src="js/error-boundary.js"></script>
-  <script src="js/issues-filter.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/render.js"></script>
   <script src="js/system.js"></script>

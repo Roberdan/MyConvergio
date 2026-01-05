@@ -141,17 +141,29 @@ cmd_add_wave() {
     local estimated_hours="8"
     local depends_on=""
 
-    # Parse optional flags
+    # Parse optional flags (temporarily disable unbound check for safe parameter access)
+    set +u
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --assignee) assignee="$2"; shift 2 ;;
-            --planned-start) planned_start="$2"; shift 2 ;;
-            --planned-end) planned_end="$2"; shift 2 ;;
-            --estimated-hours) estimated_hours="$2"; shift 2 ;;
-            --depends-on) depends_on="$2"; shift 2 ;;
+            --assignee)
+                if [[ -z "${2}" ]]; then log_error "Missing value for --assignee"; set -u; exit 1; fi
+                assignee="$2"; shift 2 ;;
+            --planned-start)
+                if [[ -z "${2}" ]]; then log_error "Missing value for --planned-start"; set -u; exit 1; fi
+                planned_start="$2"; shift 2 ;;
+            --planned-end)
+                if [[ -z "${2}" ]]; then log_error "Missing value for --planned-end"; set -u; exit 1; fi
+                planned_end="$2"; shift 2 ;;
+            --estimated-hours)
+                if [[ -z "${2}" ]]; then log_error "Missing value for --estimated-hours"; set -u; exit 1; fi
+                estimated_hours="$2"; shift 2 ;;
+            --depends-on)
+                if [[ -z "${2}" ]]; then log_error "Missing value for --depends-on"; set -u; exit 1; fi
+                depends_on="$2"; shift 2 ;;
             *) assignee="$1"; shift ;;  # Backwards compat: positional assignee
         esac
     done
+    set -u
 
     # Get project_id from plan
     local project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM plans WHERE id = $plan_id;")
@@ -513,7 +525,7 @@ case "${1:-help}" in
         cmd_start "${2:?plan_id required}"
         ;;
     add-wave)
-        cmd_add_wave "${2:?plan_id required}" "${3:?wave_id required}" "${4:?name required}" "${5:-}"
+        cmd_add_wave "${2:?plan_id required}" "${3:?wave_id required}" "${4:?name required}" "${@:5}"
         ;;
     add-task)
         cmd_add_task "${2:?wave_id required}" "${3:?task_id required}" "${4:?title required}" "${5:-P1}" "${6:-feature}" "${7:-}" "${8:-}"

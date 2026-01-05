@@ -87,6 +87,7 @@ function drillIntoWave(waveId) {
                   <div class="task-title-cell">
                     <span class="task-title-text">${t.title}</span>
                     ${t.type ? `<span class="task-type-badge">${t.type}</span>` : ''}
+                    <button class="task-markdown-btn" onclick="event.stopPropagation(); showTaskMarkdown('${waveId}', '${t.task_id}')" title="View task in wave documentation">📄</button>
                   </div>
                 </td>
                 <td class="task-col-status">

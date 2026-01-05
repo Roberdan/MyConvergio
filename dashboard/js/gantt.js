@@ -110,6 +110,7 @@ function renderWavesGantt() {
                   <div class="gantt-label-header">
                     <span class="gantt-label-text">${wave.wave_id}</span>
                     ${hasDeps ? `<span class="gantt-dep-badge" title="Depends on: ${wave.depends_on}">&#x2192; ${wave.depends_on}</span>` : ''}
+                    <button class="gantt-markdown-btn" onclick="event.stopPropagation(); showWaveMarkdown('${wave.wave_id}')" title="View wave documentation">📄</button>
                   </div>
                   <div class="gantt-label-summary" title="${wave.name}">${wave.name}</div>
                 </div>

@@ -2,6 +2,8 @@
 
 const { execSync } = require('child_process');
 const { query, CLAUDE_HOME } = require('./db');
+const fs = require('fs');
+const path = require('path');
 
 const routes = {
   // Kanban board - all projects
@@ -181,6 +183,53 @@ const routes = {
       VALUES ('${project_id}', ${plan_id || 'NULL'}, '${wave_id || ''}', '${task_id || ''}', '${agent}', '${model}', ${input_tokens}, ${output_tokens}, ${cost_usd || 0})
     `);
     return { success: true };
+  },
+
+  // Get wave markdown file
+  'GET /api/plan/:id/wave/:waveId/markdown': (params) => {
+    const plan = query(`SELECT project_id, name FROM plans WHERE id = ${params.id}`)[0];
+    if (!plan) return { error: 'Plan not found' };
+
+    const project = query(`SELECT path FROM projects WHERE id = '${plan.project_id}'`)[0];
+    if (!project) return { error: 'Project not found' };
+
+    // Wave ID format: W1 -> Phase1, W2 -> Phase2, etc.
+    const waveNumber = params.waveId.replace('W', '');
+    const planName = plan.name.replace(/-Main$/, '');
+    const phaseFile = `${planName}-Phase${waveNumber}.md`;
+    const phasePath = path.join(CLAUDE_HOME, 'plans', plan.project_id, phaseFile);
+
+    try {
+      if (!fs.existsSync(phasePath)) {
+        return { error: `Wave file not found: ${phaseFile}` };
+      }
+      const content = fs.readFileSync(phasePath, 'utf-8');
+      return { success: true, content, filename: phaseFile, waveId: params.waveId };
+    } catch (e) {
+      return { error: e.message };
+    }
+  },
+
+  // Get plan main markdown file
+  'GET /api/plan/:id/markdown': (params) => {
+    const plan = query(`SELECT project_id, name FROM plans WHERE id = ${params.id}`)[0];
+    if (!plan) return { error: 'Plan not found' };
+
+    const project = query(`SELECT path FROM projects WHERE id = '${plan.project_id}'`)[0];
+    if (!project) return { error: 'Project not found' };
+
+    const mainFile = `${plan.name}-Main.md`;
+    const mainPath = path.join(CLAUDE_HOME, 'plans', plan.project_id, mainFile);
+
+    try {
+      if (!fs.existsSync(mainPath)) {
+        return { error: `Plan file not found: ${mainFile}` };
+      }
+      const content = fs.readFileSync(mainPath, 'utf-8');
+      return { success: true, content, filename: mainFile };
+    } catch (e) {
+      return { error: e.message };
+    }
   }
 };
 

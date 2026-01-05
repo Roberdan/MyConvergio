@@ -200,15 +200,32 @@
   gap: 6px;
   padding: 4px 10px;
   font-size: 12px;
-  cursor: pointer;
   transition: background 0.1s;
 }
 .git-branch-item:hover { background: var(--bg-input); }
 .git-branch-item.current { color: var(--green); }
 
 .git-branch-check { width: 14px; font-size: 12px; }
-.git-branch-name { font-family: var(--font-mono); }
+.git-branch-name {
+  font-family: var(--font-mono);
+  flex: 1;
+}
 .git-branch-item.remote .git-branch-name { color: var(--text-muted); }
+
+.git-branch-checkout-btn {
+  padding: 2px 8px;
+  font-size: 10px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.git-branch-checkout-btn:hover {
+  opacity: 1;
+}
 
 .git-branch-new {
   display: flex;

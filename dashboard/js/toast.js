@@ -40,6 +40,23 @@ function showToast(notification) {
     toast.style.cursor = 'pointer';
   }
 
+  // Add click handler to navigate to notifications view
+  toast.addEventListener('click', (e) => {
+    // Don't navigate if clicking on buttons
+    if (e.target.tagName === 'BUTTON') return;
+
+    // Mark as read
+    if (notification.id && notification.id !== 'undefined' && !isNaN(parseInt(notification.id))) {
+      fetch(`${API_BASE}/notifications/${notification.id}/read`, { method: 'POST' }).then(() => {
+        pollNotifications();
+      });
+    }
+
+    // Navigate to notifications view
+    showView('notifications');
+    dismissToast(toast);
+  });
+
   container.appendChild(toast);
 
   const duration = notification.severity === 'error' ? 12000 : 8000;

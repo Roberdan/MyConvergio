@@ -73,7 +73,10 @@ function render() {
   updateHealthStatus();
   renderIssuesPanel();
   renderTokensTab();
-  renderWavesGantt();
+  // Only render Gantt in dashboard view, not in waves drilldown view
+  if (currentView === 'dashboard' || currentView === 'control-center') {
+    renderWavesGantt();
+  }
   updateNavCounts();
 
   // Show/hide waves summary based on data

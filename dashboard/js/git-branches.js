@@ -31,9 +31,10 @@ async function showBranchMenu() {
       <div class="git-branch-section">
         <div class="git-branch-section-header">Local</div>
         ${localBranches.map(b => `
-          <div class="git-branch-item ${b.name === current ? 'current' : ''}" onclick="switchBranch('${b.name}')">
+          <div class="git-branch-item ${b.name === current ? 'current' : ''}">
             <span class="git-branch-check">${b.name === current ? '&#x2713;' : ''}</span>
             <span class="git-branch-name">${b.name}</span>
+            ${b.name !== current ? `<button class="git-branch-checkout-btn" onclick="event.stopPropagation(); switchBranch('${b.name}')">Checkout</button>` : ''}
           </div>
         `).join('')}
       </div>
@@ -43,9 +44,10 @@ async function showBranchMenu() {
           ${remoteBranches.slice(0, 10).map(b => {
             const shortName = b.name.replace('remotes/origin/', '');
             return `
-              <div class="git-branch-item remote" onclick="switchBranch('${shortName}')">
+              <div class="git-branch-item remote">
                 <span class="git-branch-check"></span>
                 <span class="git-branch-name">${shortName}</span>
+                <button class="git-branch-checkout-btn" onclick="event.stopPropagation(); switchBranch('${shortName}')">Checkout</button>
               </div>
             `;
           }).join('')}

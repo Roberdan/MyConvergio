@@ -87,7 +87,11 @@ function drillIntoWave(waveId) {
                   <div class="task-title-cell">
                     <span class="task-title-text">${t.title}</span>
                     ${t.type ? `<span class="task-type-badge">${t.type}</span>` : ''}
-                    <button class="task-markdown-btn" onclick="event.stopPropagation(); showTaskMarkdown('${waveId}', '${t.task_id}')" title="View task in wave documentation">📄</button>
+                    <button class="task-markdown-btn" onclick="event.stopPropagation(); showTaskMarkdown('${waveId}', '${t.task_id}')" title="View task in wave documentation">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M22.27 19.385H1.73A1.73 1.73 0 0 1 0 17.655V6.345a1.73 1.73 0 0 1 1.73-1.73h20.54A1.73 1.73 0 0 1 24 6.345v11.308a1.73 1.73 0 0 1-1.73 1.731zM5.769 15.923v-4.5l2.308 2.885 2.307-2.885v4.5h2.308V8.078h-2.308l-2.307 2.885-2.308-2.885H3.46v7.847zM21.232 12h-2.309V8.077h-2.307V12h-2.308l3.461 4.039z"/>
+                      </svg>
+                    </button>
                   </div>
                 </td>
                 <td class="task-col-status">
@@ -225,7 +229,12 @@ function drillIntoTask(waveId, taskId) {
             <div class="task-detail-files">
               ${task.files.map(f => `
                 <div class="task-detail-file">
-                  <span class="task-file-icon">📄</span>
+                  <span class="task-file-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+                      <path d="M8 13h8v2H8zm0 4h8v2H8zm0-8h5v2H8z"/>
+                    </svg>
+                  </span>
                   <span class="task-file-path">${f}</span>
                 </div>
               `).join('')}

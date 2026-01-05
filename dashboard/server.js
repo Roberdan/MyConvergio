@@ -15,6 +15,7 @@ const routesNotifications = require('./server/routes-notifications');
 const routesGitStatus = require('./server/routes-git-status');
 const routesGitChanges = require('./server/routes-git-changes');
 const routesSystem = require('./server/routes-system');
+const routesMonitoring = require('./server/routes-monitoring');
 const gitWatcher = require('./server/routes-git-watcher');
 
 const PORT = process.argv[2] || 31415;
@@ -38,7 +39,8 @@ const routes = {
   ...routesNotifications,
   ...routesGitStatus,
   ...routesGitChanges,
-  ...routesSystem
+  ...routesSystem,
+  ...routesMonitoring
 };
 
 // Match route with params (supports wildcards like :file(*) for file paths)
@@ -177,8 +179,13 @@ const server = http.createServer((req, res) => {
       req.on('data', chunk => body += chunk);
       req.on('end', () => {
         try {
-          const jsonBody = body ? JSON.parse(body) : {};
-          const result = route.handler(route.params, jsonBody, url);
+          const result = route.handler(route.params, req, res, body);
+
+          // Check if SSE was handled (don't send JSON response)
+          if (result && result._sse_handled) {
+            return; // SSE handler manages the response
+          }
+
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
         } catch (e) {

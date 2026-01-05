@@ -219,6 +219,272 @@ Every plan must follow this structure:
 4. Document decisions as ADRs
 5. Report blockers immediately
 
+### Step 6: Task Markdown Generation (MyConvergio Integration)
+1. For each task, generate individual `task.md` file
+2. Directory structure: `~/.claude/plans/active/{project}/plan-{id}/waves/W{X}/tasks/`
+3. File naming: `T{X}-{task-slug}.md` (e.g., `T01-setup-database.md`)
+4. Use task markdown template (see Task Markdown Template section)
+5. Update database with markdown_path for each task
+6. Generate wave markdown files linking to all tasks
+
+### Step 7: Dashboard Integration
+1. Use MyConvergio Dashboard API for progress tracking
+2. Update plan metadata in database via API
+3. Call executor tracking endpoints when tasks start/complete
+4. Log conversation messages for real-time monitoring
+5. Enable SSE streaming for live dashboard updates
+
+---
+
+## Task Markdown Template
+
+Every task MUST have its own markdown file generated during planning:
+
+```markdown
+# Task: {task_id} - {task_name}
+
+**Wave:** W{wave_number}
+**Status:** pending
+**Priority:** P{0|1|2}
+**Assignee:** {agent-name}
+**Estimate:** {hours}h
+**Created:** {YYYY-MM-DD HH:MM TZ}
+
+---
+
+## Description
+
+{Clear description of what needs to be done}
+
+## Acceptance Criteria
+
+- [ ] Criterion 1
+- [ ] Criterion 2
+- [ ] Criterion 3
+
+## Dependencies
+
+- Depends on: {task_ids or "None"}
+- Blocks: {task_ids or "None"}
+
+## Files Affected
+
+{List of files that will be created/modified}
+
+## Technical Notes
+
+{Any technical considerations, edge cases, or implementation notes}
+
+---
+
+## Execution Log
+
+_Populated during execution by executor tracking_
+
+## File Changes
+
+_Populated during execution_
+
+```diff
++ Added lines
+- Removed lines
+```
+
+## Validation
+
+_Populated after completion_
+
+- [ ] Lint passed
+- [ ] Typecheck passed
+- [ ] Build passed
+- [ ] Tests passed (if applicable)
+
+---
+
+**Links:**
+- Wave: [W{X}-wave-name.md](../../W{X}-wave-name.md)
+- Plan: [plan-{id}.md](../../../../plan-{id}.md)
+- Dashboard: http://localhost:31415?project={project}&task={task_id}
+```
+
+## Dashboard Integration Commands
+
+Include this section in every plan for MyConvergio projects:
+
+```markdown
+## 📊 DASHBOARD INTEGRATION
+
+**API Base:** http://localhost:31415/api
+**Project ID:** {project-id}
+**Plan ID:** {plan-id}
+
+### Executor Tracking Setup
+
+Every Claude instance MUST call these endpoints during execution:
+
+\`\`\`bash
+# At task start
+TASK_ID="T01"
+SESSION_ID=$(uuidv4)  # or $(cat /proc/sys/kernel/random/uuid)
+
+curl -X POST http://localhost:31415/api/project/{project-id}/task/${TASK_ID}/executor/start \\
+  -H "Content-Type: application/json" \\
+  -d "{
+    \"session_id\": \"${SESSION_ID}\",
+    \"metadata\": {\"agent\": \"strategic-planner\", \"version\": \"1.5.0\"}
+  }"
+
+# Every 30 seconds (in background)
+while true; do
+  curl -X POST http://localhost:31415/api/project/{project-id}/task/${TASK_ID}/executor/heartbeat \\
+    -H "Content-Type: application/json" \\
+    -d "{\"session_id\": \"${SESSION_ID}\"}"
+  sleep 30
+done &
+HEARTBEAT_PID=$!
+
+# Log every message/tool call
+function log_message() {
+  local role=$1
+  local content=$2
+  local tool_name=$3
+  local tool_input=$4
+  local tool_output=$5
+
+  curl -X POST http://localhost:31415/api/project/{project-id}/task/${TASK_ID}/conversation/log \\
+    -H "Content-Type: application/json" \\
+    -d "{
+      \"session_id\": \"${SESSION_ID}\",
+      \"role\": \"${role}\",
+      \"content\": \"${content}\",
+      \"tool_name\": \"${tool_name}\",
+      \"tool_input\": ${tool_input:-null},
+      \"tool_output\": ${tool_output:-null}
+    }"
+}
+
+# Example usage
+log_message "user" "Start task T01" "" "" ""
+log_message "assistant" "Analyzing requirements..." "" "" ""
+log_message "tool" "" "Read" '{"file_path": "src/file.ts"}' '{"content": "..."}'
+
+# At task completion
+kill $HEARTBEAT_PID
+curl -X POST http://localhost:31415/api/project/{project-id}/task/${TASK_ID}/executor/complete \\
+  -H "Content-Type: application/json" \\
+  -d "{
+    \"session_id\": \"${SESSION_ID}\",
+    \"success\": true,
+    \"metadata\": {\"completed_at\": \"$(date -Iseconds)\"}
+  }"
+\`\`\`
+
+### Task Markdown Generation Script
+
+Use this helper script to generate task markdown files:
+
+\`\`\`bash
+#!/bin/bash
+# ~/.claude/scripts/generate-task-md.sh
+
+PROJECT=$1
+PLAN_ID=$2
+WAVE=$3
+TASK_ID=$4
+TASK_NAME=$5
+ASSIGNEE=$6
+ESTIMATE=$7
+
+PLAN_DIR=~/.claude/plans/active/${PROJECT}/plan-${PLAN_ID}
+WAVE_DIR=${PLAN_DIR}/waves/W${WAVE}
+TASK_DIR=${WAVE_DIR}/tasks
+
+mkdir -p ${TASK_DIR}
+
+TASK_FILE=${TASK_DIR}/${TASK_ID}-$(echo ${TASK_NAME} | tr ' ' '-' | tr '[:upper:]' '[:lower:]').md
+
+cat > ${TASK_FILE} <<EOF
+# Task: ${TASK_ID} - ${TASK_NAME}
+
+**Wave:** W${WAVE}
+**Status:** pending
+**Priority:** P1
+**Assignee:** ${ASSIGNEE}
+**Estimate:** ${ESTIMATE}
+**Created:** $(date +"%Y-%m-%d %H:%M %Z")
+
+---
+
+## Description
+
+[Description to be filled]
+
+## Acceptance Criteria
+
+- [ ] TBD
+
+## Dependencies
+
+- Depends on: None
+- Blocks: None
+
+## Files Affected
+
+[To be documented]
+
+## Technical Notes
+
+[To be documented]
+
+---
+
+## Execution Log
+
+_Populated during execution_
+
+## File Changes
+
+_Populated during execution_
+
+## Validation
+
+_Populated after completion_
+
+---
+
+**Links:**
+- Wave: [W${WAVE}-wave-name.md](../../W${WAVE}-wave-name.md)
+- Plan: [plan-${PLAN_ID}.md](../../../../plan-${PLAN_ID}.md)
+- Dashboard: http://localhost:31415?project=${PROJECT}&task=${TASK_ID}
+EOF
+
+echo "✅ Generated: ${TASK_FILE}"
+
+# Update database with markdown_path
+curl -X POST http://localhost:31415/api/project/${PROJECT}/task/${TASK_ID}/update-markdown \\
+  -H "Content-Type: application/json" \\
+  -d "{\"markdown_path\": \"${TASK_FILE}\"}"
+\`\`\`
+
+### Plan Generation Workflow
+
+When creating a new plan:
+
+1. Create plan directory structure
+2. Generate main plan file
+3. For each wave, generate wave markdown
+4. For each task, run \`generate-task-md.sh\`
+5. Update database with all markdown paths
+6. Initialize plan in dashboard
+
+\`\`\`bash
+# Example
+./generate-task-md.sh convergioedu 8 0 T01 "Setup database migration" "CLAUDE 2" "1h"
+./generate-task-md.sh convergioedu 8 0 T02 "Create API endpoints" "CLAUDE 3" "2h"
+./generate-task-md.sh convergioedu 8 1 T03 "Build frontend UI" "CLAUDE 4" "3h"
+\`\`\`
+```
+
 ---
 
 ## 🚨 NON-NEGOTIABLE RULES FOR ALL CLAUDE INSTANCES

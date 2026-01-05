@@ -275,6 +275,37 @@ const routes = {
     `);
 
     return { success: true, logged_at: new Date().toISOString() };
+  },
+
+  // Update task markdown path
+  'POST /api/project/:projectId/task/:taskId/update-markdown': (params, req, res, body) => {
+    const data = JSON.parse(body);
+
+    if (!data.markdown_path) {
+      return { error: 'markdown_path is required' };
+    }
+
+    // Get task ID from task_id string
+    const tasks = query(`
+      SELECT id FROM tasks
+      WHERE project_id = '${params.projectId}' AND task_id = '${params.taskId}'
+      LIMIT 1
+    `);
+
+    if (tasks.length === 0) {
+      return { error: 'Task not found' };
+    }
+
+    const taskId = tasks[0].id;
+    const markdownPath = data.markdown_path.replace(/'/g, "''");
+
+    query(`
+      UPDATE tasks
+      SET markdown_path = '${markdownPath}'
+      WHERE id = ${taskId}
+    `);
+
+    return { success: true, task_id: params.taskId, markdown_path: data.markdown_path };
   }
 };
 

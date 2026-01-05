@@ -44,6 +44,11 @@ async function init() {
 
   // Start data auto-refresh (every 30 seconds)
   startDataRefresh();
+
+  // Initialize bug list
+  if (typeof initBugList === 'function') {
+    initBugList();
+  }
 }
 
 async function checkForActivePlans() {
@@ -137,6 +142,10 @@ function clearProjectSelection() {
   const rightPanel = document.querySelector('.right-panel');
   if (gitPanel) gitPanel.style.display = 'none';
   if (rightPanel) rightPanel.style.display = 'none';
+
+  // Clear bug list
+  const bugListContainer = document.getElementById('bugListContainer');
+  if (bugListContainer) bugListContainer.innerHTML = '';
 }
 
 // Wrap loadGitData to also render the git tab

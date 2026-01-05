@@ -222,6 +222,7 @@ function main() {
   const srcRules = path.join(PACKAGE_ROOT, '.claude', 'rules');
   const srcSkills = path.join(PACKAGE_ROOT, '.claude', 'skills');
   const srcTemplates = path.join(PACKAGE_ROOT, '.claude', 'templates');
+  const srcScripts = path.join(PACKAGE_ROOT, '.claude', 'scripts');
 
   // Check if source directories exist
   if (!fs.existsSync(srcAgents)) {
@@ -270,6 +271,12 @@ function main() {
   if (fs.existsSync(srcTemplates)) {
     copyRecursive(srcTemplates, path.join(CLAUDE_HOME, 'templates'), installedFiles);
     log(colors.green, `  ✓ Installed templates`);
+  }
+
+  // Install scripts (plan-db.sh, register-project.sh, etc.)
+  if (fs.existsSync(srcScripts)) {
+    copyRecursive(srcScripts, path.join(CLAUDE_HOME, 'scripts'), installedFiles);
+    log(colors.green, `  ✓ Installed scripts`);
   }
 
   // Save manifest for safe uninstall

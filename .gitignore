@@ -44,7 +44,7 @@ out/
 *.temp
 
 # Claude Code specific
-# Ignore most .claude/ contents but track agents, rules, skills, protocols, templates, and main config
+# Ignore most .claude/ contents but track agents, rules, skills, protocols, templates, scripts, and main config
 .claude/*
 !.claude/agents/
 !.claude/agents-lean/
@@ -53,6 +53,7 @@ out/
 !.claude/protocols/
 !.claude/settings-templates/
 !.claude/templates/
+!.claude/scripts/
 !.claude/CLAUDE.md
 .claude/logs/
 

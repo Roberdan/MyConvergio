@@ -33,6 +33,7 @@
     ".claude/rules/",
     ".claude/skills/",
     ".claude/templates/",
+    ".claude/scripts/",
     ".claude/settings-templates/",
     ".claude/protocols/",
     ".claude-plugin/",

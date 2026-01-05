@@ -33,7 +33,8 @@ const INSTALL_MAP = {
     { src: '.claude/agents', dest: 'agents' },
     { src: '.claude/rules', dest: 'rules' },
     { src: '.claude/skills', dest: 'skills' },
-    { src: '.claude/templates', dest: 'templates' }
+    { src: '.claude/templates', dest: 'templates' },
+    { src: '.claude/scripts', dest: 'scripts' }
   ],
   files: [
     { src: '.claude/CLAUDE.md', dest: 'CLAUDE.md' }

@@ -17,7 +17,7 @@ function createBackup(reason = 'manual') {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0];
   const backupDir = path.join(os.homedir(), `.claude-backup-${timestamp}`);
 
-  const dirs = ['agents', 'rules', 'skills', 'templates'];
+  const dirs = ['agents', 'rules', 'skills', 'templates', 'scripts'];
   const files = ['CLAUDE.md'];
 
   let hasContent = false;
@@ -130,6 +130,7 @@ echo "  - Replace ~/.claude/agents/ with backup"
 echo "  - Replace ~/.claude/rules/ with backup"
 echo "  - Replace ~/.claude/skills/ with backup"
 echo "  - Replace ~/.claude/templates/ with backup"
+echo "  - Replace ~/.claude/scripts/ with backup"
 echo "  - Restore ~/.claude/CLAUDE.md"
 echo ""
 echo "  Your current ~/.claude/ will be backed up to:"
@@ -154,6 +155,7 @@ echo "Restoring files..."
 [ -d "$BACKUP_DIR/rules" ] && cp -r "$BACKUP_DIR/rules" "$CLAUDE_HOME/"
 [ -d "$BACKUP_DIR/skills" ] && cp -r "$BACKUP_DIR/skills" "$CLAUDE_HOME/"
 [ -d "$BACKUP_DIR/templates" ] && cp -r "$BACKUP_DIR/templates" "$CLAUDE_HOME/"
+[ -d "$BACKUP_DIR/scripts" ] && cp -r "$BACKUP_DIR/scripts" "$CLAUDE_HOME/"
 [ -f "$BACKUP_DIR/CLAUDE.md" ] && cp "$BACKUP_DIR/CLAUDE.md" "$CLAUDE_HOME/"
 
 echo "✅ Restore complete!"
@@ -182,7 +184,7 @@ function restoreBackup(backupDir, options = {}) {
   const safetyBackup = createBackup('pre-restore');
 
   // Restore files
-  const dirs = ['agents', 'rules', 'skills', 'templates'];
+  const dirs = ['agents', 'rules', 'skills', 'templates', 'scripts'];
   const files = ['CLAUDE.md'];
 
   if (onlyFiles && onlyFiles.length > 0) {

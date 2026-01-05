@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v3.8.0** | 57 Specialized Agents | Claude Code Plugin for Marketplace
+**v3.9.0** | 57 Specialized Agents | Dashboard | Claude 4.5 Best Practices
 
 > *"Intent is human, momentum is agent"*
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,14 +15,35 @@
 
 ---
 
-## What's New in v3.8.0
+## What's New in v3.9.0
 
-**Self-Contained Repository Release!**
+**Production Dashboard + Anthropic Claude 4.5 Best Practices!**
 
-- **EXECUTION_DISCIPLINE.md**: Single source of truth for all execution rules (planning, verification, quality gates, git discipline)
-- **Reference Model**: `.claude/CLAUDE.md` reduced 54% - no more duplicated rules
-- **Fully Self-Contained**: Repository works without any external dependencies
-- **Document Hierarchy**: Clear priority order (CONSTITUTION > EXECUTION_DISCIPLINE > Values)
+### Dashboard (NEW)
+- **Real-Time Git Monitoring**: Auto-refresh git panel with Server-Sent Events + chokidar
+- **Project Management UI**: Visualize git status, diff, log, branches in real-time
+- **System Shutdown**: Graceful server termination with one click
+- **Start**: `cd dashboard && node server.js` → http://127.0.0.1:31415
+
+### Execution Rules (UPDATED - Claude 4.5 Best Practices)
+Based on [Anthropic's official best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-4-best-practices):
+- **Context Awareness**: Multi-window workflows with automatic context compaction
+- **Parallel Tool Calling**: Execute independent operations simultaneously
+- **Default to Action**: Infer intent and implement (not just suggest)
+- **Anti-Overengineering**: No premature abstractions, features beyond request, or hypothetical requirements
+- **Definition of Done**: Mandatory completion checklist before closure
+- **PR Enforcement**: Zero unresolved comments, all threads marked resolved on GitHub
+
+### Skills (NEW)
+- **Structured Research**: Hypothesis-driven research with confidence calibration, competing hypotheses, source verification
+
+### State Tracking Templates (NEW)
+- **Multi-Session Work**: `tests.json` (structured), `progress.txt` (unstructured), README for complex projects requiring context refresh
+
+### Previous Highlights (v3.8.0)
+- **EXECUTION_DISCIPLINE.md**: Single source of truth for all execution rules
+- **Reference Model**: `.claude/CLAUDE.md` reduced 54%
+- **Fully Self-Contained**: No external dependencies
 
 ### Previous Highlights (v3.7.0)
 - **Installation Profiles**: Choose your footprint - minimal (50KB), standard (200KB), or full (600KB)
@@ -84,6 +105,36 @@ claude plugins install myconvergio
 /myconvergio:team      # List all 57 agents by category
 /myconvergio:plan      # Create a strategic execution plan
 ```
+
+---
+
+## Dashboard
+
+**Production-ready project dashboard with real-time git monitoring.**
+
+### Features
+- **Real-Time Git Panel**: Auto-refresh on git changes (commits, checkouts, branch switches) using Server-Sent Events
+- **Project Management UI**: Visualize git status, diff, log, branches
+- **Graceful Shutdown**: One-click server termination with browser close
+- **Token Usage Tracking**: Monitor API token consumption and costs
+- **Notifications**: System-wide notification center
+
+### Quick Start
+```bash
+cd dashboard
+npm install  # First time only (installs chokidar)
+node server.js
+# Open http://127.0.0.1:31415 in browser
+```
+
+### Architecture
+- **Backend**: Node.js HTTP server with SQLite database (`~/.claude/data/dashboard.db`)
+- **Frontend**: Vanilla JS with SSE for real-time updates
+- **File Watcher**: chokidar monitoring `.git` directory for changes
+- **API Routes**: RESTful endpoints for projects, git, notifications, system
+
+### Database
+Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). No additional configuration required.
 
 ---
 
@@ -196,7 +247,8 @@ MyConvergio/
 │   └── plan.md
 ├── hooks/
 │   └── hooks.json
-├── skills/                    # 9 reusable workflows
+├── skills/                    # 10 reusable workflows
+│   ├── structured-research/   # NEW - Hypothesis-driven research
 │   ├── architecture/
 │   ├── code-review/
 │   ├── debugging/
@@ -206,12 +258,29 @@ MyConvergio/
 │   ├── release-management/
 │   ├── project-management/
 │   └── orchestration/
+├── dashboard/                 # NEW - Production dashboard
+│   ├── server.js             # Node.js HTTP server
+│   ├── dashboard.html        # Frontend UI
+│   ├── server/               # API routes (git, notifications, system)
+│   ├── js/                   # Frontend modules (SSE, git panel)
+│   └── css/                  # Styling
 └── .claude/
+    ├── CLAUDE.md             # Main config with primary/legacy systems
     ├── agents/core_utility/
     │   ├── CONSTITUTION.md        # Security & Ethics (Supreme)
-    │   ├── EXECUTION_DISCIPLINE.md # How Work Gets Done
+    │   ├── EXECUTION_DISCIPLINE.md # Legacy execution rules
     │   └── CommonValuesAndPrinciples.md
-    └── rules/                 # 6 coding rules
+    ├── rules/                # NEW - Primary rules (Claude 4.5 best practices)
+    │   ├── execution.md      # Context awareness, parallel calls
+    │   ├── guardian.md       # Thor enforcement, PR rules
+    │   ├── agent-discovery.md # Subagent orchestration
+    │   ├── engineering-standards.md
+    │   ├── file-size-limits.md
+    │   └── [6 domain-specific rules]
+    └── templates/            # NEW - State tracking for multi-session work
+        ├── tests.json
+        ├── progress.txt
+        └── README.md
 ```
 
 ---
@@ -222,6 +291,7 @@ Reusable workflows you can reference in your projects:
 
 | Skill | Use Case |
 |-------|----------|
+| `structured-research` | **NEW** Hypothesis-driven research with confidence calibration |
 | `code-review` | Systematic code review process |
 | `debugging` | Root cause analysis methodology |
 | `architecture` | System design patterns |
@@ -232,11 +302,40 @@ Reusable workflows you can reference in your projects:
 | `project-management` | Agile/Scrum workflows |
 | `orchestration` | Multi-agent coordination |
 
+### Structured Research (NEW)
+Based on [Anthropic Claude 4.5 best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-4-best-practices#research-and-information-gathering):
+- Generate 2-4 competing hypotheses
+- Track confidence levels (0-100%) with evidence
+- Verify across multiple independent sources
+- Iterative self-critique: "What am I missing?"
+- Maintain research state (`hypothesis-tree.json`, `research-notes.md`)
+
+**Example:**
+```bash
+Research the best approach for implementing authentication in our app.
+Use structured-research skill to evaluate OAuth2 vs JWT vs session cookies.
+```
+
 ---
 
 ## Rules
 
-Copy these to your project's `.claude/rules/` for consistent standards:
+MyConvergio includes two rule systems:
+
+### Primary Rules (Active - Claude 4.5 Best Practices)
+Located in `.claude/rules/` - **Use these for new work:**
+
+| Rule | Purpose |
+|------|---------|
+| `execution.md` | **UPDATED** How work gets done (context awareness, parallel calls, anti-overengineering, Definition of Done) |
+| `guardian.md` | **NEW** Thor enforcement, PR comment resolution, completion verification |
+| `agent-discovery.md` | **UPDATED** Agent routing, subagent orchestration patterns |
+| `engineering-standards.md` | **UPDATED** Code quality, security (OWASP), testing, API design |
+| `file-size-limits.md` | **NEW** Max 300 lines per file with split strategies |
+| `README.md` | Rules hierarchy and usage guide |
+
+### Domain-Specific Rules
+Copy to your project's `.claude/rules/` for consistent standards:
 
 - `code-style.md` - ESLint, Prettier, PEP8
 - `security-requirements.md` - OWASP Top 10
@@ -245,17 +344,34 @@ Copy these to your project's `.claude/rules/` for consistent standards:
 - `api-development.md` - REST, versioning
 - `ethical-guidelines.md` - Privacy, accessibility
 
+### State Tracking Templates (NEW)
+Located in `.claude/templates/` for multi-session work:
+
+- `tests.json` - Structured test status tracking
+- `progress.txt` - Unstructured progress notes
+- `README.md` - Usage guidelines for context refresh scenarios
+
 ---
 
 ## Execution Framework
 
-This repository is **fully self-contained**. All agents operate under these foundational documents:
+This repository is **fully self-contained** with two rule systems:
 
+### Primary Rules (Active - Claude 4.5 Best Practices)
 | Document | Purpose | Priority |
 |----------|---------|----------|
 | [CONSTITUTION.md](./agents/CONSTITUTION.md) | Security, Ethics, Identity | SUPREME |
-| [EXECUTION_DISCIPLINE.md](./.claude/agents/core_utility/EXECUTION_DISCIPLINE.md) | How Work Gets Done | 2nd |
-| CommonValuesAndPrinciples.md | Organizational Values | 3rd |
+| [execution.md](./.claude/rules/execution.md) | **NEW** How Work Gets Done (context awareness, parallel calls, anti-overengineering) | 2nd |
+| [guardian.md](./.claude/rules/guardian.md) | **NEW** Thor enforcement, PR comment resolution, completion verification | 3rd |
+| [engineering-standards.md](./.claude/rules/engineering-standards.md) | Code quality, security, testing, API design | 4th |
+
+### Legacy System (Backward Compatibility)
+| Document | Purpose | Priority |
+|----------|---------|----------|
+| [EXECUTION_DISCIPLINE.md](./.claude/agents/core_utility/EXECUTION_DISCIPLINE.md) | Legacy execution rules (maintained for backward compatibility) | - |
+| CommonValuesAndPrinciples.md | Organizational Values | - |
+
+**Recommendation:** New work should reference `.claude/rules/execution.md` instead of EXECUTION_DISCIPLINE.md. See [.claude/rules/README.md](./.claude/rules/README.md) for hierarchy details.
 
 **No external configuration files are required.**
 
@@ -342,6 +458,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 *Built with AI assistance in Milano, following the Agentic Manifesto principles*
 
-**v3.8.0** | January 2026 | Claude Code Plugin
+**v3.9.0** | January 2026 | Claude Code Plugin
 
 </div>

@@ -19,7 +19,7 @@ const gitWatcher = require('./server/routes-git-watcher');
 
 const PORT = process.argv[2] || 31415;
 const CLAUDE_HOME = process.env.HOME + '/.claude';
-const DASHBOARD_DIR = CLAUDE_HOME + '/dashboard';
+const DASHBOARD_DIR = __dirname; // Use current directory for static files
 
 // MIME types
 const MIME = {

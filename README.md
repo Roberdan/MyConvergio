@@ -159,6 +159,10 @@ The git panel automatically refreshes when you:
 ### Database
 Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). No additional configuration required.
 
+### Known Limitations
+- **File Preview**: Dashboard shows file structure and git metadata, but does not render markdown preview. This is a limitation of the local-only dashboard. For full file preview capabilities, push the repository to GitHub.
+- **Local Repository Only**: The dashboard is designed for local development. Remote repository integrations (GitHub, GitLab) are planned for future releases.
+
 ---
 
 ## Agent Portfolio (57 Specialists)

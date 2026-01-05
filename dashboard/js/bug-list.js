@@ -377,11 +377,5 @@ function closePlannerInstructionModal() {
   }
 }
 
-// Load bug list when project changes
-if (typeof window !== 'undefined') {
-  const originalSelectProject = window.selectProject;
-  window.selectProject = function(projectId) {
-    if (originalSelectProject) originalSelectProject(projectId);
-    initBugList();
-  };
-}
+// Note: initBugList() is called from selectProject() in projects.js
+// and from init() in init.js when the dashboard loads

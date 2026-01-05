@@ -1,6 +1,6 @@
 // Git Status, Branches, and Remote Operations
 
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const { query } = require('./db');
 
 const routes = {
@@ -50,7 +50,7 @@ const routes = {
       // Recent commits (initial batch)
       let commits = [];
       try {
-        const logJson = execSync('git log --oneline -30 --format="%H|%P|%s|%an|%ar"', { cwd, encoding: 'utf-8' });
+        const logJson = execFileSync('git', ['log', '--oneline', '-30', '--format=%H|%P|%s|%an|%ar'], { cwd, encoding: 'utf-8' });
         commits = logJson.split('\n').filter(l => l).map(line => {
           const parts = line.split('|');
           const hash = parts[0];
@@ -169,7 +169,7 @@ const routes = {
       // Get all branches for decoration
       const branchMap = {};
       try {
-        const branchForCommit = execSync('git branch -a --format="%(refname:short)|%(objectname:short)"', { cwd, encoding: 'utf-8' });
+        const branchForCommit = execFileSync('git', ['branch', '-a', '--format=%(refname:short)|%(objectname:short)'], { cwd, encoding: 'utf-8' });
         branchForCommit.split('\n').filter(l => l).forEach(line => {
           const [branch, hash] = line.split('|');
           if (!branchMap[hash]) branchMap[hash] = [];
@@ -178,9 +178,10 @@ const routes = {
       } catch (e) {}
 
       // Get commits from all branches if requested
-      const branchArg = allBranches ? '--all' : '';
-      const logCmd = `git log ${branchArg} --skip=${skip} -${limit} --format="%H|%P|%s|%an|%ar|%D"`;
-      const logJson = execSync(logCmd, { cwd, encoding: 'utf-8' });
+      const logArgs = ['log'];
+      if (allBranches) logArgs.push('--all');
+      logArgs.push(`--skip=${skip}`, `-${limit}`, '--format=%H|%P|%s|%an|%ar|%D');
+      const logJson = execFileSync('git', logArgs, { cwd, encoding: 'utf-8' });
 
       const commits = logJson.split('\n').filter(l => l).map(line => {
         const parts = line.split('|');
@@ -222,9 +223,9 @@ const routes = {
       const cwd = project.path;
       const sha = params.sha.replace(/[^a-fA-F0-9]/g, '');
 
-      // Get commit details
+      // Get commit details (using execFileSync to avoid shell interpretation of %)
       const format = '%H|%an|%ae|%at|%s|%b|%P';
-      const commitInfo = execSync(`git show -s --format="${format}" ${sha}`, { cwd, encoding: 'utf-8' }).trim();
+      const commitInfo = execFileSync('git', ['show', '-s', `--format=${format}`, sha], { cwd, encoding: 'utf-8' }).trim();
       const parts = commitInfo.split('|');
 
       const commit = {
@@ -295,9 +296,9 @@ const routes = {
         }
       }
 
-      // Get commit info for header
+      // Get commit info for header (using execFileSync to avoid shell interpretation of %)
       const format = '%H|%an|%at|%s';
-      const commitInfo = execSync(`git show -s --format="${format}" ${sha}`, { cwd, encoding: 'utf-8' }).trim();
+      const commitInfo = execFileSync('git', ['show', '-s', `--format=${format}`, sha], { cwd, encoding: 'utf-8' }).trim();
       const parts = commitInfo.split('|');
 
       const language = getLanguage(ext);

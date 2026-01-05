@@ -67,3 +67,4 @@ ide/
 # Test results and reports
 playwright-report/
 test-results/
+plugins/cache/

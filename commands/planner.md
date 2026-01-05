@@ -5,6 +5,25 @@ Plan and execute with parallel Claude instances (max 3).
 ## Quick Commands
 `mostra stato`/`dashboard` → Launch dashboard | `pianifica X` → Create plan | `esegui piano` → Execute
 
+## CRITICAL: Task Executor is MANDATORY
+
+**ZERO TOLERANCE POLICY**:
+- ❌ Planner CANNOT execute tasks directly
+- ✅ Planner MUST use Task tool with subagent_type='task-executor'
+- ❌ NO task marked "done" without executor
+- ❌ NO timestamps/tokens faked by planner
+
+**If dashboard shows tasks with**:
+- started_at = NULL
+- completed_at = NULL
+- tokens = 0 or NULL
+- PENDING VALIDATION
+→ **EXECUTOR WAS NOT USED** → UNACCEPTABLE
+
+**Every task execution = executor invocation. NO EXCEPTIONS.**
+
+---
+
 ## CRITICAL: Functional Requirements
 
 **EVERY plan MUST include user's original instructions as Functional Requirements (F-xx)**
@@ -70,7 +89,42 @@ Show user:
 
 **DO NOT PROCEED WITHOUT USER "OK" ON F-xx LIST**
 
-### Step 7: Execute with THOR CHECKPOINTS
+### Step 7: Execute Tasks with Task Executor
+
+**CRITICAL**: Use Task tool with subagent_type='task-executor' for EVERY task.
+
+```typescript
+// For EACH task in wave:
+await Task({
+  subagent_type: "task-executor",
+  prompt: `Execute task from plan:
+
+  Project: {project_id}
+  Plan ID: {plan_id}
+  Wave: {wave_id}
+  Task: {task_id}
+
+  Task details: [copy from plan file]
+  F-xx requirement: [copy acceptance criteria]
+
+  REQUIREMENTS:
+  1. Call update-task to mark started (sets started_at)
+  2. Implement solution
+  3. Test solution
+  4. Call update-task to mark done (sets completed_at)
+  5. Record token usage in token_usage table
+  6. Return completion status with metadata
+  `
+});
+```
+
+**Executor will**:
+- Set started_at/completed_at automatically
+- Track and record token usage
+- Report completion status
+- Log all work in task notes
+
+### Step 8: Thor Wave Verification
 
 **AFTER EACH WAVE COMPLETION:**
 ```bash
@@ -90,7 +144,7 @@ npm run lint && npm run typecheck && npm run build
 - [ ] Build/lint/typecheck passed
 - [ ] Relevant F-xx manually tested
 
-### Step 8: Final Thor Verification
+### Step 9: Final Thor Verification
 ```bash
 ~/.claude/scripts/plan-db.sh validate {plan_id}
 ```

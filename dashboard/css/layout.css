@@ -54,6 +54,97 @@
   color: var(--text-muted);
 }
 
+/* Plan Selector Dropdown */
+.plan-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.plan-selector:hover {
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.plan-selector-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.plan-selector-arrow {
+  font-size: 10px;
+  color: var(--text-dim);
+  transition: transform 0.2s;
+}
+
+.plan-menu {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  min-width: 300px;
+  max-width: 500px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.plan-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.plan-menu-item:last-child {
+  border-bottom: none;
+}
+
+.plan-menu-item:hover {
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.plan-menu-item.active {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.plan-menu-badge {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.plan-menu-item.done .plan-menu-badge { color: var(--green); }
+.plan-menu-item.doing .plan-menu-badge { color: var(--orange); }
+.plan-menu-item.todo .plan-menu-badge { color: var(--text-dim); }
+
+.plan-menu-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-menu-progress {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .stats-row {
   display: flex;
   gap: 40px;

@@ -62,6 +62,118 @@ You MUST know and enforce ALL rules in `~/.claude/`:
 - Never just date without time
 - Apply to: Created, Updated, checkpoints, logs
 
+## Plan-Based Execution Validation (CRITICAL)
+
+**When called via `plan-db.sh validate {plan_id}`**:
+
+### Step 1: Verify Task Metadata Integrity
+
+```bash
+# Check EVERY task has required metadata
+sqlite3 ~/.claude/data/dashboard.db "
+SELECT task_id, started_at, completed_at, duration_minutes,
+       (SELECT COUNT(*) FROM token_usage WHERE task_id=t.task_id) as token_records
+FROM tasks t
+WHERE project_id='{project_id}' AND wave_id='{wave_id}' AND status='done';
+"
+```
+
+**REJECT if ANY done task has**:
+- `started_at` = NULL
+- `completed_at` = NULL
+- `duration_minutes` = NULL or 0
+- `token_records` = 0
+
+**This proves executor was NOT used** → Immediate FAIL.
+
+### Step 2: Verify Functional Requirements (F-xx)
+
+Read plan markdown file:
+```bash
+cat ~/.claude/plans/{project_id}/{PlanName}-Main.md
+```
+
+For EACH F-xx in wave:
+1. Read acceptance criteria
+2. Run verification method (test, API call, manual check)
+3. Document evidence in VERIFICATION LOG
+4. Mark F-xx as [x] ONLY if evidence exists
+
+**Output format**:
+```
+WAVE W1 VERIFICATION
+====================
+[x] F-06: Identify 2-5 macro-arguments from PDF
+    TESTED: Uploaded Storia-Romana.pdf → Got 3 topics (Origini, Repubblica, Impero) ✓
+    EVIDENCE: ./test-output/F-06-topics.json
+
+[ ] F-07: Extract 3-5 key concepts per argument
+    NOT TESTED: No test file found
+    BLOCKED: Need test before approval
+
+VERDICT: BLOCKED - F-07 missing evidence
+```
+
+### Step 3: Build/Lint/Test Verification
+
+```bash
+# Run in project directory
+cd {project_path}
+
+# Lint
+npm run lint 2>&1 | tee /tmp/thor-lint.log
+
+# Typecheck
+npm run typecheck 2>&1 | tee /tmp/thor-typecheck.log
+
+# Build
+npm run build 2>&1 | tee /tmp/thor-build.log
+
+# Tests (if exist)
+npm run test 2>&1 | tee /tmp/thor-test.log || echo "No tests configured"
+```
+
+**REJECT if**:
+- Lint errors > 0
+- Typecheck errors > 0
+- Build fails
+- Tests fail (if tests exist)
+
+### Step 4: Update VERIFICATION LOG
+
+Append to plan markdown file:
+```markdown
+## VERIFICATION LOG
+
+| Timestamp | Wave | Thor Result | F-xx Verified | Build | Notes |
+|-----------|------|-------------|---------------|-------|-------|
+| 05 Gennaio 2026, 13:45 CET | 8-W1 | BLOCKED | 3/4 | PASS | F-07 missing test |
+```
+
+### Step 5: Final Verdict
+
+Return to planner:
+```
+THOR VERDICT for Wave {wave_id}:
+
+METADATA: ✓ PASS (all tasks have timestamps + tokens)
+F-XX: ✗ BLOCKED (F-07 not verified)
+BUILD: ✓ PASS
+LINT: ✓ PASS (0 errors)
+TYPECHECK: ✓ PASS
+TESTS: ⚠ SKIP (no test suite)
+
+OVERALL: BLOCKED
+
+ACTION REQUIRED:
+- Verify F-07: Extract key concepts test
+- Re-run validation after fix
+```
+
+**Planner CANNOT proceed to next wave until Thor returns PASS.**
+
+---
+
 ## Validation Gates
 
 **PRIORITY ORDER**: Functional → Quality → Documentation

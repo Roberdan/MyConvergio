@@ -208,7 +208,13 @@ async function loadTokenData() {
   if (!currentProjectId) return;
 
   try {
-    const res = await fetch(`${API_BASE}/project/${currentProjectId}/tokens`);
+    // Use plan-specific endpoint if plan is loaded, otherwise use project-wide
+    const planId = data?.meta?.plan_id;
+    const endpoint = planId
+      ? `${API_BASE}/plan/${planId}/tokens`
+      : `${API_BASE}/project/${currentProjectId}/tokens`;
+
+    const res = await fetch(endpoint);
     const tokenData = await res.json();
 
     data.tokens = {

@@ -121,14 +121,11 @@ const routes = {
       const cwd = project.path;
       const branch = body.branch.replace(/[;&|`$]/g, '');
 
-      const status = execSync('git status --porcelain', { cwd, encoding: 'utf-8' });
-      if (status.trim() && !body.force) {
-        return { error: 'You have uncommitted changes. Commit or stash them first.' };
-      }
-
+      // Let git handle uncommitted changes - it will fail if there are conflicts
       execSync(`git checkout ${branch}`, { cwd, encoding: 'utf-8' });
       return { success: true, branch };
     } catch (e) {
+      // Git will return error if checkout fails due to conflicts
       return { error: e.message };
     }
   },

@@ -107,10 +107,13 @@ async function selectProject(projectId) {
   try {
     const res = await fetch(`${API_BASE}/plans/${projectId}`);
     const plans = await res.json();
+    currentPlans = plans;
+
     const activePlan = plans.find(p => p.status === 'doing') || plans[0];
 
     if (activePlan) {
       await loadPlanDetails(activePlan.id);
+      renderPlanSelector();
     } else {
       data = createEmptyPlanData(projectId, project.name);
       render();
@@ -144,6 +147,7 @@ async function loadPlanDetails(planId) {
       return;
     }
 
+    currentPlanId = planId;
     data = transformPlanToData(plan);
     render();
     updateNavCounts(); // Update nav after loading plan data
@@ -284,11 +288,68 @@ function extractGitHubOwner(githubUrl) {
   return match ? match[1] : null;
 }
 
+function renderPlanSelector() {
+  const projectNameEl = document.getElementById('projectName');
+  if (!projectNameEl || currentPlans.length <= 1) return;
+
+  const currentPlan = currentPlans.find(p => p.id === currentPlanId);
+  if (!currentPlan) return;
+
+  const project = registry?.projects?.[currentProjectId];
+  const projectName = project?.name || currentProjectId;
+
+  // Replace project name with dropdown
+  projectNameEl.innerHTML = `
+    <div class="plan-selector" onclick="togglePlanMenu(event)">
+      <span class="plan-selector-text">${projectName} › ${currentPlan.name}</span>
+      <span class="plan-selector-arrow">▼</span>
+    </div>
+    <div class="plan-menu" id="planMenu" style="display:none;">
+      ${currentPlans.map(plan => {
+        const statusBadge = plan.status === 'done' ? '✓' : plan.status === 'doing' ? '▶' : '○';
+        const statusClass = plan.status === 'done' ? 'done' : plan.status === 'doing' ? 'doing' : 'todo';
+        const isActive = plan.id === currentPlanId;
+        return `
+          <div class="plan-menu-item ${statusClass} ${isActive ? 'active' : ''}" onclick="selectPlan(${plan.id})">
+            <span class="plan-menu-badge">${statusBadge}</span>
+            <span class="plan-menu-name">${plan.name}</span>
+            <span class="plan-menu-progress">${plan.tasks_done}/${plan.tasks_total}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function selectPlan(planId) {
+  const planMenu = document.getElementById('planMenu');
+  if (planMenu) planMenu.style.display = 'none';
+
+  await loadPlanDetails(planId);
+  renderPlanSelector();
+  loadGitHubData();
+  loadGitData();
+  loadTokenData();
+}
+
+function togglePlanMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('planMenu');
+  if (menu) {
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
 // Close project menu when clicking outside
 document.addEventListener('click', (e) => {
   const menu = document.getElementById('projectMenu');
   const logo = document.querySelector('.logo');
   if (menu && !menu.contains(e.target) && !logo.contains(e.target)) {
     menu.style.display = 'none';
+  }
+
+  const planMenu = document.getElementById('planMenu');
+  if (planMenu && !planMenu.contains(e.target) && !e.target.closest('.plan-selector')) {
+    planMenu.style.display = 'none';
   }
 });

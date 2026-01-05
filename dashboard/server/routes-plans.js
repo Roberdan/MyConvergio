@@ -74,6 +74,32 @@ const routes = {
     `);
   },
 
+  // Token usage stats for specific plan
+  'GET /api/plan/:id/tokens': (params) => {
+    const stats = query(`
+      SELECT
+        SUM(total_tokens) as total_tokens,
+        SUM(cost_usd) as total_cost,
+        COUNT(*) as api_calls,
+        ROUND(AVG(total_tokens)) as avg_tokens_per_call
+      FROM token_usage WHERE plan_id = ${params.id}
+    `)[0] || { total_tokens: 0, total_cost: 0, api_calls: 0, avg_tokens_per_call: 0 };
+
+    const byWave = query(`
+      SELECT wave_id, SUM(total_tokens) as tokens, SUM(cost_usd) as cost
+      FROM token_usage WHERE plan_id = ${params.id} AND wave_id IS NOT NULL
+      GROUP BY wave_id
+    `);
+
+    const byAgent = query(`
+      SELECT agent, SUM(total_tokens) as tokens, COUNT(*) as calls
+      FROM token_usage WHERE plan_id = ${params.id}
+      GROUP BY agent ORDER BY tokens DESC LIMIT 10
+    `);
+
+    return { stats, byWave, byAgent };
+  },
+
   // Update task status
   'POST /api/task/:id/status': (params, body) => {
     const { status, notes } = body;

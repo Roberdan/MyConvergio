@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/mobile.css">
   <link rel="stylesheet" href="css/unified-waves.css">
+  <link rel="stylesheet" href="css/wave-menu.css">
   <link rel="stylesheet" href="css/conversation-viewer.css">
   <link rel="stylesheet" href="css/bug-list.css">
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -46,7 +47,11 @@
     <div class="nav-menu" id="navMenu">
       <a href="#" onclick="showView('kanban')">Control Center <span class="nav-count" id="navKanbanCount"></span></a>
       <a href="#" class="active" onclick="showView('dashboard')">Dashboard</a>
-      <a href="#" onclick="showView('waves')">Waves <span class="nav-count" id="navWavesCount"></span></a>
+      <div class="nav-waves-menu" style="position: relative;">
+        <a href="#" onclick="showView('waves')">Waves <span class="nav-count" id="navWavesCount"></span></a>
+        <button class="wave-menu-trigger" id="waveMenuTrigger" onclick="event.preventDefault(); event.stopPropagation(); showWaveMenu()" title="Wave navigator">▼</button>
+        <div class="wave-menu-dropdown" id="waveMenuList" style="display: none;"></div>
+      </div>
       <a href="#" onclick="showView('issues')">Issues <span class="nav-count" id="navIssuesCount"></span></a>
       <a href="#" onclick="showView('agents')">Agents</a>
     </div>
@@ -601,6 +606,7 @@
   <script src="js/views-kanban.js"></script>
   <script src="js/views-secondary.js"></script>
   <script src="js/unified-waves.js"></script>
+  <script src="js/wave-menu.js"></script>
   <script src="js/conversation-viewer.js"></script>
   <script src="js/bug-list.js"></script>
   <script src="js/utils.js"></script>

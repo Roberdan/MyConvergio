@@ -173,9 +173,15 @@ async function selectPlanFromMenu(projectId, planId) {
     console.error('Failed to load plan:', e);
   }
 
-  // Close menu and refresh display
+  // Update top bar and close menu
+  updateTopBarWithPlan();
   document.getElementById('projectMenu').style.display = 'none';
   renderConsolidatedProjectMenu();
+
+  // Refresh other data
+  if (typeof loadGitHubData === 'function') loadGitHubData();
+  if (typeof loadGitData === 'function') loadGitData();
+  if (typeof loadTokenData === 'function') loadTokenData();
 }
 
 function getProjectStatus(project) {

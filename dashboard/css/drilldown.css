@@ -332,6 +332,24 @@
   text-transform: uppercase;
 }
 
+.task-markdown-btn {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.6;
+  transition: all 0.2s;
+  border-radius: 4px;
+  margin-left: auto;
+}
+
+.task-markdown-btn:hover {
+  opacity: 1;
+  background: rgba(139, 92, 246, 0.1);
+  transform: scale(1.1);
+}
+
 .task-status-badge {
   display: inline-flex;
   align-items: center;

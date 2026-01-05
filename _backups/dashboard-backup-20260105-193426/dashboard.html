@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convergio Dashboard</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="stylesheet" href="css/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Top Navigation -->
+  <nav class="top-nav">
+    <div class="logo" onclick="toggleProjectMenu()" style="cursor:pointer;">
+      <img src="assets/logo.png" alt="Convergio" class="logo-img">
+      <span id="projectName">Select Project</span>
+      <span class="project-dropdown">&#x25BE;</span>
+    </div>
+    <!-- Project Selector Menu -->
+    <div class="project-menu" id="projectMenu" style="display:none;">
+      <div class="project-menu-header">
+        <span>Projects</span>
+        <button class="refresh-btn" onclick="refreshProjects()" title="Refresh">&#x21BB;</button>
+      </div>
+      <div class="project-list" id="projectList">
+        <div class="project-loading">Loading projects...</div>
+      </div>
+      <div class="project-menu-footer">
+        <a href="#" onclick="showLearningStats()">View Learning Stats</a>
+      </div>
+    </div>
+    <div class="nav-menu">
+      <a href="#" onclick="showView('kanban')">Control Center <span class="nav-count" id="navKanbanCount"></span></a>
+      <a href="#" class="active" onclick="showView('dashboard')">Dashboard</a>
+      <a href="#" onclick="showView('waves')">Waves <span class="nav-count" id="navWavesCount"></span></a>
+      <a href="#" onclick="showView('issues')">Issues <span class="nav-count" id="navIssuesCount"></span></a>
+      <a href="#" onclick="showView('agents')">Agents</a>
+    </div>
+    <div class="nav-right">
+      <div class="nav-badge highlight" id="throughputBadge">-</div>
+      <div class="notification-bell" onclick="showView('notifications')" title="Notifications">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="notification-count hidden" id="notificationCount">0</span>
+      </div>
+      <div class="theme-selector">
+        <select id="themeSelect">
+          <option value="voltrex">Voltrex</option>
+          <option value="midnight">Midnight</option>
+          <option value="frost">Frost</option>
+          <option value="dawn">Dawn</option>
+        </select>
+      </div>
+      <button class="nav-btn" id="exportBtn">Export</button>
+      <button class="nav-btn nav-btn-danger" id="shutdownBtn" onclick="shutdownDashboard()" title="Shutdown server and close dashboard">Shutdown</button>
+    </div>
+  </nav>
+
+  <!-- Main Layout -->
+  <div class="main-wrap">
+    <!-- Left Git Panel (VS Code Style) -->
+    <aside class="git-panel" id="gitPanel">
+      <div class="git-panel-header">
+        <span>SOURCE CONTROL</span>
+        <div class="git-panel-actions">
+          <button class="git-header-btn" onclick="gitFetch()" title="Refresh">&#x21BB;</button>
+          <button class="git-header-btn" onclick="showGitMenu(event)" title="More">&#x22EF;</button>
+        </div>
+      </div>
+
+      <!-- REPOSITORIES Section -->
+      <div class="git-section">
+        <div class="git-section-header" onclick="toggleGitSection('repos')">
+          <span class="git-arrow">&#x25BC;</span>
+          <span>REPOSITORIES</span>
+        </div>
+        <div class="git-section-content" id="gitRepos">
+          <div class="git-repo-item" id="gitRepoItem">
+            <img class="git-repo-avatar" id="gitRepoAvatar" src="" alt="" style="display:none;">
+            <svg class="git-repo-icon" id="gitRepoIconFallback" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path fill-rule="evenodd" d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-8a1 1 0 00-.714 1.7.75.75 0 01-1.072 1.05A2.495 2.495 0 012 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 011-1h8zM5 12.25v3.25a.25.25 0 00.4.2l1.45-1.087a.25.25 0 01.3 0L8.6 15.7a.25.25 0 00.4-.2v-3.25a.25.25 0 00-.25-.25h-3.5a.25.25 0 00-.25.25z"/>
+            </svg>
+            <span class="git-repo-name" id="gitRepoName">Project</span>
+            <span class="git-repo-branch" id="gitRepoBranch" onclick="showBranchMenu()">
+              <span class="branch-icon">&#x2387;</span>
+              <span id="gitCurrentBranchName">main</span>
+              <span class="branch-dirty" id="gitBranchDirty">*</span>
+            </span>
+            <button class="git-repo-action" onclick="gitFetch()" title="Fetch">&#x21BB;</button>
+            <button class="git-repo-action" onclick="showRepoMenu(event)" title="More">&#x22EF;</button>
+          </div>
+          <div class="git-branch-list" id="gitBranchList"></div>
+        </div>
+      </div>
+
+      <!-- CHANGES Section -->
+      <div class="git-section git-changes-section">
+        <div class="git-section-header" onclick="toggleGitSection('changes')">
+          <span class="git-arrow">&#x25BC;</span>
+          <span>CHANGES</span>
+          <span class="git-badge" id="gitChangesCount">0</span>
+        </div>
+        <div class="git-section-content" id="gitChanges">
+          <!-- Commit Message -->
+          <div class="git-commit-box">
+            <input type="text" class="git-commit-input" id="gitCommitMessage" placeholder="Message (&#x2318;Enter to commit on &quot;main&quot;)">
+            <div class="git-commit-btn-wrap">
+              <button class="git-commit-btn" onclick="commitChanges()">
+                <span class="commit-icon">&#x1F512;</span> Commit
+              </button>
+              <button class="git-commit-dropdown" onclick="showCommitMenu(event)">&#x25BC;</button>
+            </div>
+          </div>
+          <!-- File Tree -->
+          <div class="git-tree" id="gitFileTree"></div>
+        </div>
+      </div>
+
+      <!-- GRAPH Section -->
+      <div class="git-section git-graph-section">
+        <div class="git-section-header" onclick="toggleGitSection('graph')">
+          <span class="git-arrow">&#x25BC;</span>
+          <span>GRAPH</span>
+          <div class="git-graph-actions">
+            <button class="git-graph-btn" id="gitShowAllBranches" onclick="toggleAllBranches()" title="Show all branches">All</button>
+            <button class="git-graph-btn" onclick="gitFetch()" title="Fetch">&#x2193;</button>
+            <button class="git-graph-btn" onclick="gitPull()" title="Pull">&#x2193;&#x2193;</button>
+            <button class="git-graph-btn" onclick="gitPush()" title="Push">&#x2191;</button>
+          </div>
+        </div>
+        <div class="git-section-content git-graph-content" id="gitGraphSection">
+          <div class="git-graph-container" id="gitGraphContainer"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Stats Label with Project Avatar -->
+      <div class="stats-header">
+        <img src="" alt="" class="project-avatar" id="projectAvatar" style="display:none;">
+        <div class="stats-label" id="planLabel">ConvergioEdu</div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="label">Tasks</div>
+          <div class="value green" id="tasksDone">-/-</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">Tokens Used</div>
+          <div class="value" id="tokensUsed">n/d</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">Avg per Task</div>
+          <div class="value" id="avgTokensPerTask">n/d</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">Waves</div>
+          <div class="value" id="wavesStatus">-/-</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">Progress</div>
+          <div class="value" id="progressPercent">0%</div>
+        </div>
+      </div>
+
+      <!-- Active Wave Indicator (compact) -->
+      <div class="wave-indicator" id="waveIndicator" style="display:none;">
+        <div class="wave-pulse" id="wavePulse"></div>
+        <div class="wave-info">
+          <span class="wave-name" id="currentWave">-</span>
+          <span class="wave-time" id="countdown">-</span>
+          <span class="wave-dates" id="epochDates"></span>
+        </div>
+        <div class="wave-mini-progress">
+          <div class="wave-mini-fill" id="epochFill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Drill-Down Panel -->
+      <div class="drilldown-panel" id="drilldownPanel" style="display:none;">
+        <div class="drilldown-header">
+          <button class="drilldown-back" id="drilldownBack" onclick="navigateBack()">&#x2190; Back</button>
+          <span class="drilldown-title" id="drilldownTitle">Waves</span>
+          <span class="drilldown-updated" id="drilldownUpdated"></span>
+        </div>
+        <div class="drilldown-content" id="drilldownContent"></div>
+      </div>
+
+      <!-- Waves Summary -->
+      <div class="waves-summary" id="wavesSummary" style="display:none;">
+        <div class="waves-header">
+          <span>Waves</span>
+          <button class="refresh-btn" onclick="refreshWaves()" title="Refresh">&#x21BB;</button>
+        </div>
+        <div class="waves-list" id="wavesList"></div>
+      </div>
+
+      <!-- Waves View (hidden by default) -->
+      <div class="waves-view" id="wavesView" style="display:none;">
+        <div class="waves-view-header">
+          <span>All Waves - Timeline View</span>
+          <button class="refresh-btn" onclick="loadWavesView()" title="Refresh">&#x21BB;</button>
+        </div>
+        <div class="waves-view-content" id="wavesViewContent">
+          <div class="waves-loading">Loading waves...</div>
+        </div>
+      </div>
+
+      <!-- Bugs View (hidden by default) -->
+      <div class="bugs-view" id="bugsView" style="display:none;">
+        <div class="bugs-view-header">
+          <span>Issues &amp; Blockers</span>
+          <button class="refresh-btn" onclick="loadBugsView()" title="Refresh">&#x21BB;</button>
+        </div>
+        <div class="bugs-summary" id="bugsSummary">
+          <div class="bugs-stat">
+            <span class="bugs-stat-value" id="bugsOpenCount">0</span>
+            <span class="bugs-stat-label">Open Issues</span>
+          </div>
+          <div class="bugs-stat">
+            <span class="bugs-stat-value" id="bugsBlockersCount">0</span>
+            <span class="bugs-stat-label">Blockers</span>
+          </div>
+          <div class="bugs-stat">
+            <span class="bugs-stat-value" id="bugsPrsCount">0</span>
+            <span class="bugs-stat-label">Open PRs</span>
+          </div>
+        </div>
+        <div class="bugs-content" id="bugsContent">
+          <div class="bugs-loading">Loading issues...</div>
+        </div>
+      </div>
+
+      <!-- Agents View (hidden by default) -->
+      <div class="agents-view" id="agentsView" style="display:none;">
+        <div class="agents-view-header">
+          <span>Agent Performance Overview</span>
+          <button class="refresh-btn" onclick="loadAgentsView()" title="Refresh">&#x21BB;</button>
+        </div>
+        <div class="agents-summary" id="agentsSummary">
+          <div class="agents-stat">
+            <span class="agents-stat-value" id="agentsTotalTasks">0</span>
+            <span class="agents-stat-label">Total Tasks</span>
+          </div>
+          <div class="agents-stat">
+            <span class="agents-stat-value" id="agentsActiveCount">0</span>
+            <span class="agents-stat-label">Active Agents</span>
+          </div>
+          <div class="agents-stat">
+            <span class="agents-stat-value" id="agentsAvgEfficiency">0%</span>
+            <span class="agents-stat-label">Avg Efficiency</span>
+          </div>
+        </div>
+        <div class="agents-grid-view" id="agentsGridView"></div>
+      </div>
+
+      <!-- Notifications Archive View (hidden by default) -->
+      <div class="notifications-view" id="notificationsView" style="display:none;">
+        <div class="notifications-header">
+          <span>Notification Archive</span>
+          <div style="display:flex;gap:8px;">
+            <button class="refresh-btn" onclick="markAllNotificationsRead()" title="Mark all read">&#x2713;</button>
+            <button class="refresh-btn" onclick="loadNotificationsView()" title="Refresh">&#x21BB;</button>
+          </div>
+        </div>
+        <div class="notifications-filters">
+          <button class="notifications-filter" onclick="filterNotifications('all')">All</button>
+          <button class="notifications-filter active" onclick="filterNotifications('unread')">Unread</button>
+          <button class="notifications-filter" onclick="filterNotifications('success')">Success</button>
+          <button class="notifications-filter" onclick="filterNotifications('error')">Errors</button>
+          <input type="text" class="notifications-search" id="notificationSearch" placeholder="Search notifications..." onkeyup="searchNotifications(this.value)">
+        </div>
+        <div class="notifications-list" id="notificationsList">
+          <div class="notifications-empty">No notifications yet</div>
+        </div>
+      </div>
+
+      <!-- Control Center (Full-Page Kanban) -->
+      <div class="control-center" id="kanbanView" style="display:none;">
+        <!-- Header -->
+        <div class="cc-header">
+          <div class="cc-brand">
+            <img src="assets/logo.png" alt="Convergio" class="cc-logo">
+            <div>
+              <div class="cc-title">Control Center</div>
+              <div class="cc-subtitle">Mission Operations</div>
+            </div>
+          </div>
+          <div class="cc-header-right">
+            <button class="refresh-btn" onclick="loadKanban()" title="Refresh">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+            <div class="cc-status-indicator" onclick="toggleStatusDropdown()">
+              <div class="cc-status-icon" id="ccStatusIcon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><circle cx="12" cy="12" r="10"/></svg>
+              </div>
+              <div class="cc-status-dropdown" id="ccStatusDropdown">
+                <div class="cc-status-header">System Status</div>
+                <div class="cc-status-item" id="statusActivePlans">
+                  <span class="cc-status-dot green"></span>
+                  <span>Active Plans</span>
+                  <span class="cc-status-count">0</span>
+                </div>
+                <div class="cc-status-item" id="statusBlockedTasks">
+                  <span class="cc-status-dot gray"></span>
+                  <span>Blocked Tasks</span>
+                  <span class="cc-status-count">0</span>
+                </div>
+                <div class="cc-status-item" id="statusOpenIssues">
+                  <span class="cc-status-dot gray"></span>
+                  <span>Open Issues</span>
+                  <span class="cc-status-count">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics Dashboard -->
+        <div class="cc-metrics">
+          <div class="cc-metric" onclick="openProjectMenu()">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+            <div class="cc-metric-value blue" id="kanbanTotalProjects">0</div>
+            <div class="cc-metric-label">Projects</div>
+          </div>
+          <div class="cc-metric" onclick="scrollToKanban()">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h8M8 12h8M8 17h5"/></svg></div>
+            <div class="cc-metric-value" id="kanbanTotalPlans">0</div>
+            <div class="cc-metric-label">Total Plans</div>
+          </div>
+          <div class="cc-metric" onclick="scrollToKanban('doing')">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+            <div class="cc-metric-value orange" id="kanbanActivePlans">0</div>
+            <div class="cc-metric-label">Active</div>
+          </div>
+          <div class="cc-metric" onclick="scrollToKanban('done')">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="cc-metric-value green" id="kanbanCompletedPlans">0</div>
+            <div class="cc-metric-label">Completed</div>
+          </div>
+          <div class="cc-metric" onclick="showTokensBreakdown()">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+            <div class="cc-metric-value" id="kanbanTotalTokens">0</div>
+            <div class="cc-metric-label">Tokens</div>
+          </div>
+          <div class="cc-metric" onclick="showTokensBreakdown()">
+            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div class="cc-metric-value red" id="kanbanTotalCost">$0</div>
+            <div class="cc-metric-label">Cost</div>
+          </div>
+        </div>
+
+        <!-- Gauges Row -->
+        <div class="cc-gauges">
+          <div class="cc-gauge-card">
+            <div class="cc-gauge-title">Completion Rate</div>
+            <div class="cc-gauge">
+              <div class="cc-gauge-bg">
+                <div class="cc-gauge-fill green" id="gaugeCompletion" style="transform: rotate(-90deg) scaleX(0.5);"></div>
+              </div>
+              <div class="cc-gauge-value" id="gaugeCompletionValue">0%</div>
+            </div>
+            <div class="cc-gauge-label">Plans Completed</div>
+          </div>
+          <div class="cc-gauge-card">
+            <div class="cc-gauge-title">Active Workload</div>
+            <div class="cc-gauge">
+              <div class="cc-gauge-bg">
+                <div class="cc-gauge-fill orange" id="gaugeWorkload" style="transform: rotate(-90deg) scaleX(0);"></div>
+              </div>
+              <div class="cc-gauge-value" id="gaugeWorkloadValue">0</div>
+            </div>
+            <div class="cc-gauge-label">Plans in Progress</div>
+          </div>
+          <div class="cc-gauge-card">
+            <div class="cc-gauge-title">Efficiency Score</div>
+            <div class="cc-gauge">
+              <div class="cc-gauge-bg">
+                <div class="cc-gauge-fill blue" id="gaugeEfficiency" style="transform: rotate(-90deg) scaleX(0.75);"></div>
+              </div>
+              <div class="cc-gauge-value" id="gaugeEfficiencyValue">-</div>
+            </div>
+            <div class="cc-gauge-label">Avg Tokens/Task</div>
+          </div>
+        </div>
+
+        <!-- Kanban Section -->
+        <div class="cc-kanban">
+          <div class="cc-kanban-header">
+            <div class="cc-kanban-title">Mission Pipeline</div>
+          </div>
+          <div class="cc-kanban-grid">
+            <div class="cc-kanban-column" data-status="todo">
+              <div class="cc-column-header">
+                <div class="cc-column-title">
+                  <span class="cc-column-dot todo"></span>
+                  <span>QUEUE</span>
+                </div>
+                <span class="cc-column-count" id="kanbanTodoCount">0</span>
+              </div>
+              <div class="cc-column-cards" id="kanbanTodo"></div>
+            </div>
+            <div class="cc-kanban-column" data-status="doing">
+              <div class="cc-column-header">
+                <div class="cc-column-title">
+                  <span class="cc-column-dot doing"></span>
+                  <span>IN FLIGHT</span>
+                </div>
+                <span class="cc-column-count" id="kanbanDoingCount">0</span>
+              </div>
+              <div class="cc-column-cards" id="kanbanDoing"></div>
+            </div>
+            <div class="cc-kanban-column" data-status="done">
+              <div class="cc-column-header">
+                <div class="cc-column-title">
+                  <span class="cc-column-dot done"></span>
+                  <span>LANDED</span>
+                </div>
+                <span class="cc-column-count" id="kanbanDoneCount">0</span>
+              </div>
+              <div class="cc-column-cards" id="kanbanDone"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart Card - Token Usage -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-tabs">
+            <div class="chart-tab active" onclick="switchChartMode('tokens')">Tokens</div>
+            <div class="chart-tab" onclick="switchChartMode('burndown')">Burndown</div>
+          </div>
+          <div class="chart-filter" id="chartFilter" onclick="showChartFilterMenu(event)">
+            <span id="chartFilterLabel">&#x1F4C5; All time</span> &#x25BE;
+            <div class="chart-filter-menu" id="chartFilterMenu">
+              <div class="chart-filter-option active" data-range="all" onclick="setChartFilter('all', event)">All time</div>
+              <div class="chart-filter-option" data-range="30d" onclick="setChartFilter('30d', event)">Last 30 days</div>
+              <div class="chart-filter-option" data-range="7d" onclick="setChartFilter('7d', event)">Last 7 days</div>
+              <div class="chart-filter-option" data-range="1d" onclick="setChartFilter('1d', event)">Last 24 hours</div>
+              <div class="chart-filter-option" data-range="1h" onclick="setChartFilter('1h', event)">Last hour</div>
+              <div class="chart-filter-option" data-range="30m" onclick="setChartFilter('30m', event)">Last 30 min</div>
+            </div>
+          </div>
+        </div>
+        <div class="token-chart-legend" id="chartLegend">
+          <div class="token-chart-legend-item">
+            <span class="token-chart-legend-dot input"></span>
+            <span>Input: <span id="legendInputTokens">0</span></span>
+          </div>
+          <div class="token-chart-legend-item">
+            <span class="token-chart-legend-dot output"></span>
+            <span>Output: <span id="legendOutputTokens">0</span></span>
+          </div>
+          <span style="margin-left:auto;color:var(--text-muted);">Total: <span id="legendTotalTokens" style="color:var(--green);font-weight:700;">0</span></span>
+        </div>
+        <div id="mainChart"></div>
+      </div>
+
+      <!-- Agents Section -->
+      <div class="traders-section">
+        <div class="traders-header">Agents Performance</div>
+        <div class="traders-grid" id="agentsGrid"></div>
+      </div>
+    </main>
+
+    <!-- Right Panel -->
+    <aside class="right-panel">
+      <!-- Health Status Card -->
+      <div class="panel-card">
+        <div class="panel-header">Health Status</div>
+        <div class="health-grid">
+          <div class="health-item" id="healthPlan">
+            <span class="health-dot"></span>
+            <span class="health-label">Plan</span>
+            <span class="health-value">-</span>
+          </div>
+          <div class="health-item" id="healthGit">
+            <span class="health-dot"></span>
+            <span class="health-label">Git</span>
+            <span class="health-value">-</span>
+          </div>
+          <div class="health-item" id="healthIssues">
+            <span class="health-dot"></span>
+            <span class="health-label">Issues</span>
+            <span class="health-value">-</span>
+          </div>
+        </div>
+
+        <!-- Blockers Section -->
+        <div class="blockers-section" id="blockersSection" style="display:none;">
+          <div class="blockers-header">Blockers</div>
+          <div class="blockers-list" id="blockersList"></div>
+        </div>
+
+        <!-- Pull Requests Section -->
+        <div class="pr-section" id="prSection">
+          <div class="pr-header">
+            <span>Open Pull Requests</span>
+            <span class="pr-count" id="prCount">0</span>
+          </div>
+          <div class="pr-list" id="prList">
+            <div class="pr-empty">No open pull requests</div>
+          </div>
+        </div>
+
+        <!-- Current Focus -->
+        <div class="focus-section">
+          <div class="focus-header">Current Focus</div>
+          <div class="focus-wave" id="focusWave">No active wave</div>
+          <div class="focus-task" id="focusTask">-</div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="about-tabs">
+          <div class="about-tab active" onclick="showTab('issues')">Issues</div>
+          <div class="about-tab" onclick="showTab('tokens')">Tokens</div>
+          <div class="about-tab" onclick="showTab('history')">History</div>
+        </div>
+
+        <!-- Issues Tab -->
+        <div class="tab-content" id="tabIssues">
+          <div class="issues-loading">Loading...</div>
+        </div>
+
+        <!-- Tokens Tab -->
+        <div class="tab-content" id="tabTokens" style="display:none;">
+          <div class="tokens-stats">
+            <div class="token-stat">
+              <span class="token-value" id="tokenTotal">n/d</span>
+              <span class="token-label">Total Tokens</span>
+            </div>
+            <div class="token-stat">
+              <span class="token-value" id="tokenCost">n/d</span>
+              <span class="token-label">Est. Cost</span>
+            </div>
+            <div class="token-stat">
+              <span class="token-value" id="tokenCalls">0</span>
+              <span class="token-label">API Calls</span>
+            </div>
+          </div>
+          <div class="token-breakdown" id="tokenBreakdown"></div>
+        </div>
+
+        <!-- History Tab -->
+        <div class="tab-content" id="tabHistory" style="display:none;">
+          <div class="history-stats">
+            <div class="history-stat">
+              <span class="history-value" id="historyVersions">0</span>
+              <span class="history-label">Versions</span>
+            </div>
+            <div class="history-stat">
+              <span class="history-value" id="historyEdits">0</span>
+              <span class="history-label">Edits</span>
+            </div>
+          </div>
+          <div class="history-timeline" id="historyTimeline">
+            <div class="history-empty">No history yet</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Dashboard JS Modules -->
+  <script src="js/file-icons.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/projects.js"></script>
+  <script src="js/github.js"></script>
+  <script src="js/tabs.js"></script>
+  <script src="js/drilldown.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/gantt.js"></script>
+  <script src="js/git-panel.js"></script>
+  <script src="js/git-commit-viewer.js"></script>
+  <script src="js/git-actions.js"></script>
+  <script src="js/git-watcher.js"></script>
+  <script src="js/diff-utils.js"></script>
+  <script src="js/diff-viewer.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/views-kanban.js"></script>
+  <script src="js/views-secondary.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/system.js"></script>
+  <script src="js/init.js"></script>
+</body>
+</html>

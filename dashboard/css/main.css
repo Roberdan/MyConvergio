@@ -28,6 +28,7 @@
 @import url('./drilldown.css');
 @import url('./diff-viewer.css');
 @import url('./diff-viewer-markdown.css');
+@import url('./markdown-viewer.css');
 
 /* Right Panel */
 @import url('./right-panel.css');

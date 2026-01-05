@@ -124,6 +124,11 @@ async function selectProject(projectId) {
     loadGitData();
     loadTokenData();
     connectGitWatcher(projectId);
+
+    // Initialize bug list for the selected project
+    if (typeof initBugList === 'function') {
+      initBugList();
+    }
   } catch (e) {
     console.error('Failed to load project plans:', e);
     try {
@@ -133,6 +138,11 @@ async function selectProject(projectId) {
     } catch (e2) {
       data = createEmptyPlanData(projectId, project.name);
       render();
+    }
+
+    // Initialize bug list even if loading failed
+    if (typeof initBugList === 'function') {
+      initBugList();
     }
   }
 }

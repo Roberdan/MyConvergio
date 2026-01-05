@@ -2,6 +2,8 @@
 
 const { execSync } = require('child_process');
 const { query, CLAUDE_HOME } = require('./db');
+const fs = require('fs');
+const path = require('path');
 
 const routes = {
   // Kanban board - all projects
@@ -101,8 +103,9 @@ const routes = {
   },
 
   // Update task status
-  'POST /api/task/:id/status': (params, body) => {
-    const { status, notes } = body;
+  'POST /api/task/:id/status': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    const { status, notes } = data;
     execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-task ${params.id} ${status} "${notes || ''}"`, {
       encoding: 'utf-8'
     });
@@ -110,16 +113,18 @@ const routes = {
   },
 
   // Update wave status
-  'POST /api/wave/:id/status': (params, body) => {
-    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-wave ${params.id} ${body.status}`, {
+  'POST /api/wave/:id/status': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-wave ${params.id} ${data.status}`, {
       encoding: 'utf-8'
     });
-    return { success: true, wave_id: params.id, status: body.status };
+    return { success: true, wave_id: params.id, status: data.status };
   },
 
   // Update plan status (for Kanban drag & drop)
-  'POST /api/plan/:id/status': (params, body) => {
-    const { status } = body;
+  'POST /api/plan/:id/status': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    const { status } = data;
     const validStatuses = ['todo', 'doing', 'done'];
     if (!validStatuses.includes(status)) {
       return { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` };
@@ -140,11 +145,12 @@ const routes = {
   },
 
   // Validate plan (Thor)
-  'POST /api/plan/:id/validate': (params, body) => {
-    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh validate ${params.id} ${body.by || 'thor'}`, {
+  'POST /api/plan/:id/validate': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh validate ${params.id} ${data.by || 'thor'}`, {
       encoding: 'utf-8'
     });
-    return { success: true, plan_id: params.id, validated_by: body.by || 'thor' };
+    return { success: true, plan_id: params.id, validated_by: data.by || 'thor' };
   },
 
   // Token usage stats for project
@@ -174,13 +180,184 @@ const routes = {
   },
 
   // Record token usage (called by agents/hooks)
-  'POST /api/tokens': (params, body) => {
-    const { project_id, plan_id, wave_id, task_id, agent, model, input_tokens, output_tokens, cost_usd } = body;
+  'POST /api/tokens': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    const { project_id, plan_id, wave_id, task_id, agent, model, input_tokens, output_tokens, cost_usd } = data;
     query(`
       INSERT INTO token_usage (project_id, plan_id, wave_id, task_id, agent, model, input_tokens, output_tokens, cost_usd)
       VALUES ('${project_id}', ${plan_id || 'NULL'}, '${wave_id || ''}', '${task_id || ''}', '${agent}', '${model}', ${input_tokens}, ${output_tokens}, ${cost_usd || 0})
     `);
     return { success: true };
+  },
+
+  // Get wave markdown file
+  'GET /api/plan/:id/wave/:waveId/markdown': (params) => {
+    const plan = query(`SELECT project_id, name FROM plans WHERE id = ${params.id}`)[0];
+    if (!plan) return { error: 'Plan not found' };
+
+    const project = query(`SELECT path FROM projects WHERE id = '${plan.project_id}'`)[0];
+    if (!project) return { error: 'Project not found' };
+
+    // Extract wave number from wave ID format: 8-W1 -> 1, 8-W2 -> 2
+    const waveMatch = params.waveId.match(/W(\d+)$/);
+    if (!waveMatch) return { error: 'Invalid wave ID format' };
+    const waveNumber = waveMatch[1];
+
+    const planName = plan.name.replace(/-Main$/, '');
+    const phaseFile = `${planName}-Phase${waveNumber}.md`;
+    const phasePath = path.join(CLAUDE_HOME, 'plans', plan.project_id, phaseFile);
+
+    // Try phase file first, fallback to main file if not found
+    try {
+      if (fs.existsSync(phasePath)) {
+        const content = fs.readFileSync(phasePath, 'utf-8');
+        return { success: true, content, filename: phaseFile, waveId: params.waveId };
+      }
+
+      // Fallback to main file
+      const mainFile = `${plan.name}-Main.md`;
+      const mainPath = path.join(CLAUDE_HOME, 'plans', plan.project_id, mainFile);
+      if (!fs.existsSync(mainPath)) {
+        return { error: `Plan file not found: ${mainFile}` };
+      }
+      const content = fs.readFileSync(mainPath, 'utf-8');
+      return { success: true, content, filename: mainFile, waveId: params.waveId };
+    } catch (e) {
+      return { error: e.message };
+    }
+  },
+
+  // Get plan main markdown file
+  'GET /api/plan/:id/markdown': (params) => {
+    const plan = query(`SELECT project_id, name FROM plans WHERE id = ${params.id}`)[0];
+    if (!plan) return { error: 'Plan not found' };
+
+    const project = query(`SELECT path FROM projects WHERE id = '${plan.project_id}'`)[0];
+    if (!project) return { error: 'Project not found' };
+
+    const mainFile = `${plan.name}-Main.md`;
+    const mainPath = path.join(CLAUDE_HOME, 'plans', plan.project_id, mainFile);
+
+    try {
+      if (!fs.existsSync(mainPath)) {
+        return { error: `Plan file not found: ${mainFile}` };
+      }
+      const content = fs.readFileSync(mainPath, 'utf-8');
+      return { success: true, content, filename: mainFile };
+    } catch (e) {
+      return { error: e.message };
+    }
+  },
+
+  // Archive a completed plan
+  'POST /api/plan/:id/archive': (params) => {
+    const plan = query(`SELECT * FROM plans WHERE id = ${params.id}`)[0];
+    if (!plan) return { error: 'Plan not found' };
+
+    if (plan.status !== 'done') {
+      return { error: 'Only completed plans can be archived' };
+    }
+
+    try {
+      // Create archived directory structure: ~/.claude/plans/archived/YYYY-MM/{project}/
+      const now = new Date();
+      const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const archiveDir = path.join(CLAUDE_HOME, 'plans', 'archived', yearMonth, plan.project_id);
+
+      // Ensure archive directory exists
+      if (!fs.existsSync(archiveDir)) {
+        fs.mkdirSync(archiveDir, { recursive: true });
+      }
+
+      // Move all plan files matching pattern {planName}-*.md
+      const plansDir = path.join(CLAUDE_HOME, 'plans', plan.project_id);
+      const planPattern = new RegExp(`^${plan.name}.*\\.md$`);
+
+      if (fs.existsSync(plansDir)) {
+        const files = fs.readdirSync(plansDir).filter(f => planPattern.test(f));
+        const movedFiles = [];
+
+        for (const file of files) {
+          const sourcePath = path.join(plansDir, file);
+          const destPath = path.join(archiveDir, file);
+          fs.renameSync(sourcePath, destPath);
+          movedFiles.push(file);
+        }
+
+        // Update DB with archived info
+        const archivedPath = path.relative(CLAUDE_HOME, archiveDir);
+        query(`
+          UPDATE plans
+          SET archived_at = datetime('now'),
+              archived_path = '${archivedPath}'
+          WHERE id = ${params.id}
+        `);
+
+        return {
+          success: true,
+          archived_at: now.toISOString(),
+          archived_path: archivedPath,
+          files_moved: movedFiles
+        };
+      } else {
+        return { error: 'Plans directory not found' };
+      }
+    } catch (e) {
+      return { error: `Archive failed: ${e.message}` };
+    }
+  },
+
+  // Unarchive a plan
+  'POST /api/plan/:id/unarchive': (params) => {
+    const plan = query(`SELECT * FROM plans WHERE id = ${params.id}`)[0];
+    if (!plan) return { error: 'Plan not found' };
+
+    if (!plan.archived_at || !plan.archived_path) {
+      return { error: 'Plan is not archived' };
+    }
+
+    try {
+      const archiveDir = path.join(CLAUDE_HOME, plan.archived_path);
+      const plansDir = path.join(CLAUDE_HOME, 'plans', plan.project_id);
+
+      // Ensure destination directory exists
+      if (!fs.existsSync(plansDir)) {
+        fs.mkdirSync(plansDir, { recursive: true });
+      }
+
+      // Move all plan files back
+      const planPattern = new RegExp(`^${plan.name}.*\\.md$`);
+
+      if (fs.existsSync(archiveDir)) {
+        const files = fs.readdirSync(archiveDir).filter(f => planPattern.test(f));
+        const movedFiles = [];
+
+        for (const file of files) {
+          const sourcePath = path.join(archiveDir, file);
+          const destPath = path.join(plansDir, file);
+          fs.renameSync(sourcePath, destPath);
+          movedFiles.push(file);
+        }
+
+        // Update DB
+        query(`
+          UPDATE plans
+          SET archived_at = NULL,
+              archived_path = NULL
+          WHERE id = ${params.id}
+        `);
+
+        return {
+          success: true,
+          unarchived_at: new Date().toISOString(),
+          files_moved: movedFiles
+        };
+      } else {
+        return { error: 'Archive directory not found' };
+      }
+    } catch (e) {
+      return { error: `Unarchive failed: ${e.message}` };
+    }
   }
 };
 

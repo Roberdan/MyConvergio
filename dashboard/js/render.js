@@ -73,13 +73,20 @@ function render() {
   updateHealthStatus();
   renderIssuesPanel();
   renderTokensTab();
-  renderWavesGantt();
+  // Only render Gantt in dashboard view, not in waves drilldown view
+  if (currentView === 'dashboard' || currentView === 'control-center') {
+    renderWavesGantt();
+  }
   updateNavCounts();
 
-  // Show/hide waves summary based on data
-  const wavesSummary = document.getElementById('wavesSummary');
-  if (wavesSummary) {
-    wavesSummary.style.display = (data.waves && data.waves.length > 0) ? '' : 'none';
+  // Render unified waves card
+  if (typeof renderUnifiedWaves === 'function') {
+    renderUnifiedWaves();
+  }
+
+  // Initialize bug list
+  if (typeof initBugList === 'function') {
+    initBugList();
   }
 
   // Charts

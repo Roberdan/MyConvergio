@@ -1,0 +1,293 @@
+/* Control Center - Gauges, Kanban, Cards */
+
+/* Gauges Row */
+.cc-gauges {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 0 32px 24px;
+}
+
+.cc-gauge-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cc-gauge-title {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.cc-gauge {
+  position: relative;
+  width: 120px;
+  height: 60px;
+  margin-bottom: 12px;
+}
+
+.cc-gauge-bg {
+  position: absolute;
+  width: 120px;
+  height: 60px;
+  border-radius: 60px 60px 0 0;
+  background: var(--bg-input);
+  overflow: hidden;
+}
+
+.cc-gauge-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 120px;
+  height: 60px;
+  border-radius: 60px 60px 0 0;
+  transform-origin: bottom center;
+  transition: transform 0.5s ease-out;
+}
+
+.cc-gauge-fill.green { background: linear-gradient(180deg, var(--green), rgba(34,197,94,0.3)); }
+.cc-gauge-fill.orange { background: linear-gradient(180deg, var(--orange), rgba(247,147,26,0.3)); }
+.cc-gauge-fill.blue { background: linear-gradient(180deg, var(--accent), rgba(99,102,241,0.3)); }
+
+.cc-gauge-value {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.cc-gauge-label {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Mini Chart */
+.cc-mini-chart {
+  width: 100%;
+  height: 60px;
+  margin-top: 8px;
+}
+
+/* Kanban Section */
+.cc-kanban {
+  flex: 1;
+  padding: 0 32px 24px;
+  overflow: hidden;
+}
+
+.cc-kanban-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cc-kanban-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cc-kanban-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  height: calc(100% - 40px);
+}
+
+.cc-kanban-column {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cc-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-input);
+}
+
+.cc-column-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cc-column-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.cc-column-dot.todo { background: var(--text-muted); }
+.cc-column-dot.doing { background: var(--orange); animation: pulse 2s infinite; }
+.cc-column-dot.done { background: var(--green); }
+
+.cc-column-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 4px 10px;
+  border-radius: 10px;
+}
+
+.cc-column-cards {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 150px;
+  transition: all 0.2s ease;
+}
+
+.cc-column-cards.drag-over {
+  background: rgba(247, 147, 26, 0.15);
+  border: 3px dashed var(--orange);
+  border-radius: 0 0 16px 16px;
+  box-shadow: inset 0 0 20px rgba(247, 147, 26, 0.1);
+}
+
+.cc-column-cards.drag-over::after {
+  content: 'Drop here';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--orange);
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 20px;
+  opacity: 0.8;
+}
+
+.cc-column-cards:not(:empty).drag-over::after {
+  display: none;
+}
+
+/* Plan Cards */
+.cc-plan-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cc-plan-card:hover {
+  border-color: var(--orange);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.cc-plan-card.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.cc-plan-project {
+  font-size: 10px;
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.cc-plan-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.cc-plan-progress {
+  height: 4px;
+  background: var(--bg-input);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.cc-plan-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--orange), var(--green));
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.cc-plan-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cc-plan-tasks {
+  font-weight: 600;
+}
+
+.cc-plan-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cc-plan-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.cc-plan-status-dot.running {
+  background: var(--orange);
+  animation: pulse 1.5s infinite;
+}
+
+.cc-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Column highlight animation */
+.cc-kanban-column.highlight-pulse {
+  animation: columnPulse 0.5s ease-out 3;
+}
+
+@keyframes columnPulse {
+  0%, 100% { border-color: var(--border); }
+  50% { border-color: var(--orange); box-shadow: 0 0 20px rgba(247, 147, 26, 0.3); }
+}

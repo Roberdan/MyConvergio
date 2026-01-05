@@ -69,17 +69,21 @@
   font-weight: 700;
   color: var(--text);
   margin-bottom: 2px;
-  white-space: nowrap;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .toast-message {
   font-size: 11px;
   color: var(--text-muted);
-  white-space: nowrap;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .toast-project {

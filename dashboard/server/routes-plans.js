@@ -103,8 +103,9 @@ const routes = {
   },
 
   // Update task status
-  'POST /api/task/:id/status': (params, body) => {
-    const { status, notes } = body;
+  'POST /api/task/:id/status': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    const { status, notes } = data;
     execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-task ${params.id} ${status} "${notes || ''}"`, {
       encoding: 'utf-8'
     });
@@ -112,16 +113,18 @@ const routes = {
   },
 
   // Update wave status
-  'POST /api/wave/:id/status': (params, body) => {
-    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-wave ${params.id} ${body.status}`, {
+  'POST /api/wave/:id/status': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-wave ${params.id} ${data.status}`, {
       encoding: 'utf-8'
     });
-    return { success: true, wave_id: params.id, status: body.status };
+    return { success: true, wave_id: params.id, status: data.status };
   },
 
   // Update plan status (for Kanban drag & drop)
-  'POST /api/plan/:id/status': (params, body) => {
-    const { status } = body;
+  'POST /api/plan/:id/status': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    const { status } = data;
     const validStatuses = ['todo', 'doing', 'done'];
     if (!validStatuses.includes(status)) {
       return { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` };
@@ -142,11 +145,12 @@ const routes = {
   },
 
   // Validate plan (Thor)
-  'POST /api/plan/:id/validate': (params, body) => {
-    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh validate ${params.id} ${body.by || 'thor'}`, {
+  'POST /api/plan/:id/validate': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh validate ${params.id} ${data.by || 'thor'}`, {
       encoding: 'utf-8'
     });
-    return { success: true, plan_id: params.id, validated_by: body.by || 'thor' };
+    return { success: true, plan_id: params.id, validated_by: data.by || 'thor' };
   },
 
   // Token usage stats for project
@@ -176,8 +180,9 @@ const routes = {
   },
 
   // Record token usage (called by agents/hooks)
-  'POST /api/tokens': (params, body) => {
-    const { project_id, plan_id, wave_id, task_id, agent, model, input_tokens, output_tokens, cost_usd } = body;
+  'POST /api/tokens': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    const { project_id, plan_id, wave_id, task_id, agent, model, input_tokens, output_tokens, cost_usd } = data;
     query(`
       INSERT INTO token_usage (project_id, plan_id, wave_id, task_id, agent, model, input_tokens, output_tokens, cost_usd)
       VALUES ('${project_id}', ${plan_id || 'NULL'}, '${wave_id || ''}', '${task_id || ''}', '${agent}', '${model}', ${input_tokens}, ${output_tokens}, ${cost_usd || 0})

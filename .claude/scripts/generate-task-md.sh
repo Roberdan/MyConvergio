@@ -128,19 +128,17 @@ EOF
 echo "✅ Generated: ${TASK_FILE}"
 
 # Update database with markdown_path (if dashboard is running)
-if curl -s http://localhost:31415/health > /dev/null 2>&1; then
-  RESPONSE=$(curl -s -X POST "http://localhost:31415/api/project/${PROJECT}/task/${TASK_ID}/update-markdown" \
-    -H "Content-Type: application/json" \
-    -d "{\"markdown_path\": \"${TASK_FILE}\"}" 2>&1)
+RESPONSE=$(curl -s -X POST "http://localhost:31415/api/project/${PROJECT}/task/${TASK_ID}/update-markdown" \
+  -H "Content-Type: application/json" \
+  -d "{\"markdown_path\": \"${TASK_FILE}\"}" 2>&1)
 
-  if [ $? -eq 0 ]; then
-    echo "✅ Database updated with markdown_path"
-  else
-    echo "⚠️  Dashboard not responding, markdown_path not updated in database"
-    echo "   You can update manually later when dashboard is running"
-  fi
+if echo "$RESPONSE" | grep -q "success"; then
+  echo "✅ Database updated with markdown_path"
+elif echo "$RESPONSE" | grep -q "error"; then
+  # Task doesn't exist yet - this is OK, will be created when planner runs
+  echo "⚠️  Task not yet in database (will be created during planning)"
 else
-  echo "⚠️  Dashboard not running at localhost:31415"
+  echo "⚠️  Dashboard may not be running"
   echo "   Start dashboard to enable automatic database updates"
 fi
 

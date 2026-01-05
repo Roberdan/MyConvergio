@@ -69,17 +69,18 @@ Before ANY execution:
 
 ### Step 4: Register Waves
 ```bash
-~/.claude/scripts/plan-db.sh add-wave {plan_id} "W1: Phase Name" \
-  --planned-start "YYYY-MM-DD HH:MM" \
-  --planned-end "YYYY-MM-DD HH:MM"
+~/.claude/scripts/plan-db.sh add-wave {plan_id} "W1" "Phase Name"
+# Returns: {db_wave_id} - USE THIS for add-task commands
 ```
 
 ### Step 5: Add Tasks (linked to F-xx)
 ```bash
-~/.claude/scripts/plan-db.sh add-task {wave_id} "Task description [F-01]" \
-  --type feature --priority P1
+~/.claude/scripts/plan-db.sh add-task {db_wave_id} T1-01 "Task description" P1 feature
+# Parameters: db_wave_id (numeric), task_id (T-code), title, priority, type
+# Each task MUST reference which F-xx it satisfies in title/notes
 ```
-**Each task MUST reference which F-xx it satisfies**
+
+**⚠️ CRITICAL**: Use numeric `db_wave_id` from Step 4 output, NOT "W1"
 
 ### Step 6: User Approval
 Show user:
@@ -93,6 +94,14 @@ Show user:
 
 **CRITICAL**: Use Task tool with subagent_type='task-executor' for EVERY task.
 
+**Before executing, get numeric task ID:**
+```bash
+DB_TASK_ID=$(sqlite3 ~/.claude/data/dashboard.db \
+  "SELECT id FROM tasks WHERE wave_id='W1' AND task_id='T1-01';")
+echo "Numeric task ID: $DB_TASK_ID"
+```
+
+**For EACH task in wave:**
 ```typescript
 // For EACH task in wave:
 await Task({
@@ -101,25 +110,25 @@ await Task({
 
   Project: {project_id}
   Plan ID: {plan_id}
-  Wave: {wave_id}
-  Task: {task_id}
+  Wave: W1 (db_id: {db_wave_id})
+  Task: T1-01 (db_id: {db_task_id})
 
   Task details: [copy from plan file]
   F-xx requirement: [copy acceptance criteria]
 
   REQUIREMENTS:
-  1. Call update-task to mark started (sets started_at)
+  1. Call: ~/.claude/scripts/plan-db.sh update-task {db_task_id} in_progress
   2. Implement solution
   3. Test solution
-  4. Call update-task to mark done (sets completed_at)
-  5. Record token usage in token_usage table
+  4. Call: ~/.claude/scripts/plan-db.sh update-task {db_task_id} done "Summary"
+  5. Record token usage
   6. Return completion status with metadata
   `
 });
 ```
 
 **Executor will**:
-- Set started_at/completed_at automatically
+- Set started_at/completed_at automatically via plan-db.sh
 - Track and record token usage
 - Report completion status
 - Log all work in task notes

@@ -1,0 +1,43 @@
+# Progress Notes - Project Name
+
+## Session 1 - 04 Gennaio 2026, 21:00 CET
+
+**Obiettivi sessione:**
+- Implementare autenticazione JWT
+- Fix bug user management
+- Setup CI/CD pipeline
+
+**Completed:**
+- ✓ Authentication flow implementato
+- ✓ JWT token validation working
+- ✓ User model aggiornato per edge cases
+
+**In Progress:**
+- → Investigating user_management test failures (test #2)
+- → Root cause: token expiration handling non corretto
+
+**Next Steps:**
+1. Fix token expiration logic in auth middleware
+2. Update user_management tests
+3. Setup GitHub Actions workflow
+4. Run full test suite
+
+**Technical Decisions:**
+- Scelto JWT invece di session cookies (motivo: stateless API)
+- Token expiration: 24h (configurable via env)
+- Refresh token pattern: da implementare in Session 2
+
+**Blockers:**
+- None
+
+**Notes:**
+- Do NOT remove tests - potrebbe causare regressioni
+- Verificare test suite prima di commit
+- Setup script: npm run dev (port 3000)
+- Test command: npm test
+
+---
+
+## Session 2 - [data]
+
+[Continua qui...]

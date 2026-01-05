@@ -25,9 +25,66 @@ function renderWaves() {
   }).join('');
 }
 
-function drillIntoWave(waveId) {
-  const wave = data.waves.find(w => w.id === waveId);
-  if (!wave) return;
+async function drillIntoWave(waveId) {
+  // Find wave by either id or wave_id
+  let wave = data.waves?.find(w => w.id === waveId || w.wave_id === waveId);
+
+  // If not found in data, try to fetch from API
+  if (!wave && currentProjectId) {
+    try {
+      const res = await fetch(`${API_BASE}/project/${currentProjectId}/dashboard`);
+      const projectData = await res.json();
+      if (projectData.waves) {
+        // Transform and store waves in data
+        data.waves = projectData.waves.map(w => ({
+          id: w.wave_id,
+          wave_id: w.wave_id,
+          name: w.name,
+          status: w.status,
+          done: w.tasks_done || 0,
+          total: w.tasks_total || 0,
+          tasks_done: w.tasks_done || 0,
+          tasks_total: w.tasks_total || 0,
+          planned_start: w.planned_start,
+          planned_end: w.planned_end,
+          started_at: w.started_at,
+          completed_at: w.completed_at,
+          depends_on: w.depends_on,
+          estimated_hours: w.estimated_hours || 8,
+          tasks: (w.tasks || []).map(t => ({
+            id: t.task_id,
+            task_id: t.task_id,
+            title: t.title,
+            status: t.status,
+            assignee: t.assignee,
+            priority: t.priority,
+            type: t.type,
+            tokens: t.tokens,
+            notes: t.notes,
+            started_at: t.started_at,
+            completed_at: t.completed_at,
+            duration_minutes: t.duration_minutes,
+            validated_by: t.validated_by,
+            validated_at: t.validated_at,
+            files: t.files ? t.files.split(',') : []
+          }))
+        }));
+        wave = data.waves.find(w => w.id === waveId || w.wave_id === waveId);
+      }
+    } catch (e) {
+      console.error('Failed to fetch wave data:', e);
+    }
+  }
+
+  if (!wave) {
+    console.warn('Wave not found:', waveId);
+    return;
+  }
+
+  // If on waves view, switch to dashboard for drilldown panel
+  if (typeof currentView !== 'undefined' && currentView === 'waves') {
+    showView('dashboard');
+  }
 
   drilldownState = { level: 'wave', waveId, taskId: null };
   document.getElementById('wavesSummary').style.display = 'none';
@@ -78,16 +135,17 @@ function drillIntoWave(waveId) {
             const tokens = t.tokens ? t.tokens.toLocaleString() : '-';
             const assignee = t.assignee || '-';
 
+            const taskIdVal = t.id || t.task_id;
             return `
-              <tr class="task-row" onclick="drillIntoTask('${waveId}', '${t.id}')">
+              <tr class="task-row" onclick="drillIntoTask('${waveId}', '${taskIdVal}')">
                 <td class="task-col-id">
-                  <span class="task-id-badge">${t.id}</span>
+                  <span class="task-id-badge">${taskIdVal}</span>
                 </td>
                 <td class="task-col-title">
                   <div class="task-title-cell">
                     <span class="task-title-text">${t.title}</span>
                     ${t.type ? `<span class="task-type-badge">${t.type}</span>` : ''}
-                    <button class="task-markdown-btn" onclick="event.stopPropagation(); showTaskMarkdown('${waveId}', '${t.task_id}')" title="View task in wave documentation">
+                    <button class="task-markdown-btn" onclick="event.stopPropagation(); showTaskMarkdown('${waveId}', '${taskIdVal}')" title="View task in wave documentation">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M22.27 19.385H1.73A1.73 1.73 0 0 1 0 17.655V6.345a1.73 1.73 0 0 1 1.73-1.73h20.54A1.73 1.73 0 0 1 24 6.345v11.308a1.73 1.73 0 0 1-1.73 1.731zM5.769 15.923v-4.5l2.308 2.885 2.307-2.885v4.5h2.308V8.078h-2.308l-2.307 2.885-2.308-2.885H3.46v7.847zM21.232 12h-2.309V8.077h-2.307V12h-2.308l3.461 4.039z"/>
                       </svg>
@@ -128,12 +186,18 @@ function drillIntoWave(waveId) {
 }
 
 function drillIntoTask(waveId, taskId) {
-  const wave = data.waves.find(w => w.id === waveId);
-  const task = wave?.tasks?.find(t => t.id === taskId);
-  if (!task) return;
+  // Find wave by either id or wave_id
+  const wave = data.waves?.find(w => w.id === waveId || w.wave_id === waveId);
+  // Find task by either id or task_id
+  const task = wave?.tasks?.find(t => t.id === taskId || t.task_id === taskId);
+  if (!task) {
+    console.warn('Task not found:', waveId, taskId);
+    return;
+  }
 
-  drilldownState = { level: 'task', waveId, taskId };
-  document.getElementById('drilldownTitle').textContent = `Task ${task.id}`;
+  const displayTaskId = task.id || task.task_id;
+  drilldownState = { level: 'task', waveId, taskId: displayTaskId };
+  document.getElementById('drilldownTitle').textContent = `Task ${displayTaskId}`;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
@@ -164,7 +228,7 @@ function drillIntoTask(waveId, taskId) {
             ${task.status.replace('_', ' ').toUpperCase()}
           </span>
           <span class="task-detail-separator">•</span>
-          <span class="task-detail-id">${task.id}</span>
+          <span class="task-detail-id">${displayTaskId}</span>
         </div>
       </div>
 

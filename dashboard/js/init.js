@@ -198,4 +198,53 @@ function stopDataRefresh() {
   }
 }
 
+// Unified dropdown manager - closes all dropdowns when clicking outside
+// or when opening a different dropdown
+const registeredDropdowns = [
+  { menu: 'projectMenu', trigger: '.logo, .project-name' },
+  { menu: 'waveMenuList', trigger: '.wave-menu-trigger' },
+  { menu: 'gitBranchList', trigger: '#gitBranchToggle' },
+  { menu: 'bugDropdownMenu', trigger: '.bug-dropdown-toggle' }
+];
+
+function closeAllDropdowns(exceptMenu = null) {
+  registeredDropdowns.forEach(({ menu }) => {
+    if (menu === exceptMenu) return;
+    const el = document.getElementById(menu);
+    if (el) {
+      el.style.display = 'none';
+      el.classList.remove('is-open');
+    }
+  });
+}
+
+// Global click handler to close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  let clickedInDropdown = false;
+  let clickedMenuId = null;
+
+  // Check if click was inside any registered dropdown or its trigger
+  registeredDropdowns.forEach(({ menu, trigger }) => {
+    const menuEl = document.getElementById(menu);
+    const triggerEls = document.querySelectorAll(trigger);
+
+    if (menuEl && menuEl.contains(e.target)) {
+      clickedInDropdown = true;
+      clickedMenuId = menu;
+    }
+
+    triggerEls.forEach(triggerEl => {
+      if (triggerEl && triggerEl.contains(e.target)) {
+        clickedInDropdown = true;
+        clickedMenuId = menu;
+      }
+    });
+  });
+
+  // If clicked outside all dropdowns and triggers, close all
+  if (!clickedInDropdown) {
+    closeAllDropdowns();
+  }
+});
+
 document.addEventListener('DOMContentLoaded', init);

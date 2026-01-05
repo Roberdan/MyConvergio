@@ -37,7 +37,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 init_db() {
     if [[ ! -f "$DB_FILE" ]]; then
         mkdir -p "$(dirname "$DB_FILE")"
-        sqlite3 "$DB_FILE" < "$SCRIPT_DIR/init-db-v3.sql"
+        sqlite3 "$DB_FILE" < "$SCRIPT_DIR/init-db.sql"
         log_info "Database initialized"
     fi
 }
@@ -222,19 +222,22 @@ cmd_update_task() {
     local task_id="$1"
     local status="$2"
     local notes="${3:-}"
+    # Escape single quotes for SQL injection prevention (use sed for reliable escaping)
+    local notes_escaped
+    notes_escaped=$(printf '%s' "$notes" | sed "s/'/''/g")
 
     local old_status=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id = $task_id;")
 
     if [[ "$status" == "in_progress" ]]; then
         sqlite3 "$DB_FILE" "
             UPDATE tasks
-            SET status = '$status', started_at = datetime('now'), notes = '$notes'
+            SET status = '$status', started_at = datetime('now'), notes = '$notes_escaped'
             WHERE id = $task_id;
         "
     elif [[ "$status" == "done" ]]; then
         sqlite3 "$DB_FILE" "
             UPDATE tasks
-            SET status = '$status', completed_at = datetime('now'), notes = '$notes'
+            SET status = '$status', completed_at = datetime('now'), notes = '$notes_escaped'
             WHERE id = $task_id;
         "
 
@@ -260,7 +263,7 @@ cmd_update_task() {
         fi
     else
         sqlite3 "$DB_FILE" "
-            UPDATE tasks SET status = '$status', notes = '$notes' WHERE id = $task_id;
+            UPDATE tasks SET status = '$status', notes = '$notes_escaped' WHERE id = $task_id;
         "
     fi
 
@@ -474,6 +477,86 @@ cmd_kanban_json() {
     sqlite3 -json "$DB_FILE" "SELECT * FROM v_kanban;"
 }
 
+# Validate F-xx requirements from plan markdown
+cmd_validate_fxx() {
+    local plan_id="$1"
+    local errors=0
+    local verified=0
+    local pending=0
+
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}           F-xx REQUIREMENTS VALIDATION - Plan $plan_id        ${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo ""
+
+    # Get plan markdown directory
+    local markdown_dir=$(sqlite3 "$DB_FILE" "SELECT markdown_dir FROM plans WHERE id = $plan_id;")
+    local plan_name=$(sqlite3 "$DB_FILE" "SELECT name FROM plans WHERE id = $plan_id;")
+
+    if [[ -z "$markdown_dir" ]]; then
+        log_warn "No markdown directory set for plan $plan_id"
+        echo -e "${YELLOW}Checking for plan file in default locations...${NC}"
+        # Try default location
+        markdown_dir="$HOME/.claude/plans/active/${plan_name}"
+    fi
+
+    # Find the plan markdown file
+    local plan_file=""
+    for f in "$markdown_dir/plan.md" "$markdown_dir/${plan_name}.md" "$markdown_dir"/*.md; do
+        if [[ -f "$f" ]]; then
+            plan_file="$f"
+            break
+        fi
+    done
+
+    if [[ -z "$plan_file" || ! -f "$plan_file" ]]; then
+        log_error "Plan markdown file not found in: $markdown_dir"
+        return 1
+    fi
+
+    echo -e "${GREEN}Found plan file: $plan_file${NC}"
+    echo ""
+
+    # Extract F-xx requirements
+    echo -e "${YELLOW}Functional Requirements Status:${NC}"
+    echo -e "────────────────────────────────────────────────────────────────"
+
+    # Parse F-xx lines from markdown table
+    # Match patterns like: | F-01 | ... | [x] | or | F-01 | ... | [ ] |
+    while IFS= read -r line; do
+        if [[ "$line" =~ \|[[:space:]]*(F-[0-9]+)[[:space:]]*\| ]]; then
+            local fxx="${BASH_REMATCH[1]}"
+            local req_text=$(echo "$line" | sed 's/.*F-[0-9]*[[:space:]]*|[[:space:]]*\([^|]*\).*/\1/' | head -c 50)
+
+            if [[ "$line" =~ \[x\] ]] || [[ "$line" =~ \[X\] ]]; then
+                echo -e "  ${GREEN}[x]${NC} $fxx - ${req_text}..."
+                ((verified++))
+            elif [[ "$line" =~ \[\s*\] ]] || [[ "$line" =~ \[\] ]]; then
+                echo -e "  ${RED}[ ]${NC} $fxx - ${req_text}..."
+                ((pending++))
+            fi
+        fi
+    done < "$plan_file"
+
+    echo ""
+    echo -e "────────────────────────────────────────────────────────────────"
+    echo -e "  Verified: ${GREEN}$verified${NC}  |  Pending: ${RED}$pending${NC}  |  Total: $((verified + pending))"
+    echo ""
+
+    if [[ $pending -gt 0 ]]; then
+        echo -e "${RED}F-xx VALIDATION FAILED: $pending requirements not verified${NC}"
+        return 1
+    fi
+
+    if [[ $verified -eq 0 ]]; then
+        echo -e "${YELLOW}WARNING: No F-xx requirements found in plan${NC}"
+        return 0
+    fi
+
+    echo -e "${GREEN}F-xx VALIDATION PASSED: All $verified requirements verified${NC}"
+    return 0
+}
+
 # Sync counters - fixes out-of-sync wave/plan counters
 cmd_sync() {
     local plan_id="$1"
@@ -542,6 +625,9 @@ case "${1:-help}" in
     validate)
         cmd_validate "${2:?plan_id required}" "${3:-thor}"
         ;;
+    validate-fxx)
+        cmd_validate_fxx "${2:?plan_id required}"
+        ;;
     kanban)
         cmd_kanban
         ;;
@@ -572,7 +658,8 @@ case "${1:-help}" in
         echo "  update-task <task_id> <status> Update task (pending|in_progress|done|blocked)"
         echo "  update-wave <wave_id> <status> Update wave status"
         echo "  complete <plan_id>             Mark plan as done"
-        echo "  validate <plan_id> [by]        Thor validates plan"
+        echo "  validate <plan_id> [by]        Thor validates plan (counters, orphans, etc)"
+        echo "  validate-fxx <plan_id>         Validate F-xx requirements from plan markdown"
         echo "  kanban                         Show kanban board"
         echo "  json <plan_id>                 Get plan as JSON"
         echo "  kanban-json                    Get kanban as JSON"

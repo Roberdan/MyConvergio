@@ -14,6 +14,11 @@ async function showWaveMenu() {
     return;
   }
 
+  // Close other dropdowns when opening wave menu
+  if (typeof closeAllDropdowns === 'function') {
+    closeAllDropdowns('waveMenuList');
+  }
+
   waveList.innerHTML = '<div class="wave-loading">Loading waves...</div>';
   waveList.style.display = 'block';
 
@@ -93,6 +98,7 @@ function renderWaveTaskMenuItem(waveId, task) {
         </span>
         ${isLive ? '<span class="wave-menu-live pulsing" title="Executing">●</span>' : ''}
         ${task.priority ? `<span class="wave-menu-priority ${task.priority}">${task.priority}</span>` : ''}
+        <button class="wave-menu-view-btn" onclick="event.stopPropagation(); drillIntoTaskFromMenu('${waveId}', '${task.task_id}'); closeWaveMenu();" title="View task details">🔍</button>
       </div>
 
       ${isExpanded && (task.description || task.assignee || task.tokens) ? `
@@ -146,7 +152,69 @@ function closeWaveMenu() {
   if (waveList) waveList.style.display = 'none';
 }
 
-function drillIntoWave(waveId) {
+// Navigate to waves view
+function navigateToWavesView() {
   showView('waves');
-  // Optional: Could scroll to specific wave in Gantt view
+}
+
+// Drill into task detail from wave menu
+// Note: This uses functions from drilldown.js (drillIntoWave, drillIntoTask)
+async function drillIntoTaskFromMenu(waveId, taskId) {
+  // Ensure we're on dashboard view for drilldown panel
+  showView('dashboard');
+
+  // If data doesn't have the wave/task, fetch it first
+  const waveExists = data?.waves?.find(w => w.id === waveId || w.wave_id === waveId);
+  if (!waveExists) {
+    try {
+      const res = await fetch(`${API_BASE}/project/${currentProjectId}/dashboard`);
+      const projectData = await res.json();
+      if (projectData.waves) {
+        data.waves = projectData.waves.map(w => ({
+          id: w.wave_id,
+          wave_id: w.wave_id,
+          name: w.name,
+          status: w.status,
+          done: w.tasks_done || 0,
+          total: w.tasks_total || 0,
+          tasks: (w.tasks || []).map(t => ({
+            id: t.task_id,
+            task_id: t.task_id,
+            title: t.title,
+            status: t.status,
+            assignee: t.assignee,
+            priority: t.priority,
+            type: t.type,
+            tokens: t.tokens,
+            notes: t.notes,
+            started_at: t.started_at,
+            completed_at: t.completed_at,
+            duration_minutes: t.duration_minutes,
+            validated_by: t.validated_by,
+            validated_at: t.validated_at,
+            files: t.files ? t.files.split(',') : []
+          }))
+        }));
+      }
+    } catch (e) {
+      console.error('Failed to load project data for task drilldown:', e);
+      if (typeof showToast === 'function') {
+        showToast('Failed to load task details', 'error');
+      }
+      return;
+    }
+  }
+
+  // Drill into task using drilldown.js functions
+  // drillIntoTask expects wave.id format (e.g., "W1" not "1-W1")
+  if (typeof drillIntoTask === 'function') {
+    // First drill into the wave to set up the context
+    if (typeof drillIntoWave === 'function') {
+      drillIntoWave(waveId);
+    }
+    // Then drill into the specific task after a short delay
+    setTimeout(() => {
+      drillIntoTask(waveId, taskId);
+    }, 50);
+  }
 }

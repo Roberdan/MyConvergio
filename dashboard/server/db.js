@@ -5,6 +5,13 @@ const { execSync } = require('child_process');
 const CLAUDE_HOME = process.env.HOME + '/.claude';
 const DB_FILE = CLAUDE_HOME + '/data/dashboard.db';
 
+// Escape string for SQL to prevent injection
+function escapeSQL(str) {
+  if (str === null || str === undefined) return null;
+  if (typeof str !== 'string') str = String(str);
+  return str.replace(/'/g, "''");
+}
+
 // Execute SQLite query and return JSON
 function query(sql) {
   try {
@@ -19,4 +26,4 @@ function query(sql) {
   }
 }
 
-module.exports = { query, CLAUDE_HOME, DB_FILE };
+module.exports = { query, escapeSQL, CLAUDE_HOME, DB_FILE };

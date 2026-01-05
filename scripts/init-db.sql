@@ -186,3 +186,53 @@ SELECT
   CAST(SUM(user_edits) AS REAL) / COUNT(DISTINCT project_id || '/' || plan_name) as avg_edits_per_plan,
   CAST(SUM(blockers) AS REAL) / COUNT(DISTINCT project_id || '/' || plan_name) as avg_blockers_per_plan
 FROM v_plan_intervention_stats;
+
+-- Notifications for system alerts and user messages
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id TEXT,
+  type TEXT NOT NULL CHECK(type IN ('info', 'warning', 'error', 'success', 'task', 'thor')),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  source TEXT,
+  is_read INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  read_at DATETIME,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+-- Conversation logs for tracking agent interactions
+CREATE TABLE IF NOT EXISTS conversation_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'tool', 'system')),
+  content TEXT NOT NULL,
+  tool_name TEXT,
+  tool_input TEXT,
+  tool_output TEXT,
+  tokens_in INTEGER DEFAULT 0,
+  tokens_out INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+-- Token usage tracking for cost analysis
+CREATE TABLE IF NOT EXISTS token_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id TEXT NOT NULL,
+  session_id TEXT,
+  task_id TEXT,
+  model TEXT NOT NULL,
+  tokens_input INTEGER NOT NULL DEFAULT 0,
+  tokens_output INTEGER NOT NULL DEFAULT 0,
+  cost_usd REAL,
+  recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+-- Indexes for new tables
+CREATE INDEX IF NOT EXISTS idx_notifications_project ON notifications(project_id, is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_conversation_logs_session ON conversation_logs(project_id, session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_token_usage_project ON token_usage(project_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_task ON token_usage(task_id, recorded_at DESC);

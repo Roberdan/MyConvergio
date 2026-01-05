@@ -1,7 +1,7 @@
 // Plan, Project, Kanban, and Token Routes
 
 const { execSync } = require('child_process');
-const { query, CLAUDE_HOME } = require('./db');
+const { query, escapeSQL, CLAUDE_HOME } = require('./db');
 const fs = require('fs');
 const path = require('path');
 
@@ -36,28 +36,31 @@ const routes = {
              CASE WHEN tasks_total > 0 THEN ROUND(100.0 * tasks_done / tasks_total) ELSE 0 END as progress,
              created_at, started_at, completed_at, validated_at, validated_by
       FROM plans
-      WHERE project_id = '${params.project}'
+      WHERE project_id = '${escapeSQL(params.project)}'
       ORDER BY is_master DESC, status, name
     `);
   },
 
   // Single plan with waves and tasks
   'GET /api/plan/:id': (params) => {
-    const plan = query(`SELECT * FROM plans WHERE id = ${params.id}`)[0];
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
+
+    const plan = query(`SELECT * FROM plans WHERE id = ${planId}`)[0];
     if (!plan) return { error: 'Plan not found' };
 
     const waves = query(`
       SELECT id, wave_id, name, status, assignee, tasks_done, tasks_total,
              started_at, completed_at, planned_start, planned_end,
              depends_on, estimated_hours, position
-      FROM waves WHERE plan_id = ${params.id} ORDER BY position
+      FROM waves WHERE plan_id = ${planId} ORDER BY position
     `);
 
     for (const wave of waves) {
       wave.tasks = query(`
         SELECT id, task_id, title, status, assignee, priority, type,
                started_at, completed_at, duration_minutes, tokens, validated_at, validated_by
-        FROM tasks WHERE project_id = '${plan.project_id}' AND wave_id = '${wave.wave_id}'
+        FROM tasks WHERE project_id = '${escapeSQL(plan.project_id)}' AND wave_id = '${escapeSQL(wave.wave_id)}'
         ORDER BY task_id
       `);
     }
@@ -68,34 +71,39 @@ const routes = {
 
   // Plan versions/history
   'GET /api/plan/:id/history': (params) => {
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
     return query(`
       SELECT version, change_type, change_reason, changed_by, created_at
       FROM plan_versions
-      WHERE plan_id = ${params.id}
+      WHERE plan_id = ${planId}
       ORDER BY version DESC
     `);
   },
 
   // Token usage stats for specific plan
   'GET /api/plan/:id/tokens': (params) => {
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
+
     const stats = query(`
       SELECT
         SUM(total_tokens) as total_tokens,
         SUM(cost_usd) as total_cost,
         COUNT(*) as api_calls,
         ROUND(AVG(total_tokens)) as avg_tokens_per_call
-      FROM token_usage WHERE plan_id = ${params.id}
+      FROM token_usage WHERE plan_id = ${planId}
     `)[0] || { total_tokens: 0, total_cost: 0, api_calls: 0, avg_tokens_per_call: 0 };
 
     const byWave = query(`
       SELECT wave_id, SUM(total_tokens) as tokens, SUM(cost_usd) as cost
-      FROM token_usage WHERE plan_id = ${params.id} AND wave_id IS NOT NULL
+      FROM token_usage WHERE plan_id = ${planId} AND wave_id IS NOT NULL
       GROUP BY wave_id
     `);
 
     const byAgent = query(`
       SELECT agent, SUM(total_tokens) as tokens, COUNT(*) as calls
-      FROM token_usage WHERE plan_id = ${params.id}
+      FROM token_usage WHERE plan_id = ${planId}
       GROUP BY agent ORDER BY tokens DESC LIMIT 10
     `);
 
@@ -105,25 +113,37 @@ const routes = {
   // Update task status
   'POST /api/task/:id/status': (params, req, res, body) => {
     const data = JSON.parse(body);
+    const taskId = parseInt(params.id, 10);
+    if (isNaN(taskId)) return { error: 'Invalid task ID' };
     const { status, notes } = data;
-    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-task ${params.id} ${status} "${notes || ''}"`, {
+    const validStatuses = ['pending', 'in_progress', 'done', 'blocked', 'skipped'];
+    if (!validStatuses.includes(status)) return { error: 'Invalid status' };
+    // Sanitize notes for shell - escape single quotes and remove dangerous chars
+    const safeNotes = (notes || '').replace(/'/g, "'\\''").replace(/[;&|`$]/g, '');
+    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-task ${taskId} ${status} '${safeNotes}'`, {
       encoding: 'utf-8'
     });
-    return { success: true, task_id: params.id, status };
+    return { success: true, task_id: taskId, status };
   },
 
   // Update wave status
   'POST /api/wave/:id/status': (params, req, res, body) => {
     const data = JSON.parse(body);
-    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-wave ${params.id} ${data.status}`, {
+    const waveId = parseInt(params.id, 10);
+    if (isNaN(waveId)) return { error: 'Invalid wave ID' };
+    const validStatuses = ['pending', 'in_progress', 'done', 'blocked'];
+    if (!validStatuses.includes(data.status)) return { error: 'Invalid status' };
+    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-wave ${waveId} ${data.status}`, {
       encoding: 'utf-8'
     });
-    return { success: true, wave_id: params.id, status: data.status };
+    return { success: true, wave_id: waveId, status: data.status };
   },
 
   // Update plan status (for Kanban drag & drop)
   'POST /api/plan/:id/status': (params, req, res, body) => {
     const data = JSON.parse(body);
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
     const { status } = data;
     const validStatuses = ['todo', 'doing', 'done'];
     if (!validStatuses.includes(status)) {
@@ -140,39 +160,43 @@ const routes = {
       timestampUpdate = ", started_at = NULL, completed_at = NULL";
     }
 
-    query(`UPDATE plans SET status = '${status}'${timestampUpdate} WHERE id = ${params.id}`);
-    return { success: true, plan_id: parseInt(params.id), status };
+    query(`UPDATE plans SET status = '${status}'${timestampUpdate} WHERE id = ${planId}`);
+    return { success: true, plan_id: planId, status };
   },
 
   // Validate plan (Thor)
   'POST /api/plan/:id/validate': (params, req, res, body) => {
     const data = JSON.parse(body);
-    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh validate ${params.id} ${data.by || 'thor'}`, {
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
+    const validatedBy = (data.by || 'thor').replace(/[^a-zA-Z0-9_-]/g, '');
+    execSync(`${CLAUDE_HOME}/scripts/plan-db.sh validate ${planId} ${validatedBy}`, {
       encoding: 'utf-8'
     });
-    return { success: true, plan_id: params.id, validated_by: data.by || 'thor' };
+    return { success: true, plan_id: planId, validated_by: validatedBy };
   },
 
   // Token usage stats for project
   'GET /api/project/:id/tokens': (params) => {
+    const projectId = escapeSQL(params.id);
     const stats = query(`
       SELECT
         SUM(total_tokens) as total_tokens,
         SUM(cost_usd) as total_cost,
         COUNT(*) as api_calls,
         ROUND(AVG(total_tokens)) as avg_tokens_per_call
-      FROM token_usage WHERE project_id = '${params.id}'
+      FROM token_usage WHERE project_id = '${projectId}'
     `)[0] || { total_tokens: 0, total_cost: 0, api_calls: 0, avg_tokens_per_call: 0 };
 
     const byPlan = query(`
       SELECT plan_id, SUM(total_tokens) as tokens, SUM(cost_usd) as cost
-      FROM token_usage WHERE project_id = '${params.id}' AND plan_id IS NOT NULL
+      FROM token_usage WHERE project_id = '${projectId}' AND plan_id IS NOT NULL
       GROUP BY plan_id
     `);
 
     const byAgent = query(`
       SELECT agent, SUM(total_tokens) as tokens, COUNT(*) as calls
-      FROM token_usage WHERE project_id = '${params.id}'
+      FROM token_usage WHERE project_id = '${projectId}'
       GROUP BY agent ORDER BY tokens DESC LIMIT 10
     `);
 
@@ -183,19 +207,25 @@ const routes = {
   'POST /api/tokens': (params, req, res, body) => {
     const data = JSON.parse(body);
     const { project_id, plan_id, wave_id, task_id, agent, model, input_tokens, output_tokens, cost_usd } = data;
+    const safePlanId = plan_id ? parseInt(plan_id, 10) : null;
+    const safeInputTokens = parseInt(input_tokens, 10) || 0;
+    const safeOutputTokens = parseInt(output_tokens, 10) || 0;
+    const safeCost = parseFloat(cost_usd) || 0;
     query(`
       INSERT INTO token_usage (project_id, plan_id, wave_id, task_id, agent, model, input_tokens, output_tokens, cost_usd)
-      VALUES ('${project_id}', ${plan_id || 'NULL'}, '${wave_id || ''}', '${task_id || ''}', '${agent}', '${model}', ${input_tokens}, ${output_tokens}, ${cost_usd || 0})
+      VALUES ('${escapeSQL(project_id)}', ${safePlanId || 'NULL'}, '${escapeSQL(wave_id || '')}', '${escapeSQL(task_id || '')}', '${escapeSQL(agent)}', '${escapeSQL(model)}', ${safeInputTokens}, ${safeOutputTokens}, ${safeCost})
     `);
     return { success: true };
   },
 
   // Get wave markdown file
   'GET /api/plan/:id/wave/:waveId/markdown': (params) => {
-    const plan = query(`SELECT project_id, name FROM plans WHERE id = ${params.id}`)[0];
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
+    const plan = query(`SELECT project_id, name FROM plans WHERE id = ${planId}`)[0];
     if (!plan) return { error: 'Plan not found' };
 
-    const project = query(`SELECT path FROM projects WHERE id = '${plan.project_id}'`)[0];
+    const project = query(`SELECT path FROM projects WHERE id = '${escapeSQL(plan.project_id)}'`)[0];
     if (!project) return { error: 'Project not found' };
 
     // Extract wave number from wave ID format: 8-W1 -> 1, 8-W2 -> 2
@@ -229,10 +259,12 @@ const routes = {
 
   // Get plan main markdown file
   'GET /api/plan/:id/markdown': (params) => {
-    const plan = query(`SELECT project_id, name FROM plans WHERE id = ${params.id}`)[0];
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
+    const plan = query(`SELECT project_id, name FROM plans WHERE id = ${planId}`)[0];
     if (!plan) return { error: 'Plan not found' };
 
-    const project = query(`SELECT path FROM projects WHERE id = '${plan.project_id}'`)[0];
+    const project = query(`SELECT path FROM projects WHERE id = '${escapeSQL(plan.project_id)}'`)[0];
     if (!project) return { error: 'Project not found' };
 
     const mainFile = `${plan.name}-Main.md`;
@@ -251,7 +283,9 @@ const routes = {
 
   // Archive a completed plan
   'POST /api/plan/:id/archive': (params) => {
-    const plan = query(`SELECT * FROM plans WHERE id = ${params.id}`)[0];
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
+    const plan = query(`SELECT * FROM plans WHERE id = ${planId}`)[0];
     if (!plan) return { error: 'Plan not found' };
 
     if (plan.status !== 'done') {
@@ -289,8 +323,8 @@ const routes = {
         query(`
           UPDATE plans
           SET archived_at = datetime('now'),
-              archived_path = '${archivedPath}'
-          WHERE id = ${params.id}
+              archived_path = '${escapeSQL(archivedPath)}'
+          WHERE id = ${planId}
         `);
 
         return {
@@ -309,7 +343,9 @@ const routes = {
 
   // Unarchive a plan
   'POST /api/plan/:id/unarchive': (params) => {
-    const plan = query(`SELECT * FROM plans WHERE id = ${params.id}`)[0];
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
+    const plan = query(`SELECT * FROM plans WHERE id = ${planId}`)[0];
     if (!plan) return { error: 'Plan not found' };
 
     if (!plan.archived_at || !plan.archived_path) {
@@ -344,7 +380,7 @@ const routes = {
           UPDATE plans
           SET archived_at = NULL,
               archived_path = NULL
-          WHERE id = ${params.id}
+          WHERE id = ${planId}
         `);
 
         return {

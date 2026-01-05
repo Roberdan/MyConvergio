@@ -62,7 +62,7 @@
   border: 1px solid var(--border-color, #ddd);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 1500; /* Dropdown layer - above menus (1100), below modals (2000) */
   flex-direction: column;
   overflow: hidden;
 }

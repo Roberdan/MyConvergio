@@ -48,7 +48,7 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1001;
+  z-index: 1100; /* Menu layer - below dropdowns (1500) and modals (2000) */
   max-height: 600px;
   overflow-y: auto;
   display: none;

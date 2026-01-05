@@ -5,15 +5,45 @@ let bugListEditing = null;
 
 // Initialize bug list from localStorage
 function initBugList() {
+  // Guard: if no project selected, reset to empty and render empty state
+  if (!currentProjectId) {
+    bugListItems = [];
+    renderBugListNoProject();
+    return;
+  }
+
   const saved = localStorage.getItem(`bugList_${currentProjectId}`);
   if (saved) {
-    bugListItems = JSON.parse(saved);
+    try {
+      bugListItems = JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to parse bug list from localStorage:', e);
+      bugListItems = [];
+    }
+  } else {
+    bugListItems = [];
   }
   renderBugList();
 }
 
+// Render empty state when no project selected
+function renderBugListNoProject() {
+  const container = document.getElementById('bugListContainer');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="bug-list-empty">
+      <p>Select a project to view bugs/todos</p>
+    </div>
+  `;
+}
+
 // Save bug list to localStorage
 function saveBugList() {
+  if (!currentProjectId) {
+    console.warn('Cannot save bug list: no project selected');
+    return;
+  }
   localStorage.setItem(`bugList_${currentProjectId}`, JSON.stringify(bugListItems));
 }
 

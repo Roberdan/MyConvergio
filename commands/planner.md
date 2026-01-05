@@ -82,13 +82,54 @@ Before ANY execution:
 
 **⚠️ CRITICAL**: Use numeric `db_wave_id` from Step 4 output, NOT "W1"
 
-### Step 6: User Approval
-Show user:
-- All F-xx extracted from their instructions
-- Task breakdown per wave
-- Verification criteria
+### Step 6: User Approval Gate (MANDATORY STOP)
 
-**DO NOT PROCEED WITHOUT USER "OK" ON F-xx LIST**
+**⛔ EXECUTION IS BLOCKED UNTIL USER EXPLICITLY APPROVES**
+
+Present to user for approval:
+```markdown
+## APPROVAL REQUEST
+
+### Functional Requirements Extracted:
+| ID | From Your Words | Acceptance Test | Status |
+|----|-----------------|-----------------|--------|
+| F-01 | "[exact quote]" | [how I'll verify] | Pending |
+| F-02 | "[exact quote]" | [how I'll verify] | Pending |
+
+### Execution Plan:
+- Wave 1: [name] - [X tasks]
+- Wave 2: [name] - [Y tasks]
+
+### Estimated Scope:
+- Files to modify: ~N
+- Files to create: ~M
+- Total tasks: Z
+
+---
+
+**Ho catturato tutto? Manca qualcosa?**
+**Posso procedere con l'esecuzione? (sì/no)**
+```
+
+**BLOCKING CONDITIONS - CANNOT PROCEED IF:**
+- [ ] User hasn't responded "sì" / "yes" / "ok" / "procedi"
+- [ ] User says something is missing → add F-xx, re-present
+- [ ] User says requirement is wrong → correct, re-present
+- [ ] User asks questions → answer, then re-present approval request
+
+**FORBIDDEN ACTIONS BEFORE APPROVAL:**
+- ❌ Starting any task execution
+- ❌ Creating task entries in database
+- ❌ Invoking task-executor
+- ❌ Modifying any code
+- ❌ Assuming approval from silence
+
+**APPROVAL = GATE OPEN:**
+Only after explicit user approval ("sì", "yes", "ok", "procedi", "vai", "esegui"):
+1. Record approval timestamp in plan file
+2. Proceed to Step 7 (execution)
+
+---
 
 ### Step 7: Execute Tasks with Task Executor
 
@@ -132,8 +173,27 @@ await Task({
 - Track and record token usage
 - Report completion status
 - Log all work in task notes
+- **Verify F-xx criteria before marking done**
 
-### Step 8: Thor Wave Verification
+**After executor returns:**
+1. Check executor's F-xx verification report
+2. If F-xx PASS → proceed to next task
+3. If F-xx FAIL → DO NOT proceed, fix first
+
+### Step 8: F-xx Validation (After Each Task)
+
+**MANDATORY after each task completes:**
+```bash
+# Validate F-xx status in plan markdown
+~/.claude/scripts/plan-db.sh validate-fxx {plan_id}
+```
+
+**If validate-fxx reports pending requirements:**
+- Task that should have verified F-xx is NOT actually done
+- Go back to executor, complete the verification
+- Only proceed when validate-fxx passes
+
+### Step 9: Thor Wave Verification
 
 **AFTER EACH WAVE COMPLETION:**
 ```bash
@@ -153,7 +213,7 @@ npm run lint && npm run typecheck && npm run build
 - [ ] Build/lint/typecheck passed
 - [ ] Relevant F-xx manually tested
 
-### Step 9: Final Thor Verification
+### Step 10: Final Thor Verification
 ```bash
 ~/.claude/scripts/plan-db.sh validate {plan_id}
 ```
@@ -270,5 +330,13 @@ When Thor contests a plan or task:
 -- Tasks does NOT have plan_id! Use project_id + wave_id
 ```
 
-## Models
-**opus**: Planning, architecture | **sonnet**: Complex execution | **haiku**: Simple tasks
+## Model Strategy (Cost Optimization)
+
+| Phase | Model | Rationale |
+|-------|-------|-----------|
+| /prompt | parent context | Translate user request |
+| /planner | opus | High-quality planning, architecture decisions |
+| task-executor | haiku | Simple, well-documented tasks (cost efficient) |
+| thor | sonnet | Quality validation requires balanced reasoning |
+
+**Key Principle**: Opus creates detailed, well-documented task specs so haiku can execute efficiently.

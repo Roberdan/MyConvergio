@@ -127,6 +127,11 @@ async function selectProject(projectId) {
     if (typeof initBugList === 'function') {
       initBugList();
     }
+
+    // Refresh the current view if not dashboard (dashboard already handled by render())
+    if (typeof currentView !== 'undefined' && currentView && currentView !== 'dashboard') {
+      showView(currentView);
+    }
   } catch (e) {
     console.error('Failed to load project plans:', e);
     try {
@@ -141,6 +146,11 @@ async function selectProject(projectId) {
     // Initialize bug list even if loading failed
     if (typeof initBugList === 'function') {
       initBugList();
+    }
+
+    // Refresh the current view if not dashboard
+    if (typeof currentView !== 'undefined' && currentView && currentView !== 'dashboard') {
+      showView(currentView);
     }
   }
 }
@@ -273,7 +283,11 @@ function createEmptyPlanData(projectId, projectName) {
 function toggleProjectMenu() {
   const menu = document.getElementById('projectMenu');
   if (menu) {
-    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    const isOpening = menu.style.display === 'none';
+    if (isOpening && typeof closeAllDropdowns === 'function') {
+      closeAllDropdowns('projectMenu');
+    }
+    menu.style.display = isOpening ? 'block' : 'none';
   }
 }
 

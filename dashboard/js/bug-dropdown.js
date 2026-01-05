@@ -54,6 +54,11 @@ class BugDropdown {
     // Toggle dropdown menu
     this.toggle.addEventListener('click', (e) => {
       e.stopPropagation();
+      const wasOpen = this.menu.classList.contains('is-open');
+      // Close other dropdowns before opening this one
+      if (!wasOpen && typeof closeAllDropdowns === 'function') {
+        closeAllDropdowns('bugDropdownMenu');
+      }
       const isOpen = this.menu.classList.toggle('is-open');
       this.toggle.setAttribute('aria-expanded', isOpen);
     });

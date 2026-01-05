@@ -1,6 +1,6 @@
 // Notification Routes
 
-const { query } = require('./db');
+const { query, escapeSQL } = require('./db');
 
 const routes = {
   // Get all notifications (with optional filters)
@@ -15,10 +15,10 @@ const routes = {
     const offset = parseInt(searchParams.get('offset')) || 0;
     const search = searchParams.get('search');
 
-    if (projectId) whereClause += ` AND n.project_id = '${projectId}'`;
+    if (projectId) whereClause += ` AND n.project_id = '${escapeSQL(projectId)}'`;
     if (unreadOnly) whereClause += ' AND n.is_read = 0 AND n.is_dismissed = 0';
-    if (severity) whereClause += ` AND n.severity = '${severity}'`;
-    if (search) whereClause += ` AND (n.title LIKE '%${search}%' OR n.message LIKE '%${search}%')`;
+    if (severity) whereClause += ` AND n.severity = '${escapeSQL(severity)}'`;
+    if (search) whereClause += ` AND (n.title LIKE '%${escapeSQL(search)}%' OR n.message LIKE '%${escapeSQL(search)}%')`;
 
     const notifications = query(`
       SELECT n.*, p.name as project_name
@@ -77,9 +77,9 @@ const routes = {
 
     query(`
       INSERT INTO notifications (project_id, type, severity, title, message, link, link_type, source_table, source_id)
-      VALUES ('${project_id}', '${type}', '${severity || 'info'}', '${title.replace(/'/g, "''")}',
-              '${(message || '').replace(/'/g, "''")}', '${link || ''}', '${link_type || ''}',
-              '${source_table || ''}', '${source_id || ''}')
+      VALUES ('${escapeSQL(project_id)}', '${escapeSQL(type)}', '${escapeSQL(severity || 'info')}', '${escapeSQL(title)}',
+              '${escapeSQL(message || '')}', '${escapeSQL(link || '')}', '${escapeSQL(link_type || '')}',
+              '${escapeSQL(source_table || '')}', '${escapeSQL(source_id || '')}')
     `);
 
     const notification = query('SELECT * FROM notifications ORDER BY id DESC LIMIT 1')[0];
@@ -96,13 +96,15 @@ const routes = {
 
   // Dismiss notification
   'POST /api/notifications/:id/dismiss': (params) => {
-    query(`UPDATE notifications SET is_dismissed = 1 WHERE id = ${params.id}`);
-    return { success: true, id: params.id };
+    const id = parseInt(params.id);
+    if (isNaN(id)) return { error: 'Invalid notification ID' };
+    query(`UPDATE notifications SET is_dismissed = 1 WHERE id = ${id}`);
+    return { success: true, id };
   },
 
   // Mark all as read (optionally for a project)
   'POST /api/notifications/read-all': (params, body) => {
-    const projectClause = body.project_id ? `AND project_id = '${body.project_id}'` : '';
+    const projectClause = body.project_id ? `AND project_id = '${escapeSQL(body.project_id)}'` : '';
     query(`UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP WHERE is_read = 0 ${projectClause}`);
     return { success: true };
   },
@@ -114,7 +116,9 @@ const routes = {
 
   // Toggle notification trigger
   'POST /api/notifications/triggers/:id/toggle': (params) => {
-    query(`UPDATE notification_triggers SET is_enabled = 1 - is_enabled WHERE id = ${params.id}`);
+    const id = parseInt(params.id);
+    if (isNaN(id)) return { error: 'Invalid trigger ID' };
+    query(`UPDATE notification_triggers SET is_enabled = 1 - is_enabled WHERE id = ${id}`);
     return { success: true };
   }
 };

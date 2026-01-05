@@ -1,0 +1,118 @@
+/* Dashboard Theme Variables and Base Styles */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* Theme: Voltrex (Default Dark) */
+:root, [data-theme="voltrex"] {
+  --bg-dark: #0a0612;
+  --bg-purple: #160d24;
+  --bg-gradient: linear-gradient(180deg, #0a0612 0%, #160d24 30%, #1a1030 70%, #251540 100%);
+  --bg-card: rgba(20, 12, 32, 0.7);
+  --bg-card-solid: #1a1128;
+  --bg-input: #0d0815;
+  --border: rgba(139, 92, 246, 0.15);
+  --border-light: rgba(255, 255, 255, 0.08);
+  --text: #ffffff;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+  --green: #22c55e;
+  --green-bright: #4ade80;
+  --green-dim: rgba(34, 197, 94, 0.15);
+  --orange: #f7931a;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --accent: #8b5cf6;
+  --chart-line: #f7931a;
+  --chart-fill: rgba(247, 147, 26, 0.1);
+}
+
+/* Theme: Midnight (Dark - Navy/Teal) */
+[data-theme="midnight"] {
+  --bg-dark: #0a1628;
+  --bg-purple: #0f1f35;
+  --bg-gradient: linear-gradient(180deg, #0a1628 0%, #0f1f35 30%, #132744 70%, #1a3a5c 100%);
+  --bg-card: rgba(15, 31, 53, 0.8);
+  --bg-card-solid: #132744;
+  --bg-input: #0a1628;
+  --border: rgba(56, 189, 248, 0.15);
+  --border-light: rgba(255, 255, 255, 0.08);
+  --text: #f0f9ff;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --green: #2dd4bf;
+  --green-bright: #5eead4;
+  --green-dim: rgba(45, 212, 191, 0.15);
+  --orange: #38bdf8;
+  --red: #f43f5e;
+  --purple: #38bdf8;
+  --accent: #38bdf8;
+  --chart-line: #2dd4bf;
+  --chart-fill: rgba(45, 212, 191, 0.1);
+}
+
+/* Theme: Frost (Light - Cool Gray/Blue) */
+[data-theme="frost"] {
+  --bg-dark: #f8fafc;
+  --bg-purple: #f1f5f9;
+  --bg-gradient: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 30%, #e2e8f0 70%, #cbd5e1 100%);
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-card-solid: #ffffff;
+  --bg-input: #f1f5f9;
+  --border: rgba(71, 85, 105, 0.2);
+  --border-light: rgba(0, 0, 0, 0.06);
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+  --green: #059669;
+  --green-bright: #10b981;
+  --green-dim: rgba(5, 150, 105, 0.1);
+  --orange: #3b82f6;
+  --red: #dc2626;
+  --purple: #6366f1;
+  --accent: #3b82f6;
+  --chart-line: #3b82f6;
+  --chart-fill: rgba(59, 130, 246, 0.1);
+}
+
+/* Theme: Dawn (Light - Warm Cream/Amber) */
+[data-theme="dawn"] {
+  --bg-dark: #fefdfb;
+  --bg-purple: #fdf8f3;
+  --bg-gradient: linear-gradient(180deg, #fefdfb 0%, #fdf8f3 30%, #fef3e2 70%, #fde9cc 100%);
+  --bg-card: rgba(255, 255, 255, 0.95);
+  --bg-card-solid: #fffbf5;
+  --bg-input: #fdf8f3;
+  --border: rgba(180, 83, 9, 0.15);
+  --border-light: rgba(0, 0, 0, 0.05);
+  --text: #1c1917;
+  --text-muted: #57534e;
+  --text-dim: #78716c;
+  --green: #16a34a;
+  --green-bright: #22c55e;
+  --green-dim: rgba(22, 163, 74, 0.1);
+  --orange: #f59e0b;
+  --red: #dc2626;
+  --purple: #d97706;
+  --accent: #f59e0b;
+  --chart-line: #f59e0b;
+  --chart-fill: rgba(245, 158, 11, 0.1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* Smooth theme transitions */
+.top-nav, .panel-card, .chart-card, .trader-card, .epoch-bar, .nav-badge, .stat-item,
+.input-row, .contract-box, .action-btn, .panel-tab, .chart-tab, .about-tab {
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', 'SF Mono', 'Fira Code', monospace;
+  background: var(--bg-gradient);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 15px;
+  font-weight: 600;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.2px;
+  transition: background 0.3s ease, color 0.3s ease;
+}

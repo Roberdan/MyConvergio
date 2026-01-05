@@ -1,0 +1,116 @@
+/* Traders/Agents Section */
+.traders-section { margin-top: 8px; }
+
+.traders-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.traders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  max-width: 100%;
+}
+
+.trader-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.trader-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.trader-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.trader-info { flex: 1; min-width: 0; overflow: hidden; }
+.trader-name {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trader-followers {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trader-star { color: var(--orange); font-size: 16px; }
+.trader-star.inactive { color: var(--text-dim); }
+
+.trader-profit {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 2px;
+}
+
+.trader-roi {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+  margin-bottom: 10px;
+}
+
+.trader-chart { height: 36px; margin-bottom: 12px; }
+
+.trader-stats {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.trader-stat { text-align: center; }
+.trader-stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight: 600; }
+.trader-stat-value { font-size: 13px; font-weight: 700; margin-top: 2px; }
+
+.trader-actions { display: flex; gap: 8px; }
+
+.trader-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trader-btn.mock {
+  background: var(--bg-card-solid);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.trader-btn.copy {
+  background: var(--green);
+  color: #000;
+}

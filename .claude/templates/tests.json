@@ -1,0 +1,41 @@
+{
+  "project": "project_name",
+  "session": 1,
+  "updated_at": "2026-01-04T21:00:00Z",
+  "tests": [
+    {
+      "id": 1,
+      "name": "authentication_flow",
+      "file": "tests/auth.test.ts",
+      "status": "passing",
+      "last_run": "2026-01-04T20:55:00Z"
+    },
+    {
+      "id": 2,
+      "name": "user_management",
+      "file": "tests/users.test.ts",
+      "status": "failing",
+      "error": "Expected 200, got 401",
+      "last_run": "2026-01-04T20:56:00Z"
+    },
+    {
+      "id": 3,
+      "name": "api_endpoints",
+      "file": "tests/api.test.ts",
+      "status": "not_started",
+      "last_run": null
+    }
+  ],
+  "summary": {
+    "total": 200,
+    "passing": 150,
+    "failing": 25,
+    "not_started": 25,
+    "coverage_percent": 85
+  },
+  "notes": [
+    "Do NOT remove or edit tests - this could lead to missing/buggy functionality",
+    "Run full test suite before marking tasks complete",
+    "Update this file after each test run"
+  ]
+}

@@ -1,0 +1,32 @@
+# CLAUDE.md
+
+{{PROJECT_DESCRIPTION}}
+
+## Commands
+
+```bash
+{{BUILD_COMMAND}}     # Build
+{{TEST_COMMAND}}      # Tests
+{{LINT_COMMAND}}      # Lint
+{{DEV_COMMAND}}       # Dev server (if applicable)
+```
+
+## Architecture
+
+**Stack**: {{TECH_STACK}}
+**Key paths**: {{KEY_PATHS}}
+**Patterns**: {{PATTERNS}}
+
+## Project Rules
+
+**Verification**: `{{VERIFY_COMMAND}}`
+**Process**: {{PROCESS_RULES}}
+**Constraints**:
+- {{CONSTRAINT_1}}
+- {{CONSTRAINT_2}}
+
+## On-Demand Docs
+
+Load detailed docs when needed:
+- `docs/architecture.md`: System design
+- `docs/api.md`: API reference

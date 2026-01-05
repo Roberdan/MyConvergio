@@ -1,0 +1,42 @@
+/* Dashboard Main CSS - Imports all partials */
+/* Total: 17 partials, all under 250 lines each */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* Core */
+@import url('./variables.css');
+@import url('./layout.css');
+@import url('./nav.css');
+
+/* Git Panel */
+@import url('./git-panel.css');
+@import url('./git-changes.css');
+@import url('./git-graph.css');
+
+/* Main Content */
+@import url('./charts.css');
+@import url('./traders.css');
+@import url('./gantt.css');
+
+/* Views */
+@import url('./views-kanban.css');
+@import url('./views-other.css');
+@import url('./control-center-layout.css');
+@import url('./control-center-kanban.css');
+@import url('./control-center-modal.css');
+@import url('./commit-viewer.css');
+@import url('./drilldown.css');
+@import url('./diff-viewer.css');
+@import url('./diff-viewer-markdown.css');
+
+/* Right Panel */
+@import url('./right-panel.css');
+@import url('./panel-forms.css');
+@import url('./project-menu.css');
+
+/* Overlays & Notifications */
+@import url('./toast.css');
+@import url('./notifications.css');
+
+/* Responsive */
+@import url('./responsive.css');

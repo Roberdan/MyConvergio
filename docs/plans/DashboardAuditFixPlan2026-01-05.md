@@ -55,7 +55,7 @@
 | Gate | Blocking Phase | Waiting Phases | Status | Unlocked By |
 |------|----------------|----------------|--------|-------------|
 | GATE-0 | Phase 0 (Setup) | Phase 1A, 1B, 1C | 🟢 UNLOCKED | CLAUDE 2 ✅ |
-| GATE-1 | Phase 1 (All) | Phase 2 | 🔴 LOCKED | CLAUDE 1 |
+| GATE-1 | Phase 1 (All) | Phase 2 | 🟡 IN PROGRESS | Phase 1A ✅, Phase 1B ✅, Phase 1C ⏳ |
 | GATE-2 | Phase 2 (All) | Phase 3 | 🔴 LOCKED | CLAUDE 1 |
 
 ### Phase Gate Instructions

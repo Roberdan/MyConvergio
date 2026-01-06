@@ -54,20 +54,34 @@
     </div>
     <div class="nav-right">
       <button class="nav-icon-btn" id="bugTrackerBtn" onclick="toggleBugTracker()" title="Track bugs and issues">
-        <span class="icon">🐛</span>
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 2v4M16 2v4M12 12l.01.01M12 16l.01.01M8 16l.01.01M16 16l.01.01M8 12l.01.01M16 12l.01.01M5 8h14M5 16h14"/>
+        </svg>
         <span class="nav-icon-label">Track Issues</span>
         <span class="bug-count" id="bugCount">0</span>
       </button>
       
+      <button class="nav-icon-btn" onclick="refreshControlCenter()" title="Refresh data">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+        <span class="nav-icon-label">Refresh</span>
+      </button>
+      
       <button class="nav-icon-btn" id="notificationsBtn" onclick="showView('notifications')" title="View all notifications">
-        <span class="icon">🔔</span>
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
         <span class="nav-icon-label">Notifications</span>
         <span class="notification-count hidden" id="notificationCount">0</span>
       </button>
       
       <div class="settings-menu-wrapper">
         <button class="nav-icon-btn" id="settingsBtn" onclick="toggleSettingsMenu()" title="Settings">
-          <span class="icon">⚙️</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M1 12h6m6 0h6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"/>
+          </svg>
           <span class="nav-icon-label">Settings</span>
         </button>
         <div class="settings-dropdown" id="settingsDropdown" style="display:none;">
@@ -81,12 +95,23 @@
             </select>
           </div>
           <button class="settings-item" id="exportBtn" onclick="exportData()">
-            <span>📤</span> Export Data
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            Export Data
           </button>
           <button class="settings-item danger" onclick="shutdownDashboard()">
-            <span>⏻</span> Shutdown
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
+            </svg>
+            Shutdown
           </button>
         </div>
+      </div>
+      
+      <div class="system-status-compact" id="systemStatusCompact">
+        <div class="status-dot" id="ccStatusDot"></div>
+        <span class="status-text" id="ccStatusText">ALL SYSTEMS NOMINAL</span>
       </div>
     </div>
   </nav>
@@ -177,35 +202,6 @@
             <img src="assets/logo.png" alt="Convergio" class="cc-logo">
             <div>
               <div class="cc-title">Control Center</div>
-              <div class="cc-subtitle">Mission Operations</div>
-            </div>
-          </div>
-          <div class="cc-header-right">
-            <button class="refresh-btn" onclick="loadKanban()" title="Refresh">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            </button>
-            <div class="cc-status-indicator" onclick="toggleStatusDropdown()">
-              <div class="cc-status-icon" id="ccStatusIcon">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><circle cx="12" cy="12" r="10"/></svg>
-              </div>
-              <div class="cc-status-dropdown" id="ccStatusDropdown">
-                <div class="cc-status-header">System Status</div>
-                <div class="cc-status-item" id="statusActivePlans">
-                  <span class="cc-status-dot green"></span>
-                  <span>Active Plans</span>
-                  <span class="cc-status-count">0</span>
-                </div>
-                <div class="cc-status-item" id="statusBlockedTasks">
-                  <span class="cc-status-dot gray"></span>
-                  <span>Blocked Tasks</span>
-                  <span class="cc-status-count">0</span>
-                </div>
-                <div class="cc-status-item" id="statusOpenIssues">
-                  <span class="cc-status-dot gray"></span>
-                  <span>Open Issues</span>
-                  <span class="cc-status-count">0</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>

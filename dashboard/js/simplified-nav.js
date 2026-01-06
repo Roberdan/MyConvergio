@@ -81,6 +81,34 @@ function shutdownDashboard() {
     });
 }
 
+// Refresh Control Center
+function refreshControlCenter() {
+  showToast('Refreshing...', 'info');
+  
+  if (currentView === 'kanban' && typeof loadKanban === 'function') {
+    loadKanban().then(() => {
+      showToast('Control Center refreshed', 'success');
+    }).catch(err => {
+      console.error('Refresh failed:', err);
+      showToast('Refresh failed', 'error');
+    });
+  } else if (currentView === 'dashboard' && typeof loadDashboard === 'function') {
+    loadDashboard().then(() => {
+      showToast('Dashboard refreshed', 'success');
+    }).catch(err => {
+      console.error('Refresh failed:', err);
+      showToast('Refresh failed', 'error');
+    });
+  } else {
+    // Generic refresh - reload projects and current view
+    if (typeof loadProjects === 'function') {
+      loadProjects().then(() => {
+        showToast('Data refreshed', 'success');
+      });
+    }
+  }
+}
+
 // ============================================
 // NOTIFICATIONS
 // ============================================
@@ -321,6 +349,7 @@ if (typeof window !== 'undefined') {
   window.switchTheme = switchTheme;
   window.exportData = exportData;
   window.shutdownDashboard = shutdownDashboard;
+  window.refreshControlCenter = refreshControlCenter;
   window.loadAllNotifications = loadAllNotifications;
   window.filterNotifications = filterNotifications;
   window.markNotificationRead = markNotificationRead;

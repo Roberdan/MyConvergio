@@ -11,11 +11,11 @@
 .nav-icon-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 8px 14px;
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text);
   font-size: 13px;
   cursor: pointer;
@@ -28,13 +28,15 @@
   border-color: var(--primary);
 }
 
-.nav-icon-btn .icon {
-  font-size: 16px;
-  line-height: 1;
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .nav-icon-label {
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .nav-icon-btn .bug-count,
@@ -45,11 +47,44 @@
   padding: 2px 6px;
   font-size: 11px;
   font-weight: 600;
-  margin-left: 4px;
+  margin-left: 2px;
 }
 
 .nav-icon-btn .notification-count.hidden {
   display: none;
+}
+
+/* System Status Compact */
+.system-status-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-left: 12px;
+}
+
+.system-status-compact .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+
+.system-status-compact .status-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Settings Menu */

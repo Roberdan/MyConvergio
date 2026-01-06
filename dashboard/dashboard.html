@@ -68,7 +68,7 @@
         <span class="nav-icon-label">Refresh</span>
       </button>
       
-      <button class="nav-icon-btn" id="notificationsBtn" onclick="showView('notifications')" title="View all notifications">
+      <button class="nav-icon-btn" id="notificationsBtn" onclick="toggleNotificationsOverlay()" title="View all notifications">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
@@ -477,6 +477,7 @@
         </div>
         <div class="notifications-filters">
           <button class="notification-filter-btn active" data-filter="all" onclick="filterNotifications('all')">All</button>
+          <button class="notification-filter-btn" data-filter="unread" onclick="filterNotifications('unread')">Unread</button>
           <button class="notification-filter-btn" data-filter="info" onclick="filterNotifications('info')">Info</button>
           <button class="notification-filter-btn" data-filter="success" onclick="filterNotifications('success')">Success</button>
           <button class="notification-filter-btn" data-filter="warning" onclick="filterNotifications('warning')">Warning</button>
@@ -487,6 +488,36 @@
         </div>
       </div>
     </main>
+
+    <!-- Notifications Overlay -->
+    <div class="notifications-overlay" id="notificationsOverlay" style="display: none;">
+      <div class="notifications-overlay-backdrop" onclick="closeNotificationsOverlay()"></div>
+      <div class="notifications-panel">
+        <div class="notifications-header">
+          <h2>Notifications</h2>
+          <div class="notifications-actions">
+            <button class="notifications-action-btn" onclick="markAllNotificationsRead()">
+              <span>✓</span> Mark All Read
+            </button>
+            <button class="notifications-action-btn danger" onclick="clearAllNotifications()">
+              <span>🗑️</span> Clear All
+            </button>
+            <button class="notifications-close-btn" onclick="closeNotificationsOverlay()">✕</button>
+          </div>
+        </div>
+        <div class="notifications-filters">
+          <button class="notification-filter-btn active" data-filter="all" onclick="filterNotifications('all')">All</button>
+          <button class="notification-filter-btn" data-filter="unread" onclick="filterNotifications('unread')">Unread</button>
+          <button class="notification-filter-btn" data-filter="info" onclick="filterNotifications('info')">Info</button>
+          <button class="notification-filter-btn" data-filter="success" onclick="filterNotifications('success')">Success</button>
+          <button class="notification-filter-btn" data-filter="warning" onclick="filterNotifications('warning')">Warning</button>
+          <button class="notification-filter-btn" data-filter="error" onclick="filterNotifications('error')">Error</button>
+        </div>
+        <div class="notifications-list" id="notificationsListOverlay">
+          <div class="notifications-empty">No notifications</div>
+        </div>
+      </div>
+    </div>
 
     <!-- Right Panel -->
     <aside class="right-panel">

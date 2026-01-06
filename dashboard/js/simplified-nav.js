@@ -110,13 +110,36 @@ function refreshControlCenter() {
 }
 
 // ============================================
-// NOTIFICATIONS
+// NOTIFICATIONS OVERLAY
 // ============================================
 
 let allNotifications = [];
 let currentFilter = 'all';
 
-// Load All Notifications (called when switching to notifications view)
+// Toggle Notifications Overlay
+function toggleNotificationsOverlay() {
+  const overlay = document.getElementById('notificationsOverlay');
+  if (!overlay) return;
+  
+  const isVisible = overlay.style.display !== 'none';
+  
+  if (isVisible) {
+    closeNotificationsOverlay();
+  } else {
+    overlay.style.display = 'flex';
+    loadAllNotifications();
+  }
+}
+
+// Close Notifications Overlay
+function closeNotificationsOverlay() {
+  const overlay = document.getElementById('notificationsOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
+// Load All Notifications
 async function loadAllNotifications() {
   try {
     const response = await fetch('/api/notifications');
@@ -134,67 +157,63 @@ async function loadAllNotifications() {
 function filterNotifications(filter) {
   currentFilter = filter;
   
-  // Update filter buttons
-  document.querySelectorAll('.notification-filter-btn').forEach(btn => {
-    if (btn.dataset.filter === filter) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
+  // Update filter buttons in overlay
+  const overlay = document.querySelector('.notifications-overlay');
+  if (overlay) {
+    overlay.querySelectorAll('.notification-filter-btn').forEach(btn => {
+      if (btn.dataset.filter === filter) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
   
   renderNotifications();
 }
 
 // Render Notifications
 function renderNotifications() {
-  const list = document.getElementById('notificationsList');
-  if (!list) return;
+  // For overlay
+  const listOverlay = document.getElementById('notificationsListOverlay');
   
   let filtered = allNotifications;
   
-  if (currentFilter !== 'all') {
-    filtered = allNotifications.filter(n => n.type === currentFilter);
+  // Apply filters
+  if (currentFilter === 'unread') {
+    filtered = allNotifications.filter(n => n.is_read === 0);
+  } else if (currentFilter !== 'all') {
+    filtered = allNotifications.filter(n => n.severity === currentFilter);
   }
   
   if (filtered.length === 0) {
-    list.innerHTML = '<div class="notifications-empty">No notifications</div>';
+    const emptyMsg = currentFilter === 'unread' ? 'No unread notifications' : 
+                     currentFilter === 'all' ? 'No notifications' : 
+                     `No ${currentFilter} notifications`;
+    if (listOverlay) listOverlay.innerHTML = `<div class="notifications-empty">${emptyMsg}</div>`;
     return;
   }
   
-  list.innerHTML = filtered.map(notif => renderNotificationItem(notif)).join('');
+  const html = filtered.map(notif => renderNotificationItem(notif)).join('');
+  if (listOverlay) listOverlay.innerHTML = html;
 }
 
 // Render Single Notification Item
 function renderNotificationItem(notif) {
-  const icon = getNotificationIcon(notif.type);
-  const timeAgo = formatTimeAgo(notif.timestamp);
-  const unreadClass = notif.read ? '' : 'unread';
-  
-  let actionsHTML = '';
-  if (notif.actions && notif.actions.length > 0) {
-    actionsHTML = `
-      <div class="notification-actions">
-        ${notif.actions.map(action => `
-          <button class="notification-action-btn ${action.style || ''}" 
-                  onclick="handleNotificationAction('${notif.id}', '${action.action}')">
-            ${action.label}
-          </button>
-        `).join('')}
-      </div>
-    `;
-  }
+  const icon = getNotificationIcon(notif.severity);
+  const timeAgo = formatTimeAgo(new Date(notif.created_at).getTime());
+  const unreadClass = notif.is_read === 0 ? 'unread' : '';
   
   return `
     <div class="notification-item ${unreadClass}" data-id="${notif.id}" onclick="markNotificationRead('${notif.id}')">
-      <div class="notification-icon">${icon}</div>
+      <div class="notification-icon ${notif.severity}">${icon}</div>
       <div class="notification-content">
         <div class="notification-header">
           <span class="notification-title">${notif.title}</span>
           <span class="notification-time">${timeAgo}</span>
         </div>
-        <div class="notification-message">${notif.message}</div>
-        ${actionsHTML}
+        <div class="notification-message">${notif.message || ''}</div>
+        <div class="notification-project">${notif.project_name || 'Unknown Project'}</div>
       </div>
       <button class="notification-dismiss" onclick="dismissNotification(event, '${notif.id}')">×</button>
     </div>
@@ -202,14 +221,14 @@ function renderNotificationItem(notif) {
 }
 
 // Get Notification Icon
-function getNotificationIcon(type) {
+function getNotificationIcon(severity) {
   const icons = {
     info: 'ℹ️',
     success: '✅',
     warning: '⚠️',
     error: '❌'
   };
-  return icons[type] || icons.info;
+  return icons[severity] || icons.info;
 }
 
 // Format Time Ago
@@ -350,6 +369,8 @@ if (typeof window !== 'undefined') {
   window.exportData = exportData;
   window.shutdownDashboard = shutdownDashboard;
   window.refreshControlCenter = refreshControlCenter;
+  window.toggleNotificationsOverlay = toggleNotificationsOverlay;
+  window.closeNotificationsOverlay = closeNotificationsOverlay;
   window.loadAllNotifications = loadAllNotifications;
   window.filterNotifications = filterNotifications;
   window.markNotificationRead = markNotificationRead;

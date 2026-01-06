@@ -528,3 +528,4 @@ async function activatePlanAndNavigate(planId, projectId) {
 // Export trash functions
 window.emptyTrash = emptyTrash;
 window.renderTrashColumn = renderTrashColumn;
+window.activatePlanAndNavigate = activatePlanAndNavigate;

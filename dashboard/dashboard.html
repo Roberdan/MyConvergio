@@ -239,25 +239,25 @@
         <div class="gantt-header-section">
           <h3 class="gantt-main-title">Project Execution Timeline</h3>
           <div class="gantt-controls-panel">
-            <button class="gantt-control-btn" onclick="expandAllWaves()" title="Expand all waves">
+            <button class="gantt-control-btn" onclick="GanttView.expandAll()" title="Expand all waves">
               <span class="gantt-control-icon">⊞</span>
               <span>Expand All</span>
             </button>
-            <button class="gantt-control-btn" onclick="collapseAllWaves()" title="Collapse all waves">
+            <button class="gantt-control-btn" onclick="GanttView.collapseAll()" title="Collapse all waves">
               <span class="gantt-control-icon">⊟</span>
               <span>Collapse All</span>
             </button>
-            <button class="gantt-control-btn" onclick="refreshGanttData()" title="Refresh data">
+            <button class="gantt-control-btn" onclick="GanttView.refresh()" title="Refresh data">
               <span class="gantt-control-icon">🔄</span>
               <span>Refresh</span>
             </button>
             <div class="gantt-filter-panel">
               <label class="gantt-filter-label">
-                <input type="checkbox" id="showCompletedTasks" checked onchange="toggleCompletedTasks()">
+                <input type="checkbox" id="showCompletedTasks" checked onchange="GanttView.toggleCompletedTasks()">
                 Show Completed
               </label>
               <label class="gantt-filter-label">
-                <input type="checkbox" id="showBlockedTasks" checked onchange="toggleBlockedTasks()">
+                <input type="checkbox" id="showBlockedTasks" checked onchange="GanttView.toggleBlockedTasks()">
                 Show Blocked
               </label>
             </div>
@@ -318,51 +318,19 @@
 
       <!-- Waves View - Enhanced Gantt (hidden by default) -->
       <div class="waves-view" id="wavesView" style="display:none;">
-        <!-- Navigation Breadcrumb -->
-        <div class="gantt-nav" id="ganttNav">
-          <button class="gantt-nav-item active" onclick="showGanttLevel('waves')" title="Show all waves">
-            <span class="gantt-nav-icon">🌊</span>
-            <span>Waves</span>
-          </button>
-          <span class="gantt-nav-separator" id="ganttNavSeparator" style="display:none;">→</span>
-          <button class="gantt-nav-item" id="ganttNavWave" style="display:none;" onclick="showGanttLevel('tasks')">
-            <span class="gantt-nav-icon">📋</span>
-            <span id="ganttNavWaveName">Wave</span>
-          </button>
-          <span class="gantt-nav-separator" id="ganttNavTaskSeparator" style="display:none;">→</span>
-          <button class="gantt-nav-item" id="ganttNavTask" style="display:none;" onclick="showGanttLevel('details')">
-            <span class="gantt-nav-icon">🔍</span>
-            <span id="ganttNavTaskName">Task</span>
-          </button>
-        </div>
-
         <!-- Gantt Controls -->
         <div class="gantt-controls">
-          <div class="gantt-view-modes">
-            <button class="gantt-mode-btn active" onclick="setGanttViewMode('timeline')" title="Timeline view">
-              <span class="gantt-mode-icon">📅</span>
-              <span>Timeline</span>
-            </button>
-            <button class="gantt-mode-btn" onclick="setGanttViewMode('kanban')" title="Kanban board view">
-              <span class="gantt-mode-icon">📊</span>
-              <span>Kanban</span>
-            </button>
-            <button class="gantt-mode-btn" onclick="setGanttViewMode('list')" title="List view">
-              <span class="gantt-mode-icon">📝</span>
-              <span>List</span>
-            </button>
-          </div>
           <div class="gantt-actions">
-            <button class="gantt-action-btn" onclick="expandAllGantt()" title="Expand all">⊕</button>
-            <button class="gantt-action-btn" onclick="collapseAllGantt()" title="Collapse all">⊖</button>
-            <button class="gantt-action-btn" onclick="exportGantt()" title="Export">💾</button>
-            <button class="refresh-btn" onclick="loadGanttData()" title="Refresh">🔄</button>
+            <button class="gantt-action-btn" onclick="GanttView.expandAll()" title="Expand all">⊕</button>
+            <button class="gantt-action-btn" onclick="GanttView.collapseAll()" title="Collapse all">⊖</button>
+            <button class="gantt-action-btn" onclick="Logger.info('Export coming soon')" title="Export">💾</button>
+            <button class="refresh-btn" onclick="loadWavesView()" title="Refresh">🔄</button>
           </div>
         </div>
 
         <!-- Gantt Content Area -->
         <div class="gantt-content" id="ganttContent">
-          <div class="gantt-loading">Loading Gantt chart...</div>
+          <div class="gantt-loading">Loading waves...</div>
         </div>
       </div>
 

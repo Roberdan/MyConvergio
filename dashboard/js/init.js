@@ -28,6 +28,10 @@ async function forceLoadConvergioEdu() {
     const projectData = await response.json();
     Logger.debug('Loaded data:', projectData);
     updateDashboardUI(projectData);
+
+    currentProjectId = 'convergioedu';
+    GanttView.renderTarget = 'ganttContentArea';
+    GanttView.load('convergioedu');
   } catch (error) {
     Logger.error('Failed to load dashboard:', error);
     updateDashboardUI({

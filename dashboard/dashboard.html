@@ -518,10 +518,24 @@
           <h2>Notifications</h2>
           <div class="notifications-actions">
             <button class="notifications-action-btn" onclick="markAllNotificationsRead()">
-              <span>✓</span> Mark All Read
+              <span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M8.5 12.5l2.5 2.5 5-5" />
+                </svg>
+              </span>
+              Mark All Read
             </button>
             <button class="notifications-action-btn danger" onclick="clearAllNotifications()">
-              <span>🗑️</span> Clear All
+              <span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                </svg>
+              </span>
+              Clear All
             </button>
             <button class="notifications-close-btn" onclick="closeNotificationsOverlay()">✕</button>
           </div>

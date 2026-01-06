@@ -126,6 +126,8 @@ function toggleNotificationsOverlay() {
   if (isVisible) {
     closeNotificationsOverlay();
   } else {
+    currentFilter = 'all';
+    setActiveFilterButtons('all');
     overlay.style.display = 'flex';
     loadAllNotifications();
   }
@@ -146,6 +148,7 @@ async function loadAllNotifications() {
     const data = await response.json();
     allNotifications = (data.notifications || []).map(n => ({
       ...n,
+      severity: (n.severity || '').toString().toLowerCase(),
       is_read: Number(n.is_read) || 0
     }));
     renderNotifications();
@@ -159,20 +162,19 @@ async function loadAllNotifications() {
 // Filter Notifications
 function filterNotifications(filter) {
   currentFilter = filter;
-  
-  // Update filter buttons in overlay
-  const overlay = document.querySelector('.notifications-overlay');
-  if (overlay) {
-    overlay.querySelectorAll('.notification-filter-btn').forEach(btn => {
-      if (btn.dataset.filter === filter) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-  }
-  
+
+  setActiveFilterButtons(filter);
   renderNotifications();
+}
+
+function setActiveFilterButtons(filter) {
+  document.querySelectorAll('.notification-filter-btn').forEach(btn => {
+    if (btn.dataset.filter === filter) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
 }
 
 // Render Notifications

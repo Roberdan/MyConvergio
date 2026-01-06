@@ -4,7 +4,17 @@ async function init() {
   initTheme();
   try {
     await loadProjects();
-    await forceLoadConvergioEdu();
+
+    // Auto-select last project if available, otherwise prompt user to choose
+    const savedProject = localStorage.getItem('dashboard-current-project');
+    if (savedProject && registry?.projects?.[savedProject]) {
+      await selectProject(savedProject);
+    } else {
+      const firstProject = Object.keys(registry?.projects || {})[0];
+      if (firstProject) {
+        await selectProject(firstProject);
+      }
+    }
   } catch (e) {
     Logger.error('Init error:', e);
     document.querySelector('.main-content').innerHTML = `<div style="padding:40px;color:#ef4444;">Error: ${e.message}</div>`;
@@ -19,27 +29,6 @@ async function init() {
 
   if (typeof initBugList === 'function') initBugList();
   if (typeof initBugTracker === 'function') initBugTracker();
-}
-
-async function forceLoadConvergioEdu() {
-  Logger.info('Loading ConvergioEdu dashboard data...');
-  try {
-    const response = await fetch('/api/project/convergioedu/dashboard');
-    const projectData = await response.json();
-    Logger.debug('Loaded data:', projectData);
-    updateDashboardUI(projectData);
-
-    currentProjectId = 'convergioedu';
-    GanttView.renderTarget = 'ganttContentArea';
-    GanttView.load('convergioedu');
-  } catch (error) {
-    Logger.error('Failed to load dashboard:', error);
-    updateDashboardUI({
-      meta: { project: 'ConvergioEdu' },
-      metrics: { throughput: { done: 96, total: 136, percent: 71 } },
-      plans: { done: 2, total: 5 }
-    });
-  }
 }
 
 function updateDashboardUI(data) {

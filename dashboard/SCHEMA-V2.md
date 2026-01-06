@@ -1,5 +1,7 @@
 # Plan.json Schema V2
 
+> Archived reference: dashboard and agents now consume the SQLite database as the single source of truth (see PLANNER-ARCHITECTURE.md). Use this schema only for documentation or exports.
+
 **Version**: 2.0 | **Updated**: 3 Gennaio 2026, 23:50 CET
 
 ## Overview

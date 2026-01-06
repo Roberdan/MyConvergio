@@ -1,6 +1,6 @@
 # Plan Dashboard Schema
 
-> Data contract between planner and dashboard. The planner writes `plan.json`, the dashboard reads and visualizes it.
+> Archived reference. Current system reads from the SQLite database (see PLANNER-ARCHITECTURE.md); use this plan.json schema only for historical compatibility or documentation exports.
 
 ## Quick Start
 

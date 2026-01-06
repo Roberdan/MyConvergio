@@ -23,20 +23,23 @@ cmd_create() {
     local is_master=0
     local parent_id="NULL"
 
+    local safe_project_id="$(sql_escape "$project_id")"
+    local safe_name="$(sql_escape "$name")"
+
     [[ "$name" == *"-Main"* ]] || [[ "$name" == *"-Master"* ]] && is_master=1
 
     if [[ $is_master -eq 0 ]]; then
         local base_name="${name%%-Phase*}"
         base_name="${base_name%%-[0-9]*}"
-        local master_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$project_id' AND name LIKE '${base_name}%' AND is_master=1 LIMIT 1;")
+        local master_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name LIKE '$(sql_escape "$base_name")%' AND is_master=1 LIMIT 1;")
         [[ -n "$master_id" ]] && parent_id="$master_id"
     fi
 
     sqlite3 "$DB_FILE" "
         INSERT INTO plans (project_id, name, is_master, parent_plan_id, status)
-        VALUES ('$project_id', '$name', $is_master, $parent_id, 'todo');
+        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo');
     "
-    local plan_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$project_id' AND name='$name';")
+    local plan_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name='$safe_name';")
 
     sqlite3 "$DB_FILE" "
         INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by)
@@ -86,16 +89,23 @@ cmd_add_wave() {
     local project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM plans WHERE id = $plan_id;")
     local position=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(position), 0) + 1 FROM waves WHERE plan_id = $plan_id;")
 
-    local start_val="NULL" end_val="NULL" depends_val="NULL"
-    [[ -n "$planned_start" ]] && start_val="'$planned_start'"
-    [[ -n "$planned_end" ]] && end_val="'$planned_end'"
-    [[ -n "$depends_on" ]] && depends_val="'$depends_on'"
+    local safe_planned_start="$(sql_escape "$planned_start")"
+    local safe_planned_end="$(sql_escape "$planned_end")"
+    local safe_depends_val="$(sql_escape "$depends_on")"
 
+    local start_val="NULL" end_val="NULL" depends_val="NULL"
+    [[ -n "$planned_start" ]] && start_val="'$safe_planned_start'"
+    [[ -n "$planned_end" ]] && end_val="'$safe_planned_end'"
+    [[ -n "$depends_on" ]] && depends_val="'$safe_depends_val'"
+
+    local safe_wave_id="$(sql_escape "$wave_id")"
+    local safe_name="$(sql_escape "$name")"
+    local safe_assignee="$(sql_escape "$assignee")"
     sqlite3 "$DB_FILE" "
         INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position, estimated_hours, planned_start, planned_end, depends_on)
-        VALUES ('$project_id', $plan_id, '$wave_id', '$name', 'pending', '$assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val);
+        VALUES ('$project_id', $plan_id, '$safe_wave_id', '$safe_name', 'pending', '$safe_assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val);
     "
-    local db_wave_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE plan_id=$plan_id AND wave_id='$wave_id';")
+    local db_wave_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE plan_id=$plan_id AND wave_id='$safe_wave_id';")
     log_info "Added wave: $name (ID: $db_wave_id)"
     echo "$db_wave_id"
 }
@@ -114,9 +124,15 @@ cmd_add_task() {
     local wave_id_text=$(echo "$wave_info" | cut -d'|' -f2)
     local plan_id=$(echo "$wave_info" | cut -d'|' -f3)
 
+    local safe_task_id="$(sql_escape "$task_id")"
+    local safe_title="$(sql_escape "$title")"
+    local safe_priority="$(sql_escape "$priority")"
+    local safe_type="$(sql_escape "$type")"
+    local safe_assignee="$(sql_escape "$assignee")"
+
     sqlite3 "$DB_FILE" "
         INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, status, priority, type, assignee)
-        VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$task_id', '$title', 'pending', '$priority', '$type', '$assignee');
+        VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', 'pending', '$safe_priority', '$safe_type', '$safe_assignee');
     "
     sqlite3 "$DB_FILE" "UPDATE waves SET tasks_total = tasks_total + 1 WHERE id = $db_wave_id;"
 
@@ -143,6 +159,11 @@ cmd_update_task() {
     done
 
     local notes_escaped=$(sql_escape "$notes")
+
+    case "$status" in
+        pending|in_progress|done|blocked|skipped) ;;
+        *) log_error "Invalid status: $status"; exit 1 ;;
+    esac
     local old_status=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id = $task_id;")
     local tokens_sql=""
     [[ -n "$tokens" ]] && tokens_sql=", tokens = $tokens"

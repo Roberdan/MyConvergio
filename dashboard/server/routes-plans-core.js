@@ -212,44 +212,83 @@ const routes = {
         return { error: 'Plan name and project_id are required' };
       }
 
-      // Calculate totals
-      const tasks_total = waves.reduce((sum, wave) => sum + (wave.tasks_total || 0), 0);
-      const tasks_done = waves.reduce((sum, wave) => sum + (wave.tasks_done || 0), 0);
+      const safeStatus = ['todo', 'doing', 'done'].includes(status) ? status : 'todo';
+      const safeProject = escapeSQL(project_id);
+      const safeName = escapeSQL(name);
 
-      // Insert plan
-      const planResult = query(`
+      // Calculate totals from provided tasks to keep counters consistent
+      const tasks_total = waves.reduce((sum, wave) => {
+        const waveTasks = Array.isArray(wave.tasks) ? wave.tasks.length : (wave.tasks_total || 0);
+        return sum + waveTasks;
+      }, 0);
+
+      const tasks_done = waves.reduce((sum, wave) => {
+        if (Array.isArray(wave.tasks)) {
+          return sum + wave.tasks.filter(t => (t.status || 'pending') === 'done').length;
+        }
+        return sum + (wave.tasks_done || 0);
+      }, 0);
+
+      // Insert plan and capture ID
+      const planInsert = query(`
         INSERT INTO plans (project_id, name, status, tasks_total, tasks_done, created_at)
-        VALUES ('${escapeSQL(project_id)}', '${escapeSQL(name)}', '${escapeSQL(status)}',
-                ${tasks_total}, ${tasks_done}, CURRENT_TIMESTAMP)
+        VALUES ('${safeProject}', '${safeName}', '${escapeSQL(safeStatus)}',
+                ${tasks_total}, ${tasks_done}, CURRENT_TIMESTAMP);
+        SELECT last_insert_rowid() as id;
       `);
 
-      const planId = planResult.insertId;
+      const planId = planInsert?.[0]?.id;
+      if (!planId) {
+        throw new Error('Failed to create plan (no id returned)');
+      }
 
       // Insert waves and tasks
       waves.forEach((wave, waveIndex) => {
-        query(`
-          INSERT INTO waves (plan_id, wave_id, name, status, assignee, tasks_done, tasks_total,
-                            position, depends_on, estimated_hours, planned_start, planned_end, created_at)
-          VALUES (${planId}, '${escapeSQL(wave.wave_id)}', '${escapeSQL(wave.name)}',
-                  '${escapeSQL(wave.status || 'pending')}', ${wave.assignee ? `'${escapeSQL(wave.assignee)}'` : 'NULL'},
-                  ${wave.tasks_done || 0}, ${wave.tasks_total || 0}, ${waveIndex + 1},
-                  ${wave.depends_on ? `'${escapeSQL(wave.depends_on)}'` : 'NULL'},
-                  ${wave.estimated_hours || 'NULL'}, ${wave.planned_start ? `'${escapeSQL(wave.planned_start)}'` : 'NULL'},
-                  ${wave.planned_end ? `'${escapeSQL(wave.planned_end)}'` : 'NULL'}, CURRENT_TIMESTAMP)
+        const safeWaveId = escapeSQL(wave.wave_id || `W${waveIndex + 1}`);
+        const safeWaveName = escapeSQL(wave.name || `Wave ${waveIndex + 1}`);
+        const safeWaveStatus = escapeSQL(wave.status || 'pending');
+        const safeAssignee = wave.assignee ? `'${escapeSQL(wave.assignee)}'` : 'NULL';
+        const safeDepends = wave.depends_on ? `'${escapeSQL(wave.depends_on)}'` : 'NULL';
+        const safePlannedStart = wave.planned_start ? `'${escapeSQL(wave.planned_start)}'` : 'NULL';
+        const safePlannedEnd = wave.planned_end ? `'${escapeSQL(wave.planned_end)}'` : 'NULL';
+
+        const waveTasks = Array.isArray(wave.tasks) ? wave.tasks : [];
+        const waveTasksTotal = waveTasks.length || wave.tasks_total || 0;
+        const waveTasksDone = waveTasks.filter(t => (t.status || 'pending') === 'done').length || wave.tasks_done || 0;
+
+        const waveInsert = query(`
+          INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, tasks_done, tasks_total,
+                position, depends_on, estimated_hours, planned_start, planned_end)
+          VALUES ('${safeProject}', ${planId}, '${safeWaveId}', '${safeWaveName}',
+            '${safeWaveStatus}', ${safeAssignee},
+            ${waveTasksDone}, ${waveTasksTotal}, ${waveIndex + 1},
+            ${safeDepends},
+            ${wave.estimated_hours || 'NULL'}, ${safePlannedStart},
+            ${safePlannedEnd});
+          SELECT last_insert_rowid() as id;
         `);
 
+        const waveDbId = waveInsert?.[0]?.id;
+        if (!waveDbId) {
+          throw new Error(`Failed to create wave ${safeWaveId}`);
+        }
+
         // Insert tasks for this wave
-        if (wave.tasks && wave.tasks.length > 0) {
-          wave.tasks.forEach(task => {
+        if (waveTasks.length > 0) {
+          waveTasks.forEach(task => {
+            const safeTaskStatus = escapeSQL(task.status || 'pending');
+            const safeTaskPriority = escapeSQL(task.priority || 'P3');
+            const safeTaskType = escapeSQL(task.type || 'task');
+            const safeTaskAssignee = task.assignee ? `'${escapeSQL(task.assignee)}'` : 'NULL';
             query(`
-              INSERT INTO tasks (project_id, plan_id, wave_id, task_id, title, status, assignee,
-                                priority, type, tokens, created_at)
-              VALUES ('${escapeSQL(project_id)}', ${planId}, '${escapeSQL(wave.wave_id)}',
+              INSERT INTO tasks (project_id, plan_id, wave_id, wave_id_fk, task_id, title, status, assignee,
+                                priority, type, tokens)
+              VALUES ('${safeProject}', ${planId}, '${safeWaveId}', ${waveDbId},
                       '${escapeSQL(task.task_id)}', '${escapeSQL(task.title)}',
-                      '${escapeSQL(task.status || 'pending')}',
-                      ${task.assignee ? `'${escapeSQL(task.assignee)}'` : 'NULL'},
-                      '${escapeSQL(task.priority || 'P3')}', '${escapeSQL(task.type || 'task')}',
-                      ${task.tokens || 0}, CURRENT_TIMESTAMP)
+                      '${safeTaskStatus}',
+                      ${safeTaskAssignee},
+                      '${safeTaskPriority}', '${safeTaskType}',
+                      ${task.tokens || 0})
             `);
           });
         }

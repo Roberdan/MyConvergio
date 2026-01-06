@@ -134,11 +134,6 @@ async function selectProject(projectId) {
      loadTokenData();
      connectGitWatcher(projectId);
 
-      if (typeof initBugTracker === 'function') {
-        initBugTracker();
-      }
-
-     // Initialize bug tracker for new project
      if (typeof initBugTracker === 'function') {
        initBugTracker();
      }
@@ -148,14 +143,8 @@ async function selectProject(projectId) {
     }
   } catch (e) {
     console.error('Failed to load project plans:', e);
-    try {
-      const res = await fetch('plan.json');
-      data = await res.json();
-      render();
-    } catch (e2) {
-      data = createEmptyPlanData(projectId, project.name);
-      render();
-    }
+    data = createEmptyPlanData(projectId, project.name);
+    render();
 
     if (typeof initBugList === 'function') {
       initBugList();

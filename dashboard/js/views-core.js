@@ -7,14 +7,33 @@ function showView(view) {
   // Update breadcrumb navigation
   updateBreadcrumb(view);
 
+  // Hide breadcrumb on dashboard view (redundant)
+  const breadcrumbNav = document.getElementById('breadcrumbNav');
+  if (breadcrumbNav) {
+    breadcrumbNav.style.display = view === 'dashboard' ? 'none' : 'flex';
+  }
+
   // Close diff view if open
   if (typeof closeDiffView === 'function') closeDiffView();
 
-  // Update nav menu
-  document.querySelectorAll('.nav-menu a').forEach(a => {
+  // Update nav menu - remove active from all, add to current
+  document.querySelectorAll('.nav-menu > a, .nav-menu > div > a').forEach(a => {
     a.classList.remove('active');
-    const linkText = a.textContent.toLowerCase();
-    if (linkText.includes(view) || (view === 'issues' && linkText.includes('issues'))) {
+  });
+
+  // Add active class to current view link
+  const navLinks = {
+    'kanban': 'Control Center',
+    'dashboard': 'Dashboard',
+    'waves': 'Waves',
+    'agents': 'Agents',
+    'notifications': 'Notifications'
+  };
+
+  document.querySelectorAll('.nav-menu a').forEach(a => {
+    const linkText = a.textContent.trim().toLowerCase();
+    const viewName = navLinks[view]?.toLowerCase() || view.toLowerCase();
+    if (linkText.includes(viewName) || (view === 'issues' && linkText.includes('issues'))) {
       a.classList.add('active');
     }
   });

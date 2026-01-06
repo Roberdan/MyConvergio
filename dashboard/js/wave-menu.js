@@ -14,11 +14,7 @@ async function showWaveMenu() {
     return;
   }
 
-  // Close other dropdowns when opening wave menu
-  if (typeof closeAllDropdowns === 'function') {
-    closeAllDropdowns('waveMenuList');
-  }
-
+  DropdownManager.closeAll('waveMenuList');
   waveList.innerHTML = '<div class="wave-loading">Loading waves...</div>';
   waveList.style.display = 'block';
 

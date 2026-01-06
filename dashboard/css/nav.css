@@ -82,15 +82,25 @@
   text-decoration: none;
   font-size: 15px;
   font-weight: 600;
-  transition: color 0.2s;
+  transition: all 0.2s;
   display: inline-flex;
   align-items: center;
   line-height: 1;
   height: 24px;
+  padding: 4px 8px;
+  border-radius: 6px;
 }
 
 .nav-menu a:hover,
-.nav-menu a.active { color: var(--text); }
+.nav-menu a.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.nav-menu a.active {
+  background: var(--accent);
+  color: white;
+}
 
 .nav-count {
   background: var(--accent);

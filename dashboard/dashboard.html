@@ -66,7 +66,7 @@
       <a href="#" onclick="showView('kanban')" title="Mission Control - Overview of all projects and plans">
         Control Center <span class="nav-count" id="navKanbanCount"></span>
       </a>
-      <a href="#" class="active" onclick="showView('dashboard')" title="Dashboard - Current project metrics and progress">
+      <a href="#" onclick="showView('dashboard')" title="Dashboard - Current project metrics and progress">
         Dashboard
       </a>
       <div class="nav-waves-menu" style="position: relative;">
@@ -201,10 +201,8 @@
 
      <!-- Main Content -->
     <main class="main-content">
-      <!-- Breadcrumb Navigation -->
-      <div class="breadcrumb-nav" id="breadcrumbNav">
-        <span class="breadcrumb-item active" data-view="dashboard">Dashboard</span>
-      </div>
+      <!-- Breadcrumb Navigation (hidden on dashboard view) -->
+      <div class="breadcrumb-nav" id="breadcrumbNav" style="display: none;"></div>
 
       <!-- Stats Label with Project Avatar -->
       <div class="stats-header">

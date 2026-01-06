@@ -4,8 +4,8 @@ function toggleProjectMenu() {
   const menu = document.getElementById('projectMenu');
   if (menu) {
     const isOpening = menu.style.display === 'none';
-    if (isOpening && typeof closeAllDropdowns === 'function') {
-      closeAllDropdowns('projectMenu');
+    if (isOpening) {
+      DropdownManager.closeAll('projectMenu');
     }
     menu.style.display = isOpening ? 'block' : 'none';
   }

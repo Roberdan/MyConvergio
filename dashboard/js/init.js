@@ -1,7 +1,41 @@
 // Initialization - Simplified
 
+// Update navigation state based on project selection
+function updateNavState(hasProject) {
+  const projectDependentItems = [
+    { selector: '.nav-menu a[onclick*="dashboard"]', action: 'link' },
+    { selector: '.nav-menu a[onclick*="tasks"]', action: 'link' },
+    { selector: '#throughputBadge', action: 'element' },
+    { selector: '#bugTrackerBtn', action: 'button' },
+    { selector: '#exportBtn', action: 'button' }
+  ];
+
+  projectDependentItems.forEach(item => {
+    const el = document.querySelector(item.selector);
+    if (!el) return;
+    
+    if (hasProject) {
+      el.classList.remove('disabled');
+      el.removeAttribute('disabled');
+      if (item.action === 'link') {
+        el.style.pointerEvents = '';
+      }
+    } else {
+      el.classList.add('disabled');
+      el.setAttribute('disabled', 'true');
+      if (item.action === 'link') {
+        el.style.pointerEvents = 'none';
+      }
+    }
+  });
+}
+
 async function init() {
   initTheme();
+  
+  // Initially disable project-dependent menus
+  updateNavState(false);
+  
   try {
     await loadProjects();
 
@@ -13,6 +47,9 @@ async function init() {
       const firstProject = Object.keys(registry?.projects || {})[0];
       if (firstProject) {
         await selectProject(firstProject);
+      } else {
+        // No projects - show Control Center by default
+        showView('kanban');
       }
     }
   } catch (e) {
@@ -65,7 +102,7 @@ function clearProjectSelection() {
   setDisplay('gitRepoAvatar', 'none');
   setText('gitRepoName', 'Project');
 
-  ['navKanbanCount', 'navWavesCount', 'navIssuesCount'].forEach(id => setText(id, ''));
+  ['navKanbanCount', 'navTasksCount', 'navIssuesCount'].forEach(id => setText(id, ''));
   setText('throughputBadge', '-');
   setHTML('wavesList', '<div class="cc-empty">Select a project</div>');
   setDisplay('wavesSummary', 'none');

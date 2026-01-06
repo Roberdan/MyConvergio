@@ -2,10 +2,12 @@
 
 function updateNavCounts() {
   const kanbanCount = document.getElementById('navKanbanCount');
-  const wavesCount = document.getElementById('navWavesCount');
+  const tasksCount = document.getElementById('navTasksCount');
 
-  if (wavesCount && data.waves) {
-    wavesCount.textContent = data.waves.length > 0 ? data.waves.length : '';
+  if (tasksCount && data.metrics?.throughput) {
+    const done = data.metrics.throughput.done || 0;
+    const total = data.metrics.throughput.total || 0;
+    tasksCount.textContent = total > 0 ? `${done}/${total}` : '';
   }
 }
 

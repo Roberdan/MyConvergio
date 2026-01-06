@@ -487,7 +487,8 @@
 
 /* Gantt Content */
 .gantt-content-area {
-  max-height: calc(100vh - 400px);
+  max-height: calc(100vh - 220px);
+  min-height: calc(100vh - 280px);
   overflow-y: auto;
 }
 

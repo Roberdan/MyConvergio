@@ -44,31 +44,43 @@ async function showWaveMenu() {
   }
 }
 
-function renderWaveMenuItem(wave) {
-  const isExpanded = waveMenuExpanded.has(wave.wave_id);
-  const progress = wave.tasks_total > 0 ? Math.round((wave.tasks_done / wave.tasks_total) * 100) : 0;
-  const hasActiveTasks = wave.tasks?.some(t => t.status === 'in_progress');
+function renderWaveMenuItem(plan) {
+  // Map plan properties (API returns plans, not waves)
+  const planId = plan.id || plan.wave_id || 'unknown';
+  const planName = plan.name || 'Unnamed';
+  const planStatus = plan.status || 'todo';
+  const tasksDone = plan.done ?? plan.tasks_done ?? 0;
+  const tasksTotal = plan.total ?? plan.tasks_total ?? 0;
+  
+  const isExpanded = waveMenuExpanded.has(planId);
+  const progress = tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0;
+  const hasActiveTasks = plan.tasks?.some(t => t.status === 'in_progress');
+  
+  // Status display mapping
+  const statusIcon = planStatus === 'doing' || planStatus === 'in_progress' ? '●' : 
+                     planStatus === 'done' ? '✓' : '○';
+  const statusClass = planStatus === 'doing' ? 'in_progress' : planStatus;
 
   let html = `
-    <div class="wave-menu-item ${isExpanded ? 'expanded' : ''}" data-wave-id="${wave.wave_id}">
-      <div class="wave-menu-header-row" onclick="event.stopPropagation(); toggleWaveMenuNode('${wave.wave_id}')">
+    <div class="wave-menu-item ${isExpanded ? 'expanded' : ''}" data-wave-id="${planId}">
+      <div class="wave-menu-header-row" onclick="event.stopPropagation(); toggleWaveMenuNode('${planId}')">
         <span class="wave-menu-expand">${isExpanded ? '▼' : '▶'}</span>
-        <span class="wave-menu-status ${wave.status}" title="${wave.status}">
-          ${wave.status === 'in_progress' ? '●' : wave.status === 'done' ? '✓' : '○'}
+        <span class="wave-menu-status ${statusClass}" title="${planStatus}">
+          ${statusIcon}
         </span>
         <span class="wave-menu-name">
-          <strong>${wave.wave_id}</strong>
-          <span class="wave-menu-title">${wave.name}</span>
+          <strong>${planId}</strong>
+          <span class="wave-menu-title" title="${planName}">${planName}</span>
         </span>
         ${hasActiveTasks ? '<span class="wave-menu-live" title="Tasks running">●</span>' : ''}
-        <span class="wave-menu-progress">${wave.tasks_done}/${wave.tasks_total}</span>
-        <button class="wave-menu-view-btn" onclick="event.stopPropagation(); showWaveMarkdown('${wave.wave_id}'); closeWaveMenu();" title="View documentation">📄</button>
-          <button class="wave-menu-gantt-btn" onclick="event.stopPropagation(); showView('waves'); closeWaveMenu();" title="View Gantt chart">📊</button>
+        <span class="wave-menu-progress">${tasksDone}/${tasksTotal}</span>
+        <button class="wave-menu-view-btn" onclick="event.stopPropagation(); showWaveMarkdown('${planId}'); closeWaveMenu();" title="View documentation">📄</button>
+        <button class="wave-menu-gantt-btn" onclick="event.stopPropagation(); showView('waves'); closeWaveMenu();" title="View Gantt chart">📊</button>
       </div>
 
-      ${isExpanded && wave.tasks?.length > 0 ? `
+      ${isExpanded && plan.tasks?.length > 0 ? `
         <div class="wave-menu-tasks">
-          ${wave.tasks.map(task => renderWaveTaskMenuItem(wave.wave_id, task)).join('')}
+          ${plan.tasks.map(task => renderWaveTaskMenuItem(planId, task)).join('')}
         </div>
       ` : ''}
     </div>

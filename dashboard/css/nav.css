@@ -102,6 +102,15 @@
   color: white;
 }
 
+/* Disabled state for project-dependent menu items */
+.nav-menu a.disabled,
+.nav-btn.disabled,
+#throughputBadge.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .nav-count {
   background: var(--accent);
   color: white;

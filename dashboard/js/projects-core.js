@@ -129,6 +129,11 @@ async function selectProject(projectId) {
     updateTopBarWithPlan();
     renderConsolidatedProjectMenu();
 
+     // Refresh Gantt view with new project data
+     if (typeof GanttView !== 'undefined' && GanttView.load) {
+       await GanttView.load(projectId);
+     }
+
      loadGitHubData();
      loadGitData();
      loadTokenData();
@@ -137,6 +142,11 @@ async function selectProject(projectId) {
      if (typeof initBugTracker === 'function') {
        initBugTracker();
      }
+
+    // Enable project-dependent navigation items
+    if (typeof updateNavState === 'function') {
+      updateNavState(true);
+    }
 
     if (typeof currentView !== 'undefined' && currentView && currentView !== 'dashboard') {
       showView(currentView);

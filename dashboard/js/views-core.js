@@ -25,7 +25,7 @@ function showView(view) {
   const navLinks = {
     'kanban': 'Control Center',
     'dashboard': 'Dashboard',
-    'waves': 'Waves',
+    'tasks': 'Tasks',
     'agents': 'Agents',
     'notifications': 'Notifications'
   };
@@ -55,7 +55,7 @@ function showView(view) {
   const rightPanel = document.querySelector('.right-panel');
   const mainWrap = document.querySelector('.main-wrap');
   const mainContent = document.querySelector('.main-content');
-  const isFullPageView = view === 'kanban';
+  const isFullPageView = view === 'kanban' || view === 'tasks';
 
   // Hide all views
   [kanbanView, wavesView, agentsView, notificationsView].forEach(v => {
@@ -86,10 +86,11 @@ function showView(view) {
       if (kanbanView) kanbanView.style.display = 'block';
       loadKanban();
       break;
-    case 'waves':
-      // Show waves view with enhanced Gantt navigation
+    case 'tasks':
+    case 'waves': // backwards compatibility
+      // Show tasks view - full page with all waves/tasks expanded
       document.getElementById('wavesView').style.display = 'block';
-      loadWavesView();
+      loadTasksView();
       break;
 
     case 'agents':
@@ -119,7 +120,8 @@ function updateBreadcrumb(view) {
   const viewNames = {
     dashboard: 'Dashboard',
     kanban: 'Control Center',
-    waves: 'Waves',
+    tasks: 'Tasks',
+    waves: 'Tasks', // backwards compatibility
     agents: 'Agents',
     notifications: 'Notifications'
   };

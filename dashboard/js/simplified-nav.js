@@ -252,7 +252,7 @@ async function markNotificationRead(id) {
     await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
     const notif = allNotifications.find(n => n.id === id);
     if (notif) {
-      notif.read = true;
+      notif.is_read = 1;
       renderNotifications();
       updateNotificationCount();
     }
@@ -265,7 +265,7 @@ async function markNotificationRead(id) {
 async function markAllNotificationsRead() {
   try {
     await fetch('/api/notifications/read-all', { method: 'POST' });
-    allNotifications.forEach(n => n.read = true);
+    allNotifications.forEach(n => n.is_read = 1);
     renderNotifications();
     updateNotificationCount();
     showToast('All notifications marked as read', 'success');
@@ -342,7 +342,7 @@ function updateNotificationCount() {
   const badge = document.getElementById('notificationCount');
   if (!badge) return;
   
-  const unreadCount = allNotifications.filter(n => !n.read).length;
+  const unreadCount = allNotifications.filter(n => n.is_read === 0).length;
   
   if (unreadCount > 0) {
     badge.textContent = unreadCount;

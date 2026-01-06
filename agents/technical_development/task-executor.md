@@ -109,20 +109,22 @@ ACTION: Fix issue, re-verify, then proceed
 ### Phase 5: Mark Complete
 
 ```bash
-# Update database to "done" with summary
-~/.claude/scripts/plan-db.sh update-task {db_task_id} done "Summary of work completed"
+# Update database to "done" with summary AND token count
+~/.claude/scripts/plan-db.sh update-task {db_task_id} done "Summary of work completed" --tokens {total_tokens}
 
-# Verify timestamp and status
+# Verify timestamp, status and tokens
 sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT status, completed_at, notes FROM tasks WHERE id={db_task_id};"
+  "SELECT status, completed_at, tokens, notes FROM tasks WHERE id={db_task_id};"
 
 # Report back with:
 # - Task ID
 # - Status: DONE
 # - Summary of work
 # - Any blockers/issues
-# - Token usage
+# - Token usage (MUST match --tokens value)
 ```
+
+**CRITICAL**: Always pass `--tokens N` when marking done. Token count = input + output tokens used.
 
 ## Database Operations
 
@@ -146,8 +148,8 @@ sqlite3 ~/.claude/data/dashboard.db \
 # Mark in progress
 ~/.claude/scripts/plan-db.sh update-task {db_task_id} in_progress "Work started"
 
-# Mark done
-~/.claude/scripts/plan-db.sh update-task {db_task_id} done "Work summary"
+# Mark done (ALWAYS include --tokens!)
+~/.claude/scripts/plan-db.sh update-task {db_task_id} done "Work summary" --tokens 15234
 
 # Mark blocked
 ~/.claude/scripts/plan-db.sh update-task {db_task_id} blocked "Blocker description"
@@ -288,14 +290,14 @@ npm run test -- metrics.spec.ts  # ✓ PASS
 npm run lint                      # ✓ PASS
 npm run build                     # ✓ PASS
 
-# Phase 5: Mark complete
-plan-db.sh update-task $DB_TASK_ID done "Metrics display implemented and tested. All acceptance criteria met."
+# Phase 5: Mark complete (with token count!)
+plan-db.sh update-task $DB_TASK_ID done "Metrics display implemented and tested. All acceptance criteria met." --tokens 12456
 
 # Report
 echo "Task T1-01: DONE
 Work: Implemented metrics dashboard component
 Tests: 3/3 passing
-Tokens: 12,456
+Tokens: 12,456 (saved to DB)
 Status: Ready for next task"
 ```
 

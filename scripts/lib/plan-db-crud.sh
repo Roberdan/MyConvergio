@@ -127,25 +127,37 @@ cmd_add_task() {
 }
 
 # Update task status
+# Usage: update-task <task_id> <status> [notes] [--tokens N]
 cmd_update_task() {
     local task_id="$1"
     local status="$2"
-    local notes="${3:-}"
+    shift 2
+
+    local notes="" tokens=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --tokens) tokens="$2"; shift 2 ;;
+            *) [[ -z "$notes" ]] && notes="$1"; shift ;;
+        esac
+    done
+
     local notes_escaped=$(sql_escape "$notes")
     local old_status=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id = $task_id;")
+    local tokens_sql=""
+    [[ -n "$tokens" ]] && tokens_sql=", tokens = $tokens"
 
     if [[ "$status" == "in_progress" ]]; then
-        sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), notes = '$notes_escaped' WHERE id = $task_id;"
+        sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
     elif [[ "$status" == "done" ]]; then
-        sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', completed_at = datetime('now'), notes = '$notes_escaped' WHERE id = $task_id;"
+        sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', completed_at = datetime('now'), notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
 
         local wave_id_text=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM tasks WHERE id = $task_id;")
         local project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM tasks WHERE id = $task_id;")
 
         sqlite3 "$DB_FILE" "UPDATE waves SET tasks_done = tasks_done + 1 WHERE project_id = '$project_id' AND wave_id = '$wave_id_text';"
 
-        local wave_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE project_id = '$project_id' AND wave_id = '$wave_id_text';")
-        local plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM waves WHERE id = $wave_db_id;")
+        local wave_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE project_id = '$project_id' AND wave_id = '$wave_id_text' ORDER BY id DESC LIMIT 1;")
+        local plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM waves WHERE id = $wave_db_id LIMIT 1;")
         sqlite3 "$DB_FILE" "UPDATE plans SET tasks_done = tasks_done + 1 WHERE id = $plan_id;"
 
         local wave_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done = tasks_total FROM waves WHERE id = $wave_db_id;")
@@ -154,9 +166,9 @@ cmd_update_task() {
             log_info "Wave $wave_id_text completed!"
         }
     else
-        sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', notes = '$notes_escaped' WHERE id = $task_id;"
+        sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
     fi
-    log_info "Task $task_id: $old_status -> $status"
+    [[ -n "$tokens" ]] && log_info "Task $task_id: $old_status -> $status (tokens: $tokens)" || log_info "Task $task_id: $old_status -> $status"
 }
 
 # Update wave status

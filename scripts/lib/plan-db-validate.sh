@@ -100,6 +100,25 @@ cmd_validate() {
 
     sqlite3 "$DB_FILE" "UPDATE plans SET validated_at = datetime('now'), validated_by = '$validated_by' WHERE id = $plan_id;"
 
+    # Also mark all done tasks as validated
+    local done_tasks=$(sqlite3 "$DB_FILE" "
+        SELECT t.id FROM tasks t
+        JOIN waves w ON t.project_id = w.project_id AND t.wave_id = w.wave_id
+        WHERE w.plan_id = $plan_id AND t.status = 'done' AND t.validated_at IS NULL;
+    ")
+    if [ -n "$done_tasks" ]; then
+        sqlite3 "$DB_FILE" "
+            UPDATE tasks SET validated_at = datetime('now'), validated_by = '$validated_by'
+            WHERE id IN (
+                SELECT t.id FROM tasks t
+                JOIN waves w ON t.project_id = w.project_id AND t.wave_id = w.wave_id
+                WHERE w.plan_id = $plan_id AND t.status = 'done'
+            );
+        "
+        local count=$(echo "$done_tasks" | grep -c . || echo 0)
+        echo -e "${GREEN}Marked $count tasks as validated${NC}"
+    fi
+
     local version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
     sqlite3 "$DB_FILE" "
         INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by)

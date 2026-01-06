@@ -35,8 +35,9 @@ open http://localhost:31415
 │   ├── guardian.md        # Thor enforcement
 │   ├── agent-discovery.md # Agent routing
 │   ├── engineering-standards.md
-│   ├── file-size-limits.md
-│   └── detailed/          # Full detailed rules (reference only)
+│   └── file-size-limits.md
+├── reference/             # NOT auto-loaded (saves ~19k tokens)
+│   └── detailed/          # Full rules for on-demand reference
 ├── scripts/               # CLI utilities
 │   ├── plan-db.sh         # Plan/wave/task management
 │   └── register-project.sh
@@ -142,10 +143,9 @@ node reboot.js --no-pm2
 | **TOTAL** | **209** | ~65% reduction from original |
 
 ### Detailed Rules
-Full versions in `rules/detailed/` for reference:
-- execution.md (204 lines)
-- guardian.md (145 lines)
-- agent-discovery.md (105 lines)
+Full versions in `reference/detailed/` (not auto-loaded to save context):
+- 9 detailed rule files with examples and edge cases
+- Access on-demand: `Read ~/.claude/reference/detailed/...`
 
 ## Troubleshooting
 

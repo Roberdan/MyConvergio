@@ -14,12 +14,11 @@ Compact rules loaded on every Claude session. Optimized for minimal token usage.
 
 ## Detailed Versions
 
-Full reference versions in `detailed/`:
-- execution.md (204 lines) - Complete with examples
-- guardian.md (145 lines) - Full Thor protocols
-- agent-discovery.md (105 lines) - All agents + patterns
+Full reference versions in `~/.claude/reference/detailed/` (not auto-loaded - outside rules/):
+- execution.md, guardian.md, agent-discovery.md - Full protocols with examples
+- api-development.md, security-requirements.md, testing-standards.md
+- code-style.md, documentation-standards.md, ethical-guidelines.md
 
 ## Usage
 
-These rules are automatically loaded via CLAUDE.md reference.
-Consult `detailed/` for comprehensive examples and edge cases.
+Compact rules auto-loaded. Consult `~/.claude/reference/detailed/` on-demand for examples.

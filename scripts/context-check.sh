@@ -90,6 +90,6 @@ else
 fi
 echo ""
 echo "Tips:"
-echo "- Keep rules/ minimal, move detailed docs to rules/detailed/"
+echo "- Keep rules/ minimal, detailed docs in reference/detailed/ (not auto-loaded)"
 echo "- Split large files into smaller modules"
 echo "- Start new conversations for fresh context"

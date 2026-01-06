@@ -4,6 +4,9 @@
 function showView(view) {
   currentView = view;
 
+  // Update breadcrumb navigation
+  updateBreadcrumb(view);
+
   // Close diff view if open
   if (typeof closeDiffView === 'function') closeDiffView();
 
@@ -22,7 +25,6 @@ function showView(view) {
   const tradersSection = document.querySelector('.traders-section');
   const kanbanView = document.getElementById('kanbanView');
   const wavesView = document.getElementById('wavesView');
-  const bugsView = document.getElementById('bugsView');
   const agentsView = document.getElementById('agentsView');
   const notificationsView = document.getElementById('notificationsView');
   const statsHeader = document.querySelector('.stats-header');
@@ -37,7 +39,7 @@ function showView(view) {
   const isFullPageView = view === 'kanban';
 
   // Hide all views
-  [kanbanView, wavesView, bugsView, agentsView, notificationsView].forEach(v => {
+  [kanbanView, wavesView, agentsView, notificationsView].forEach(v => {
     if (v) v.style.display = 'none';
   });
 
@@ -66,14 +68,11 @@ function showView(view) {
       loadKanban();
       break;
     case 'waves':
-      if (wavesView) wavesView.style.display = 'block';
+      // Show waves view with enhanced Gantt navigation
+      document.getElementById('wavesView').style.display = 'block';
       loadWavesView();
       break;
-    case 'issues':
-    case 'bugs':
-      if (bugsView) bugsView.style.display = 'block';
-      loadBugsView();
-      break;
+
     case 'agents':
       if (agentsView) agentsView.style.display = 'block';
       loadAgentsView();
@@ -90,7 +89,27 @@ function showView(view) {
         renderAgents();
       }
       break;
-  }
+   }
 }
+
+// Update breadcrumb navigation
+function updateBreadcrumb(view) {
+  const breadcrumbNav = document.getElementById('breadcrumbNav');
+  if (!breadcrumbNav) return;
+
+  const viewNames = {
+    dashboard: 'Dashboard',
+    kanban: 'Control Center',
+    waves: 'Waves',
+    agents: 'Agents',
+    notifications: 'Notifications'
+  };
+
+  const viewName = viewNames[view] || view;
+  breadcrumbNav.innerHTML = `<span class="breadcrumb-item active" data-view="${view}">${viewName}</span>`;
+}
+
+// Export functions
+window.updateBreadcrumb = updateBreadcrumb;
 
 console.log('Views core loaded');

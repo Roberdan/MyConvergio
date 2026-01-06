@@ -21,16 +21,52 @@ function hasPM2() {
   }
 }
 
-// Kill existing process on port
+// Kill existing dashboard process on port with graceful shutdown
 function killPort() {
   try {
-    const pids = execSync(`lsof -ti:${PORT}`, { encoding: 'utf8' }).trim();
-    if (pids) {
-      execSync(`kill -9 ${pids.split('\n').join(' ')}`);
-      console.log(`Killed process(es) on port ${PORT}`);
+    // Get process info for port
+    const output = execSync(`lsof -i:${PORT} -F pcn`, { encoding: 'utf8' });
+    const lines = output.trim().split('\n');
+
+    let dashboardPids = [];
+    for (let i = 0; i < lines.length; i += 3) {
+      if (lines[i] && lines[i].startsWith('p')) {
+        const pid = lines[i].substring(1);
+        const command = lines[i + 1] ? lines[i + 1].substring(1) : '';
+        const name = lines[i + 2] ? lines[i + 2].substring(1) : '';
+
+        // Only kill if it's our dashboard server
+        if (command.includes('node') && command.includes('server.js') && command.includes('dashboard')) {
+          dashboardPids.push(pid);
+        }
+      }
+    }
+
+    if (dashboardPids.length > 0) {
+      console.log(`Found dashboard process(es) on port ${PORT}, attempting graceful shutdown...`);
+
+      // First try SIGTERM for graceful shutdown
+      execSync(`kill -TERM ${dashboardPids.join(' ')}`);
+
+      // Wait a bit for graceful shutdown
+      setTimeout(() => {
+        try {
+          // Check if processes are still running
+          const stillRunning = execSync(`ps -p ${dashboardPids.join(',')} -o pid=`, { encoding: 'utf8' }).trim();
+          if (stillRunning) {
+            console.log('Processes still running, forcing shutdown...');
+            execSync(`kill -9 ${dashboardPids.join(' ')}`);
+            console.log(`Force killed dashboard process(es) on port ${PORT}`);
+          } else {
+            console.log(`Gracefully shut down dashboard process(es) on port ${PORT}`);
+          }
+        } catch {
+          console.log(`Successfully shut down dashboard process(es) on port ${PORT}`);
+        }
+      }, 2000);
     }
   } catch {
-    // No process on port
+    // No process on port or lsof not available
   }
 }
 

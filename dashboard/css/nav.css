@@ -1,3 +1,45 @@
+/* Breadcrumb Navigation */
+.breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 16px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.breadcrumb-item {
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.breadcrumb-item:hover {
+  background-color: var(--bg-hover);
+  color: var(--text);
+}
+
+.breadcrumb-item.active {
+  color: var(--text);
+  font-weight: 500;
+  background-color: var(--accent);
+  color: white;
+}
+
+.breadcrumb-item:not(:last-child)::after {
+  content: '/';
+  margin-left: 8px;
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.breadcrumb-item.active::after {
+  display: none;
+}
+
 /* Top Navigation */
 .top-nav {
   display: flex;

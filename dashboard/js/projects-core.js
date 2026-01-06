@@ -99,30 +99,49 @@ async function selectProject(projectId) {
 
   document.getElementById('projectMenu').style.display = 'none';
 
-  try {
-    const res = await fetch(`${API_BASE}/plans/${projectId}`);
-    const plans = await res.json();
-    currentPlans = plans;
+    try {
+      console.log('Selecting project:', projectId, project.name);
+      currentProjectId = projectId;
 
-    const activePlan = plans.find(p => p.status === 'doing') || plans[0];
+      // Load aggregated project dashboard data
+      const dashboardRes = await fetch(`${API_BASE}/project/${projectId}/dashboard`);
+      console.log('Dashboard API response:', dashboardRes.status);
 
-    if (activePlan) {
-      await loadPlanDetails(activePlan.id);
-    } else {
-      data = createEmptyPlanData(projectId, project.name);
-      render();
-    }
+      if (dashboardRes.ok) {
+        data = await dashboardRes.json();
+        console.log('Loaded dashboard data:', data);
+        render();
+      } else {
+       // Fallback to old method if endpoint doesn't exist
+       const res = await fetch(`${API_BASE}/plans/${projectId}`);
+       const plans = await res.json();
+       currentPlans = plans;
+
+       const activePlan = plans.find(p => p.status === 'doing') || plans[0];
+
+       if (activePlan) {
+         await loadPlanDetails(activePlan.id);
+       } else {
+         data = createEmptyPlanData(projectId, project.name);
+         render();
+       }
+     }
     updateTopBarWithPlan();
     renderConsolidatedProjectMenu();
 
-    loadGitHubData();
-    loadGitData();
-    loadTokenData();
-    connectGitWatcher(projectId);
+     loadGitHubData();
+     loadGitData();
+     loadTokenData();
+     connectGitWatcher(projectId);
 
-    if (typeof initBugList === 'function') {
-      initBugList();
-    }
+     if (typeof initBugList === 'function') {
+       initBugList();
+     }
+
+     // Initialize bug tracker for new project
+     if (typeof initBugTracker === 'function') {
+       initBugTracker();
+     }
 
     if (typeof currentView !== 'undefined' && currentView && currentView !== 'dashboard') {
       showView(currentView);

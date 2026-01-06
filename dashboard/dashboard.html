@@ -63,15 +63,22 @@
       <span class="hamburger-line"></span>
     </button>
     <div class="nav-menu" id="navMenu">
-      <a href="#" onclick="showView('kanban')">Control Center <span class="nav-count" id="navKanbanCount"></span></a>
-      <a href="#" class="active" onclick="showView('dashboard')">Dashboard</a>
+      <a href="#" onclick="showView('kanban')" title="Mission Control - Overview of all projects and plans">
+        Control Center <span class="nav-count" id="navKanbanCount"></span>
+      </a>
+      <a href="#" class="active" onclick="showView('dashboard')" title="Dashboard - Current project metrics and progress">
+        Dashboard
+      </a>
       <div class="nav-waves-menu" style="position: relative;">
-        <a href="#" onclick="showView('waves')">Waves <span class="nav-count" id="navWavesCount"></span></a>
-        <button class="wave-menu-trigger" id="waveMenuTrigger" onclick="event.preventDefault(); event.stopPropagation(); showWaveMenu()" title="Wave navigator">▼</button>
+        <a href="#" onclick="showView('waves')" title="Wave Management - Timeline view of all development waves">
+          Waves <span class="nav-count" id="navWavesCount"></span>
+        </a>
+        <button class="wave-menu-trigger" id="waveMenuTrigger" onclick="event.preventDefault(); event.stopPropagation(); showWaveMenu()" title="Quick wave navigator" aria-label="Open wave menu">▼</button>
         <div class="wave-menu-dropdown" id="waveMenuList" style="display: none;"></div>
       </div>
-      <a href="#" onclick="showView('issues')">Issues <span class="nav-count" id="navIssuesCount"></span></a>
-      <a href="#" onclick="showView('agents')">Agents</a>
+       <a href="#" onclick="showView('agents')" title="Agent Performance - AI assistant activity and efficiency">
+         Agents
+       </a>
     </div>
     <div class="nav-right">
       <div class="nav-badge highlight" id="throughputBadge">-</div>
@@ -104,8 +111,13 @@
           <option value="dawn">Dawn</option>
         </select>
       </div>
-      <button class="nav-btn" id="exportBtn">Export</button>
-      <button class="nav-btn nav-btn-danger" id="shutdownBtn" onclick="shutdownDashboard()" title="Shutdown server and close dashboard">Shutdown</button>
+       <button class="nav-btn nav-btn-primary" id="bugTrackerBtn" onclick="toggleBugTracker()" title="Track bugs and issues">
+         <span class="bug-tracker-icon">🐛</span>
+         Track Issues
+         <span class="bug-count" id="bugCount">0</span>
+       </button>
+       <button class="nav-btn" id="exportBtn">Export</button>
+       <button class="nav-btn nav-btn-danger" id="shutdownBtn" onclick="shutdownDashboard()" title="Shutdown server and close dashboard">Shutdown</button>
     </div>
   </nav>
 
@@ -187,8 +199,13 @@
       </div>
     </aside>
 
-    <!-- Main Content -->
+     <!-- Main Content -->
     <main class="main-content">
+      <!-- Breadcrumb Navigation -->
+      <div class="breadcrumb-nav" id="breadcrumbNav">
+        <span class="breadcrumb-item active" data-view="dashboard">Dashboard</span>
+      </div>
+
       <!-- Stats Label with Project Avatar -->
       <div class="stats-header">
         <img src="" alt="" class="project-avatar" id="projectAvatar" style="display:none;">
@@ -196,26 +213,82 @@
       </div>
 
       <!-- Stats Row -->
-      <div class="stats-row">
+      <div class="stats-row" id="statsRow">
         <div class="stat-item">
-          <div class="label">Tasks</div>
-          <div class="value green" id="tasksDone">-/-</div>
+          <div class="label">Tasks Completed</div>
+          <div class="value green" id="tasksDone">Loading...</div>
         </div>
         <div class="stat-item">
-          <div class="label">Tokens Used</div>
-          <div class="value" id="tokensUsed">n/d</div>
+          <div class="label">AI Tokens Used</div>
+          <div class="value" id="tokensUsed">Loading...</div>
         </div>
         <div class="stat-item">
-          <div class="label">Avg per Task</div>
-          <div class="value" id="avgTokensPerTask">n/d</div>
+          <div class="label">Avg Tokens/Task</div>
+          <div class="value" id="avgTokensPerTask">Loading...</div>
         </div>
         <div class="stat-item">
-          <div class="label">Waves</div>
-          <div class="value" id="wavesStatus">-/-</div>
+          <div class="label">Active Plans</div>
+          <div class="value" id="wavesStatus">Loading...</div>
         </div>
         <div class="stat-item">
-          <div class="label">Progress</div>
-          <div class="value" id="progressPercent">0%</div>
+          <div class="label">Overall Progress</div>
+          <div class="value" id="progressPercent">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Interactive Gantt View - Heart of Dashboard -->
+      <div class="interactive-gantt" id="interactiveGantt">
+        <div class="gantt-header-section">
+          <h3 class="gantt-main-title">Project Execution Timeline</h3>
+          <div class="gantt-controls-panel">
+            <button class="gantt-control-btn" onclick="expandAllWaves()" title="Expand all waves">
+              <span class="gantt-control-icon">⊞</span>
+              <span>Expand All</span>
+            </button>
+            <button class="gantt-control-btn" onclick="collapseAllWaves()" title="Collapse all waves">
+              <span class="gantt-control-icon">⊟</span>
+              <span>Collapse All</span>
+            </button>
+            <button class="gantt-control-btn" onclick="refreshGanttData()" title="Refresh data">
+              <span class="gantt-control-icon">🔄</span>
+              <span>Refresh</span>
+            </button>
+            <div class="gantt-filter-panel">
+              <label class="gantt-filter-label">
+                <input type="checkbox" id="showCompletedTasks" checked onchange="toggleCompletedTasks()">
+                Show Completed
+              </label>
+              <label class="gantt-filter-label">
+                <input type="checkbox" id="showBlockedTasks" checked onchange="toggleBlockedTasks()">
+                Show Blocked
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="gantt-timeline-header">
+          <div class="gantt-wave-column">WAVE / TASK</div>
+          <div class="gantt-timeline-column">
+            <div class="gantt-timeline-labels" id="ganttTimelineLabels"></div>
+          </div>
+          <div class="gantt-status-column">STATUS</div>
+          <div class="gantt-progress-column">PROGRESS</div>
+        </div>
+
+        <div class="gantt-content-area" id="ganttContentArea">
+          <div class="gantt-loading-state">
+            <div class="gantt-loading-spinner"></div>
+            <div class="gantt-loading-text">Loading project timeline...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State Message -->
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="empty-state-icon">📊</div>
+        <div class="empty-state-title">No Project Data Available</div>
+        <div class="empty-state-description">
+          Select a project from the menu above or create a new plan to see dashboard metrics.
         </div>
       </div>
 
@@ -245,41 +318,57 @@
       <!-- Unified Waves Card - Tree Navigation -->
       <div class="unified-waves-card" id="unifiedWavesCard"></div>
 
-      <!-- Waves View (hidden by default) -->
+      <!-- Waves View - Enhanced Gantt (hidden by default) -->
       <div class="waves-view" id="wavesView" style="display:none;">
-        <div class="waves-view-header">
-          <span>All Waves - Timeline View</span>
-          <button class="refresh-btn" onclick="loadWavesView()" title="Refresh">&#x21BB;</button>
+        <!-- Navigation Breadcrumb -->
+        <div class="gantt-nav" id="ganttNav">
+          <button class="gantt-nav-item active" onclick="showGanttLevel('waves')" title="Show all waves">
+            <span class="gantt-nav-icon">🌊</span>
+            <span>Waves</span>
+          </button>
+          <span class="gantt-nav-separator" id="ganttNavSeparator" style="display:none;">→</span>
+          <button class="gantt-nav-item" id="ganttNavWave" style="display:none;" onclick="showGanttLevel('tasks')">
+            <span class="gantt-nav-icon">📋</span>
+            <span id="ganttNavWaveName">Wave</span>
+          </button>
+          <span class="gantt-nav-separator" id="ganttNavTaskSeparator" style="display:none;">→</span>
+          <button class="gantt-nav-item" id="ganttNavTask" style="display:none;" onclick="showGanttLevel('details')">
+            <span class="gantt-nav-icon">🔍</span>
+            <span id="ganttNavTaskName">Task</span>
+          </button>
         </div>
-        <div class="waves-view-content" id="wavesViewContent">
-          <div class="waves-loading">Loading waves...</div>
+
+        <!-- Gantt Controls -->
+        <div class="gantt-controls">
+          <div class="gantt-view-modes">
+            <button class="gantt-mode-btn active" onclick="setGanttViewMode('timeline')" title="Timeline view">
+              <span class="gantt-mode-icon">📅</span>
+              <span>Timeline</span>
+            </button>
+            <button class="gantt-mode-btn" onclick="setGanttViewMode('kanban')" title="Kanban board view">
+              <span class="gantt-mode-icon">📊</span>
+              <span>Kanban</span>
+            </button>
+            <button class="gantt-mode-btn" onclick="setGanttViewMode('list')" title="List view">
+              <span class="gantt-mode-icon">📝</span>
+              <span>List</span>
+            </button>
+          </div>
+          <div class="gantt-actions">
+            <button class="gantt-action-btn" onclick="expandAllGantt()" title="Expand all">⊕</button>
+            <button class="gantt-action-btn" onclick="collapseAllGantt()" title="Collapse all">⊖</button>
+            <button class="gantt-action-btn" onclick="exportGantt()" title="Export">💾</button>
+            <button class="refresh-btn" onclick="loadGanttData()" title="Refresh">🔄</button>
+          </div>
+        </div>
+
+        <!-- Gantt Content Area -->
+        <div class="gantt-content" id="ganttContent">
+          <div class="gantt-loading">Loading Gantt chart...</div>
         </div>
       </div>
 
-      <!-- Bugs View (hidden by default) -->
-      <div class="bugs-view" id="bugsView" style="display:none;">
-        <div class="bugs-view-header">
-          <span>Issues &amp; Blockers</span>
-          <button class="refresh-btn" onclick="loadBugsView()" title="Refresh">&#x21BB;</button>
-        </div>
-        <div class="bugs-summary" id="bugsSummary">
-          <div class="bugs-stat">
-            <span class="bugs-stat-value" id="bugsOpenCount">0</span>
-            <span class="bugs-stat-label">Open Issues</span>
-          </div>
-          <div class="bugs-stat">
-            <span class="bugs-stat-value" id="bugsBlockersCount">0</span>
-            <span class="bugs-stat-label">Blockers</span>
-          </div>
-          <div class="bugs-stat">
-            <span class="bugs-stat-value" id="bugsPrsCount">0</span>
-            <span class="bugs-stat-label">Open PRs</span>
-          </div>
-        </div>
-        <div class="bugs-content" id="bugsContent">
-          <div class="bugs-loading">Loading issues...</div>
-        </div>
-      </div>
+
 
       <!-- Agents View (hidden by default) -->
       <div class="agents-view" id="agentsView" style="display:none;">
@@ -636,6 +725,7 @@
   <script src="js/notifications.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/gantt.js"></script>
+  <script src="js/interactive-gantt.js"></script>
   <script src="js/git-panel.js"></script>
   <script src="js/git-commit-viewer.js"></script>
   <!-- Git Actions Modules -->
@@ -661,6 +751,7 @@
   <script src="js/bug-list-core.js"></script>
   <script src="js/bug-list-item.js"></script>
   <script src="js/bug-list-planner.js"></script>
+  <script src="js/bug-tracker.js"></script>
   <!-- Issues Filter Modules -->
   <script src="js/issues-filter-core.js"></script>
   <script src="js/issues-filter-ui.js"></script>
@@ -671,5 +762,55 @@
   <script src="js/system.js"></script>
   <script src="js/menu.js"></script>
   <script src="js/init.js"></script>
-</body>
+  <!-- Bug Tracker Modal (pre-rendered for better theme compatibility) -->
+  <div class="bug-tracker-modal" id="bugTrackerModal" style="display: none;">
+    <div class="bug-tracker-content">
+      <div class="bug-tracker-header">
+        <h2 class="bug-tracker-title">🐛 Bug & Issue Tracker</h2>
+        <div class="bug-tracker-actions">
+          <button onclick="clearAllBugs()" title="Clear all bugs">🗑️</button>
+          <button onclick="hideBugTracker()" title="Close">&times;</button>
+        </div>
+      </div>
+      <div class="bug-tracker-body">
+        <div class="bug-input-section">
+          <div class="bug-input-group">
+            <input type="text" id="bugInput" class="bug-input"
+                   placeholder="Describe the bug or issue you found..."
+                   onkeypress="handleBugInputKeypress(event)"
+                   autocomplete="off" spellcheck="false">
+            <select id="bugPriority" class="bug-input" style="width: 120px;">
+              <option value="low">Low Priority</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High Priority</option>
+            </select>
+            <button onclick="addBug()" class="bug-add-btn">Add Bug</button>
+          </div>
+        </div>
+
+        <div class="bug-list-section">
+          <div class="bug-list-header">
+            <h3 class="bug-list-title">Tracked Issues</h3>
+            <span class="bug-list-count" id="bugListCount">0 items</span>
+          </div>
+          <div class="bug-items" id="bugItems">
+            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+              <div style="font-size: 48px; margin-bottom: 16px;">🐛</div>
+              <div>No bugs tracked yet</div>
+              <div style="font-size: 14px; margin-top: 8px;">Add bugs above to start tracking issues</div>
+            </div>
+          </div>
+
+          <button onclick="createPlanFromBugs()"
+                  class="bug-create-plan-btn"
+                  id="createPlanBtn"
+                  disabled>
+            🚀 Create Execution Plan
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </body>
 </html>

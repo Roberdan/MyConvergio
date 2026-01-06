@@ -18,9 +18,39 @@ const routesSystem = require('./server/routes-system');
 const routesMonitoring = require('./server/routes-monitoring');
 const gitWatcher = require('./server/routes-git-watcher');
 
-const PORT = process.argv[2] || 31415;
+const BASE_PORT = parseInt(process.argv[2]) || 31415;
 const CLAUDE_HOME = process.env.HOME + '/.claude';
 const DASHBOARD_DIR = __dirname; // Use current directory for static files
+
+// Port management with automatic fallback
+function findAvailablePort(startPort, maxAttempts = 10) {
+  return new Promise((resolve, reject) => {
+    const net = require('net');
+
+    function tryPort(port, attempts) {
+      if (attempts >= maxAttempts) {
+        reject(new Error(`No available ports found after ${maxAttempts} attempts`));
+        return;
+      }
+
+      const server = net.createServer();
+      server.listen(port, '127.0.0.1', () => {
+        server.close(() => resolve(port));
+      });
+
+      server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          console.log(`Port ${port} in use, trying ${port + 1}...`);
+          tryPort(port + 1, attempts + 1);
+        } else {
+          reject(err);
+        }
+      });
+    }
+
+    tryPort(startPort, 0);
+  });
+}
 
 // MIME types
 const MIME = {
@@ -129,9 +159,17 @@ function serveStatic(res, filePath) {
   res.end(fs.readFileSync(fullPath));
 }
 
+// Global variable to store the actual port
+let ACTUAL_PORT = 31415;
+
+// Function to get current port
+function getCurrentPort() {
+  return ACTUAL_PORT;
+}
+
 // Create server
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url, `http://localhost:${PORT}`);
+  const url = new URL(req.url, `http://localhost:${getCurrentPort()}`);
   const pathname = url.pathname;
 
   // CORS headers
@@ -211,7 +249,43 @@ const server = http.createServer((req, res) => {
   serveStatic(res, filePath);
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`Dashboard API running at http://127.0.0.1:${PORT}`);
-  console.log(`Database: ${DB_FILE}`);
+// Start server with port management
+findAvailablePort(BASE_PORT).then(PORT => {
+  ACTUAL_PORT = PORT; // Store the actual port for URL construction
+  server.listen(PORT, '127.0.0.1', () => {
+    console.log(`Dashboard API running at http://127.0.0.1:${PORT}`);
+    console.log(`Database: ${DB_FILE}`);
+  });
+
+  server.on('error', (err) => {
+    console.error('Server error:', err.message);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Try a different port with: node server.js <port>`);
+    }
+    process.exit(1);
+  });
+}).catch(err => {
+  console.error('Failed to find available port:', err.message);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\nShutting down dashboard server...');
+  server.close(() => {
+    console.log('Server closed successfully');
+    process.exit(0);
+  });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err.message);
+  console.error(err.stack);
+  server.close(() => process.exit(1));
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  server.close(() => process.exit(1));
 });

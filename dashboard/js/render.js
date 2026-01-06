@@ -3,36 +3,49 @@
 function updateNavCounts() {
   const kanbanCount = document.getElementById('navKanbanCount');
   const wavesCount = document.getElementById('navWavesCount');
-  const issuesCount = document.getElementById('navIssuesCount');
-
-  if (kanbanCount && data.waves) {
-    const activeWaves = data.waves.filter(w => w.status === 'in_progress').length;
-    kanbanCount.textContent = activeWaves > 0 ? activeWaves : '';
-  }
 
   if (wavesCount && data.waves) {
     wavesCount.textContent = data.waves.length > 0 ? data.waves.length : '';
   }
-
-  if (issuesCount && data.github?.issues) {
-    const count = data.github.issues.length;
-    issuesCount.textContent = count > 0 ? count : '';
-  }
 }
 
 function render() {
+  const statsRow = document.getElementById('statsRow');
+  const emptyState = document.getElementById('emptyState');
+
+  // Check if we have valid data
+  if (!data || !data.metrics || !data.metrics.throughput) {
+    // Show empty state
+    if (statsRow) statsRow.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'flex';
+    return;
+  }
+
+  // Show stats row and hide empty state
+  if (statsRow) statsRow.style.display = 'flex';
+  if (emptyState) emptyState.style.display = 'none';
+
   // Header
   document.getElementById('projectName').textContent = data.meta.project;
   document.getElementById('planLabel').textContent = data.meta.project;
   document.getElementById('throughputBadge').textContent = data.metrics.throughput.percent + '%';
 
-  // Stats
-  document.getElementById('tasksDone').textContent = `${data.metrics.throughput.done}/${data.metrics.throughput.total}`;
-  document.getElementById('tokensUsed').textContent = data.tokens?.total ? data.tokens.total.toLocaleString() : 'n/d';
-  document.getElementById('avgTokensPerTask').textContent = data.tokens?.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
-  const wavesDone = data.waves.filter(w => w.status === 'done').length;
-  document.getElementById('wavesStatus').textContent = `${wavesDone}/${data.waves.length}`;
-  document.getElementById('progressPercent').textContent = data.metrics.throughput.percent + '%';
+  // Stats with better formatting
+  const done = data.metrics.throughput.done || 0;
+  const total = data.metrics.throughput.total || 0;
+  document.getElementById('tasksDone').textContent = total > 0 ? `${done}/${total}` : 'No tasks';
+
+  const tokensTotal = data.tokens?.total;
+  document.getElementById('tokensUsed').textContent = tokensTotal ? tokensTotal.toLocaleString() : 'No data';
+
+  const avgTokens = data.tokens?.avgPerTask;
+  document.getElementById('avgTokensPerTask').textContent = avgTokens ? avgTokens.toLocaleString() : 'No data';
+
+  const wavesDone = data.waves ? data.waves.filter(w => w.status === 'done').length : 0;
+  const totalWaves = data.waves ? data.waves.length : 0;
+  document.getElementById('wavesStatus').textContent = totalWaves > 0 ? `${wavesDone}/${totalWaves}` : 'No plans';
+
+  document.getElementById('progressPercent').textContent = total > 0 ? data.metrics.throughput.percent + '%' : '0%';
 
   // Epoch bar - only show if there are waves
   const waveIndicator = document.getElementById('waveIndicator');

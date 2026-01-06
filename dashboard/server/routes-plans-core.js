@@ -325,6 +325,66 @@ const routes = {
     `);
 
     return { message: 'Data consistency fixed', fixed: true };
+  },
+
+  // Delete a plan (and all related waves/tasks)
+  'DELETE /api/plan/:id': (params) => {
+    const planId = parseInt(params.id);
+    if (!planId || isNaN(planId)) {
+      return { error: 'Invalid plan ID' };
+    }
+
+    try {
+      // Check if plan exists
+      const plan = query(`SELECT id, name FROM plans WHERE id = ${planId}`)[0];
+      if (!plan) {
+        return { error: 'Plan not found' };
+      }
+
+      // Delete tasks first (foreign key dependency)
+      query(`DELETE FROM tasks WHERE plan_id = ${planId}`);
+      
+      // Delete waves
+      query(`DELETE FROM waves WHERE plan_id = ${planId}`);
+      
+      // Delete token usage records
+      query(`DELETE FROM token_usage WHERE plan_id = ${planId}`);
+      
+      // Delete the plan
+      query(`DELETE FROM plans WHERE id = ${planId}`);
+
+      return { success: true, deleted: plan.name };
+    } catch (e) {
+      console.error('Failed to delete plan:', e);
+      return { error: 'Failed to delete plan: ' + e.message };
+    }
+  },
+
+  // Delete a project (only if it has no plans)
+  'DELETE /api/project/:id': (params) => {
+    const projectId = escapeSQL(params.id);
+
+    try {
+      // Check if project exists
+      const project = query(`SELECT id, name FROM projects WHERE id = '${projectId}'`)[0];
+      if (!project) {
+        return { error: 'Project not found' };
+      }
+
+      // Check if project has any plans
+      const plansCount = query(`SELECT COUNT(*) as count FROM plans WHERE project_id = '${projectId}'`)[0];
+      if (plansCount && plansCount.count > 0) {
+        return { error: 'Cannot delete project with existing plans' };
+      }
+
+      // Delete the project
+      query(`DELETE FROM projects WHERE id = '${projectId}'`);
+
+      return { success: true, deleted: project.name };
+    } catch (e) {
+      console.error('Failed to delete project:', e);
+      return { error: 'Failed to delete project: ' + e.message };
+    }
   }
 };
 

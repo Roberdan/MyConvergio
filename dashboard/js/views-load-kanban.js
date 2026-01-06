@@ -74,5 +74,10 @@ async function loadKanban() {
   document.getElementById('kanbanTotalTokens').textContent = totalTokens ? totalTokens.toLocaleString() : '0';
   document.getElementById('kanbanTotalCost').textContent = totalCost ? '$' + totalCost.toFixed(2) : '$0';
   renderKanban(kanban);
+  
+  // Render trash column if function exists
+  if (typeof renderTrashColumn === 'function') {
+    renderTrashColumn();
+  }
 }
 

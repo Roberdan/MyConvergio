@@ -335,6 +335,22 @@
               </div>
               <div class="cc-column-cards" id="kanbanDone"></div>
             </div>
+            <!-- Trash Column -->
+            <div class="cc-kanban-column trash-column" data-status="trash">
+              <div class="cc-column-header">
+                <div class="cc-column-title">
+                  <span class="cc-column-dot trash">🗑️</span>
+                  <span>TRASH</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="cc-column-count" id="kanbanTrashCount">0</span>
+                  <button class="trash-empty-icon" id="emptyTrashBtn" onclick="emptyTrash()" style="display:none;" title="Empty Trash">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+              <div class="cc-column-cards" id="kanbanTrash"></div>
+            </div>
           </div>
         </div>
       </div>

@@ -405,11 +405,11 @@
 
 /* Bug Dropdown */
 .bug-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
+  position: fixed;
+  top: 70px;
+  right: 20px;
   width: 360px;
-  max-height: 400px;
+  max-height: 500px;
   background: var(--bg-card-solid, var(--bg-card));
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -417,7 +417,6 @@
   z-index: 2000;
   display: none;
   overflow: hidden;
-  margin-top: 8px;
 }
 
 .bug-dropdown-header {

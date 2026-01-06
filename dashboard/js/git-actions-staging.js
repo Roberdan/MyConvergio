@@ -102,7 +102,10 @@ async function unstageAll() {
   }
 }
 async function commitChanges(andPush = false) {
-  if (!currentProjectId) return;
+  if (!currentProjectId) {
+    showToast('No project selected', 'warning');
+    return;
+  }
   const messageEl = document.getElementById('gitCommitMessage');
   const message = messageEl?.value?.trim();
   if (!message) {
@@ -129,4 +132,11 @@ async function commitChanges(andPush = false) {
     showToast('Commit failed: ' + e.message, 'error');
   }
 }
+
+// Export functions
+window.stageFile = stageFile;
+window.unstageFile = unstageFile;
+window.stageAll = stageAll;
+window.unstageAll = unstageAll;
+window.commitChanges = commitChanges;
 

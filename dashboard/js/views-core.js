@@ -15,6 +15,11 @@ function showView(view) {
 
   // Close diff view if open
   if (typeof closeDiffView === 'function') closeDiffView();
+  
+  // Close commit viewer if open
+  if (typeof closeCommitDetails === 'function') closeCommitDetails();
+  const commitViewer = document.getElementById('commitViewer');
+  if (commitViewer) commitViewer.style.display = 'none';
 
   // Update nav menu - remove active from all, add to current
   document.querySelectorAll('.nav-menu > a, .nav-menu > div > a').forEach(a => {
@@ -76,8 +81,8 @@ function showView(view) {
   if (statsHeader) statsHeader.style.display = hideDashboard ? 'none' : '';
   if (statsRow) statsRow.style.display = hideDashboard ? 'none' : '';
   if (waveIndicator) waveIndicator.style.display = hideDashboard ? 'none' : '';
-  if (emptyState) emptyState.style.display = hideDashboard ? 'none' : '';
-  if (interactiveGantt) interactiveGantt.style.display = hideDashboard ? 'none' : '';
+  if (emptyState) emptyState.style.display = (hideDashboard || (data && data.waves?.length > 0)) ? 'none' : '';
+  if (interactiveGantt) interactiveGantt.style.display = hideDashboard ? 'none' : 'block';
 
   // Full-page mode: hide sidebars
   if (gitPanel) gitPanel.style.display = isFullPageView ? 'none' : '';
@@ -108,6 +113,11 @@ function showView(view) {
       break;
     case 'dashboard':
     default:
+      // Auto-load Gantt for current project
+      if (currentProjectId && typeof GanttView !== 'undefined') {
+        GanttView.renderTarget = 'ganttContentArea';
+        GanttView.load(currentProjectId);
+      }
       if (chartMode === 'tokens') {
         destroyCharts();
         renderTokenChart();

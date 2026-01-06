@@ -177,7 +177,67 @@ const GanttView = {
     const task = wave.tasks.find(t => t.task_id === taskId);
     if (!task) return;
 
-    showToast(`Task: ${task.title}\nStatus: ${task.status}\nPriority: ${task.priority || 'N/A'}`, 'info');
+    // Create or show task details modal
+    let modal = document.getElementById('taskDetailsModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'taskDetailsModal';
+      modal.className = 'task-details-modal';
+      document.body.appendChild(modal);
+    }
+
+    const statusIcon = task.status === 'done' ? '✅' : task.status === 'doing' ? '🔄' : task.status === 'blocked' ? '🚫' : '⏳';
+    const priorityBadge = task.priority ? `<span class="task-priority-badge priority-${task.priority}">${task.priority}</span>` : '';
+
+    modal.innerHTML = `
+      <div class="task-details-overlay" onclick="GanttView.closeTaskDetails()"></div>
+      <div class="task-details-content">
+        <div class="task-details-header">
+          <div class="task-details-title">
+            <span class="task-id-badge">${task.task_id}</span>
+            <h3>${task.title || 'Untitled Task'}</h3>
+          </div>
+          <button class="task-details-close" onclick="GanttView.closeTaskDetails()">×</button>
+        </div>
+        <div class="task-details-body">
+          <div class="task-detail-row">
+            <span class="task-detail-label">Status</span>
+            <span class="task-detail-value"><span class="gantt-status-badge ${task.status}">${statusIcon} ${task.status}</span></span>
+          </div>
+          <div class="task-detail-row">
+            <span class="task-detail-label">Wave</span>
+            <span class="task-detail-value">${wave.wave_id} - ${wave.name || ''}</span>
+          </div>
+          ${task.priority ? `<div class="task-detail-row">
+            <span class="task-detail-label">Priority</span>
+            <span class="task-detail-value">${priorityBadge}</span>
+          </div>` : ''}
+          ${task.assignee ? `<div class="task-detail-row">
+            <span class="task-detail-label">Assignee</span>
+            <span class="task-detail-value">👤 ${task.assignee}</span>
+          </div>` : ''}
+          ${task.description ? `<div class="task-detail-row full-width">
+            <span class="task-detail-label">Description</span>
+            <div class="task-detail-description">${task.description}</div>
+          </div>` : ''}
+          ${task.created_at ? `<div class="task-detail-row">
+            <span class="task-detail-label">Created</span>
+            <span class="task-detail-value">${new Date(task.created_at).toLocaleString()}</span>
+          </div>` : ''}
+          ${task.completed_at ? `<div class="task-detail-row">
+            <span class="task-detail-label">Completed</span>
+            <span class="task-detail-value">${new Date(task.completed_at).toLocaleString()}</span>
+          </div>` : ''}
+        </div>
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+  },
+
+  closeTaskDetails() {
+    const modal = document.getElementById('taskDetailsModal');
+    if (modal) modal.style.display = 'none';
   }
 };
 

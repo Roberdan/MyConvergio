@@ -13,11 +13,11 @@
 }
 
 .toast {
-  background: var(--bg-card-solid);
-  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 14px 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
   display: flex;
   gap: 12px;
   align-items: flex-start;
@@ -29,7 +29,7 @@
 
 .toast:hover {
   transform: translateX(-4px);
-  border-color: var(--accent);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .toast.dismissing {
@@ -67,7 +67,7 @@
 .toast-title {
   font-size: 13px;
   font-weight: 700;
-  color: var(--text);
+  color: #e5e7eb;
   margin-bottom: 2px;
   line-height: 1.4;
   display: -webkit-box;
@@ -78,7 +78,7 @@
 
 .toast-message {
   font-size: 11px;
-  color: var(--text-muted);
+  color: #cbd5e1;
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -88,7 +88,7 @@
 
 .toast-project {
   font-size: 10px;
-  color: var(--orange);
+  color: #f59e0b;
   font-weight: 600;
   margin-top: 4px;
 }
@@ -96,13 +96,13 @@
 .toast-close {
   background: transparent;
   border: none;
-  color: var(--text-dim);
+  color: #94a3b8;
   font-size: 16px;
   cursor: pointer;
   padding: 0;
   line-height: 1;
 }
-.toast-close:hover { color: var(--text); }
+.toast-close:hover { color: #e5e7eb; }
 
 .toast-actions {
   display: flex;

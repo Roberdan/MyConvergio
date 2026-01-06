@@ -173,7 +173,7 @@ function renderKanban(kanban) {
     container.innerHTML = plans.map(plan => {
       const taskInfo = plan.tasksTotal ? `${plan.tasksDone}/${plan.tasksTotal}` : '0/0';
       const statusDotClass = plan.isRunning ? 'running' : '';
-      const isClickable = status === 'doing'; // Only IN FLIGHT plans are clickable
+      const isClickable = status !== 'trash'; // Allow loading from any column
       const clickHandler = isClickable ? `onclick="activatePlanAndNavigate('${plan.planId}', '${plan.projectId}')"` : '';
       const clickableClass = isClickable ? 'clickable' : '';
 

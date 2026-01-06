@@ -60,7 +60,7 @@ function showView(view) {
   const rightPanel = document.querySelector('.right-panel');
   const mainWrap = document.querySelector('.main-wrap');
   const mainContent = document.querySelector('.main-content');
-  const isFullPageView = view === 'kanban' || view === 'tasks';
+  const isFullPageView = view === 'kanban' || view === 'tasks' || view === 'notifications';
 
   // Hide all views
   [kanbanView, wavesView, agentsView, notificationsView].forEach(v => {
@@ -109,7 +109,9 @@ function showView(view) {
       break;
     case 'notifications':
       if (notificationsView) notificationsView.style.display = 'block';
-      loadNotificationsView();
+      if (typeof loadAllNotifications === 'function') {
+        loadAllNotifications();
+      }
       break;
     case 'dashboard':
     default:

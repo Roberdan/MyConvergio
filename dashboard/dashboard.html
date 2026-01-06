@@ -59,7 +59,7 @@
         <span class="bug-count" id="bugCount">0</span>
       </button>
       
-      <button class="nav-icon-btn" id="notificationsBtn" onclick="showNotificationsPage()" title="View all notifications">
+      <button class="nav-icon-btn" id="notificationsBtn" onclick="showView('notifications')" title="View all notifications">
         <span class="icon">🔔</span>
         <span class="nav-icon-label">Notifications</span>
         <span class="notification-count hidden" id="notificationCount">0</span>
@@ -475,6 +475,33 @@
       </div>
     </main>
 
+    <!-- Notifications View -->
+    <main class="view" id="notificationsView" style="display: none;">
+      <div class="notifications-container">
+        <div class="notifications-header">
+          <h2>Notifications</h2>
+          <div class="notifications-actions">
+            <button class="notifications-action-btn" onclick="markAllNotificationsRead()">
+              <span>✓</span> Mark All Read
+            </button>
+            <button class="notifications-action-btn danger" onclick="clearAllNotifications()">
+              <span>🗑️</span> Clear All
+            </button>
+          </div>
+        </div>
+        <div class="notifications-filters">
+          <button class="notification-filter-btn active" data-filter="all" onclick="filterNotifications('all')">All</button>
+          <button class="notification-filter-btn" data-filter="info" onclick="filterNotifications('info')">Info</button>
+          <button class="notification-filter-btn" data-filter="success" onclick="filterNotifications('success')">Success</button>
+          <button class="notification-filter-btn" data-filter="warning" onclick="filterNotifications('warning')">Warning</button>
+          <button class="notification-filter-btn" data-filter="error" onclick="filterNotifications('error')">Error</button>
+        </div>
+        <div class="notifications-list" id="notificationsList">
+          <div class="notifications-empty">No notifications</div>
+        </div>
+      </div>
+    </main>
+
     <!-- Right Panel -->
     <aside class="right-panel">
       <!-- Bug/Todo List Card -->
@@ -574,32 +601,6 @@
         </div>
       </div>
     </aside>
-  </div>
-
-  <!-- Notifications Page -->
-  <div class="notifications-page" id="notificationsPage" style="display: none;">
-    <div class="notifications-header">
-      <h2>Notifications</h2>
-      <div class="notifications-actions">
-        <button class="notifications-action-btn" onclick="markAllNotificationsRead()">
-          <span>✓</span> Mark All Read
-        </button>
-        <button class="notifications-action-btn danger" onclick="clearAllNotifications()">
-          <span>🗑️</span> Clear All
-        </button>
-        <button class="notifications-close-btn" onclick="closeNotificationsPage()">✕</button>
-      </div>
-    </div>
-    <div class="notifications-filters">
-      <button class="notification-filter-btn active" data-filter="all" onclick="filterNotifications('all')">All</button>
-      <button class="notification-filter-btn" data-filter="info" onclick="filterNotifications('info')">Info</button>
-      <button class="notification-filter-btn" data-filter="success" onclick="filterNotifications('success')">Success</button>
-      <button class="notification-filter-btn" data-filter="warning" onclick="filterNotifications('warning')">Warning</button>
-      <button class="notification-filter-btn" data-filter="error" onclick="filterNotifications('error')">Error</button>
-    </div>
-    <div class="notifications-list" id="notificationsList">
-      <div class="notifications-empty">No notifications</div>
-    </div>
   </div>
 
   <!-- Dashboard JS Modules -->

@@ -20,8 +20,13 @@ document.addEventListener('click', (e) => {
 
 // Theme Switcher
 function switchTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('theme', theme);
+  // Use existing setTheme function if available
+  if (typeof setTheme === 'function') {
+    setTheme(theme);
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('dashboard-theme', theme);
+  }
   showToast(`Theme changed to ${theme}`, 'success');
 }
 
@@ -77,42 +82,20 @@ function shutdownDashboard() {
 }
 
 // ============================================
-// NOTIFICATIONS PAGE
+// NOTIFICATIONS
 // ============================================
 
 let allNotifications = [];
 let currentFilter = 'all';
 
-// Show Notifications Page
-function showNotificationsPage() {
-  const page = document.getElementById('notificationsPage');
-  const mainWrap = document.querySelector('.main-wrap');
-  
-  if (page && mainWrap) {
-    mainWrap.style.display = 'none';
-    page.style.display = 'block';
-    loadAllNotifications();
-  }
-}
-
-// Close Notifications Page
-function closeNotificationsPage() {
-  const page = document.getElementById('notificationsPage');
-  const mainWrap = document.querySelector('.main-wrap');
-  
-  if (page && mainWrap) {
-    page.style.display = 'none';
-    mainWrap.style.display = 'flex';
-  }
-}
-
-// Load All Notifications
+// Load All Notifications (called when switching to notifications view)
 async function loadAllNotifications() {
   try {
     const response = await fetch('/api/notifications');
     const data = await response.json();
     allNotifications = data.notifications || [];
     renderNotifications();
+    updateNotificationCount();
   } catch (err) {
     console.error('Failed to load notifications:', err);
     showToast('Failed to load notifications', 'error');
@@ -125,7 +108,11 @@ function filterNotifications(filter) {
   
   // Update filter buttons
   document.querySelectorAll('.notification-filter-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.filter === filter);
+    if (btn.dataset.filter === filter) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
   });
   
   renderNotifications();
@@ -334,8 +321,7 @@ if (typeof window !== 'undefined') {
   window.switchTheme = switchTheme;
   window.exportData = exportData;
   window.shutdownDashboard = shutdownDashboard;
-  window.showNotificationsPage = showNotificationsPage;
-  window.closeNotificationsPage = closeNotificationsPage;
+  window.loadAllNotifications = loadAllNotifications;
   window.filterNotifications = filterNotifications;
   window.markNotificationRead = markNotificationRead;
   window.markAllNotificationsRead = markAllNotificationsRead;

@@ -11,8 +11,6 @@
   <link rel="stylesheet" href="css/unified-waves.css">
   <link rel="stylesheet" href="css/wave-menu.css">
   <link rel="stylesheet" href="css/conversation-viewer.css">
-  <link rel="stylesheet" href="css/bug-list-base.css">
-  <link rel="stylesheet" href="css/bug-list-modal.css">
   <link rel="stylesheet" href="css/loading.css">
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -69,17 +67,14 @@
       <a href="#" onclick="showView('dashboard')" title="Dashboard - Current project metrics and progress">
         Dashboard
       </a>
-      <div class="nav-waves-menu" style="position: relative;">
-        <a href="#" onclick="showView('waves')" title="Wave Management - Timeline view of all development waves">
-          Waves <span class="nav-count" id="navWavesCount"></span>
-        </a>
-        <button class="wave-menu-trigger" id="waveMenuTrigger" onclick="event.preventDefault(); event.stopPropagation(); showWaveMenu()" title="Quick wave navigator" aria-label="Open wave menu">▼</button>
-        <div class="wave-menu-dropdown" id="waveMenuList" style="display: none;"></div>
-      </div>
-       <a href="#" onclick="showView('agents')" title="Agent Performance - AI assistant activity and efficiency">
-         Agents
-       </a>
-    </div>
+       <div class="nav-waves-menu" style="position: relative;">
+         <a href="#" onclick="showView('waves')" title="Wave Management - Timeline view">
+           Waves <span class="nav-count" id="navWavesCount"></span>
+         </a>
+         <button class="wave-menu-trigger" id="waveMenuTrigger" onclick="event.preventDefault(); event.stopPropagation(); showWaveMenu()" title="Quick wave navigator">▼</button>
+         <div class="wave-menu-dropdown" id="waveMenuList" style="display: none;"></div>
+       </div>
+     </div>
     <div class="nav-right">
       <div class="nav-badge highlight" id="throughputBadge">-</div>
       <div class="notification-bell-wrapper">
@@ -199,19 +194,16 @@
       </div>
     </aside>
 
-     <!-- Main Content -->
-    <main class="main-content">
-      <!-- Breadcrumb Navigation (hidden on dashboard view) -->
-      <div class="breadcrumb-nav" id="breadcrumbNav" style="display: none;"></div>
+      <!-- Main Content -->
+     <main class="main-content">
+       <!-- Stats Label with Project Avatar -->
+       <div class="stats-header">
+         <img src="" alt="" class="project-avatar" id="projectAvatar" style="display:none;">
+         <div class="stats-label" id="planLabel">ConvergioEdu</div>
+       </div>
 
-      <!-- Stats Label with Project Avatar -->
-      <div class="stats-header">
-        <img src="" alt="" class="project-avatar" id="projectAvatar" style="display:none;">
-        <div class="stats-label" id="planLabel">ConvergioEdu</div>
-      </div>
-
-      <!-- Stats Row -->
-      <div class="stats-row" id="statsRow">
+       <!-- Stats Row -->
+       <div class="stats-row" id="statsRow">
         <div class="stat-item">
           <div class="label">Tasks Completed</div>
           <div class="value green" id="tasksDone">Loading...</div>
@@ -273,265 +265,38 @@
           <div class="gantt-progress-column">PROGRESS</div>
         </div>
 
-        <div class="gantt-content-area" id="ganttContentArea">
-          <div class="gantt-loading-state">
-            <div class="gantt-loading-spinner"></div>
-            <div class="gantt-loading-text">Loading project timeline...</div>
-          </div>
-        </div>
-      </div>
+         <div class="gantt-content-area" id="ganttContentArea">
+           <div class="gantt-loading-state">
+             <div class="gantt-loading-spinner"></div>
+             <div class="gantt-loading-text">Loading project timeline...</div>
+           </div>
+         </div>
+       </div>
 
-      <!-- Empty State Message -->
-      <div class="empty-state" id="emptyState" style="display:none;">
-        <div class="empty-state-icon">📊</div>
-        <div class="empty-state-title">No Project Data Available</div>
-        <div class="empty-state-description">
-          Select a project from the menu above or create a new plan to see dashboard metrics.
-        </div>
-      </div>
+       <!-- Empty State Message -->
+       <div class="empty-state" id="emptyState" style="display:none;">
+         <div class="empty-state-icon">📊</div>
+         <div class="empty-state-title">No Project Data Available</div>
+         <div class="empty-state-description">
+           Select a project from the menu above or create a new plan to see dashboard metrics.
+         </div>
+       </div>
 
-      <!-- Active Wave Indicator (compact) -->
-      <div class="wave-indicator" id="waveIndicator" style="display:none;">
-        <div class="wave-pulse" id="wavePulse"></div>
-        <div class="wave-info">
-          <span class="wave-name" id="currentWave">-</span>
-          <span class="wave-time" id="countdown">-</span>
-          <span class="wave-dates" id="epochDates"></span>
-        </div>
-        <div class="wave-mini-progress">
-          <div class="wave-mini-fill" id="epochFill" style="width: 0%;"></div>
-        </div>
-      </div>
-
-      <!-- Drill-Down Panel -->
-      <div class="drilldown-panel" id="drilldownPanel" style="display:none;">
-        <div class="drilldown-header">
-          <button class="drilldown-back" id="drilldownBack" onclick="navigateBack()">&#x2190; Back</button>
-          <span class="drilldown-title" id="drilldownTitle">Waves</span>
-          <span class="drilldown-updated" id="drilldownUpdated"></span>
-        </div>
-        <div class="drilldown-content" id="drilldownContent"></div>
-      </div>
-
-      <!-- Unified Waves Card - Tree Navigation -->
-      <div class="unified-waves-card" id="unifiedWavesCard"></div>
-
-      <!-- Waves View - Enhanced Gantt (hidden by default) -->
-      <div class="waves-view" id="wavesView" style="display:none;">
-        <!-- Gantt Controls -->
-        <div class="gantt-controls">
-          <div class="gantt-actions">
-            <button class="gantt-action-btn" onclick="GanttView.expandAll()" title="Expand all">⊕</button>
-            <button class="gantt-action-btn" onclick="GanttView.collapseAll()" title="Collapse all">⊖</button>
-            <button class="gantt-action-btn" onclick="Logger.info('Export coming soon')" title="Export">💾</button>
-            <button class="refresh-btn" onclick="loadWavesView()" title="Refresh">🔄</button>
-          </div>
+       <!-- Active Wave Indicator (compact) -->
+       <div class="wave-indicator" id="waveIndicator" style="display:none;">
+         <div class="wave-pulse" id="wavePulse"></div>
+         <div class="wave-info">
+           <span class="wave-name" id="currentWave">-</span>
+           <span class="wave-time" id="countdown">-</span>
+           <span class="wave-dates" id="epochDates"></span>
+         </div>
+         <div class="wave-mini-progress">
+           <div class="wave-mini-fill" id="epochFill" style="width: 0%;"></div>
+         </div>
         </div>
 
-        <!-- Gantt Content Area -->
-        <div class="gantt-content" id="ganttContent">
-          <div class="gantt-loading">Loading waves...</div>
-        </div>
-      </div>
-
-
-
-      <!-- Agents View (hidden by default) -->
-      <div class="agents-view" id="agentsView" style="display:none;">
-        <div class="agents-view-header">
-          <span>Agent Performance Overview</span>
-          <button class="refresh-btn" onclick="loadAgentsView()" title="Refresh">&#x21BB;</button>
-        </div>
-        <div class="agents-summary" id="agentsSummary">
-          <div class="agents-stat">
-            <span class="agents-stat-value" id="agentsTotalTasks">0</span>
-            <span class="agents-stat-label">Total Tasks</span>
-          </div>
-          <div class="agents-stat">
-            <span class="agents-stat-value" id="agentsActiveCount">0</span>
-            <span class="agents-stat-label">Active Agents</span>
-          </div>
-          <div class="agents-stat">
-            <span class="agents-stat-value" id="agentsAvgEfficiency">0%</span>
-            <span class="agents-stat-label">Avg Efficiency</span>
-          </div>
-        </div>
-        <div class="agents-grid-view" id="agentsGridView"></div>
-      </div>
-
-      <!-- Notifications Archive View (hidden by default) -->
-      <div class="notifications-view" id="notificationsView" style="display:none;">
-        <div class="notifications-header">
-          <span>Notification Archive</span>
-          <div style="display:flex;gap:8px;">
-            <button class="refresh-btn" onclick="showTriggerSettings()" title="Configure triggers">&#x2699;</button>
-            <button class="refresh-btn" onclick="markAllNotificationsRead()" title="Mark all read">&#x2713;</button>
-            <button class="refresh-btn" onclick="loadNotificationsView()" title="Refresh">&#x21BB;</button>
-          </div>
-        </div>
-        <div class="notifications-filters">
-          <button class="notifications-filter" onclick="filterNotifications('all')">All</button>
-          <button class="notifications-filter active" onclick="filterNotifications('unread')">Unread</button>
-          <button class="notifications-filter" onclick="filterNotifications('success')">Success</button>
-          <button class="notifications-filter" onclick="filterNotifications('error')">Errors</button>
-          <input type="text" class="notifications-search" id="notificationSearch" placeholder="Search notifications..." onkeyup="searchNotifications(this.value)">
-        </div>
-        <div class="notifications-list" id="notificationsList">
-          <div class="notifications-empty">No notifications yet</div>
-        </div>
-      </div>
-
-      <!-- Control Center (Full-Page Kanban) -->
-      <div class="control-center" id="kanbanView" style="display:none;">
-        <!-- Header -->
-        <div class="cc-header">
-          <div class="cc-brand">
-            <img src="assets/logo.png" alt="Convergio" class="cc-logo">
-            <div>
-              <div class="cc-title">Control Center</div>
-              <div class="cc-subtitle">Mission Operations</div>
-            </div>
-          </div>
-          <div class="cc-header-right">
-            <button class="refresh-btn" onclick="loadKanban()" title="Refresh">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            </button>
-            <div class="cc-status-indicator" onclick="toggleStatusDropdown()">
-              <div class="cc-status-icon" id="ccStatusIcon">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><circle cx="12" cy="12" r="10"/></svg>
-              </div>
-              <div class="cc-status-dropdown" id="ccStatusDropdown">
-                <div class="cc-status-header">System Status</div>
-                <div class="cc-status-item" id="statusActivePlans">
-                  <span class="cc-status-dot green"></span>
-                  <span>Active Plans</span>
-                  <span class="cc-status-count">0</span>
-                </div>
-                <div class="cc-status-item" id="statusBlockedTasks">
-                  <span class="cc-status-dot gray"></span>
-                  <span>Blocked Tasks</span>
-                  <span class="cc-status-count">0</span>
-                </div>
-                <div class="cc-status-item" id="statusOpenIssues">
-                  <span class="cc-status-dot gray"></span>
-                  <span>Open Issues</span>
-                  <span class="cc-status-count">0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Metrics Dashboard -->
-        <div class="cc-metrics">
-          <div class="cc-metric" onclick="openProjectMenu()">
-            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
-            <div class="cc-metric-value blue" id="kanbanTotalProjects">0</div>
-            <div class="cc-metric-label">Projects</div>
-          </div>
-          <div class="cc-metric" onclick="scrollToKanban()">
-            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h8M8 12h8M8 17h5"/></svg></div>
-            <div class="cc-metric-value" id="kanbanTotalPlans">0</div>
-            <div class="cc-metric-label">Total Plans</div>
-          </div>
-          <div class="cc-metric" onclick="scrollToKanban('doing')">
-            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
-            <div class="cc-metric-value orange" id="kanbanActivePlans">0</div>
-            <div class="cc-metric-label">Active</div>
-          </div>
-          <div class="cc-metric" onclick="scrollToKanban('done')">
-            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="cc-metric-value green" id="kanbanCompletedPlans">0</div>
-            <div class="cc-metric-label">Completed</div>
-          </div>
-          <div class="cc-metric" onclick="showTokensBreakdown()">
-            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
-            <div class="cc-metric-value" id="kanbanTotalTokens">0</div>
-            <div class="cc-metric-label">Tokens</div>
-          </div>
-          <div class="cc-metric" onclick="showTokensBreakdown()">
-            <div class="cc-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-            <div class="cc-metric-value red" id="kanbanTotalCost">$0</div>
-            <div class="cc-metric-label">Cost</div>
-          </div>
-        </div>
-
-        <!-- Gauges Row -->
-        <div class="cc-gauges">
-          <div class="cc-gauge-card">
-            <div class="cc-gauge-title">Completion Rate</div>
-            <div class="cc-gauge">
-              <div class="cc-gauge-bg">
-                <div class="cc-gauge-fill green" id="gaugeCompletion" style="transform: rotate(-90deg) scaleX(0.5);"></div>
-              </div>
-              <div class="cc-gauge-value" id="gaugeCompletionValue">0%</div>
-            </div>
-            <div class="cc-gauge-label">Plans Completed</div>
-          </div>
-          <div class="cc-gauge-card">
-            <div class="cc-gauge-title">Active Workload</div>
-            <div class="cc-gauge">
-              <div class="cc-gauge-bg">
-                <div class="cc-gauge-fill orange" id="gaugeWorkload" style="transform: rotate(-90deg) scaleX(0);"></div>
-              </div>
-              <div class="cc-gauge-value" id="gaugeWorkloadValue">0</div>
-            </div>
-            <div class="cc-gauge-label">Plans in Progress</div>
-          </div>
-          <div class="cc-gauge-card">
-            <div class="cc-gauge-title">Efficiency Score</div>
-            <div class="cc-gauge">
-              <div class="cc-gauge-bg">
-                <div class="cc-gauge-fill blue" id="gaugeEfficiency" style="transform: rotate(-90deg) scaleX(0.75);"></div>
-              </div>
-              <div class="cc-gauge-value" id="gaugeEfficiencyValue">-</div>
-            </div>
-            <div class="cc-gauge-label">Avg Tokens/Task</div>
-          </div>
-        </div>
-
-        <!-- Kanban Section -->
-        <div class="cc-kanban">
-          <div class="cc-kanban-header">
-            <div class="cc-kanban-title">Mission Pipeline</div>
-          </div>
-          <div class="cc-kanban-grid">
-            <div class="cc-kanban-column" data-status="todo">
-              <div class="cc-column-header">
-                <div class="cc-column-title">
-                  <span class="cc-column-dot todo"></span>
-                  <span>QUEUE</span>
-                </div>
-                <span class="cc-column-count" id="kanbanTodoCount">0</span>
-              </div>
-              <div class="cc-column-cards" id="kanbanTodo"></div>
-            </div>
-            <div class="cc-kanban-column" data-status="doing">
-              <div class="cc-column-header">
-                <div class="cc-column-title">
-                  <span class="cc-column-dot doing"></span>
-                  <span>IN FLIGHT</span>
-                </div>
-                <span class="cc-column-count" id="kanbanDoingCount">0</span>
-              </div>
-              <div class="cc-column-cards" id="kanbanDoing"></div>
-            </div>
-            <div class="cc-kanban-column" data-status="done">
-              <div class="cc-column-header">
-                <div class="cc-column-title">
-                  <span class="cc-column-dot done"></span>
-                  <span>LANDED</span>
-                </div>
-                <span class="cc-column-count" id="kanbanDoneCount">0</span>
-              </div>
-              <div class="cc-column-cards" id="kanbanDone"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Chart Card - Token Usage -->
-      <div class="chart-card">
+       <!-- Chart Card - Token Usage -->
+       <div class="chart-card">
         <div class="chart-header">
           <div class="chart-tabs">
             <div class="chart-tab active" onclick="switchChartMode('tokens')">Tokens</div>
@@ -714,10 +479,6 @@
   <script src="js/conversation-viewer-core.js"></script>
   <script src="js/conversation-viewer-render.js"></script>
   <script src="js/conversation-viewer-live.js"></script>
-  <!-- Bug List Modules -->
-  <script src="js/bug-list-core.js"></script>
-  <script src="js/bug-list-item.js"></script>
-  <script src="js/bug-list-planner.js"></script>
   <script src="js/bug-tracker.js"></script>
   <!-- Issues Filter Modules -->
   <script src="js/issues-filter-core.js"></script>
@@ -730,53 +491,27 @@
   <script src="js/menu.js"></script>
   <script src="js/dropdowns.js"></script>
   <script src="js/init.js"></script>
-  <!-- Bug Tracker Modal (pre-rendered for better theme compatibility) -->
-  <div class="bug-tracker-modal" id="bugTrackerModal" style="display: none;">
-    <div class="bug-tracker-content">
-      <div class="bug-tracker-header">
-        <h2 class="bug-tracker-title">🐛 Bug & Issue Tracker</h2>
-        <div class="bug-tracker-actions">
-          <button onclick="clearAllBugs()" title="Clear all bugs">🗑️</button>
-          <button onclick="hideBugTracker()" title="Close">&times;</button>
-        </div>
-      </div>
-      <div class="bug-tracker-body">
-        <div class="bug-input-section">
-          <div class="bug-input-group">
-            <input type="text" id="bugInput" class="bug-input"
-                   placeholder="Describe the bug or issue you found..."
-                   onkeypress="handleBugInputKeypress(event)"
-                   autocomplete="off" spellcheck="false">
-            <select id="bugPriority" class="bug-input" style="width: 120px;">
-              <option value="low">Low Priority</option>
-              <option value="medium" selected>Medium</option>
-              <option value="high">High Priority</option>
-            </select>
-            <button onclick="addBug()" class="bug-add-btn">Add Bug</button>
-          </div>
-        </div>
-
-        <div class="bug-list-section">
-          <div class="bug-list-header">
-            <h3 class="bug-list-title">Tracked Issues</h3>
-            <span class="bug-list-count" id="bugListCount">0 items</span>
-          </div>
-          <div class="bug-items" id="bugItems">
-            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-              <div style="font-size: 48px; margin-bottom: 16px;">🐛</div>
-              <div>No bugs tracked yet</div>
-              <div style="font-size: 14px; margin-top: 8px;">Add bugs above to start tracking issues</div>
-            </div>
-          </div>
-
-          <button onclick="createPlanFromBugs()"
-                  class="bug-create-plan-btn"
-                  id="createPlanBtn"
-                  disabled>
-            🚀 Create Execution Plan
-          </button>
-        </div>
-      </div>
+  <!-- Bug Tracker Dropdown -->
+  <div class="bug-dropdown" id="bugDropdown" style="display: none;">
+    <div class="bug-dropdown-header">
+      <span>🐛 Track Issues</span>
+      <button onclick="clearAllBugs()" title="Clear all">🗑️</button>
+    </div>
+    <div class="bug-dropdown-input">
+      <input type="text" id="bugInput" placeholder="Describe the bug..."
+             onkeypress="handleBugInputKeypress(event)" autocomplete="off">
+      <select id="bugPriority">
+        <option value="low">Low</option>
+        <option value="medium" selected>Med</option>
+        <option value="high">High</option>
+      </select>
+      <button onclick="addBug()">Add</button>
+    </div>
+    <div class="bug-dropdown-list" id="bugItems">
+      <div class="bug-dropdown-empty">No bugs tracked</div>
+    </div>
+    <div class="bug-dropdown-footer">
+      <button onclick="createPlanFromBugs()" id="createPlanBtn" disabled>Create Plan</button>
     </div>
   </div>
 

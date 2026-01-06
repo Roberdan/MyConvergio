@@ -22,18 +22,21 @@ const GanttCore = {
       const dashboardRes = await fetch(`/api/project/${projectId}/dashboard`);
       const dashboardData = await dashboardRes.json();
 
-      const plansPromises = (dashboardData.plans || []).map(async (planRef) => {
+      const plansPromises = (dashboardData.waves || []).map(async (wave) => {
+        // Extract numeric plan ID from wave id like "P5"
+        const planId = parseInt(wave.id.replace('P', ''), 10);
+        if (isNaN(planId)) return null;
         try {
-          const planRes = await fetch(`/api/plan/${planRef.id}`);
+          const planRes = await fetch(`/api/plan/${planId}`);
           const planData = await planRes.json();
-          return { ...planRef, waves: planData.waves || [] };
+          return { id: planId, waves: planData.waves || [] };
         } catch (e) {
-          Logger.warn(`Failed to load plan ${planRef.id}:`, e);
-          return planRef;
+          Logger.warn(`Failed to load plan ${planId}:`, e);
+          return null;
         }
       });
 
-      const plansWithWaves = await Promise.all(plansPromises);
+      const plansWithWaves = (await Promise.all(plansPromises)).filter(p => p !== null);
 
       this.data = {
         project: dashboardData.meta,

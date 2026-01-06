@@ -393,3 +393,182 @@
   font-weight: 600;
 }
 .notification-dropdown-footer a:hover { text-decoration: underline; }
+
+/* Bug Dropdown */
+.bug-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 360px;
+  max-height: 400px;
+  background: var(--bg-card-solid, var(--bg-card));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  z-index: 2000;
+  display: none;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.bug-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.bug-dropdown-header button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.bug-dropdown-header button:hover {
+  background: var(--bg-hover);
+}
+
+.bug-dropdown-input {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bug-dropdown-input input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.bug-dropdown-input select {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.bug-dropdown-input button {
+  padding: 8px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bug-dropdown-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.bug-dropdown-empty {
+  padding: 30px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.bug-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.bug-item:hover {
+  background: var(--bg-hover);
+}
+
+.bug-item.completed {
+  opacity: 0.6;
+}
+
+.bug-item-check {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.bug-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.bug-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bug-item-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.bug-item-delete {
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.bug-item-delete:hover {
+  color: var(--red);
+}
+
+.bug-dropdown-footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.bug-dropdown-footer button {
+  width: 100%;
+  padding: 10px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bug-dropdown-footer button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Nav button for bug tracker */
+.nav-btn-primary {
+  background: var(--accent) !important;
+  color: white !important;
+}
+
+.bug-count {
+  background: rgba(255,255,255,0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  margin-left: 4px;
+}

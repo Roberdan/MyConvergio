@@ -95,7 +95,6 @@ function clearProjectSelection() {
   setDisplay('epochFill', '0%');
 
   document.querySelectorAll('.git-panel, .right-panel').forEach(el => el.style.display = 'none');
-  setHTML('bugListContainer', '');
 }
 
 const originalLoadGitData = loadGitData;

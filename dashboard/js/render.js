@@ -98,8 +98,8 @@ function render() {
   }
 
   // Initialize bug list
-  if (typeof initBugList === 'function') {
-    initBugList();
+  if (typeof initBugTracker === 'function') {
+    initBugTracker();
   }
 
   // Charts

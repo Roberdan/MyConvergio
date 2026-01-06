@@ -41,15 +41,15 @@
 .wave-menu-dropdown {
   position: absolute;
   top: 100%;
-  left: -50px;
-  width: 550px;
-  max-width: calc(100vw - 20px);
+  left: -100px;
+  width: 700px;
+  max-width: calc(100vw - 40px);
   background: var(--bg-card-solid);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1100; /* Menu layer - below dropdowns (1500) and modals (2000) */
-  max-height: 600px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  z-index: 1500;
+  max-height: 500px;
   overflow-y: auto;
   display: none;
   margin-top: 8px;

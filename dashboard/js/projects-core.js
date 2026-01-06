@@ -134,9 +134,9 @@ async function selectProject(projectId) {
      loadTokenData();
      connectGitWatcher(projectId);
 
-     if (typeof initBugList === 'function') {
-       initBugList();
-     }
+      if (typeof initBugTracker === 'function') {
+        initBugTracker();
+      }
 
      // Initialize bug tracker for new project
      if (typeof initBugTracker === 'function') {

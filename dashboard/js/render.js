@@ -27,53 +27,62 @@ function render() {
   if (statsRow) statsRow.style.display = 'flex';
   if (emptyState) emptyState.style.display = 'none';
 
+  // Helper to safely set text content
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
   // Header
-  document.getElementById('projectName').textContent = data.meta.project;
-  document.getElementById('planLabel').textContent = data.meta.project;
-  document.getElementById('throughputBadge').textContent = data.metrics.throughput.percent + '%';
+  setText('projectName', data.meta.project);
+  setText('planLabel', data.meta.project);
+  setText('throughputBadge', data.metrics.throughput.percent + '%');
 
   // Stats with better formatting
   const done = data.metrics.throughput.done || 0;
   const total = data.metrics.throughput.total || 0;
-  document.getElementById('tasksDone').textContent = total > 0 ? `${done}/${total}` : 'No tasks';
+  setText('tasksDone', total > 0 ? `${done}/${total}` : 'No tasks');
 
   const tokensTotal = data.tokens?.total;
-  document.getElementById('tokensUsed').textContent = tokensTotal ? tokensTotal.toLocaleString() : 'No data';
+  setText('tokensUsed', tokensTotal ? tokensTotal.toLocaleString() : 'No data');
 
   const avgTokens = data.tokens?.avgPerTask;
-  document.getElementById('avgTokensPerTask').textContent = avgTokens ? avgTokens.toLocaleString() : 'No data';
+  setText('avgTokensPerTask', avgTokens ? avgTokens.toLocaleString() : 'No data');
 
   const wavesDone = data.waves ? data.waves.filter(w => w.status === 'done').length : 0;
   const totalWaves = data.waves ? data.waves.length : 0;
-  document.getElementById('wavesStatus').textContent = totalWaves > 0 ? `${wavesDone}/${totalWaves}` : 'No plans';
+  setText('wavesStatus', totalWaves > 0 ? `${wavesDone}/${totalWaves}` : 'No plans');
 
-  document.getElementById('progressPercent').textContent = total > 0 ? data.metrics.throughput.percent + '%' : '0%';
+  setText('progressPercent', total > 0 ? data.metrics.throughput.percent + '%' : '0%');
 
   // Epoch bar - only show if there are waves
   const waveIndicator = document.getElementById('waveIndicator');
   if (data.waves && data.waves.length > 0) {
     const currentWave = data.waves.find(w => w.status === 'in_progress') || data.waves[data.waves.length - 1];
     if (currentWave) {
-      document.getElementById('currentWave').textContent = currentWave.id + ' - ' + currentWave.name;
+      setText('currentWave', currentWave.id + ' - ' + currentWave.name);
     }
 
     const start = data.timeline?.start ? data.timeline.start.replace('T', ' ').slice(0, 16) : '-';
     const eta = data.timeline?.eta ? data.timeline.eta.replace('T', ' ').slice(0, 16) : '-';
-    document.getElementById('epochDates').innerHTML = start + ' &#8212; ' + eta;
-    document.getElementById('countdown').textContent = data.timeline?.remaining ? data.timeline.remaining + ' left' : '-';
+    const epochDatesEl = document.getElementById('epochDates');
+    if (epochDatesEl) epochDatesEl.innerHTML = start + ' &#8212; ' + eta;
+    setText('countdown', data.timeline?.remaining ? data.timeline.remaining + ' left' : '-');
 
     const totalTasks = data.metrics.throughput.total;
     const doneTasks = data.metrics.throughput.done;
     const epochProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-    document.getElementById('epochFill').style.width = epochProgress + '%';
+    const epochFillEl = document.getElementById('epochFill');
+    if (epochFillEl) epochFillEl.style.width = epochProgress + '%';
 
     if (waveIndicator) waveIndicator.style.display = '';
   } else {
     // No waves - hide indicator
     if (waveIndicator) waveIndicator.style.display = 'none';
-    document.getElementById('currentWave').textContent = '-';
-    document.getElementById('countdown').textContent = '-';
-    document.getElementById('epochFill').style.width = '0%';
+    setText('currentWave', '-');
+    setText('countdown', '-');
+    const epochFillEl = document.getElementById('epochFill');
+    if (epochFillEl) epochFillEl.style.width = '0%';
   }
 
   // Git
@@ -217,7 +226,15 @@ function renderChart() {
 
 function renderAgents() {
   const grid = document.getElementById('agentsGrid');
-  grid.innerHTML = data.contributors.map((c, i) => {
+  if (!grid) return;
+  
+  const contributors = data?.contributors || [];
+  if (contributors.length === 0) {
+    grid.innerHTML = '<div class="cc-empty">No agents</div>';
+    return;
+  }
+  
+  grid.innerHTML = contributors.map((c, i) => {
     const isActive = c.status === 'active';
     return `
       <div class="trader-card">

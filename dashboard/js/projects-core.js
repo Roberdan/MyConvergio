@@ -77,15 +77,6 @@ async function selectProject(projectId) {
   if (gitPanel) gitPanel.style.display = '';
   if (rightPanel) rightPanel.style.display = '';
 
-  // Update project name subtitle
-  const projectSubtitle = document.getElementById('projectNameSubtitle');
-  if (projectSubtitle) {
-    projectSubtitle.textContent = project.name;
-  }
-
-  const dot = document.getElementById('projectDot');
-  if (dot) dot.style.background = '#22c55e';
-
   // Update project avatar from GitHub
   const avatarEl = document.getElementById('projectAvatar');
   if (avatarEl && project.github_url) {

@@ -173,15 +173,18 @@ function renderKanban(kanban) {
     container.innerHTML = plans.map(plan => {
       const taskInfo = plan.tasksTotal ? `${plan.tasksDone}/${plan.tasksTotal}` : '0/0';
       const statusDotClass = plan.isRunning ? 'running' : '';
+      const isClickable = status === 'doing'; // Only IN FLIGHT plans are clickable
+      const clickHandler = isClickable ? `onclick="activatePlanAndNavigate('${plan.planId}', '${plan.projectId}')"` : '';
+      const clickableClass = isClickable ? 'clickable' : '';
 
       return `
-        <div class="cc-plan-card"
+        <div class="cc-plan-card ${clickableClass}"
              draggable="true"
              data-plan-id="${plan.planId}"
              data-project-id="${plan.projectId}"
              ondragstart="handleKanbanDragStart(event, ${plan.planId}, '${status}')"
              ondragend="handleKanbanDragEnd(event)"
-             onclick="activatePlanAndNavigate(${plan.planId}, '${plan.projectId}')">
+             ${clickHandler}>
           <div class="cc-plan-project">${plan.project}</div>
           <div class="cc-plan-name">${plan.name}</div>
           <div class="cc-plan-progress">
@@ -493,6 +496,33 @@ async function emptyTrash() {
   }
 
   showToast(message, failed === 0 ? 'success' : 'warning');
+}
+
+// Activate plan and navigate to dashboard
+async function activatePlanAndNavigate(planId, projectId) {
+  try {
+    showToast('Loading plan...', 'info');
+    
+    // Select the project
+    await selectProject(projectId);
+    
+    // Load the plan details
+    await loadPlanDetails(planId);
+    
+    // Enable dashboard link
+    const dashboardLink = document.getElementById('dashboardLink');
+    if (dashboardLink) {
+      dashboardLink.classList.remove('disabled');
+    }
+    
+    // Navigate to dashboard view
+    showView('dashboard');
+    
+    showToast('Plan activated', 'success');
+  } catch (err) {
+    console.error('Failed to activate plan:', err);
+    showToast('Failed to load plan: ' + err.message, 'error');
+  }
 }
 
 // Export trash functions

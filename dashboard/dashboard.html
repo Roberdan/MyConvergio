@@ -38,13 +38,7 @@
 
   <!-- Top Navigation -->
   <nav class="top-nav">
-    <div class="logo-header">
-      <img src="assets/logo.png" alt="Convergio" class="logo-img">
-      <div class=\"logo-text-wrapper\">
-        <span class=\"logo-text\">ConvergioEdu</span>
-        <span class=\"project-name-subtitle\" id=\"projectNameSubtitle\">No project selected</span>
-      </div>
-    </div>
+
     <button class="hamburger-menu" id="hamburgerMenu" aria-label="Toggle menu" title="Menu">
       <span class="hamburger-line"></span>
       <span class="hamburger-line"></span>
@@ -54,7 +48,7 @@
       <a href="#" onclick="showView('kanban')" title="Mission Control - Overview of all projects and plans">
         Control Center
       </a>
-      <a href="#" onclick="showView('dashboard')" title="Dashboard - Current project metrics and progress">
+      <a href="#" id="dashboardLink" class="disabled" onclick="showView('dashboard')" title="Dashboard - Current project metrics and progress">
         Dashboard
       </a>
     </div>

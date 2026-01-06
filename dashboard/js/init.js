@@ -3,25 +3,17 @@
 async function init() {
   initTheme();
   
-  // Initially disable project-dependent menus
-  updateNavState(false);
+  // Initially disable dashboard
+  const dashboardLink = document.getElementById('dashboardLink');
+  if (dashboardLink) {
+    dashboardLink.classList.add('disabled');
+  }
   
   try {
     await loadProjects();
-
-    // Auto-select last project if available, otherwise prompt user to choose
-    const savedProject = localStorage.getItem('dashboard-current-project');
-    if (savedProject && registry?.projects?.[savedProject]) {
-      await selectProject(savedProject);
-    } else {
-      const firstProject = Object.keys(registry?.projects || {})[0];
-      if (firstProject) {
-        await selectProject(firstProject);
-      } else {
-        // No projects - show Control Center by default
-        showView('kanban');
-      }
-    }
+    
+    // Always start with Control Center - user must select a plan
+    showView('kanban');
   } catch (e) {
     Logger.error('Init error:', e);
     document.querySelector('.main-content').innerHTML = `<div style="padding:40px;color:#ef4444;">Error: ${e.message}</div>`;

@@ -199,8 +199,18 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
-  cursor: pointer;
+  cursor: move;
   transition: all 0.2s;
+}
+
+.cc-plan-card.clickable {
+  cursor: pointer;
+}
+
+.cc-plan-card.clickable:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .cc-plan-card:hover {

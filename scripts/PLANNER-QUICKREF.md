@@ -45,8 +45,9 @@
 
 ### Get Task DB ID
 ```bash
+# Use wave_id_fk (numeric) for task lookups
 DB_TASK_ID=$(sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT id FROM tasks WHERE wave_id='W1' AND task_id='T1-01';")
+  "SELECT id FROM tasks WHERE wave_id_fk=$DB_WAVE_ID AND task_id='T1-01';")
 echo $DB_TASK_ID
 ```
 
@@ -129,8 +130,9 @@ sqlite3 ~/.claude/data/dashboard.db \
 
 ### List all tasks in a wave
 ```bash
+# Use wave_id_fk (numeric FK)
 sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT id, task_id, title, status FROM tasks WHERE wave_id='W1' AND project_id='my-project';"
+  "SELECT id, task_id, title, status FROM tasks WHERE wave_id_fk={db_wave_id};"
 ```
 
 ### Check plan progress

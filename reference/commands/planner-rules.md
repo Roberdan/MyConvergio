@@ -106,8 +106,9 @@ npm run lint && npm run typecheck && npm run build
 **Counter Sync**:
 ```bash
 # After each task completion, verify counts match
+# Use wave_id_fk (numeric FK) instead of wave_id string
 sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT COUNT(*) FROM tasks WHERE wave_id={wave_id} AND status='done';"
+  "SELECT COUNT(*) FROM tasks WHERE wave_id_fk={db_wave_id} AND status='done';"
 ```
 
 **State Transitions**:

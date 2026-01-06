@@ -22,13 +22,18 @@
 ```bash
 # Plan management
 ~/.claude/scripts/plan-db.sh create {project} "Name"
-~/.claude/scripts/plan-db.sh add-wave {plan} "W1" "Phase"
-~/.claude/scripts/plan-db.sh add-task {wave} T1-01 "Task" P1 feature
+~/.claude/scripts/plan-db.sh add-wave {plan} "W1-DataIntegration" "Description"
+~/.claude/scripts/plan-db.sh add-task {wave_db_id} T1-01 "Task title" P1 feature
 ~/.claude/scripts/plan-db.sh update-task {id} done "Summary"
 
-# Project registration
-~/.claude/scripts/register-project.sh "$(pwd)" --name "Project"
+# Wave naming: use descriptive names (not just W1, W2)
+# Examples: W1-DataIntegration, W2-UIHarmonization, W3-APIDesign
 ```
+
+## Database Conventions
+- Tasks use `wave_id_fk` (numeric FK) for associations, NOT `wave_id` string
+- Direct SQL queries should use `wave_id_fk = {db_wave_id}` instead of `wave_id = 'W1'`
+- Use `~/.claude/scripts/plan-db.sh` for all DB operations (handles FK correctly)
 
 ## Workflow: Prompt → Plan → Execute → Verify
 1. `/prompt` - Extract F-xx requirements from user request

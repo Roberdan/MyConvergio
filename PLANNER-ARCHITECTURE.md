@@ -96,12 +96,12 @@ Waves/Tasks data returned to UI
 ### Updating Plans
 
 ```bash
-# Get numeric DB IDs
+# Get numeric DB IDs (use FK, not wave_id string!)
 WAVE_ID=$(sqlite3 ~/.claude/data/dashboard.db \
   "SELECT id FROM waves WHERE plan_id=$PLAN_ID LIMIT 1;")
 
 TASK_ID=$(sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT id FROM tasks WHERE wave_id='W1' AND task_id='T1-01';")
+  "SELECT id FROM tasks WHERE wave_id_fk=$WAVE_ID AND task_id='T1-01';")
 
 # Update via plan-db.sh (which updates database)
 ~/.claude/scripts/plan-db.sh update-task $TASK_ID in_progress ""
@@ -121,27 +121,29 @@ project_id      TEXT                 -- e.g., "claude"
 name            TEXT                 -- Plan name
 is_master       BOOLEAN              -- 0/1
 status          TEXT                 -- todo, doing, done, blocked
-tasks_done      INTEGER              -- Counter
-tasks_total     INTEGER              -- Counter
+tasks_done      INTEGER              -- Counter (auto-synced from waves)
+tasks_total     INTEGER              -- Counter (auto-synced from waves)
 ```
 
 ### waves
 ```sql
-id              INTEGER PRIMARY KEY  -- Use for db_wave_id
+id              INTEGER PRIMARY KEY  -- Use for db_wave_id (wave_id_fk)
 project_id      TEXT
-wave_id         TEXT                 -- e.g., "W1" (text code)
+wave_id         TEXT                 -- e.g., "W1-DataIntegration" (descriptive!)
 plan_id         INTEGER              -- Reference to plans.id
 name            TEXT                 -- Wave name
 status          TEXT                 -- pending, in_progress, done, blocked
-tasks_done      INTEGER
-tasks_total     INTEGER
+tasks_done      INTEGER              -- Counter (auto-synced from tasks)
+tasks_total     INTEGER              -- Counter (auto-synced from tasks)
 ```
 
 ### tasks
 ```sql
 id              INTEGER PRIMARY KEY  -- Use for db_task_id
 project_id      TEXT
-wave_id         TEXT                 -- e.g., "W1" (matches wave.wave_id)
+wave_id         TEXT                 -- Legacy, for display only
+wave_id_fk      INTEGER              -- FK to waves.id (USE THIS for queries!)
+plan_id         INTEGER              -- FK to plans.id (USE THIS for queries!)
 task_id         TEXT                 -- e.g., "T1-01" (text code)
 title           TEXT
 status          TEXT                 -- pending, in_progress, done, blocked, skipped
@@ -180,10 +182,11 @@ executor_status TEXT                 -- idle, running, paused, completed, failed
    ```
 
 3. **Use database queries to get IDs when needed**
-   ```bash
-   TASK_ID=$(sqlite3 ~/.claude/data/dashboard.db \
-     "SELECT id FROM tasks WHERE wave_id='W1' AND task_id='T1-01';")
-   ```
+    ```bash
+    # Use wave_id_fk (numeric) for task lookups
+    TASK_ID=$(sqlite3 ~/.claude/data/dashboard.db \
+      "SELECT id FROM tasks WHERE wave_id_fk=$WAVE_ID AND task_id='T1-01';")
+    ```
 
 4. **Create .md documentation files for human reference** (optional)
    - Keep them in sync with database manually

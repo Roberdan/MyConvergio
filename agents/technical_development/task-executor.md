@@ -131,8 +131,9 @@ sqlite3 ~/.claude/data/dashboard.db \
 ### Get numeric task ID (if needed)
 
 ```bash
+# Use wave_id_fk (numeric FK) instead of wave_id string
 DB_TASK_ID=$(sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT id FROM tasks WHERE wave_id='{wave_code}' AND task_id='{task_id}';")
+  "SELECT id FROM tasks WHERE wave_id_fk={db_wave_id} AND task_id='{task_id}';")
 ```
 
 ### Check task status

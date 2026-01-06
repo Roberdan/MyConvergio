@@ -178,6 +178,72 @@ const routes = {
     if (isNaN(id)) return { error: 'Invalid trigger ID' };
     query(`UPDATE notification_triggers SET is_enabled = 1 - is_enabled WHERE id = ${id}`);
     return { success: true };
+  },
+
+  // Delete notification
+  'DELETE /api/notifications/:id': (params) => {
+    const id = parseInt(params.id);
+    if (isNaN(id)) return { error: 'Invalid notification ID' };
+    query(`DELETE FROM notifications WHERE id = ${id}`);
+    return { success: true, id };
+  },
+
+  // Clear all notifications (optionally for a project)
+  'DELETE /api/notifications': (params, body) => {
+    const projectClause = body?.project_id ? `WHERE project_id = '${escapeSQL(body.project_id)}'` : '';
+    const result = query(`SELECT COUNT(*) as count FROM notifications ${projectClause}`);
+    const count = result[0]?.count || 0;
+    query(`DELETE FROM notifications ${projectClause}`);
+    return { success: true, cleared: count };
+  },
+
+  // Handle notification action
+  'POST /api/notifications/:id/action': (params, body) => {
+    const id = parseInt(params.id);
+    const { action } = body;
+    
+    if (isNaN(id)) return { error: 'Invalid notification ID' };
+    if (!action) return { error: 'Action required' };
+    
+    const notification = query(`SELECT * FROM notifications WHERE id = ${id}`)[0];
+    if (!notification) return { error: 'Notification not found' };
+    
+    // Handle different actions
+    let result = { success: true, message: 'Action completed' };
+    
+    try {
+      switch (action) {
+        case 'view_plan':
+          result.message = 'Opening plan...';
+          result.redirect = `/plan/${notification.source_id}`;
+          break;
+          
+        case 'view_task':
+          result.message = 'Opening task...';
+          result.redirect = `/task/${notification.source_id}`;
+          break;
+          
+        case 'view_commit':
+          result.message = 'Opening commit...';
+          result.redirect = `/commit/${notification.source_id}`;
+          break;
+          
+        case 'dismiss':
+          query(`UPDATE notifications SET is_dismissed = 1 WHERE id = ${id}`);
+          result.message = 'Notification dismissed';
+          break;
+          
+        default:
+          result.message = `Action '${action}' executed`;
+      }
+      
+      // Mark as read after action
+      query(`UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP WHERE id = ${id}`);
+      
+      return result;
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
   }
 };
 

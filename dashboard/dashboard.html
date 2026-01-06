@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/simplified-nav.css">
   <link rel="stylesheet" href="css/mobile.css">
   <link rel="stylesheet" href="css/unified-waves.css">
   <link rel="stylesheet" href="css/wave-menu.css">
@@ -37,23 +38,9 @@
 
   <!-- Top Navigation -->
   <nav class="top-nav">
-    <button class="logo" onclick="toggleProjectMenu()" style="cursor:pointer;" aria-label="Toggle project menu" aria-expanded="false" id="projectMenuButton">
+    <div class="logo-header">
       <img src="assets/logo.png" alt="Convergio" class="logo-img">
-      <span id="projectName">Select Project</span>
-      <span class="project-dropdown">&#x25BE;</span>
-    </button>
-    <!-- Project Selector Menu -->
-    <div class="project-menu" id="projectMenu" style="display:none;">
-      <div class="project-menu-header">
-        <span>Projects</span>
-        <button class="refresh-btn" onclick="refreshProjects()" title="Refresh">&#x21BB;</button>
-      </div>
-      <div class="project-list" id="projectList">
-        <div class="project-loading">Loading projects...</div>
-      </div>
-      <div class="project-menu-footer">
-        <a href="#" onclick="showLearningStats()">View Learning Stats</a>
-      </div>
+      <span class="logo-text">ConvergioEdu</span>
     </div>
     <button class="hamburger-menu" id="hamburgerMenu" aria-label="Toggle menu" title="Menu">
       <span class="hamburger-line"></span>
@@ -62,53 +49,48 @@
     </button>
     <div class="nav-menu" id="navMenu">
       <a href="#" onclick="showView('kanban')" title="Mission Control - Overview of all projects and plans">
-        Control Center <span class="nav-count" id="navKanbanCount"></span>
+        Control Center
       </a>
       <a href="#" onclick="showView('dashboard')" title="Dashboard - Current project metrics and progress">
         Dashboard
       </a>
-      <a href="#" onclick="showView('tasks')" title="Tasks - All waves and tasks expanded">
-        Tasks <span class="nav-count" id="navTasksCount"></span>
-      </a>
-     </div>
+    </div>
     <div class="nav-right">
-      <div class="nav-badge highlight" id="throughputBadge">-</div>
-      <div class="notification-bell-wrapper">
-        <button class="notification-bell" onclick="toggleNotificationDropdown(event)" title="Notifications" aria-label="View notifications" id="notificationsButton">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <span class="notification-count hidden" id="notificationCount">0</span>
+      <button class="nav-icon-btn" id="bugTrackerBtn" onclick="toggleBugTracker()" title="Track bugs and issues">
+        <span class="icon">🐛</span>
+        <span class="nav-icon-label">Track Issues</span>
+        <span class="bug-count" id="bugCount">0</span>
+      </button>
+      
+      <button class="nav-icon-btn" id="notificationsBtn" onclick="showNotificationsPage()" title="View all notifications">
+        <span class="icon">🔔</span>
+        <span class="nav-icon-label">Notifications</span>
+        <span class="notification-count hidden" id="notificationCount">0</span>
+      </button>
+      
+      <div class="settings-menu-wrapper">
+        <button class="nav-icon-btn" id="settingsBtn" onclick="toggleSettingsMenu()" title="Settings">
+          <span class="icon">⚙️</span>
+          <span class="nav-icon-label">Settings</span>
         </button>
-        <div class="notification-dropdown" id="notificationDropdown">
-          <div class="notification-dropdown-header">
-            <span>Notifications</span>
-            <div class="notification-dropdown-actions">
-              <button onclick="markAllNotificationsRead()" title="Mark all read">&#x2713;</button>
-              <button onclick="showView('notifications'); closeNotificationDropdown()" title="View all">&#x2192;</button>
-            </div>
+        <div class="settings-dropdown" id="settingsDropdown" style="display:none;">
+          <div class="settings-section">
+            <div class="settings-label">Theme</div>
+            <select id="themeSelect" onchange="switchTheme(this.value)">
+              <option value="voltrex">Voltrex</option>
+              <option value="midnight">Midnight</option>
+              <option value="frost">Frost</option>
+              <option value="dawn">Dawn</option>
+            </select>
           </div>
-          <div class="notification-dropdown-list" id="notificationDropdownList">
-            <div class="notification-dropdown-empty">No new notifications</div>
-          </div>
+          <button class="settings-item" id="exportBtn" onclick="exportData()">
+            <span>📤</span> Export Data
+          </button>
+          <button class="settings-item danger" onclick="shutdownDashboard()">
+            <span>⏻</span> Shutdown
+          </button>
         </div>
       </div>
-      <div class="theme-selector">
-        <select id="themeSelect">
-          <option value="voltrex">Voltrex</option>
-          <option value="midnight">Midnight</option>
-          <option value="frost">Frost</option>
-          <option value="dawn">Dawn</option>
-        </select>
-      </div>
-       <button class="nav-btn nav-btn-primary" id="bugTrackerBtn" onclick="toggleBugTracker()" title="Track bugs and issues">
-         <span class="bug-tracker-icon">🐛</span>
-         Track Issues
-         <span class="bug-count" id="bugCount">0</span>
-       </button>
-       <button class="nav-btn" id="exportBtn">Export</button>
-       <button class="nav-btn nav-btn-danger" id="shutdownBtn" onclick="shutdownDashboard()" title="Shutdown server and close dashboard">Shutdown</button>
     </div>
   </nav>
 
@@ -597,9 +579,36 @@
     </aside>
   </div>
 
+  <!-- Notifications Page -->
+  <div class="notifications-page" id="notificationsPage" style="display: none;">
+    <div class="notifications-header">
+      <h2>Notifications</h2>
+      <div class="notifications-actions">
+        <button class="notifications-action-btn" onclick="markAllNotificationsRead()">
+          <span>✓</span> Mark All Read
+        </button>
+        <button class="notifications-action-btn danger" onclick="clearAllNotifications()">
+          <span>🗑️</span> Clear All
+        </button>
+        <button class="notifications-close-btn" onclick="closeNotificationsPage()">✕</button>
+      </div>
+    </div>
+    <div class="notifications-filters">
+      <button class="notification-filter-btn active" data-filter="all" onclick="filterNotifications('all')">All</button>
+      <button class="notification-filter-btn" data-filter="info" onclick="filterNotifications('info')">Info</button>
+      <button class="notification-filter-btn" data-filter="success" onclick="filterNotifications('success')">Success</button>
+      <button class="notification-filter-btn" data-filter="warning" onclick="filterNotifications('warning')">Warning</button>
+      <button class="notification-filter-btn" data-filter="error" onclick="filterNotifications('error')">Error</button>
+    </div>
+    <div class="notifications-list" id="notificationsList">
+      <div class="notifications-empty">No notifications</div>
+    </div>
+  </div>
+
   <!-- Dashboard JS Modules -->
   <script src="js/file-icons.js"></script>
   <script src="js/state.js"></script>
+  <script src="js/simplified-nav.js"></script>
   <script src="js/theme.js"></script>
   <!-- Projects Modules -->
   <script src="js/projects-core.js"></script>

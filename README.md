@@ -1,0 +1,185 @@
+# ~/.claude - Claude Global Configuration
+
+Personal Claude Code configuration with dashboard, scripts, and rules.
+
+## Quick Start
+
+```bash
+# Start dashboard (auto-uses PM2 if available)
+cd ~/.claude/dashboard && node reboot.js
+
+# Check health
+curl http://localhost:31415/api/health
+
+# View in browser
+open http://localhost:31415
+```
+
+## Structure
+
+```
+~/.claude/
+├── CLAUDE.md              # Main config (loaded on every session)
+├── README.md              # This file
+├── data/
+│   └── dashboard.db       # SQLite database
+├── dashboard/             # Web dashboard
+│   ├── server.js          # API server
+│   ├── reboot.js          # Server restart script
+│   ├── ecosystem.config.js # PM2 configuration
+│   ├── js/                # Frontend JavaScript
+│   ├── css/               # Styles
+│   └── server/            # API routes
+├── rules/                 # Compact rules (loaded on every session)
+│   ├── execution.md       # Execution & quality rules
+│   ├── guardian.md        # Thor enforcement
+│   ├── agent-discovery.md # Agent routing
+│   ├── engineering-standards.md
+│   ├── file-size-limits.md
+│   └── detailed/          # Full detailed rules (reference only)
+├── scripts/               # CLI utilities
+│   ├── plan-db.sh         # Plan/wave/task management
+│   └── register-project.sh
+├── commands/              # Skill definitions
+│   ├── prompt.md          # /prompt skill
+│   └── planner.md         # /planner skill
+└── agents/                # Local agent definitions
+```
+
+## Dashboard
+
+### Features
+- Real-time plan monitoring
+- SSE notifications (no polling)
+- Notification dropdown preview
+- Configurable notification triggers
+- Tree navigation (waves → tasks)
+- Health endpoint monitoring
+
+### API Endpoints
+| Endpoint | Description |
+|----------|-------------|
+| GET /api/health | Server health + DB status |
+| GET /api/projects | List all projects |
+| GET /api/plans | List plans |
+| GET /api/notifications/stream | SSE real-time notifications |
+| GET /api/notifications/triggers | List trigger configs |
+| POST /api/notifications/triggers/:id/toggle | Toggle trigger |
+
+### Management
+```bash
+# Restart server
+cd ~/.claude/dashboard && node reboot.js
+
+# With PM2 (recommended)
+pm2 status                    # Check status
+pm2 logs claude-dashboard     # View logs
+pm2 restart claude-dashboard  # Restart
+pm2 stop claude-dashboard     # Stop
+
+# Without PM2
+node reboot.js --no-pm2
+```
+
+## Scripts
+
+### plan-db.sh - Plan Management
+```bash
+# Create plan
+~/.claude/scripts/plan-db.sh create {project_id} "Plan Name"
+
+# Add wave
+~/.claude/scripts/plan-db.sh add-wave {plan_id} "W1" "Phase Name"
+
+# Add task
+~/.claude/scripts/plan-db.sh add-task {wave_id} T1-01 "Task Name" P1 feature
+
+# Update task
+~/.claude/scripts/plan-db.sh update-task {task_id} in_progress
+~/.claude/scripts/plan-db.sh update-task {task_id} done "Completion notes"
+
+# Validate
+~/.claude/scripts/plan-db.sh validate {plan_id}
+~/.claude/scripts/plan-db.sh validate-fxx {plan_id}
+```
+
+### register-project.sh - Project Registration
+```bash
+~/.claude/scripts/register-project.sh "$(pwd)" --name "Project Name"
+```
+
+## Workflow
+
+### 1. Prompt Translation (`/prompt`)
+- Extract F-xx requirements from user request
+- User confirms requirements list
+
+### 2. Planning (`/planner`)
+- Create plan with waves and tasks
+- Link F-xx to tasks
+- User approves plan
+
+### 3. Execution
+- Execute each task
+- Update status in DB
+- Verify F-xx criteria
+
+### 4. Thor Verification
+- Validate per wave
+- Build must pass
+- All F-xx verified
+
+### 5. Closure
+- User accepts delivery
+
+## Context Optimization
+
+### Token Usage
+| File | Lines | Purpose |
+|------|-------|---------|
+| CLAUDE.md | 47 | Core config, quick reference |
+| rules/*.md | 162 | Essential behavior rules |
+| **TOTAL** | **209** | ~65% reduction from original |
+
+### Detailed Rules
+Full versions in `rules/detailed/` for reference:
+- execution.md (204 lines)
+- guardian.md (145 lines)
+- agent-discovery.md (105 lines)
+
+## Troubleshooting
+
+### Dashboard won't start
+```bash
+# Check what's on port
+lsof -i:31415
+
+# Force kill and restart
+lsof -ti:31415 | xargs kill -9
+cd ~/.claude/dashboard && node reboot.js
+```
+
+### Database issues
+```bash
+# Check DB
+sqlite3 ~/.claude/data/dashboard.db ".tables"
+sqlite3 ~/.claude/data/dashboard.db "SELECT COUNT(*) FROM projects"
+
+# Reinitialize (DESTRUCTIVE)
+rm ~/.claude/data/dashboard.db
+~/.claude/scripts/plan-db.sh init
+```
+
+### PM2 issues
+```bash
+# Reinstall PM2
+npm install -g pm2
+
+# Clear PM2 state
+pm2 kill
+pm2 start ~/.claude/dashboard/ecosystem.config.js
+pm2 save
+```
+
+## Version
+Last updated: 06 Gennaio 2026

@@ -1,0 +1,33 @@
+/* Tech Debt Panel */
+.debt-summary {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.debt-total { text-align: center; }
+.debt-number { font-size: 32px; font-weight: 700; color: var(--orange); display: block; }
+.debt-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+
+.debt-breakdown { display: flex; flex-direction: column; gap: 8px; }
+
+.debt-type {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border-radius: 6px;
+}
+
+.debt-type-label { font-size: 12px; font-weight: 600; }
+.debt-type-count { font-size: 14px; font-weight: 700; }
+
+.debt-updated {
+  margin-top: 12px;
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
+}
+

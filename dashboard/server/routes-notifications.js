@@ -2,6 +2,55 @@
 
 const { query, escapeSQL } = require('./db');
 
+// SSE clients for real-time notifications
+const sseClients = new Set();
+
+// Broadcast notification to all SSE clients
+function broadcastNotification(notification) {
+  const data = JSON.stringify(notification);
+  sseClients.forEach(client => {
+    try {
+      client.write(`event: notification\ndata: ${data}\n\n`);
+    } catch (e) {
+      sseClients.delete(client);
+    }
+  });
+}
+
+// SSE endpoint handler
+function handleSSE(req, res) {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  // Send initial unread count
+  const unreadCount = query('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0 AND is_dismissed = 0')[0]?.count || 0;
+  res.write(`event: count\ndata: ${JSON.stringify({ count: unreadCount })}\n\n`);
+
+  sseClients.add(res);
+  console.log(`Notification SSE client connected (total: ${sseClients.size})`);
+
+  req.on('close', () => {
+    sseClients.delete(res);
+    console.log(`Notification SSE client disconnected (remaining: ${sseClients.size})`);
+  });
+
+  // Keep-alive ping every 30s
+  const pingInterval = setInterval(() => {
+    try {
+      res.write(': ping\n\n');
+    } catch (e) {
+      clearInterval(pingInterval);
+      sseClients.delete(res);
+    }
+  }, 30000);
+
+  req.on('close', () => clearInterval(pingInterval));
+}
+
 const routes = {
   // Get all notifications (with optional filters)
   'GET /api/notifications': (params, body, url) => {
@@ -82,7 +131,16 @@ const routes = {
               '${escapeSQL(source_table || '')}', '${escapeSQL(source_id || '')}')
     `);
 
-    const notification = query('SELECT * FROM notifications ORDER BY id DESC LIMIT 1')[0];
+    const notification = query(`
+      SELECT n.*, p.name as project_name
+      FROM notifications n
+      JOIN projects p ON n.project_id = p.id
+      ORDER BY n.id DESC LIMIT 1
+    `)[0];
+
+    // Broadcast to SSE clients
+    broadcastNotification(notification);
+
     return { success: true, notification };
   },
 
@@ -123,4 +181,4 @@ const routes = {
   }
 };
 
-module.exports = routes;
+module.exports = { routes, handleSSE, broadcastNotification };

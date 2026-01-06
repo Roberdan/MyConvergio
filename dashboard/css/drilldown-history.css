@@ -1,0 +1,39 @@
+/* History Tab Extended */
+.history-summary {
+  display: flex;
+  justify-content: space-around;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.history-number { font-size: 20px; font-weight: 700; display: block; }
+
+.history-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.history-item:last-child { border-bottom: none; }
+
+.history-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.history-item-dot.created { background: var(--green); }
+.history-item-dot.user_edit { background: var(--orange); }
+.history-item-dot.blocker { background: var(--red); }
+.history-item-dot.scope_add { background: var(--purple); }
+.history-item-dot.completed { background: var(--green-bright); }
+
+.history-item-content { flex: 1; }
+.history-item-type { font-size: 12px; font-weight: 700; }
+.history-item-reason { font-size: 11px; color: var(--text-muted); }
+.history-item-time { font-size: 10px; color: var(--text-dim); }
+

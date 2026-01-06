@@ -11,7 +11,8 @@
   <link rel="stylesheet" href="css/unified-waves.css">
   <link rel="stylesheet" href="css/wave-menu.css">
   <link rel="stylesheet" href="css/conversation-viewer.css">
-  <link rel="stylesheet" href="css/bug-list.css">
+  <link rel="stylesheet" href="css/bug-list-base.css">
+  <link rel="stylesheet" href="css/bug-list-modal.css">
   <link rel="stylesheet" href="css/loading.css">
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -19,6 +20,22 @@
 <body>
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Notification Triggers Modal -->
+  <div class="modal-overlay" id="triggerModal" style="display:none;">
+    <div class="modal-content trigger-modal">
+      <div class="modal-header">
+        <h3>Notification Triggers</h3>
+        <button class="modal-close" onclick="closeTriggerModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-description">Configure which events trigger notifications:</p>
+        <div class="trigger-list" id="triggerList">
+          <div class="trigger-loading">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Top Navigation -->
   <nav class="top-nav">
@@ -58,13 +75,27 @@
     </div>
     <div class="nav-right">
       <div class="nav-badge highlight" id="throughputBadge">-</div>
-      <button class="notification-bell" onclick="showView('notifications')" title="Notifications" aria-label="View notifications" id="notificationsButton">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-        </svg>
-        <span class="notification-count hidden" id="notificationCount">0</span>
-      </button>
+      <div class="notification-bell-wrapper">
+        <button class="notification-bell" onclick="toggleNotificationDropdown(event)" title="Notifications" aria-label="View notifications" id="notificationsButton">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span class="notification-count hidden" id="notificationCount">0</span>
+        </button>
+        <div class="notification-dropdown" id="notificationDropdown">
+          <div class="notification-dropdown-header">
+            <span>Notifications</span>
+            <div class="notification-dropdown-actions">
+              <button onclick="markAllNotificationsRead()" title="Mark all read">&#x2713;</button>
+              <button onclick="showView('notifications'); closeNotificationDropdown()" title="View all">&#x2192;</button>
+            </div>
+          </div>
+          <div class="notification-dropdown-list" id="notificationDropdownList">
+            <div class="notification-dropdown-empty">No new notifications</div>
+          </div>
+        </div>
+      </div>
       <div class="theme-selector">
         <select id="themeSelect">
           <option value="voltrex">Voltrex</option>
@@ -278,6 +309,7 @@
         <div class="notifications-header">
           <span>Notification Archive</span>
           <div style="display:flex;gap:8px;">
+            <button class="refresh-btn" onclick="showTriggerSettings()" title="Configure triggers">&#x2699;</button>
             <button class="refresh-btn" onclick="markAllNotificationsRead()" title="Mark all read">&#x2713;</button>
             <button class="refresh-btn" onclick="loadNotificationsView()" title="Refresh">&#x21BB;</button>
           </div>
@@ -588,9 +620,15 @@
   <script src="js/file-icons.js"></script>
   <script src="js/state.js"></script>
   <script src="js/theme.js"></script>
-  <script src="js/projects.js"></script>
+  <!-- Projects Modules -->
+  <script src="js/projects-core.js"></script>
+  <script src="js/projects-plan.js"></script>
+  <script src="js/projects-ui.js"></script>
   <script src="js/consolidated-project-menu.js"></script>
-  <script src="js/github.js"></script>
+  <!-- GitHub Modules -->
+  <script src="js/github-data.js"></script>
+  <script src="js/github-render.js"></script>
+  <script src="js/github-health.js"></script>
   <script src="js/tabs.js"></script>
   <script src="js/drilldown.js"></script>
   <script src="js/markdown-viewer.js"></script>
@@ -600,17 +638,34 @@
   <script src="js/gantt.js"></script>
   <script src="js/git-panel.js"></script>
   <script src="js/git-commit-viewer.js"></script>
-  <script src="js/git-actions.js"></script>
+  <!-- Git Actions Modules -->
+  <script src="js/git-actions-basic.js"></script>
+  <script src="js/git-actions-staging.js"></script>
+  <script src="js/git-actions-branch.js"></script>
   <script src="js/git-watcher.js"></script>
   <script src="js/diff-utils.js"></script>
   <script src="js/diff-viewer.js"></script>
-  <script src="js/views.js"></script>
+  <!-- Views Modules -->
+  <script src="js/views-core.js"></script>
+  <script src="js/views-load-kanban.js"></script>
+  <script src="js/views-load-waves.js"></script>
   <script src="js/views-kanban.js"></script>
   <script src="js/views-secondary.js"></script>
   <script src="js/unified-waves.js"></script>
   <script src="js/wave-menu.js"></script>
-  <script src="js/conversation-viewer.js"></script>
-  <script src="js/bug-list.js"></script>
+  <!-- Conversation Viewer Modules -->
+  <script src="js/conversation-viewer-core.js"></script>
+  <script src="js/conversation-viewer-render.js"></script>
+  <script src="js/conversation-viewer-live.js"></script>
+  <!-- Bug List Modules -->
+  <script src="js/bug-list-core.js"></script>
+  <script src="js/bug-list-item.js"></script>
+  <script src="js/bug-list-planner.js"></script>
+  <!-- Issues Filter Modules -->
+  <script src="js/issues-filter-core.js"></script>
+  <script src="js/issues-filter-ui.js"></script>
+  <script src="js/issues-filter-search.js"></script>
+  <script src="js/issues-filter-render.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/render.js"></script>
   <script src="js/system.js"></script>

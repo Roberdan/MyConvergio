@@ -25,7 +25,14 @@
 @import url('./control-center-kanban.css');
 @import url('./control-center-modal.css');
 @import url('./commit-viewer.css');
-@import url('./drilldown.css');
+@import url('./drilldown-base.css');
+@import url('./drilldown-waves.css');
+@import url('./drilldown-history.css');
+@import url('./drilldown-debt.css');
+@import url('./drilldown-git.css');
+@import url('./drilldown-tasks-table.css');
+@import url('./drilldown-tasks-detail.css');
+@import url('./drilldown-tasks-legacy.css');
 @import url('./diff-viewer.css');
 @import url('./diff-viewer-markdown.css');
 @import url('./markdown-viewer.css');

@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
+    "reboot": "node reboot.js",
     "lint": "echo 'Linting... ✅'",
     "typecheck": "echo 'Type checking... ✅'",
     "build": "echo 'Building dashboard... ✅' && mkdir -p dashboard/dist"

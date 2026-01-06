@@ -11,7 +11,7 @@ const { DB_FILE } = require('./server/db');
 // Import route modules
 const routesPlans = require('./server/routes-plans');
 const routesGithub = require('./server/routes-github');
-const routesNotifications = require('./server/routes-notifications');
+const { routes: routesNotifications, handleSSE: handleNotificationSSE } = require('./server/routes-notifications');
 const routesGitStatus = require('./server/routes-git-status');
 const routesGitChanges = require('./server/routes-git-changes');
 const routesSystem = require('./server/routes-system');
@@ -167,6 +167,12 @@ const server = http.createServer((req, res) => {
   const sseMatch = pathname.match(/^\/api\/project\/([^/]+)\/git\/watch$/);
   if (sseMatch && req.method === 'GET') {
     gitWatcher.handleSSE(sseMatch[1], req, res);
+    return;
+  }
+
+  // SSE route for real-time notifications
+  if (pathname === '/api/notifications/stream' && req.method === 'GET') {
+    handleNotificationSSE(req, res);
     return;
   }
 

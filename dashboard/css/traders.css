@@ -10,8 +10,8 @@
 
 .traders-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
   max-width: 100%;
 }
 
@@ -19,42 +19,119 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.trader-card.active {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green);
+}
+
+.trader-card.idle {
+  opacity: 0.8;
 }
 
 .trader-top {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .trader-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .trader-info { flex: 1; min-width: 0; overflow: hidden; }
 .trader-name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.trader-role {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trader-status-indicator {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+.trader-status-indicator.active { color: var(--green); }
+.trader-status-indicator.idle { color: var(--text-muted); }
+.trader-status-indicator.offline { color: var(--red); }
+
+/* Inline stats row */
+.trader-stats-inline {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 8px;
+}
+
+.trader-stat-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.trader-stat-inline .stat-icon {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.trader-stat-inline .stat-value {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.trader-stat-inline .stat-label {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Current task indicator */
+.trader-current-task {
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.trader-current-task .current-label {
+  color: var(--green);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.trader-current-task .current-value {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.trader-chart { height: 32px; margin-top: 4px; }
+
+/* Legacy styles kept for compatibility */
 .trader-followers {
   font-size: 13px;
   color: var(--text-muted);
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .trader-star { color: var(--orange); font-size: 16px; }
@@ -66,15 +143,6 @@
   color: var(--green);
   margin-bottom: 2px;
 }
-
-.trader-roi {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--green);
-  margin-bottom: 10px;
-}
-
-.trader-chart { height: 36px; margin-bottom: 12px; }
 
 .trader-stats {
   display: flex;

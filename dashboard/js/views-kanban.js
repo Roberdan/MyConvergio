@@ -138,16 +138,20 @@ function handleKanbanDragEnd(e) {
 function renderKanban(kanban) {
   // Update status indicator
   const statusDot = document.getElementById('ccStatusDot');
-  const statusText = document.getElementById('ccStatusText');
+  const statusCount = document.getElementById('ccStatusCount');
+  const statusContainer = document.getElementById('systemStatusCompact');
   const activePlans = kanban.doing?.length || 0;
 
-  if (statusDot && statusText) {
+  if (statusDot && statusCount) {
+    statusCount.textContent = activePlans;
     if (activePlans > 0) {
       statusDot.style.animation = 'pulse 2s infinite';
-      statusText.textContent = `${activePlans} MISSION${activePlans > 1 ? 'S' : ''} IN FLIGHT`;
+      statusDot.classList.add('active');
+      statusContainer.title = `${activePlans} mission${activePlans > 1 ? 's' : ''} in flight`;
     } else {
       statusDot.style.animation = 'none';
-      statusText.textContent = 'ALL SYSTEMS NOMINAL';
+      statusDot.classList.remove('active');
+      statusContainer.title = 'All systems nominal';
     }
   }
 

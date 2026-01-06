@@ -1,16 +1,18 @@
 // Unified Waves Card - Tree Navigation with Live Execution Tracking
+// DEPRECATED: Active waves are now highlighted directly in Gantt view
 
 let expandedWaves = new Set();
 let expandedTasks = new Set();
 let liveStreams = new Map(); // task_id -> EventSource
 
-// Render unified waves card
+// Render unified waves card - now disabled, Gantt shows active items
 function renderUnifiedWaves() {
   const container = document.getElementById('unifiedWavesCard');
-  if (!container || !data.waves || data.waves.length === 0) {
-    if (container) container.innerHTML = '<div class="waves-empty">No waves available</div>';
-    return;
+  if (container) {
+    container.style.display = 'none';
   }
+  return; // Disabled - Gantt view now shows active wave/task highlighting
+}
 
   // Find current wave (in_progress or last one)
   const currentWave = data.waves.find(w => w.status === 'in_progress') || data.waves[data.waves.length - 1];

@@ -116,9 +116,9 @@
         </div>
       </div>
       
-      <div class="system-status-compact" id="systemStatusCompact">
+      <div class="system-status-compact" id="systemStatusCompact" title="Active missions in flight">
         <div class="status-dot" id="ccStatusDot"></div>
-        <span class="status-text" id="ccStatusText">ALL SYSTEMS NOMINAL</span>
+        <span class="status-count" id="ccStatusCount">0</span>
       </div>
     </div>
   </nav>
@@ -350,10 +350,6 @@
           <div class="value" id="avgTokensPerTask">Loading...</div>
         </div>
         <div class="stat-item">
-          <div class="label">Active Plans</div>
-          <div class="value" id="wavesStatus">Loading...</div>
-        </div>
-        <div class="stat-item">
           <div class="label">Overall Progress</div>
           <div class="value" id="progressPercent">Loading...</div>
         </div>
@@ -404,19 +400,6 @@
            Select a project from the menu above or create a new plan to see dashboard metrics.
          </div>
        </div>
-
-       <!-- Active Wave Indicator (compact) -->
-       <div class="wave-indicator" id="waveIndicator" style="display:none;">
-         <div class="wave-pulse" id="wavePulse"></div>
-         <div class="wave-info">
-           <span class="wave-name" id="currentWave">-</span>
-           <span class="wave-time" id="countdown">-</span>
-           <span class="wave-dates" id="epochDates"></span>
-         </div>
-         <div class="wave-mini-progress">
-           <div class="wave-mini-fill" id="epochFill" style="width: 0%;"></div>
-         </div>
-        </div>
 
        <!-- Chart Card - Token Usage -->
        <div class="chart-card">

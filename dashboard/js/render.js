@@ -49,41 +49,9 @@ function render() {
   const avgTokens = data.tokens?.avgPerTask;
   setText('avgTokensPerTask', avgTokens ? avgTokens.toLocaleString() : 'No data');
 
-  const wavesDone = data.waves ? data.waves.filter(w => w.status === 'done').length : 0;
-  const totalWaves = data.waves ? data.waves.length : 0;
-  setText('wavesStatus', totalWaves > 0 ? `${wavesDone}/${totalWaves}` : 'No plans');
-
   setText('progressPercent', total > 0 ? data.metrics.throughput.percent + '%' : '0%');
 
-  // Epoch bar - only show if there are waves
-  const waveIndicator = document.getElementById('waveIndicator');
-  if (data.waves && data.waves.length > 0) {
-    const currentWave = data.waves.find(w => w.status === 'in_progress') || data.waves[data.waves.length - 1];
-    if (currentWave) {
-      setText('currentWave', currentWave.id + ' - ' + currentWave.name);
-    }
-
-    const start = data.timeline?.start ? data.timeline.start.replace('T', ' ').slice(0, 16) : '-';
-    const eta = data.timeline?.eta ? data.timeline.eta.replace('T', ' ').slice(0, 16) : '-';
-    const epochDatesEl = document.getElementById('epochDates');
-    if (epochDatesEl) epochDatesEl.innerHTML = start + ' &#8212; ' + eta;
-    setText('countdown', data.timeline?.remaining ? data.timeline.remaining + ' left' : '-');
-
-    const totalTasks = data.metrics.throughput.total;
-    const doneTasks = data.metrics.throughput.done;
-    const epochProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-    const epochFillEl = document.getElementById('epochFill');
-    if (epochFillEl) epochFillEl.style.width = epochProgress + '%';
-
-    if (waveIndicator) waveIndicator.style.display = '';
-  } else {
-    // No waves - hide indicator
-    if (waveIndicator) waveIndicator.style.display = 'none';
-    setText('currentWave', '-');
-    setText('countdown', '-');
-    const epochFillEl = document.getElementById('epochFill');
-    if (epochFillEl) epochFillEl.style.width = '0%';
-  }
+  // Charts only if there are waves
 
   // Git
   if (data.git) {
@@ -236,35 +204,40 @@ function renderAgents() {
   
   grid.innerHTML = contributors.map((c, i) => {
     const isActive = c.status === 'active';
+    const statusClass = isActive ? 'active' : c.status === 'idle' ? 'idle' : 'offline';
+    const statusDot = isActive ? '●' : '○';
     return `
-      <div class="trader-card">
+      <div class="trader-card ${statusClass}">
         <div class="trader-top">
           <div class="trader-avatar">${c.avatar}</div>
           <div class="trader-info">
             <div class="trader-name">${c.name}</div>
-            <div class="trader-followers">${c.tasks}/100</div>
+            <div class="trader-role">${c.role || 'Agent'}</div>
           </div>
-          <div class="trader-star ${isActive ? '' : 'inactive'}">&#9733;</div>
+          <div class="trader-status-indicator ${statusClass}" title="${c.status}">${statusDot}</div>
         </div>
-        <div class="trader-profit">+${c.tasks.toLocaleString()} tasks</div>
+        <div class="trader-stats-inline">
+          <div class="trader-stat-inline">
+            <span class="stat-icon">✓</span>
+            <span class="stat-value">${c.tasks || 0}</span>
+            <span class="stat-label">tasks</span>
+          </div>
+          <div class="trader-stat-inline">
+            <span class="stat-icon">⏱</span>
+            <span class="stat-value">${c.totalTime || '-'}</span>
+          </div>
+          <div class="trader-stat-inline">
+            <span class="stat-icon">◎</span>
+            <span class="stat-value">${c.tokens ? (c.tokens / 1000).toFixed(1) + 'k' : '-'}</span>
+          </div>
+        </div>
+        ${isActive && c.currentTask ? `
+          <div class="trader-current-task">
+            <span class="current-label">Working on:</span>
+            <span class="current-value">${c.currentTask}</span>
+          </div>
+        ` : ''}
         <div class="trader-chart" id="spark${i}"></div>
-        <div class="trader-stats">
-          <div class="trader-stat">
-            <div class="trader-stat-label">Status</div>
-            <div class="trader-stat-value">${c.status}</div>
-          </div>
-          <div class="trader-stat">
-            <div class="trader-stat-label">Current</div>
-            <div class="trader-stat-value">${c.currentTask || '-'}</div>
-          </div>
-          <div class="trader-stat">
-            <div class="trader-stat-label">Efficiency</div>
-            <div class="trader-stat-value">${c.efficiency ? c.efficiency + '%' : '-'}</div>
-          </div>
-        </div>
-        <div class="trader-actions">
-          <button class="trader-btn mock" onclick="showAgentDetails('${c.id}')">Details</button>
-        </div>
       </div>
     `;
   }).join('');

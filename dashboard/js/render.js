@@ -103,6 +103,7 @@ function render() {
   }
 
   // Charts
+  destroyCharts();
   if (chartMode === 'tokens') {
     renderTokenChart();
   } else {

@@ -4,7 +4,7 @@
 .logo-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 0 15px;
 }
 
@@ -13,10 +13,24 @@
   height: 32px;
 }
 
+.logo-text-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .logo-text {
   font-size: 18px;
   font-weight: 600;
   color: var(--text);
+  line-height: 1;
+}
+
+.project-name-subtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1;
 }
 
 /* Nav Icons */

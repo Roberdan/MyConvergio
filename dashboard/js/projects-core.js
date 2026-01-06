@@ -77,7 +77,12 @@ async function selectProject(projectId) {
   if (gitPanel) gitPanel.style.display = '';
   if (rightPanel) rightPanel.style.display = '';
 
-  document.getElementById('projectName').textContent = project.name;
+  // Update project name subtitle
+  const projectSubtitle = document.getElementById('projectNameSubtitle');
+  if (projectSubtitle) {
+    projectSubtitle.textContent = project.name;
+  }
+
   const dot = document.getElementById('projectDot');
   if (dot) dot.style.background = '#22c55e';
 
@@ -97,9 +102,7 @@ async function selectProject(projectId) {
     avatarEl.style.display = 'none';
   }
 
-  document.getElementById('projectMenu').style.display = 'none';
-
-    try {
+  try {
       Logger.info('Selecting project:', projectId, project.name);
       currentProjectId = projectId;
 

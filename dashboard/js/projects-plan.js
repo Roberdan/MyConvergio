@@ -2,7 +2,12 @@
 // Plan loading and transformation
 async function loadPlanDetails(planId) {
   try {
-    const res = await fetch(`${API_BASE}/plan/${planId}`);
+    const numericPlanId = parseInt(planId, 10);
+    if (isNaN(numericPlanId)) {
+      console.error('Invalid planId:', planId);
+      return;
+    }
+    const res = await fetch(`${API_BASE}/plan/${numericPlanId}`);
     const plan = await res.json();
     if (plan.error) {
       console.error('Plan not found:', planId);
@@ -118,3 +123,6 @@ function createEmptyPlanData(projectId, projectName) {
   };
 }
 
+// Export to window
+window.loadPlanDetails = loadPlanDetails;
+window.createEmptyPlanData = createEmptyPlanData;

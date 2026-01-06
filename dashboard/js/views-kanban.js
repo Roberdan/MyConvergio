@@ -254,19 +254,6 @@ function updateControlCenterGauges(kanban) {
   }
 }
 
-async function activatePlanAndNavigate(planId, projectId) {
-  // First select the project
-  if (projectId && typeof selectProject === 'function') {
-    await selectProject(projectId);
-  }
-  // Then load the plan details
-  if (typeof loadPlanDetails === 'function') {
-    await loadPlanDetails(planId);
-  }
-  // Navigate to dashboard
-  showView('dashboard');
-}
-
 // Status indicator functions
 function toggleStatusDropdown() {
   const dropdown = document.getElementById('ccStatusDropdown');

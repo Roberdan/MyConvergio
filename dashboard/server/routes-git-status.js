@@ -67,7 +67,9 @@ const routes = {
             isMerge: parents.length > 1
           };
         });
-      } catch (e) {}
+      } catch (e) {
+        console.error('Failed to parse git commits:', e.message);
+      }
 
       return {
         branch,

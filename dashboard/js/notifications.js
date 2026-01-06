@@ -157,5 +157,3 @@ async function toggleTrigger(id, element) {
     showToast('Failed to toggle trigger', 'error');
   }
 }
-
-console.log('Notifications loaded');

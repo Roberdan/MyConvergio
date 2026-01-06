@@ -1,6 +1,5 @@
 // Git Actions - Basic Module
 // Pull, Push, Fetch operations
-
 async function gitPull() {
   if (!currentProjectId) return;
   showToast('Pulling...', 'info');
@@ -20,7 +19,6 @@ async function gitPull() {
     showToast('Pull failed: ' + e.message, 'error');
   }
 }
-
 async function gitPush() {
   if (!currentProjectId) return;
   showToast('Pushing...', 'info');
@@ -54,7 +52,6 @@ async function gitPush() {
     showToast('Push failed: ' + e.message, 'error');
   }
 }
-
 async function gitFetch() {
   if (!currentProjectId) {
     showToast('No project selected', 'warning');
@@ -78,4 +75,3 @@ async function gitFetch() {
   }
 }
 
-console.log('Git actions basic loaded');

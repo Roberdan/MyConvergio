@@ -1,21 +1,17 @@
 // Project Management - Plan Module
 // Plan loading and transformation
-
 async function loadPlanDetails(planId) {
   try {
     const res = await fetch(`${API_BASE}/plan/${planId}`);
     const plan = await res.json();
-
     if (plan.error) {
       console.error('Plan not found:', planId);
       return;
     }
-
     currentPlanId = planId;
     data = transformPlanToData(plan);
     render();
     updateNavCounts();
-
     const histRes = await fetch(`${API_BASE}/plan/${planId}/history`);
     const history = await histRes.json();
     data.history = history;
@@ -24,11 +20,9 @@ async function loadPlanDetails(planId) {
     console.error('Failed to load plan details:', e);
   }
 }
-
 function transformPlanToData(plan) {
   const now = new Date().toISOString();
   const waves = plan.waves || [];
-
   return {
     meta: {
       project: plan.name,
@@ -94,7 +88,6 @@ function transformPlanToData(plan) {
     history: []
   };
 }
-
 function generateTimelineData(done, total) {
   const data = [];
   const steps = 8;
@@ -108,7 +101,6 @@ function generateTimelineData(done, total) {
   }
   return data;
 }
-
 function createEmptyPlanData(projectId, projectName) {
   return {
     meta: { project: projectName, project_id: projectId, owner: 'none' },
@@ -126,4 +118,3 @@ function createEmptyPlanData(projectId, projectName) {
   };
 }
 
-console.log('Projects plan module loaded');

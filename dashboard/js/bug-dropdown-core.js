@@ -2,7 +2,6 @@
  * Bug Dropdown - Core Module
  * Class definition, constructor, storage, event binding
  */
-
 class BugDropdown {
   constructor() {
     this.bugs = this.loadBugs();
@@ -12,16 +11,13 @@ class BugDropdown {
     this.list = this.dropdown?.querySelector('.bug-list');
     this.addBtn = this.dropdown?.querySelector('.add-bug-btn');
     this.archiveBtn = this.dropdown?.querySelector('.archive-btn');
-
     if (!this.dropdown) {
       console.warn('Bug dropdown component not found in DOM');
       return;
     }
-
     this.bindEvents();
     this.render();
   }
-
   loadBugs() {
     try {
       const saved = localStorage.getItem('myconvergio-bugs');
@@ -31,7 +27,6 @@ class BugDropdown {
       return [];
     }
   }
-
   saveBugs() {
     try {
       localStorage.setItem('myconvergio-bugs', JSON.stringify(this.bugs));
@@ -40,7 +35,6 @@ class BugDropdown {
       this.showToast('Storage quota exceeded', 'error');
     }
   }
-
   bindEvents() {
     // Toggle dropdown menu
     this.toggle.addEventListener('click', (e) => {
@@ -52,19 +46,16 @@ class BugDropdown {
       const isOpen = this.menu.classList.toggle('is-open');
       this.toggle.setAttribute('aria-expanded', isOpen);
     });
-
     // Add bug button
     this.addBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.addBug();
     });
-
     // Archive button
     this.archiveBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.archiveCompleted();
     });
-
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (!this.dropdown.contains(e.target)) {
@@ -72,7 +63,6 @@ class BugDropdown {
         this.toggle.setAttribute('aria-expanded', 'false');
       }
     });
-
     // Close dropdown on Escape key
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.menu.classList.contains('is-open')) {
@@ -81,10 +71,8 @@ class BugDropdown {
       }
     });
   }
-
   getAppVersion() {
     return localStorage.getItem('app-version') || '1.0.0';
   }
 }
 
-console.log('Bug dropdown core loaded');

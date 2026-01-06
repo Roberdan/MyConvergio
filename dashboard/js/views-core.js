@@ -111,5 +111,3 @@ function updateBreadcrumb(view) {
 
 // Export functions
 window.updateBreadcrumb = updateBreadcrumb;
-
-console.log('Views core loaded');

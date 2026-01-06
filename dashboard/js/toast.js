@@ -115,7 +115,7 @@ async function pollNotifications() {
     const data = await res.json();
     updateNotificationCount(data.total || 0);
   } catch (e) {
-    console.log('Failed to poll notifications:', e.message);
+    Logger.debug('Failed to poll notifications:', e.message);
   }
 }
 
@@ -140,14 +140,14 @@ function startNotificationPolling() {
     });
 
     notificationEventSource.onerror = () => {
-      console.log('Notification SSE error, falling back to polling');
+      Logger.warn('Notification SSE error, falling back to polling');
       notificationEventSource.close();
       notificationEventSource = null;
       // Fallback to polling
       notificationPollingInterval = setInterval(pollNotifications, 10000);
     };
 
-    console.log('Notification SSE connected');
+    Logger.info('Notification SSE connected');
   } else {
     // Fallback to polling for older browsers
     pollNotifications();

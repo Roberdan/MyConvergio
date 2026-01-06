@@ -1,6 +1,68 @@
 // Utility Functions for Dashboard
 
 /**
+ * Global Logger - Replaces console.log for better debugging and production use
+ * Levels: DEBUG, INFO, WARN, ERROR
+ */
+const Logger = {
+  level: 'INFO',
+  levels: ['DEBUG', 'INFO', 'WARN', 'ERROR'],
+  enabled: true,
+
+  setLevel(level) {
+    if (this.levels.includes(level)) {
+      this.level = level;
+    }
+  },
+
+  shouldLog(level) {
+    const order = this.levels.indexOf(level);
+    const currentOrder = this.levels.indexOf(this.level);
+    return order >= currentOrder && this.enabled;
+  },
+
+  debug(...args) {
+    if (this.shouldLog('DEBUG')) {
+      console.debug('[DEBUG]', ...args);
+    }
+  },
+
+  info(...args) {
+    if (this.shouldLog('INFO')) {
+      console.info('[INFO]', ...args);
+    }
+  },
+
+  warn(...args) {
+    if (this.shouldLog('WARN')) {
+      console.warn('[WARN]', ...args);
+    }
+  },
+
+  error(...args) {
+    if (this.shouldLog('ERROR')) {
+      console.error('[ERROR]', ...args);
+    }
+  },
+
+  time(label) {
+    console.time(label);
+  },
+
+  timeEnd(label) {
+    console.timeEnd(label);
+  }
+};
+
+// Make logger available globally
+window.Logger = Logger;
+
+// Development mode - set to DEBUG to see all logs
+if (window.location.search.includes('debug=true')) {
+  Logger.setLevel('DEBUG');
+}
+
+/**
  * Escape HTML special characters to prevent XSS attacks
  * @param {string} text - Text to escape
  * @returns {string} Escaped HTML-safe text

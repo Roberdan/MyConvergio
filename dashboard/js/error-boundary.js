@@ -2,7 +2,6 @@
  * Error Boundary Module
  * Provides graceful error handling for critical dashboard sections
  */
-
 class ErrorBoundary {
   constructor(container, fallbackUI = null) {
     this.container = container;
@@ -10,7 +9,6 @@ class ErrorBoundary {
     this.isErrored = false;
     this.error = null;
   }
-
   /**
    * Wrap a function with error boundary
    */
@@ -21,7 +19,6 @@ class ErrorBoundary {
       retry = true,
       maxRetries = 3
     } = options;
-
     return async (...args) => {
       let retries = 0;
       while (retries < maxRetries) {
@@ -33,35 +30,28 @@ class ErrorBoundary {
         } catch (error) {
           retries++;
           this.error = error;
-
           if (retries >= maxRetries || !retry) {
             this.isErrored = true;
-
             if (!silent) {
               console.error(`[ErrorBoundary] Operation failed: ${error.message}`);
             }
-
             if (onError) {
               onError(error);
             }
-
             this.showErrorUI(error);
             throw error;
           }
-
           // Exponential backoff before retry
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
         }
       }
     };
   }
-
   /**
    * Show user-friendly error UI
    */
   showErrorUI(error) {
     if (!this.container) return;
-
     const errorHTML = `
       <div class="error-boundary-container">
         <div class="error-boundary-content">
@@ -83,11 +73,9 @@ class ErrorBoundary {
         </div>
       </div>
     `;
-
     this.container.innerHTML = errorHTML;
     this.container.classList.add('has-error');
   }
-
   /**
    * Show fallback UI on critical error
    */
@@ -96,7 +84,6 @@ class ErrorBoundary {
     this.container.innerHTML = this.fallbackUI;
     this.container.classList.add('has-fallback');
   }
-
   /**
    * Clear error state
    */
@@ -107,7 +94,6 @@ class ErrorBoundary {
       this.container.classList.remove('has-error', 'has-fallback');
     }
   }
-
   /**
    * Sanitize error message for display
    */
@@ -116,7 +102,6 @@ class ErrorBoundary {
     div.textContent = text;
     return div.innerHTML;
   }
-
   /**
    * Check if running in development
    */
@@ -124,7 +109,6 @@ class ErrorBoundary {
     return !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
   }
 }
-
 /**
  * Global error boundary for unhandled errors
  */
@@ -133,7 +117,6 @@ class GlobalErrorBoundary {
     this.handlers = [];
     this.setupGlobalListeners();
   }
-
   /**
    * Setup global error listeners
    */
@@ -142,12 +125,10 @@ class GlobalErrorBoundary {
     window.addEventListener('error', (event) => {
       this.handleError(event.error, 'uncaughtException');
     });
-
     // Handle unhandled promise rejections
     window.addEventListener('unhandledrejection', (event) => {
       this.handleError(event.reason, 'unhandledRejection');
     });
-
     // Handle navigation errors (network issues, CORS, etc)
     document.addEventListener('DOMContentLoaded', () => {
       const originalFetch = window.fetch;
@@ -165,20 +146,17 @@ class GlobalErrorBoundary {
       };
     });
   }
-
   /**
    * Register error handler
    */
   onError(handler) {
     this.handlers.push(handler);
   }
-
   /**
    * Handle global errors
    */
   handleError(error, type) {
     console.error(`[ErrorBoundary] ${type}:`, error);
-
     // Call registered handlers
     this.handlers.forEach(handler => {
       try {
@@ -187,20 +165,17 @@ class GlobalErrorBoundary {
         console.error('[ErrorBoundary] Handler error:', e);
       }
     });
-
     // Show toast notification for critical errors
     if (type === 'uncaughtException' || type === 'unhandledRejection') {
       this.showErrorToast(error, type);
     }
   }
-
   /**
    * Show error toast notification
    */
   showErrorToast(error, type) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
-
     const toast = document.createElement('div');
     toast.className = 'toast toast-error';
     toast.setAttribute('role', 'alert');
@@ -214,16 +189,13 @@ class GlobalErrorBoundary {
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       border-left: 4px solid #bb2d3b;
     `;
-
     container.appendChild(toast);
-
     // Auto-dismiss after 5s
     setTimeout(() => {
       toast.style.opacity = '0';
       setTimeout(() => toast.remove(), 300);
     }, 5000);
   }
-
   /**
    * Create error context for debugging
    */
@@ -240,7 +212,6 @@ class GlobalErrorBoundary {
     };
   }
 }
-
 /**
  * Recovery strategies for common error scenarios
  */
@@ -254,14 +225,12 @@ class ErrorRecovery {
         return await fn();
       } catch (error) {
         if (i === maxRetries - 1) throw error;
-
         // Wait with exponential backoff
         const delay = Math.pow(2, i) * 1000;
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
-
   /**
    * Recover from timeout errors
    */
@@ -273,7 +242,6 @@ class ErrorRecovery {
       )
     ]);
   }
-
   /**
    * Recover from DOM errors
    */
@@ -285,7 +253,6 @@ class ErrorRecovery {
       return fallback;
     }
   }
-
   /**
    * Recover from API errors
    */
@@ -298,12 +265,10 @@ class ErrorRecovery {
     return response.json();
   }
 }
-
 /**
  * Initialize global error boundary
  */
 const globalErrorBoundary = new GlobalErrorBoundary();
-
 // Example: Log errors to external service (opt-in)
 // globalErrorBoundary.onError((error, type) => {
 //   fetch('/api/errors', {
@@ -316,10 +281,8 @@ const globalErrorBoundary = new GlobalErrorBoundary();
 //     })
 //   }).catch(e => console.error('Failed to report error:', e));
 // });
-
 // Export for use in other modules
 window.ErrorBoundary = ErrorBoundary;
 window.ErrorRecovery = ErrorRecovery;
 window.globalErrorBoundary = globalErrorBoundary;
 
-console.log('✅ Error boundary module loaded');

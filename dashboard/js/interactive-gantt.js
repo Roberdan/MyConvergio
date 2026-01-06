@@ -8,14 +8,14 @@ let showBlockedTasks = true;
 
 // Initialize the interactive Gantt view
 async function initInteractiveGantt() {
-  console.log('Initializing interactive Gantt view...');
+  Logger.info('Initializing interactive Gantt view...');
 
   // Show loading state
   const ganttElement = document.getElementById('interactiveGantt');
   const contentArea = document.getElementById('ganttContentArea');
 
   if (!ganttElement || !contentArea) {
-    console.error('Gantt elements not found');
+    Logger.error('Gantt elements not found');
     return;
   }
 
@@ -51,13 +51,13 @@ async function loadGanttData() {
       return;
     }
 
-    console.log('Loading Gantt data for project:', currentProjectId);
+    Logger.info('Loading Gantt data for project:', currentProjectId);
 
     // Load project dashboard data (contains waves summary)
     const dashboardRes = await fetch(`/api/project/${currentProjectId}/dashboard`);
     const dashboardData = await dashboardRes.json();
 
-    console.log('Dashboard data loaded:', dashboardData);
+    Logger.debug('Dashboard data loaded:', dashboardData);
 
     // Load detailed plan data for each wave
     const plansPromises = dashboardData.plans.map(async (planRef) => {
@@ -69,7 +69,7 @@ async function loadGanttData() {
           waves: planData.waves || []
         };
       } catch (e) {
-        console.warn(`Failed to load plan ${planRef.id}:`, e);
+        Logger.warn(`Failed to load plan ${planRef.id}:`, e);
         return planRef;
       }
     });
@@ -96,7 +96,7 @@ async function loadGanttData() {
       }
     });
 
-    console.log('Gantt data structure built:', ganttData);
+    Logger.debug('Gantt data structure built:', ganttData);
 
     // Calculate timeline bounds
     calculateTimelineBounds();
@@ -105,7 +105,7 @@ async function loadGanttData() {
     renderInteractiveGantt();
 
   } catch (error) {
-    console.error('Failed to load Gantt data:', error);
+    Logger.error('Failed to load Gantt data:', error);
     contentArea.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">❌</div>
@@ -156,7 +156,7 @@ function calculateTimelineBounds() {
   ganttData.timelineEnd = new Date(maxDate.getTime() + padding);
   ganttData.timelineDuration = ganttData.timelineEnd - ganttData.timelineStart;
 
-  console.log('Timeline calculated:', {
+  Logger.debug('Timeline calculated:', {
     start: ganttData.timelineStart,
     end: ganttData.timelineEnd,
     duration: ganttData.timelineDuration
@@ -168,7 +168,7 @@ function renderInteractiveGantt() {
   const contentArea = document.getElementById('ganttContentArea');
   if (!contentArea || !ganttData) return;
 
-  console.log('Rendering interactive Gantt...');
+  Logger.debug('Rendering interactive Gantt...');
 
   // Build timeline header labels
   const timelineLabels = buildTimelineLabels();
@@ -190,7 +190,7 @@ function renderInteractiveGantt() {
     </div>
   `;
 
-  console.log('Interactive Gantt rendered successfully');
+  Logger.debug('Interactive Gantt rendered successfully');
 }
 
 // Build timeline header labels
@@ -365,7 +365,7 @@ function renderTaskTimelineBar(task) {
 
 // Toggle wave expansion
 function toggleWaveExpansion(waveId) {
-  console.log('Toggling wave expansion:', waveId);
+  Logger.debug('Toggling wave expansion:', waveId);
 
   if (expandedWaves.has(waveId)) {
     expandedWaves.delete(waveId);
@@ -379,7 +379,7 @@ function toggleWaveExpansion(waveId) {
 
 // Show task details
 function showTaskDetails(waveId, taskId) {
-  console.log('Showing task details:', waveId, taskId);
+  Logger.debug('Showing task details:', waveId, taskId);
 
   // Find the task
   const wave = ganttData.allWaves.find(w => w.wave_id === waveId);
@@ -388,16 +388,8 @@ function showTaskDetails(waveId, taskId) {
   const task = wave.tasks.find(t => t.task_id === taskId);
   if (!task) return;
 
-  // Show task details modal or expand inline
-  const details = `
-    Task: ${task.title}
-    Status: ${task.status}
-    Priority: ${task.priority}
-    Assignee: ${task.assignee || 'Unassigned'}
-    Tokens: ${task.tokens || 0}
-  `;
-
-  alert(details); // Temporary - will be replaced with proper modal
+  // Show task details modal
+  showToast(`Task: ${task.title}\nStatus: ${task.status}\nPriority: ${task.priority || 'N/A'}`, 'info');
 }
 
 // Control functions

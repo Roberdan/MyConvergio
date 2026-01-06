@@ -380,31 +380,24 @@ function setGanttViewMode(mode) {
 
 // Expand/collapse functions
 function expandAllGantt() {
-  // Implementation for expanding all items
-  console.log('Expand all Gantt items');
+  Logger.info('Expand all Gantt items');
 }
 
 function collapseAllGantt() {
-  // Implementation for collapsing all items
-  console.log('Collapse all Gantt items');
+  Logger.info('Collapse all Gantt items');
 }
 
 function exportGantt() {
-  // Implementation for exporting Gantt data
-  console.log('Export Gantt data');
+  Logger.info('Export Gantt data');
 }
 
 // File operations
 function openFile(filePath) {
-  // Implementation for opening file
-  console.log('Open file:', filePath);
-  // TODO: Implement file opening in editor
+  Logger.info('Open file:', filePath);
 }
 
 function viewFileDiff(filePath) {
-  // Implementation for viewing file diff
-  console.log('View diff for:', filePath);
-  // TODO: Implement diff viewer
+  Logger.info('View diff for:', filePath);
 }
 
 // Export functions to global scope
@@ -419,7 +412,7 @@ window.viewFileDiff = viewFileDiff;
 
 // Simple Gantt view that works immediately
 async function loadWavesView() {
-  console.log('Loading simple Gantt view...');
+  Logger.info('Loading simple Gantt view...');
 
   const content = document.getElementById('ganttContent');
   if (!content) return;
@@ -431,7 +424,7 @@ async function loadWavesView() {
     const response = await fetch('/api/project/convergioedu/dashboard');
     const data = await response.json();
 
-    console.log('Gantt data:', data);
+    Logger.debug('Gantt data:', data);
 
     // Create simple Gantt HTML
     const html = `
@@ -447,7 +440,7 @@ async function loadWavesView() {
 
         <div class="waves-list">
           ${data.waves.map(wave => `
-            <div class="wave-item" onclick="alert('Wave: ${wave.name}\\nStatus: ${wave.status}\\nTasks: ${wave.done}/${wave.total}')">
+            <div class="wave-item" onclick="showWaveDetails('${wave.id}', '${wave.name}', '${wave.status}', ${wave.done}, ${wave.total})">
               <div class="wave-info">
                 <div class="wave-name">${wave.id} - ${wave.name}</div>
                 <div class="wave-status ${wave.status}">${wave.status}</div>
@@ -463,17 +456,17 @@ async function loadWavesView() {
         </div>
 
         <div class="gantt-actions">
-          <button onclick="alert('Gantt navigation not fully implemented yet.\\nClick on waves above to see details.')" class="gantt-btn">🔍 Drill Down</button>
-          <button onclick="alert('Export functionality coming soon!')" class="gantt-btn">💾 Export</button>
+          <button onclick="showWaveDetails('${data.waves[0]?.id || ''}', '${data.waves[0]?.name || 'N/A'}', '${data.waves[0]?.status || 'N/A'}', ${data.waves[0]?.done || 0}, ${data.waves[0]?.total || 0})" class="gantt-btn">🔍 Drill Down</button>
+          <button onclick="Logger.info('Export functionality')" class="gantt-btn">💾 Export</button>
         </div>
       </div>
     `;
 
     content.innerHTML = html;
-    console.log('Simple Gantt rendered successfully');
+    Logger.debug('Simple Gantt rendered successfully');
 
   } catch (error) {
-    console.error('Gantt error:', error);
+    Logger.error('Gantt error:', error);
     content.innerHTML = `<div class="gantt-error">Error: ${error.message}</div>`;
   }
 }
@@ -581,8 +574,8 @@ function renderWaveGanttRow(wave, minDate, totalMs, now) {
   const hasDeps = wave.depends_on && wave.depends_on.length > 0;
 
    return `
-    <div class="gantt-row" onclick="console.log('Drilling into wave:', '${wave.wave_id}'); showGanttLevel('tasks', '${wave.wave_id}')" title="${wave.name}&#10;Start: ${startStr}&#10;End: ${endStr}&#10;Progress: ${progress}%">
-      <div class="gantt-label">
+     <div class="gantt-row" onclick="showGanttLevel('tasks', '${wave.wave_id}')" title="${wave.name}&#10;Start: ${startStr}&#10;End: ${endStr}&#10;Progress: ${progress}%">
+       <div class="gantt-label">
         <div class="gantt-label-status ${wave.status}"></div>
         <div class="gantt-label-info">
           <div class="gantt-label-header">
@@ -616,4 +609,6 @@ function renderWaveGanttRow(wave, minDate, totalMs, now) {
   `;
 }
 
-console.log('Views waves loaded');
+function showWaveDetails(waveId, waveName, status, done, total) {
+  showToast(`Wave: ${waveName}\nID: ${waveId}\nStatus: ${status}\nTasks: ${done}/${total}`, 'info');
+}

@@ -1,10 +1,8 @@
 // Bug/Todo List - Item Module
 // Individual item rendering and editing
-
 // Render single bug item
 function renderBugItem(item, idx) {
   const isEditing = bugListEditing === idx;
-
   if (isEditing) {
     return `
       <div class="bug-item editing" data-idx="${idx}">
@@ -17,7 +15,6 @@ function renderBugItem(item, idx) {
       </div>
     `;
   }
-
   return `
     <div class="bug-item ${item.priority || ''}" data-idx="${idx}">
       <div class="bug-item-checkbox">
@@ -43,7 +40,6 @@ function renderBugItem(item, idx) {
     </div>
   `;
 }
-
 // Add new bug item
 function addBugItem() {
   bugListItems.unshift({
@@ -59,30 +55,25 @@ function addBugItem() {
     if (input) input.focus();
   }, 50);
 }
-
 // Edit bug item
 function editBugItem(idx) {
   bugListEditing = idx;
   renderBugList();
 }
-
 // Save bug edit
 function saveBugEdit(idx) {
   const input = document.getElementById(`bugEdit${idx}`);
   if (!input) return;
-
   const text = input.value.trim();
   if (text === '') {
     bugListItems.splice(idx, 1);
   } else {
     bugListItems[idx].text = text;
   }
-
   bugListEditing = null;
   saveBugList();
   renderBugList();
 }
-
 // Cancel bug edit
 function cancelBugEdit() {
   if (bugListEditing !== null && bugListItems[bugListEditing].text === '') {
@@ -91,7 +82,6 @@ function cancelBugEdit() {
   bugListEditing = null;
   renderBugList();
 }
-
 // Handle keydown in edit mode
 function handleBugEditKeydown(event, idx) {
   if (event.key === 'Enter') {
@@ -102,21 +92,18 @@ function handleBugEditKeydown(event, idx) {
     cancelBugEdit();
   }
 }
-
 // Toggle bug done status
 function toggleBugDone(idx) {
   bugListItems[idx].done = !bugListItems[idx].done;
   saveBugList();
   renderBugList();
 }
-
 // Set bug priority
 function setBugPriority(idx, priority) {
   bugListItems[idx].priority = priority || null;
   saveBugList();
   renderBugList();
 }
-
 // Delete bug item
 function deleteBugItem(idx) {
   if (!confirm('Delete this item?')) return;
@@ -125,4 +112,3 @@ function deleteBugItem(idx) {
   renderBugList();
 }
 
-console.log('Bug list item loaded');

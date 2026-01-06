@@ -1,22 +1,17 @@
 // GitHub Data Loading Module
-
 async function loadGitHubData() {
   const projectId = currentProjectId;
   if (!projectId) return;
-
   try {
     const res = await fetch(`${API_BASE}/project/${projectId}/github`);
     const github = await res.json();
-
     // Check if project changed during fetch
     if (projectId !== currentProjectId) return;
-
     if (github.error) {
       data.github = null;
       updateHealthStatus();
       return;
     }
-
     data.github = {
       repo: github.repo,
       issues: github.issues || [],
@@ -31,7 +26,6 @@ async function loadGitHubData() {
       } : null,
       prs: github.prs || []
     };
-
     renderGitHubPanel();
   } catch (e) {
     console.error('Failed to load GitHub data:', e);
@@ -41,27 +35,22 @@ async function loadGitHubData() {
     }
   }
 }
-
 async function loadGitData() {
   if (!currentProjectId) return;
-
   try {
     const res = await fetch(`${API_BASE}/project/${currentProjectId}/git`);
     const git = await res.json();
-
     if (git.error) {
       data.git = { error: git.error, currentBranch: null, uncommitted: null, commits: [], totalChanges: 0 };
       updateHealthStatus();
       return;
     }
-
     data.git = {
       currentBranch: git.branch,
       uncommitted: git.uncommitted,
       commits: git.commits,
       totalChanges: git.totalChanges
     };
-
     renderGitPanel();
     updateHealthStatus();
   } catch (e) {
@@ -70,37 +59,29 @@ async function loadGitData() {
     updateHealthStatus();
   }
 }
-
 async function loadTokenData() {
   if (!currentProjectId) return;
-
   try {
     const planId = data?.meta?.plan_id;
     const endpoint = planId
       ? `${API_BASE}/plan/${planId}/tokens`
       : `${API_BASE}/project/${currentProjectId}/tokens`;
-
     const res = await fetch(endpoint);
     const tokenData = await res.json();
-
     data.tokens = {
       total: tokenData.stats?.total_tokens || 0,
       cost: tokenData.stats?.total_cost || 0,
       calls: tokenData.stats?.api_calls || 0,
       avgPerTask: 0
     };
-
     if (data.metrics?.throughput?.done > 0 && data.tokens.total > 0) {
       data.tokens.avgPerTask = Math.round(data.tokens.total / data.metrics.throughput.done);
     }
-
     document.getElementById('tokensUsed').textContent = data.tokens.total ? data.tokens.total.toLocaleString() : 'n/d';
     document.getElementById('avgTokensPerTask').textContent = data.tokens.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
-
     renderTokensTab();
   } catch (e) {
     data.tokens = null;
   }
 }
 
-console.log('GitHub data module loaded');

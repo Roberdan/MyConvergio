@@ -1,6 +1,5 @@
 // Git Actions - Staging Module
 // Stage, unstage, discard, commit operations
-
 async function stageFile(filePath) {
   if (!currentProjectId) return;
   try {
@@ -21,7 +20,6 @@ async function stageFile(filePath) {
     showToast('Failed to stage file: ' + e.message, 'error');
   }
 }
-
 async function unstageFile(filePath) {
   if (!currentProjectId) return;
   try {
@@ -42,7 +40,6 @@ async function unstageFile(filePath) {
     showToast('Failed to unstage file: ' + e.message, 'error');
   }
 }
-
 async function discardFile(filePath) {
   if (!currentProjectId) return;
   if (!confirm(`Discard changes to ${filePath.split('/').pop()}?`)) return;
@@ -64,7 +61,6 @@ async function discardFile(filePath) {
     showToast('Failed to discard file: ' + e.message, 'error');
   }
 }
-
 async function stageAll() {
   if (!currentProjectId) return;
   try {
@@ -85,7 +81,6 @@ async function stageAll() {
     showToast('Failed to stage all: ' + e.message, 'error');
   }
 }
-
 async function unstageAll() {
   if (!currentProjectId) return;
   try {
@@ -106,19 +101,15 @@ async function unstageAll() {
     showToast('Failed to unstage all: ' + e.message, 'error');
   }
 }
-
 async function commitChanges(andPush = false) {
   if (!currentProjectId) return;
-
   const messageEl = document.getElementById('gitCommitMessage');
   const message = messageEl?.value?.trim();
-
   if (!message) {
     showToast('Please enter a commit message', 'warning');
     messageEl?.focus();
     return;
   }
-
   try {
     const res = await fetch(`${API_BASE}/project/${currentProjectId}/git/commit`, {
       method: 'POST',
@@ -126,7 +117,6 @@ async function commitChanges(andPush = false) {
       body: JSON.stringify({ message, push: andPush })
     });
     const result = await res.json();
-
     if (result.success) {
       messageEl.value = '';
       await loadGitData();
@@ -140,4 +130,3 @@ async function commitChanges(andPush = false) {
   }
 }
 
-console.log('Git actions staging loaded');

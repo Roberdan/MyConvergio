@@ -1,18 +1,15 @@
 // Conversation Viewer - Render Module
 // Message rendering functions
-
 // Render conversation content
 function renderConversationContent(session, messages, isLive, projectId, taskId) {
   const modal = document.getElementById('conversationModal');
   if (!modal) return;
-
   const stats = {
     messageCount: messages.length,
     toolCalls: messages.filter(m => m.role === 'tool').length,
     totalTokens: 0,
     duration: session.executor_started_at ? calculateDuration(session.executor_started_at, session.executor_last_activity) : null
   };
-
   const html = `
     <div class="conversation-modal-content">
       <div class="conversation-header">
@@ -23,7 +20,6 @@ function renderConversationContent(session, messages, isLive, projectId, taskId)
         </div>
         <button class="conversation-close" onclick="closeConversationViewer()">×</button>
       </div>
-
       <div class="conversation-stats">
         <div class="stat-item">
           <span class="stat-label">Messages</span>
@@ -46,7 +42,6 @@ function renderConversationContent(session, messages, isLive, projectId, taskId)
           </div>
         ` : ''}
       </div>
-
       <div class="conversation-actions">
         <button class="conversation-action-btn" onclick="exportConversation('${projectId}', '${taskId}')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -62,31 +57,25 @@ function renderConversationContent(session, messages, isLive, projectId, taskId)
           </button>
         ` : ''}
       </div>
-
       <div class="conversation-body" id="conversationBody">
         ${renderConversationMessages(messages)}
       </div>
     </div>
   `;
-
   modal.innerHTML = html;
-
   // Auto-scroll to bottom
   setTimeout(() => {
     const body = document.getElementById('conversationBody');
     if (body) body.scrollTop = body.scrollHeight;
   }, 100);
 }
-
 // Render conversation messages
 function renderConversationMessages(messages) {
   if (messages.length === 0) {
     return '<div class="conversation-empty">No messages yet</div>';
   }
-
   return messages.map(msg => {
     const time = new Date(msg.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
     if (msg.role === 'tool') {
       return renderToolMessage(msg, time);
     } else {
@@ -94,12 +83,10 @@ function renderConversationMessages(messages) {
     }
   }).join('');
 }
-
 // Render text message (user/assistant/system)
 function renderTextMessage(msg, time) {
   const roleClass = msg.role === 'user' ? 'msg-user' : msg.role === 'assistant' ? 'msg-assistant' : 'msg-system';
   const roleLabel = msg.role.charAt(0).toUpperCase() + msg.role.slice(1);
-
   return `
     <div class="conversation-message ${roleClass}">
       <div class="msg-header">
@@ -110,23 +97,20 @@ function renderTextMessage(msg, time) {
     </div>
   `;
 }
-
 // Render tool call message
 function renderToolMessage(msg, time) {
   const toolId = `tool-${msg.id}`;
   const isExpanded = false;
-
   let input = msg.tool_input;
   let output = msg.tool_output;
-
   try {
     if (input && typeof input === 'string') input = JSON.parse(input);
     if (output && typeof output === 'string') output = JSON.parse(output);
-  } catch (e) {}
-
+  } catch (e) {
+    Logger.debug('Failed to parse conversation input/output:', e);
+  }
   const inputStr = typeof input === 'object' ? JSON.stringify(input, null, 2) : String(input || '');
   const outputStr = typeof output === 'object' ? JSON.stringify(output, null, 2) : String(output || '');
-
   return `
     <div class="conversation-message msg-tool">
       <div class="msg-header" onclick="toggleToolMessage('${toolId}')">
@@ -156,18 +140,14 @@ function renderToolMessage(msg, time) {
     </div>
   `;
 }
-
 // Toggle tool message expansion
 function toggleToolMessage(toolId) {
   const details = document.getElementById(toolId);
   if (!details) return;
-
   const isVisible = details.style.display !== 'none';
   details.style.display = isVisible ? 'none' : 'block';
-
   const header = details.previousElementSibling;
   const icon = header?.querySelector('.tool-expand-icon');
   if (icon) icon.textContent = isVisible ? '▶' : '▼';
 }
 
-console.log('Conversation viewer render loaded');

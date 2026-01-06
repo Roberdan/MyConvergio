@@ -1,45 +1,37 @@
 // Bug/Todo List - Planner Integration Module
 // Execute bugs with planner, modal handling
-
 // Execute bug list with planner
 async function executeBugList() {
   if (bugListItems.length === 0) {
     showToast('No items to execute', 'warning');
     return;
   }
-
   const activeBugs = bugListItems.filter(item => !item.done);
   if (activeBugs.length === 0) {
     showToast('All items are completed', 'info');
     return;
   }
-
   const prompt = buildPlannerPrompt(activeBugs);
   showPlannerExecutionModal(prompt, activeBugs);
 }
-
 // Build planner prompt from bug list
 function buildPlannerPrompt(bugs) {
   let prompt = `# Bug/Todo List Execution Request\n\n`;
   prompt += `**Project**: ${currentProjectId}\n`;
   prompt += `**Date**: ${new Date().toLocaleString('it-IT')}\n\n---\n\n`;
   prompt += `I have ${bugs.length} bug${bugs.length !== 1 ? 's' : ''}/todo${bugs.length !== 1 ? 's' : ''} to address:\n\n`;
-
   bugs.forEach((bug, idx) => {
     const priority = bug.priority ? `[${bug.priority}]` : '';
     prompt += `${idx + 1}. ${priority} ${bug.text}\n`;
   });
-
   prompt += `\n---\n\nPlease analyze these items, ask clarifying questions if needed, and create an execution plan.\n`;
   return prompt;
 }
-
 // Show planner execution modal
 function showPlannerExecutionModal(prompt, bugs) {
   const modal = document.createElement('div');
   modal.id = 'plannerModal';
   modal.className = 'planner-modal';
-
   modal.innerHTML = `
     <div class="planner-modal-content">
       <div class="planner-modal-header">
@@ -77,25 +69,20 @@ function showPlannerExecutionModal(prompt, bugs) {
       </div>
     </div>
   `;
-
   document.body.appendChild(modal);
   modal.style.display = 'block';
 }
-
 // Close planner modal
 function closePlannerModal() {
   const modal = document.getElementById('plannerModal');
   if (modal) modal.remove();
 }
-
 // Send to planner
 function sendToPlanner() {
   const promptEdit = document.getElementById('plannerPromptEdit');
   const archiveBugs = document.getElementById('plannerArchiveBugs');
   if (!promptEdit) return;
-
   const command = `claude "${promptEdit.value.replace(/"/g, '\\"')}"`;
-
   navigator.clipboard.writeText(command).then(() => {
     showToast('Command copied to clipboard!', 'success');
     showPlannerInstructionModal(command, archiveBugs?.checked);
@@ -104,13 +91,11 @@ function sendToPlanner() {
     showToast('Failed to copy: ' + err.message, 'error');
   });
 }
-
 // Show planner instruction modal
 function showPlannerInstructionModal(command, shouldArchive) {
   const modal = document.createElement('div');
   modal.id = 'plannerInstructionModal';
   modal.className = 'planner-modal';
-
   modal.innerHTML = `
     <div class="planner-modal-content">
       <div class="planner-modal-header">
@@ -141,10 +126,8 @@ function showPlannerInstructionModal(command, shouldArchive) {
       </div>
     </div>
   `;
-
   document.body.appendChild(modal);
   modal.style.display = 'block';
-
   if (shouldArchive) {
     setTimeout(() => {
       bugListItems.forEach(item => { if (!item.done) item.done = true; });
@@ -153,11 +136,9 @@ function showPlannerInstructionModal(command, shouldArchive) {
     }, 5000);
   }
 }
-
 // Close planner instruction modal
 function closePlannerInstructionModal() {
   const modal = document.getElementById('plannerInstructionModal');
   if (modal) modal.remove();
 }
 
-console.log('Bug list planner loaded');

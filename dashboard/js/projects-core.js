@@ -100,16 +100,16 @@ async function selectProject(projectId) {
   document.getElementById('projectMenu').style.display = 'none';
 
     try {
-      console.log('Selecting project:', projectId, project.name);
+      Logger.info('Selecting project:', projectId, project.name);
       currentProjectId = projectId;
 
       // Load aggregated project dashboard data
       const dashboardRes = await fetch(`${API_BASE}/project/${projectId}/dashboard`);
-      console.log('Dashboard API response:', dashboardRes.status);
+      Logger.debug('Dashboard API response:', dashboardRes.status);
 
       if (dashboardRes.ok) {
         data = await dashboardRes.json();
-        console.log('Loaded dashboard data:', data);
+        Logger.debug('Loaded dashboard data:', data);
         render();
       } else {
        // Fallback to old method if endpoint doesn't exist
@@ -166,5 +166,3 @@ async function selectProject(projectId) {
     }
   }
 }
-
-console.log('Projects core loaded');

@@ -13,7 +13,7 @@ function initBugTracker() {
     try {
       bugTrackerItems = JSON.parse(saved);
     } catch (e) {
-      console.warn('Failed to parse bug tracker:', e);
+      Logger.warn('Failed to parse bug tracker:', e);
       bugTrackerItems = [];
     }
   } else {
@@ -25,7 +25,7 @@ function initBugTracker() {
 
 // Toggle bug tracker modal
 function toggleBugTracker() {
-  console.log('Bug tracker toggle called, visible:', bugTrackerVisible);
+  Logger.debug('Bug tracker toggle called, visible:', bugTrackerVisible);
   if (bugTrackerVisible) {
     hideBugTracker();
   } else {
@@ -35,15 +35,15 @@ function toggleBugTracker() {
 
 // Show bug tracker modal
 function showBugTracker() {
-  console.log('showBugTracker called');
+  Logger.debug('showBugTracker called');
   if (bugTrackerVisible) {
-    console.log('Modal already visible');
+    Logger.debug('Modal already visible');
     return;
   }
 
   const modal = document.getElementById('bugTrackerModal');
   if (!modal) {
-    console.error('Bug tracker modal not found in DOM');
+    Logger.error('Bug tracker modal not found in DOM');
     return;
   }
 
@@ -61,7 +61,7 @@ function showBugTracker() {
   modal.style.display = 'flex';
   modal.style.opacity = '1';
   bugTrackerVisible = true;
-  console.log('Bug tracker modal opened');
+  Logger.debug('Bug tracker modal opened');
 
   // Focus input after animation
   setTimeout(() => {
@@ -80,7 +80,7 @@ function hideBugTracker() {
     }, 300);
   }
   bugTrackerVisible = false;
-  console.log('Bug tracker modal closed');
+  Logger.debug('Bug tracker modal closed');
 }
 
 // Handle Enter key in bug input

@@ -1,9 +1,7 @@
 // Bug/Todo List - Core Module
 // State management, initialization, and main rendering
-
 let bugListItems = [];
 let bugListEditing = null;
-
 // Initialize bug list from localStorage
 function initBugList() {
   if (!currentProjectId) {
@@ -11,7 +9,6 @@ function initBugList() {
     renderBugListNoProject();
     return;
   }
-
   const saved = localStorage.getItem(`bugList_${currentProjectId}`);
   if (saved) {
     try {
@@ -25,7 +22,6 @@ function initBugList() {
   }
   renderBugList();
 }
-
 // Render empty state when no project selected
 function renderBugListNoProject() {
   const container = document.getElementById('bugListContainer');
@@ -36,7 +32,6 @@ function renderBugListNoProject() {
     </div>
   `;
 }
-
 // Save bug list to localStorage
 function saveBugList() {
   if (!currentProjectId) {
@@ -45,7 +40,6 @@ function saveBugList() {
   }
   localStorage.setItem(`bugList_${currentProjectId}`, JSON.stringify(bugListItems));
 }
-
 // Render bug list
 function renderBugList() {
   const container = document.getElementById('bugListContainer');
@@ -53,7 +47,6 @@ function renderBugList() {
     console.warn('Bug list container not found');
     return;
   }
-
   if (bugListItems.length === 0) {
     container.innerHTML = `
       <div class="bug-list-empty">
@@ -63,7 +56,6 @@ function renderBugList() {
     `;
     return;
   }
-
   container.innerHTML = `
     <div class="bug-list-header">
       <h4>Bugs & Todos (${bugListItems.length})</h4>
@@ -78,4 +70,3 @@ function renderBugList() {
   `;
 }
 
-console.log('Bug list core loaded');

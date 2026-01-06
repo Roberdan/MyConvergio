@@ -6,11 +6,11 @@ async function init() {
     await loadProjects();
 
     // Force load ConvergioEdu project data immediately
-    console.log('Forcing ConvergioEdu project load...');
+    Logger.info('Forcing ConvergioEdu project load...');
     await forceLoadConvergioEdu();
 
   } catch (e) {
-    console.error('Init error:', e);
+    Logger.error('Init error:', e);
     document.querySelector('.main-content').innerHTML = `<div style="padding:40px;color:#ef4444;">Error: ${e.message}</div>`;
   }
 
@@ -38,20 +38,20 @@ async function init() {
 
 // Force load ConvergioEdu project data - Simplified approach
 async function forceLoadConvergioEdu() {
-  console.log('Loading ConvergioEdu dashboard data...');
+  Logger.info('Loading ConvergioEdu dashboard data...');
 
   try {
     // Load data directly from API
     const response = await fetch('/api/project/convergioedu/dashboard');
     const projectData = await response.json();
 
-    console.log('Loaded data:', projectData);
+    Logger.debug('Loaded data:', projectData);
 
     // Update the UI immediately
     updateDashboardUI(projectData);
 
   } catch (error) {
-    console.error('Failed to load dashboard:', error);
+    Logger.error('Failed to load dashboard:', error);
 
     // Fallback: show hardcoded data
     updateDashboardUI({
@@ -64,7 +64,7 @@ async function forceLoadConvergioEdu() {
 
 // Update dashboard UI with data
 function updateDashboardUI(data) {
-  console.log('Updating dashboard UI with:', data);
+  Logger.debug('Updating dashboard UI with:', data);
 
   // Update project name
   const planLabel = document.getElementById('planLabel');
@@ -90,7 +90,7 @@ function updateDashboardUI(data) {
     wavesStatus.textContent = `${data.plans.done}/${data.plans.total}`;
   }
 
-  console.log('Dashboard UI updated successfully');
+  Logger.debug('Dashboard UI updated successfully');
 }
 
 async function checkForActivePlans() {
@@ -224,7 +224,7 @@ async function refreshData() {
     }
   } catch (e) {
     // Silent fail - don't interrupt user
-    console.log('Data refresh failed:', e.message);
+    Logger.debug('Data refresh failed:', e.message);
   }
 }
 

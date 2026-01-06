@@ -1,18 +1,14 @@
 // Views - Kanban Data Loading
 // Loads kanban board data from API
-
 async function loadKanban() {
   const kanban = { todo: [], doing: [], done: [] };
   let totalTokens = 0;
   let totalCost = 0;
   const projectIds = new Set();
-
   try {
     const res = await fetch(`${API_BASE}/kanban`);
     const plans = await res.json();
-
     plans.forEach(plan => projectIds.add(plan.project_id));
-
     const tokenPromises = Array.from(projectIds).map(async (projectId) => {
       try {
         const tokRes = await fetch(`${API_BASE}/project/${projectId}/tokens`);
@@ -22,7 +18,6 @@ async function loadKanban() {
         return { projectId, tokens: 0, cost: 0 };
       }
     });
-
     const tokenResults = await Promise.all(tokenPromises);
     const tokensByProject = {};
     tokenResults.forEach(t => {
@@ -30,7 +25,6 @@ async function loadKanban() {
       totalTokens += t.tokens;
       totalCost += t.cost;
     });
-
     plans.forEach(plan => {
       const status = plan.status || 'todo';
       const projectTokens = tokensByProject[plan.project_id] || { tokens: 0, cost: 0 };
@@ -38,7 +32,6 @@ async function loadKanban() {
       const lastUpdate = updatedAt ? new Date(updatedAt) : null;
       const isRecent = lastUpdate && (Date.now() - lastUpdate.getTime()) < 3600000;
       const isRunning = status === 'doing' && isRecent;
-
       kanban[status].push({
         project: plan.project_name,
         projectId: plan.project_id,
@@ -74,15 +67,12 @@ async function loadKanban() {
       }
     }
   }
-
   document.getElementById('kanbanTotalProjects').textContent = projectIds.size;
   document.getElementById('kanbanTotalPlans').textContent = kanban.todo.length + kanban.doing.length + kanban.done.length;
   document.getElementById('kanbanActivePlans').textContent = kanban.doing.length;
   document.getElementById('kanbanCompletedPlans').textContent = kanban.done.length;
   document.getElementById('kanbanTotalTokens').textContent = totalTokens ? totalTokens.toLocaleString() : '0';
   document.getElementById('kanbanTotalCost').textContent = totalCost ? '$' + totalCost.toFixed(2) : '$0';
-
   renderKanban(kanban);
 }
 
-console.log('Views kanban data loaded');

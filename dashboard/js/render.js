@@ -86,9 +86,9 @@ function render() {
   updateHealthStatus();
   renderIssuesPanel();
   renderTokensTab();
-  // Only render Gantt in dashboard view, not in waves drilldown view
-  if (currentView === 'dashboard' || currentView === 'control-center') {
-    renderWavesGantt();
+  // Only render Gantt in dashboard view
+  if (currentView === 'dashboard') {
+    GanttView.render();
   }
   updateNavCounts();
 

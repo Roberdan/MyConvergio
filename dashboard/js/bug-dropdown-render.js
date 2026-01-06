@@ -142,5 +142,3 @@ if (document.readyState === 'loading') {
     window.bugDropdown = new BugDropdown();
   }
 }
-
-console.log('Bug dropdown render loaded - module ready');

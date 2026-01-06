@@ -56,5 +56,3 @@ IssuesFilter.prototype.updateResultsInfo = function() {
 // Initialize and export
 window.issuesFilter = new IssuesFilter();
 window.issuesFilter.init();
-
-console.log('Issues filter render loaded - module ready');

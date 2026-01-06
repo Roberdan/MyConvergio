@@ -63,7 +63,7 @@ function renderWaveMenuItem(wave) {
         ${hasActiveTasks ? '<span class="wave-menu-live" title="Tasks running">●</span>' : ''}
         <span class="wave-menu-progress">${wave.tasks_done}/${wave.tasks_total}</span>
         <button class="wave-menu-view-btn" onclick="event.stopPropagation(); showWaveMarkdown('${wave.wave_id}'); closeWaveMenu();" title="View documentation">📄</button>
-          <button class="wave-menu-gantt-btn" onclick="event.stopPropagation(); showView('waves'); setTimeout(() => showGanttLevel('tasks', '${wave.wave_id}'), 100);" title="View Gantt chart">📊</button>
+          <button class="wave-menu-gantt-btn" onclick="event.stopPropagation(); showView('waves'); closeWaveMenu();" title="View Gantt chart">📊</button>
       </div>
 
       ${isExpanded && wave.tasks?.length > 0 ? `

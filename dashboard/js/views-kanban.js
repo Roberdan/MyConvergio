@@ -182,7 +182,7 @@ function renderKanban(kanban) {
              draggable="true"
              data-plan-id="${plan.planId}"
              data-project-id="${plan.projectId}"
-             ondragstart="handleKanbanDragStart(event, ${plan.planId}, '${status}')"
+             ondragstart="handleKanbanDragStart(event, '${plan.planId}', '${status}')"
              ondragend="handleKanbanDragEnd(event)"
              ${clickHandler}>
           <div class="cc-plan-project">${plan.project}</div>

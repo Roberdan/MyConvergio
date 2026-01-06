@@ -223,10 +223,33 @@ function renderNotificationItem(notif) {
 // Get Notification Icon
 function getNotificationIcon(severity) {
   const icons = {
-    info: 'ℹ️',
-    success: '✅',
-    warning: '⚠️',
-    error: '❌'
+    info: `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 9.5v-.1" />
+        <path d="M11 12.5h1v4" />
+      </svg>
+    `,
+    success: `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M8 12.5l2.5 2.5 5-5" />
+      </svg>
+    `,
+    warning: `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4l8 14H4l8-14z" />
+        <path d="M12 10v3.5" />
+        <path d="M12 17.5v.1" />
+      </svg>
+    `,
+    error: `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9 9l6 6" />
+        <path d="M15 9l-6 6" />
+      </svg>
+    `
   };
   return icons[severity] || icons.info;
 }

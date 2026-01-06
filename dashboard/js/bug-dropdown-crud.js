@@ -7,7 +7,7 @@ BugDropdown.prototype.addBug = function() {
   if (!title || !title.trim()) return;
   let priority = (prompt('Priority (p0/p1/p2):', 'p1') || 'p1').toLowerCase();
   if (!['p0', 'p1', 'p2'].includes(priority)) {
-    alert('Invalid priority. Using p1.');
+    this.showToast('Invalid priority. Using p1.', 'warning');
     priority = 'p1';
   }
   const bug = {

@@ -19,7 +19,7 @@ function showLearningStats() {
     totalPlans: Object.keys(registry?.projects || {}).length,
     message: 'Learning stats will show plan modification patterns and optimization insights.'
   };
-  alert(`Learning Stats\n\nTotal Projects: ${stats.totalPlans}\n\n${stats.message}`);
+  showToast(`Learning Stats\nTotal Projects: ${stats.totalPlans}\n${stats.message}`, 'info');
 }
 function extractGitHubOwner(githubUrl) {
   if (!githubUrl) return null;

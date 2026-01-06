@@ -322,3 +322,38 @@ document.querySelector('.max-btn')?.addEventListener('click', () => {
     window.open(data.github.pr.url, '_blank');
   }
 });
+
+async function loadAgentsView() {
+  const gridView = document.getElementById('agentsGridView');
+  if (!gridView || !data.contributors) {
+    if (gridView) gridView.innerHTML = '<div class="agents-empty">No agent data available</div>';
+    return;
+  }
+  gridView.innerHTML = data.contributors.map((c, i) => `
+    <div class="agent-card">
+      <div class="agent-header">
+        <div class="agent-avatar">${c.avatar || '🤖'}</div>
+        <div class="agent-info">
+          <div class="agent-name">${c.name}</div>
+          <div class="agent-status ${c.status}">${c.status}</div>
+        </div>
+      </div>
+      <div class="agent-stats">
+        <div class="agent-stat">
+          <span class="agent-stat-value">${c.tasks}</span>
+          <span class="agent-stat-label">Tasks</span>
+        </div>
+        <div class="agent-stat">
+          <span class="agent-stat-value">${c.efficiency || '-'}%</span>
+          <span class="agent-stat-label">Efficiency</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showAgentDetails(agentId) {
+  const agent = data.contributors?.find(c => c.id === agentId);
+  if (!agent) return;
+  showToast(`Agent: ${agent.name}\nRole: ${agent.role || 'N/A'}\nTasks: ${agent.tasks}\nStatus: ${agent.status}\nEfficiency: ${agent.efficiency || '-'}%`, 'info');
+}

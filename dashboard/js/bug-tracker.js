@@ -153,7 +153,7 @@ function clearAllBugs() {
 async function createPlanFromBugs() {
   const activeBugs = bugTrackerItems.filter(b => !b.completed);
   if (activeBugs.length === 0) {
-    alert('No active bugs to create a plan from!');
+    showToast('No active bugs to create a plan from!', 'warning');
     return;
   }
 
@@ -251,15 +251,14 @@ async function createPlanFromBugs() {
       await loadProjects();
     }
 
-    // Show success message
-    alert(`✅ Plan "${planName}" created successfully!\n\n${activeBugs.length} bugs converted to executable tasks.`);
+    showToast(`Plan "${planName}" created successfully! ${activeBugs.length} bugs converted to tasks.`, 'success');
 
     renderBugTracker();
     updateBugCount();
 
   } catch (error) {
-    console.error('Failed to create plan:', error);
-    alert('Failed to create plan: ' + error.message);
+    Logger.error('Failed to create plan:', error);
+    showToast('Failed to create plan: ' + error.message, 'error');
   }
 }
 

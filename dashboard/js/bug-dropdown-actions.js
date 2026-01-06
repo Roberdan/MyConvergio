@@ -46,7 +46,7 @@ BugDropdown.prototype.fallbackCopyToClipboard = function(text) {
 BugDropdown.prototype.archiveCompleted = function() {
   const completed = this.bugs.filter(b => b.done);
   if (completed.length === 0) {
-    alert('No completed bugs to archive');
+    this.showToast('No completed bugs to archive', 'warning');
     return;
   }
   if (!confirm(`Archive ${completed.length} completed bug(s)?`)) return;

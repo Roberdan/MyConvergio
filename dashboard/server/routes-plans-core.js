@@ -121,14 +121,14 @@ const routes = {
        FROM waves WHERE plan_id = ${planId} ORDER BY position
      `);
 
-     for (const wave of waves) {
-       wave.tasks = query(`
-         SELECT id, task_id, title, status, assignee, priority, type,
-                started_at, completed_at, duration_minutes, tokens, validated_at, validated_by
-         FROM tasks WHERE project_id = '${escapeSQL(plan.project_id)}' AND wave_id = '${escapeSQL(wave.wave_id)}'
-         ORDER BY task_id
-       `);
-     }
+      for (const wave of waves) {
+        wave.tasks = query(`
+          SELECT id, task_id, title, status, assignee, priority, type,
+                 started_at, completed_at, duration_minutes, tokens, validated_at, validated_by
+          FROM tasks WHERE plan_id = ${planId} AND wave_id_fk = ${wave.id}
+          ORDER BY task_id
+        `);
+      }
 
      plan.waves = waves;
      return plan;

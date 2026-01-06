@@ -29,7 +29,7 @@ case "${1:-help}" in
         echo "=== In Progress ==="
         sqlite3 -column "$DB_FILE" "
             SELECT t.id, t.task_id, t.title, w.wave_id
-            FROM tasks t JOIN waves w ON t.project_id = w.project_id AND t.wave_id = w.wave_id
+            FROM tasks t JOIN waves w ON t.wave_id_fk = w.id
             WHERE t.status = 'in_progress' LIMIT 5;
         "
         ;;
@@ -38,7 +38,7 @@ case "${1:-help}" in
         sqlite3 -column "$DB_FILE" "
             SELECT t.id, t.task_id, t.title, w.wave_id, p.name as plan
             FROM tasks t
-            JOIN waves w ON t.project_id = w.project_id AND t.wave_id = w.wave_id
+            JOIN waves w ON t.wave_id_fk = w.id
             JOIN plans p ON w.plan_id = p.id
             WHERE t.status = 'pending' AND p.status = 'doing'
             ORDER BY w.position, t.id LIMIT 3;

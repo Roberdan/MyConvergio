@@ -18,11 +18,11 @@ cmd_validate() {
     echo -e "${YELLOW}[1/5] Wave counter sync...${NC}"
     local wave_issues=$(sqlite3 "$DB_FILE" "
         SELECT w.wave_id, w.tasks_done, w.tasks_total,
-               (SELECT COUNT(*) FROM tasks t WHERE t.project_id = w.project_id AND t.wave_id = w.wave_id AND t.status = 'done') as actual_done,
-               (SELECT COUNT(*) FROM tasks t WHERE t.project_id = w.project_id AND t.wave_id = w.wave_id) as actual_total
+               (SELECT COUNT(*) FROM tasks t WHERE t.wave_id_fk = w.id AND t.status = 'done') as actual_done,
+               (SELECT COUNT(*) FROM tasks t WHERE t.wave_id_fk = w.id) as actual_total
         FROM waves w WHERE w.plan_id = $plan_id
-        AND (w.tasks_done != (SELECT COUNT(*) FROM tasks t WHERE t.project_id = w.project_id AND t.wave_id = w.wave_id AND t.status = 'done')
-             OR w.tasks_total != (SELECT COUNT(*) FROM tasks t WHERE t.project_id = w.project_id AND t.wave_id = w.wave_id));
+        AND (w.tasks_done != (SELECT COUNT(*) FROM tasks t WHERE t.wave_id_fk = w.id AND t.status = 'done')
+             OR w.tasks_total != (SELECT COUNT(*) FROM tasks t WHERE t.wave_id_fk = w.id));
     ")
     if [ -n "$wave_issues" ]; then
         echo -e "${RED}  ERROR: Wave counters out of sync${NC}"
@@ -36,8 +36,8 @@ cmd_validate() {
     echo -e "${YELLOW}[2/5] Orphan tasks...${NC}"
     local orphans=$(sqlite3 "$DB_FILE" "
         SELECT t.id, t.task_id, t.wave_id FROM tasks t
-        WHERE t.project_id = '$project_id'
-        AND NOT EXISTS (SELECT 1 FROM waves w WHERE w.project_id = t.project_id AND w.wave_id = t.wave_id AND w.plan_id = $plan_id);
+        WHERE t.plan_id = $plan_id
+        AND NOT EXISTS (SELECT 1 FROM waves w WHERE w.id = t.wave_id_fk);
     ")
     if [ -n "$orphans" ]; then
         echo -e "${RED}  ERROR: Orphan tasks found${NC}"
@@ -51,7 +51,7 @@ cmd_validate() {
     echo -e "${YELLOW}[3/5] Incomplete in done waves...${NC}"
     local incomplete=$(sqlite3 "$DB_FILE" "
         SELECT w.wave_id, t.task_id, t.status FROM tasks t
-        JOIN waves w ON t.project_id = w.project_id AND t.wave_id = w.wave_id
+        JOIN waves w ON t.wave_id_fk = w.id
         WHERE w.plan_id = $plan_id AND w.status = 'done' AND t.status != 'done';
     ")
     if [ -n "$incomplete" ]; then
@@ -103,7 +103,7 @@ cmd_validate() {
     # Also mark all done tasks as validated
     local done_tasks=$(sqlite3 "$DB_FILE" "
         SELECT t.id FROM tasks t
-        JOIN waves w ON t.project_id = w.project_id AND t.wave_id = w.wave_id
+        JOIN waves w ON t.wave_id_fk = w.id
         WHERE w.plan_id = $plan_id AND t.status = 'done' AND t.validated_at IS NULL;
     ")
     if [ -n "$done_tasks" ]; then
@@ -111,7 +111,7 @@ cmd_validate() {
             UPDATE tasks SET validated_at = datetime('now'), validated_by = '$validated_by'
             WHERE id IN (
                 SELECT t.id FROM tasks t
-                JOIN waves w ON t.project_id = w.project_id AND t.wave_id = w.wave_id
+                JOIN waves w ON t.wave_id_fk = w.id
                 WHERE w.plan_id = $plan_id AND t.status = 'done'
             );
         "
@@ -187,8 +187,8 @@ cmd_sync() {
 
     sqlite3 "$DB_FILE" "
         UPDATE waves SET
-            tasks_done = (SELECT COUNT(*) FROM tasks WHERE tasks.project_id = waves.project_id AND tasks.wave_id = waves.wave_id AND tasks.status = 'done'),
-            tasks_total = (SELECT COUNT(*) FROM tasks WHERE tasks.project_id = waves.project_id AND tasks.wave_id = waves.wave_id)
+            tasks_done = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id AND tasks.status = 'done'),
+            tasks_total = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id)
         WHERE plan_id = $plan_id;
     "
     sqlite3 "$DB_FILE" "

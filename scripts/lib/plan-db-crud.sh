@@ -109,19 +109,20 @@ cmd_add_task() {
     local type="${5:-feature}"
     local assignee="${6:-}"
 
-    local project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM waves WHERE id = $db_wave_id;")
-    local wave_id=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM waves WHERE id = $db_wave_id;")
+    local wave_info=$(sqlite3 "$DB_FILE" "SELECT project_id, wave_id, plan_id FROM waves WHERE id = $db_wave_id;")
+    local project_id=$(echo "$wave_info" | cut -d'|' -f1)
+    local wave_id_text=$(echo "$wave_info" | cut -d'|' -f2)
+    local plan_id=$(echo "$wave_info" | cut -d'|' -f3)
 
     sqlite3 "$DB_FILE" "
-        INSERT INTO tasks (project_id, wave_id, task_id, title, status, priority, type, assignee)
-        VALUES ('$project_id', '$wave_id', '$task_id', '$title', 'pending', '$priority', '$type', '$assignee');
+        INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, status, priority, type, assignee)
+        VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$task_id', '$title', 'pending', '$priority', '$type', '$assignee');
     "
     sqlite3 "$DB_FILE" "UPDATE waves SET tasks_total = tasks_total + 1 WHERE id = $db_wave_id;"
 
-    local plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM waves WHERE id = $db_wave_id;")
     sqlite3 "$DB_FILE" "UPDATE plans SET tasks_total = tasks_total + 1 WHERE id = $plan_id;"
 
-    local db_task_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE project_id='$project_id' AND wave_id='$wave_id' AND task_id='$task_id';")
+    local db_task_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE id = last_insert_rowid();")
     log_info "Added task: $title (ID: $db_task_id)"
     echo "$db_task_id"
 }
@@ -151,18 +152,20 @@ cmd_update_task() {
     elif [[ "$status" == "done" ]]; then
         sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', completed_at = datetime('now'), notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
 
-        local wave_id_text=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM tasks WHERE id = $task_id;")
-        local project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM tasks WHERE id = $task_id;")
+        # Get wave FK and plan_id from task
+        local wave_fk=$(sqlite3 "$DB_FILE" "SELECT wave_id_fk FROM tasks WHERE id = $task_id;")
 
-        sqlite3 "$DB_FILE" "UPDATE waves SET tasks_done = tasks_done + 1 WHERE project_id = '$project_id' AND wave_id = '$wave_id_text';"
+        # Update wave done count using FK
+        sqlite3 "$DB_FILE" "UPDATE waves SET tasks_done = tasks_done + 1 WHERE id = $wave_fk;"
 
-        local wave_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE project_id = '$project_id' AND wave_id = '$wave_id_text' ORDER BY id DESC LIMIT 1;")
-        local plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM waves WHERE id = $wave_db_id LIMIT 1;")
+        # Update plan done count
+        local plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM tasks WHERE id = $task_id;")
         sqlite3 "$DB_FILE" "UPDATE plans SET tasks_done = tasks_done + 1 WHERE id = $plan_id;"
 
-        local wave_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done = tasks_total FROM waves WHERE id = $wave_db_id;")
+        local wave_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done = tasks_total FROM waves WHERE id = $wave_fk;")
         [[ "$wave_done" == "1" ]] && {
-            sqlite3 "$DB_FILE" "UPDATE waves SET status = 'done', completed_at = datetime('now') WHERE id = $wave_db_id;"
+            local wave_id_text=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM waves WHERE id = $wave_fk;")
+            sqlite3 "$DB_FILE" "UPDATE waves SET status = 'done', completed_at = datetime('now') WHERE id = $wave_fk;"
             log_info "Wave $wave_id_text completed!"
         }
     else

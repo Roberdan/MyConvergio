@@ -144,7 +144,10 @@ async function loadAllNotifications() {
   try {
     const response = await fetch('/api/notifications');
     const data = await response.json();
-    allNotifications = data.notifications || [];
+    allNotifications = (data.notifications || []).map(n => ({
+      ...n,
+      is_read: Number(n.is_read) || 0
+    }));
     renderNotifications();
     updateNotificationCount();
   } catch (err) {
@@ -181,7 +184,7 @@ function renderNotifications() {
   
   // Apply filters
   if (currentFilter === 'unread') {
-    filtered = allNotifications.filter(n => n.is_read === 0);
+    filtered = allNotifications.filter(n => Number(n.is_read) === 0);
   } else if (currentFilter !== 'all') {
     filtered = allNotifications.filter(n => n.severity === currentFilter);
   }
@@ -288,7 +291,7 @@ async function markNotificationRead(id) {
 async function markAllNotificationsRead() {
   try {
     await fetch('/api/notifications/read-all', { method: 'POST' });
-    allNotifications.forEach(n => n.is_read = 1);
+    allNotifications.forEach(n => { n.is_read = 1; });
     renderNotifications();
     updateNotificationCount();
     showToast('All notifications marked as read', 'success');
@@ -365,7 +368,7 @@ function updateNotificationCount() {
   const badge = document.getElementById('notificationCount');
   if (!badge) return;
   
-  const unreadCount = allNotifications.filter(n => n.is_read === 0).length;
+  const unreadCount = allNotifications.filter(n => Number(n.is_read) === 0).length;
   
   if (unreadCount > 0) {
     badge.textContent = unreadCount;

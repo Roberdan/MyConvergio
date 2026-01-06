@@ -20,6 +20,36 @@ let notificationsSearch = '';
 // API base URL
 const API_BASE = '/api';
 
+// Update navigation state based on project selection
+function updateNavState(hasProject) {
+  const projectDependentItems = [
+    { selector: '.nav-menu a[onclick*="dashboard"]', action: 'link' },
+    { selector: '.nav-menu a[onclick*="tasks"]', action: 'link' },
+    { selector: '#throughputBadge', action: 'element' },
+    { selector: '#bugTrackerBtn', action: 'button' },
+    { selector: '#exportBtn', action: 'button' }
+  ];
+
+  projectDependentItems.forEach(item => {
+    const el = document.querySelector(item.selector);
+    if (!el) return;
+    
+    if (hasProject) {
+      el.classList.remove('disabled');
+      el.removeAttribute('disabled');
+      if (item.action === 'link') {
+        el.style.pointerEvents = '';
+      }
+    } else {
+      el.classList.add('disabled');
+      el.setAttribute('disabled', 'true');
+      if (item.action === 'link') {
+        el.style.pointerEvents = 'none';
+      }
+    }
+  });
+}
+
 // Theme colors for ApexCharts
 const themeColors = {
   voltrex: { line: '#f7931a', accent: '#22c55e', grid: 'rgba(139, 92, 246, 0.08)', text: '#6b7280' },

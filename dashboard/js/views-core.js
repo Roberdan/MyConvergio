@@ -64,6 +64,9 @@ function showView(view) {
 
   // Hide/show dashboard elements
   const hideDashboard = view !== 'dashboard';
+  const emptyState = document.getElementById('emptyState');
+  const interactiveGantt = document.querySelector('.interactive-gantt');
+  
   dashboardElements.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = hideDashboard ? 'none' : '';
@@ -73,6 +76,8 @@ function showView(view) {
   if (statsHeader) statsHeader.style.display = hideDashboard ? 'none' : '';
   if (statsRow) statsRow.style.display = hideDashboard ? 'none' : '';
   if (waveIndicator) waveIndicator.style.display = hideDashboard ? 'none' : '';
+  if (emptyState) emptyState.style.display = hideDashboard ? 'none' : '';
+  if (interactiveGantt) interactiveGantt.style.display = hideDashboard ? 'none' : '';
 
   // Full-page mode: hide sidebars
   if (gitPanel) gitPanel.style.display = isFullPageView ? 'none' : '';

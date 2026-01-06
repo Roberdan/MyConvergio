@@ -143,11 +143,6 @@ async function selectProject(projectId) {
        initBugTracker();
      }
 
-    // Enable project-dependent navigation items
-    if (typeof updateNavState === 'function') {
-      updateNavState(true);
-    }
-
     if (typeof currentView !== 'undefined' && currentView && currentView !== 'dashboard') {
       showView(currentView);
     }
@@ -163,5 +158,10 @@ async function selectProject(projectId) {
     if (typeof currentView !== 'undefined' && currentView && currentView !== 'dashboard') {
       showView(currentView);
     }
+  }
+  
+  // Enable project-dependent navigation items (always after try/catch)
+  if (typeof updateNavState === 'function') {
+    updateNavState(true);
   }
 }

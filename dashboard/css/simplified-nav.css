@@ -39,7 +39,15 @@
   white-space: nowrap;
 }
 
-.nav-icon-btn .bug-count,
+.nav-icon-btn .bug-count {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
 .nav-icon-btn .notification-count {
   background: var(--red);
   color: white;

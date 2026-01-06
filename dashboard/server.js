@@ -230,6 +230,21 @@ const server = http.createServer((req, res) => {
             return; // SSE handler manages the response
           }
 
+          // Handle raw content responses (for serving files)
+          if (result && result._raw) {
+            const statusCode = result.status || 200;
+            res.writeHead(statusCode, { 'Content-Type': result.contentType || 'text/plain' });
+            res.end(result.content);
+            return;
+          }
+
+          // Handle error responses with status codes
+          if (result && result.status && result.status >= 400) {
+            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: result.error }));
+            return;
+          }
+
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
         } catch (e) {

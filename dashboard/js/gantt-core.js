@@ -22,14 +22,18 @@ const GanttCore = {
       const dashboardRes = await fetch(`/api/project/${projectId}/dashboard`);
       const dashboardData = await dashboardRes.json();
 
-      const plansPromises = (dashboardData.waves || []).map(async (wave) => {
-        // Extract numeric plan ID from wave id like "P5"
-        const planId = parseInt(wave.id.replace('P', ''), 10);
+      const plansPromises = (dashboardData.waves || []).map(async (planRef) => {
+        // Extract numeric plan ID from plan reference like "P5"
+        const planId = parseInt(planRef.id.replace('P', ''), 10);
         if (isNaN(planId)) return null;
         try {
           const planRes = await fetch(`/api/plan/${planId}`);
           const planData = await planRes.json();
-          return { id: planId, waves: planData.waves || [] };
+          return { 
+            id: planId, 
+            name: planData.name || `Plan ${planId}`,
+            waves: planData.waves || [] 
+          };
         } catch (e) {
           Logger.warn(`Failed to load plan ${planId}:`, e);
           return null;
@@ -44,9 +48,17 @@ const GanttCore = {
         allWaves: []
       };
 
+      // Create unique wave IDs by prefixing with planId
       plansWithWaves.forEach(plan => {
         (plan.waves || []).forEach(wave => {
-          this.data.allWaves.push({ ...wave, planId: plan.id, planName: plan.name });
+          const uniqueWaveId = `P${plan.id}_${wave.wave_id}`;
+          this.data.allWaves.push({ 
+            ...wave, 
+            original_wave_id: wave.wave_id,
+            wave_id: uniqueWaveId, // Make unique across plans
+            planId: plan.id, 
+            planName: plan.name 
+          });
         });
       });
 
@@ -82,7 +94,9 @@ const GanttCore = {
     if (!minDate) minDate = new Date(now.getTime() - 7 * 86400000);
     if (!maxDate) maxDate = new Date(now.getTime() + 14 * 86400000);
 
-    const padding = 2 * 86400000;
+    // Minimal padding - just 1% of duration
+    const duration = maxDate - minDate;
+    const padding = Math.max(60000, duration * 0.01); // At least 1 minute
     this.timeline = {
       start: new Date(minDate.getTime() - padding),
       end: new Date(maxDate.getTime() + padding),

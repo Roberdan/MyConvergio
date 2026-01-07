@@ -73,12 +73,14 @@ const routes = {
 
       return {
         branch,
-        uncommitted: { staged, unstaged, untracked },
+        staged,
+        unstaged,
+        untracked,
         commits,
         totalChanges: staged.length + unstaged.length + untracked.length
       };
     } catch (e) {
-      return { error: e.message, branch: 'unknown', uncommitted: { staged: [], unstaged: [], untracked: [] } };
+      return { error: e.message, branch: 'unknown', staged: [], unstaged: [], untracked: [], commits: [] };
     }
   },
 

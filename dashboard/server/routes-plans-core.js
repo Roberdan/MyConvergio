@@ -18,7 +18,7 @@ const routes = {
         COUNT(CASE WHEN p.status = 'todo' THEN 1 END) as plans_todo,
         COUNT(CASE WHEN p.status = 'doing' THEN 1 END) as plans_doing,
         COUNT(CASE WHEN p.status = 'done' THEN 1 END) as plans_done,
-        COUNT(*) as plans_total
+        COUNT(p.id) as plans_total
       FROM projects pr
       LEFT JOIN plans p ON p.project_id = pr.id
       GROUP BY pr.id

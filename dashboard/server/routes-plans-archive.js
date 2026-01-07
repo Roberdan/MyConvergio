@@ -5,6 +5,44 @@ const fs = require('fs');
 const path = require('path');
 
 const routes = {
+  // Get all archived plans
+  'GET /api/archive/plans': () => {
+    return query(`
+      SELECT id, name, project_id, status, tasks_done, tasks_total,
+             archived_at, archived_path, created_at, completed_at
+      FROM plans
+      WHERE archived_at IS NOT NULL
+      ORDER BY archived_at DESC
+    `);
+  },
+
+  // Get all archived waves
+  'GET /api/archive/waves': () => {
+    return query(`
+      SELECT w.id, w.wave_id, w.name, w.plan_id, w.status,
+             w.tasks_done, w.tasks_total, w.completed_at,
+             p.archived_at, p.archived_path
+      FROM waves w
+      JOIN plans p ON w.plan_id = p.id
+      WHERE p.archived_at IS NOT NULL
+      ORDER BY p.archived_at DESC
+    `);
+  },
+
+  // Get all archived tasks
+  'GET /api/archive/tasks': () => {
+    return query(`
+      SELECT t.id, t.task_id, t.title, t.status, t.priority,
+             t.completed_at, t.duration_minutes,
+             p.id as plan_id, p.name as plan_name,
+             p.archived_at, p.archived_path
+      FROM tasks t
+      JOIN plans p ON t.plan_id = p.id
+      WHERE p.archived_at IS NOT NULL
+      ORDER BY p.archived_at DESC, t.task_id
+    `);
+  },
+
   // Archive a completed plan
   'POST /api/plan/:id/archive': (params) => {
     const planId = parseInt(params.id, 10);

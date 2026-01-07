@@ -184,17 +184,17 @@ executor_complete() {
     executor_log "assistant" "Task ${EXECUTOR_TASK_ID} failed"
   fi
 
-  # Call dashboard API
-  local endpoint="executor/complete"
+  # Call dashboard API - always use /executor/complete with status field
+  local status_value="completed"
   if [ "$success" = "false" ]; then
-    endpoint="executor/failed"
+    status_value="failed"
   fi
 
-  local response=$(curl -s -X POST "${DASHBOARD_API}/project/${EXECUTOR_PROJECT}/task/${EXECUTOR_TASK_ID}/${endpoint}" \
+  local response=$(curl -s -X POST "${DASHBOARD_API}/project/${EXECUTOR_PROJECT}/task/${EXECUTOR_TASK_ID}/executor/complete" \
     -H "Content-Type: application/json" \
     -d "{
       \"session_id\": \"${EXECUTOR_SESSION_ID}\",
-      \"success\": ${success},
+      \"status\": \"${status_value}\",
       \"metadata\": {
         \"completed_at\": \"$(date -Iseconds)\"
       }

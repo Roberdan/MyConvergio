@@ -90,3 +90,70 @@ function formatRelativeTime(date) {
   if (diffDays < 7) return diffDays + 'd ago';
   return date.toLocaleDateString();
 }
+
+// Trigger Settings Modal
+async function showTriggerSettings() {
+  const modal = document.getElementById('triggerModal');
+  if (!modal) return;
+
+  modal.style.display = 'flex';
+  await loadTriggerSettings();
+
+  // Close on overlay click
+  modal.onclick = (e) => {
+    if (e.target === modal) closeTriggerModal();
+  };
+}
+
+function closeTriggerModal() {
+  const modal = document.getElementById('triggerModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function loadTriggerSettings() {
+  const list = document.getElementById('triggerList');
+  if (!list) return;
+
+  list.innerHTML = '<div class="trigger-loading">Loading triggers...</div>';
+
+  try {
+    const res = await fetch(`${API_BASE}/notifications/triggers`);
+    const triggers = await res.json();
+
+    if (!triggers || triggers.length === 0) {
+      list.innerHTML = '<div class="trigger-loading">No triggers configured</div>';
+      return;
+    }
+
+    list.innerHTML = triggers.map(t => {
+      const eventLabel = t.event_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      return `
+        <div class="trigger-item">
+          <div class="trigger-toggle ${t.is_enabled ? 'active' : ''}"
+               onclick="toggleTrigger(${t.id}, this)"
+               data-id="${t.id}"></div>
+          <div class="trigger-info">
+            <div class="trigger-title">${eventLabel}</div>
+            <div class="trigger-description">${t.title_template}</div>
+          </div>
+          <span class="trigger-severity ${t.severity}">${t.severity}</span>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="trigger-loading">Error: ${e.message}</div>`;
+  }
+}
+
+async function toggleTrigger(id, element) {
+  try {
+    const res = await fetch(`${API_BASE}/notifications/triggers/${id}/toggle`, { method: 'POST' });
+    const result = await res.json();
+
+    if (result.success) {
+      element.classList.toggle('active');
+    }
+  } catch (e) {
+    showToast('Failed to toggle trigger', 'error');
+  }
+}

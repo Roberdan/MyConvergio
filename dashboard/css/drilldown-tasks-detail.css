@@ -1,0 +1,253 @@
+/* Task Detail Card */
+.task-detail-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.task-detail-header {
+  padding: 20px;
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border);
+}
+
+.task-detail-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.task-detail-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.thor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.thor-badge.approved {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+
+.thor-badge.pending {
+  background: rgba(247, 147, 26, 0.15);
+  color: var(--orange);
+  border: 1px solid var(--orange);
+}
+
+.task-detail-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.task-detail-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.task-detail-status.done {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--green);
+}
+
+.task-detail-status.in-progress {
+  background: rgba(247, 147, 26, 0.15);
+  color: var(--orange);
+}
+
+.task-detail-status.blocked {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--red);
+}
+
+.task-detail-status.pending {
+  background: rgba(100, 100, 100, 0.15);
+  color: var(--text-muted);
+}
+
+.task-detail-separator {
+  color: var(--text-dim);
+}
+
+.task-detail-id {
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.task-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 20px;
+}
+
+.task-detail-section {
+  background: var(--bg-input);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.task-detail-section.full-width {
+  grid-column: 1 / -1;
+}
+
+.task-detail-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.task-detail-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.task-detail-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-detail-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.task-detail-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.task-detail-value.priority-P0,
+.task-detail-value.priority-P1 {
+  color: var(--red);
+}
+
+.task-detail-value.priority-P2 {
+  color: var(--orange);
+}
+
+.task-detail-value.tokens {
+  font-family: monospace;
+  color: var(--accent);
+}
+
+.task-detail-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-detail-timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.task-detail-timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.task-detail-timeline-dot.start {
+  background: var(--green);
+}
+
+.task-detail-timeline-dot.end {
+  background: var(--accent);
+}
+
+.task-detail-timeline-dot.duration {
+  background: var(--orange);
+}
+
+.task-detail-timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.task-detail-timeline-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.task-detail-timeline-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.task-detail-files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-detail-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--bg-card);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.task-file-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.task-file-path {
+  font-family: monospace;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-detail-notes {
+  padding: 12px;
+  background: var(--bg-card);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+

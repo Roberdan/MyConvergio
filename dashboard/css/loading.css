@@ -1,0 +1,246 @@
+/* Loading States - Consolidated Styles */
+
+/* Base loading text */
+.loading,
+.project-loading,
+.plan-loading,
+.waves-loading,
+.bugs-loading,
+.issues-loading,
+.git-loading,
+.wave-loading,
+.branch-loading,
+.conversation-loading,
+.diff-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Spinner animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Add spinner before loading text */
+.loading::before,
+.project-loading::before,
+.plan-loading::before,
+.waves-loading::before,
+.bugs-loading::before,
+.issues-loading::before,
+.git-loading::before,
+.wave-loading::before,
+.branch-loading::before,
+.conversation-loading::before,
+.diff-loading::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Larger loading for main content areas */
+.loading-lg::before {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+}
+
+/* Small inline loading */
+.loading-sm,
+.loading-inline {
+  display: inline-flex;
+  padding: 8px;
+  font-size: 11px;
+  gap: 6px;
+}
+
+.loading-sm::before,
+.loading-inline::before {
+  width: 12px;
+  height: 12px;
+  border-width: 1.5px;
+}
+
+/* Pulse animation for subtle loading indication */
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.loading-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-input) 0%,
+    var(--bg-hover) 50%,
+    var(--bg-input) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+  height: 12px;
+  width: 100%;
+  margin: 4px 0;
+}
+
+.skeleton-text-short {
+  height: 12px;
+  width: 60%;
+}
+
+.skeleton-title {
+  height: 18px;
+  width: 80%;
+  margin-bottom: 8px;
+}
+
+.skeleton-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.skeleton-card {
+  padding: 16px;
+  border-radius: 8px;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(var(--bg-rgb), 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+/* Empty states */
+.empty,
+.cc-empty,
+.wave-empty,
+.git-empty,
+.bugs-empty,
+.no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 20px;
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 24px;
+  opacity: 0.5;
+  margin-bottom: 4px;
+}
+
+/* Error states */
+.error,
+.load-error,
+.branch-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: var(--red);
+  font-size: 13px;
+  text-align: center;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+}
+
+.error::before,
+.load-error::before {
+  content: '!';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--red);
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Button loading state */
+button.loading,
+.btn.loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+button.loading::after,
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Progress bar loading */
+.progress-loading {
+  height: 4px;
+  background: var(--bg-input);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-loading::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: var(--accent);
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}

@@ -2,64 +2,56 @@
 
 function updateNavCounts() {
   const kanbanCount = document.getElementById('navKanbanCount');
-  const wavesCount = document.getElementById('navWavesCount');
-  const issuesCount = document.getElementById('navIssuesCount');
+  const tasksCount = document.getElementById('navTasksCount');
 
-  if (kanbanCount && data.waves) {
-    const activeWaves = data.waves.filter(w => w.status === 'in_progress').length;
-    kanbanCount.textContent = activeWaves > 0 ? activeWaves : '';
-  }
-
-  if (wavesCount && data.waves) {
-    wavesCount.textContent = data.waves.length > 0 ? data.waves.length : '';
-  }
-
-  if (issuesCount && data.github?.issues) {
-    const count = data.github.issues.length;
-    issuesCount.textContent = count > 0 ? count : '';
+  if (tasksCount && data.metrics?.throughput) {
+    const done = data.metrics.throughput.done || 0;
+    const total = data.metrics.throughput.total || 0;
+    tasksCount.textContent = total > 0 ? `${done}/${total}` : '';
   }
 }
 
 function render() {
-  // Header
-  document.getElementById('projectName').textContent = data.meta.project;
-  document.getElementById('planLabel').textContent = data.meta.project;
-  document.getElementById('throughputBadge').textContent = data.metrics.throughput.percent + '%';
+  const statsRow = document.getElementById('statsRow');
+  const emptyState = document.getElementById('emptyState');
 
-  // Stats
-  document.getElementById('tasksDone').textContent = `${data.metrics.throughput.done}/${data.metrics.throughput.total}`;
-  document.getElementById('tokensUsed').textContent = data.tokens?.total ? data.tokens.total.toLocaleString() : 'n/d';
-  document.getElementById('avgTokensPerTask').textContent = data.tokens?.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
-  const wavesDone = data.waves.filter(w => w.status === 'done').length;
-  document.getElementById('wavesStatus').textContent = `${wavesDone}/${data.waves.length}`;
-  document.getElementById('progressPercent').textContent = data.metrics.throughput.percent + '%';
-
-  // Epoch bar - only show if there are waves
-  const waveIndicator = document.getElementById('waveIndicator');
-  if (data.waves && data.waves.length > 0) {
-    const currentWave = data.waves.find(w => w.status === 'in_progress') || data.waves[data.waves.length - 1];
-    if (currentWave) {
-      document.getElementById('currentWave').textContent = currentWave.id + ' - ' + currentWave.name;
-    }
-
-    const start = data.timeline?.start ? data.timeline.start.replace('T', ' ').slice(0, 16) : '-';
-    const eta = data.timeline?.eta ? data.timeline.eta.replace('T', ' ').slice(0, 16) : '-';
-    document.getElementById('epochDates').innerHTML = start + ' &#8212; ' + eta;
-    document.getElementById('countdown').textContent = data.timeline?.remaining ? data.timeline.remaining + ' left' : '-';
-
-    const totalTasks = data.metrics.throughput.total;
-    const doneTasks = data.metrics.throughput.done;
-    const epochProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-    document.getElementById('epochFill').style.width = epochProgress + '%';
-
-    if (waveIndicator) waveIndicator.style.display = '';
-  } else {
-    // No waves - hide indicator
-    if (waveIndicator) waveIndicator.style.display = 'none';
-    document.getElementById('currentWave').textContent = '-';
-    document.getElementById('countdown').textContent = '-';
-    document.getElementById('epochFill').style.width = '0%';
+  // Check if we have valid data
+  if (!data || !data.metrics || !data.metrics.throughput) {
+    // Show empty state
+    if (statsRow) statsRow.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'flex';
+    return;
   }
+
+  // Show stats row and hide empty state
+  if (statsRow) statsRow.style.display = 'flex';
+  if (emptyState) emptyState.style.display = 'none';
+
+  // Helper to safely set text content
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  // Header
+  setText('projectName', data.meta.project);
+  setText('planLabel', data.meta.project);
+  setText('throughputBadge', data.metrics.throughput.percent + '%');
+
+  // Stats with better formatting
+  const done = data.metrics.throughput.done || 0;
+  const total = data.metrics.throughput.total || 0;
+  setText('tasksDone', total > 0 ? `${done}/${total}` : 'No tasks');
+
+  const tokensTotal = data.tokens?.total;
+  setText('tokensUsed', tokensTotal ? tokensTotal.toLocaleString() : 'No data');
+
+  const avgTokens = data.tokens?.avgPerTask;
+  setText('avgTokensPerTask', avgTokens ? avgTokens.toLocaleString() : 'No data');
+
+  setText('progressPercent', total > 0 ? data.metrics.throughput.percent + '%' : '0%');
+
+  // Charts only if there are waves
 
   // Git
   if (data.git) {
@@ -73,9 +65,9 @@ function render() {
   updateHealthStatus();
   renderIssuesPanel();
   renderTokensTab();
-  // Only render Gantt in dashboard view, not in waves drilldown view
-  if (currentView === 'dashboard' || currentView === 'control-center') {
-    renderWavesGantt();
+  // Only render Gantt in dashboard view
+  if (currentView === 'dashboard') {
+    GanttView.render();
   }
   updateNavCounts();
 
@@ -85,11 +77,12 @@ function render() {
   }
 
   // Initialize bug list
-  if (typeof initBugList === 'function') {
-    initBugList();
+  if (typeof initBugTracker === 'function') {
+    initBugTracker();
   }
 
   // Charts
+  destroyCharts();
   if (chartMode === 'tokens') {
     renderTokenChart();
   } else {
@@ -201,37 +194,50 @@ function renderChart() {
 
 function renderAgents() {
   const grid = document.getElementById('agentsGrid');
-  grid.innerHTML = data.contributors.map((c, i) => {
+  if (!grid) return;
+  
+  const contributors = data?.contributors || [];
+  if (contributors.length === 0) {
+    grid.innerHTML = '<div class="cc-empty">No agents</div>';
+    return;
+  }
+  
+  grid.innerHTML = contributors.map((c, i) => {
     const isActive = c.status === 'active';
+    const statusClass = isActive ? 'active' : c.status === 'idle' ? 'idle' : 'offline';
+    const statusDot = isActive ? '●' : '○';
     return `
-      <div class="trader-card">
+      <div class="trader-card ${statusClass}">
         <div class="trader-top">
           <div class="trader-avatar">${c.avatar}</div>
           <div class="trader-info">
             <div class="trader-name">${c.name}</div>
-            <div class="trader-followers">${c.tasks}/100</div>
+            <div class="trader-role">${c.role || 'Agent'}</div>
           </div>
-          <div class="trader-star ${isActive ? '' : 'inactive'}">&#9733;</div>
+          <div class="trader-status-indicator ${statusClass}" title="${c.status}">${statusDot}</div>
         </div>
-        <div class="trader-profit">+${c.tasks.toLocaleString()} tasks</div>
+        <div class="trader-stats-inline">
+          <div class="trader-stat-inline">
+            <span class="stat-icon">✓</span>
+            <span class="stat-value">${c.tasks || 0}</span>
+            <span class="stat-label">tasks</span>
+          </div>
+          <div class="trader-stat-inline">
+            <span class="stat-icon">⏱</span>
+            <span class="stat-value">${c.totalTime || '-'}</span>
+          </div>
+          <div class="trader-stat-inline">
+            <span class="stat-icon">◎</span>
+            <span class="stat-value">${c.tokens ? (c.tokens / 1000).toFixed(1) + 'k' : '-'}</span>
+          </div>
+        </div>
+        ${isActive && c.currentTask ? `
+          <div class="trader-current-task">
+            <span class="current-label">Working on:</span>
+            <span class="current-value">${c.currentTask}</span>
+          </div>
+        ` : ''}
         <div class="trader-chart" id="spark${i}"></div>
-        <div class="trader-stats">
-          <div class="trader-stat">
-            <div class="trader-stat-label">Status</div>
-            <div class="trader-stat-value">${c.status}</div>
-          </div>
-          <div class="trader-stat">
-            <div class="trader-stat-label">Current</div>
-            <div class="trader-stat-value">${c.currentTask || '-'}</div>
-          </div>
-          <div class="trader-stat">
-            <div class="trader-stat-label">Efficiency</div>
-            <div class="trader-stat-value">${c.efficiency ? c.efficiency + '%' : '-'}</div>
-          </div>
-        </div>
-        <div class="trader-actions">
-          <button class="trader-btn mock" onclick="showAgentDetails('${c.id}')">Details</button>
-        </div>
       </div>
     `;
   }).join('');
@@ -308,3 +314,38 @@ document.querySelector('.max-btn')?.addEventListener('click', () => {
     window.open(data.github.pr.url, '_blank');
   }
 });
+
+async function loadAgentsView() {
+  const gridView = document.getElementById('agentsGridView');
+  if (!gridView || !data.contributors) {
+    if (gridView) gridView.innerHTML = '<div class="agents-empty">No agent data available</div>';
+    return;
+  }
+  gridView.innerHTML = data.contributors.map((c, i) => `
+    <div class="agent-card">
+      <div class="agent-header">
+        <div class="agent-avatar">${c.avatar || '🤖'}</div>
+        <div class="agent-info">
+          <div class="agent-name">${c.name}</div>
+          <div class="agent-status ${c.status}">${c.status}</div>
+        </div>
+      </div>
+      <div class="agent-stats">
+        <div class="agent-stat">
+          <span class="agent-stat-value">${c.tasks}</span>
+          <span class="agent-stat-label">Tasks</span>
+        </div>
+        <div class="agent-stat">
+          <span class="agent-stat-value">${c.efficiency || '-'}%</span>
+          <span class="agent-stat-label">Efficiency</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showAgentDetails(agentId) {
+  const agent = data.contributors?.find(c => c.id === agentId);
+  if (!agent) return;
+  showToast(`Agent: ${agent.name}\nRole: ${agent.role || 'N/A'}\nTasks: ${agent.tasks}\nStatus: ${agent.status}\nEfficiency: ${agent.efficiency || '-'}%`, 'info');
+}

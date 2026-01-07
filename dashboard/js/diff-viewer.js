@@ -196,7 +196,9 @@ async function checkFileChanged(filePath) {
       showToast('File changed, refreshing...', 'info');
       openFileDiff(filePath); // Reload the diff
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    Logger.debug('File watcher error (non-critical):', e);
+  }
 }
 
 function renderGitDiff(container, diff, language) {

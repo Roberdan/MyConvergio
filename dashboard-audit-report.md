@@ -749,7 +749,7 @@ Screenshots generated during audit:
 6. `responsive-laptop.png` - 1024x768 viewport
 7. `responsive-desktop.png` - 1440x900 viewport
 
-**Location:** `/Users/roberdan/GitHub/MyConvergio/dashboard/test-results/`
+**Location:** `/path/to/MyConvergio/dashboard/test-results/`
 
 ---
 

@@ -48,7 +48,7 @@ echo 'source ~/.claude/scripts/executor-tracking.sh' >> ~/.zshrc
 ### 3. Avvia Dashboard
 
 ```bash
-cd ~/GitHub/MyConvergio/dashboard
+cd /path/to/MyConvergio/dashboard
 node server.js &
 ```
 
@@ -390,7 +390,7 @@ fi
 curl http://localhost:31415/health
 
 # If not, start it
-cd ~/GitHub/MyConvergio/dashboard
+cd /path/to/MyConvergio/dashboard
 node server.js &
 ```
 

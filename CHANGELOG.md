@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Self-Contained Repository**: Repository now fully self-contained and publishable
   - Removed all external configuration dependencies
-  - Removed all hardcoded author-specific paths (`/Users/roberdan/` → generic paths)
+  - Removed all hardcoded author-specific paths (e.g. `/Users/NAME/` → generic paths)
   - No SmartClaude.md or external file references
 
 - **.claude/CLAUDE.md**: Refactored using Reference Model
@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CONSTITUTION > EXECUTION_DISCIPLINE > Values > Agent Definitions > User Instructions
 
 ### Fixed
-- Removed 27+ hardcoded `/Users/roberdan/` paths across 10 files
+- Removed 27+ hardcoded `/Users/NAME/` paths across 10 files
 - Fixed all test documentation paths to use relative/generic paths
 
 ## [3.7.0] - 2026-01-02

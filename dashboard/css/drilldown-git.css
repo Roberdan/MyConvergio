@@ -1,0 +1,78 @@
+/* Git Info Right Panel */
+.git-info { padding: 8px 0; }
+
+.git-branch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border-radius: 8px;
+}
+
+.git-branch-icon { font-size: 16px; }
+
+.git-branch-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green);
+  font-family: monospace;
+}
+
+.git-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  margin-top: 12px;
+}
+
+.git-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border-radius: 6px;
+}
+
+.git-stat-value {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.git-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  order: -1;
+}
+
+.git-files {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.git-file {
+  font-size: 11px;
+  padding: 4px 0;
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+}
+
+/* Git Tree */
+.git-tree { margin-bottom: 12px; }
+
+.git-count {
+  background: var(--accent);
+  color: white;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 10px;
+}
+

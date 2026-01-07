@@ -1,6 +1,6 @@
 // Executor Session Monitoring and Conversation Logs Routes
 
-const { query } = require('./db');
+const { query, escapeSQL } = require('./db');
 
 const routes = {
   // Get active executor sessions for all tasks
@@ -31,7 +31,7 @@ const routes = {
       FROM tasks t
       JOIN waves w ON t.wave_id = w.wave_id AND t.project_id = w.project_id
       LEFT JOIN plans p ON w.plan_id = p.id
-      WHERE t.project_id = '${params.projectId}' AND t.task_id = '${params.taskId}'
+      WHERE t.project_id = '${escapeSQL(params.projectId)}' AND t.task_id = '${escapeSQL(params.taskId)}'
       LIMIT 1
     `);
 
@@ -60,7 +60,7 @@ const routes = {
     // Get task ID from task_id string
     const tasks = query(`
       SELECT id FROM tasks
-      WHERE project_id = '${params.projectId}' AND task_id = '${params.taskId}'
+      WHERE project_id = '${escapeSQL(params.projectId)}' AND task_id = '${escapeSQL(params.taskId)}'
       LIMIT 1
     `);
 
@@ -99,7 +99,7 @@ const routes = {
     // Get task ID
     const tasks = query(`
       SELECT id, executor_session_id FROM tasks
-      WHERE project_id = '${params.projectId}' AND task_id = '${params.taskId}'
+      WHERE project_id = '${escapeSQL(params.projectId)}' AND task_id = '${escapeSQL(params.taskId)}'
       LIMIT 1
     `);
 
@@ -175,8 +175,8 @@ const routes = {
         t.title AS task_title
       FROM conversation_logs c
       JOIN tasks t ON c.task_id = t.id
-      WHERE t.project_id = '${params.projectId}'
-        AND t.wave_id = '${params.waveId}'
+      WHERE t.project_id = '${escapeSQL(params.projectId)}'
+        AND t.wave_id = '${escapeSQL(params.waveId)}'
       ORDER BY c.timestamp ASC
     `);
   },
@@ -194,7 +194,7 @@ const routes = {
           executor_started_at = datetime('now'),
           executor_last_activity = datetime('now'),
           executor_status = 'running'
-      WHERE project_id = '${params.projectId}' AND task_id = '${params.taskId}'
+      WHERE project_id = '${escapeSQL(params.projectId)}' AND task_id = '${escapeSQL(params.taskId)}'
     `);
 
     return { success: true };
@@ -205,7 +205,7 @@ const routes = {
     query(`
       UPDATE tasks
       SET executor_last_activity = datetime('now')
-      WHERE project_id = '${params.projectId}' AND task_id = '${params.taskId}'
+      WHERE project_id = '${escapeSQL(params.projectId)}' AND task_id = '${escapeSQL(params.taskId)}'
     `);
 
     return { success: true };
@@ -220,7 +220,7 @@ const routes = {
       UPDATE tasks
       SET executor_last_activity = datetime('now'),
           executor_status = '${status}'
-      WHERE project_id = '${params.projectId}' AND task_id = '${params.taskId}'
+      WHERE project_id = '${escapeSQL(params.projectId)}' AND task_id = '${escapeSQL(params.taskId)}'
     `);
 
     return { success: true };
@@ -233,7 +233,7 @@ const routes = {
     // Get task ID from task_id string
     const tasks = query(`
       SELECT id FROM tasks
-      WHERE project_id = '${params.projectId}' AND task_id = '${params.taskId}'
+      WHERE project_id = '${escapeSQL(params.projectId)}' AND task_id = '${escapeSQL(params.taskId)}'
       LIMIT 1
     `);
 
@@ -288,7 +288,7 @@ const routes = {
     // Get task ID from task_id string
     const tasks = query(`
       SELECT id FROM tasks
-      WHERE project_id = '${params.projectId}' AND task_id = '${params.taskId}'
+      WHERE project_id = '${escapeSQL(params.projectId)}' AND task_id = '${escapeSQL(params.taskId)}'
       LIMIT 1
     `);
 

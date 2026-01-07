@@ -269,7 +269,6 @@ async function loadMoreCommits() {
     const result = await res.json();
 
     if (result.error) {
-      console.log('Failed to load commits:', result.error);
       gitGraphState.hasMore = false;
     } else {
       gitGraphState.commits = [...gitGraphState.commits, ...result.commits];

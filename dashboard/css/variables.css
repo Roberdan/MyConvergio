@@ -21,9 +21,13 @@
   --red: #ef4444;
   --purple: #8b5cf6;
   --accent: #8b5cf6;
-  --chart-line: #f7931a;
-  --chart-fill: rgba(247, 147, 26, 0.1);
-}
+   --chart-line: #f7931a;
+   --chart-fill: rgba(247, 147, 26, 0.1);
+   --bg-hover: rgba(139, 92, 246, 0.1);
+   --accent-hover: rgba(139, 92, 246, 0.2);
+   --shadow: rgba(0, 0, 0, 0.3);
+   --shadow-light: rgba(0, 0, 0, 0.1);
+ }
 
 /* Theme: Midnight (Dark - Navy/Teal) */
 [data-theme="midnight"] {
@@ -45,9 +49,13 @@
   --red: #f43f5e;
   --purple: #38bdf8;
   --accent: #38bdf8;
-  --chart-line: #2dd4bf;
-  --chart-fill: rgba(45, 212, 191, 0.1);
-}
+   --chart-line: #2dd4bf;
+   --chart-fill: rgba(45, 212, 191, 0.1);
+   --bg-hover: rgba(56, 189, 248, 0.1);
+   --accent-hover: rgba(56, 189, 248, 0.2);
+   --shadow: rgba(0, 0, 0, 0.3);
+   --shadow-light: rgba(0, 0, 0, 0.1);
+ }
 
 /* Theme: Frost (Light - Cool Gray/Blue) */
 [data-theme="frost"] {
@@ -69,9 +77,13 @@
   --red: #dc2626;
   --purple: #6366f1;
   --accent: #3b82f6;
-  --chart-line: #3b82f6;
-  --chart-fill: rgba(59, 130, 246, 0.1);
-}
+   --chart-line: #3b82f6;
+   --chart-fill: rgba(59, 130, 246, 0.1);
+   --bg-hover: rgba(59, 130, 246, 0.05);
+   --accent-hover: rgba(59, 130, 246, 0.1);
+   --shadow: rgba(0, 0, 0, 0.1);
+   --shadow-light: rgba(0, 0, 0, 0.05);
+ }
 
 /* Theme: Dawn (Light - Warm Cream/Amber) */
 [data-theme="dawn"] {
@@ -93,9 +105,13 @@
   --red: #dc2626;
   --purple: #d97706;
   --accent: #f59e0b;
-  --chart-line: #f59e0b;
-  --chart-fill: rgba(245, 158, 11, 0.1);
-}
+   --chart-line: #f59e0b;
+   --chart-fill: rgba(245, 158, 11, 0.1);
+   --bg-hover: rgba(245, 158, 11, 0.05);
+   --accent-hover: rgba(245, 158, 11, 0.1);
+   --shadow: rgba(0, 0, 0, 0.08);
+   --shadow-light: rgba(0, 0, 0, 0.04);
+ }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 

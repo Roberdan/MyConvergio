@@ -1,0 +1,295 @@
+/* Bug Dropdown Component */
+
+.bug-dropdown {
+  position: relative;
+}
+
+.bug-dropdown-toggle {
+  position: relative;
+  padding: 8px 12px;
+  background: var(--bg-secondary, #f5f5f5);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bug-dropdown-toggle:hover {
+  background: var(--bg-hover, #e8e8e8);
+  border-color: var(--accent, #007bff);
+}
+
+.bug-dropdown-toggle:focus-visible {
+  outline: 2px solid var(--accent, #007bff);
+  outline-offset: 2px;
+}
+
+.bug-dropdown-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.bug-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--color-danger, #dc3545);
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+}
+
+.bug-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 400px;
+  max-height: 500px;
+  margin-top: 8px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1500; /* Dropdown layer - above menus (1100), below modals (2000) */
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bug-dropdown-menu.is-open {
+  display: flex;
+}
+
+.bug-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color, #ddd);
+  background: var(--bg-secondary, #f9f9f9);
+}
+
+.bug-dropdown-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.add-bug-btn {
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.add-bug-btn:hover {
+  opacity: 1;
+}
+
+.add-bug-btn:focus-visible {
+  outline: 2px solid var(--accent, #007bff);
+  outline-offset: 2px;
+}
+
+.bug-list-container {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 350px;
+}
+
+.bug-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bug-list-empty {
+  padding: 12px 16px;
+  color: var(--text-secondary, #999);
+  font-size: 13px;
+  text-align: center;
+}
+
+.bug-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color, #eee);
+  align-items: flex-start;
+  transition: background 0.2s ease;
+}
+
+.bug-item:hover {
+  background: var(--bg-hover, #f9f9f9);
+}
+
+.bug-item.is-done {
+  opacity: 0.6;
+}
+
+.bug-item.is-done .bug-title {
+  text-decoration: line-through;
+  color: var(--text-secondary, #999);
+}
+
+.bug-priority {
+  flex-shrink: 0;
+}
+
+.priority-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.priority-p0 {
+  background: #dc3545;
+  color: white;
+}
+
+.priority-p1 {
+  background: #fd7e14;
+  color: white;
+}
+
+.priority-p2 {
+  background: #0d6efd;
+  color: white;
+}
+
+.bug-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bug-checkbox {
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.bug-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline;
+  color: var(--text-primary, #333);
+}
+
+.bug-meta {
+  font-size: 11px;
+  color: var(--text-secondary, #999);
+}
+
+.bug-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.bug-action-btn {
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  font-size: 12px;
+  transition: opacity 0.2s ease;
+}
+
+.bug-action-btn:hover {
+  opacity: 1;
+}
+
+.bug-action-btn:focus-visible {
+  outline: 2px solid var(--accent, #007bff);
+  outline-offset: -2px;
+}
+
+.bug-dropdown-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color, #ddd);
+  background: var(--bg-secondary, #f9f9f9);
+}
+
+.archive-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-secondary, #f0f0f0);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.archive-btn:hover {
+  background: var(--accent-hover, #0056b3);
+  color: white;
+  border-color: var(--accent, #007bff);
+}
+
+.archive-btn:focus-visible {
+  outline: 2px solid var(--accent, #007bff);
+  outline-offset: 2px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 767px) {
+  .bug-dropdown-menu {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 60vh;
+    border-radius: 16px 16px 0 0;
+    z-index: 2000;
+  }
+
+  .bug-item {
+    padding: 10px 12px;
+  }
+
+  .bug-list-container {
+    max-height: calc(60vh - 120px);
+  }
+}
+
+/* Scrollbar Styling */
+.bug-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bug-list-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bug-list-container::-webkit-scrollbar-thumb {
+  background: var(--border-color, #ddd);
+  border-radius: 3px;
+}
+
+.bug-list-container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary, #999);
+}

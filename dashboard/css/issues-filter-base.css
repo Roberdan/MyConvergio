@@ -1,0 +1,210 @@
+/**
+ * Issues & Bugs Filter Base Styles
+ * Search, filter, and sort functionality for GitHub issues and bugs
+ */
+
+/* Filter Container */
+.issues-filter-container {
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-color, #eee);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Search Bar */
+.filter-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filter-search-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 2px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #333);
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.filter-search-input:focus {
+  outline: none;
+  border-color: var(--accent, #007bff);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.filter-search-input::placeholder {
+  color: var(--text-secondary, #999);
+}
+
+.filter-search-btn {
+  padding: 10px 16px;
+  background: var(--accent, #007bff);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.filter-search-btn:hover {
+  background: var(--accent-hover, #0056b3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.filter-search-btn:active {
+  transform: translateY(0);
+}
+
+/* Filter Controls */
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #333);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 36px;
+  min-width: 140px;
+}
+
+.filter-select:hover {
+  border-color: var(--accent, #007bff);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent, #007bff);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.filter-reset-btn {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--accent, #007bff);
+  border: 1px solid var(--accent, #007bff);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-height: 36px;
+  margin-top: auto;
+}
+
+.filter-reset-btn:hover {
+  background: var(--accent, #007bff);
+  color: white;
+}
+
+/* Results Info */
+.filter-results-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-color, #eee);
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#resultsCount {
+  font-weight: 500;
+  color: var(--text-primary, #333);
+}
+
+.filter-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--bg-secondary, #f0f0f0);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-primary, #333);
+}
+
+.tag-remove {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #999);
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.tag-remove:hover {
+  color: var(--accent, #007bff);
+}
+
+/* Results Container */
+#issuesFilterResults {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.filter-no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary, #666);
+}
+
+.filter-no-results p {
+  margin: 8px 0;
+}
+
+.filter-suggestion {
+  font-size: 12px;
+  color: var(--text-secondary, #999);
+}
+

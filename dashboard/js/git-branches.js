@@ -11,6 +11,11 @@ async function showBranchMenu() {
     return;
   }
 
+  // Close other dropdowns when opening branch menu
+  if (typeof closeAllDropdowns === 'function') {
+    closeAllDropdowns('gitBranchList');
+  }
+
   branchList.innerHTML = '<div class="git-loading">Loading branches...</div>';
   branchList.style.display = 'block';
 

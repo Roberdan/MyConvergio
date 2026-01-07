@@ -4,12 +4,13 @@
 let draggedPlanId = null;
 let draggedFromStatus = null;
 let kanbanDragInitialized = false;
+let trashedPlans = []; // Local trash storage
 
 function initKanbanDragDrop() {
   // Prevent duplicate listeners
   if (kanbanDragInitialized) return;
 
-  ['todo', 'doing', 'done'].forEach(status => {
+  ['todo', 'doing', 'done', 'trash'].forEach(status => {
     const container = document.getElementById(`kanban${status.charAt(0).toUpperCase() + status.slice(1)}`);
     const column = document.querySelector(`.cc-kanban-column[data-status="${status}"]`);
 
@@ -24,9 +25,24 @@ function initKanbanDragDrop() {
       e.stopPropagation();
       container.classList.remove('drag-over');
 
-      console.log('Drop event:', { draggedPlanId, draggedFromStatus, targetStatus: status });
-
       if (!draggedPlanId || draggedFromStatus === status) {
+        draggedPlanId = null;
+        draggedFromStatus = null;
+        return;
+      }
+
+      // Handle trash drop
+      if (status === 'trash') {
+        await movePlanToTrash(draggedPlanId, draggedFromStatus);
+        draggedPlanId = null;
+        draggedFromStatus = null;
+        // Don't reload - we're using local state for trash
+        return;
+      }
+
+      // Handle restore from trash
+      if (draggedFromStatus === 'trash') {
+        await restorePlanFromTrash(draggedPlanId, status);
         draggedPlanId = null;
         draggedFromStatus = null;
         return;
@@ -98,11 +114,9 @@ function initKanbanDragDrop() {
   });
 
   kanbanDragInitialized = true;
-  console.log('Kanban drag & drop initialized');
 }
 
 function handleKanbanDragStart(e, planId, status) {
-  console.log('Drag start:', { planId, status });
   draggedPlanId = planId;
   draggedFromStatus = status;
   if (e.dataTransfer) {
@@ -124,16 +138,20 @@ function handleKanbanDragEnd(e) {
 function renderKanban(kanban) {
   // Update status indicator
   const statusDot = document.getElementById('ccStatusDot');
-  const statusText = document.getElementById('ccStatusText');
+  const statusCount = document.getElementById('ccStatusCount');
+  const statusContainer = document.getElementById('systemStatusCompact');
   const activePlans = kanban.doing?.length || 0;
 
-  if (statusDot && statusText) {
+  if (statusDot && statusCount) {
+    statusCount.textContent = activePlans;
     if (activePlans > 0) {
       statusDot.style.animation = 'pulse 2s infinite';
-      statusText.textContent = `${activePlans} MISSION${activePlans > 1 ? 'S' : ''} IN FLIGHT`;
+      statusDot.classList.add('active');
+      statusContainer.title = `${activePlans} mission${activePlans > 1 ? 's' : ''} in flight`;
     } else {
       statusDot.style.animation = 'none';
-      statusText.textContent = 'ALL SYSTEMS NOMINAL';
+      statusDot.classList.remove('active');
+      statusContainer.title = 'All systems nominal';
     }
   }
 
@@ -159,13 +177,18 @@ function renderKanban(kanban) {
     container.innerHTML = plans.map(plan => {
       const taskInfo = plan.tasksTotal ? `${plan.tasksDone}/${plan.tasksTotal}` : '0/0';
       const statusDotClass = plan.isRunning ? 'running' : '';
+      const isClickable = status !== 'trash'; // Allow loading from any column
+      const clickHandler = isClickable ? `onclick="activatePlanAndNavigate('${plan.planId}', '${plan.projectId}')"` : '';
+      const clickableClass = isClickable ? 'clickable' : '';
 
       return `
-        <div class="cc-plan-card"
+        <div class="cc-plan-card ${clickableClass}"
              draggable="true"
-             ondragstart="handleKanbanDragStart(event, ${plan.planId}, '${status}')"
+             data-plan-id="${plan.planId}"
+             data-project-id="${plan.projectId}"
+             ondragstart="handleKanbanDragStart(event, '${plan.planId}', '${status}')"
              ondragend="handleKanbanDragEnd(event)"
-             onclick="activatePlanAndNavigate(${plan.planId}, '${plan.projectId}')">
+             ${clickHandler}>
           <div class="cc-plan-project">${plan.project}</div>
           <div class="cc-plan-name">${plan.name}</div>
           <div class="cc-plan-progress">
@@ -235,19 +258,6 @@ function updateControlCenterGauges(kanban) {
   }
 }
 
-async function activatePlanAndNavigate(planId, projectId) {
-  // First select the project
-  if (projectId && typeof selectProject === 'function') {
-    await selectProject(projectId);
-  }
-  // Then load the plan details
-  if (typeof loadPlanDetails === 'function') {
-    await loadPlanDetails(planId);
-  }
-  // Navigate to dashboard
-  showView('dashboard');
-}
-
 // Status indicator functions
 function toggleStatusDropdown() {
   const dropdown = document.getElementById('ccStatusDropdown');
@@ -306,3 +316,207 @@ function updateSystemStatus(kanban) {
     // Default is green (no class added)
   }
 }
+
+// Trash Management Functions
+async function movePlanToTrash(planId, fromStatus) {
+  // Find the plan card element to get its data
+  const cards = document.querySelectorAll('.cc-plan-card');
+  let planData = null;
+  let cardElement = null;
+  
+  cards.forEach(card => {
+    const cardPlanId = card.getAttribute('data-plan-id');
+    if (cardPlanId == planId) {
+      cardElement = card;
+      planData = {
+        planId: planId,
+        projectId: card.getAttribute('data-project-id'),
+        project: card.querySelector('.cc-plan-project')?.textContent || 'Unknown',
+        name: card.querySelector('.cc-plan-name')?.textContent || 'Unknown',
+        fromStatus: fromStatus
+      };
+    }
+  });
+
+  if (planData) {
+    trashedPlans.push(planData);
+    showToast(`Plan "${planData.name}" moved to trash`, 'warning');
+    
+    // Remove card from DOM immediately (don't reload to avoid duplicates)
+    if (cardElement) {
+      cardElement.remove();
+    }
+    
+    // Update count in original column
+    const countEl = document.getElementById(`kanban${fromStatus.charAt(0).toUpperCase() + fromStatus.slice(1)}Count`);
+    if (countEl) {
+      const currentCount = parseInt(countEl.textContent) || 0;
+      countEl.textContent = Math.max(0, currentCount - 1);
+    }
+    
+    renderTrashColumn();
+  }
+}
+
+async function restorePlanFromTrash(planId, toStatus) {
+  const planIndex = trashedPlans.findIndex(p => p.planId == planId);
+  if (planIndex === -1) return;
+
+  const plan = trashedPlans[planIndex];
+  
+  try {
+    showToast(`Restoring plan...`, 'info');
+    const res = await fetch(`${API_BASE}/plan/${planId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: toStatus })
+    });
+    const result = await res.json();
+
+    if (result.success) {
+      trashedPlans.splice(planIndex, 1);
+      showToast(`Plan "${plan.name}" restored to ${toStatus}`, 'success');
+      await loadKanban();
+      renderTrashColumn();
+    } else {
+      showToast(result.error || 'Failed to restore plan', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to restore plan: ' + err.message, 'error');
+  }
+}
+
+function renderTrashColumn() {
+  const container = document.getElementById('kanbanTrash');
+  const countEl = document.getElementById('kanbanTrashCount');
+  const emptyBtn = document.getElementById('emptyTrashBtn');
+
+  if (!container) return;
+
+  if (countEl) countEl.textContent = trashedPlans.length;
+  if (emptyBtn) emptyBtn.style.display = trashedPlans.length > 0 ? 'block' : 'none';
+
+  if (trashedPlans.length === 0) {
+    container.innerHTML = '<div class="cc-empty">🗑️ Drag plans here to delete</div>';
+    return;
+  }
+
+  container.innerHTML = trashedPlans.map(plan => `
+    <div class="cc-plan-card"
+         draggable="true"
+         ondragstart="handleKanbanDragStart(event, ${plan.planId}, 'trash')"
+         ondragend="handleKanbanDragEnd(event)">
+      <div class="cc-plan-project">${plan.project}</div>
+      <div class="cc-plan-name">${plan.name}</div>
+      <div class="cc-plan-meta">
+        <span class="cc-plan-tasks">Was: ${plan.fromStatus}</span>
+        <span class="cc-plan-status">🗑️</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function emptyTrash() {
+  if (trashedPlans.length === 0) {
+    showToast('Trash is already empty', 'info');
+    return;
+  }
+
+  const confirmed = confirm(`Permanently delete ${trashedPlans.length} plan(s)? This cannot be undone.`);
+  if (!confirmed) return;
+
+  showToast('Deleting plans...', 'info');
+
+  let deleted = 0;
+  let failed = 0;
+  const projectsToCheck = new Set();
+
+  for (const plan of trashedPlans) {
+    try {
+      const res = await fetch(`${API_BASE}/plan/${plan.planId}`, {
+        method: 'DELETE'
+      });
+      const result = await res.json();
+      
+      if (result.success) {
+        deleted++;
+        // Track which projects need to be checked for emptiness
+        if (plan.projectId) {
+          projectsToCheck.add(plan.projectId);
+        }
+      } else {
+        failed++;
+        console.error('Failed to delete plan:', plan.planId, result.error);
+      }
+    } catch (err) {
+      failed++;
+      console.error('Error deleting plan:', plan.planId, err);
+    }
+  }
+
+  // Clean up empty projects
+  let projectsDeleted = 0;
+  for (const projectId of projectsToCheck) {
+    try {
+      const res = await fetch(`${API_BASE}/project/${projectId}`, {
+        method: 'DELETE'
+      });
+      const result = await res.json();
+      
+      if (result.success) {
+        projectsDeleted++;
+        console.log('Deleted empty project:', result.deleted);
+      }
+    } catch (err) {
+      // Project might have other plans or already deleted - ignore errors
+      console.log('Could not delete project:', projectId, err.message);
+    }
+  }
+
+  trashedPlans = [];
+  renderTrashColumn();
+  await loadKanban();
+  await loadProjects();
+
+  let message = `${deleted} plan(s) permanently deleted`;
+  if (projectsDeleted > 0) {
+    message += `, ${projectsDeleted} empty project(s) removed`;
+  }
+  if (failed > 0) {
+    message += ` (${failed} failed)`;
+  }
+
+  showToast(message, failed === 0 ? 'success' : 'warning');
+}
+
+// Activate plan and navigate to dashboard
+async function activatePlanAndNavigate(planId, projectId) {
+  try {
+    showToast('Loading plan...', 'info');
+    
+    // Select the project
+    await selectProject(projectId);
+    
+    // Load the plan details
+    await loadPlanDetails(planId);
+    
+    // Enable dashboard link
+    const dashboardLink = document.getElementById('dashboardLink');
+    if (dashboardLink) {
+      dashboardLink.classList.remove('disabled');
+    }
+    
+    // Navigate to dashboard view
+    showView('dashboard');
+    
+    showToast('Plan activated', 'success');
+  } catch (err) {
+    console.error('Failed to activate plan:', err);
+    showToast('Failed to load plan: ' + err.message, 'error');
+  }
+}
+
+// Export trash functions
+window.emptyTrash = emptyTrash;
+window.renderTrashColumn = renderTrashColumn;
+window.activatePlanAndNavigate = activatePlanAndNavigate;

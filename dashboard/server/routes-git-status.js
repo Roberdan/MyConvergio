@@ -67,16 +67,20 @@ const routes = {
             isMerge: parents.length > 1
           };
         });
-      } catch (e) {}
+      } catch (e) {
+        console.error('Failed to parse git commits:', e.message);
+      }
 
       return {
         branch,
-        uncommitted: { staged, unstaged, untracked },
+        staged,
+        unstaged,
+        untracked,
         commits,
         totalChanges: staged.length + unstaged.length + untracked.length
       };
     } catch (e) {
-      return { error: e.message, branch: 'unknown', uncommitted: { staged: [], unstaged: [], untracked: [] } };
+      return { error: e.message, branch: 'unknown', staged: [], unstaged: [], untracked: [], commits: [] };
     }
   },
 
@@ -242,7 +246,7 @@ const routes = {
       };
 
       // Get list of changed files with stats
-      const diffStat = execSync(`git diff-tree --no-commit-id --name-status -r ${sha}`, { cwd, encoding: 'utf-8' });
+      const diffStat = execFileSync('git', ['diff-tree', '--no-commit-id', '--name-status', '-r', sha], { cwd, encoding: 'utf-8' });
       const files = diffStat.split('\n').filter(l => l.trim()).map(line => {
         const [status, ...pathParts] = line.split('\t');
         const path = pathParts.join('\t'); // Handle renames with tab
@@ -255,7 +259,7 @@ const routes = {
 
       // Get stats (insertions/deletions)
       try {
-        const stats = execSync(`git diff --shortstat ${sha}^..${sha}`, { cwd, encoding: 'utf-8' }).trim();
+        const stats = execFileSync('git', ['diff', '--shortstat', `${sha}^..${sha}`], { cwd, encoding: 'utf-8' }).trim();
         const insertMatch = stats.match(/(\d+) insertion/);
         const deleteMatch = stats.match(/(\d+) deletion/);
         commit.insertions = insertMatch ? parseInt(insertMatch[1]) : 0;

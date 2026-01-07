@@ -1,0 +1,278 @@
+/**
+ * Error Boundary Styles
+ * Graceful error handling UI
+ */
+
+/* Error container */
+.error-boundary-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+  border: 2px solid #dc3545;
+  border-radius: 8px;
+}
+
+.error-boundary-content {
+  text-align: center;
+  max-width: 500px;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.error-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #dc3545;
+  margin: 0 0 8px 0;
+}
+
+.error-message {
+  font-size: 14px;
+  color: #721c24;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.error-btn-primary {
+  background: #dc3545;
+  color: white;
+}
+
+.error-btn-primary:hover {
+  background: #bb2d3b;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.error-btn-primary:active {
+  transform: translateY(0);
+}
+
+.error-btn-secondary {
+  background: white;
+  color: #dc3545;
+  border: 2px solid #dc3545;
+}
+
+.error-btn-secondary:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+}
+
+.error-btn-secondary:active {
+  transform: translateY(0);
+}
+
+/* Developer error details */
+.error-details {
+  margin-top: 20px;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.error-details summary {
+  padding: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  user-select: none;
+}
+
+.error-details summary:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.error-details pre {
+  margin: 0;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.1);
+  font-size: 11px;
+  color: #333;
+  overflow-x: auto;
+  max-height: 200px;
+  line-height: 1.4;
+}
+
+/* Error state classes */
+.has-error {
+  position: relative;
+}
+
+.has-error::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #dc3545;
+  border-radius: 0 0 0 0;
+}
+
+.has-fallback {
+  opacity: 0.9;
+}
+
+/* Error toast in notifications area */
+.toast-error {
+  background: #dc3545 !important;
+  color: white !important;
+}
+
+.toast-error::before {
+  content: '✕ ';
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+/* Minimal fallback UI */
+.fallback-container {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.fallback-container h4 {
+  color: #666;
+  margin: 0 0 8px 0;
+}
+
+.fallback-container p {
+  margin: 0;
+}
+
+/* Graceful degradation for interactive elements */
+.error-boundary-interactive {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* Loading state during recovery */
+@keyframes error-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.error-recovering {
+  animation: error-pulse 1s ease-in-out infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .error-boundary-container {
+    min-height: 250px;
+    padding: 20px;
+  }
+
+  .error-icon {
+    font-size: 36px;
+  }
+
+  .error-title {
+    font-size: 18px;
+  }
+
+  .error-message {
+    font-size: 13px;
+  }
+
+  .error-actions {
+    flex-direction: column;
+  }
+
+  .error-btn {
+    width: 100%;
+  }
+
+  .error-details pre {
+    font-size: 10px;
+    max-height: 150px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .error-boundary-container {
+    background: linear-gradient(135deg, #3d1a1a 0%, #5c2626 100%);
+    border-color: #f08080;
+  }
+
+  .error-title {
+    color: #f08080;
+  }
+
+  .error-message {
+    color: #e8a5a5;
+  }
+
+  .error-details {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .error-details summary {
+    color: #aaa;
+  }
+
+  .error-details summary:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .error-details pre {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+  }
+
+  .fallback-container {
+    color: #bbb;
+  }
+
+  .fallback-container h4 {
+    color: #ddd;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  .error-boundary-container {
+    border-width: 3px;
+  }
+
+  .error-btn {
+    border-width: 2px;
+  }
+
+  .error-title {
+    font-weight: 700;
+  }
+}

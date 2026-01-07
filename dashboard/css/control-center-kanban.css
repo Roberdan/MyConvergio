@@ -105,8 +105,8 @@
 
 .cc-kanban-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: 1fr 1fr 1fr 0.5fr;
+  gap: 20px 32px;
   height: calc(100% - 40px);
 }
 
@@ -199,8 +199,18 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
-  cursor: pointer;
+  cursor: move;
   transition: all 0.2s;
+}
+
+.cc-plan-card.clickable {
+  cursor: pointer;
+}
+
+.cc-plan-card.clickable:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .cc-plan-card:hover {
@@ -290,4 +300,82 @@
 @keyframes columnPulse {
   0%, 100% { border-color: var(--border); }
   50% { border-color: var(--orange); box-shadow: 0 0 20px rgba(247, 147, 26, 0.3); }
+}
+
+/* Trash Column Styles */
+.trash-column {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.trash-column .cc-column-header {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.cc-column-dot.trash {
+  width: auto;
+  height: auto;
+  background: none;
+  font-size: 14px;
+}
+
+.trash-column .cc-column-cards.drag-over {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--red);
+}
+
+.trash-column .cc-column-cards.drag-over::after {
+  content: '🗑️ Drop to delete';
+  color: var(--red);
+}
+
+.trash-column .cc-plan-card {
+  opacity: 0.7;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.trash-column .cc-plan-card:hover {
+  border-color: var(--red);
+}
+
+.trash-empty-btn {
+  margin: 12px;
+  padding: 12px 20px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trash-empty-btn:hover {
+  background: #dc2626;
+  transform: scale(1.02);
+}
+
+.trash-empty-icon {
+  background: transparent;
+  border: 1px solid var(--red);
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trash-empty-icon:hover {
+  background: var(--red);
+  transform: scale(1.1);
+}
+
+/* Control Center Full Width */
+.control-center {
+  width: 100%;
+  max-width: 100%;
+  padding: 24px;
+  box-sizing: border-box;
 }

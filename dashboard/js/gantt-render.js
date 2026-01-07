@@ -155,11 +155,14 @@ const GanttRender = {
     };
   },
 
-  // Get status color class
+  // Get status color class based on actual progress
   getStatusColor(status, progress) {
     if (status === 'blocked') return 'status-blocked';
-    if (status === 'done' || progress >= 100) return 'status-done';
-    if (status === 'doing' || status === 'in_progress' || progress > 0) return 'status-progress';
+    if (progress >= 100) return 'status-done';
+    if (progress >= 75) return 'status-high-progress';
+    if (progress >= 50) return 'status-medium-progress';
+    if (progress >= 25) return 'status-low-progress';
+    if (progress > 0) return 'status-started';
     return 'status-pending';
   },
 

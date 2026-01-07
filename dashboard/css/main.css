@@ -744,13 +744,25 @@
   padding: 0 6px;
 }
 
-/* Status colors - pastel */
+/* Status colors - progressive gradient based on completion */
 .gantt-bar.status-done {
   background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
 }
 
-.gantt-bar.status-progress {
-  background: linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%);
+.gantt-bar.status-high-progress {
+  background: linear-gradient(135deg, #6ee7b7 0%, #34d399 100%);
+}
+
+.gantt-bar.status-medium-progress {
+  background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+}
+
+.gantt-bar.status-low-progress {
+  background: linear-gradient(135deg, #fdba74 0%, #fb923c 100%);
+}
+
+.gantt-bar.status-started {
+  background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%);
 }
 
 .gantt-bar.status-pending {
@@ -759,6 +771,11 @@
 
 .gantt-bar.status-blocked {
   background: linear-gradient(135deg, #fca5a5 0%, #ef4444 100%);
+}
+
+/* Legacy status-progress for compatibility */
+.gantt-bar.status-progress {
+  background: linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%);
 }
 
 /* Bar info below */

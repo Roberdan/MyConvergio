@@ -3,6 +3,10 @@ data/*.db
 data/*.db-journal
 data/*.db-wal
 data/*.db-shm
+dashboard.db
+dashboard.db-journal
+dashboard.db-wal
+dashboard.db-shm
 
 # Logs
 *.log

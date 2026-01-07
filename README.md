@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v4.0.0** | 57 Specialized Agents | Safe Installation | Dashboard | Claude 4.5 Best Practices
+**v4.1.0** | 57 Specialized Agents | Safe Installation | Dashboard | Claude 4.5 Best Practices
 
 > *"Intent is human, momentum is agent"*
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,11 +15,24 @@
 
 ---
 
-## What's New in v4.0.0
+## What's New in v4.1.0
 
-**Safe Installation System + Production Dashboard + Claude 4.5 Best Practices!**
+**Dashboard overhaul + config sync + public portability fixes!**
 
-### Safe Installation (NEW)
+### Dashboard Overhaul (NEW)
+- **Gantt Timeline**: True timeline with active wave/task highlighting and progress gradients
+- **Kanban Views**: Interactive wave/task boards with drilldowns
+- **Markdown Viewer**: Plan, wave, and task markdown rendering
+- **Conversation Viewer**: Inspect execution logs and live context
+- **Bug Tracker**: Integrated bug tracking and filters
+- **Accessibility Updates**: Focus, contrast, and responsive improvements
+
+### Config Sync & Portability
+- **Rules/Commands/Scripts Sync**: Latest global config aligned into MyConvergio
+- **New Plan-DB Utilities**: Migration helpers, validators, and quick references
+- **Public Docs Cleanup**: Removed author-specific paths for portability
+
+### Safe Installation
 - **Interactive Installation**: Conflict detection with file-by-file resolution
 - **Backup/Restore System**: Automatic backups with manifest tracking and SHA256 verification
 - **Git Tracking (Opt-In)**: Optional version control for `~/.claude` configuration
@@ -115,6 +128,40 @@ claude plugins install myconvergio
 
 ---
 
+## Workflow (Prompt → Plan → Execute → Verify)
+
+MyConvergio follows a structured delivery flow that mirrors Claude Code best practices.
+See `docs/workflow.md` for the full reference.
+
+### 1) Prompt
+Use `/prompt` to extract requirements (F-xx) and confirm scope before planning.
+
+Docs: `.claude/commands/prompt.md`
+
+### 2) Planner
+Use `/planner` to generate a multi-wave plan with tasks tied to F-xx criteria.
+
+Docs: `.claude/commands/planner.md`
+
+### 3) Execution (Executor Tracking)
+Use the executor tracking helpers to log execution state and generate task markdown.
+
+Docs: `EXECUTOR_TRACKING.md`  
+Scripts: `.claude/scripts/executor-tracking.sh`, `.claude/scripts/generate-task-md.sh`
+
+### 4) Thor QA Guardian
+Use the Thor agent to validate completion, evidence, and quality gates.
+
+Agent: `.claude/agents/core_utility/thor-quality-assurance-guardian.md`
+
+### 5) Dashboard
+Use the dashboard to monitor plans, waves, tasks, and activity in real time.
+
+Quick Start: `dashboard/`  
+API Tests: `dashboard/TEST-README.md`
+
+---
+
 ## Dashboard
 
 **Production-ready project dashboard with real-time git monitoring.**
@@ -122,6 +169,11 @@ claude plugins install myconvergio
 ### Features
 - **Real-Time Git Panel**: Auto-refresh on git changes (commits, checkouts, branch switches) using Server-Sent Events
 - **Project Management UI**: Visualize git status, diff, log, branches
+- **Gantt Timeline**: True timeline with active wave/task highlighting and progress gradients
+- **Kanban Views**: Interactive wave/task boards with drilldowns
+- **Markdown Viewer**: Plan, wave, and task markdown rendering
+- **Conversation Viewer**: Inspect execution logs and live context
+- **Bug Tracker**: Integrated bug tracking and filters
 - **Graceful Shutdown**: One-click server termination with browser close
 - **Token Usage Tracking**: Monitor API token consumption and costs
 - **Notifications**: System-wide notification center
@@ -160,7 +212,7 @@ The git panel automatically refreshes when you:
 Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). No additional configuration required.
 
 ### Known Limitations
-- **File Preview**: Dashboard shows file structure and git metadata, but does not render markdown preview. This is a limitation of the local-only dashboard. For full file preview capabilities, push the repository to GitHub.
+- **File Preview**: Markdown rendering focuses on plan/wave/task docs, not arbitrary repo file browsing.
 - **Local Repository Only**: The dashboard is designed for local development. Remote repository integrations (GitHub, GitLab) are planned for future releases.
 
 ---

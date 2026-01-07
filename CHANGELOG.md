@@ -40,6 +40,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed 27+ hardcoded `/Users/NAME/` paths across 10 files
 - Fixed all test documentation paths to use relative/generic paths
 
+## [4.1.0] - 2026-01-07
+
+### Added
+- **Dashboard Overhaul**: Modular UI with Gantt timeline, kanban views, markdown viewer, conversation viewer, and bug tracking
+- **Dashboard API Tests**: Comprehensive API test suites and reports
+- **Plan-DB Utilities**: New migration helpers, validators, and quick reference docs
+- **Task Executor Agent**: Added `task-executor.md` to `.claude/agents/technical_development/`
+- **Workflow Guide**: New `docs/workflow.md` covering Prompt → Planner → Execution → Thor → Dashboard
+
+### Changed
+- **Global Config Sync**: Updated rules, commands, scripts, and agents to match latest global config
+- **Documentation Refresh**: Dashboard and orchestration docs updated for new capabilities
+- **Portability**: Removed author-specific paths from public docs and routing rules
+
+### Fixed
+- **Constitution Compliance**: Added missing articles for CI validation
+
 ## [3.7.0] - 2026-01-02
 
 ### Added

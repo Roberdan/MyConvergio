@@ -35,12 +35,53 @@
 - Direct SQL queries should use `wave_id_fk = {db_wave_id}` instead of `wave_id = 'W1'`
 - Use `~/.claude/scripts/plan-db.sh` for all DB operations (handles FK correctly)
 
-## Workflow: Prompt → Plan → Execute → Verify
-1. `/prompt` - Extract F-xx requirements from user request
-2. `/planner` - Create plan with waves/tasks, user approves F-xx
-3. Execute each task, update status, verify F-xx criteria
-4. Thor validates wave completion + build passes
-5. User accepts final delivery
+## Workflow: Prompt → Plan → Execute → Verify (MANDATORY)
+
+**ENFORCEMENT**: This workflow is MANDATORY for all non-trivial tasks. Skipping steps is PROHIBITED.
+
+### Step 1: /prompt (Requirements Extraction)
+- ALWAYS start with `/prompt` for new features/tasks
+- Extract ALL requirements as F-xx
+- User confirms requirements before proceeding
+- Output: F-xx table with acceptance criteria
+
+### Step 2: /planner (Plan Creation)
+- Create plan with waves/tasks after /prompt approval
+- Register in DB: `plan-db.sh create`, `add-wave`, `add-task`
+- Each task linked to F-xx requirements
+- User approves plan before execution
+
+### Step 3: Start Execution (AUTO → IN FLIGHT)
+```bash
+plan-db.sh start {plan_id}  # MANDATORY before first task
+```
+- Plan moves to status='doing' → visible as **IN FLIGHT** in dashboard
+- This step is AUTOMATIC when execution begins
+
+### Step 4: Execute Tasks
+- Use `Task(subagent_type='task-executor')` for each task
+- Update task status: `plan-db.sh update-task {id} doing`
+- Mark complete only after verification: `update-task {id} done "Summary"`
+- **NEVER mark done without F-xx verification**
+
+### Step 5: Thor Validation (Per Wave)
+```bash
+~/.claude/scripts/plan-db.sh validate {plan_id}
+npm run lint && npm run typecheck && npm run build
+```
+- Wave is DONE only if: All tasks done + Thor PASS + Build PASS
+- Thor verifies F-xx requirements with evidence
+
+### Step 6: Closure (User Approval)
+- List ALL F-xx with [x] or [ ] status
+- User must explicitly approve ("finito"/"done")
+- Agent CANNOT self-declare completion
+
+### Enforcement Rules
+- **Skip /prompt?** → BLOCKED: Return to step 1
+- **Skip /planner?** → BLOCKED: Cannot execute without plan
+- **Skip Thor?** → BLOCKED: Cannot close wave
+- **Self-declare done?** → REJECTED: User must approve
 
 ## Rules Reference
 Detailed rules in `~/.claude/rules/`:

@@ -56,7 +56,15 @@ plan-db.sh add-task {db_wave_id} T1-01 "Desc" P1 feature
 ### 4. User Approval (MANDATORY STOP)
 Present F-xx list → User says "si"/"yes" → Proceed
 
-### 5. Execute
+### 5. Start Execution (AUTO → IN FLIGHT)
+```bash
+# MANDATORY: Call start BEFORE executing any task
+# This moves plan to "IN FLIGHT" in dashboard
+plan-db.sh start {plan_id}
+```
+Plan status: `todo` → `doing` (visible in Mission Pipeline as IN FLIGHT)
+
+### 6. Execute Tasks
 ```typescript
 await Task({
   subagent_type: "task-executor",
@@ -65,7 +73,7 @@ await Task({
 });
 ```
 
-### 6. Thor Validation (per wave)
+### 7. Thor Validation (per wave)
 ```bash
 plan-db.sh validate {plan_id}
 npm run lint && npm run typecheck && npm run build

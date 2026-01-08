@@ -57,7 +57,7 @@ const routes = {
      const doingPlans = plans.filter(p => p.status === 'doing').length;
      const totalPlans = plans.length;
 
-     // Get token usage for this project
+     // Get token usage for this project (by project_id directly, since plan_id may be NULL)
      const tokenStats = query(`
        SELECT
          SUM(total_tokens) as total_tokens,
@@ -65,7 +65,7 @@ const routes = {
          COUNT(*) as api_calls,
          ROUND(AVG(total_tokens)) as avg_tokens_per_call
        FROM token_usage
-       WHERE plan_id IN (SELECT id FROM plans WHERE project_id = '${escapeSQL(params.id)}')
+       WHERE project_id = '${escapeSQL(params.id)}'
      `)[0] || { total_tokens: 0, total_cost: 0, api_calls: 0, avg_tokens_per_call: 0 };
 
      // Calculate average tokens per task

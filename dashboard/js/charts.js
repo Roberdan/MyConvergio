@@ -70,40 +70,47 @@ function switchChartMode(mode) {
 
 async function renderTokenChart() {
   let tokenHistory = [];
+  const range = chartFilterRange || '7d';
+
+  // Format date based on range
+  const formatDate = (dateStr, range) => {
+    if (!dateStr) return '';
+    // For hourly/minute ranges, dateStr is like "2026-01-09 14:30" or "2026-01-09 14:00"
+    if (range === '30m' || range === '1h') {
+      const parts = dateStr.split(' ');
+      return parts[1] || dateStr; // Return just the time part "14:30"
+    } else if (range === '1d') {
+      const parts = dateStr.split(' ');
+      return parts[1]?.substring(0, 5) || dateStr; // Return "14:00"
+    } else {
+      // For day ranges, parse as date
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  };
 
   try {
-    const totalTokens = data.tokens?.total || 0;
-    const calls = data.tokens?.calls || 0;
-
-    if (calls > 0) {
-      const days = 7;
-      const avgPerDay = Math.round(totalTokens / days);
-      let cumulative = 0;
-
-      for (let i = days; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dayTokens = i === 0 ? totalTokens - cumulative : Math.round(avgPerDay * (0.5 + Math.random()));
-        cumulative += dayTokens;
-        tokenHistory.push({
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          input: Math.round(dayTokens * 0.7),
-          output: Math.round(dayTokens * 0.3)
-        });
+    // Fetch real historical data from API
+    const projectId = currentProjectId || 'convergioedu';
+    const resp = await fetch(`/api/project/${projectId}/tokens/history?range=${range}`);
+    if (resp.ok) {
+      const result = await resp.json();
+      if (result.history && result.history.length > 0) {
+        tokenHistory = result.history.map(h => ({
+          date: formatDate(h.date, range),
+          input: h.input || 0,
+          output: h.output || 0
+        }));
       }
-    } else {
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        tokenHistory.push({
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          input: 0,
-          output: 0
-        });
-      }
+    }
+
+    // If no historical data, show empty state message
+    if (tokenHistory.length === 0) {
+      tokenHistory = [{ date: 'No data', input: 0, output: 0 }];
     }
   } catch (e) {
     console.error('Failed to load token history:', e);
+    tokenHistory = [{ date: 'Error', input: 0, output: 0 }];
   }
 
   const theme = document.documentElement.getAttribute('data-theme') || 'voltrex';

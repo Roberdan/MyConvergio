@@ -100,6 +100,17 @@ const GanttCore = {
       this.calculateTimeline();
       Logger.debug('Gantt data loaded:', this.data);
 
+      // Sync plan_id to global data for token loading
+      if (plansWithWaves.length === 1 && window.data) {
+        const singlePlanId = plansWithWaves[0].id;
+        window.data.meta = window.data.meta || {};
+        window.data.meta.plan_id = singlePlanId;
+        // Reload token data with correct plan_id
+        if (typeof loadTokenData === 'function') {
+          loadTokenData();
+        }
+      }
+
     } catch (error) {
       Logger.error('Failed to load Gantt data:', error);
       contentArea.innerHTML = `<div class="gantt-error">Error: ${error.message}</div>`;

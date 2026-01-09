@@ -1,0 +1,21 @@
+/prompt questa app ha ancora problemi di navigazione
+  incoerenti: aluni tool non funzionanon come
+  dovrebbero, alcune pagine non sono linkate come
+  dovrebbero, ci sono conflitti e incongruenze. va
+  rianalizzata completamente la struttura di navigazione
+  per essere coerente. Particolarmente i tool sono
+  inconsistenti: di base vanno fatti usare dentro le
+  conversazioni coi maestri, o tramite l'astuccio, ma
+  devono poi convergere nella stessa esperienza che deve
+  essere dentro la chat coi maestri. Credo ci sia
+  anocra una pagina/riferimento ad una visualizzazione
+  full screen vecchia e che comunque non funziona, va
+  eliminata e va standardizzato tutto sulla nuova
+  navigazione. Se ci sono pagine morte vanno aggiunte
+  alla lista del debug menu per essere verificate in
+  seguito. Analizza per bene, con criterio e
+  intelligenza la navigazione di tutta l'app. Anche
+  l'astuccio e lo zaino hanno tanti problemi che vanno
+  ricercati per assicurarsi che tutto funzioni come
+  dovrebbe e vanno sistemati. usa il planner per fare un
+  piano dettagliato e poi eseguirlo 

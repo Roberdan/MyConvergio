@@ -109,8 +109,8 @@ function showView(view) {
       break;
     case 'notifications':
       if (notificationsView) notificationsView.style.display = 'block';
-      if (typeof loadAllNotifications === 'function') {
-        loadAllNotifications();
+      if (typeof loadNotificationsView === 'function') {
+        loadNotificationsView();
       }
       break;
     case 'dashboard':

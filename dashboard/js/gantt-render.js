@@ -242,11 +242,36 @@ const GanttRender = {
     `;
   },
 
+  // Calculate wave dates from tasks if not set
+  calculateWaveDates(wave) {
+    const tasks = wave.tasks || [];
+    if (tasks.length === 0) return { startDate: null, endDate: null };
+
+    let minStart = null, maxEnd = null;
+    tasks.forEach(task => {
+      const taskStart = task.started_at || task.planned_start;
+      const taskEnd = task.completed_at || task.planned_end;
+      if (taskStart) {
+        const d = new Date(taskStart);
+        if (!minStart || d < minStart) minStart = d;
+      }
+      if (taskEnd) {
+        const d = new Date(taskEnd);
+        if (!maxEnd || d > maxEnd) maxEnd = d;
+      }
+    });
+
+    return {
+      startDate: wave.started_at || (minStart ? minStart.toISOString() : wave.planned_start),
+      endDate: wave.completed_at || (maxEnd ? maxEnd.toISOString() : wave.planned_end)
+    };
+  },
+
   renderWaveRow(wave, index) {
     const isExpanded = GanttCore.isExpanded(wave.wave_id);
     const tasksHTML = isExpanded ? this.renderWaveTasks(wave) : '';
     const expandIcon = isExpanded ? this.icons.expand : this.icons.collapse;
-    
+
     const done = wave.tasks_done || 0;
     const total = wave.tasks_total || 0;
     const progress = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -254,16 +279,19 @@ const GanttRender = {
     const isActive = status === 'in_progress' || status === 'doing' || (progress > 0 && progress < 100);
     const statusColor = this.getStatusColor(status, progress);
 
-    // Use actual dates if available, otherwise planned
-    const startDate = wave.started_at || wave.planned_start;
-    const endDate = wave.completed_at || wave.planned_end;
+    // Calculate wave dates from tasks if not explicitly set
+    const { startDate, endDate } = this.calculateWaveDates(wave);
     const barPos = this.getBarPosition(startDate, endDate);
     const duration = this.formatDuration(startDate, endDate);
 
     // Thor validation
-    const thorBadge = wave.thor_validated 
-      ? `<span class="gantt-thor-badge validated" title="Validated by Thor">${this.icons.checkCircle}</span>` 
+    const thorBadge = wave.validated_at
+      ? `<span class="gantt-thor-badge validated" title="Validated by ${wave.validated_by || 'Thor'} at ${wave.validated_at}">${this.icons.checkCircle}</span>`
       : '';
+
+    // Calculate total tokens for wave
+    const waveTokens = (wave.tasks || []).reduce((sum, t) => sum + (t.tokens || 0), 0);
+    const tokensLabel = waveTokens > 0 ? `<span class="gantt-tokens-count" title="Tokens used">${(waveTokens / 1000).toFixed(1)}k</span>` : '';
 
     // Show original wave_id (without plan prefix) and plan name
     const displayId = wave.original_wave_id || wave.wave_id;
@@ -274,12 +302,11 @@ const GanttRender = {
         <div class="gantt-row-info" onclick="GanttView.toggleWave('${wave.wave_id}')">
           <div class="gantt-row-expand">${expandIcon}</div>
           <div class="gantt-row-name">
-            ${planLabel}
-            <span class="gantt-row-id">${displayId}</span>
             <span class="gantt-row-title" title="${wave.name || ''}">${wave.name || ''}</span>
           </div>
           <div class="gantt-row-meta">
             <span class="gantt-tasks-count">${done}/${total}</span>
+            ${tokensLabel}
             ${thorBadge}
           </div>
         </div>
@@ -330,13 +357,18 @@ const GanttRender = {
     const barPos = this.getBarPosition(startDate, endDate);
     const duration = this.formatDuration(startDate, endDate);
 
-    // Thor badge
-    const thorBadge = task.thor_validated 
-      ? `<span class="gantt-thor-badge validated" title="Validated by Thor">${this.icons.checkCircle}</span>` 
+    // Thor badge - check validated_at/validated_by fields
+    const thorBadge = task.validated_at
+      ? `<span class="gantt-thor-badge validated" title="Validated by ${task.validated_by || 'Thor'} at ${task.validated_at}">${this.icons.checkCircle}</span>`
+      : '';
+
+    // Tokens badge
+    const tokensLabel = task.tokens > 0
+      ? `<span class="gantt-tokens-badge" title="${task.tokens.toLocaleString()} tokens">${(task.tokens / 1000).toFixed(1)}k</span>`
       : '';
 
     // Doc link
-    const docLink = task.markdown_file 
+    const docLink = task.markdown_file
       ? `<a href="/api/file/${encodeURIComponent(task.markdown_file)}" target="_blank" class="gantt-doc-link" onclick="event.stopPropagation();" title="Open: ${task.markdown_file}">${this.icons.doc}</a>`
       : '';
 
@@ -345,11 +377,11 @@ const GanttRender = {
         <div class="gantt-row-info">
           <div class="gantt-task-indent"></div>
           <div class="gantt-row-name">
-            <span class="gantt-row-id">${task.task_id}</span>
             <span class="gantt-row-title" title="${task.title || ''}">${task.title || ''}</span>
           </div>
           <div class="gantt-row-meta">
             <span class="gantt-priority priority-${priority.toLowerCase()}">${priority}</span>
+            ${tokensLabel}
             ${thorBadge}
             ${docLink}
           </div>

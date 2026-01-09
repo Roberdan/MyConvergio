@@ -119,6 +119,56 @@ async function pollNotifications() {
   }
 }
 
+// Handle dashboard refresh based on notification type
+function handleNotificationDashboardRefresh(notification) {
+  const title = (notification.title || '').toLowerCase();
+  const projectId = notification.project_id;
+
+  // Task status changes - refresh gantt and metrics
+  if (title.includes('task started') ||
+      title.includes('task completed') ||
+      title.includes('task blocked') ||
+      title.includes('task updated')) {
+
+    // Refresh Gantt if viewing the same project
+    if (typeof GanttView !== 'undefined' && currentProjectId === projectId) {
+      GanttView.refresh();
+    }
+
+    // Refresh metrics
+    if (typeof loadMetrics === 'function' && currentProjectId === projectId) {
+      loadMetrics();
+    }
+
+    // Refresh wave data
+    if (typeof loadPlanData === 'function' && currentProjectId === projectId) {
+      loadPlanData();
+    }
+  }
+
+  // Wave completion - refresh everything
+  if (title.includes('wave completed') || title.includes('wave started')) {
+    if (currentProjectId === projectId) {
+      if (typeof GanttView !== 'undefined') GanttView.refresh();
+      if (typeof loadMetrics === 'function') loadMetrics();
+      if (typeof loadPlanData === 'function') loadPlanData();
+    }
+  }
+
+  // Git changes - refresh git panel
+  if (title.includes('commit') || title.includes('push') || title.includes('git')) {
+    if (typeof loadGitData === 'function' && currentProjectId === projectId) {
+      loadGitData();
+    }
+  }
+
+  // Plan changes - refresh plan data
+  if (title.includes('plan') && currentProjectId === projectId) {
+    if (typeof loadPlanData === 'function') loadPlanData();
+    if (typeof GanttView !== 'undefined') GanttView.refresh();
+  }
+}
+
 function startNotificationPolling() {
   // Try SSE first
   if (typeof EventSource !== 'undefined') {
@@ -129,6 +179,8 @@ function startNotificationPolling() {
       if (notification.id > lastNotificationId) {
         showToast(notification);
         lastNotificationId = notification.id;
+        // Trigger dashboard refresh for relevant notifications
+        handleNotificationDashboardRefresh(notification);
       }
       // Refresh count
       pollNotifications();

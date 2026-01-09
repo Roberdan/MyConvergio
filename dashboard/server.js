@@ -223,7 +223,7 @@ const server = http.createServer((req, res) => {
       req.on('data', chunk => body += chunk);
       req.on('end', () => {
         try {
-          const result = route.handler(route.params, req, res, body);
+          const result = route.handler(route.params, req, res, body, url);
 
           // Check if SSE was handled (don't send JSON response)
           if (result && result._sse_handled) {

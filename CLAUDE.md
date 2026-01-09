@@ -59,10 +59,17 @@ plan-db.sh start {plan_id}  # MANDATORY before first task
 - This step is AUTOMATIC when execution begins
 
 ### Step 4: Execute Tasks
-- Use `Task(subagent_type='task-executor')` for each task
-- Update task status: `plan-db.sh update-task {id} doing`
-- Mark complete only after verification: `update-task {id} done "Summary"`
-- **NEVER mark done without F-xx verification**
+**Use `/execute {plan_id}`** - Automated execution of all tasks
+
+The executor will:
+1. Load all pending tasks from DB
+2. For each task: launch `task-executor` subagent
+3. After each wave: run Thor validation
+4. Report progress and completion
+
+Manual alternative (if needed):
+- `Task(subagent_type='task-executor')` for single task
+- `plan-db.sh update-task {id} done "Summary"` for manual updates
 
 ### Step 5: Thor Validation (Per Wave)
 ```bash

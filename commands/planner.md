@@ -65,6 +65,15 @@ plan-db.sh start {plan_id}
 Plan status: `todo` → `doing` (visible in Mission Pipeline as IN FLIGHT)
 
 ### 6. Execute Tasks
+**Use `/execute {plan_id}`** for automated execution of all tasks.
+
+The executor will:
+1. Load pending tasks from DB
+2. Launch task-executor for each
+3. Run Thor after each wave
+4. Report completion
+
+Manual fallback (single task):
 ```typescript
 await Task({
   subagent_type: "task-executor",

@@ -1,24 +1,23 @@
 # Rules
 
-Compact rules loaded on every Claude session. Optimized for minimal token usage.
+Compact rules auto-loaded on every Claude session. Optimized for minimal context.
 
-## Files (209 total lines)
+## Active Rules (auto-loaded)
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| execution.md | 42 | Planning, verification, PR rules |
-| guardian.md | 40 | Thor enforcement, closure protocol |
+| execution.md | 48 | Planning, verification, PR |
+| guardian.md | 40 | Thor enforcement, closure |
 | agent-discovery.md | 21 | Agent routing |
-| engineering-standards.md | 35 | Code style, security, testing |
-| file-size-limits.md | 24 | Max 300 lines per file |
+| engineering-standards.md | 35 | Code/security/testing |
+| file-size-limits.md | 24 | Max 250 lines/file |
 
-## Detailed Versions
+**Total**: ~170 lines (~425 tokens)
 
-Full reference versions in `~/.claude/reference/detailed/` (not auto-loaded - outside rules/):
-- execution.md, guardian.md, agent-discovery.md - Full protocols with examples
-- api-development.md, security-requirements.md, testing-standards.md
-- code-style.md, documentation-standards.md, ethical-guidelines.md
+## Detailed Reference (NOT auto-loaded)
 
-## Usage
+Full versions at `~/.claude/reference/detailed/`:
+- api-development.md, code-style.md, documentation-standards.md
+- ethical-guidelines.md, security-requirements.md, testing-standards.md
 
-Compact rules auto-loaded. Consult `~/.claude/reference/detailed/` on-demand for examples.
+Access on-demand: `Read ~/.claude/reference/detailed/{file}.md`

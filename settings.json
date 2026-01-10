@@ -14,6 +14,18 @@
     "defaultMode": "bypassPermissions"
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/warn-bash-antipatterns.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write",

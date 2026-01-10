@@ -90,11 +90,34 @@ npm run lint && npm run typecheck && npm run build
 - **Skip Thor?** → BLOCKED: Cannot close wave
 - **Self-declare done?** → REJECTED: User must approve
 
+## Tool Preferences (Context Optimization)
+**ALWAYS use dedicated tools instead of bash:**
+| Instead of | Use |
+|------------|-----|
+| `find` | Glob tool |
+| `grep`, `rg` | Grep tool |
+| `cat`, `head`, `tail` | Read tool |
+| `sed`, `awk` | Edit tool |
+| `echo >`, `cat <<EOF` | Write tool |
+
+**For open-ended exploration**: Use `Task(subagent_type='Explore')` to save context.
+
+## Repo Knowledge
+```bash
+# Generate context for new repo
+~/.claude/scripts/repo-index.sh
+
+# Quick repo summary
+repo-info   # (after source ~/.claude/shell-aliases.sh)
+```
+Generated files in `.claude/`: `repo-info.md`, `symbols.txt`, `entry-points.md`
+
 ## Rules Reference
-Detailed rules in `~/.claude/rules/`:
+Core rules in `~/.claude/rules/`:
 - `execution.md` - Planning, verification, PR rules
 - `guardian.md` - Thor enforcement, closure protocol
 - `agent-discovery.md` - Agent routing for specialists
+- `engineering-standards.md` - Code style, security, testing (consolidated)
 
 ## Extended Agents (via agent-discovery.md)
 Technical: baccio, dario, marco, otto, rex, luca | Leadership: ali, amy, antonio, dan

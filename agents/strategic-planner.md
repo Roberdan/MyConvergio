@@ -479,9 +479,9 @@ When creating a new plan:
 
 \`\`\`bash
 # Example
-./generate-task-md.sh convergioedu 8 0 T01 "Setup database migration" "CLAUDE 2" "1h"
-./generate-task-md.sh convergioedu 8 0 T02 "Create API endpoints" "CLAUDE 3" "2h"
-./generate-task-md.sh convergioedu 8 1 T03 "Build frontend UI" "CLAUDE 4" "3h"
+./generate-task-md.sh my-project 8 0 T01 "Setup database migration" "CLAUDE 2" "1h"
+./generate-task-md.sh my-project 8 0 T02 "Create API endpoints" "CLAUDE 3" "2h"
+./generate-task-md.sh my-project 8 1 T03 "Build frontend UI" "CLAUDE 4" "3h"
 \`\`\`
 ```
 

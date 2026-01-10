@@ -5,6 +5,31 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-01-10
+
+### Added
+- **Enhanced Route Handling**: Server now passes `url` parameter to route handlers for query string access
+- **Token Aggregation**: Plan tokens now aggregate from both `token_usage` table and `tasks.tokens` field
+
+### Changed
+- **Dashboard Sync**: Full synchronization of dashboard components from development environment
+  - Updated server.js with improved route handling
+  - Updated routes-plans-core.js with token aggregation and computed wave dates
+  - Updated routes-notifications.js with proper JSON body parsing
+  - Updated 9 JS modules (charts, gantt-core/render/view, github-data, toast, unified-waves, views-core/secondary)
+  - Updated 12 CSS files (gantt-*, bug-tracker, main)
+
+### Fixed
+- **Token Display**: Token statistics now correctly aggregate from all sources
+- **Wave Dates**: Wave started_at and completed_at now computed from tasks when null
+- **Notification API**: Fixed JSON body parsing for POST requests
+- **Portability**: Removed all project-specific references (replaced with generic examples)
+  - Updated EXECUTOR_TRACKING.md with generic project names
+  - Updated IMPLEMENTATION_STATUS.md with generic examples
+  - Updated docs/projects.md with template content
+  - Updated strategic-planner.md examples
+  - Fixed dashboard default labels
+
 ## [3.8.0] - 2026-01-03
 
 ### Added

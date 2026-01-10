@@ -72,7 +72,7 @@ Genera file markdown individuali per ogni task durante la planning phase.
 
 ```bash
 ~/.claude/scripts/generate-task-md.sh \
-  convergioedu \
+  my-project \
   8 \
   0 \
   T01 \
@@ -83,7 +83,7 @@ Genera file markdown individuali per ogni task durante la planning phase.
 
 #### Output
 
-Crea file: `~/.claude/plans/active/convergioedu/plan-8/waves/W0/tasks/T01-setup-database-migration.md`
+Crea file: `~/.claude/plans/active/my-project/plan-8/waves/W0/tasks/T01-setup-database-migration.md`
 
 Aggiorna database con markdown_path.
 
@@ -121,9 +121,9 @@ Fornisce helper functions per tracking durante l'esecuzione.
 Inizializza tracking per un task.
 
 ```bash
-executor_start "convergioedu" "T01"
+executor_start "my-project" "T01"
 # 🚀 Starting executor tracking...
-#   Project: convergioedu
+#   Project: my-project
 #   Task: T01
 #   Session: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 # ✅ Task started and registered in dashboard
@@ -171,11 +171,11 @@ Mostra stato corrente del tracking.
 ```bash
 executor_status
 # 📊 Executor Status
-#   Project: convergioedu
+#   Project: my-project
 #   Task: T01
 #   Session: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 #   Heartbeat: 12345
-#   Dashboard: http://localhost:31415?project=convergioedu&task=T01
+#   Dashboard: http://localhost:31415?project=my-project&task=T01
 ```
 
 #### `executor_complete [success|failed]`
@@ -373,10 +373,10 @@ fi
 ```bash
 # Strategic planner creates these task markdown files
 
-~/.claude/scripts/generate-task-md.sh convergioedu 8 0 T01 "Setup Prerequisites" "CLAUDE 2" "30m"
-~/.claude/scripts/generate-task-md.sh convergioedu 8 0 T02 "Database Migration" "CLAUDE 2" "1h"
-~/.claude/scripts/generate-task-md.sh convergioedu 8 1 T03 "Create API Routes" "CLAUDE 3" "2h"
-~/.claude/scripts/generate-task-md.sh convergioedu 8 1 T04 "Build Frontend UI" "CLAUDE 4" "3h"
+~/.claude/scripts/generate-task-md.sh my-project 8 0 T01 "Setup Prerequisites" "CLAUDE 2" "30m"
+~/.claude/scripts/generate-task-md.sh my-project 8 0 T02 "Database Migration" "CLAUDE 2" "1h"
+~/.claude/scripts/generate-task-md.sh my-project 8 1 T03 "Create API Routes" "CLAUDE 3" "2h"
+~/.claude/scripts/generate-task-md.sh my-project 8 1 T04 "Build Frontend UI" "CLAUDE 4" "3h"
 ```
 
 ---

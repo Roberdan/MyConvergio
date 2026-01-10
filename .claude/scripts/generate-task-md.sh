@@ -1,7 +1,7 @@
 #!/bin/bash
 # Task Markdown Generation Script
 # Usage: ./generate-task-md.sh <project> <plan_id> <wave> <task_id> <task_name> <assignee> <estimate>
-# Example: ./generate-task-md.sh convergioedu 8 0 T01 "Setup database migration" "CLAUDE 2" "1h"
+# Example: ./generate-task-md.sh my-project 8 0 T01 "Setup database migration" "CLAUDE 2" "1h"
 
 set -e
 
@@ -15,7 +15,7 @@ ESTIMATE=$7
 
 if [ -z "$PROJECT" ] || [ -z "$PLAN_ID" ] || [ -z "$WAVE" ] || [ -z "$TASK_ID" ] || [ -z "$TASK_NAME" ]; then
   echo "❌ Usage: $0 <project> <plan_id> <wave> <task_id> <task_name> [assignee] [estimate]"
-  echo "Example: $0 convergioedu 8 0 T01 'Setup database migration' 'CLAUDE 2' '1h'"
+  echo "Example: $0 my-project 8 0 T01 'Setup database migration' 'CLAUDE 2' '1h'"
   exit 1
 fi
 

@@ -78,12 +78,12 @@ echo ""
 echo -e "${BLUE}Test Suite: Agent Files${NC}"
 
 # Count agents
-AGENT_COUNT=$(find "$AGENTS_DIR" -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'MICROSOFT_VALUES.md' 2>/dev/null | wc -l | tr -d ' ')
+AGENT_COUNT=$(/usr/bin/find "$AGENTS_DIR" -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'MICROSOFT_VALUES.md' 2>/dev/null | /usr/bin/wc -l | tr -d ' ')
 run_test "At least 50 agents exist ($AGENT_COUNT found)" "[ '$AGENT_COUNT' -ge 50 ]"
 
 # Check YAML frontmatter
 YAML_ERRORS=0
-for file in $(find "$AGENTS_DIR" -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'MICROSOFT_VALUES.md'); do
+for file in $(/usr/bin/find "$AGENTS_DIR" -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'MICROSOFT_VALUES.md'); do
     if ! head -1 "$file" | grep -q '^---$'; then
         YAML_ERRORS=$((YAML_ERRORS + 1))
     fi
@@ -93,7 +93,7 @@ run_test "All agents have YAML frontmatter ($YAML_ERRORS errors)" "[ '$YAML_ERRO
 # Check for required fields
 MISSING_NAME=0
 MISSING_DESC=0
-for file in $(find "$AGENTS_DIR" -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'MICROSOFT_VALUES.md'); do
+for file in $(/usr/bin/find "$AGENTS_DIR" -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'MICROSOFT_VALUES.md'); do
     if ! grep -q '^name:' "$file"; then
         MISSING_NAME=$((MISSING_NAME + 1))
     fi

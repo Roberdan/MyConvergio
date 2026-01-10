@@ -2,16 +2,19 @@
 
 > Reference: `@docs/projects.md` when working on specific projects
 
+This is a template for documenting your projects. Customize it with your own projects.
+
 | Project | Path | Stack |
 |---------|------|-------|
-| ConvergioCLI | `$HOME/GitHub/ConvergioCLI` | C (optimized) |
-| Convergio | `$HOME/GitHub/Convergio` | Swift/SwiftUI |
-| ConvergioWeb | `$HOME/GitHub/ConvergioWeb` | TypeScript/React |
-| ConvergioEdu | `$HOME/GitHub/ConvergioEdu` | Next.js/TypeScript |
-| MirrorHR | `$HOME/GitHub/mirrorhr` | Swift (iOS) |
+| my-api | `$HOME/projects/my-api` | Node.js/Express |
+| my-webapp | `$HOME/projects/my-webapp` | React/TypeScript |
+| my-mobile | `$HOME/projects/my-mobile` | Swift/SwiftUI |
 
 ## Stack Preferences
-- **C**: Clang, Make/CMake, `-O3 -march=native`
-- **Swift**: SwiftUI, Combine, async/await, native Apple frameworks
-- **TypeScript**: Strict mode, Next.js, Vercel Edge
+
+Customize these based on your preferred technologies:
+
+- **Node.js**: TypeScript, Express/Fastify, Prisma ORM
 - **Python**: FastAPI, Pydantic v2, SQLAlchemy 2.0+
+- **Swift**: SwiftUI, Combine, async/await
+- **TypeScript**: Strict mode, React/Next.js, Tailwind CSS

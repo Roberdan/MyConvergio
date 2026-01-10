@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v4.1.0** | 57 Specialized Agents | Safe Installation | Dashboard | Claude 4.5 Best Practices
+**v4.2.0** | 58 Specialized Agents | Safe Installation | Dashboard | Claude 4.5 Best Practices
 
 > *"Intent is human, momentum is agent"*
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -67,7 +67,7 @@ Based on [Anthropic's official best practices](https://platform.claude.com/docs/
 
 ### Previous Highlights (v3.7.0)
 - **Installation Profiles**: Choose your footprint - minimal (50KB), standard (200KB), or full (600KB)
-- **Lean Agent Variants**: 57 optimized agents with 20% smaller context
+- **Lean Agent Variants**: 58 optimized agents with 20% smaller context
 - **Hardware-Aware Settings**: Auto-detect and configure for your machine
 
 ### Previous Highlights (v3.6.0)
@@ -75,7 +75,7 @@ Based on [Anthropic's official best practices](https://platform.claude.com/docs/
 - **Thor Quality Guardian**: Brutal quality validation with zero tolerance
 
 ### Previous Highlights (v3.0.0)
-- **57 Specialized Agents**: Enterprise-grade AI assistants for every domain
+- **58 Specialized Agents**: Enterprise-grade AI assistants for every domain
 - **3 Slash Commands**: `/myconvergio:status`, `/myconvergio:team`, `/myconvergio:plan`
 - **9 Reusable Skills**: Architecture, debugging, code review, and more
 - **Constitution-Based Security**: 8 articles protecting all agents
@@ -95,12 +95,12 @@ claude --plugin-dir .
 
 #### Option B: Global npm Install
 ```bash
-# Full install (all 57 agents)
+# Full install (all 58 agents)
 npm install -g myconvergio
 
 # Or choose a profile for lower context usage:
 MYCONVERGIO_PROFILE=minimal npm install -g myconvergio  # 9 agents, ~50KB
-MYCONVERGIO_PROFILE=lean npm install -g myconvergio     # 57 agents, ~600KB
+MYCONVERGIO_PROFILE=lean npm install -g myconvergio     # 58 agents, ~600KB
 ```
 Copies agents to `~/.claude/agents/`. See [Context Optimization Guide](./docs/CONTEXT_OPTIMIZATION.md) for details.
 
@@ -122,7 +122,7 @@ claude plugins install myconvergio
 **Use slash commands:**
 ```bash
 /myconvergio:status    # Show ecosystem status
-/myconvergio:team      # List all 57 agents by category
+/myconvergio:team      # List all 58 agents by category
 /myconvergio:plan      # Create a strategic execution plan
 ```
 
@@ -217,7 +217,7 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 
 ---
 
-## Agent Portfolio (57 Specialists)
+## Agent Portfolio (58 Specialists)
 
 ### Leadership & Strategy (7)
 | Agent | Description |
@@ -316,7 +316,7 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 MyConvergio/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin manifest
-├── agents/                    # 57 specialized agents
+├── agents/                    # 58 specialized agents
 │   ├── ali-chief-of-staff.md
 │   ├── baccio-tech-architect.md
 │   └── ...

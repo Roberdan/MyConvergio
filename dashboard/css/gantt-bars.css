@@ -1,0 +1,250 @@
+/* Gantt bar */
+.gantt-bar {
+  position: absolute;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
+  z-index: 2;
+  min-width: 40px;
+}
+
+.gantt-bar:hover {
+  transform: scaleY(1.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.gantt-bar-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #1f2937;
+  text-shadow: 0 1px 1px rgba(255,255,255,0.5);
+  white-space: nowrap;
+  padding: 0 6px;
+}
+
+/* Status colors - progressive gradient based on completion */
+.gantt-bar.status-done {
+  background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+}
+
+.gantt-bar.status-high-progress {
+  background: linear-gradient(135deg, #6ee7b7 0%, #34d399 100%);
+}
+
+.gantt-bar.status-medium-progress {
+  background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+}
+
+.gantt-bar.status-low-progress {
+  background: linear-gradient(135deg, #fdba74 0%, #fb923c 100%);
+}
+
+.gantt-bar.status-started {
+  background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%);
+}
+
+.gantt-bar.status-pending {
+  background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
+}
+
+.gantt-bar.status-blocked {
+  background: linear-gradient(135deg, #fca5a5 0%, #ef4444 100%);
+}
+
+/* Legacy status-progress for compatibility */
+.gantt-bar.status-progress {
+  background: linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%);
+}
+
+/* Bar info below */
+.gantt-bar-info {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+
+.gantt-time-range {
+  white-space: nowrap;
+}
+
+.gantt-duration {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.gantt-no-dates {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Task Rows - Subordinate styling */
+.gantt-task-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 400px) 1fr;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-input);
+  transition: background 0.2s ease;
+  font-size: 12px;
+}
+
+.gantt-task-row:hover {
+  background: var(--bg-hover);
+  cursor: pointer;
+}
+
+.gantt-task-row .gantt-row-info {
+  padding-left: 44px;
+  border-left: 3px solid rgba(59, 130, 246, 0.3);
+}
+
+.gantt-task-row.status-done .gantt-row-info {
+  border-left-color: #4ade80;
+}
+
+.gantt-task-row.status-blocked .gantt-row-info {
+  border-left-color: #ef4444;
+}
+
+.gantt-task-row.status-progress .gantt-row-info {
+  border-left-color: #3b82f6;
+}
+
+.gantt-task-indent {
+  width: 12px;
+  height: 12px;
+  border-left: 2px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  border-radius: 0 0 0 4px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+/* Priority badge */
+.gantt-priority {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.gantt-priority.priority-p0,
+.gantt-priority.priority-p1 {
+  background: rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+}
+
+.gantt-priority.priority-p2 {
+  background: rgba(245, 158, 11, 0.2);
+  color: #d97706;
+}
+
+.gantt-priority.priority-p3 {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+/* Thor badge */
+.gantt-thor-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+}
+
+.gantt-thor-badge.validated {
+  background: #bbf7d0;
+  color: #16a34a;
+}
+
+/* Doc link */
+.gantt-doc-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.gantt-doc-link:hover {
+  background: rgba(59, 130, 246, 0.2);
+  transform: scale(1.1);
+}
+
+/* Empty rows */
+.gantt-task-row.empty {
+  min-height: 36px;
+  background: transparent;
+}
+
+.gantt-task-row.empty .gantt-row-info {
+  border-left: none;
+}
+
+.gantt-empty-msg {
+  color: var(--text-dim);
+  font-size: 12px;
+  font-style: italic;
+  padding-left: 28px;
+}
+
+/* ========== MARKDOWN PREVIEW MODAL ========== */
+.markdown-preview-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  align-items: center;
+  justify-content: center;
+}
+
+.markdown-preview-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.markdown-preview-content {
+  position: relative;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 85vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: mdPreviewSlideIn 0.2s ease;
+}
+
+@keyframes mdPreviewSlideIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.markdown-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-input);

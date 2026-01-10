@@ -137,7 +137,7 @@ curl http://localhost:31415/api/monitoring/sessions
 
 **Structure**:
 ```
-~/.claude/plans/active/convergioedu/
+~/.claude/plans/active/my-project/
   plan-8/
     plan.md                    # Master plan
     waves/
@@ -265,10 +265,10 @@ Performance acceptable for MVP.
 curl http://localhost:31415/api/monitoring/sessions
 
 # Get task conversation (replace with real IDs)
-curl http://localhost:31415/api/project/convergioedu/task/T3-02/conversation
+curl http://localhost:31415/api/project/my-project/task/T3-02/conversation
 
 # SSE live stream (use browser or curl -N)
-curl -N http://localhost:31415/api/project/convergioedu/task/T3-02/live
+curl -N http://localhost:31415/api/project/my-project/task/T3-02/live
 ```
 
 **Test Archiving**:
@@ -277,7 +277,7 @@ curl -N http://localhost:31415/api/project/convergioedu/task/T3-02/live
 curl -X POST http://localhost:31415/api/plan/8/archive
 
 # Check archived location
-ls ~/.claude/plans/archived/2026-01/convergioedu/
+ls ~/.claude/plans/archived/2026-01/my-project/
 ```
 
 ## 📝 NOTES

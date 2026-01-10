@@ -20,7 +20,7 @@ This repository is **fully self-contained**. All execution rules are defined wit
 # MyConvergio - Claude Code Subagents Suite
 
 ## Project Overview
-MyConvergio is a comprehensive collection of 57 specialized **Claude Code subagents** designed for enterprise-level software project management, strategic leadership, and technical excellence. 
+MyConvergio is a comprehensive collection of 58 specialized **Claude Code subagents** designed for enterprise-level software project management, strategic leadership, and technical excellence. 
 
 **What are Claude Code Subagents?**
 Claude Code subagents are specialized AI assistants that can be invoked to handle specific types of tasks. Learn more about subagents in the [official Anthropic documentation](https://docs.anthropic.com/en/docs/claude-code/sub-agents).
@@ -156,7 +156,7 @@ make install-tier TIER=minimal VARIANT=lean RULES=consolidated
 make install-tier TIER=standard VARIANT=lean RULES=consolidated
 ```
 
-**Full (~600KB context)** - All 57 agents for maximum capability:
+**Full (~600KB context)** - All 58 agents for maximum capability:
 ```bash
 make install-tier TIER=full VARIANT=full RULES=detailed
 ```

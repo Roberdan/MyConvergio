@@ -27,6 +27,7 @@ async function loadGitHubData() {
       prs: github.prs || []
     };
     renderGitHubPanel();
+    updateHealthStatus();
   } catch (e) {
     console.error('Failed to load GitHub data:', e);
     if (projectId === currentProjectId) {
@@ -62,26 +63,49 @@ async function loadGitData() {
 async function loadTokenData() {
   if (!currentProjectId) return;
   try {
+    // Skip if we already have valid token data from dashboard endpoint
+    if (data?.tokens?.total > 0 && !data?.meta?.plan_id) {
+      // Data already loaded from /api/project/:id/dashboard, just update UI
+      const el = document.getElementById('tokensUsed');
+      if (el) el.textContent = data.tokens.total.toLocaleString();
+      const avgEl = document.getElementById('avgTokensPerTask');
+      if (avgEl) avgEl.textContent = data.tokens.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
+      renderTokensTab();
+      return;
+    }
+
     const planId = data?.meta?.plan_id;
     const endpoint = planId
       ? `${API_BASE}/plan/${planId}/tokens`
       : `${API_BASE}/project/${currentProjectId}/tokens`;
     const res = await fetch(endpoint);
     const tokenData = await res.json();
+
+    const total = tokenData.stats?.total_tokens || 0;
+    const cost = tokenData.stats?.total_cost || 0;
+    const calls = tokenData.stats?.api_calls || 0;
+
     data.tokens = {
-      total: tokenData.stats?.total_tokens || 0,
-      cost: tokenData.stats?.total_cost || 0,
-      calls: tokenData.stats?.api_calls || 0,
+      total: total,
+      cost: cost,
+      calls: calls,
       avgPerTask: 0
     };
-    if (data.metrics?.throughput?.done > 0 && data.tokens.total > 0) {
-      data.tokens.avgPerTask = Math.round(data.tokens.total / data.metrics.throughput.done);
+    if (data.metrics?.throughput?.done > 0 && total > 0) {
+      data.tokens.avgPerTask = Math.round(total / data.metrics.throughput.done);
     }
-    document.getElementById('tokensUsed').textContent = data.tokens.total ? data.tokens.total.toLocaleString() : 'n/d';
-    document.getElementById('avgTokensPerTask').textContent = data.tokens.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
+
+    const el = document.getElementById('tokensUsed');
+    if (el) el.textContent = total ? total.toLocaleString() : 'n/d';
+    const avgEl = document.getElementById('avgTokensPerTask');
+    if (avgEl) avgEl.textContent = data.tokens.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
     renderTokensTab();
   } catch (e) {
-    data.tokens = null;
+    console.error('loadTokenData error:', e);
+    // Don't overwrite existing valid data on error
+    if (!data?.tokens?.total) {
+      data.tokens = null;
+    }
   }
 }
 

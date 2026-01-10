@@ -57,7 +57,7 @@ const routes = {
      const doingPlans = plans.filter(p => p.status === 'doing').length;
      const totalPlans = plans.length;
 
-     // Get token usage for this project
+     // Get token usage for this project (by project_id directly, since plan_id may be NULL)
      const tokenStats = query(`
        SELECT
          SUM(total_tokens) as total_tokens,
@@ -65,7 +65,7 @@ const routes = {
          COUNT(*) as api_calls,
          ROUND(AVG(total_tokens)) as avg_tokens_per_call
        FROM token_usage
-       WHERE plan_id IN (SELECT id FROM plans WHERE project_id = '${escapeSQL(params.id)}')
+       WHERE project_id = '${escapeSQL(params.id)}'
      `)[0] || { total_tokens: 0, total_cost: 0, api_calls: 0, avg_tokens_per_call: 0 };
 
      // Calculate average tokens per task
@@ -114,11 +114,13 @@ const routes = {
      const plan = query(`SELECT * FROM plans WHERE id = ${planId}`)[0];
      if (!plan) return { error: 'Plan not found' };
 
+     // Get waves with computed started_at from tasks if NULL
      const waves = query(`
-       SELECT id, wave_id, name, status, assignee, tasks_done, tasks_total,
-              started_at, completed_at, planned_start, planned_end,
-              depends_on, estimated_hours, position
-       FROM waves WHERE plan_id = ${planId} ORDER BY position
+       SELECT w.id, w.wave_id, w.name, w.status, w.assignee, w.tasks_done, w.tasks_total,
+              COALESCE(w.started_at, (SELECT MIN(t.started_at) FROM tasks t WHERE t.wave_id_fk = w.id)) as started_at,
+              COALESCE(w.completed_at, (SELECT MAX(t.completed_at) FROM tasks t WHERE t.wave_id_fk = w.id AND t.status = 'done')) as completed_at,
+              w.planned_start, w.planned_end, w.depends_on, w.estimated_hours, w.position
+       FROM waves w WHERE w.plan_id = ${planId} ORDER BY w.position
      `);
 
       for (const wave of waves) {
@@ -147,11 +149,13 @@ const routes = {
   },
 
   // Token usage stats for specific plan
+  // Aggregates from both token_usage table AND tasks.tokens field
   'GET /api/plan/:id/tokens': (params) => {
     const planId = parseInt(params.id, 10);
     if (isNaN(planId)) return { error: 'Invalid plan ID' };
 
-    const stats = query(`
+    // Get tokens from token_usage table (if plan_id is set)
+    const tokenUsageStats = query(`
       SELECT
         SUM(total_tokens) as total_tokens,
         SUM(cost_usd) as total_cost,
@@ -160,10 +164,32 @@ const routes = {
       FROM token_usage WHERE plan_id = ${planId}
     `)[0] || { total_tokens: 0, total_cost: 0, api_calls: 0, avg_tokens_per_call: 0 };
 
+    // Get tokens from tasks table (always populated)
+    const taskTokenStats = query(`
+      SELECT
+        SUM(tokens) as total_tokens,
+        COUNT(CASE WHEN tokens > 0 THEN 1 END) as tasks_with_tokens
+      FROM tasks WHERE plan_id = ${planId}
+    `)[0] || { total_tokens: 0, tasks_with_tokens: 0 };
+
+    // Use task tokens if token_usage is empty (fallback)
+    const stats = {
+      total_tokens: tokenUsageStats.total_tokens || taskTokenStats.total_tokens || 0,
+      total_cost: tokenUsageStats.total_cost || 0,
+      api_calls: tokenUsageStats.api_calls || taskTokenStats.tasks_with_tokens || 0,
+      avg_tokens_per_call: tokenUsageStats.avg_tokens_per_call ||
+        (taskTokenStats.tasks_with_tokens > 0
+          ? Math.round(taskTokenStats.total_tokens / taskTokenStats.tasks_with_tokens)
+          : 0)
+    };
+
+    // Get tokens by wave from tasks
     const byWave = query(`
-      SELECT wave_id, SUM(total_tokens) as tokens, SUM(cost_usd) as cost
-      FROM token_usage WHERE plan_id = ${planId} AND wave_id IS NOT NULL
-      GROUP BY wave_id
+      SELECT w.wave_id, SUM(t.tokens) as tokens, 0 as cost
+      FROM tasks t
+      JOIN waves w ON t.wave_id_fk = w.id
+      WHERE t.plan_id = ${planId} AND t.tokens > 0
+      GROUP BY w.wave_id
     `);
 
     const byAgent = query(`
@@ -200,6 +226,51 @@ const routes = {
     `);
 
     return { stats, byPlan, byAgent };
+  },
+
+  // Historical token usage by date for project
+  'GET /api/project/:id/tokens/history': (params, req, res, body, url) => {
+    const projectId = escapeSQL(params.id);
+    const searchParams = url?.searchParams || new URLSearchParams();
+    const range = searchParams.get('range') || '7d';
+
+    let timeFilter, groupBy, history;
+
+    if (range === '30m') {
+      timeFilter = "created_at >= datetime('now', '-30 minutes')";
+      groupBy = "strftime('%Y-%m-%d %H:%M', created_at, 'localtime')";
+    } else if (range === '1h') {
+      timeFilter = "created_at >= datetime('now', '-1 hour')";
+      groupBy = "strftime('%Y-%m-%d %H:%M', created_at, 'localtime')";
+    } else if (range === '1d') {
+      timeFilter = "created_at >= datetime('now', '-1 day')";
+      groupBy = "strftime('%Y-%m-%d %H:00', created_at, 'localtime')";
+    } else if (range === '7d') {
+      timeFilter = "created_at >= datetime('now', '-7 days')";
+      groupBy = "DATE(created_at)";
+    } else if (range === '30d') {
+      timeFilter = "created_at >= datetime('now', '-30 days')";
+      groupBy = "DATE(created_at)";
+    } else {
+      // 'all' - no time filter
+      timeFilter = "1=1";
+      groupBy = "DATE(created_at)";
+    }
+
+    history = query(`
+      SELECT
+        ${groupBy} as date,
+        SUM(input_tokens) as input,
+        SUM(output_tokens) as output,
+        SUM(total_tokens) as total,
+        COUNT(*) as calls
+      FROM token_usage
+      WHERE project_id = '${projectId}' AND ${timeFilter}
+      GROUP BY ${groupBy}
+      ORDER BY date ASC
+    `);
+
+    return { history, range };
   },
 
   // Create new plan

@@ -35,7 +35,7 @@ function updateDashboardUI(data) {
   const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
   const setDisplay = (id, display) => { const el = document.getElementById(id); if (el) el.style.display = display; };
 
-  setText('planLabel', data.meta?.project || 'ConvergioEdu');
+  setText('planLabel', data.meta?.project || 'Select Project');
   setDisplay('statsRow', 'flex');
 
   if (data.metrics?.throughput) {

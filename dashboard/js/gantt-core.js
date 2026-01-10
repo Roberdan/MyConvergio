@@ -7,7 +7,7 @@ const GanttCore = {
   filters: { showCompleted: true, showBlocked: true },
   timeline: { start: null, end: null, duration: 0 },
 
-  async load(projectId) {
+  async load(projectId, options = {}) {
     const contentArea = document.getElementById('ganttContentArea');
     if (!contentArea) return;
 
@@ -19,31 +19,66 @@ const GanttCore = {
     }
 
     try {
-      const dashboardRes = await fetch(`/api/project/${projectId}/dashboard`);
-      const dashboardData = await dashboardRes.json();
+      // Check if we have an active plan selected - show only that plan
+      const activePlanId = options.planId || window.currentPlanId;
 
-      const plansPromises = (dashboardData.waves || []).map(async (planRef) => {
-        // Extract numeric plan ID from plan reference like "P5"
-        const planId = parseInt(planRef.id.replace('P', ''), 10);
-        if (isNaN(planId)) return null;
-        try {
-          const planRes = await fetch(`/api/plan/${planId}`);
-          const planData = await planRes.json();
-          return { 
-            id: planId, 
-            name: planData.name || `Plan ${planId}`,
-            waves: planData.waves || [] 
-          };
-        } catch (e) {
-          Logger.warn(`Failed to load plan ${planId}:`, e);
-          return null;
+      let plansWithWaves = [];
+
+      if (activePlanId) {
+        // Load only the active plan
+        const planRes = await fetch(`/api/plan/${activePlanId}`);
+        const planData = await planRes.json();
+        if (!planData.error) {
+          plansWithWaves = [{
+            id: parseInt(activePlanId, 10),
+            name: planData.name || `Plan ${activePlanId}`,
+            status: planData.status,
+            waves: planData.waves || []
+          }];
         }
-      });
+      } else {
+        // Fallback: load only plans with status='doing' (in flight)
+        const dashboardRes = await fetch(`/api/project/${projectId}/dashboard`);
+        const dashboardData = await dashboardRes.json();
 
-      const plansWithWaves = (await Promise.all(plansPromises)).filter(p => p !== null);
+        // Filter only 'doing' plans (in flight)
+        const inFlightPlans = (dashboardData.waves || []).filter(p => p.status === 'doing');
+
+        if (inFlightPlans.length === 0) {
+          contentArea.innerHTML = '<div class="empty-state"><div class="empty-state-title">No Active Plans</div><div class="empty-state-subtitle">Select a plan from the Mission Pipeline or move one to IN FLIGHT</div></div>';
+          this.data = null;
+          return;
+        }
+
+        const plansPromises = inFlightPlans.map(async (planRef) => {
+          const planId = parseInt(planRef.id.replace('P', ''), 10);
+          if (isNaN(planId)) return null;
+          try {
+            const planRes = await fetch(`/api/plan/${planId}`);
+            const planData = await planRes.json();
+            return {
+              id: planId,
+              name: planData.name || `Plan ${planId}`,
+              status: planData.status,
+              waves: planData.waves || []
+            };
+          } catch (e) {
+            Logger.warn(`Failed to load plan ${planId}:`, e);
+            return null;
+          }
+        });
+
+        plansWithWaves = (await Promise.all(plansPromises)).filter(p => p !== null);
+      }
+
+      // Build project metadata
+      const projectMeta = plansWithWaves.length > 0 ? {
+        project: plansWithWaves[0].name,
+        projectId: projectId
+      } : { project: 'Unknown', projectId: projectId };
 
       this.data = {
-        project: dashboardData.meta,
+        project: projectMeta,
         plans: plansWithWaves,
         allWaves: []
       };
@@ -64,6 +99,17 @@ const GanttCore = {
 
       this.calculateTimeline();
       Logger.debug('Gantt data loaded:', this.data);
+
+      // Sync plan_id to global data for token loading
+      if (plansWithWaves.length === 1 && window.data) {
+        const singlePlanId = plansWithWaves[0].id;
+        window.data.meta = window.data.meta || {};
+        window.data.meta.plan_id = singlePlanId;
+        // Reload token data with correct plan_id
+        if (typeof loadTokenData === 'function') {
+          loadTokenData();
+        }
+      }
 
     } catch (error) {
       Logger.error('Failed to load Gantt data:', error);

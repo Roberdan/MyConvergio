@@ -43,7 +43,7 @@
       ]
     },
     "full": {
-      "description": "All agents for comprehensive coverage (57 agents, ~600KB context)",
+      "description": "All agents for comprehensive coverage (58 agents, ~600KB context)",
       "categories": "all"
     }
   },

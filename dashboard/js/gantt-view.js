@@ -181,54 +181,190 @@ const GanttView = {
       document.body.appendChild(modal);
     }
 
-    const statusIcon = this.getStatusIcon(task.status);
-    const priorityBadge = task.priority ? `<span class="task-priority-badge priority-${task.priority}">${task.priority}</span>` : '';
-    const userIcon = this.getIcon('user');
+    // --- Derived data ---
+    const status = task.status || 'pending';
+
+    // Extract F-xx requirement from title
+    const fxxMatch = (task.title || '').match(/\[F-(\d+)\]/);
+    const fxxCode = fxxMatch ? `F-${fxxMatch[1]}` : null;
+
+    // Task type with colors
+    const typeColors = { bug: '#ef4444', feature: '#3b82f6', chore: '#6b7280', doc: '#8b5cf6', test: '#10b981' };
+    const taskType = task.type || 'feature';
+
+    // Wave progress context
+    const waveTasksDone = wave.tasks_done || 0;
+    const waveTasksTotal = wave.tasks_total || 0;
+    const taskIndex = wave.tasks?.findIndex(t => t.task_id === taskId) + 1 || 0;
+
+    // Calculate duration from started_at to completed_at or now
+    const startedAt = task.started_at ? new Date(task.started_at) : null;
+    const completedAt = task.completed_at ? new Date(task.completed_at) : null;
+    const actualDuration = startedAt ? this.formatDuration(startedAt, completedAt || new Date()) : null;
+
+    // Time in current status
+    const statusSince = task.started_at || task.completed_at;
+    const timeInStatus = statusSince ? this.formatTimeAgo(new Date(statusSince)) : null;
+
+    // Cost estimate (rough: $0.01 per 1k tokens average)
+    const costEstimate = task.tokens ? (task.tokens / 1000 * 0.01).toFixed(2) : null;
+
+    // Executor status
+    const executorStatus = task.executor_status;
+    const executorActive = executorStatus === 'running' || executorStatus === 'paused';
+
+    // Blocking reason
+    const blockingReason = status === 'blocked' && task.notes ? task.notes : null;
+
+    // Markdown path
+    const markdownPath = task.markdown_path || null;
+
+    // Status color for header
+    const statusColors = {
+      done: '#22c55e', doing: '#f59e0b', in_progress: '#f59e0b',
+      blocked: '#ef4444', pending: '#6b7280', skipped: '#9ca3af'
+    };
+    const headerColor = statusColors[status] || '#6b7280';
 
     modal.innerHTML = `
       <div class="task-details-overlay" onclick="GanttView.closeTaskDetails()"></div>
       <div class="task-details-content">
-        <div class="task-details-header">
+        <div class="task-details-header" style="border-left: 4px solid ${headerColor};">
           <div class="task-details-title">
-            <span class="task-id-badge">${task.task_id}</span>
+            <div class="task-header-badges">
+              <span class="task-id-badge">${task.task_id}</span>
+              ${fxxCode ? `<span class="task-fxx-badge">${fxxCode}</span>` : ''}
+              <span class="task-type-badge" style="background: ${typeColors[taskType]}20; color: ${typeColors[taskType]}; border: 1px solid ${typeColors[taskType]}40;">${taskType}</span>
+              ${task.priority ? `<span class="task-priority-badge priority-${task.priority}">${task.priority}</span>` : ''}
+            </div>
             <h3>${task.title || 'Untitled Task'}</h3>
           </div>
           <button class="task-details-close" onclick="GanttView.closeTaskDetails()">×</button>
         </div>
+
         <div class="task-details-body">
-          <div class="task-detail-row">
-            <span class="task-detail-label">Status</span>
-            <span class="task-detail-value"><span class="gantt-status-icon ${task.status}">${statusIcon}</span> ${task.status}</span>
+          <!-- Status Section -->
+          <div class="task-detail-section">
+            <div class="task-detail-row">
+              <span class="task-detail-label">Status</span>
+              <span class="task-detail-value">
+                <span class="task-status-pill status-${status}">${status.replace('_', ' ')}</span>
+                ${timeInStatus ? `<span class="task-time-ago">${timeInStatus}</span>` : ''}
+              </span>
+            </div>
+            ${executorStatus ? `<div class="task-detail-row">
+              <span class="task-detail-label">Executor</span>
+              <span class="task-detail-value">
+                <span class="executor-status ${executorActive ? 'active' : ''}">${executorStatus}</span>
+                ${task.executor_session_id ? `<span class="executor-session">${task.executor_session_id.slice(0, 8)}...</span>` : ''}
+              </span>
+            </div>` : ''}
           </div>
-          <div class="task-detail-row">
-            <span class="task-detail-label">Wave</span>
-            <span class="task-detail-value">${wave.wave_id} - ${wave.name || ''}</span>
+
+          ${blockingReason ? `
+          <div class="task-detail-section blocking">
+            <div class="task-detail-row full-width">
+              <span class="task-detail-label">⚠ Blocking Reason</span>
+              <div class="task-detail-blocking">${blockingReason}</div>
+            </div>
+          </div>` : ''}
+
+          <!-- Context Section -->
+          <div class="task-detail-section">
+            <div class="task-detail-row">
+              <span class="task-detail-label">Wave</span>
+              <span class="task-detail-value">${wave.name || wave.wave_id}</span>
+            </div>
+            <div class="task-detail-row">
+              <span class="task-detail-label">Progress</span>
+              <span class="task-detail-value">Task ${taskIndex} of ${waveTasksTotal} <span class="task-progress-mini">(${waveTasksDone} done)</span></span>
+            </div>
           </div>
-          ${task.priority ? `<div class="task-detail-row">
-            <span class="task-detail-label">Priority</span>
-            <span class="task-detail-value">${priorityBadge}</span>
+
+          <!-- Time Section -->
+          ${startedAt || completedAt ? `
+          <div class="task-detail-section">
+            ${startedAt ? `<div class="task-detail-row">
+              <span class="task-detail-label">Started</span>
+              <span class="task-detail-value">${startedAt.toLocaleString('it-IT')}</span>
+            </div>` : ''}
+            ${completedAt ? `<div class="task-detail-row">
+              <span class="task-detail-label">Completed</span>
+              <span class="task-detail-value">${completedAt.toLocaleString('it-IT')}</span>
+            </div>` : ''}
+            ${actualDuration ? `<div class="task-detail-row">
+              <span class="task-detail-label">Duration</span>
+              <span class="task-detail-value"><strong>${actualDuration}</strong></span>
+            </div>` : ''}
           </div>` : ''}
-          ${task.assignee ? `<div class="task-detail-row">
-            <span class="task-detail-label">Assignee</span>
-            <span class="task-detail-value"><span class="gantt-meta-with-icon">${userIcon} ${task.assignee}</span></span>
+
+          <!-- Metrics Section -->
+          ${task.tokens || task.validated_at ? `
+          <div class="task-detail-section">
+            ${task.tokens ? `<div class="task-detail-row">
+              <span class="task-detail-label">Tokens</span>
+              <span class="task-detail-value">${task.tokens.toLocaleString()} <span class="task-cost">(~$${costEstimate})</span></span>
+            </div>` : ''}
+            ${task.validated_at ? `<div class="task-detail-row">
+              <span class="task-detail-label">Validated</span>
+              <span class="task-detail-value"><span class="thor-check">✓</span> ${task.validated_by || 'Thor'} @ ${new Date(task.validated_at).toLocaleString('it-IT')}</span>
+            </div>` : ''}
           </div>` : ''}
-          ${task.description ? `<div class="task-detail-row full-width">
-            <span class="task-detail-label">Description</span>
-            <div class="task-detail-description">${task.description}</div>
+
+          <!-- Source Document -->
+          ${markdownPath ? `
+          <div class="task-detail-section">
+            <div class="task-detail-row full-width">
+              <span class="task-detail-label">Source</span>
+              <button class="task-markdown-btn" onclick="GanttView.openMarkdownPreview('${markdownPath.replace(/'/g, "\\'")}')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                View Markdown
+              </button>
+              <span class="task-markdown-path">${markdownPath.split('/').pop()}</span>
+            </div>
           </div>` : ''}
-          ${task.created_at ? `<div class="task-detail-row">
-            <span class="task-detail-label">Created</span>
-            <span class="task-detail-value">${new Date(task.created_at).toLocaleString()}</span>
-          </div>` : ''}
-          ${task.completed_at ? `<div class="task-detail-row">
-            <span class="task-detail-label">Completed</span>
-            <span class="task-detail-value">${new Date(task.completed_at).toLocaleString()}</span>
+
+          ${task.assignee ? `
+          <div class="task-detail-section">
+            <div class="task-detail-row">
+              <span class="task-detail-label">Assignee</span>
+              <span class="task-detail-value">${task.assignee}</span>
+            </div>
           </div>` : ''}
         </div>
       </div>
     `;
 
     modal.style.display = 'flex';
+  },
+
+  // Format duration as HH:MM:SS or MM:SS
+  formatDuration(start, end) {
+    const diffMs = end - start;
+    if (diffMs < 0) return '—';
+
+    const seconds = Math.floor(diffMs / 1000) % 60;
+    const minutes = Math.floor(diffMs / (1000 * 60)) % 60;
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    const pad = n => n.toString().padStart(2, '0');
+    if (hours > 0) return `${hours}h ${pad(minutes)}m`;
+    if (minutes > 0) return `${minutes}m ${pad(seconds)}s`;
+    return `${seconds}s`;
+  },
+
+  // Format time ago
+  formatTimeAgo(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const minutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'just now';
   },
 
   closeTaskDetails() {
@@ -271,8 +407,8 @@ const GanttView = {
     `;
     modal.style.display = 'flex';
 
-    // Fetch markdown content
-    fetch(`/api/markdown?file=${encodeURIComponent(filePath)}`)
+    // Fetch markdown content using the file API
+    fetch(`/api/file/${encodeURIComponent(filePath)}`)
       .then(res => res.ok ? res.text() : Promise.reject('File not found'))
       .then(content => {
         const body = modal.querySelector('.markdown-preview-body');

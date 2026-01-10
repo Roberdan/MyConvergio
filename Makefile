@@ -203,7 +203,7 @@ list-tiers:
 	@echo "$(YELLOW)standard$(NC) - 20 common agents (~200KB context)"
 	@echo "  Technical development + strategic planning + release management"
 	@echo ""
-	@echo "$(YELLOW)full$(NC)     - All 57 agents (~600KB context)"
+	@echo "$(YELLOW)full$(NC)     - All 58 agents (~600KB context)"
 	@echo "  Complete ecosystem with all specializations"
 	@echo ""
 	@echo "$(BLUE)Usage:$(NC)"

@@ -14,44 +14,6 @@ function renderUnifiedWaves() {
   return; // Disabled - Gantt view now shows active wave/task highlighting
 }
 
-  // Find current wave (in_progress or last one)
-  const currentWave = data.waves.find(w => w.status === 'in_progress') || data.waves[data.waves.length - 1];
-
-  // Build HTML
-  const html = `
-    <div class="unified-waves-header" onclick="toggleUnifiedWaves()">
-      <div class="unified-wave-current">
-        <div class="unified-wave-id">${currentWave.wave_id}</div>
-        <div class="unified-wave-name">${currentWave.name}</div>
-      </div>
-      <div class="unified-wave-status">
-        <span class="status-badge ${currentWave.status}">${getStatusIcon(currentWave.status)} ${currentWave.status.replace('_', ' ')}</span>
-        <span class="unified-wave-progress">${currentWave.tasks_done}/${currentWave.tasks_total} tasks</span>
-        <div class="unified-progress-bar">
-          <div class="unified-progress-fill" style="width:${currentWave.tasks_total > 0 ? Math.round((currentWave.tasks_done / currentWave.tasks_total) * 100) : 0}%"></div>
-        </div>
-      </div>
-      <button class="unified-toggle-btn" id="unifiedToggleBtn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
-    </div>
-
-    <div class="unified-waves-tree" id="unifiedWavesTree" style="display:none;">
-      <div class="unified-tree-header">
-        All Waves (${data.waves.length})
-        <button class="tree-action-btn" onclick="expandAllWaves()">Expand All</button>
-        <button class="tree-action-btn" onclick="collapseAllWaves()">Collapse All</button>
-      </div>
-
-      ${data.waves.map(wave => renderWaveNode(wave)).join('')}
-    </div>
-  `;
-
-  container.innerHTML = html;
-}
-
 // Render single wave node with tasks
 function renderWaveNode(wave) {
   const isExpanded = expandedWaves.has(wave.wave_id);

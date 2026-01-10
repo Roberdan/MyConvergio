@@ -117,8 +117,14 @@ const routes = {
   },
 
   // Create a notification
-  'POST /api/notifications': (params, body) => {
-    const { project_id, type, severity, title, message, link, link_type, source_table, source_id } = body;
+  'POST /api/notifications': (params, req, res, body) => {
+    let data;
+    try {
+      data = typeof body === 'string' ? JSON.parse(body) : body;
+    } catch (e) {
+      return { error: 'Invalid JSON body' };
+    }
+    const { project_id, type, severity, title, message, link, link_type, source_table, source_id } = data;
 
     if (!project_id || !type || !title) {
       return { error: 'Missing required fields: project_id, type, title' };

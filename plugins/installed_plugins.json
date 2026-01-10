@@ -9,44 +9,50 @@
         "version": "6d3752c000e2",
         "installedAt": "2025-12-29T09:12:33.798Z",
         "lastUpdated": "2026-01-01T11:28:45.798Z",
-        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14",
-        "isLocal": true
+        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14"
       }
     ],
     "code-review@claude-plugins-official": [
       {
         "scope": "project",
+        "projectPath": "/Users/roberdan/GitHub/ConvergioEdu",
         "installPath": "/Users/roberdan/.claude/plugins/cache/claude-plugins-official/code-review/6d3752c000e2",
         "version": "6d3752c000e2",
         "installedAt": "2026-01-01T12:34:53.699Z",
         "lastUpdated": "2026-01-01T12:34:53.699Z",
-        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14",
-        "isLocal": true,
-        "projectPath": "/Users/roberdan/GitHub/ConvergioEdu"
+        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14"
       }
     ],
     "feature-dev@claude-plugins-official": [
       {
         "scope": "project",
+        "projectPath": "/Users/roberdan/GitHub/ConvergioEdu",
         "installPath": "/Users/roberdan/.claude/plugins/cache/claude-plugins-official/feature-dev/6d3752c000e2",
         "version": "6d3752c000e2",
         "installedAt": "2026-01-01T12:34:53.699Z",
         "lastUpdated": "2026-01-01T12:34:53.699Z",
-        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14",
-        "isLocal": true,
-        "projectPath": "/Users/roberdan/GitHub/ConvergioEdu"
+        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14"
       }
     ],
     "pr-review-toolkit@claude-plugins-official": [
       {
         "scope": "project",
+        "projectPath": "/Users/roberdan/GitHub/ConvergioEdu",
         "installPath": "/Users/roberdan/.claude/plugins/cache/claude-plugins-official/pr-review-toolkit/6d3752c000e2",
         "version": "6d3752c000e2",
         "installedAt": "2026-01-01T12:34:53.699Z",
         "lastUpdated": "2026-01-01T12:34:53.699Z",
-        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14",
-        "isLocal": true,
-        "projectPath": "/Users/roberdan/GitHub/ConvergioEdu"
+        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14"
+      }
+    ],
+    "typescript-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/roberdan/.claude/plugins/cache/claude-plugins-official/typescript-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-01-10T19:51:13.433Z",
+        "lastUpdated": "2026-01-10T19:51:13.433Z",
+        "gitCommitSha": "42def58377a88d30038b8b5b3875d58b2dd09097"
       }
     ]
   }

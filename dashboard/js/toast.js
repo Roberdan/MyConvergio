@@ -40,7 +40,7 @@ function showToast(notification) {
     toast.style.cursor = 'pointer';
   }
 
-  // Add click handler to navigate to notifications view
+  // Add click handler to navigate based on notification link
   toast.addEventListener('click', (e) => {
     // Don't navigate if clicking on buttons
     if (e.target.tagName === 'BUTTON') return;
@@ -52,8 +52,12 @@ function showToast(notification) {
       });
     }
 
-    // Navigate to notifications view
-    showView('notifications');
+    // Navigate based on link type, or fall back to notifications view
+    if (notification.link) {
+      handleNotificationAction(notification.id, notification.link, notification.link_type);
+    } else {
+      showView('notifications');
+    }
     dismissToast(toast);
   });
 

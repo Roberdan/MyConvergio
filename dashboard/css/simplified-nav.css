@@ -119,8 +119,11 @@
 }
 
 [data-theme="light"] .settings-dropdown,
-[data-theme="claude-light"] .settings-dropdown {
+[data-theme="claude-light"] .settings-dropdown,
+[data-theme="frost"] .settings-dropdown,
+[data-theme="dawn"] .settings-dropdown {
   background: #ffffff;
+  border-color: var(--border);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
@@ -160,13 +163,18 @@
 }
 
 [data-theme="light"] .settings-dropdown select,
-[data-theme="claude-light"] .settings-dropdown select {
+[data-theme="claude-light"] .settings-dropdown select,
+[data-theme="frost"] .settings-dropdown select,
+[data-theme="dawn"] .settings-dropdown select {
   background: #f5f5f5;
+  border-color: var(--border);
   color: #222;
 }
 
 [data-theme="light"] .settings-dropdown select option,
-[data-theme="claude-light"] .settings-dropdown select option {
+[data-theme="claude-light"] .settings-dropdown select option,
+[data-theme="frost"] .settings-dropdown select option,
+[data-theme="dawn"] .settings-dropdown select option {
   background: #f5f5f5;
   color: #222;
 }
@@ -192,8 +200,24 @@
 }
 
 [data-theme="light"] .settings-item,
-[data-theme="claude-light"] .settings-item {
+[data-theme="claude-light"] .settings-item,
+[data-theme="frost"] .settings-item,
+[data-theme="dawn"] .settings-item {
   color: #222;
+}
+
+[data-theme="light"] .settings-section,
+[data-theme="claude-light"] .settings-section,
+[data-theme="frost"] .settings-section,
+[data-theme="dawn"] .settings-section {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .settings-label,
+[data-theme="claude-light"] .settings-label,
+[data-theme="frost"] .settings-label,
+[data-theme="dawn"] .settings-label {
+  color: #666;
 }
 
 .settings-item {

@@ -5,8 +5,12 @@ Personal Claude Code configuration with dashboard, scripts, and rules.
 ## Quick Start
 
 ```bash
-# Start dashboard (auto-uses PM2 if available)
-cd ~/.claude/dashboard && node reboot.js
+# Server management (PM2)
+~/.claude/server.sh start     # Start dashboard
+~/.claude/server.sh stop      # Stop dashboard
+~/.claude/server.sh restart   # Restart dashboard
+~/.claude/server.sh status    # Check status
+~/.claude/server.sh logs      # View logs
 
 # Check health
 curl http://localhost:31415/api/health
@@ -21,6 +25,7 @@ open http://localhost:31415
 ~/.claude/
 ├── CLAUDE.md              # Main config (loaded on every session)
 ├── README.md              # This file
+├── server.sh              # PM2 server management (start/stop/restart)
 ├── data/
 │   └── dashboard.db       # SQLite database
 ├── dashboard/             # Web dashboard
@@ -89,6 +94,15 @@ node reboot.js --no-pm2
 ```
 
 ## Scripts
+
+### server.sh - Dashboard Server
+```bash
+~/.claude/server.sh start     # Start with PM2, prints URL
+~/.claude/server.sh stop      # Stop server
+~/.claude/server.sh restart   # Restart, prints URL
+~/.claude/server.sh status    # PM2 status
+~/.claude/server.sh logs      # Last 50 log lines
+```
 
 ### plan-db.sh - Plan Management
 ```bash

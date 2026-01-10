@@ -22,14 +22,12 @@ Track completed work and remaining items for dashboard/Claude reliability + UX i
 - [x] Added Git error state rendering + disabled commit input on failure
 - [x] Added KPI row (tokens, cost, burn rate) + proof-of-done panel in dashboard
 
-## In Progress
-- [~] Continue dashboard UX improvements per user feedback (colors/layout, clarity)
-- [~] Verify repository visualizations and Git-related UI flows after API fixes
-
-## Pending
-- [ ] Add confirmation modal/checklist for "mark done" actions (if requested)
-- [ ] Make risk alerts actionable (click to plan/wave/task)
-- [ ] Optimize mobile layout for new badges/banner
+## Completed (this session)
+- [x] Continue dashboard UX improvements per user feedback (colors/layout, clarity)
+- [x] Verify repository visualizations and Git-related UI flows after API fixes
+- [x] Add confirmation modal/checklist for "mark done" actions
+- [x] Make risk alerts actionable (click to plan/wave/task)
+- [x] Optimize mobile layout for new badges/banner
 
 ## Notes
 - Keep plan updated as changes are made.

@@ -251,8 +251,10 @@ function renderRiskAlerts() {
   const alerts = [];
   const now = Date.now();
   const staleMs = 24 * 60 * 60 * 1000;
+  const planId = data?.meta?.plan_id;
+  const projectId = currentProjectId;
 
-  if (data?.meta?.plan_id) {
+  if (planId) {
     const status = data?.meta?.status || 'todo';
     const tasksDone = data?.meta?.tasks_done || 0;
     const tasksTotal = data?.meta?.tasks_total || 0;
@@ -260,19 +262,19 @@ function renderRiskAlerts() {
     const startedAt = data?.meta?.started_at ? new Date(data.meta.started_at).getTime() : null;
 
     if (status === 'done' && (tasksTotal === 0 || tasksDone < tasksTotal)) {
-      alerts.push({ level: 'error', text: 'Plan marked done but tasks are incomplete.' });
+      alerts.push({ level: 'error', text: 'Plan marked done but tasks are incomplete.', planId, projectId });
     }
     if (status === 'done' && !validatedAt && tasksTotal > 0) {
-      alerts.push({ level: 'error', text: 'Plan marked done without Thor validation.' });
+      alerts.push({ level: 'error', text: 'Plan marked done without Thor validation.', planId, projectId });
     }
     if (tasksTotal === 0 && status !== 'todo') {
-      alerts.push({ level: 'warn', text: 'Plan has no tasks but is not in todo.' });
+      alerts.push({ level: 'warn', text: 'Plan has no tasks but is not in todo.', planId, projectId });
     }
     if (status === 'doing' && startedAt && now - startedAt > staleMs) {
-      alerts.push({ level: 'warn', text: 'Plan in progress for more than 24h.' });
+      alerts.push({ level: 'warn', text: 'Plan in progress for more than 24h.', planId, projectId });
     }
     if (!validatedAt && tasksTotal > 0 && tasksDone >= tasksTotal) {
-      alerts.push({ level: 'info', text: 'All tasks done; awaiting Thor validation.' });
+      alerts.push({ level: 'info', text: 'All tasks done; awaiting Thor validation.', planId, projectId });
     }
   } else if (Array.isArray(data?.waves)) {
     data.waves.forEach(w => {
@@ -282,18 +284,19 @@ function renderRiskAlerts() {
       const validatedAt = w.validated_at;
       const startedAt = w.started_at ? new Date(w.started_at).getTime() : null;
       const label = w.name || w.id || 'Plan';
+      const waveId = w.id || w.plan_id;
 
       if (status === 'done' && (total === 0 || done < total)) {
-        alerts.push({ level: 'error', text: `${label}: done but tasks incomplete.` });
+        alerts.push({ level: 'error', text: `${label}: done but tasks incomplete.`, planId: waveId, projectId });
       }
       if (status === 'done' && total > 0 && !validatedAt) {
-        alerts.push({ level: 'error', text: `${label}: done without Thor validation.` });
+        alerts.push({ level: 'error', text: `${label}: done without Thor validation.`, planId: waveId, projectId });
       }
       if (total === 0 && status !== 'todo') {
-        alerts.push({ level: 'warn', text: `${label}: no tasks but not todo.` });
+        alerts.push({ level: 'warn', text: `${label}: no tasks but not todo.`, planId: waveId, projectId });
       }
       if (status === 'doing' && startedAt && now - startedAt > staleMs) {
-        alerts.push({ level: 'warn', text: `${label}: in progress over 24h.` });
+        alerts.push({ level: 'warn', text: `${label}: in progress over 24h.`, planId: waveId, projectId });
       }
     });
   }
@@ -303,13 +306,29 @@ function renderRiskAlerts() {
     return;
   }
 
-  listEl.innerHTML = alerts.map(a => `
-    <div class="risk-alert-item ${a.level}">
-      <span class="risk-alert-dot"></span>
-      <span>${a.text}</span>
-    </div>
-  `).join('');
+  listEl.innerHTML = alerts.map(a => {
+    const clickable = a.planId && a.projectId;
+    const clickAttr = clickable ? `onclick="navigateToRiskSource('${a.planId}', '${a.projectId}')"` : '';
+    const clickClass = clickable ? 'clickable' : '';
+    return `
+      <div class="risk-alert-item ${a.level} ${clickClass}" ${clickAttr} title="${clickable ? 'Click to view plan' : ''}">
+        <span class="risk-alert-dot"></span>
+        <span>${a.text}</span>
+        ${clickable ? '<span class="risk-alert-arrow">→</span>' : ''}
+      </div>
+    `;
+  }).join('');
 }
+
+function navigateToRiskSource(planId, projectId) {
+  if (typeof activatePlanAndNavigate === 'function') {
+    activatePlanAndNavigate(planId, projectId);
+  } else {
+    showToast('Navigation not available', 'warning');
+  }
+}
+
+window.navigateToRiskSource = navigateToRiskSource;
 
 function renderChart() {
   const times = data.timeline.data.map(d => d.time);

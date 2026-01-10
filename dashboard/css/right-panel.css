@@ -188,6 +188,30 @@
 .risk-alert-item.error .risk-alert-dot { background: #ef4444; }
 .risk-alert-item.warn .risk-alert-dot { background: var(--orange); }
 .risk-alert-item.info .risk-alert-dot { background: var(--accent); }
+
+/* Clickable risk alerts */
+.risk-alert-item.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.risk-alert-item.clickable:hover {
+  background: var(--bg-card);
+  transform: translateX(2px);
+  border-color: var(--accent);
+}
+.risk-alert-item.clickable:hover .risk-alert-arrow {
+  transform: translateX(2px);
+}
+.risk-alert-arrow {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+.risk-alert-item.clickable:hover .risk-alert-arrow {
+  color: var(--accent);
+}
+
 .risk-empty {
   font-size: 12px;
   color: var(--text-muted);

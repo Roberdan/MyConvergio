@@ -48,6 +48,16 @@ function initKanbanDragDrop() {
         return;
       }
 
+      // Show confirmation modal when moving to done
+      if (status === 'done') {
+        const planId = draggedPlanId;
+        const fromStatus = draggedFromStatus;
+        draggedPlanId = null;
+        draggedFromStatus = null;
+        showMarkDoneConfirmation(planId, fromStatus);
+        return;
+      }
+
       try {
         showToast(`Moving plan to ${status}...`, 'info');
         const res = await fetch(`${API_BASE}/plan/${draggedPlanId}/status`, {
@@ -541,7 +551,107 @@ async function activatePlanAndNavigate(planId, projectId) {
   }
 }
 
+// Mark Done Confirmation Modal
+async function showMarkDoneConfirmation(planId, fromStatus) {
+  // Fetch plan details for the checklist
+  let planData = null;
+  try {
+    const res = await fetch(`${API_BASE}/plan/${planId}`);
+    const result = await res.json();
+    if (result.success) planData = result.plan;
+  } catch (e) {
+    console.error('Failed to fetch plan details:', e);
+  }
+
+  const tasksDone = planData?.tasks_done || 0;
+  const tasksTotal = planData?.tasks_total || 0;
+  const isTasksComplete = tasksTotal > 0 && tasksDone >= tasksTotal;
+  const isValidated = !!planData?.validated_at;
+  const gitDirty = planData?.git_dirty || false;
+  const gitError = planData?.git_error || false;
+  const gitClean = !gitDirty && !gitError;
+
+  const warnings = [];
+  if (!isTasksComplete) warnings.push('Tasks incomplete');
+  if (!isValidated) warnings.push('Thor validation pending');
+  if (!gitClean) warnings.push('Git has uncommitted changes');
+
+  const modal = document.createElement('div');
+  modal.className = 'mark-done-modal-overlay';
+  modal.innerHTML = `
+    <div class="mark-done-modal">
+      <div class="mark-done-header">
+        <h3>Mark Plan as Done?</h3>
+        <button class="mark-done-close" onclick="closeMarkDoneModal()">&times;</button>
+      </div>
+      <div class="mark-done-body">
+        <p class="mark-done-plan-name">${planData?.name || 'Plan'}</p>
+        <div class="mark-done-checklist">
+          <div class="checklist-item ${isTasksComplete ? 'pass' : 'fail'}">
+            <span class="checklist-icon">${isTasksComplete ? '✓' : '✗'}</span>
+            <span>Tasks: ${tasksDone}/${tasksTotal} completed</span>
+          </div>
+          <div class="checklist-item ${isValidated ? 'pass' : 'warn'}">
+            <span class="checklist-icon">${isValidated ? '✓' : '⚠'}</span>
+            <span>Thor Validation: ${isValidated ? 'Passed' : 'Pending'}</span>
+          </div>
+          <div class="checklist-item ${gitClean ? 'pass' : 'warn'}">
+            <span class="checklist-icon">${gitClean ? '✓' : '⚠'}</span>
+            <span>Git: ${gitClean ? 'Clean' : (gitError ? 'Error' : 'Dirty')}</span>
+          </div>
+        </div>
+        ${warnings.length > 0 ? `
+          <div class="mark-done-warning">
+            <strong>Warning:</strong> ${warnings.join(', ')}
+          </div>
+        ` : ''}
+      </div>
+      <div class="mark-done-footer">
+        <button class="mark-done-btn cancel" onclick="closeMarkDoneModal()">Cancel</button>
+        <button class="mark-done-btn confirm ${warnings.length > 0 ? 'warn' : ''}"
+                onclick="confirmMarkDone('${planId}')">
+          ${warnings.length > 0 ? 'Mark Done Anyway' : 'Confirm Done'}
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeMarkDoneModal();
+  });
+}
+
+function closeMarkDoneModal() {
+  const modal = document.querySelector('.mark-done-modal-overlay');
+  if (modal) modal.remove();
+}
+
+async function confirmMarkDone(planId) {
+  closeMarkDoneModal();
+  try {
+    showToast('Moving plan to done...', 'info');
+    const res = await fetch(`${API_BASE}/plan/${planId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'done' })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Plan marked as done', 'success');
+      await loadKanban();
+      await loadProjects();
+    } else {
+      showToast(result.error || 'Failed to mark done', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to mark done: ' + err.message, 'error');
+  }
+}
+
 // Export trash functions
 window.emptyTrash = emptyTrash;
 window.renderTrashColumn = renderTrashColumn;
 window.activatePlanAndNavigate = activatePlanAndNavigate;
+window.showMarkDoneConfirmation = showMarkDoneConfirmation;
+window.closeMarkDoneModal = closeMarkDoneModal;
+window.confirmMarkDone = confirmMarkDone;

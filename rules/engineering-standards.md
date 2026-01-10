@@ -3,6 +3,7 @@
 > ISE Fundamentals: https://microsoft.github.io/code-with-engineering-playbook/
 
 ## Code Style
+**Language**: All code, comments, and documentation in English (unless user explicitly overrides)
 **TS/JS**: ESLint+Prettier, const>let, never var, camelCase/PascalCase/UPPER_SNAKE, async/await, semicolons, single quotes, max 100 chars
 **Python**: PEP8+Black, snake_case/PascalCase, type hints for public APIs, f-strings
 **General**: Comments explain "why", no commented code, SRP, DRY, small functions

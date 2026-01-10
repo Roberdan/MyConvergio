@@ -1,3 +1,8 @@
+---
+name: execution-discipline
+description: Execution rules and workflow discipline for MyConvergio agents
+---
+
 # MyConvergio Execution Discipline v1.0
 
 **Effective Date**: January 2026

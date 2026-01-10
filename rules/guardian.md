@@ -38,19 +38,3 @@ Thor checks GitHub PR page:
 
 ## Anti-Workaround
 Reject if: Errors suppressed | Steps skipped | Verification promised but not done
-
-## Workflow Enforcement
-**MANDATORY FLOW**: /prompt → /planner → Execute → Thor → User Approval
-
-### Blocked Actions
-- Execute without /prompt: "BLOCKED - run /prompt first"
-- Execute without /planner: "BLOCKED - create plan with /planner first"
-- Close wave without Thor: "BLOCKED - Thor validation required"
-- Self-declare done: "REJECTED - user must approve"
-
-### Verification Points
-1. After /prompt: F-xx requirements extracted and confirmed
-2. After /planner: Plan registered in DB, user approved
-3. After Execute: Task status updated, F-xx verified
-4. After Thor: Build passes, F-xx evidence documented
-5. After Closure: User explicitly approved

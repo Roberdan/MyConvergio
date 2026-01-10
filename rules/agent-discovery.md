@@ -1,6 +1,6 @@
 # Agent Discovery
 
-Route: MyConvergio (`~/GitHub/MyConvergio/agents/`) first, fallback `~/.claude/agents/`.
+Route: MyConvergio agents (plugin dir or `$MYCONVERGIO_HOME/agents/`) first, fallback `~/.claude/agents/`.
 
 ## Agents by Domain
 - **Technical**: baccio (architect), dario (debug), marco (devops), otto (perf), rex (review), luca (security)
@@ -18,4 +18,4 @@ Keywords → Match agent domain → Use specialist → Ambiguous? Ask user
 **Don't delegate**: Simple tasks | No clear benefit | Overhead > value
 
 ## Skills
-Path: `~/GitHub/MyConvergio/skills/` - architecture, code-review, debugging, performance, security-audit
+Path: MyConvergio skills (plugin dir or `$MYCONVERGIO_HOME/skills/`) - architecture, code-review, debugging, performance, security-audit

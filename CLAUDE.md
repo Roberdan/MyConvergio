@@ -11,6 +11,14 @@
 5. **Proof required**: "done" needs evidence. User approves closure.
 6. **Max 250 lines/file**: Check before writing. Split if exceeds. No exceptions without approval.
 
+## Pre-Closure Checklist (MANDATORY before saying "done")
+```bash
+git status --short              # Must be clean
+ls -la {files} && wc -l {files} # Verify existence + line counts
+git log --oneline -3            # Show commits as proof
+```
+**NEVER claim done with uncommitted changes or unverified files.**
+
 ## Dashboard
 - **URL**: http://localhost:31415
 - **Health**: GET /api/health

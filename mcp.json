@@ -7,7 +7,7 @@
         "@azure-devops/mcp"
       ],
       "env": {
-        "AZURE_DEVOPS_PAT": "EbuYG0dqwJQgGi8ucJ5O85FNh19HTIUq9pG5r3XKLDoaP0RoNjKsJQQJ99BJACAAAAAAArohAAASAZDO2Wje",
+        "AZURE_DEVOPS_PAT": "${AZURE_DEVOPS_PAT}",
         "AZURE_DEVOPS_ORGANIZATION": "IndustrySolutions"
       }
     }

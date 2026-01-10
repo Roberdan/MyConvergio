@@ -122,7 +122,7 @@ if [ "$REMAINING" = "0" ]; then
   # Final Thor validation
   plan-db.sh validate $PLAN_ID
 
-  # Mark plan complete
+  # Mark plan complete (requires tasks done + Thor validation)
   plan-db.sh complete $PLAN_ID
 
   echo "Piano completato - In attesa di approvazione utente"

@@ -21,6 +21,10 @@
   outline: none;
   border-color: var(--accent);
 }
+.git-commit-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .git-commit-input::placeholder { color: var(--text-dim); }
 
 .git-commit-btn-wrap {

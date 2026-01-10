@@ -2,7 +2,7 @@
 # Session End Token Tracker
 # Called by Claude Code Stop hook to record token usage
 
-set -e
+set -u
 
 DB_FILE="$HOME/.claude/data/dashboard.db"
 LOG_FILE="$HOME/.claude/logs/token-tracking.log"
@@ -13,6 +13,19 @@ mkdir -p "$(dirname "$LOG_FILE")"
 log() {
   echo "$(date '+%Y-%m-%d %H:%M:%S') | $1" >> "$LOG_FILE"
 }
+
+have_bin() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+if ! have_bin jq; then
+  log "Missing dependency: jq"
+  exit 0
+fi
+if ! have_bin sqlite3; then
+  log "Missing dependency: sqlite3"
+  exit 0
+fi
 
 # Read hook input from stdin
 INPUT=$(cat)
@@ -80,13 +93,17 @@ fi
 # Opus: $15/1M input, $75/1M output
 # Sonnet: $3/1M input, $15/1M output
 COST_USD=0
-if [[ "$MODEL" == *"opus"* ]]; then
-  COST_USD=$(echo "scale=4; ($INPUT_TOKENS * 0.000015) + ($OUTPUT_TOKENS * 0.000075)" | bc)
-elif [[ "$MODEL" == *"sonnet"* ]]; then
-  COST_USD=$(echo "scale=4; ($INPUT_TOKENS * 0.000003) + ($OUTPUT_TOKENS * 0.000015)" | bc)
+if have_bin bc; then
+  if [[ "$MODEL" == *"opus"* ]]; then
+    COST_USD=$(echo "scale=4; ($INPUT_TOKENS * 0.000015) + ($OUTPUT_TOKENS * 0.000075)" | bc)
+  elif [[ "$MODEL" == *"sonnet"* ]]; then
+    COST_USD=$(echo "scale=4; ($INPUT_TOKENS * 0.000003) + ($OUTPUT_TOKENS * 0.000015)" | bc)
+  else
+    # Default to sonnet pricing
+    COST_USD=$(echo "scale=4; ($INPUT_TOKENS * 0.000003) + ($OUTPUT_TOKENS * 0.000015)" | bc)
+  fi
 else
-  # Default to sonnet pricing
-  COST_USD=$(echo "scale=4; ($INPUT_TOKENS * 0.000003) + ($OUTPUT_TOKENS * 0.000015)" | bc)
+  log "Missing dependency: bc (cost set to 0)"
 fi
 
 # Record to database

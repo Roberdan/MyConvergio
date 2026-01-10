@@ -47,6 +47,12 @@ open http://localhost:31415
 └── agents/                # Local agent definitions
 ```
 
+## Configuration Notes
+
+- **MCP source of truth (Claude Code)**: `~/.claude/mcp.json`. Desktop config mirrors this file.
+- **Dashboard DB**: Single source of truth is `~/.claude/data/dashboard.db`.
+- **Token tracking API**: Uses `DASHBOARD_API` if set, default `http://127.0.0.1:31415/api/tokens`.
+
 ## Dashboard
 
 ### Features
@@ -107,6 +113,12 @@ node reboot.js --no-pm2
 ### register-project.sh - Project Registration
 ```bash
 ~/.claude/scripts/register-project.sh "$(pwd)" --name "Project Name"
+```
+
+### cleanup-cache.sh - Cache/Log Pruning
+```bash
+# Remove logs/cache files older than 30 days
+~/.claude/scripts/cleanup-cache.sh
 ```
 
 ## Workflow

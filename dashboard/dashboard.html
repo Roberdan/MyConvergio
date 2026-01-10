@@ -170,7 +170,7 @@
         <div class="git-section-content" id="gitChanges">
           <!-- Commit Message -->
           <div class="git-commit-box">
-            <input type="text" class="git-commit-input" id="gitCommitMessage" placeholder="Message (&#x2318;Enter to commit on &quot;main&quot;)">
+            <input type="text" class="git-commit-input" id="gitCommitMessage" placeholder="Message (Cmd+Enter to commit on &quot;main&quot;)">
             <div class="git-commit-btn-wrap">
               <button class="git-commit-btn" onclick="commitChanges()">
                 <span class="commit-icon">&#x1F512;</span> Commit
@@ -349,10 +349,59 @@
           <div class="label">Avg Tokens/Task</div>
           <div class="value" id="avgTokensPerTask">Loading...</div>
         </div>
-        <div class="stat-item">
-          <div class="label">Overall Progress</div>
-          <div class="value" id="progressPercent">Loading...</div>
+       <div class="stat-item">
+         <div class="label">Overall Progress</div>
+         <div class="value" id="progressPercent">Loading...</div>
+       </div>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="kpi-row" id="kpiRow">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Tokens</div>
+          <div class="kpi-value" id="kpiTokensTotal">n/d</div>
+          <div class="kpi-meta" id="kpiTokensMeta">All time</div>
         </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Cost</div>
+          <div class="kpi-value" id="kpiCostTotal">n/d</div>
+          <div class="kpi-meta" id="kpiCostMeta">All time</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Burn Rate</div>
+          <div class="kpi-value" id="kpiBurnRate">n/d</div>
+          <div class="kpi-meta" id="kpiBurnMeta">Last 24h</div>
+        </div>
+      </div>
+
+      <!-- Proof of Done -->
+      <div class="proof-panel" id="proofPanel">
+        <div class="proof-header">
+          <div class="proof-title">Proof of Done</div>
+          <div class="proof-badge" id="proofBadge">Plan not selected</div>
+        </div>
+        <div class="proof-grid">
+          <div class="proof-item">
+            <div class="proof-label">Tasks</div>
+            <div class="proof-value" id="proofTasksValue">-</div>
+          </div>
+          <div class="proof-item">
+            <div class="proof-label">Validation</div>
+            <div class="proof-value" id="proofValidationValue">-</div>
+          </div>
+          <div class="proof-item">
+            <div class="proof-label">Plan Status</div>
+            <div class="proof-value" id="proofPlanStatus">-</div>
+          </div>
+        </div>
+        <div class="proof-note" id="proofNote">Select a plan to verify completion criteria.</div>
+      </div>
+
+      <!-- Workflow Banner -->
+      <div class="workflow-banner" id="workflowBanner" style="display:none;">
+        <div class="workflow-title">Workflow</div>
+        <div class="workflow-steps" id="workflowSteps"></div>
+        <div class="workflow-note" id="workflowNote"></div>
       </div>
 
       <!-- Interactive Gantt View - Heart of Dashboard -->
@@ -616,6 +665,14 @@
           <div class="history-timeline" id="historyTimeline">
             <div class="history-empty">No history yet</div>
           </div>
+        </div>
+      </div>
+
+      <!-- Risk Alerts Card -->
+      <div class="panel-card" id="riskAlertsCard">
+        <div class="panel-header">Risk Alerts</div>
+        <div class="risk-alerts-list" id="riskAlertsList">
+          <div class="risk-empty">No alerts</div>
         </div>
       </div>
     </aside>

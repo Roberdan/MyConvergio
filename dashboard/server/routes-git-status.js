@@ -3,6 +3,15 @@
 const { execSync, execFileSync } = require('child_process');
 const { query } = require('./db');
 
+function parseJsonBody(body) {
+  if (!body) return {};
+  try {
+    return JSON.parse(body);
+  } catch (e) {
+    return {};
+  }
+}
+
 const routes = {
   // Get project git status
   'GET /api/project/:id/git': (params) => {
@@ -109,7 +118,7 @@ const routes = {
   },
 
   // Pull from remote
-  'POST /api/project/:id/git/pull': (params) => {
+  'POST /api/project/:id/git/pull': (params, req, res, body) => {
     const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
     if (!project || !project.path) return { error: 'Project not found' };
 
@@ -123,14 +132,15 @@ const routes = {
   },
 
   // Push to remote
-  'POST /api/project/:id/git/push': (params, body) => {
+  'POST /api/project/:id/git/push': (params, req, res, body) => {
     const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
     if (!project || !project.path) return { error: 'Project not found' };
 
     try {
       const cwd = project.path;
+      const data = parseJsonBody(body);
       let cmd = 'git push';
-      if (body.setUpstream) {
+      if (data.setUpstream) {
         const branch = execSync('git branch --show-current', { cwd, encoding: 'utf-8' }).trim();
         cmd = `git push -u origin ${branch}`;
       }
@@ -145,7 +155,7 @@ const routes = {
   },
 
   // Fetch from remote
-  'POST /api/project/:id/git/fetch': (params) => {
+  'POST /api/project/:id/git/fetch': (params, req, res, body) => {
     const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
     if (!project || !project.path) return { error: 'Project not found' };
 

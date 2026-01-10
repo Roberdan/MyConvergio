@@ -59,6 +59,12 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
   }
+  .kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .proof-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .stat-item .value { font-size: 20px; }
   .stat-item .label { font-size: 10px; }
   .epoch-bar {
@@ -86,6 +92,8 @@
   .nav-btn { padding: 6px 12px; font-size: 11px; }
   .main-wrap { padding: 12px; gap: 12px; }
   .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .kpi-row { grid-template-columns: 1fr; }
+  .proof-grid { grid-template-columns: 1fr; }
   .stat-item .value { font-size: 18px; }
   .traders-grid { grid-template-columns: 1fr; }
   .chart-card { padding: 12px; }

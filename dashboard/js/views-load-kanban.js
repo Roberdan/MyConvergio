@@ -18,16 +18,32 @@ async function loadKanban() {
         return { projectId, tokens: 0, cost: 0 };
       }
     });
+    const gitPromises = Array.from(projectIds).map(async (projectId) => {
+      try {
+        const gitRes = await fetch(`${API_BASE}/project/${projectId}/git`);
+        const gitData = await gitRes.json();
+        return { projectId, totalChanges: gitData.totalChanges || 0, error: gitData.error };
+      } catch (e) {
+        return { projectId, totalChanges: 0, error: e.message };
+      }
+    });
+
     const tokenResults = await Promise.all(tokenPromises);
+    const gitResults = await Promise.all(gitPromises);
     const tokensByProject = {};
+    const gitByProject = {};
     tokenResults.forEach(t => {
       tokensByProject[t.projectId] = t;
       totalTokens += t.tokens;
       totalCost += t.cost;
     });
+    gitResults.forEach(g => {
+      gitByProject[g.projectId] = g;
+    });
     plans.forEach(plan => {
       const status = plan.status || 'todo';
       const projectTokens = tokensByProject[plan.project_id] || { tokens: 0, cost: 0 };
+      const projectGit = gitByProject[plan.project_id] || { totalChanges: 0, error: null };
       const updatedAt = plan.completed_at || plan.started_at || plan.created_at;
       const lastUpdate = updatedAt ? new Date(updatedAt) : null;
       const isRecent = lastUpdate && (Date.now() - lastUpdate.getTime()) < 3600000;
@@ -48,7 +64,9 @@ async function loadKanban() {
         tokens: projectTokens.tokens,
         cost: projectTokens.cost,
         validatedBy: plan.validated_by,
-        validatedAt: plan.validated_at
+        validatedAt: plan.validated_at,
+        gitDirty: (projectGit.totalChanges || 0) > 0,
+        gitError: projectGit.error || null
       });
     });
   } catch (e) {
@@ -80,4 +98,3 @@ async function loadKanban() {
     renderTrashColumn();
   }
 }
-

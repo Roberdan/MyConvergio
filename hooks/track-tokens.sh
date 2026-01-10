@@ -12,7 +12,7 @@
 set -e
 
 DB_FILE="$HOME/.claude/data/dashboard.db"
-API_URL="http://127.0.0.1:31416/api/tokens"
+API_URL="${DASHBOARD_API:-http://127.0.0.1:31415/api/tokens}"
 
 # Function to record via direct SQLite
 record_sqlite() {

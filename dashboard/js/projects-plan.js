@@ -33,9 +33,16 @@ function transformPlanToData(plan) {
       project: plan.name,
       project_id: plan.project_id,
       plan_id: plan.id,
+      status: plan.status,
       owner: plan.validated_by || 'planner',
       created: plan.created_at,
-      updated: plan.started_at || plan.created_at
+      updated: plan.started_at || plan.created_at,
+      validated_at: plan.validated_at,
+      validated_by: plan.validated_by,
+      tasks_done: plan.tasks_done || 0,
+      tasks_total: plan.tasks_total || 0,
+      started_at: plan.started_at,
+      completed_at: plan.completed_at
     },
     metrics: {
       throughput: {

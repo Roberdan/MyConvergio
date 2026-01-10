@@ -5,10 +5,11 @@
       {
         "scope": "project",
         "projectPath": "/Users/roberdan/GitHub/ConvergioEdu",
-        "installPath": "/Users/roberdan/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
-        "version": "unknown",
+        "installPath": "/Users/roberdan/.claude/plugins/cache/claude-plugins-official/frontend-design/6d3752c000e2",
+        "version": "6d3752c000e2",
         "installedAt": "2025-12-29T09:12:33.798Z",
         "lastUpdated": "2026-01-01T11:28:45.798Z",
+        "gitCommitSha": "6d3752c000e2b3d0e6137bd7adb04895d6f40f14",
         "isLocal": true
       }
     ],

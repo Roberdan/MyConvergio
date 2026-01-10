@@ -188,7 +188,14 @@ const server = http.createServer((req, res) => {
   if (rawMatch) {
     const project = require('./server/db').query(`SELECT path FROM projects WHERE id = '${rawMatch[1]}'`)[0];
     if (project?.path) {
-      const fullPath = path.join(project.path, decodeURIComponent(rawMatch[2]));
+      const projectPath = path.resolve(project.path);
+      const decodedPath = decodeURIComponent(rawMatch[2]);
+      const fullPath = path.resolve(projectPath, decodedPath);
+      if (!fullPath.startsWith(projectPath + path.sep)) {
+        res.writeHead(403);
+        res.end('Forbidden');
+        return;
+      }
       if (fs.existsSync(fullPath)) {
         const ext = path.extname(fullPath);
         res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });

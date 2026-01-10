@@ -51,6 +51,9 @@ function render() {
 
   setText('progressPercent', total > 0 ? data.metrics.throughput.percent + '%' : '0%');
 
+  renderKpiRow();
+  renderProofPanel();
+
   // Charts only if there are waves
 
   // Git
@@ -63,6 +66,8 @@ function render() {
 
   // Update panels
   updateHealthStatus();
+  renderWorkflowBanner();
+  renderRiskAlerts();
   renderIssuesPanel();
   renderTokensTab();
   // Only render Gantt in dashboard view
@@ -89,6 +94,221 @@ function render() {
     renderChart();
   }
   renderAgents();
+}
+
+function renderKpiRow() {
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  const tokensTotal = data?.tokens?.total ?? 0;
+  const costTotal = data?.tokens?.cost ?? data?.tokens?.totalCost;
+  const burnTokens = data?.tokens?.burnRate?.tokens;
+
+  setText('kpiTokensTotal', tokensTotal ? tokensTotal.toLocaleString() : 'n/d');
+  setText('kpiCostTotal', typeof costTotal === 'number' ? `$${costTotal.toFixed(2)}` : 'n/d');
+  setText('kpiBurnRate', typeof burnTokens === 'number' ? `${burnTokens.toLocaleString()} tokens` : 'n/d');
+}
+
+function renderProofPanel() {
+  const panel = document.getElementById('proofPanel');
+  if (!panel) return;
+
+  const badge = document.getElementById('proofBadge');
+  const tasksEl = document.getElementById('proofTasksValue');
+  const validationEl = document.getElementById('proofValidationValue');
+  const statusEl = document.getElementById('proofPlanStatus');
+  const noteEl = document.getElementById('proofNote');
+
+  const planId = data?.meta?.plan_id;
+  const status = data?.meta?.status || '-';
+  const tasksDone = data?.meta?.tasks_done ?? data?.metrics?.throughput?.done ?? 0;
+  const tasksTotal = data?.meta?.tasks_total ?? data?.metrics?.throughput?.total ?? 0;
+  const validatedAt = data?.meta?.validated_at;
+  const validatedBy = data?.meta?.validated_by;
+
+  if (!planId) {
+    if (badge) {
+      badge.className = 'proof-badge';
+      badge.textContent = 'Plan not selected';
+    }
+    if (tasksEl) tasksEl.textContent = '-';
+    if (validationEl) validationEl.textContent = '-';
+    if (statusEl) statusEl.textContent = '-';
+    if (noteEl) noteEl.textContent = 'Select a plan to verify completion criteria.';
+    return;
+  }
+
+  const isComplete = tasksTotal > 0 && tasksDone >= tasksTotal;
+  const isValidated = !!validatedAt;
+  const isInconsistent = status === 'done' && (!isComplete || !isValidated);
+
+  if (tasksEl) tasksEl.textContent = `${tasksDone}/${tasksTotal}`;
+  if (statusEl) statusEl.textContent = status;
+
+  if (validationEl) {
+    if (validatedAt) {
+      const dateLabel = new Date(validatedAt).toLocaleString('it-IT');
+      validationEl.textContent = validatedBy ? `${dateLabel} · ${validatedBy}` : dateLabel;
+    } else {
+      validationEl.textContent = isComplete ? 'Pending Thor validation' : 'Not validated';
+    }
+  }
+
+  if (badge) {
+    badge.className = 'proof-badge';
+    if (isInconsistent) {
+      badge.classList.add('inconsistent');
+      badge.textContent = 'Inconsistent';
+    } else if (isComplete && isValidated) {
+      badge.classList.add('verified');
+      badge.textContent = 'Verified';
+    } else if (isComplete && !isValidated) {
+      badge.classList.add('pending');
+      badge.textContent = 'Ready for validation';
+    } else {
+      badge.textContent = 'In progress';
+    }
+  }
+
+  if (noteEl) {
+    if (isInconsistent) {
+      noteEl.textContent = 'Plan marked done but tasks or validation are incomplete.';
+    } else if (isComplete && !isValidated) {
+      noteEl.textContent = 'All tasks done; waiting for Thor validation.';
+    } else {
+      noteEl.textContent = 'Completion requires all tasks done + Thor validation.';
+    }
+  }
+}
+
+function renderWorkflowBanner() {
+  const banner = document.getElementById('workflowBanner');
+  const stepsEl = document.getElementById('workflowSteps');
+  const noteEl = document.getElementById('workflowNote');
+  if (!banner || !stepsEl || !noteEl) return;
+
+  const planId = data?.meta?.plan_id;
+  if (!planId) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const status = data?.meta?.status || 'todo';
+  const tasksDone = data?.meta?.tasks_done || 0;
+  const tasksTotal = data?.meta?.tasks_total || 0;
+  const validatedAt = data?.meta?.validated_at;
+
+  const steps = [];
+  steps.push({ label: 'Prompt', status: 'done' });
+  steps.push({ label: 'Plan', status: 'done' });
+
+  if (tasksTotal === 0) {
+    steps.push({ label: 'Execute', status: 'blocked' });
+  } else if (status === 'doing' || status === 'done' || tasksDone > 0) {
+    steps.push({ label: 'Execute', status: 'done' });
+  } else {
+    steps.push({ label: 'Execute', status: 'pending' });
+  }
+
+  if (validatedAt) {
+    steps.push({ label: 'Validate', status: 'done' });
+  } else if (tasksTotal > 0 && tasksDone >= tasksTotal) {
+    steps.push({ label: 'Validate', status: 'pending' });
+  } else {
+    steps.push({ label: 'Validate', status: 'blocked' });
+  }
+
+  if (status === 'done' && validatedAt && tasksTotal > 0 && tasksDone >= tasksTotal) {
+    steps.push({ label: 'Close', status: 'done' });
+  } else {
+    steps.push({ label: 'Close', status: 'pending' });
+  }
+
+  stepsEl.innerHTML = steps.map(step => {
+    const icon = step.status === 'done' ? '✓' : step.status === 'blocked' ? '✖' : '•';
+    return `<span class="workflow-step ${step.status}">${icon} ${step.label}</span>`;
+  }).join('');
+
+  if (tasksTotal === 0) {
+    noteEl.textContent = 'Plan has no tasks. Add tasks to proceed.';
+  } else if (steps.some(s => s.status === 'blocked')) {
+    noteEl.textContent = 'Execution blocked until prerequisites are met.';
+  } else if (!validatedAt && tasksDone >= tasksTotal && tasksTotal > 0) {
+    noteEl.textContent = 'Waiting for Thor validation before closing.';
+  } else {
+    noteEl.textContent = '';
+  }
+
+  banner.style.display = 'block';
+}
+
+function renderRiskAlerts() {
+  const listEl = document.getElementById('riskAlertsList');
+  if (!listEl) return;
+
+  const alerts = [];
+  const now = Date.now();
+  const staleMs = 24 * 60 * 60 * 1000;
+
+  if (data?.meta?.plan_id) {
+    const status = data?.meta?.status || 'todo';
+    const tasksDone = data?.meta?.tasks_done || 0;
+    const tasksTotal = data?.meta?.tasks_total || 0;
+    const validatedAt = data?.meta?.validated_at;
+    const startedAt = data?.meta?.started_at ? new Date(data.meta.started_at).getTime() : null;
+
+    if (status === 'done' && (tasksTotal === 0 || tasksDone < tasksTotal)) {
+      alerts.push({ level: 'error', text: 'Plan marked done but tasks are incomplete.' });
+    }
+    if (status === 'done' && !validatedAt && tasksTotal > 0) {
+      alerts.push({ level: 'error', text: 'Plan marked done without Thor validation.' });
+    }
+    if (tasksTotal === 0 && status !== 'todo') {
+      alerts.push({ level: 'warn', text: 'Plan has no tasks but is not in todo.' });
+    }
+    if (status === 'doing' && startedAt && now - startedAt > staleMs) {
+      alerts.push({ level: 'warn', text: 'Plan in progress for more than 24h.' });
+    }
+    if (!validatedAt && tasksTotal > 0 && tasksDone >= tasksTotal) {
+      alerts.push({ level: 'info', text: 'All tasks done; awaiting Thor validation.' });
+    }
+  } else if (Array.isArray(data?.waves)) {
+    data.waves.forEach(w => {
+      const status = w.status || 'todo';
+      const done = w.done || 0;
+      const total = w.total || 0;
+      const validatedAt = w.validated_at;
+      const startedAt = w.started_at ? new Date(w.started_at).getTime() : null;
+      const label = w.name || w.id || 'Plan';
+
+      if (status === 'done' && (total === 0 || done < total)) {
+        alerts.push({ level: 'error', text: `${label}: done but tasks incomplete.` });
+      }
+      if (status === 'done' && total > 0 && !validatedAt) {
+        alerts.push({ level: 'error', text: `${label}: done without Thor validation.` });
+      }
+      if (total === 0 && status !== 'todo') {
+        alerts.push({ level: 'warn', text: `${label}: no tasks but not todo.` });
+      }
+      if (status === 'doing' && startedAt && now - startedAt > staleMs) {
+        alerts.push({ level: 'warn', text: `${label}: in progress over 24h.` });
+      }
+    });
+  }
+
+  if (alerts.length === 0) {
+    listEl.innerHTML = '<div class="risk-empty">No alerts</div>';
+    return;
+  }
+
+  listEl.innerHTML = alerts.map(a => `
+    <div class="risk-alert-item ${a.level}">
+      <span class="risk-alert-dot"></span>
+      <span>${a.text}</span>
+    </div>
+  `).join('');
 }
 
 function renderChart() {

@@ -16,6 +16,7 @@
 - "done" = written, tests pass, committed if requested
 - "fixed" = reproduced, fixed, test proves it
 - No claim without evidence. Uncertain? Verify first.
+- Never mark a plan "done" unless tasks_done == tasks_total and Thor validation passed.
 
 ## Definition of Done
 Before claiming "finito":

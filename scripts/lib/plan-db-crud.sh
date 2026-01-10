@@ -138,7 +138,7 @@ cmd_add_task() {
 
     sqlite3 "$DB_FILE" "UPDATE plans SET tasks_total = tasks_total + 1 WHERE id = $plan_id;"
 
-    local db_task_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE id = last_insert_rowid();")
+    local db_task_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE plan_id=$plan_id AND wave_id_fk=$db_wave_id AND task_id='$safe_task_id' ORDER BY id DESC LIMIT 1;")
     log_info "Added task: $title (ID: $db_task_id)"
     echo "$db_task_id"
 }
@@ -213,6 +213,24 @@ cmd_update_wave() {
 # Complete plan
 cmd_complete() {
     local plan_id="$1"
+    local plan_info=$(sqlite3 "$DB_FILE" "SELECT tasks_done, tasks_total, validated_at FROM plans WHERE id = $plan_id;")
+    local tasks_done=$(echo "$plan_info" | cut -d'|' -f1)
+    local tasks_total=$(echo "$plan_info" | cut -d'|' -f2)
+    local validated_at=$(echo "$plan_info" | cut -d'|' -f3)
+
+    if [[ -z "$tasks_total" || "$tasks_total" -eq 0 ]]; then
+        log_error "Cannot complete plan $plan_id: no tasks"
+        exit 1
+    fi
+    if [[ "$tasks_done" -lt "$tasks_total" ]]; then
+        log_error "Cannot complete plan $plan_id: $tasks_done/$tasks_total tasks done"
+        exit 1
+    fi
+    if [[ -z "$validated_at" ]]; then
+        log_error "Cannot complete plan $plan_id: Thor validation required"
+        exit 1
+    fi
+
     sqlite3 "$DB_FILE" "UPDATE plans SET status = 'done', completed_at = datetime('now') WHERE id = $plan_id;"
 
     local version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")

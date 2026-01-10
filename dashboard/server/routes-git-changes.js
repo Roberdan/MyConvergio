@@ -3,19 +3,29 @@
 const { execSync } = require('child_process');
 const { query } = require('./db');
 
+function parseJsonBody(body) {
+  if (!body) return {};
+  try {
+    return JSON.parse(body);
+  } catch (e) {
+    return {};
+  }
+}
+
 const routes = {
   // Stage files
-  'POST /api/project/:id/git/stage': (params, body) => {
+  'POST /api/project/:id/git/stage': (params, req, res, body) => {
     const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
     if (!project || !project.path) return { error: 'Project not found' };
 
     try {
       const cwd = project.path;
+      const data = parseJsonBody(body);
 
-      if (body.all) {
+      if (data.all) {
         execSync('git add -A', { cwd, encoding: 'utf-8' });
-      } else if (body.files && body.files.length > 0) {
-        const files = body.files.map(f => `"${f}"`).join(' ');
+      } else if (data.files && data.files.length > 0) {
+        const files = data.files.map(f => `"${f}"`).join(' ');
         execSync(`git add ${files}`, { cwd, encoding: 'utf-8' });
       } else {
         return { error: 'No files specified' };
@@ -28,17 +38,18 @@ const routes = {
   },
 
   // Unstage files
-  'POST /api/project/:id/git/unstage': (params, body) => {
+  'POST /api/project/:id/git/unstage': (params, req, res, body) => {
     const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
     if (!project || !project.path) return { error: 'Project not found' };
 
     try {
       const cwd = project.path;
+      const data = parseJsonBody(body);
 
-      if (body.all) {
+      if (data.all) {
         execSync('git reset HEAD', { cwd, encoding: 'utf-8' });
-      } else if (body.files && body.files.length > 0) {
-        const files = body.files.map(f => `"${f}"`).join(' ');
+      } else if (data.files && data.files.length > 0) {
+        const files = data.files.map(f => `"${f}"`).join(' ');
         execSync(`git reset HEAD ${files}`, { cwd, encoding: 'utf-8' });
       } else {
         return { error: 'No files specified' };
@@ -51,7 +62,7 @@ const routes = {
   },
 
   // Discard file changes (handles both tracked and untracked files)
-  'POST /api/project/:id/git/discard': (params, body) => {
+  'POST /api/project/:id/git/discard': (params, req, res, body) => {
     const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
     if (!project || !project.path) return { error: 'Project not found' };
 
@@ -59,12 +70,13 @@ const routes = {
       const cwd = project.path;
       const fs = require('fs');
       const path = require('path');
+      const data = parseJsonBody(body);
 
-      if (!body.files || body.files.length === 0) {
+      if (!data.files || data.files.length === 0) {
         return { error: 'No files specified' };
       }
 
-      for (const file of body.files) {
+      for (const file of data.files) {
         const fullPath = path.join(cwd, file);
         // Check if file is untracked
         try {
@@ -84,19 +96,20 @@ const routes = {
   },
 
   // Commit changes
-  'POST /api/project/:id/git/commit': (params, body) => {
+  'POST /api/project/:id/git/commit': (params, req, res, body) => {
     const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
     if (!project || !project.path) return { error: 'Project not found' };
 
-    if (!body.message) return { error: 'Commit message required' };
+    const data = parseJsonBody(body);
+    if (!data.message) return { error: 'Commit message required' };
 
     try {
       const cwd = project.path;
-      const message = body.message.replace(/"/g, '\\"');
+      const message = data.message.replace(/"/g, '\\"');
 
       execSync(`git commit -m "${message}"`, { cwd, encoding: 'utf-8' });
 
-      if (body.push) {
+      if (data.push) {
         try {
           execSync('git push', { cwd, encoding: 'utf-8', timeout: 30000 });
         } catch (pushErr) {
@@ -111,18 +124,36 @@ const routes = {
   },
 
   // Checkout branch
-  'POST /api/project/:id/git/checkout': (params, body) => {
+  'POST /api/project/:id/git/checkout': (params, req, res, body) => {
     const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
     if (!project || !project.path) return { error: 'Project not found' };
 
-    if (!body.branch) return { error: 'Branch name required' };
+    const data = parseJsonBody(body);
+    if (!data.branch) return { error: 'Branch name required' };
 
     try {
       const cwd = project.path;
-      const branch = body.branch.replace(/[;&|`$]/g, '');
+      const rawBranch = data.branch.replace(/[;&|`$]/g, '');
+      let branch = rawBranch;
+      let checkoutCmd = `git checkout ${branch}`;
+
+      if (rawBranch.startsWith('remotes/')) {
+        const remoteRef = rawBranch.replace(/^remotes\//, '');
+        const branchName = remoteRef.split('/').slice(1).join('/');
+        if (branchName) {
+          const exists = execSync(`git branch --list "${branchName}"`, { cwd, encoding: 'utf-8' }).trim();
+          if (exists) {
+            branch = branchName;
+            checkoutCmd = `git checkout ${branch}`;
+          } else {
+            branch = branchName;
+            checkoutCmd = `git checkout -t ${remoteRef}`;
+          }
+        }
+      }
 
       // Let git handle uncommitted changes - it will fail if there are conflicts
-      execSync(`git checkout ${branch}`, { cwd, encoding: 'utf-8' });
+      execSync(checkoutCmd, { cwd, encoding: 'utf-8' });
       return { success: true, branch };
     } catch (e) {
       // Git will return error if checkout fails due to conflicts
@@ -131,15 +162,16 @@ const routes = {
   },
 
   // Create new branch
-  'POST /api/project/:id/git/branch/create': (params, body) => {
+  'POST /api/project/:id/git/branch/create': (params, req, res, body) => {
     const project = query(`SELECT path FROM projects WHERE id = '${params.id}'`)[0];
     if (!project || !project.path) return { error: 'Project not found' };
 
-    if (!body.name) return { error: 'Branch name required' };
+    const data = parseJsonBody(body);
+    if (!data.name) return { error: 'Branch name required' };
 
     try {
       const cwd = project.path;
-      const name = body.name.replace(/[;&|`$\s]/g, '');
+      const name = data.name.replace(/[;&|`$\s]/g, '');
 
       execSync(`git checkout -b ${name}`, { cwd, encoding: 'utf-8' });
       return { success: true, branch: name };

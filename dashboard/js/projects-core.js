@@ -69,6 +69,8 @@ async function selectProject(projectId) {
   const project = registry?.projects?.[projectId];
   if (!project) return;
 
+  if (typeof resetGitGraphState === 'function') resetGitGraphState();
+
   currentProjectId = projectId;
   localStorage.setItem('dashboard-current-project', projectId);
 

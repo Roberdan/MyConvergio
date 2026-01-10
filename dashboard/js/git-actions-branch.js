@@ -5,12 +5,21 @@ async function showBranchMenu() {
     showToast('No project selected', 'warning');
     return;
   }
+  if (data?.git?.error) {
+    showToast('Git unavailable for this project', 'warning');
+    return;
+  }
   const branchList = document.getElementById('gitBranchList');
   if (!branchList) return;
   if (branchList.classList.contains('visible')) {
     branchList.classList.remove('visible');
+    branchList.style.display = 'none';
     return;
   }
+  if (window.DropdownManager?.closeAll) {
+    DropdownManager.closeAll('gitBranchList');
+  }
+  branchList.style.display = '';
   branchList.innerHTML = '<div class="branch-loading">Loading...</div>';
   branchList.classList.add('visible');
   try {
@@ -49,7 +58,10 @@ async function showBranchMenu() {
 }
 function hideBranchMenu() {
   const branchList = document.getElementById('gitBranchList');
-  if (branchList) branchList.classList.remove('visible');
+  if (branchList) {
+    branchList.classList.remove('visible');
+    branchList.style.display = 'none';
+  }
 }
 function filterBranches(query) {
   const items = document.querySelectorAll('#branchItems .branch-item');
@@ -111,4 +123,3 @@ async function createNewBranch(name) {
     showToast('Failed to create branch: ' + e.message, 'error');
   }
 }
-

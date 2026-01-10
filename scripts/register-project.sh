@@ -159,5 +159,11 @@ jq -n \
 
 log_info "Project $ACTION: $PROJECT_ID"
 log_info "Plans folder: $PLAN_FOLDER"
-[[ -n "$GITHUB_URL" ]] && log_info "GitHub: $GITHUB_URL"
-[[ -n "$ICON_PATH" ]] && log_info "Icon: $ICON_PATH"
+if [[ -n "$GITHUB_URL" ]]; then
+    log_info "GitHub: $GITHUB_URL"
+fi
+if [[ -n "$ICON_PATH" ]]; then
+    log_info "Icon: $ICON_PATH"
+fi
+
+exit 0

@@ -5,7 +5,7 @@ const DropdownManager = {
   registered: [
     { menu: 'projectMenu', trigger: '.logo, .project-name' },
     { menu: 'waveMenuList', trigger: '.wave-menu-trigger' },
-    { menu: 'gitBranchList', trigger: '#gitBranchToggle' },
+    { menu: 'gitBranchList', trigger: '#gitRepoBranch' },
     { menu: 'bugDropdownMenu', trigger: '.bug-dropdown-toggle' }
   ],
 
@@ -16,6 +16,7 @@ const DropdownManager = {
       if (el) {
         el.style.display = 'none';
         el.classList.remove('is-open');
+        el.classList.remove('visible');
       }
     });
   },

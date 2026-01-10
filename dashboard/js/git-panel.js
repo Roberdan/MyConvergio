@@ -130,6 +130,32 @@ function renderGitPanel() {
     }
   }
 
+  const commitInput = document.getElementById('gitCommitMessage');
+  if (commitInput) {
+    const branchLabel = git.currentBranch || 'main';
+    commitInput.placeholder = `Message (Cmd+Enter to commit on "${branchLabel}")`;
+  }
+
+  if (git.error) {
+    if (branchName) branchName.textContent = 'No repo';
+    if (dirtyIndicator) dirtyIndicator.style.display = 'none';
+    const changesCount = document.getElementById('gitChangesCount');
+    if (changesCount) changesCount.textContent = '!';
+    const fileTree = document.getElementById('gitFileTree');
+    if (fileTree) fileTree.innerHTML = `<div class="git-empty">${escapeHtml(git.error)}</div>`;
+    const graphContainer = document.getElementById('gitGraphContainer');
+    if (graphContainer) graphContainer.innerHTML = `<div class="git-empty">${escapeHtml(git.error)}</div>`;
+    if (commitInput) {
+      commitInput.value = '';
+      commitInput.disabled = true;
+      commitInput.placeholder = 'Git unavailable';
+    }
+    return;
+  }
+  if (commitInput) {
+    commitInput.disabled = false;
+  }
+
   const uncommitted = git.uncommitted || { staged: [], unstaged: [], untracked: [] };
   const totalChanges = (uncommitted.staged?.length || 0) + (uncommitted.unstaged?.length || 0) + (uncommitted.untracked?.length || 0);
 

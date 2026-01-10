@@ -40,9 +40,11 @@ function renderTokensTab() {
     document.getElementById('tokenCalls').textContent = '0';
     return;
   }
+  const costValue = data.tokens.cost ?? data.tokens.totalCost;
+  const callsValue = data.tokens.calls ?? data.tokens.apiCalls;
   document.getElementById('tokenTotal').textContent = data.tokens.total ? data.tokens.total.toLocaleString() : 'n/d';
-  document.getElementById('tokenCost').textContent = data.tokens.cost ? '$' + data.tokens.cost.toFixed(2) : 'n/d';
-  document.getElementById('tokenCalls').textContent = data.tokens.calls || 0;
+  document.getElementById('tokenCost').textContent = typeof costValue === 'number' ? '$' + costValue.toFixed(2) : 'n/d';
+  document.getElementById('tokenCalls').textContent = callsValue || 0;
 }
 function updateHealthStatus() {
   const planHealth = document.getElementById('healthPlan');
@@ -120,4 +122,3 @@ function updateHealthStatus() {
     }
   }
 }
-

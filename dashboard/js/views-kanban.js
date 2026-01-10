@@ -180,9 +180,30 @@ function renderKanban(kanban) {
       const isClickable = status !== 'trash'; // Allow loading from any column
       const clickHandler = isClickable ? `onclick="activatePlanAndNavigate('${plan.planId}', '${plan.projectId}')"` : '';
       const clickableClass = isClickable ? 'clickable' : '';
+      const isComplete = plan.tasksTotal > 0 && plan.tasksDone >= plan.tasksTotal;
+      const isValidated = !!plan.validatedAt;
+      const isDoneStatus = status === 'done';
+      const needsValidation = isComplete && !isValidated;
+      const isMismatch = isDoneStatus && (!isComplete || !isValidated);
+      const confidenceLabel = isMismatch
+        ? 'Inconsistent'
+        : (isValidated && isComplete ? 'Verified' : (isComplete ? 'Unverified' : 'In Progress'));
+      const confidenceClass = isMismatch
+        ? 'inconsistent'
+        : (isValidated && isComplete ? 'verified' : (isComplete ? 'unverified' : 'inprogress'));
+      const gitLabel = plan.gitError ? 'Git Error' : (plan.gitDirty ? 'Git Dirty' : 'Git Clean');
+      const gitClass = plan.gitError ? 'dirty' : (plan.gitDirty ? 'dirty' : 'clean');
+      const statusLabel = isDoneStatus
+        ? (isComplete && isValidated ? 'Done ✓' : (!isComplete ? 'Done? Tasks missing' : 'Done? Thor pending'))
+        : (needsValidation ? 'Ready for Thor' : `${plan.progress}%`);
+      const statusTitle = isMismatch
+        ? (isComplete ? 'Plan marked done but missing Thor validation' : 'Plan marked done but tasks are incomplete')
+        : (needsValidation ? 'All tasks done; waiting for Thor validation' : '');
+      const cardClass = isMismatch ? 'warning' : '';
+      const statusClass = isMismatch || needsValidation ? 'warning' : '';
 
       return `
-        <div class="cc-plan-card ${clickableClass}"
+        <div class="cc-plan-card ${clickableClass} ${cardClass}"
              draggable="true"
              data-plan-id="${plan.planId}"
              data-project-id="${plan.projectId}"
@@ -191,14 +212,18 @@ function renderKanban(kanban) {
              ${clickHandler}>
           <div class="cc-plan-project">${plan.project}</div>
           <div class="cc-plan-name">${plan.name}</div>
+          <div class="cc-plan-badges">
+            <span class="cc-plan-confidence ${confidenceClass}">${confidenceLabel}</span>
+            <span class="cc-plan-git ${gitClass}" title="${gitLabel}">${gitLabel}</span>
+          </div>
           <div class="cc-plan-progress">
             <div class="cc-plan-progress-fill" style="width: ${plan.progress}%"></div>
           </div>
           <div class="cc-plan-meta">
             <span class="cc-plan-tasks">${taskInfo} tasks</span>
-            <span class="cc-plan-status">
+            <span class="cc-plan-status ${statusClass}" ${statusTitle ? `title="${statusTitle}"` : ''}>
               <span class="cc-plan-status-dot ${statusDotClass}"></span>
-              ${plan.progress}%
+              ${statusLabel}
             </span>
           </div>
         </div>

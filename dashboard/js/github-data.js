@@ -38,11 +38,14 @@ async function loadGitHubData() {
 }
 async function loadGitData() {
   if (!currentProjectId) return;
+  const previousBranch = data?.git?.currentBranch;
   try {
     const res = await fetch(`${API_BASE}/project/${currentProjectId}/git`);
     const git = await res.json();
     if (git.error) {
       data.git = { error: git.error, currentBranch: null, uncommitted: null, commits: [], totalChanges: 0 };
+      if (typeof resetGitGraphState === 'function') resetGitGraphState();
+      renderGitPanel();
       updateHealthStatus();
       return;
     }
@@ -52,11 +55,16 @@ async function loadGitData() {
       commits: git.commits,
       totalChanges: git.totalChanges
     };
+    if (previousBranch && data.git.currentBranch && previousBranch !== data.git.currentBranch) {
+      if (typeof resetGitGraphState === 'function') resetGitGraphState();
+    }
     renderGitPanel();
     updateHealthStatus();
   } catch (e) {
     console.error('Failed to load git data:', e);
     data.git = { error: e.message, currentBranch: null, uncommitted: null, commits: [], totalChanges: 0 };
+    if (typeof resetGitGraphState === 'function') resetGitGraphState();
+    renderGitPanel();
     updateHealthStatus();
   }
 }
@@ -71,6 +79,8 @@ async function loadTokenData() {
       const avgEl = document.getElementById('avgTokensPerTask');
       if (avgEl) avgEl.textContent = data.tokens.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
       renderTokensTab();
+      if (typeof renderKpiRow === 'function') renderKpiRow();
+      loadTokenBurnRate();
       return;
     }
 
@@ -88,6 +98,7 @@ async function loadTokenData() {
     data.tokens = {
       total: total,
       cost: cost,
+      totalCost: cost,
       calls: calls,
       avgPerTask: 0
     };
@@ -100,6 +111,8 @@ async function loadTokenData() {
     const avgEl = document.getElementById('avgTokensPerTask');
     if (avgEl) avgEl.textContent = data.tokens.avgPerTask ? data.tokens.avgPerTask.toLocaleString() : 'n/d';
     renderTokensTab();
+    if (typeof renderKpiRow === 'function') renderKpiRow();
+    loadTokenBurnRate();
   } catch (e) {
     console.error('loadTokenData error:', e);
     // Don't overwrite existing valid data on error
@@ -109,3 +122,19 @@ async function loadTokenData() {
   }
 }
 
+async function loadTokenBurnRate() {
+  if (!currentProjectId) return;
+  try {
+    const res = await fetch(`/api/project/${currentProjectId}/tokens/history?range=1d`);
+    const result = await res.json();
+    const history = result.history || [];
+    const burnTokens = history.reduce((sum, h) => sum + (h.input || 0) + (h.output || 0), 0);
+    data.tokens = data.tokens || {};
+    data.tokens.burnRate = { tokens: burnTokens, updatedAt: new Date().toISOString() };
+  } catch (e) {
+    data.tokens = data.tokens || {};
+    data.tokens.burnRate = null;
+  } finally {
+    if (typeof renderKpiRow === 'function') renderKpiRow();
+  }
+}

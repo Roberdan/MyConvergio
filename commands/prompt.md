@@ -52,4 +52,4 @@ User: "Voglio un bottone rosso per esportare CSV con tutti i campi"
 - NEVER paraphrase - EXACT words
 - NEVER assume - if unclear, ASK
 - After output: "Manca qualcosa?"
-- User confirms → "Execute? (yes/no)"
+- User confirms → "Procedere alla pianificazione? (yes/no)"

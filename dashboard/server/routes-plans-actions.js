@@ -44,6 +44,23 @@ const routes = {
       return { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` };
     }
 
+    const plan = query(`SELECT id, tasks_done, tasks_total, validated_at FROM plans WHERE id = ${planId}`)[0];
+    if (!plan) return { success: false, error: 'Plan not found' };
+
+    if (status === 'done') {
+      const tasksTotal = plan.tasks_total || 0;
+      const tasksDone = plan.tasks_done || 0;
+      if (tasksTotal === 0) {
+        return { success: false, error: 'Cannot mark done: plan has no tasks' };
+      }
+      if (tasksDone < tasksTotal) {
+        return { success: false, error: `Cannot mark done: ${tasksDone}/${tasksTotal} tasks completed` };
+      }
+      if (!plan.validated_at) {
+        return { success: false, error: 'Cannot mark done: Thor validation required' };
+      }
+    }
+
     // Set appropriate timestamps based on new status
     let timestampUpdate = '';
     if (status === 'doing') {
@@ -87,4 +104,3 @@ const routes = {
 };
 
 module.exports = routes;
-

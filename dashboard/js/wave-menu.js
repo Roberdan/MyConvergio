@@ -23,13 +23,13 @@ async function showWaveMenu() {
     const result = await res.json();
 
     if (!result.waves || result.waves.length === 0) {
-      waveList.innerHTML = '<div class="wave-empty">No waves in this project</div>';
+      waveList.innerHTML = '<div class="wave-empty">No plans in this project</div>';
       return;
     }
 
     waveList.innerHTML = `
       <div class="wave-menu-header">
-        Waves (${result.waves.length})
+        Plans (${result.waves.length})
         <div class="wave-menu-actions">
           <button class="wave-menu-action-btn" onclick="event.stopPropagation(); expandAllWavesMenu()" title="Expand all">⊕</button>
           <button class="wave-menu-action-btn" onclick="event.stopPropagation(); collapseAllWavesMenu()" title="Collapse all">⊖</button>

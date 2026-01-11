@@ -72,6 +72,12 @@ async function renderTokenChart() {
   let tokenHistory = [];
   const range = chartFilterRange || '7d';
 
+  // Clear any existing chart content to prevent stale data
+  const chartContainer = document.getElementById('mainChart');
+  if (chartContainer) {
+    chartContainer.innerHTML = '';
+  }
+
   // Format date based on range
   const formatDate = (dateStr, range) => {
     if (!dateStr) return '';

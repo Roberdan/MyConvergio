@@ -186,12 +186,18 @@ function navigateToRiskSource(planId, projectId) {
 window.navigateToRiskSource = navigateToRiskSource;
 
 function renderChart() {
+  // Clear any existing chart content to prevent stale data
+  const chartContainer = document.getElementById('mainChart');
+  if (chartContainer) {
+    chartContainer.innerHTML = '';
+  }
+
   const times = data.timeline.data.map(d => d.time);
   const done = data.timeline.data.map(d => d.done);
   const theme = document.documentElement.getAttribute('data-theme') || 'voltrex';
   const colors = themeColors[theme];
 
-  mainChart = new ApexCharts(document.getElementById('mainChart'), {
+  mainChart = new ApexCharts(chartContainer, {
     series: [{ name: 'Completed', data: done }],
     chart: {
       type: 'line',

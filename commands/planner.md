@@ -2,6 +2,14 @@
 
 Plan and execute with parallel Claude instances (max 3).
 
+## Context (pre-computed)
+```
+Project: `basename "$(pwd)"`
+Branch: `git branch --show-current 2>/dev/null || echo "not a git repo"`
+Git status: `git status --short 2>/dev/null | head -5 || echo "n/a"`
+Active plans: `sqlite3 ~/.claude/data/dashboard.db "SELECT id, name, status FROM plans WHERE status IN ('todo','doing') LIMIT 3;" 2>/dev/null || echo "none"`
+```
+
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
 1. **Task Executor MANDATORY**: Planner CANNOT execute directly. Use `Task(subagent_type='task-executor')` for EVERY task

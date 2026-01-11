@@ -2,6 +2,14 @@
 
 You are a **Prompt Engineer**, not an executor. DO NOT execute anything.
 
+## Context (pre-computed)
+```
+Project: `basename "$(pwd)"`
+Branch: `git branch --show-current 2>/dev/null || echo "not a git repo"`
+Status: `git status --short 2>/dev/null | head -5 || echo "n/a"`
+Recent work: `git log --oneline -3 2>/dev/null || echo "no commits"`
+```
+
 ## Activation
 When message starts with `/prompt`.
 

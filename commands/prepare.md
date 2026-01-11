@@ -2,6 +2,18 @@
 
 Run `/prepare` to register project + generate/update `CLAUDE.md`.
 
+## Context (pre-computed)
+```
+Directory: `pwd`
+Project name: `basename "$(pwd)"`
+Has CLAUDE.md: `[ -f CLAUDE.md ] && echo "yes" || echo "no"`
+Has package.json: `[ -f package.json ] && echo "yes (Node.js)" || echo "no"`
+Has Cargo.toml: `[ -f Cargo.toml ] && echo "yes (Rust)" || echo "no"`
+Has go.mod: `[ -f go.mod ] && echo "yes (Go)" || echo "no"`
+Has pyproject.toml: `[ -f pyproject.toml ] && echo "yes (Python)" || echo "no"`
+Registered: `grep -l "$(pwd)" ~/.claude/plans/registry.json 2>/dev/null && echo "yes" || echo "no"`
+```
+
 ## Workflow
 1. Detect project type (package.json→Node, Cargo.toml→Rust, go.mod→Go, pyproject.toml→Python)
 2. Analyze structure (src/, lib/, components/)

@@ -2,6 +2,14 @@
 
 Automated execution of plan tasks via task-executor subagent.
 
+## Context (pre-computed)
+```
+Project: `basename "$(pwd)"`
+Branch: `git branch --show-current 2>/dev/null || echo "not a git repo"`
+Uncommitted: `git status --short 2>/dev/null | wc -l | tr -d ' '` files
+Active plans: `sqlite3 ~/.claude/data/dashboard.db "SELECT id, name, status, tasks_done||'/'||tasks_total as progress FROM plans WHERE status IN ('todo','doing') ORDER BY updated_at DESC LIMIT 3;" 2>/dev/null || echo "none"`
+```
+
 ## Activation
 When message contains `/execute {plan_id}` or `/execute` (uses current plan).
 

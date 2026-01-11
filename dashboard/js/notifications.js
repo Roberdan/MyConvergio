@@ -22,7 +22,7 @@ async function loadNotificationsView() {
     }
 
     list.innerHTML = data.notifications.map(n => {
-      const time = n.created_at ? formatRelativeTime(new Date(n.created_at)) : '';
+      const time = n.created_at ? formatRelativeTime(DateUtils.parseUTC(n.created_at)) : '';
       const severityIcons = { info: '&#x2139;', success: '&#x2713;', warning: '&#x26A0;', error: '&#x2717;' };
 
       return `

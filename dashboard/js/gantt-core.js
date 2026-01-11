@@ -124,10 +124,10 @@ const GanttCore = {
 
     this.data.allWaves.forEach(wave => {
       const dates = [
-        wave.planned_start ? new Date(wave.planned_start) : null,
-        wave.planned_end ? new Date(wave.planned_end) : null,
-        wave.started_at ? new Date(wave.started_at) : null,
-        wave.completed_at ? new Date(wave.completed_at) : null
+        wave.planned_start ? DateUtils.parseUTC(wave.planned_start) : null,
+        wave.planned_end ? DateUtils.parseUTC(wave.planned_end) : null,
+        wave.started_at ? DateUtils.parseUTC(wave.started_at) : null,
+        wave.completed_at ? DateUtils.parseUTC(wave.completed_at) : null
       ];
 
       dates.forEach(d => {

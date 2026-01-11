@@ -272,7 +272,7 @@ async function loadNotificationDropdown() {
     const severityIcons = { info: '&#x2139;', success: '&#x2713;', warning: '&#x26A0;', error: '&#x2717;' };
 
     list.innerHTML = data.notifications.slice(0, 10).map(n => {
-      const time = n.created_at ? formatRelativeTime(new Date(n.created_at)) : '';
+      const time = n.created_at ? formatRelativeTime(DateUtils.parseUTC(n.created_at)) : '';
       return `
         <div class="notification-dropdown-item ${n.is_read ? '' : 'unread'}"
              onclick="handleDropdownNotificationClick(${n.id}, '${n.link || ''}', '${n.link_type || ''}')">

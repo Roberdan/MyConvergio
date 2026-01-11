@@ -198,13 +198,13 @@ const GanttView = {
     const taskIndex = wave.tasks?.findIndex(t => t.task_id === taskId) + 1 || 0;
 
     // Calculate duration from started_at to completed_at or now
-    const startedAt = task.started_at ? new Date(task.started_at) : null;
-    const completedAt = task.completed_at ? new Date(task.completed_at) : null;
+    const startedAt = task.started_at ? DateUtils.parseUTC(task.started_at) : null;
+    const completedAt = task.completed_at ? DateUtils.parseUTC(task.completed_at) : null;
     const actualDuration = startedAt ? this.formatDuration(startedAt, completedAt || new Date()) : null;
 
     // Time in current status
     const statusSince = task.started_at || task.completed_at;
-    const timeInStatus = statusSince ? this.formatTimeAgo(new Date(statusSince)) : null;
+    const timeInStatus = statusSince ? this.formatTimeAgo(DateUtils.parseUTC(statusSince)) : null;
 
     // Cost estimate (rough: $0.01 per 1k tokens average)
     const costEstimate = task.tokens ? (task.tokens / 1000 * 0.01).toFixed(2) : null;
@@ -307,7 +307,7 @@ const GanttView = {
             </div>` : ''}
             ${task.validated_at ? `<div class="task-detail-row">
               <span class="task-detail-label">Validated</span>
-              <span class="task-detail-value"><span class="thor-check">✓</span> ${task.validated_by || 'Thor'} @ ${new Date(task.validated_at).toLocaleString('it-IT')}</span>
+              <span class="task-detail-value"><span class="thor-check">✓</span> ${task.validated_by || 'Thor'} @ ${DateUtils.parseUTC(task.validated_at).toLocaleString('it-IT')}</span>
             </div>` : ''}
           </div>` : ''}
 

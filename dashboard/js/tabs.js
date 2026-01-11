@@ -75,7 +75,7 @@ function renderHistory() {
       'completed': 'Completed'
     }[h.change_type] || h.change_type;
 
-    const time = h.created_at ? new Date(h.created_at).toLocaleString() : '';
+    const time = h.created_at ? DateUtils.parseUTC(h.created_at).toLocaleString() : '';
 
     return `
       <div class="history-item">

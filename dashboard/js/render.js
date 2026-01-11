@@ -114,7 +114,7 @@ function renderRiskAlerts() {
     const tasksDone = data?.meta?.tasks_done || 0;
     const tasksTotal = data?.meta?.tasks_total || 0;
     const validatedAt = data?.meta?.validated_at;
-    const startedAt = data?.meta?.started_at ? new Date(data.meta.started_at).getTime() : null;
+    const startedAt = data?.meta?.started_at ? DateUtils.parseUTC(data.meta.started_at).getTime() : null;
 
     if (status === 'done' && (tasksTotal === 0 || tasksDone < tasksTotal)) {
       alerts.push({ level: 'error', text: 'Plan marked done but tasks are incomplete.', planId, projectId });
@@ -137,7 +137,7 @@ function renderRiskAlerts() {
       const done = w.done || 0;
       const total = w.total || 0;
       const validatedAt = w.validated_at;
-      const startedAt = w.started_at ? new Date(w.started_at).getTime() : null;
+      const startedAt = w.started_at ? DateUtils.parseUTC(w.started_at).getTime() : null;
       const label = w.name || w.id || 'Plan';
       const waveId = w.id || w.plan_id;
 
@@ -455,8 +455,8 @@ function formatTokens(num) {
 // Calculate execution time from start to end (or now if in progress)
 function calculateExecTime(startedAt, completedAt) {
   if (!startedAt) return '-';
-  const start = new Date(startedAt);
-  const end = completedAt ? new Date(completedAt) : new Date();
+  const start = DateUtils.parseUTC(startedAt);
+  const end = completedAt ? DateUtils.parseUTC(completedAt) : new Date();
   const diffMs = end - start;
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMins / 60);

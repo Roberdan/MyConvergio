@@ -206,7 +206,7 @@ function renderNotifications() {
 // Render Single Notification Item
 function renderNotificationItem(notif) {
   const icon = getNotificationIcon(notif.severity);
-  const timeAgo = formatTimeAgo(new Date(notif.created_at).getTime());
+  const timeAgo = formatTimeAgo(DateUtils.parseUTC(notif.created_at).getTime());
   const unreadClass = notif.is_read === 0 ? 'unread' : '';
   
   return `

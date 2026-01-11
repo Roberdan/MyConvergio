@@ -4,6 +4,17 @@
 const GanttRender = {
   timeline: null, // { start, end, duration }
 
+  // Parse timestamp from DB as UTC (SQLite datetime('now') stores UTC without 'Z')
+  parseUTCDate(dateStr) {
+    if (!dateStr) return null;
+    // If already has timezone info, use as-is
+    if (dateStr.includes('Z') || dateStr.includes('+') || dateStr.includes('T')) {
+      return new Date(dateStr);
+    }
+    // SQLite format: "YYYY-MM-DD HH:MM:SS" - treat as UTC
+    return new Date(dateStr.replace(' ', 'T') + 'Z');
+  },
+
   // SVG icons for consistent flat style
   icons: {
     expand: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
@@ -15,9 +26,9 @@ const GanttRender = {
   // Format duration intelligently: only show relevant units
   formatDuration(startDate, endDate) {
     if (!startDate || !endDate) return '';
-    
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+
+    const start = this.parseUTCDate(startDate);
+    const end = this.parseUTCDate(endDate);
     const diffMs = end - start;
     
     if (diffMs < 0) return '—';
@@ -41,11 +52,11 @@ const GanttRender = {
   // Format short time for display on bars
   formatShortTime(dateStr) {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleString('it-IT', { 
-      day: '2-digit', 
+    const d = this.parseUTCDate(dateStr);
+    return d.toLocaleString('it-IT', {
+      day: '2-digit',
       month: 'short',
-      hour: '2-digit', 
+      hour: '2-digit',
       minute: '2-digit'
     });
   },
@@ -53,8 +64,8 @@ const GanttRender = {
   // Format time range smartly - don't repeat date if same day
   formatTimeRange(startStr, endStr) {
     if (!startStr) return '';
-    const start = new Date(startStr);
-    const end = endStr ? new Date(endStr) : null;
+    const start = this.parseUTCDate(startStr);
+    const end = endStr ? this.parseUTCDate(endStr) : null;
     
     const startDate = start.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
     const startTime = start.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
@@ -81,13 +92,13 @@ const GanttRender = {
       // Check wave dates
       [wave.started_at, wave.planned_start].forEach(d => {
         if (d) {
-          const date = new Date(d);
+          const date = this.parseUTCDate(d);
           if (!isNaN(date.getTime()) && (!minDate || date < minDate)) minDate = date;
         }
       });
       [wave.completed_at, wave.planned_end].forEach(d => {
         if (d) {
-          const date = new Date(d);
+          const date = this.parseUTCDate(d);
           if (!isNaN(date.getTime()) && (!maxDate || date > maxDate)) maxDate = date;
         }
       });
@@ -96,13 +107,13 @@ const GanttRender = {
       (wave.tasks || []).forEach(task => {
         [task.started_at, task.planned_start].forEach(d => {
           if (d) {
-            const date = new Date(d);
+            const date = this.parseUTCDate(d);
             if (!isNaN(date.getTime()) && (!minDate || date < minDate)) minDate = date;
           }
         });
         [task.completed_at, task.planned_end].forEach(d => {
           if (d) {
-            const date = new Date(d);
+            const date = this.parseUTCDate(d);
             if (!isNaN(date.getTime()) && (!maxDate || date > maxDate)) maxDate = date;
           }
         });
@@ -143,8 +154,8 @@ const GanttRender = {
   getBarPosition(startDate, endDate) {
     if (!this.timeline || !startDate) return null;
 
-    const start = new Date(startDate);
-    const end = endDate ? new Date(endDate) : new Date();
+    const start = this.parseUTCDate(startDate);
+    const end = endDate ? this.parseUTCDate(endDate) : new Date();
     
     const left = ((start - this.timeline.start) / this.timeline.duration) * 100;
     const width = ((end - start) / this.timeline.duration) * 100;
@@ -252,11 +263,11 @@ const GanttRender = {
       const taskStart = task.started_at || task.planned_start;
       const taskEnd = task.completed_at || task.planned_end;
       if (taskStart) {
-        const d = new Date(taskStart);
+        const d = this.parseUTCDate(taskStart);
         if (!minStart || d < minStart) minStart = d;
       }
       if (taskEnd) {
-        const d = new Date(taskEnd);
+        const d = this.parseUTCDate(taskEnd);
         if (!maxEnd || d > maxEnd) maxEnd = d;
       }
     });

@@ -28,7 +28,13 @@ Thor checks GitHub PR page:
 - Zero white dots (open threads)
 - All green checkmarks (resolved)
 - "Resolve conversation" clicked for each
-- No deferred tech debt in code
+- **ZERO technical debt** (no TODO, FIXME, @ts-ignore, "later" comments)
+
+## Technical Debt = INSTANT REJECTION
+- No "TODO" or "FIXME" in new code
+- No "we'll fix later" or "phase 2" promises
+- No `@ts-ignore`/lint-disable without justification
+- No deferred work. Complete NOW or don't merge.
 
 ## Dispute Protocol
 1. Agent dialogs directly with Thor

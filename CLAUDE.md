@@ -52,6 +52,8 @@ git log --oneline -3            # Show commits as proof
 
 **ENFORCEMENT**: This workflow is MANDATORY for all non-trivial tasks. Skipping steps is PROHIBITED.
 
+**Context pre-computed**: All slash commands (`/prompt`, `/planner`, `/execute`, `/prepare`) include inline bash that pre-computes project context (git status, branch, active plans). No need to query for basic context - it's already injected.
+
 ### Step 1: /prompt (Requirements Extraction)
 - ALWAYS start with `/prompt` for new features/tasks
 - Extract ALL requirements as F-xx

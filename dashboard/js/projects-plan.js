@@ -7,27 +7,38 @@ async function loadPlanDetails(planId) {
       console.error('Invalid planId:', planId);
       return;
     }
-    const res = await fetch(`${API_BASE}/plan/${numericPlanId}`);
-    const plan = await res.json();
+    // Load plan, tokens, and history in parallel
+    const [planRes, tokensRes, histRes] = await Promise.all([
+      fetch(`${API_BASE}/plan/${numericPlanId}`),
+      fetch(`${API_BASE}/plan/${numericPlanId}/tokens`),
+      fetch(`${API_BASE}/plan/${numericPlanId}/history`)
+    ]);
+    const plan = await planRes.json();
     if (plan.error) {
       console.error('Plan not found:', planId);
       return;
     }
+    const tokens = await tokensRes.json();
+    const history = await histRes.json();
     currentPlanId = planId;
-    data = transformPlanToData(plan);
+    data = transformPlanToData(plan, tokens);
+    data.history = history;
     render();
     updateNavCounts();
-    const histRes = await fetch(`${API_BASE}/plan/${planId}/history`);
-    const history = await histRes.json();
-    data.history = history;
     renderHistory();
   } catch (e) {
     console.error('Failed to load plan details:', e);
   }
 }
-function transformPlanToData(plan) {
+function transformPlanToData(plan, tokens = {}) {
   const now = new Date().toISOString();
   const waves = plan.waves || [];
+  const tokenStats = tokens.stats || {};
+  const tokensByWave = tokens.byWave || [];
+  // Calculate tokens per task
+  const totalTokens = tokenStats.total_tokens || 0;
+  const tasksDone = plan.tasks_done || 0;
+  const avgPerTask = tasksDone > 0 ? Math.round(totalTokens / tasksDone) : 0;
   return {
     meta: {
       project: plan.name,
@@ -54,6 +65,13 @@ function transformPlanToData(plan) {
       cycleTime: { value: '45' },
       quality: { score: 95 }
     },
+    tokens: {
+      total: totalTokens,
+      avgPerTask: avgPerTask,
+      totalCost: tokenStats.total_cost || 0,
+      apiCalls: tokenStats.api_calls || 0,
+      byWave: tokensByWave
+    },
     bugs: { fixed: 0, total: 0 },
     timeline: {
       start: plan.started_at || plan.created_at || now,
@@ -76,6 +94,7 @@ function transformPlanToData(plan) {
       completed_at: w.completed_at,
       depends_on: w.depends_on,
       estimated_hours: w.estimated_hours || 8,
+      tokens: (tokensByWave.find(tw => tw.wave_id === w.wave_id) || {}).tokens || 0,
       tasks: (w.tasks || []).map(t => ({
         id: t.task_id,
         title: t.title,
@@ -85,6 +104,7 @@ function transformPlanToData(plan) {
         type: t.type,
         files: t.files ? t.files.split(',') : [],
         notes: t.notes,
+        tokens: t.tokens || 0,
         timing: {
           started: t.started_at,
           completed: t.completed_at,

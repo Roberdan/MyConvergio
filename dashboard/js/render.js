@@ -41,18 +41,22 @@ function render() {
   // Stats with better formatting
   const done = data.metrics.throughput.done || 0;
   const total = data.metrics.throughput.total || 0;
-  setText('tasksDone', total > 0 ? `${done}/${total}` : 'No tasks');
+  setText('tasksDone', total > 0 ? `${done}/${total}` : '-');
 
   const tokensTotal = data.tokens?.total;
-  setText('tokensUsed', tokensTotal ? tokensTotal.toLocaleString() : 'No data');
+  setText('tokensUsed', tokensTotal ? formatTokens(tokensTotal) : '-');
 
   const avgTokens = data.tokens?.avgPerTask;
-  setText('avgTokensPerTask', avgTokens ? avgTokens.toLocaleString() : 'No data');
+  setText('avgTokensPerTask', avgTokens ? formatTokens(avgTokens) : '-');
 
-  setText('progressPercent', total > 0 ? data.metrics.throughput.percent + '%' : '0%');
+  setText('progressPercent', total > 0 ? data.metrics.throughput.percent + '%' : '-');
 
-  renderKpiRow();
-  renderProofPanel();
+  // Execution time calculation
+  const execTime = calculateExecTime(data.meta?.started_at, data.meta?.completed_at);
+  setText('execTime', execTime);
+
+  // Thor validation status
+  renderThorStatus(data.meta?.validated_at, data.meta?.validated_by);
 
   // Charts only if there are waves
 
@@ -66,7 +70,6 @@ function render() {
 
   // Update panels
   updateHealthStatus();
-  renderWorkflowBanner();
   renderRiskAlerts();
   renderIssuesPanel();
   renderTokensTab();
@@ -94,154 +97,6 @@ function render() {
     renderChart();
   }
   renderAgents();
-}
-
-function renderKpiRow() {
-  const setText = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  };
-
-  const tokensTotal = data?.tokens?.total ?? 0;
-  const costTotal = data?.tokens?.cost ?? data?.tokens?.totalCost;
-  const burnTokens = data?.tokens?.burnRate?.tokens;
-
-  setText('kpiTokensTotal', tokensTotal ? tokensTotal.toLocaleString() : 'n/d');
-  setText('kpiCostTotal', typeof costTotal === 'number' ? `$${costTotal.toFixed(2)}` : 'n/d');
-  setText('kpiBurnRate', typeof burnTokens === 'number' ? `${burnTokens.toLocaleString()} tokens` : 'n/d');
-}
-
-function renderProofPanel() {
-  const panel = document.getElementById('proofPanel');
-  if (!panel) return;
-
-  const badge = document.getElementById('proofBadge');
-  const tasksEl = document.getElementById('proofTasksValue');
-  const validationEl = document.getElementById('proofValidationValue');
-  const statusEl = document.getElementById('proofPlanStatus');
-  const noteEl = document.getElementById('proofNote');
-
-  const planId = data?.meta?.plan_id;
-  const status = data?.meta?.status || '-';
-  const tasksDone = data?.meta?.tasks_done ?? data?.metrics?.throughput?.done ?? 0;
-  const tasksTotal = data?.meta?.tasks_total ?? data?.metrics?.throughput?.total ?? 0;
-  const validatedAt = data?.meta?.validated_at;
-  const validatedBy = data?.meta?.validated_by;
-
-  if (!planId) {
-    if (badge) {
-      badge.className = 'proof-badge';
-      badge.textContent = 'Plan not selected';
-    }
-    if (tasksEl) tasksEl.textContent = '-';
-    if (validationEl) validationEl.textContent = '-';
-    if (statusEl) statusEl.textContent = '-';
-    if (noteEl) noteEl.textContent = 'Select a plan to verify completion criteria.';
-    return;
-  }
-
-  const isComplete = tasksTotal > 0 && tasksDone >= tasksTotal;
-  const isValidated = !!validatedAt;
-  const isInconsistent = status === 'done' && (!isComplete || !isValidated);
-
-  if (tasksEl) tasksEl.textContent = `${tasksDone}/${tasksTotal}`;
-  if (statusEl) statusEl.textContent = status;
-
-  if (validationEl) {
-    if (validatedAt) {
-      const dateLabel = new Date(validatedAt).toLocaleString('it-IT');
-      validationEl.textContent = validatedBy ? `${dateLabel} · ${validatedBy}` : dateLabel;
-    } else {
-      validationEl.textContent = isComplete ? 'Pending Thor validation' : 'Not validated';
-    }
-  }
-
-  if (badge) {
-    badge.className = 'proof-badge';
-    if (isInconsistent) {
-      badge.classList.add('inconsistent');
-      badge.textContent = 'Inconsistent';
-    } else if (isComplete && isValidated) {
-      badge.classList.add('verified');
-      badge.textContent = 'Verified';
-    } else if (isComplete && !isValidated) {
-      badge.classList.add('pending');
-      badge.textContent = 'Ready for validation';
-    } else {
-      badge.textContent = 'In progress';
-    }
-  }
-
-  if (noteEl) {
-    if (isInconsistent) {
-      noteEl.textContent = 'Plan marked done but tasks or validation are incomplete.';
-    } else if (isComplete && !isValidated) {
-      noteEl.textContent = 'All tasks done; waiting for Thor validation.';
-    } else {
-      noteEl.textContent = 'Completion requires all tasks done + Thor validation.';
-    }
-  }
-}
-
-function renderWorkflowBanner() {
-  const banner = document.getElementById('workflowBanner');
-  const stepsEl = document.getElementById('workflowSteps');
-  const noteEl = document.getElementById('workflowNote');
-  if (!banner || !stepsEl || !noteEl) return;
-
-  const planId = data?.meta?.plan_id;
-  if (!planId) {
-    banner.style.display = 'none';
-    return;
-  }
-
-  const status = data?.meta?.status || 'todo';
-  const tasksDone = data?.meta?.tasks_done || 0;
-  const tasksTotal = data?.meta?.tasks_total || 0;
-  const validatedAt = data?.meta?.validated_at;
-
-  const steps = [];
-  steps.push({ label: 'Prompt', status: 'done' });
-  steps.push({ label: 'Plan', status: 'done' });
-
-  if (tasksTotal === 0) {
-    steps.push({ label: 'Execute', status: 'blocked' });
-  } else if (status === 'doing' || status === 'done' || tasksDone > 0) {
-    steps.push({ label: 'Execute', status: 'done' });
-  } else {
-    steps.push({ label: 'Execute', status: 'pending' });
-  }
-
-  if (validatedAt) {
-    steps.push({ label: 'Validate', status: 'done' });
-  } else if (tasksTotal > 0 && tasksDone >= tasksTotal) {
-    steps.push({ label: 'Validate', status: 'pending' });
-  } else {
-    steps.push({ label: 'Validate', status: 'blocked' });
-  }
-
-  if (status === 'done' && validatedAt && tasksTotal > 0 && tasksDone >= tasksTotal) {
-    steps.push({ label: 'Close', status: 'done' });
-  } else {
-    steps.push({ label: 'Close', status: 'pending' });
-  }
-
-  stepsEl.innerHTML = steps.map(step => {
-    const icon = step.status === 'done' ? '✓' : step.status === 'blocked' ? '✖' : '•';
-    return `<span class="workflow-step ${step.status}">${icon} ${step.label}</span>`;
-  }).join('');
-
-  if (tasksTotal === 0) {
-    noteEl.textContent = 'Plan has no tasks. Add tasks to proceed.';
-  } else if (steps.some(s => s.status === 'blocked')) {
-    noteEl.textContent = 'Execution blocked until prerequisites are met.';
-  } else if (!validatedAt && tasksDone >= tasksTotal && tasksTotal > 0) {
-    noteEl.textContent = 'Waiting for Thor validation before closing.';
-  } else {
-    noteEl.textContent = '';
-  }
-
-  banner.style.display = 'block';
 }
 
 function renderRiskAlerts() {
@@ -587,4 +442,52 @@ function showAgentDetails(agentId) {
   const agent = data.contributors?.find(c => c.id === agentId);
   if (!agent) return;
   showToast(`Agent: ${agent.name}\nRole: ${agent.role || 'N/A'}\nTasks: ${agent.tasks}\nStatus: ${agent.status}\nEfficiency: ${agent.efficiency || '-'}%`, 'info');
+}
+
+// Format tokens with K/M suffix
+function formatTokens(num) {
+  if (!num || num === 0) return '-';
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toLocaleString();
+}
+
+// Calculate execution time from start to end (or now if in progress)
+function calculateExecTime(startedAt, completedAt) {
+  if (!startedAt) return '-';
+  const start = new Date(startedAt);
+  const end = completedAt ? new Date(completedAt) : new Date();
+  const diffMs = end - start;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays > 0) return `${diffDays}d ${diffHours % 24}h`;
+  if (diffHours > 0) return `${diffHours}h ${diffMins % 60}m`;
+  return `${diffMins}m`;
+}
+
+// Render Thor validation status icon
+function renderThorStatus(validatedAt, validatedBy) {
+  const iconEl = document.getElementById('thorIcon');
+  const labelEl = document.getElementById('thorLabel');
+  if (!iconEl || !labelEl) return;
+
+  if (validatedAt) {
+    iconEl.className = 'thor-icon verified';
+    iconEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>`;
+    labelEl.textContent = 'Thor';
+    labelEl.style.color = 'var(--green)';
+    iconEl.title = `Validated by ${validatedBy || 'Thor'} on ${new Date(validatedAt).toLocaleString('it-IT')}`;
+  } else {
+    iconEl.className = 'thor-icon pending';
+    iconEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 6v6l4 2"/>
+    </svg>`;
+    labelEl.textContent = 'Pending';
+    labelEl.style.color = 'var(--text-dim)';
+    iconEl.title = 'Thor validation pending';
+  }
 }

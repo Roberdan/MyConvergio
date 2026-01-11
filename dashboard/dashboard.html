@@ -335,73 +335,37 @@
          <div class="stats-label" id="planLabel">ConvergioEdu</div>
        </div>
 
-       <!-- Stats Row -->
+       <!-- Stats Row (Compact) -->
        <div class="stats-row" id="statsRow">
         <div class="stat-item">
-          <div class="label">Tasks Completed</div>
-          <div class="value green" id="tasksDone">Loading...</div>
+          <div class="label">Tasks</div>
+          <div class="value green" id="tasksDone">-</div>
         </div>
         <div class="stat-item">
-          <div class="label">AI Tokens Used</div>
-          <div class="value" id="tokensUsed">Loading...</div>
+          <div class="label">Tokens</div>
+          <div class="value" id="tokensUsed">-</div>
         </div>
         <div class="stat-item">
-          <div class="label">Avg Tokens/Task</div>
-          <div class="value" id="avgTokensPerTask">Loading...</div>
+          <div class="label">Avg/Task</div>
+          <div class="value" id="avgTokensPerTask">-</div>
         </div>
-       <div class="stat-item">
-         <div class="label">Overall Progress</div>
-         <div class="value" id="progressPercent">Loading...</div>
-       </div>
-      </div>
-
-      <!-- KPI Row -->
-      <div class="kpi-row" id="kpiRow">
-        <div class="kpi-card">
-          <div class="kpi-label">Total Tokens</div>
-          <div class="kpi-value" id="kpiTokensTotal">n/d</div>
-          <div class="kpi-meta" id="kpiTokensMeta">All time</div>
+        <div class="stat-item">
+          <div class="label">Exec Time</div>
+          <div class="value" id="execTime">-</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Total Cost</div>
-          <div class="kpi-value" id="kpiCostTotal">n/d</div>
-          <div class="kpi-meta" id="kpiCostMeta">All time</div>
+        <div class="stat-item">
+          <div class="label">Progress</div>
+          <div class="value" id="progressPercent">-</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Burn Rate</div>
-          <div class="kpi-value" id="kpiBurnRate">n/d</div>
-          <div class="kpi-meta" id="kpiBurnMeta">Last 24h</div>
-        </div>
-      </div>
-
-      <!-- Proof of Done -->
-      <div class="proof-panel" id="proofPanel">
-        <div class="proof-header">
-          <div class="proof-title">Proof of Done</div>
-          <div class="proof-badge" id="proofBadge">Plan not selected</div>
-        </div>
-        <div class="proof-grid">
-          <div class="proof-item">
-            <div class="proof-label">Tasks</div>
-            <div class="proof-value" id="proofTasksValue">-</div>
+        <div class="stat-item thor-status" id="thorStatus" title="Thor Validation">
+          <div class="thor-icon pending" id="thorIcon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
           </div>
-          <div class="proof-item">
-            <div class="proof-label">Validation</div>
-            <div class="proof-value" id="proofValidationValue">-</div>
-          </div>
-          <div class="proof-item">
-            <div class="proof-label">Plan Status</div>
-            <div class="proof-value" id="proofPlanStatus">-</div>
-          </div>
+          <div class="thor-label" id="thorLabel">Pending</div>
         </div>
-        <div class="proof-note" id="proofNote">Select a plan to verify completion criteria.</div>
-      </div>
-
-      <!-- Workflow Banner -->
-      <div class="workflow-banner" id="workflowBanner" style="display:none;">
-        <div class="workflow-title">Workflow</div>
-        <div class="workflow-steps" id="workflowSteps"></div>
-        <div class="workflow-note" id="workflowNote"></div>
       </div>
 
       <!-- Interactive Gantt View - Heart of Dashboard -->

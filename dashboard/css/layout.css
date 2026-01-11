@@ -145,133 +145,68 @@
   flex-shrink: 0;
 }
 
+/* Stats Row (Compact Header) */
 .stats-row {
   display: flex;
-  gap: 40px;
-  margin-bottom: 20px;
+  gap: 32px;
+  margin-bottom: 16px;
+  align-items: flex-end;
 }
-
 .stat-item .label {
-  font-size: 13px;
-  color: var(--text-dim);
-  margin-bottom: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-}
-
-.stat-item .value {
-  font-size: 30px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-}
-
-.stat-item .value.green { color: var(--green); }
-
-/* KPI Row */
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 18px;
-}
-.kpi-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-.kpi-label {
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--text-dim);
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-.kpi-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text);
-}
-.kpi-meta {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-/* Proof of Done */
-.proof-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 18px;
-}
-.proof-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-.proof-title {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  color: var(--text);
-}
-.proof-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.2);
-  color: var(--text-dim);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-}
-.proof-badge.verified {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--green);
-  border-color: rgba(34, 197, 94, 0.4);
-}
-.proof-badge.pending {
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--orange);
-  border-color: rgba(245, 158, 11, 0.4);
-}
-.proof-badge.inconsistent {
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--red);
-  border-color: rgba(239, 68, 68, 0.4);
-}
-.proof-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-.proof-item {
-  background: var(--bg-input);
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-.proof-label {
-  font-size: 10px;
-  color: var(--text-dim);
+  margin-bottom: 2px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  margin-bottom: 6px;
-}
-.proof-value {
-  font-size: 13px;
   font-weight: 600;
-  color: var(--text);
 }
-.proof-note {
-  margin-top: 10px;
-  font-size: 11px;
-  color: var(--text-muted);
+.stat-item .value {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.stat-item .value.green { color: var(--green); }
+
+/* Thor Status Icon in Header */
+.stat-item.thor-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.thor-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.thor-icon.pending {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-dim);
+  border: 2px solid rgba(148, 163, 184, 0.3);
+}
+.thor-icon.verified {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--green);
+  border: 2px solid rgba(34, 197, 94, 0.5);
+}
+.thor-icon.verified svg {
+  stroke: var(--green);
+}
+.thor-icon.error {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+  border: 2px solid rgba(239, 68, 68, 0.4);
+}
+.thor-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 600;
+  color: var(--text-dim);
 }
 
 /* Wave Indicator (compact status bar) */

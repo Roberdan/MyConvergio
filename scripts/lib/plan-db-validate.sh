@@ -125,6 +125,24 @@ cmd_validate() {
         VALUES ($plan_id, $version, 'validated', 'Validated - 0 errors', '$validated_by');
     "
     echo -e "${GREEN}PASSED: Plan $plan_id validated by $validated_by${NC}"
+
+    # Auto-close plan if all tasks are done
+    local tasks_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done FROM plans WHERE id = $plan_id;")
+    local tasks_total=$(sqlite3 "$DB_FILE" "SELECT tasks_total FROM plans WHERE id = $plan_id;")
+    local current_status=$(sqlite3 "$DB_FILE" "SELECT status FROM plans WHERE id = $plan_id;")
+
+    if [[ "$tasks_total" -gt 0 && "$tasks_done" -eq "$tasks_total" && "$current_status" != "done" ]]; then
+        sqlite3 "$DB_FILE" "UPDATE plans SET status = 'done', completed_at = datetime('now') WHERE id = $plan_id;"
+        echo -e "${GREEN}AUTO-CLOSE: Plan $plan_id marked as done (all $tasks_total tasks complete)${NC}"
+
+        # Record auto-close in version history
+        local close_version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
+        sqlite3 "$DB_FILE" "
+            INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by)
+            VALUES ($plan_id, $close_version, 'closed', 'Auto-closed after Thor validation', '$validated_by');
+        "
+    fi
+
     return 0
 }
 

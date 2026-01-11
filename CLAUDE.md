@@ -48,6 +48,19 @@ git log --oneline -3            # Show commits as proof
 - Direct SQL queries should use `wave_id_fk = {db_wave_id}` instead of `wave_id = 'W1'`
 - Use `~/.claude/scripts/plan-db.sh` for all DB operations (handles FK correctly)
 
+## Worktree Discipline (MANDATORY for multi-worktree scenarios)
+**Before ANY git operation** (commit, push, add, checkout):
+```bash
+~/.claude/scripts/worktree-check.sh [expected-worktree]  # Verify context first!
+```
+**Rules**:
+1. **Know where you are**: Check pwd and branch before git operations
+2. **One worktree = one task**: Don't switch between worktrees mid-task
+3. **Clean before switch**: Commit or stash before changing worktree
+4. **Hook protection**: `worktree-guard.sh` warns on multi-worktree git ops
+
+**If confused**: Run `worktree-check.sh` to see full context.
+
 ## Workflow: Prompt → Plan → Execute → Verify (MANDATORY)
 
 **ENFORCEMENT**: This workflow is MANDATORY for all non-trivial tasks. Skipping steps is PROHIBITED.

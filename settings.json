@@ -32,6 +32,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.claude/hooks/debug-hook-input.sh",
+            "timeout": 3
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/enforce-line-limit.sh",
             "timeout": 5
           },

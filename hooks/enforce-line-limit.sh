@@ -1,9 +1,18 @@
 #!/bin/bash
 # Enforce 250 line limit - MANDATORY
-# Blocks Write operations that exceed the limit
+# Blocks Write/Edit operations that exceed the limit
+# PostToolUse hook receives JSON on stdin
 
 MAX_LINES=250
-FILE="${CLAUDE_FILE_PATH:-}"
+
+# Read JSON input from stdin
+INPUT=$(cat)
+
+# Extract file_path from tool_input (works for both Write and Edit)
+FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+
+# Fallback to env var if jq fails or no stdin
+[ -z "$FILE" ] && FILE="${CLAUDE_FILE_PATH:-}"
 
 # Exit OK if no file or file doesn't exist
 [ -z "$FILE" ] || [ ! -f "$FILE" ] && exit 0
@@ -20,7 +29,7 @@ case "$FILE" in
     exit 0 ;;
 esac
 
-# Count lines (use /usr/bin/wc to avoid custom wc aliases)
+# Count lines
 LINE_COUNT=$(/usr/bin/wc -l < "$FILE" 2>/dev/null | tr -d '[:space:]')
 LINE_COUNT=${LINE_COUNT:-0}
 

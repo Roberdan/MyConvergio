@@ -66,7 +66,7 @@ const routes = {
     if (status === 'doing') {
       timestampUpdate = ", started_at = COALESCE(started_at, datetime('now'))";
     } else if (status === 'done') {
-      timestampUpdate = ", completed_at = datetime('now')";
+      timestampUpdate = ", started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now')";
     } else if (status === 'todo') {
       timestampUpdate = ", started_at = NULL, completed_at = NULL";
     }

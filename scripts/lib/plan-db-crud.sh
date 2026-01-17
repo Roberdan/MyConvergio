@@ -165,13 +165,19 @@ cmd_update_task() {
         *) log_error "Invalid status: $status"; exit 1 ;;
     esac
     local old_status=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id = $task_id;")
+
+    # Strict: cannot go directly from pending to done
+    if [[ "$status" == "done" && "$old_status" == "pending" ]]; then
+        log_error "Cannot transition pending→done directly. Mark as in_progress first."
+        exit 1
+    fi
     local tokens_sql=""
     [[ -n "$tokens" ]] && tokens_sql=", tokens = $tokens"
 
     if [[ "$status" == "in_progress" ]]; then
         sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
     elif [[ "$status" == "done" ]]; then
-        sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', completed_at = datetime('now'), notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
+        sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now'), notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
 
         # Get wave FK and plan_id from task
         local wave_fk=$(sqlite3 "$DB_FILE" "SELECT wave_id_fk FROM tasks WHERE id = $task_id;")
@@ -186,7 +192,7 @@ cmd_update_task() {
         local wave_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done = tasks_total FROM waves WHERE id = $wave_fk;")
         [[ "$wave_done" == "1" ]] && {
             local wave_id_text=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM waves WHERE id = $wave_fk;")
-            sqlite3 "$DB_FILE" "UPDATE waves SET status = 'done', completed_at = datetime('now') WHERE id = $wave_fk;"
+            sqlite3 "$DB_FILE" "UPDATE waves SET status = 'done', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now') WHERE id = $wave_fk;"
             log_info "Wave $wave_id_text completed!"
         }
     else
@@ -203,7 +209,7 @@ cmd_update_wave() {
     if [[ "$status" == "in_progress" ]]; then
         sqlite3 "$DB_FILE" "UPDATE waves SET status = '$status', started_at = datetime('now') WHERE id = $wave_id;"
     elif [[ "$status" == "done" ]]; then
-        sqlite3 "$DB_FILE" "UPDATE waves SET status = '$status', completed_at = datetime('now') WHERE id = $wave_id;"
+        sqlite3 "$DB_FILE" "UPDATE waves SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now') WHERE id = $wave_id;"
     else
         sqlite3 "$DB_FILE" "UPDATE waves SET status = '$status' WHERE id = $wave_id;"
     fi

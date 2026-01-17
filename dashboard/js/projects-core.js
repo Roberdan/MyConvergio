@@ -71,6 +71,10 @@ async function selectProject(projectId) {
 
   if (typeof resetGitGraphState === 'function') resetGitGraphState();
 
+  // Reset plan selection when changing project
+  currentPlanId = null;
+  window.currentPlanId = null;
+
   currentProjectId = projectId;
   localStorage.setItem('dashboard-current-project', projectId);
 

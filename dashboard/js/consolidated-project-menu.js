@@ -178,6 +178,11 @@ async function selectPlanFromMenu(projectId, planId) {
   document.getElementById('projectMenu').style.display = 'none';
   renderConsolidatedProjectMenu();
 
+  // Refresh Gantt with selected plan
+  if (typeof GanttView !== 'undefined' && GanttView.load) {
+    await GanttView.load(projectId, { planId: planId });
+  }
+
   // Refresh other data
   if (typeof loadGitHubData === 'function') loadGitHubData();
   if (typeof loadGitData === 'function') loadGitData();

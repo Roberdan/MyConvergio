@@ -21,6 +21,7 @@ async function loadPlanDetails(planId) {
     const tokens = await tokensRes.json();
     const history = await histRes.json();
     currentPlanId = planId;
+    window.currentPlanId = planId;  // Expose to GanttCore
     data = transformPlanToData(plan, tokens);
     data.history = history;
     render();

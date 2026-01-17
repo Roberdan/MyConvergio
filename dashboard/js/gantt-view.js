@@ -38,9 +38,13 @@ const GanttView = {
     return iconMap[status] || this.getIcon('pending');
   },
 
-  async load(projectId, targetId = null) {
-    if (targetId) this.renderTarget = targetId;
-    await GanttCore.load(projectId);
+  async load(projectId, options = {}) {
+    // Support both old signature (projectId, targetId) and new (projectId, {planId, targetId})
+    if (typeof options === 'string') {
+      options = { targetId: options };
+    }
+    if (options.targetId) this.renderTarget = options.targetId;
+    await GanttCore.load(projectId, options);
     this.render();
   },
 

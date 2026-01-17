@@ -201,7 +201,7 @@ function renderKanban(kanban) {
       const confidenceClass = isMismatch
         ? 'inconsistent'
         : (isValidated && isComplete ? 'verified' : (isComplete ? 'unverified' : 'inprogress'));
-      const gitLabel = plan.gitError ? 'Git Error' : (plan.gitDirty ? 'Git Dirty' : 'Git Clean');
+      const gitLabel = plan.gitError ? 'Git Error' : (plan.gitDirty ? 'Uncommitted' : 'Committed');
       const gitClass = plan.gitError ? 'dirty' : (plan.gitDirty ? 'dirty' : 'clean');
       const statusLabel = isDoneStatus
         ? (isComplete && isValidated ? 'Done ✓' : (!isComplete ? 'Done? Tasks missing' : 'Done? Thor pending'))

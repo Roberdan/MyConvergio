@@ -99,6 +99,15 @@ function refreshControlCenter() {
       console.error('Refresh failed:', err);
       showToast('Refresh failed', 'error');
     });
+  } else if (window.currentPlanId && typeof loadPlanDetails === 'function') {
+    // Refresh plan view (Gantt + header)
+    loadPlanDetails(window.currentPlanId).then(() => {
+      if (typeof GanttView !== 'undefined') GanttView.refresh();
+      showToast('Plan refreshed', 'success');
+    }).catch(err => {
+      console.error('Plan refresh failed:', err);
+      showToast('Refresh failed', 'error');
+    });
   } else {
     // Generic refresh - reload projects and current view
     if (typeof loadProjects === 'function') {

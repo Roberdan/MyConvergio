@@ -178,17 +178,10 @@ cmd_update_task() {
         sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
     elif [[ "$status" == "done" ]]; then
         sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now'), notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
+        # NOTE: wave/plan counters updated automatically by SQLite trigger (task_done_counter)
 
-        # Get wave FK and plan_id from task
+        # Check if wave is now complete (for auto-marking wave as done)
         local wave_fk=$(sqlite3 "$DB_FILE" "SELECT wave_id_fk FROM tasks WHERE id = $task_id;")
-
-        # Update wave done count using FK
-        sqlite3 "$DB_FILE" "UPDATE waves SET tasks_done = tasks_done + 1 WHERE id = $wave_fk;"
-
-        # Update plan done count
-        local plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM tasks WHERE id = $task_id;")
-        sqlite3 "$DB_FILE" "UPDATE plans SET tasks_done = tasks_done + 1 WHERE id = $plan_id;"
-
         local wave_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done = tasks_total FROM waves WHERE id = $wave_fk;")
         [[ "$wave_done" == "1" ]] && {
             local wave_id_text=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM waves WHERE id = $wave_fk;")

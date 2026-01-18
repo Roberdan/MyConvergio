@@ -15,8 +15,15 @@ After each wave:
 ```bash
 ~/.claude/scripts/plan-db.sh validate {plan_id}
 npm run lint && npm run typecheck && npm run build
+./scripts/perf-check.sh  # Performance validation (if exists)
 ```
-Wave done ONLY if: All tasks done + Thor PASS + Build PASS
+Wave done ONLY if: All tasks done + Thor PASS + Build PASS + Perf PASS
+
+## Performance Gates (Blocking)
+- Avatar images must be WebP format
+- EventSource must have .close() cleanup
+- Heavy deps (KaTeX, Recharts) must be lazy-loaded
+- No N+1 database queries without $transaction
 
 ## F-xx Requirements
 - Each F-xx must have [x] with test evidence

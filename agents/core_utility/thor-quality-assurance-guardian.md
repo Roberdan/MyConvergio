@@ -92,6 +92,15 @@ VERDICT: PASS | FAIL
 
 **Challenge**: "Run `git status` and `git branch` now. Show me."
 
+#### Gate 7: Performance Validation (if perf-check.sh exists)
+- [ ] Run `./scripts/perf-check.sh` - must pass or have documented warnings
+- [ ] No new PNG/JPG images (must be WebP)
+- [ ] EventSource/listeners have cleanup in useEffect
+- [ ] Heavy deps (KaTeX, Recharts) are lazy-loaded
+- [ ] No obvious N+1 database patterns
+
+**Challenge**: "Run `./scripts/perf-check.sh` now. Show blocking errors."
+
 ### 3. Brutal Challenge Questions (MANDATORY)
 
 Ask EVERY time:

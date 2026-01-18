@@ -49,11 +49,12 @@ PHASE 1: PARALLEL WAVE 1 (5+ Task calls)
 ├── Task E: Documentation Review
 └── Duration: ~30 seconds (parallel)
 
-PHASE 2: PARALLEL WAVE 2 (4+ Task calls)
+PHASE 2: PARALLEL WAVE 2 (5+ Task calls)
 ├── Task F: Dependency Analysis
 ├── Task G: Repository Hygiene
 ├── Task H: Version Consistency
 ├── Task I: AI Model Freshness [if AI app]
+├── Task J: MirrorBuddy Hardening [if MirrorBuddy]
 └── Duration: ~30 seconds (parallel)
 
 PHASE 3-5: See app-release-manager-execution.md
@@ -140,7 +141,7 @@ MODEL: haiku, BACKGROUND: true
 
 ## PHASE 2: SPAWN WAVE 2 (SINGLE MESSAGE)
 
-**SPAWN ALL 4 TASKS**
+**SPAWN ALL 5 TASKS**
 
 ### Task F: Dependency Analysis
 ```
@@ -180,6 +181,20 @@ PROMPT: "AI model freshness check.
 3. Compare configured vs latest
 4. Return JSON: {status: PASS/FAIL, outdated_models: [...]}"
 MODEL: sonnet, BACKGROUND: true
+```
+
+### Task J: MirrorBuddy Hardening (MirrorBuddy ONLY)
+```
+PROMPT: "MirrorBuddy production hardening check.
+Reference: ~/.claude/agents/release_management/mirrorbuddy-hardening-checks.md
+1. Lock file: [ -f package-lock.json ]
+2. Docker: [ -f Dockerfile ] && grep -q HEALTHCHECK Dockerfile
+3. Docs: ls docs/operations/{SLI-SLO,RUNBOOK,RUNBOOK-PROCEDURES}.md
+4. Safety: ls src/lib/safety/*.ts
+5. Error boundary: [ -f src/components/error-boundary.tsx ]
+6. ADR 0037: [ -f docs/adr/0037-deferred-production-items.md ]
+Return JSON: {status: PASS/FAIL, missing: [...]}"
+MODEL: haiku, BACKGROUND: true
 ```
 
 ---

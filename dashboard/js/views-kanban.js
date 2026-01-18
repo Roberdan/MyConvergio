@@ -534,7 +534,11 @@ async function activatePlanAndNavigate(planId, projectId) {
     
     // Load the plan details
     await loadPlanDetails(planId);
-    
+
+    // Reload git/github data after loadPlanDetails (it overwrites data object)
+    loadGitHubData();
+    loadGitData();
+
     // Enable dashboard link
     const dashboardLink = document.getElementById('dashboardLink');
     if (dashboardLink) {

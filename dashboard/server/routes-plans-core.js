@@ -5,7 +5,32 @@ const { query, escapeSQL } = require('./db');
 const routes = {
   // Kanban board - all projects
   'GET /api/kanban': () => {
-    return query('SELECT * FROM v_kanban');
+    return query(`
+      SELECT
+        p.id as plan_id,
+        p.name as plan_name,
+        p.status,
+        p.is_master,
+        p.tasks_done,
+        p.tasks_total,
+        CASE WHEN p.tasks_total > 0 THEN ROUND(100.0 * p.tasks_done / p.tasks_total) ELSE 0 END as progress,
+        p.created_at,
+        p.started_at,
+        p.completed_at,
+        p.validated_at,
+        p.validated_by,
+        p.updated_at,
+        p.git_clean_at_closure,
+        pr.id as project_id,
+        pr.name as project_name,
+        pr.path as project_path
+      FROM plans p
+      JOIN projects pr ON p.project_id = pr.id
+      ORDER BY
+        CASE p.status WHEN 'doing' THEN 1 WHEN 'todo' THEN 2 WHEN 'done' THEN 3 END,
+        CASE WHEN p.status = 'done' THEN p.id END DESC,
+        p.updated_at DESC
+    `);
   },
 
   // List projects
@@ -45,7 +70,7 @@ const routes = {
 
      // Get all plans for this project
      const plans = query(`
-       SELECT id, name, status, tasks_done, tasks_total, created_at, started_at, completed_at
+       SELECT id, name, status, tasks_done, tasks_total, created_at, started_at, completed_at, validated_at, validated_by
        FROM plans WHERE project_id = '${escapeSQL(params.id)}'
        ORDER BY is_master DESC, status, created_at DESC
      `);
@@ -95,7 +120,11 @@ const routes = {
          name: p.name,
          status: p.status,
          done: p.tasks_done || 0,
-         total: p.tasks_total || 0
+         total: p.tasks_total || 0,
+         started_at: p.started_at,
+         completed_at: p.completed_at,
+         validated_at: p.validated_at,
+         validated_by: p.validated_by
        })),
        plans: {
          total: totalPlans,
@@ -460,4 +489,3 @@ const routes = {
 };
 
 module.exports = routes;
-

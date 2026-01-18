@@ -174,6 +174,13 @@
 .plan-tree-item.done .plan-status-icon { color: var(--green); }
 .plan-tree-item.completed .plan-status-icon { color: var(--green); }
 
+.plan-id {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
 .plan-name {
   flex: 1;
   color: var(--text);

@@ -87,6 +87,7 @@ function renderProjectPlans(projectId) {
     return `
       <div class="plan-tree-item ${isActive ? 'active' : ''} ${statusClass}" onclick="selectPlanFromMenu('${projectId}', '${plan.id}')">
         <span class="plan-status-icon">${getPlanStatusIcon(plan.status)}</span>
+        <span class="plan-id">#${plan.id}</span>
         <span class="plan-name">${plan.name || plan.plan_name}</span>
         <span class="plan-meta">${plan.tasks_done || 0}/${plan.tasks_total || 0}</span>
       </div>

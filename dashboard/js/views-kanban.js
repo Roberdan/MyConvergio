@@ -221,7 +221,7 @@ function renderKanban(kanban) {
              ondragend="handleKanbanDragEnd(event)"
              ${clickHandler}>
           <div class="cc-plan-project">${plan.project}</div>
-          <div class="cc-plan-name">${plan.name}</div>
+          <div class="cc-plan-name"><span class="cc-plan-id">#${plan.planId}</span> ${plan.name}</div>
           <div class="cc-plan-badges">
             <span class="cc-plan-confidence ${confidenceClass}">${confidenceLabel}</span>
             <span class="cc-plan-git ${gitClass}" title="${gitLabel}">${gitLabel}</span>
@@ -442,7 +442,7 @@ function renderTrashColumn() {
          ondragstart="handleKanbanDragStart(event, ${plan.planId}, 'trash')"
          ondragend="handleKanbanDragEnd(event)">
       <div class="cc-plan-project">${plan.project}</div>
-      <div class="cc-plan-name">${plan.name}</div>
+      <div class="cc-plan-name"><span class="cc-plan-id">#${plan.planId}</span> ${plan.name}</div>
       <div class="cc-plan-meta">
         <span class="cc-plan-tasks">Was: ${plan.fromStatus}</span>
         <span class="cc-plan-status">🗑️</span>

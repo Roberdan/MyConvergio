@@ -20,6 +20,7 @@ const routes = {
         p.validated_at,
         p.validated_by,
         p.updated_at,
+        p.git_clean_at_closure,
         pr.id as project_id,
         pr.name as project_name,
         pr.path as project_path
@@ -27,6 +28,7 @@ const routes = {
       JOIN projects pr ON p.project_id = pr.id
       ORDER BY
         CASE p.status WHEN 'doing' THEN 1 WHEN 'todo' THEN 2 WHEN 'done' THEN 3 END,
+        CASE WHEN p.status = 'done' THEN p.id END DESC,
         p.updated_at DESC
     `);
   },

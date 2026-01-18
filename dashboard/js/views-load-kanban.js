@@ -48,6 +48,11 @@ async function loadKanban() {
       const lastUpdate = updatedAt ? new Date(updatedAt) : null;
       const isRecent = lastUpdate && (Date.now() - lastUpdate.getTime()) < 3600000;
       const isRunning = status === 'doing' && isRecent;
+      // For done plans, use saved git state; for others, use live state
+      const isDone = status === 'done';
+      const gitDirty = isDone && plan.git_clean_at_closure !== null
+        ? plan.git_clean_at_closure === 0
+        : (projectGit.totalChanges || 0) > 0;
       kanban[status].push({
         project: plan.project_name,
         projectId: plan.project_id,
@@ -65,8 +70,8 @@ async function loadKanban() {
         cost: projectTokens.cost,
         validatedBy: plan.validated_by,
         validatedAt: plan.validated_at,
-        gitDirty: (projectGit.totalChanges || 0) > 0,
-        gitError: projectGit.error || null
+        gitDirty: gitDirty,
+        gitError: isDone ? null : (projectGit.error || null)
       });
     });
   } catch (e) {

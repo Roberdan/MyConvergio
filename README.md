@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v4.2.0** | 58 Specialized Agents | Safe Installation | Dashboard | Claude 4.5 Best Practices
+**v4.3.0** | 58 Specialized Agents | Safe Installation | Dashboard | Claude 4.5 Best Practices
 
 > *"Intent is human, momentum is agent"*
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,17 +15,23 @@
 
 ---
 
-## What's New in v4.1.0
+## What's New in v4.3.0
 
-**Dashboard overhaul + config sync + public portability fixes!**
+**Strategic planner modules + worktree scripts + enhanced validation!**
 
-### Dashboard Overhaul (NEW)
-- **Gantt Timeline**: True timeline with active wave/task highlighting and progress gradients
-- **Kanban Views**: Interactive wave/task boards with drilldowns
-- **Markdown Viewer**: Plan, wave, and task markdown rendering
-- **Conversation Viewer**: Inspect execution logs and live context
-- **Bug Tracker**: Integrated bug tracking and filters
-- **Accessibility Updates**: Focus, contrast, and responsive improvements
+### Strategic Planner Modules (NEW)
+- **strategic-planner-templates.md**: Reusable plan document templates
+- **strategic-planner-thor.md**: Thor validation gate integration
+- **strategic-planner-git.md**: Git worktree workflow for parallel execution
+
+### Worktree Scripts (NEW)
+- **worktree-create.sh**: Creates worktree with automatic .env symlinks
+- **worktree-check.sh**: Shows current git context with worktree verification
+
+### Enhanced Dashboard
+- **Git State Tracking**: Plans capture `git_clean_at_closure` status
+- **Validation Badges**: Visual indicators (Verified/Unverified/Inconsistent)
+- **Kanban Improvements**: Confirmation modals, plan IDs, mismatch warnings
 
 ### Config Sync & Portability
 - **Rules/Commands/Scripts Sync**: Latest global config aligned into MyConvergio
@@ -537,6 +543,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 *Built with AI assistance in Milano, following the Agentic Manifesto principles*
 
-**v3.9.0** | January 2026 | Claude Code Plugin
+**v4.3.0** | January 2026 | Claude Code Plugin
 
 </div>

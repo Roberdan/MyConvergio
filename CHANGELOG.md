@@ -5,6 +5,25 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2026-01-18
+
+### Added
+- **Strategic Planner Modules**: Extracted reusable modules from strategic-planner.md
+  - `strategic-planner-templates.md`: Plan document templates and formats
+  - `strategic-planner-thor.md`: Thor validation gate integration
+  - `strategic-planner-git.md`: Git worktree workflow for parallel execution
+- **Worktree Scripts**: New shell scripts for worktree management
+  - `worktree-create.sh`: Creates worktree with automatic .env symlinks
+  - `worktree-check.sh`: Shows current git context with worktree verification
+
+### Changed
+- **guardian.md**: Updated rules with performance gates and zero technical debt enforcement
+- **Dashboard Kanban**: Enhanced with git state snapshot, validation badges, and confidence indicators
+
+### Improved
+- **Git State Tracking**: Plans now capture `git_clean_at_closure` status
+- **Kanban UX**: Better visual indicators for validation status (Verified/Unverified/Inconsistent)
+
 ## [4.2.0] - 2026-01-10
 
 ### Added

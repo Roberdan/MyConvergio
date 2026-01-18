@@ -54,6 +54,13 @@
   color: var(--text-muted);
 }
 
+.plan-label-id {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
 /* Plan Selector Dropdown */
 .plan-selector {
   display: inline-flex;

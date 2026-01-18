@@ -35,7 +35,11 @@ function render() {
 
   // Header
   setText('projectName', data.meta.project);
-  setText('planLabel', data.meta.project);
+  const planLabelEl = document.getElementById('planLabel');
+  if (planLabelEl) {
+    const planId = data.meta.plan_id ? `<span class="plan-label-id">#${data.meta.plan_id}</span> ` : '';
+    planLabelEl.innerHTML = planId + (data.meta.project || '');
+  }
   setText('throughputBadge', data.metrics.throughput.percent + '%');
 
   // Stats with better formatting

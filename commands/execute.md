@@ -62,11 +62,14 @@ For each pending task:
 // 1. Announce task
 console.log(`Executing: ${task.task_id} - ${task.title}`);
 
-// 2. Launch task-executor subagent
+// 2. Launch task-executor subagent (ISOLATED SESSION)
 await Task({
   subagent_type: "task-executor",
   model: task.priority === 'P0' ? 'sonnet' : 'haiku',
+  description: `Execute task ${task.task_id}`,
   prompt: `
+TASK EXECUTION (Isolated Session - Start Fresh)
+
 Project: ${project_id}
 Plan ID: ${plan_id}
 Wave: ${task.wave_id} (db_id: ${task.wave_db_id})
@@ -75,12 +78,15 @@ Task: ${task.task_id} (db_id: ${task.db_id})
 Title: ${task.title}
 Priority: ${task.priority}
 
-Execute this task:
-1. Mark as in_progress
-2. Do the work
-3. Verify against F-xx criteria
-4. Mark as done with summary
-5. Report completion
+Requirements:
+1. Mark as in_progress via plan-db.sh
+2. Execute the work per task title
+3. Test and verify against F-xx criteria
+4. Track tokens via POST /api/tokens
+5. Mark as done with summary via plan-db.sh
+6. Report completion
+
+CRITICAL: You are a FRESH session. Do NOT reference previous tasks or files from parent context. Read what you need for THIS task only.
 `
 });
 

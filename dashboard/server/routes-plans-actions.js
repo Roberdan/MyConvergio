@@ -117,6 +117,64 @@ const routes = {
       VALUES ('${escapeSQL(project_id)}', ${safePlanId || 'NULL'}, '${escapeSQL(wave_id || '')}', '${escapeSQL(task_id || '')}', '${escapeSQL(agent)}', '${escapeSQL(model)}', ${safeInputTokens}, ${safeOutputTokens}, ${safeCost})
     `);
     return { success: true };
+  },
+
+  // Get token usage summary for a plan
+  'GET /api/tokens/summary/:plan_id': (params, req, res, body) => {
+    const planId = parseInt(params.plan_id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
+
+    // Get plan details to get project_id
+    const plan = query(`SELECT project_id FROM plans WHERE id = ${planId}`)[0];
+    if (!plan) return { error: 'Plan not found' };
+
+    // Aggregate tokens for this plan (plan_id match) or fallback to project_id if plan_id is NULL
+    const totals = query(`
+      SELECT
+        COALESCE(SUM(input_tokens), 0) as total_input,
+        COALESCE(SUM(output_tokens), 0) as total_output,
+        COALESCE(SUM(input_tokens + output_tokens), 0) as total_tokens,
+        COALESCE(SUM(cost_usd), 0) as total_cost
+      FROM token_usage
+      WHERE plan_id = ${planId} OR (plan_id IS NULL AND project_id = '${escapeSQL(plan.project_id)}')
+    `)[0];
+
+    // Breakdown by wave
+    const byWave = query(`
+      SELECT
+        wave_id,
+        COALESCE(SUM(input_tokens), 0) as input_tokens,
+        COALESCE(SUM(output_tokens), 0) as output_tokens,
+        COALESCE(SUM(input_tokens + output_tokens), 0) as total_tokens,
+        COALESCE(SUM(cost_usd), 0) as cost_usd
+      FROM token_usage
+      WHERE plan_id = ${planId}
+      GROUP BY wave_id
+      ORDER BY wave_id
+    `);
+
+    // Breakdown by agent
+    const byAgent = query(`
+      SELECT
+        agent,
+        model,
+        COALESCE(SUM(input_tokens), 0) as input_tokens,
+        COALESCE(SUM(output_tokens), 0) as output_tokens,
+        COALESCE(SUM(input_tokens + output_tokens), 0) as total_tokens,
+        COALESCE(SUM(cost_usd), 0) as cost_usd
+      FROM token_usage
+      WHERE plan_id = ${planId} OR (plan_id IS NULL AND project_id = '${escapeSQL(plan.project_id)}')
+      GROUP BY agent, model
+      ORDER BY total_tokens DESC
+    `);
+
+    return {
+      plan_id: planId,
+      project_id: plan.project_id,
+      totals,
+      by_wave: byWave,
+      by_agent: byAgent
+    };
   }
 };
 

@@ -8,7 +8,7 @@ description: Workflow orchestrator for pre-defined multi-agent collaboration tem
 tools: ["Task", "Read", "Write", "Edit"]
 color: "#FF6B6B"
 model: sonnet
-version: "1.0.2"
+version: "2.0.0"
 ---
 
 ## Security & Ethics Framework
@@ -213,6 +213,42 @@ Recovery Phase (1-7 days):
 └─→ Long-term resilience building and prevention
 ```
 
+---
+
+## Token Tracking & Cost Management
+
+**CRITICAL**: As a workflow orchestrator, you must ensure all delegated work tracks tokens properly.
+
+### Delegation Protocol
+When delegating to specialized agents (baccio, sara, marco, etc.) or to `task-executor`:
+- Agents automatically track tokens via POST /api/tokens when integrated with execution framework
+- Includes: project_id, plan_id (if applicable), agent, model, input_tokens, output_tokens, cost_usd
+- Aggregated data visible in dashboard per workflow phase and overall orchestration
+
+### Model Selection Strategy
+Choose execution model based on task complexity when delegating work:
+
+| Complexity | Model | When to Use |
+|------------|-------|-------------|
+| Simple | haiku | Single file operations, straightforward coordination, ≤3 files |
+| Medium | haiku → sonnet | Multiple files (3-5), moderate complexity, standard workflows |
+| Complex | sonnet | >5 files, architecture changes, critical decisions, custom workflows |
+
+**Cost optimization**: Default to haiku for routine coordination, escalate to sonnet for complex orchestration.
+
+### Coordination Model Selection
+Your own model choice depends on workflow complexity and parallelization needs:
+
+| Mode | Coordinator Model | Use When |
+|------|-------------------|----------|
+| Standard | sonnet (current) | ≤3 concurrent agents, routine workflows |
+| High parallel | sonnet | 4-6 concurrent agents, complex coordination |
+| Max parallel | **opus** | 7+ concurrent agents, crisis management, unlimited parallelization |
+
+**Note**: For crisis management protocols or large product launches requiring >6 parallel agents, coordinator should upgrade to Opus for managing N concurrent specialists effectively.
+
+---
+
 ## Success Metrics Focus
 - **Workflow Efficiency**: Reduction in coordination overhead and time-to-execution (target: >40% improvement)
 - **Quality Consistency**: Maintenance of excellence standards across all systematic workflows (target: >95% quality compliance)
@@ -244,4 +280,5 @@ Remember: You are the systematic coordination backbone of the MyConvergio ecosys
 
 ## Changelog
 
+- **2.0.0** (2026-01-21): Added Token Tracking & Cost Management section with model selection strategy and coordination model escalation rules
 - **1.0.0** (2025-12-15): Initial security framework and model optimization

@@ -161,10 +161,10 @@ export PLAN_${PLAN_ID}_MAX_CONCURRENT="$MAX_CONCURRENT"
 echo "$PARALLEL_MODE" > ~/.claude/data/plan-${PLAN_ID}-mode.txt
 ```
 
-**Option C: Database (if metadata column exists)**:
+**Option C: Database (recommended)**:
 ```bash
 sqlite3 ~/.claude/data/dashboard.db \
-  "UPDATE plans SET metadata=json_set(COALESCE(metadata, '{}'), '$.parallel_mode', '$PARALLEL_MODE') WHERE id=$PLAN_ID;"
+  "UPDATE plans SET parallel_mode='$PARALLEL_MODE' WHERE id=$PLAN_ID;"
 ```
 
 ### 5. Start Execution (AUTO → IN FLIGHT)

@@ -72,3 +72,8 @@ repo-index() {
     git log --oneline -10 >> "$out" 2>/dev/null
     echo "Created: $out"
 }
+
+# === External services (MCP alternatives - saves 21.4k tokens) ===
+alias grafana='~/.claude/scripts/grafana-helper.sh'
+alias supabase-wrap='~/.claude/scripts/supabase-helper.sh'
+alias vercel-wrap='~/.claude/scripts/vercel-helper.sh'

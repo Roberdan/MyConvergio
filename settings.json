@@ -78,5 +78,6 @@
     "frontend-design@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true
   },
-  "autoUpdatesChannel": "latest"
+  "autoUpdatesChannel": "latest",
+  "model": "sonnet"
 }

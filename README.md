@@ -74,6 +74,7 @@ open http://localhost:31415
 | GET /api/health | Server health + DB status |
 | GET /api/projects | List all projects |
 | GET /api/plans | List plans |
+| **POST /api/tokens** | **Record token usage (plan_id, wave_id, task_id, agent, model, tokens, cost)** |
 | GET /api/notifications/stream | SSE real-time notifications |
 | GET /api/notifications/triggers | List trigger configs |
 | POST /api/notifications/triggers/:id/toggle | Toggle trigger |

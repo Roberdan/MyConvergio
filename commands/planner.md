@@ -17,13 +17,25 @@ Active plans: `sqlite3 ~/.claude/data/dashboard.db "SELECT id, name, status FROM
 3. **User Approval Gate**: BLOCK execution until explicit "si"/"yes"/"procedi"
 4. **Thor Enforcement**: Wave done = Thor passed + build passed
 
-## Model Strategy
+## Model Strategy & Optimization
 
-| Phase | Model | Escalation |
-|-------|-------|------------|
-| Planning | opus | - |
-| Execution | haiku | → sonnet (>3 files, complex) |
-| Validation | sonnet | - |
+| Phase | Model | Escalation | Context |
+|-------|-------|------------|---------|
+| Planning | opus | - | Full |
+| Execution | haiku | → sonnet (>3 files, complex) | Isolated |
+| Validation | sonnet | - | Isolated |
+
+### Context Isolation (Token Optimization)
+- **task-executor**: FRESH session per task. No parent context inheritance.
+- **thor**: FRESH session per validation. Skeptical, reads everything.
+- **Benefit**: 50-70% token reduction vs inherited context
+- **MCP**: task-executor has WebSearch/WebFetch disabled (uses Read/Grep only)
+
+### Parallelization Strategy
+- Max 3 concurrent task-executors
+- Independent waves can run in parallel
+- Dependent tasks run sequentially
+- Thor validates after each wave completes
 
 ## Workflow
 

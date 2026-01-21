@@ -2,9 +2,10 @@
 name: task-executor
 description: Specialized executor for plan tasks. Executes work items from plans and marks them complete with verified results in the database.
 tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task"]
+disallowedTools: ["WebSearch", "WebFetch"]
 color: "#10b981"
 model: haiku
-version: "1.2.0"
+version: "1.3.0"
 context_isolation: true
 ---
 

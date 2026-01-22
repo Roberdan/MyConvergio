@@ -52,6 +52,42 @@ See: [strategic-planner-templates.md](./strategic-planner-templates.md)
 3. Assign IDs using pattern: WXY (Wave X, Task Y)
 4. Estimate complexity (simple/medium/complex)
 5. Identify parallelizable tasks
+6. **Define test_criteria for each task** (TDD requirement)
+
+### Step 2.5: Test Criteria Definition (MANDATORY)
+
+Every task MUST include `test_criteria` specifying what tests the task-executor will write BEFORE implementation.
+
+```yaml
+- id: T1-01
+  title: "Add user logout button"
+  f_xx: F-03
+  test_criteria:
+    - type: unit
+      target: "LogoutButton component"
+      description: "Calls auth.logout() on click"
+    - type: integration
+      target: "POST /api/logout"
+      description: "Clears session and returns 200"
+    - type: e2e
+      target: "Logout flow"
+      description: "Click logout → redirect to /login"
+```
+
+**Test Types by Task Category:**
+
+| Task Type | Required Tests |
+|-----------|----------------|
+| UI Component | unit (behavior) + e2e (user flow) |
+| API Endpoint | unit (handler) + integration (DB/auth) |
+| Business Logic | unit (all branches) |
+| Refactoring | existing tests must pass + new unit if gaps |
+| Bug Fix | regression test that fails before fix |
+
+**Framework Detection**: Task-executor auto-detects from project:
+- `package.json` → Jest/Vitest/Playwright
+- `pyproject.toml` → pytest
+- `Cargo.toml` → cargo test
 
 ### Step 3: Wave Organization
 1. Group tasks by dependency

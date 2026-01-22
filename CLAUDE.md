@@ -103,14 +103,19 @@ plan-db.sh start {plan_id}  # MANDATORY before first task
 - Plan moves to status='doing' → visible as **IN FLIGHT** in dashboard
 - This step is AUTOMATIC when execution begins
 
-### Step 4: Execute Tasks
+### Step 4: Execute Tasks (TDD Workflow)
 **Use `/execute {plan_id}`** - Automated execution of all tasks
 
 The executor will:
 1. Load all pending tasks from DB
-2. For each task: launch `task-executor` subagent
+2. For each task: launch `task-executor` subagent with **TDD workflow**:
+   - **RED**: Write failing tests based on `test_criteria` from plan
+   - **GREEN**: Implement minimum code to pass tests
+   - **REFACTOR**: Clean up if needed
 3. After each wave: run Thor validation
 4. Report progress and completion
+
+**TDD is MANDATORY**: Every task has `test_criteria` defined by planner. Task-executor writes tests BEFORE implementation.
 
 Manual alternative (if needed):
 - `Task(subagent_type='task-executor')` for single task
@@ -120,9 +125,11 @@ Manual alternative (if needed):
 ```bash
 ~/.claude/scripts/plan-db.sh validate {plan_id}
 npm run lint && npm run typecheck && npm run build
+npm test  # TDD Gate: all tests must pass
 ```
-- Wave is DONE only if: All tasks done + Thor PASS + Build PASS
+- Wave is DONE only if: All tasks done + Thor PASS + Build PASS + **Tests PASS**
 - Thor verifies F-xx requirements with evidence
+- **Gate 8 (TDD)**: Test files exist, coverage ≥80% on new files, no regression
 
 ### Step 6: Closure (User Approval)
 - List ALL F-xx with [x] or [ ] status
@@ -140,8 +147,8 @@ npm run lint && npm run typecheck && npm run build
 ### Context Isolation (50-70% Token Reduction)
 
 **Isolated Subagents** (FRESH session per invocation):
-- `task-executor` (v1.3.0): NO parent context, reads only files needed for its task
-- `thor-quality-assurance-guardian` (v3.1.0): Skeptical validation, verifies everything from scratch
+- `task-executor` (v1.5.0): NO parent context, TDD workflow (tests first), modular
+- `thor-quality-assurance-guardian` (v3.3.0): Skeptical validation, Gate 8 TDD, modular
 
 **Benefits**:
 - Task executor: ~30K tokens/task (vs 50-100K with inherited context)

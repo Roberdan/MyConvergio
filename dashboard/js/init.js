@@ -124,3 +124,9 @@ function stopDataRefresh() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Cleanup on page unload to prevent memory leaks
+window.addEventListener('beforeunload', () => {
+  stopDataRefresh();
+  if (typeof stopFileWatcher === 'function') stopFileWatcher();
+});

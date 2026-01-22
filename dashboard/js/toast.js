@@ -174,6 +174,9 @@ function handleNotificationDashboardRefresh(notification) {
 }
 
 function startNotificationPolling() {
+  // Cleanup any existing connections/intervals first
+  stopNotificationPolling();
+
   // Try SSE first
   if (typeof EventSource !== 'undefined') {
     notificationEventSource = new EventSource(`${API_BASE}/notifications/stream`);
@@ -314,3 +317,6 @@ function handleDropdownNotificationClick(id, link, linkType) {
     handleNotificationAction(id, link, linkType);
   }
 }
+
+// Cleanup on page unload to prevent memory leaks
+window.addEventListener('beforeunload', stopNotificationPolling);

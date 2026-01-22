@@ -90,6 +90,7 @@ function showDiffView(filePath) {
 
 function closeDiffView() {
   currentDiffFile = null;
+  stopFileWatcher(); // Prevent memory leak from polling interval
 
   const diffViewer = document.getElementById('diffViewer');
   if (diffViewer) diffViewer.style.display = 'none';

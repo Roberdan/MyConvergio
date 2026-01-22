@@ -33,11 +33,6 @@ function handleSSE(req, res) {
   sseClients.add(res);
   console.log(`Notification SSE client connected (total: ${sseClients.size})`);
 
-  req.on('close', () => {
-    sseClients.delete(res);
-    console.log(`Notification SSE client disconnected (remaining: ${sseClients.size})`);
-  });
-
   // Keep-alive ping every 30s
   const pingInterval = setInterval(() => {
     try {
@@ -48,7 +43,12 @@ function handleSSE(req, res) {
     }
   }, 30000);
 
-  req.on('close', () => clearInterval(pingInterval));
+  // Single cleanup handler for all resources
+  req.on('close', () => {
+    clearInterval(pingInterval);
+    sseClients.delete(res);
+    console.log(`Notification SSE client disconnected (remaining: ${sseClients.size})`);
+  });
 }
 
 const routes = {

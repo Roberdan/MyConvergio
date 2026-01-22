@@ -143,7 +143,7 @@ if [ -n "$PLAN_ID" ]; then
 fi
 
 echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}${CYAN}║${NC}          ${BOLD}${WHITE}🎯 MirrorBuddy - Dashboard Piani${NC}          ${BOLD}${CYAN}║${NC}"
+echo -e "${BOLD}${CYAN}║${NC}          ${BOLD}${WHITE}🎯 Convergio.io - Dashboard Piani${NC}          ${BOLD}${CYAN}║${NC}"
 echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -165,7 +165,7 @@ echo ""
 
 # Piani attivi
 echo -e "${BOLD}${WHITE}🚀 Piani Attivi${NC}"
-sqlite3 "$DB" "SELECT id, name, status, updated_at, started_at, created_at FROM plans WHERE status IN ('doing', 'in_progress') ORDER BY id" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated; do
+sqlite3 "$DB" "SELECT id, name, status, updated_at, started_at, created_at, project_id FROM plans WHERE status IN ('doing', 'in_progress') ORDER BY id" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated pproject; do
   # Wave stats
   wave_stats=$(sqlite3 "$DB" "SELECT COUNT(*), SUM(CASE WHEN status='done' THEN 1 ELSE 0 END), SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END) FROM waves WHERE plan_id = $pid")
 
@@ -184,8 +184,7 @@ sqlite3 "$DB" "SELECT id, name, status, updated_at, started_at, created_at FROM 
   elapsed_time=$(format_elapsed $elapsed_seconds)
 
   # Token usage (usa project_id perché plan_id è sempre NULL nel DB)
-  project_id=$(sqlite3 "$DB" "SELECT project_id FROM plans WHERE id = $pid")
-  total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$project_id'")
+  total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
   tokens_formatted=$(format_tokens $total_tokens)
 
   # Task stats
@@ -241,7 +240,11 @@ sqlite3 "$DB" "SELECT id, name, status, updated_at, started_at, created_at FROM 
     short_name="${short_name}..."
   fi
 
-  echo -e "${GRAY}├─${NC} ${YELLOW}[#$pid]${NC} ${WHITE}$short_name${NC} $([ -n "$time_info" ] && echo -e "${GRAY}(${time_info}${GRAY})${NC}")"
+  # Project display
+  project_display=""
+  [ -n "$pproject" ] && project_display="${BLUE}[$pproject]${NC} "
+
+  echo -e "${GRAY}├─${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC} $([ -n "$time_info" ] && echo -e "${GRAY}(${time_info}${GRAY})${NC}")"
   echo -e "${GRAY}│  ├─${NC} Progress: $bar ${WHITE}${task_progress}%${NC} ${GRAY}(${task_done}/${task_total} tasks)${NC}"
   echo -e "${GRAY}│  ├─${NC} Waves: ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC} complete ${GRAY}(${wave_progress}%)${NC}"
   echo -e "${GRAY}│  └─${NC} Runtime: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
@@ -265,19 +268,21 @@ done
 
 # Task in corso
 echo -e "${BOLD}${WHITE}⚡ Task in Esecuzione${NC}"
-current_tasks=$(sqlite3 "$DB" "SELECT t.task_id, t.title, p.id, t.priority FROM tasks t JOIN waves w ON t.wave_id_fk = w.id JOIN plans p ON w.plan_id = p.id WHERE t.status = 'in_progress' ORDER BY t.priority DESC, p.id" 2>/dev/null)
+current_tasks=$(sqlite3 "$DB" "SELECT t.task_id, t.title, p.id, t.priority, p.project_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id JOIN plans p ON w.plan_id = p.id WHERE t.status = 'in_progress' ORDER BY t.priority DESC, p.id" 2>/dev/null)
 
 if [ -z "$current_tasks" ]; then
   echo -e "${GRAY}└─${NC} Nessun task in esecuzione"
 else
-  echo "$current_tasks" | while IFS='|' read -r task_id title plan_id priority; do
-    short_title=$(echo "$title" | cut -c1-50)
-    if [ ${#title} -gt 50 ]; then
+  echo "$current_tasks" | while IFS='|' read -r task_id title plan_id priority task_project; do
+    short_title=$(echo "$title" | cut -c1-45)
+    if [ ${#title} -gt 45 ]; then
       short_title="${short_title}..."
     fi
     prio_color="${GRAY}"
     [ "$priority" = "P1" ] && prio_color="${RED}"
-    echo -e "${GRAY}├─${NC} ${CYAN}$task_id${NC} ${WHITE}$short_title${NC} ${GRAY}[Piano #$plan_id]${NC} ${prio_color}[$priority]${NC}"
+    task_project_display=""
+    [ -n "$task_project" ] && task_project_display="${BLUE}[$task_project]${NC} "
+    echo -e "${GRAY}├─${NC} ${CYAN}$task_id${NC} ${WHITE}$short_title${NC} ${task_project_display}${GRAY}[#$plan_id]${NC} ${prio_color}[$priority]${NC}"
   done
   echo -e "${GRAY}└─${NC}"
 fi
@@ -289,10 +294,12 @@ if [ "$SHOW_BLOCKED" -eq 1 ]; then
   blocked_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='blocked'" 2>/dev/null)
   if [ "$blocked_count" -gt 0 ]; then
     echo -e "${BOLD}${RED}✗ Task Bloccati ($blocked_count)${NC}"
-    sqlite3 "$DB" "SELECT t.task_id, t.title, p.id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id JOIN plans p ON w.plan_id = p.id WHERE t.status = 'blocked' ORDER BY p.id" 2>/dev/null | while IFS='|' read -r task_id title plan_id; do
-      short_title=$(echo "$title" | cut -c1-50)
-      [ ${#title} -gt 50 ] && short_title="${short_title}..."
-      echo -e "${GRAY}├─${NC} ${RED}$task_id${NC} ${WHITE}$short_title${NC} ${GRAY}[Piano #$plan_id]${NC}"
+    sqlite3 "$DB" "SELECT t.task_id, t.title, p.id, p.project_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id JOIN plans p ON w.plan_id = p.id WHERE t.status = 'blocked' ORDER BY p.id" 2>/dev/null | while IFS='|' read -r task_id title plan_id blocked_project; do
+      short_title=$(echo "$title" | cut -c1-45)
+      [ ${#title} -gt 45 ] && short_title="${short_title}..."
+      blocked_project_display=""
+      [ -n "$blocked_project" ] && blocked_project_display="${BLUE}[$blocked_project]${NC} "
+      echo -e "${GRAY}├─${NC} ${RED}$task_id${NC} ${WHITE}$short_title${NC} ${blocked_project_display}${GRAY}[#$plan_id]${NC}"
     done
     echo -e "${GRAY}└─${NC}"
     echo ""
@@ -305,7 +312,7 @@ if [ "$EXPAND_COMPLETED" -eq 0 ]; then
   echo -e "${GRAY}│  ${NC}${GRAY}Usa ${WHITE}piani -e${GRAY} per vedere dettagli task${NC}"
 fi
 
-sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at FROM plans WHERE status = 'done' ORDER BY COALESCE(completed_at, updated_at, created_at) DESC LIMIT 3" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created; do
+sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id FROM plans WHERE status = 'done' ORDER BY COALESCE(completed_at, updated_at, created_at) DESC LIMIT 3" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project; do
   # Use completed_at or updated_at for display
   display_date="${completed:-${updated:-$created}}"
   date=$(echo "$display_date" | cut -d' ' -f1)
@@ -329,8 +336,7 @@ sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, complete
   elapsed_time=$(format_elapsed $elapsed_seconds)
 
   # Token usage (usa project_id perché plan_id è sempre NULL nel DB)
-  plan_project_id=$(sqlite3 "$DB" "SELECT project_id FROM plans WHERE id = $plan_id")
-  total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$plan_project_id'")
+  total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$done_project'")
   tokens_formatted=$(format_tokens $total_tokens)
 
   # Thor validation status
@@ -343,13 +349,17 @@ sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, complete
   # Count completed tasks
   task_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
 
+  # Project display for completed plans
+  done_project_display=""
+  [ -n "$done_project" ] && done_project_display="${BLUE}[$done_project]${NC} "
+
   # Compact view: single line with count
   if [ "$EXPAND_COMPLETED" -eq 0 ]; then
-    echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
+    echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${done_project_display}${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
     echo -e "${GRAY}│  └─${NC} ${GRAY}${task_count} task │${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
   else
     # Expanded view: with task list
-    echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
+    echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${done_project_display}${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
     echo -e "${GRAY}│  ├─${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
 
     if [ "$task_count" -gt 0 ]; then
@@ -378,18 +388,18 @@ echo ""
 
 # Piani completati nelle ultime 24 ore
 echo -e "${BOLD}${WHITE}🎉 Completati ultime 24h${NC}"
-completed_24h=$(sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC")
+completed_24h=$(sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC")
 
 if [ -z "$completed_24h" ]; then
   echo -e "${GRAY}└─${NC} Nessun piano completato nelle ultime 24 ore"
 else
-  echo "$completed_24h" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created; do
+  echo "$completed_24h" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created h24_project; do
     # Use completed_at or updated_at for display
     display_date="${completed:-${updated:-$created}}"
     date=$(echo "$display_date" | cut -d' ' -f1)
     time=$(echo "$display_date" | cut -d' ' -f2 | cut -d':' -f1-2)
-    short_name=$(echo "$name" | cut -c1-50)
-    if [ ${#name} -gt 50 ]; then
+    short_name=$(echo "$name" | cut -c1-45)
+    if [ ${#name} -gt 45 ]; then
       short_name="${short_name}..."
     fi
 
@@ -408,8 +418,7 @@ else
     elapsed_time=$(format_elapsed $elapsed_seconds)
 
     # Token usage (usa project_id perché plan_id è sempre NULL nel DB)
-    plan24h_project_id=$(sqlite3 "$DB" "SELECT project_id FROM plans WHERE id = $plan_id")
-    total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$plan24h_project_id'")
+    total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$h24_project'")
     tokens_formatted=$(format_tokens $total_tokens)
 
     # Thor validation status
@@ -422,7 +431,11 @@ else
     # Count completed tasks
     task_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
 
-    echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${WHITE}$short_name${NC} ${GRAY}($time)${NC} $thor_status"
+    # Project display for 24h completed
+    h24_project_display=""
+    [ -n "$h24_project" ] && h24_project_display="${BLUE}[$h24_project]${NC} "
+
+    echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${h24_project_display}${WHITE}$short_name${NC} ${GRAY}($time)${NC} $thor_status"
     echo -e "${GRAY}│  └─${NC} ${GRAY}${task_count} task │${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
   done
   echo -e "${GRAY}└─${NC}"

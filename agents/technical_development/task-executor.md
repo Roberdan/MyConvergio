@@ -40,10 +40,15 @@ test_criteria: [tests to write BEFORE implementation]
 
 ### Phase 1: Initialize
 ```bash
+# Load task with test_criteria from DB
 TASK=$(sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT id, task_id, title, status FROM tasks WHERE id={db_task_id};")
+  "SELECT id, task_id, title, status, test_criteria FROM tasks WHERE id={db_task_id};")
 # Verify status = pending
+# Parse test_criteria (JSON format)
+TEST_CRITERIA=$(echo "$TASK" | cut -d'|' -f5)
 ```
+
+**If test_criteria is NULL**: Check plan markdown for test specs, or BLOCK task (TDD required).
 
 ### Phase 2: Mark Started
 ```bash

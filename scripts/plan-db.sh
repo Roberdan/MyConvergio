@@ -37,7 +37,7 @@ case "${1:-help}" in
     create)      cmd_create "${2:?project_id required}" "${3:?name required}" ;;
     start)       cmd_start "${2:?plan_id required}" ;;
     add-wave)    cmd_add_wave "${2:?plan_id required}" "${3:?wave_id required}" "${4:?name required}" "${@:5}" ;;
-    add-task)    cmd_add_task "${2:?wave_id required}" "${3:?task_id required}" "${4:?title required}" "${5:-P1}" "${6:-feature}" "${7:-}" ;;
+    add-task)    cmd_add_task "${2:?wave_id required}" "${3:?task_id required}" "${4:?title required}" "${@:5}" ;;
     update-task) cmd_update_task "${2:?task_id required}" "${3:?status required}" "${@:4}" ;;
     update-wave) cmd_update_wave "${2:?wave_id required}" "${3:?status required}" ;;
     complete)    cmd_complete "${2:?plan_id required}" ;;
@@ -58,7 +58,7 @@ case "${1:-help}" in
         echo "  create <project_id> <name>     Create plan"
         echo "  start <plan_id>                Start execution"
         echo "  add-wave <plan_id> <id> <name> [--depends-on id] [--estimated-hours N]"
-        echo "  add-task <wave_id> <id> <title> [P0-P3] [feature|bug|chore]"
+        echo "  add-task <wave_id> <id> <title> [P0-P3] [type] [--test-criteria 'json']"
         echo "  update-task <task_id> <status> [notes] [--tokens N]"
         echo "  update-wave <wave_id> <status>"
         echo "  complete <plan_id>             Mark done"

@@ -111,13 +111,25 @@ cmd_add_wave() {
 }
 
 # Add task to wave
+# Usage: add-task <wave_id> <task_id> <title> [P0-P3] [feature|bug|chore] [--test-criteria 'json']
 cmd_add_task() {
     local db_wave_id="$1"
     local task_id="$2"
     local title="$3"
-    local priority="${4:-P1}"
-    local type="${5:-feature}"
-    local assignee="${6:-}"
+    shift 3
+
+    local priority="P1" type="feature" assignee="" test_criteria=""
+
+    set +u
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --test-criteria) [[ -z "${2}" ]] && { log_error "Missing --test-criteria value"; set -u; exit 1; }; test_criteria="$2"; shift 2 ;;
+            P0|P1|P2|P3) priority="$1"; shift ;;
+            bug|feature|chore|doc|test) type="$1"; shift ;;
+            *) [[ -z "$assignee" ]] && assignee="$1"; shift ;;
+        esac
+    done
+    set -u
 
     local wave_info=$(sqlite3 "$DB_FILE" "SELECT project_id, wave_id, plan_id FROM waves WHERE id = $db_wave_id;")
     local project_id=$(echo "$wave_info" | cut -d'|' -f1)
@@ -129,13 +141,16 @@ cmd_add_task() {
     local safe_priority="$(sql_escape "$priority")"
     local safe_type="$(sql_escape "$type")"
     local safe_assignee="$(sql_escape "$assignee")"
+    local safe_test_criteria="$(sql_escape "$test_criteria")"
+
+    local tc_val="NULL"
+    [[ -n "$test_criteria" ]] && tc_val="'$safe_test_criteria'"
 
     sqlite3 "$DB_FILE" "
-        INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, status, priority, type, assignee)
-        VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', 'pending', '$safe_priority', '$safe_type', '$safe_assignee');
+        INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, status, priority, type, assignee, test_criteria)
+        VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', 'pending', '$safe_priority', '$safe_type', '$safe_assignee', $tc_val);
     "
     sqlite3 "$DB_FILE" "UPDATE waves SET tasks_total = tasks_total + 1 WHERE id = $db_wave_id;"
-
     sqlite3 "$DB_FILE" "UPDATE plans SET tasks_total = tasks_total + 1 WHERE id = $plan_id;"
 
     local db_task_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE plan_id=$plan_id AND wave_id_fk=$db_wave_id AND task_id='$safe_task_id' ORDER BY id DESC LIMIT 1;")

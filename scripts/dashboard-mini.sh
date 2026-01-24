@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]]; do
       echo "Comportamento default:"
       echo "  - Auto-refresh ogni 5 minuti (300 secondi)"
       echo "  - Task completati compressi (solo conteggio)"
-      echo "  - Premi CTRL+C per uscire dalla modalità refresh"
+      echo "  - Premi R per refresh immediato, CTRL+C per uscire"
       echo ""
       echo "Esempi:"
       echo "  piani                 # Dashboard compatta con auto-refresh"
@@ -451,7 +451,7 @@ if [ "$REFRESH_INTERVAL" -gt 0 ]; then
   # Trap CTRL+C for clean exit
   trap 'echo -e "\n${YELLOW}Dashboard terminata.${NC}"; exit 0' INT
 
-  echo -e "${CYAN}Auto-refresh attivo ogni ${REFRESH_INTERVAL}s. Premi CTRL+C per uscire.${NC}"
+  echo -e "${CYAN}Auto-refresh attivo ogni ${REFRESH_INTERVAL}s. Premi ${WHITE}R${CYAN} per refresh immediato, ${WHITE}CTRL+C${CYAN} per uscire.${NC}"
   sleep 2
 
   while true; do
@@ -462,12 +462,16 @@ if [ "$REFRESH_INTERVAL" -gt 0 ]; then
     now=$(date "+%H:%M:%S")
     echo -e "${GRAY}Ultimo aggiornamento: ${WHITE}$now${NC} ${GRAY}│ Prossimo refresh tra ${REFRESH_INTERVAL}s${NC}"
 
-    # Countdown con aggiornamento ogni secondo
+    # Countdown con aggiornamento ogni secondo, intercetta tasti per refresh immediato
     for ((i=REFRESH_INTERVAL; i>0; i--)); do
-      printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(CTRL+C per uscire)${NC}" "$i"
-      sleep 1
+      printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, CTRL+C=esci)${NC}" "$i"
+      # read -t 1: attende 1 secondo, cattura input se presente
+      if read -t 1 -n 1 key 2>/dev/null; then
+        # Qualsiasi tasto = refresh immediato
+        printf "\r${CYAN}Refresh forzato...%50s${NC}\r" " "
+        break
+      fi
     done
-    printf "\r${GRAY}%70s${NC}\r" " "  # Clear countdown line
   done
 else
   # Single render mode

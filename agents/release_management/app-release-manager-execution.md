@@ -1,7 +1,7 @@
 ---
 name: app-release-manager-execution
-description: Execution phases (3-5) for app-release-manager. Reference module.
-version: "3.0.0"
+description: Execution phases (3-5) for app-release-manager. Reference module. Updated for i18n, SEO, and maestri validation.
+version: "3.1.0"
 ---
 
 # Release Manager Execution Phases
@@ -70,6 +70,14 @@ version: "3.0.0"
 | Hygiene | PASS/FAIL | ... |
 | Versions | PASS/FAIL | ... |
 | AI Models | PASS/FAIL | ... |
+
+### Wave 2 Extended Results (i18n & SEO Apps)
+| Check | Status | Issues |
+|-------|--------|--------|
+| i18n Completeness | PASS/FAIL | ... |
+| Locale Loading | PASS/FAIL | ... |
+| New Maestri | PASS/FAIL | ... |
+| SEO Multilingual | PASS/FAIL | ... |
 
 ### Auto-Fixes Applied
 - Fixed: ...
@@ -163,4 +171,5 @@ Message 2: Task B → wait
 
 ## Changelog
 
+- **3.1.0** (2026-01-25): Updated report format for i18n, maestri, and SEO validation results
 - **3.0.0** (2026-01-10): Extracted from app-release-manager.md for modularity

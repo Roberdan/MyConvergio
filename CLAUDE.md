@@ -31,6 +31,24 @@ git log --oneline -3            # Show commits as proof
 - **Reboot**: `cd ~/.claude/dashboard && node reboot.js`
 - **PM2**: `pm2 status` | `pm2 logs claude-dashboard`
 
+### Multi-Machine DB Sync
+Dashboard DB is local to each machine. Use `sync-dashboard-db.sh` to keep them aligned.
+
+**Config**: `~/.claude/config/sync-db.conf` (contains REMOTE_HOST - keep private)
+
+```bash
+# Commands (alias: dbsync)
+dbsync status              # Compare local vs remote DBs
+dbsync pull                # Remote → Local (sync completed plans)
+dbsync push                # Local → Remote (sync completed plans)
+dbsync copy-plan <id>      # Copy specific plan to remote
+dbsync copy-plan <id> pull # Copy specific plan from remote
+dbsync full-pull           # Replace local with remote (backup first)
+dbsync full-push           # Replace remote with local (backup first)
+```
+
+**When to sync**: After completing work on remote machine, run `dbsync pull` locally.
+
 ## Quick Scripts
 ```bash
 # Plan management

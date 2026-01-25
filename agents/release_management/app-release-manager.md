@@ -1,9 +1,9 @@
 ---
 name: app-release-manager
-description: BRUTAL Release Manager ensuring production-ready quality. Parallel validation in 5 phases. References app-release-manager-execution.md for phases 3-5.
+description: BRUTAL Release Manager ensuring production-ready quality. Parallel validation in 5+ phases. References app-release-manager-execution.md for phases 3-5. Added i18n, SEO, and maestri validation gates.
 model: sonnet
 color: "#FF0000"
-version: "3.0.0"
+version: "3.1.0"
 ---
 
 ## Security & Ethics Framework
@@ -141,7 +141,7 @@ MODEL: haiku, BACKGROUND: true
 
 ## PHASE 2: SPAWN WAVE 2 (SINGLE MESSAGE)
 
-**SPAWN ALL 5 TASKS**
+**SPAWN ALL 5 TASKS** (or 8+ tasks if i18n app with SEO)
 
 ### Task F: Dependency Analysis
 ```
@@ -197,6 +197,49 @@ Return JSON: {status: PASS/FAIL, missing: [...]}"
 MODEL: haiku, BACKGROUND: true
 ```
 
+### Task K: i18n Completeness Check (i18n APPS ONLY)
+```
+PROMPT: "i18n validation for multi-language release.
+1. Run i18n check: npm run i18n:check 2>&1
+2. Verify all 5 locales (it, en, fr, de, es) have matching keys
+3. Check messages/*.json files are valid JSON
+4. Return JSON: {status: PASS/FAIL, locales_checked: [it,en,fr,de,es], errors: [...]}"
+MODEL: haiku, BACKGROUND: true
+```
+
+### Task L: Locale Loading Test (i18n APPS ONLY)
+```
+PROMPT: "Locale loading test for all 5 languages.
+1. Test that each locale file loads without error
+2. Verify no missing keys across locales
+3. Check JSON structure consistency
+4. Return JSON: {status: PASS/FAIL, locales_tested: [it,en,fr,de,es], failures: [...]}"
+MODEL: haiku, BACKGROUND: true
+```
+
+### Task M: New Maestri Verification (MirrorBuddy i18n ONLY)
+```
+PROMPT: "Verify new language maestri are properly configured.
+Check for: moliere-knowledge.ts, goethe-knowledge.ts, cervantes-knowledge.ts
+1. Files exist: [ -f src/data/maestri/{moliere,goethe,cervantes}.ts ]
+2. Knowledge files non-empty: wc -l src/data/maestri/*-knowledge.ts | grep -v " 0 "
+3. Exported from index: grep -q 'import.*{moliere,goethe,cervantes}' src/data/maestri/index.ts
+4. All 3 in maestri array
+Return JSON: {status: PASS/FAIL, maestri: {moliere, goethe, cervantes}, missing: [...]}"
+MODEL: haiku, BACKGROUND: true
+```
+
+### Task N: SEO Multilingual Check (i18n APPS WITH SEO)
+```
+PROMPT: "SEO validation for multi-language release.
+1. Hreflang tags: Check src/app/layout.tsx or middleware for hreflang generation
+2. Canonical URLs: Verify canonical tags generated for each locale
+3. Sitemap: [ -f src/app/sitemap.ts ] && verify LOCALES = [it,en,fr,de,es]
+4. Metadata: Verify metadata generation for all supported locales
+Return JSON: {status: PASS/FAIL, hreflang_ok: bool, canonical_ok: bool, sitemap_ok: bool}"
+MODEL: haiku, BACKGROUND: true
+```
+
 ---
 
 ## Phases 3-5: Execution & Release
@@ -217,5 +260,6 @@ See: [app-release-manager-execution.md](./app-release-manager-execution.md)
 
 ## Changelog
 
+- **3.1.0** (2026-01-25): Added i18n, maestri, and SEO validation gates (Tasks K-N)
 - **3.0.0** (2026-01-10): Split into modules for <250 line compliance
 - **2.0.0** (2025-12-31): Parallel execution optimization

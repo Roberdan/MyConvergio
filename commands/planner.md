@@ -6,6 +6,7 @@ Plan and execute with parallel Claude instances (default: 3, max: unlimited with
 ```
 Project: `basename "$(pwd)"`
 Branch: `git branch --show-current 2>/dev/null || echo "not a git repo"`
+Worktree: `git rev-parse --show-toplevel 2>/dev/null || pwd`
 Git status: `git status --short 2>/dev/null | head -5 || echo "n/a"`
 Active plans: `sqlite3 ~/.claude/data/dashboard.db "SELECT id, name, status FROM plans WHERE status IN ('todo','doing') LIMIT 3;" 2>/dev/null || echo "none"`
 ```
@@ -16,6 +17,7 @@ Active plans: `sqlite3 ~/.claude/data/dashboard.db "SELECT id, name, status FROM
 2. **F-xx Requirements**: Extract ALL user requirements as F-xx. Nothing done until ALL F-xx verified [x]
 3. **User Approval Gate**: BLOCK execution until explicit "si"/"yes"/"procedi"
 4. **Thor Enforcement**: Wave done = Thor passed + build passed
+5. **Worktree Isolation**: ALWAYS work in the correct worktree. EVERY task prompt MUST include worktree path
 
 ## Parallelization Mode (USER CHOICE)
 
@@ -85,6 +87,10 @@ Quale modalità preferisci?
 
 ### 1. Setup
 ```bash
+# CRITICAL: Verify worktree FIRST
+WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+~/.claude/scripts/worktree-check.sh "$WORKTREE_PATH"
+
 ~/.claude/scripts/register-project.sh "$(pwd)" --name "Project"
 ~/.claude/scripts/plan-db.sh create {project_id} "{PlanName}"
 ```
@@ -93,6 +99,7 @@ Quale modalità preferisci?
 ```markdown
 # Piano: {Name}
 **Project**: {id} | **Status**: draft
+**Worktree**: {absolute_worktree_path}
 
 ## USER REQUEST (verbatim)
 > [exact words]
@@ -122,50 +129,11 @@ Present F-xx list → User says "si"/"yes" → Proceed
 
 ### 4.5. Parallelization Mode Selection (MANDATORY)
 
-**AFTER plan approval, BEFORE execution starts**, ask user:
+**AFTER plan approval, BEFORE execution**: Ask via AskUserQuestion (Standard vs Max Parallel).
+- **Standard**: `MAX_CONCURRENT=3`, Sonnet coordination
+- **Max**: `MAX_CONCURRENT=unlimited`, **Opus coordination** (upgrade self)
 
-```typescript
-await AskUserQuestion({
-  questions: [{
-    question: "Quale modalità di esecuzione preferisci?",
-    header: "Parallelization",
-    multiSelect: false,
-    options: [
-      {
-        label: "Standard (3 task paralleli)",
-        description: "Bilanciata. Costi moderati. Sonnet coordination. Velocità normale."
-      },
-      {
-        label: "Massima Parallelizzazione (Recommended)",
-        description: "Veloce. Costi elevati. Opus coordination. Tutti i task indipendenti in parallelo. 3-5x più veloce."
-      }
-    ]
-  }]
-});
-```
-
-**Implementation**:
-- If user selects "Standard": `PARALLEL_MODE=standard`, `MAX_CONCURRENT=3`
-- If user selects "Massima": `PARALLEL_MODE=max`, `MAX_CONCURRENT=unlimited`, **upgrade self to Opus**
-
-Store mode (choose one method):
-
-**Option A: Environment variable (simple)**:
-```bash
-export PLAN_${PLAN_ID}_PARALLEL_MODE="$PARALLEL_MODE"
-export PLAN_${PLAN_ID}_MAX_CONCURRENT="$MAX_CONCURRENT"
-```
-
-**Option B: File-based (persistent)**:
-```bash
-echo "$PARALLEL_MODE" > ~/.claude/data/plan-${PLAN_ID}-mode.txt
-```
-
-**Option C: Database (recommended)**:
-```bash
-sqlite3 ~/.claude/data/dashboard.db \
-  "UPDATE plans SET parallel_mode='$PARALLEL_MODE' WHERE id=$PLAN_ID;"
-```
+Store mode: `sqlite3 ~/.claude/data/dashboard.db "UPDATE plans SET parallel_mode='$MODE' WHERE id=$PLAN_ID;"`
 
 ### 5. Start Execution (AUTO → IN FLIGHT)
 ```bash
@@ -179,79 +147,21 @@ Plan status: `todo` → `doing` (visible in Mission Pipeline as IN FLIGHT)
 
 **Use `/execute {plan_id}`** for automated execution of all tasks.
 
-#### Standard Mode Execution
-```typescript
-// Load pending tasks
-const tasks = loadPendingTasks(plan_id);
+**Execution Logic** (pseudocode):
+- **Standard**: Batch tasks in groups of 3, run parallel, Thor after wave
+- **Max Parallel**: Launch ALL independent tasks at once (Opus coordinator), Thor after wave
 
-// Execute in batches of 3
-for (let i = 0; i < tasks.length; i += 3) {
-  const batch = tasks.slice(i, i + 3);
-
-  // Launch up to 3 task-executors in parallel
-  await Promise.all(batch.map(task =>
-    Task({
-      subagent_type: "task-executor",
-      model: task.priority === 'P0' ? 'sonnet' : 'haiku',
-      prompt: `...`
-    })
-  ));
-
-  // Check if wave completed after batch
-  if (waveCompleted) runThorValidation();
-}
-```
-
-#### Max Parallel Mode Execution (Opus Coordinator)
-```typescript
-// CRITICAL: Coordinator MUST be Opus for this mode
-// Upgrade model if not already Opus
-
-// Load ALL pending tasks
-const tasks = loadPendingTasks(plan_id);
-
-// Group by wave
-const waves = groupTasksByWave(tasks);
-
-for (const wave of waves) {
-  // Launch ALL independent tasks in wave simultaneously
-  const independentTasks = wave.tasks.filter(t => !hasDependencies(t));
-
-  console.log(`Launching ${independentTasks.length} tasks in parallel...`);
-
-  // NO LIMIT - all tasks run concurrently
-  await Promise.all(independentTasks.map(task =>
-    Task({
-      subagent_type: "task-executor",
-      model: task.priority === 'P0' ? 'sonnet' : 'haiku',
-      description: `Execute ${task.task_id}`,
-      prompt: `...`
-    })
-  ));
-
-  // Execute dependent tasks sequentially
-  const dependentTasks = wave.tasks.filter(t => hasDependencies(t));
-  for (const task of dependentTasks) {
-    await Task({ subagent_type: "task-executor", ... });
-  }
-
-  // Thor validation after wave
-  await runThorValidation(plan_id);
-}
-```
-
-**Token/Cost Comparison**:
-- Standard: ~30K tokens/task × 3 parallel = ~90K tokens/batch
-- Max Parallel: ~30K tokens/task × N parallel = ~30K×N tokens/wave
-- **Opus coordination overhead**: +50K tokens vs Sonnet
-- **Time saved**: 3-5x faster (worth the cost for urgent work)
+**Token/Cost**: Standard ~90K/batch | Max Parallel ~30K×N/wave (+50K Opus overhead)
 
 Manual fallback (single task):
 ```typescript
 await Task({
   subagent_type: "task-executor",
   prompt: `Project: {id} | Plan: {plan_id} | Task: T1-01 (db_id: {id})
-  F-xx: [acceptance criteria]`
+  **WORKTREE**: {absolute_worktree_path}
+  F-xx: [acceptance criteria]
+
+  CRITICAL: Work ONLY in the specified worktree. Run 'cd {worktree_path}' before ANY file operation.`
 });
 ```
 

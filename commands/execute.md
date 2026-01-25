@@ -6,6 +6,7 @@ Automated execution of plan tasks via task-executor subagent.
 ```
 Project: `basename "$(pwd)"`
 Branch: `git branch --show-current 2>/dev/null || echo "not a git repo"`
+Worktree: `git rev-parse --show-toplevel 2>/dev/null || pwd`
 Uncommitted: `git status --short 2>/dev/null | wc -l | tr -d ' '` files
 Active plans: `sqlite3 ~/.claude/data/dashboard.db "SELECT id, name, status, tasks_done||'/'||tasks_total as progress FROM plans WHERE status IN ('todo','doing') ORDER BY updated_at DESC LIMIT 3;" 2>/dev/null || echo "none"`
 ```
@@ -19,12 +20,17 @@ When message contains `/execute {plan_id}` or `/execute` (uses current plan).
 2. **NEVER skip start** - Plan must be IN FLIGHT before execution
 3. **NEVER skip tasks** - Execute ALL pending tasks in order
 4. **NEVER skip Thor** - Validate after each wave completion
+5. **WORKTREE ISOLATION** - Verify worktree BEFORE execution, pass to EVERY task-executor
 
 ## Workflow
 
 ### Phase 1: Initialize
 
 ```bash
+# CRITICAL: Verify and capture worktree FIRST
+WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+~/.claude/scripts/worktree-check.sh "$WORKTREE_PATH"
+
 # Get plan_id from argument or current context
 PLAN_ID={plan_id}
 
@@ -36,7 +42,7 @@ sqlite3 ~/.claude/data/dashboard.db \
 plan-db.sh start $PLAN_ID
 ```
 
-Output: "Piano {name} (ID: {plan_id}) - IN FLIGHT"
+Output: "Piano {name} (ID: {plan_id}) - IN FLIGHT - Worktree: {WORKTREE_PATH}"
 
 ### Phase 2: Load Tasks
 
@@ -74,17 +80,25 @@ Project: ${project_id}
 Plan ID: ${plan_id}
 Wave: ${task.wave_id} (db_id: ${task.wave_db_id})
 Task: ${task.task_id} (db_id: ${task.db_id})
+**WORKTREE**: ${WORKTREE_PATH}
 
 Title: ${task.title}
 Priority: ${task.priority}
 
 Requirements:
-1. Mark as in_progress via plan-db.sh
-2. Execute the work per task title
-3. Test and verify against F-xx criteria
-4. Track tokens via POST /api/tokens
-5. Mark as done with summary via plan-db.sh
-6. Report completion
+1. **VERIFY WORKTREE FIRST**: Run 'cd ${WORKTREE_PATH}' before ANY operation
+2. Mark as in_progress via plan-db.sh
+3. Execute the work per task title (ALL files relative to WORKTREE)
+4. Test and verify against F-xx criteria
+5. Track tokens via POST /api/tokens
+6. Mark as done with summary via plan-db.sh
+7. Report completion
+
+CRITICAL WORKTREE RULES:
+- NEVER operate outside ${WORKTREE_PATH}
+- ALL file paths must be relative to worktree or absolute within it
+- Run 'pwd' and verify before git operations
+- If pwd != WORKTREE, cd to it FIRST
 
 CRITICAL: You are a FRESH session. Do NOT reference previous tasks or files from parent context. Read what you need for THIS task only.
 `
@@ -178,47 +192,12 @@ Choose [1/2/3]:
 
 ## Output Format
 
-During execution, show progress:
-
-```
-=== EXECUTING PLAN: {name} (ID: {plan_id}) ===
-
-[1/8] T1-01: Setup project structure
-      Status: DONE (2,345 tokens)
-
-[2/8] T1-02: Implement data models
-      Status: DONE (5,678 tokens)
-
-[3/8] T1-03: Create API endpoints
-      Status: IN PROGRESS...
-
---- Wave W1 Complete ---
-Thor: PASS | Build: PASS
-
-[4/8] T2-01: Frontend components
-      Status: PENDING
-
-...
-```
+Progress: `[N/total] task_id: title → Status: DONE/IN PROGRESS (tokens)`
+Wave complete: `--- Wave WX Complete --- Thor: PASS | Build: PASS`
 
 ## Completion Report
 
-```
-=== PLAN EXECUTION COMPLETE ===
-
-Plan: {name} (ID: {plan_id})
-Status: DONE
-
-Tasks: {done}/{total} completed
-Waves: {waves_done}/{waves_total} validated
-Tokens: {total_tokens} used
-Time: {duration}
-
-Thor Validation: PASS
-Build Status: PASS
-
-Awaiting user approval to close plan.
-```
+`=== PLAN COMPLETE === Tasks: done/total | Tokens: N | Thor: PASS | Awaiting user approval`
 
 ## Quick Reference
 

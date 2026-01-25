@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]]; do
       echo "Comportamento default:"
       echo "  - Auto-refresh ogni 5 minuti (300 secondi)"
       echo "  - Task completati compressi (solo conteggio)"
-      echo "  - Premi R per refresh immediato, CTRL+C per uscire"
+      echo "  - Premi R per refresh immediato, Q per uscire"
       echo ""
       echo "Esempi:"
       echo "  piani                 # Dashboard compatta con auto-refresh"
@@ -244,7 +244,25 @@ sqlite3 "$DB" "SELECT id, name, status, updated_at, started_at, created_at, proj
   project_display=""
   [ -n "$pproject" ] && project_display="${BLUE}[$pproject]${NC} "
 
+  # Git branch/worktree detection
+  branch_display=""
+  if [ -n "$pproject" ]; then
+    project_dir="$HOME/GitHub/$pproject"
+    if [ -d "$project_dir/.git" ] || [ -f "$project_dir/.git" ]; then
+      current_branch=$(git -C "$project_dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+      if [ -n "$current_branch" ]; then
+        # Check if it's a worktree
+        if [ -f "$project_dir/.git" ]; then
+          branch_display="${CYAN}⎇ ${current_branch}${NC} ${GRAY}(worktree)${NC}"
+        else
+          branch_display="${CYAN}⎇ ${current_branch}${NC}"
+        fi
+      fi
+    fi
+  fi
+
   echo -e "${GRAY}├─${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC} $([ -n "$time_info" ] && echo -e "${GRAY}(${time_info}${GRAY})${NC}")"
+  [ -n "$branch_display" ] && echo -e "${GRAY}│  ├─${NC} $branch_display"
   echo -e "${GRAY}│  ├─${NC} Progress: $bar ${WHITE}${task_progress}%${NC} ${GRAY}(${task_done}/${task_total} tasks)${NC}"
   echo -e "${GRAY}│  ├─${NC} Waves: ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC} complete ${GRAY}(${wave_progress}%)${NC}"
   echo -e "${GRAY}│  └─${NC} Runtime: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
@@ -265,6 +283,78 @@ sqlite3 "$DB" "SELECT id, name, status, updated_at, started_at, created_at, proj
 
   echo ""
 done
+
+# PR aperte (GitHub)
+echo -e "${BOLD}${WHITE}🔀 Pull Requests Aperte${NC}"
+if command -v gh &> /dev/null; then
+  pr_data=$(gh pr list --state open --json number,title,statusCheckRollup,comments,reviewDecision,isDraft 2>/dev/null)
+
+  if [ -z "$pr_data" ] || [ "$pr_data" = "[]" ]; then
+    echo -e "${GRAY}└─${NC} Nessuna PR aperta"
+  else
+    # Process each PR
+    echo "$pr_data" | jq -c '.[]' 2>/dev/null | while read -r pr; do
+      pr_num=$(echo "$pr" | jq -r '.number')
+      pr_title=$(echo "$pr" | jq -r '.title')
+      pr_draft=$(echo "$pr" | jq -r '.isDraft')
+      pr_comments=$(echo "$pr" | jq -r '.comments | length')
+      pr_review=$(echo "$pr" | jq -r '.reviewDecision // "NONE"')
+
+      # CI details: count pass/fail/pending and get failed names
+      ci_total=$(echo "$pr" | jq -r '.statusCheckRollup | if . then length else 0 end')
+      ci_pass=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == "SUCCESS")] | length else 0 end')
+      ci_fail=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == "FAILURE")] | length else 0 end')
+      ci_pending=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == null or .conclusion == "PENDING")] | length else 0 end')
+      failed_checks=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == "FAILURE") | .name] | join(", ") else "" end')
+
+      # CI status display
+      if [ "$ci_total" -eq 0 ]; then
+        ci_display="${GRAY}no checks${NC}"
+      elif [ "$ci_fail" -gt 0 ]; then
+        ci_display="${RED}✗ ${ci_fail}/${ci_total} failed${NC}"
+      elif [ "$ci_pending" -gt 0 ]; then
+        ci_display="${YELLOW}◯ ${ci_pass}/${ci_total} (${ci_pending} pending)${NC}"
+      else
+        ci_display="${GREEN}✓ ${ci_pass}/${ci_total}${NC}"
+      fi
+
+      # Review status
+      case "$pr_review" in
+        APPROVED) review_icon="${GREEN}approved${NC}" ;;
+        CHANGES_REQUESTED) review_icon="${RED}changes requested${NC}" ;;
+        *) review_icon="" ;;
+      esac
+
+      # Draft indicator
+      draft_label=""
+      [ "$pr_draft" = "true" ] && draft_label="${GRAY}[draft]${NC} "
+
+      # Comment count
+      if [ "$pr_comments" -gt 0 ]; then
+        comment_display="${YELLOW}💬${pr_comments}${NC}"
+      else
+        comment_display=""
+      fi
+
+      # Truncate title
+      short_title=$(echo "$pr_title" | cut -c1-38)
+      [ ${#pr_title} -gt 38 ] && short_title="${short_title}..."
+
+      echo -e "${GRAY}├─${NC} ${CYAN}#$pr_num${NC} ${draft_label}${WHITE}$short_title${NC} $comment_display"
+      echo -e "${GRAY}│  └─${NC} CI: $ci_display $([ -n "$review_icon" ] && echo "│ $review_icon")"
+
+      # Show failed check names if any
+      if [ -n "$failed_checks" ] && [ "$failed_checks" != "" ]; then
+        echo -e "${GRAY}│     ${NC}${RED}▸ $failed_checks${NC}"
+      fi
+    done
+    echo -e "${GRAY}└─${NC}"
+  fi
+else
+  echo -e "${GRAY}└─${NC} ${YELLOW}gh CLI non installato${NC}"
+fi
+
+echo ""
 
 # Task in corso
 echo -e "${BOLD}${WHITE}⚡ Task in Esecuzione${NC}"
@@ -451,27 +541,33 @@ if [ "$REFRESH_INTERVAL" -gt 0 ]; then
   # Trap CTRL+C for clean exit
   trap 'echo -e "\n${YELLOW}Dashboard terminata.${NC}"; exit 0' INT
 
-  echo -e "${CYAN}Auto-refresh attivo ogni ${REFRESH_INTERVAL}s. Premi ${WHITE}R${CYAN} per refresh immediato, ${WHITE}CTRL+C${CYAN} per uscire.${NC}"
-  sleep 2
-
+  # Clear immediately and render (no sleep, no empty space)
+  clear
   while true; do
-    clear
     render_dashboard
 
     # Timestamp e countdown
     now=$(date "+%H:%M:%S")
     echo -e "${GRAY}Ultimo aggiornamento: ${WHITE}$now${NC} ${GRAY}│ Prossimo refresh tra ${REFRESH_INTERVAL}s${NC}"
 
-    # Countdown con aggiornamento ogni secondo, intercetta tasti per refresh immediato
+    # Countdown con aggiornamento ogni secondo, intercetta tasti
     for ((i=REFRESH_INTERVAL; i>0; i--)); do
-      printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, CTRL+C=esci)${NC}" "$i"
-      # read -t 1: attende 1 secondo, cattura input se presente
+      printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci)${NC}    " "$i"
       if read -t 1 -n 1 key 2>/dev/null; then
-        # Qualsiasi tasto = refresh immediato
-        printf "\r${CYAN}Refresh forzato...%50s${NC}\r" " "
-        break
+        case "$key" in
+          q|Q)
+            echo -e "\n${YELLOW}Dashboard terminata.${NC}"
+            exit 0
+            ;;
+          *)
+            # Any other key = immediate refresh
+            printf "\r${CYAN}Refresh forzato...%50s${NC}\r" " "
+            break
+            ;;
+        esac
       fi
     done
+    clear
   done
 else
   # Single render mode

@@ -281,13 +281,26 @@ sqlite3 "$DB" "SELECT id, name, status, updated_at, started_at, created_at, proj
     done
   fi
 
+  # Task in esecuzione per questo piano (inline)
+  plan_tasks=$(sqlite3 "$DB" "SELECT t.task_id, t.title, t.priority FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $pid AND t.status = 'in_progress' ORDER BY t.priority DESC" 2>/dev/null)
+  if [ -n "$plan_tasks" ]; then
+    echo -e "${GRAY}│  ${NC}${YELLOW}⚡ In esecuzione:${NC}"
+    echo "$plan_tasks" | while IFS='|' read -r tid ttitle tprio; do
+      short_ttitle=$(echo "$ttitle" | cut -c1-42)
+      [ ${#ttitle} -gt 42 ] && short_ttitle="${short_ttitle}..."
+      prio_color="${GRAY}"
+      [ "$tprio" = "P1" ] && prio_color="${RED}"
+      echo -e "${GRAY}│  ├─${NC} ${CYAN}$tid${NC} ${WHITE}$short_ttitle${NC} ${prio_color}[$tprio]${NC}"
+    done
+  fi
+
   echo ""
 done
 
 # PR aperte (GitHub)
 echo -e "${BOLD}${WHITE}🔀 Pull Requests Aperte${NC}"
 if command -v gh &> /dev/null; then
-  pr_data=$(gh pr list --state open --json number,title,statusCheckRollup,comments,reviewDecision,isDraft 2>/dev/null)
+  pr_data=$(gh pr list --state open --json number,title,url,statusCheckRollup,comments,reviewDecision,isDraft 2>/dev/null)
 
   if [ -z "$pr_data" ] || [ "$pr_data" = "[]" ]; then
     echo -e "${GRAY}└─${NC} Nessuna PR aperta"
@@ -296,6 +309,7 @@ if command -v gh &> /dev/null; then
     echo "$pr_data" | jq -c '.[]' 2>/dev/null | while read -r pr; do
       pr_num=$(echo "$pr" | jq -r '.number')
       pr_title=$(echo "$pr" | jq -r '.title')
+      pr_url=$(echo "$pr" | jq -r '.url')
       pr_draft=$(echo "$pr" | jq -r '.isDraft')
       pr_comments=$(echo "$pr" | jq -r '.comments | length')
       pr_review=$(echo "$pr" | jq -r '.reviewDecision // "NONE"')
@@ -340,7 +354,9 @@ if command -v gh &> /dev/null; then
       short_title=$(echo "$pr_title" | cut -c1-38)
       [ ${#pr_title} -gt 38 ] && short_title="${short_title}..."
 
-      echo -e "${GRAY}├─${NC} ${CYAN}#$pr_num${NC} ${draft_label}${WHITE}$short_title${NC} $comment_display"
+      # OSC 8 hyperlink: \e]8;;URL\e\\TEXT\e]8;;\e\\
+      pr_link="\e]8;;${pr_url}\e\\#${pr_num}\e]8;;\e\\"
+      echo -e "${GRAY}├─${NC} ${CYAN}${pr_link}${NC} ${draft_label}${WHITE}$short_title${NC} $comment_display"
       echo -e "${GRAY}│  └─${NC} CI: $ci_display $([ -n "$review_icon" ] && echo "│ $review_icon")"
 
       # Show failed check names if any
@@ -352,29 +368,6 @@ if command -v gh &> /dev/null; then
   fi
 else
   echo -e "${GRAY}└─${NC} ${YELLOW}gh CLI non installato${NC}"
-fi
-
-echo ""
-
-# Task in corso
-echo -e "${BOLD}${WHITE}⚡ Task in Esecuzione${NC}"
-current_tasks=$(sqlite3 "$DB" "SELECT t.task_id, t.title, p.id, t.priority, p.project_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id JOIN plans p ON w.plan_id = p.id WHERE t.status = 'in_progress' ORDER BY t.priority DESC, p.id" 2>/dev/null)
-
-if [ -z "$current_tasks" ]; then
-  echo -e "${GRAY}└─${NC} Nessun task in esecuzione"
-else
-  echo "$current_tasks" | while IFS='|' read -r task_id title plan_id priority task_project; do
-    short_title=$(echo "$title" | cut -c1-45)
-    if [ ${#title} -gt 45 ]; then
-      short_title="${short_title}..."
-    fi
-    prio_color="${GRAY}"
-    [ "$priority" = "P1" ] && prio_color="${RED}"
-    task_project_display=""
-    [ -n "$task_project" ] && task_project_display="${BLUE}[$task_project]${NC} "
-    echo -e "${GRAY}├─${NC} ${CYAN}$task_id${NC} ${WHITE}$short_title${NC} ${task_project_display}${GRAY}[#$plan_id]${NC} ${prio_color}[$priority]${NC}"
-  done
-  echo -e "${GRAY}└─${NC}"
 fi
 
 echo ""

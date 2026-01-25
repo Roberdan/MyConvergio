@@ -294,83 +294,104 @@ sqlite3 "$DB" "SELECT id, name, status, updated_at, started_at, created_at, proj
     done
   fi
 
+  # PR aperte per questo piano specifico (match per branch/titolo)
+  if [ -n "$pproject" ] && command -v gh &> /dev/null; then
+    project_dir="$HOME/GitHub/$pproject"
+    if [ -d "$project_dir" ]; then
+      pr_data=$(gh pr list --repo "$(git -C "$project_dir" remote get-url origin 2>/dev/null)" --state open --json number,title,url,headRefName,statusCheckRollup,comments,reviewDecision,isDraft,mergeable 2>/dev/null)
+      if [ -n "$pr_data" ] && [ "$pr_data" != "[]" ]; then
+        # Normalize plan name for matching: lowercase, extract keywords
+        plan_normalized=$(echo "$pname" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | sed 's/plan-[0-9]*-//g')
+
+        # Extract matching PRs (branch or title contains plan keywords)
+        matched_prs=""
+        while read -r pr; do
+          [ -z "$pr" ] && continue
+          pr_branch=$(echo "$pr" | jq -r '.headRefName' | tr '[:upper:]' '[:lower:]')
+          pr_title_lower=$(echo "$pr" | jq -r '.title' | tr '[:upper:]' '[:lower:]')
+
+          # Check if PR matches this plan (branch contains key parts of plan name or vice versa)
+          match=0
+          # Extract significant keywords from plan name (skip common words)
+          for keyword in $(echo "$plan_normalized" | tr '-' '\n' | grep -v -E '^(the|and|for|with|complete|plan)$' | head -3); do
+            [ ${#keyword} -lt 3 ] && continue
+            if [[ "$pr_branch" == *"$keyword"* ]] || [[ "$pr_title_lower" == *"$keyword"* ]]; then
+              match=1
+              break
+            fi
+          done
+          [ "$match" -eq 1 ] && matched_prs+="$pr"$'\n'
+        done < <(echo "$pr_data" | jq -c '.[]' 2>/dev/null)
+
+        # Display matched PRs
+        if [ -n "$matched_prs" ]; then
+          echo -e "${GRAY}│  ${NC}${CYAN}🔀 Pull Requests:${NC}"
+          echo -n "$matched_prs" | while read -r pr; do
+            [ -z "$pr" ] && continue
+            pr_num=$(echo "$pr" | jq -r '.number')
+            pr_title=$(echo "$pr" | jq -r '.title')
+            pr_url=$(echo "$pr" | jq -r '.url')
+            pr_draft=$(echo "$pr" | jq -r '.isDraft')
+            pr_comments=$(echo "$pr" | jq -r '.comments | length')
+            pr_review=$(echo "$pr" | jq -r '.reviewDecision // "NONE"')
+            pr_mergeable=$(echo "$pr" | jq -r '.mergeable // "UNKNOWN"')
+
+            # CI status counts
+            ci_pass=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == "SUCCESS" or .conclusion == "NEUTRAL")] | length else 0 end')
+            ci_fail=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == "FAILURE")] | length else 0 end')
+            ci_pending=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.status == "IN_PROGRESS" or .state == "PENDING")] | length else 0 end')
+            ci_total=$((ci_pass + ci_fail + ci_pending))
+
+            # CI display: icon + counts
+            if [ "$ci_total" -eq 0 ]; then
+              ci_display="${GRAY}CI:--${NC}"
+            elif [ "$ci_fail" -gt 0 ]; then
+              ci_display="${RED}CI:✗${ci_fail}${NC}"
+              [ "$ci_pass" -gt 0 ] && ci_display+="${GREEN}✓${ci_pass}${NC}"
+            elif [ "$ci_pending" -gt 0 ]; then
+              ci_display="${GREEN}CI:✓${ci_pass}${NC}${YELLOW}◯${ci_pending}${NC}"
+            else
+              ci_display="${GREEN}CI:✓${ci_total}${NC}"
+            fi
+
+            # Review status
+            case "$pr_review" in
+              APPROVED) review_display="${GREEN}Rev:✓${NC}" ;;
+              CHANGES_REQUESTED) review_display="${RED}Rev:✗${NC}" ;;
+              REVIEW_REQUIRED) review_display="${YELLOW}Rev:◯${NC}" ;;
+              *) review_display="${GRAY}Rev:--${NC}" ;;
+            esac
+
+            # Mergeable status
+            case "$pr_mergeable" in
+              MERGEABLE) merge_display="${GREEN}Mrg:✓${NC}" ;;
+              CONFLICTING) merge_display="${RED}Mrg:✗${NC}" ;;
+              *) merge_display="${GRAY}Mrg:?${NC}" ;;
+            esac
+
+            # Draft label
+            draft_label=""
+            [ "$pr_draft" = "true" ] && draft_label="${GRAY}[draft]${NC} "
+
+            # Comment count (filter out bot comments for display)
+            comment_display=""
+            [ "$pr_comments" -gt 0 ] && comment_display="${CYAN}💬${pr_comments}${NC}"
+
+            # Truncate title
+            short_title=$(echo "$pr_title" | cut -c1-28)
+            [ ${#pr_title} -gt 28 ] && short_title="${short_title}..."
+
+            # Display PR number clearly
+            echo -e "${GRAY}│  ├─${NC} ${CYAN}PR #${pr_num}${NC} ${draft_label}${WHITE}$short_title${NC}  $ci_display $review_display $merge_display $comment_display"
+          done
+        fi
+      fi
+    fi
+  fi
+
   echo ""
 done
 
-# PR aperte (GitHub)
-echo -e "${BOLD}${WHITE}🔀 Pull Requests Aperte${NC}"
-if command -v gh &> /dev/null; then
-  pr_data=$(gh pr list --state open --json number,title,url,statusCheckRollup,comments,reviewDecision,isDraft 2>/dev/null)
-
-  if [ -z "$pr_data" ] || [ "$pr_data" = "[]" ]; then
-    echo -e "${GRAY}└─${NC} Nessuna PR aperta"
-  else
-    # Process each PR
-    echo "$pr_data" | jq -c '.[]' 2>/dev/null | while read -r pr; do
-      pr_num=$(echo "$pr" | jq -r '.number')
-      pr_title=$(echo "$pr" | jq -r '.title')
-      pr_url=$(echo "$pr" | jq -r '.url')
-      pr_draft=$(echo "$pr" | jq -r '.isDraft')
-      pr_comments=$(echo "$pr" | jq -r '.comments | length')
-      pr_review=$(echo "$pr" | jq -r '.reviewDecision // "NONE"')
-
-      # CI details: count pass/fail/pending and get failed names
-      ci_total=$(echo "$pr" | jq -r '.statusCheckRollup | if . then length else 0 end')
-      ci_pass=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == "SUCCESS")] | length else 0 end')
-      ci_fail=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == "FAILURE")] | length else 0 end')
-      ci_pending=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == null or .conclusion == "PENDING")] | length else 0 end')
-      failed_checks=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == "FAILURE") | .name] | join(", ") else "" end')
-
-      # CI status display
-      if [ "$ci_total" -eq 0 ]; then
-        ci_display="${GRAY}no checks${NC}"
-      elif [ "$ci_fail" -gt 0 ]; then
-        ci_display="${RED}✗ ${ci_fail}/${ci_total} failed${NC}"
-      elif [ "$ci_pending" -gt 0 ]; then
-        ci_display="${YELLOW}◯ ${ci_pass}/${ci_total} (${ci_pending} pending)${NC}"
-      else
-        ci_display="${GREEN}✓ ${ci_pass}/${ci_total}${NC}"
-      fi
-
-      # Review status
-      case "$pr_review" in
-        APPROVED) review_icon="${GREEN}approved${NC}" ;;
-        CHANGES_REQUESTED) review_icon="${RED}changes requested${NC}" ;;
-        *) review_icon="" ;;
-      esac
-
-      # Draft indicator
-      draft_label=""
-      [ "$pr_draft" = "true" ] && draft_label="${GRAY}[draft]${NC} "
-
-      # Comment count
-      if [ "$pr_comments" -gt 0 ]; then
-        comment_display="${YELLOW}💬${pr_comments}${NC}"
-      else
-        comment_display=""
-      fi
-
-      # Truncate title
-      short_title=$(echo "$pr_title" | cut -c1-38)
-      [ ${#pr_title} -gt 38 ] && short_title="${short_title}..."
-
-      # OSC 8 hyperlink: \e]8;;URL\e\\TEXT\e]8;;\e\\
-      pr_link="\e]8;;${pr_url}\e\\#${pr_num}\e]8;;\e\\"
-      echo -e "${GRAY}├─${NC} ${CYAN}${pr_link}${NC} ${draft_label}${WHITE}$short_title${NC} $comment_display"
-      echo -e "${GRAY}│  └─${NC} CI: $ci_display $([ -n "$review_icon" ] && echo "│ $review_icon")"
-
-      # Show failed check names if any
-      if [ -n "$failed_checks" ] && [ "$failed_checks" != "" ]; then
-        echo -e "${GRAY}│     ${NC}${RED}▸ $failed_checks${NC}"
-      fi
-    done
-    echo -e "${GRAY}└─${NC}"
-  fi
-else
-  echo -e "${GRAY}└─${NC} ${YELLOW}gh CLI non installato${NC}"
-fi
-
-echo ""
 
 # Blocked tasks (if requested)
 if [ "$SHOW_BLOCKED" -eq 1 ]; then

@@ -48,8 +48,10 @@ Output: "Piano {name} (ID: {plan_id}) - IN FLIGHT - Worktree: {WORKTREE_PATH}"
 
 ```bash
 # Get all pending tasks ordered by wave position, then task_id
+# INCLUDES model column - planner specifies haiku/sonnet/opus per task
 sqlite3 -json ~/.claude/data/dashboard.db "
   SELECT t.id as db_id, t.task_id, t.title, t.status, t.priority,
+         t.model,  -- haiku|sonnet|opus (from planner)
          w.id as wave_db_id, w.wave_id, w.name as wave_name
   FROM tasks t
   JOIN waves w ON t.wave_id_fk = w.id
@@ -69,9 +71,10 @@ For each pending task:
 console.log(`Executing: ${task.task_id} - ${task.title}`);
 
 // 2. Launch task-executor subagent (ISOLATED SESSION)
+// Model comes from planner (stored in DB) - NOT derived from priority
 await Task({
   subagent_type: "task-executor",
-  model: task.priority === 'P0' ? 'sonnet' : 'haiku',
+  model: task.model || 'haiku',  // Use planner-specified model (haiku|sonnet|opus)
   description: `Execute task ${task.task_id}`,
   prompt: `
 TASK EXECUTION (Isolated Session - Start Fresh)
@@ -104,11 +107,20 @@ CRITICAL: You are a FRESH session. Do NOT reference previous tasks or files from
 `
 });
 
-// 3. Verify task completed
+// 3. MANDATORY: Verify task updated in DB
+// Run verification script AFTER every task-executor returns
+await Bash({
+  command: `~/.claude/scripts/verify-task-update.sh ${task.db_id} done`
+});
+// If verify fails (exit 1), task-executor forgot to update DB
+// → Log warning and force update OR retry task
+
 const status = await checkTaskStatus(task.db_id);
 if (status !== 'done') {
-  console.log(`Task ${task.task_id} not completed: ${status}`);
-  // Ask user: continue or stop?
+  console.log(`⚠️ Task ${task.task_id} NOT updated in DB (status: ${status})`);
+  console.log(`→ Executor forgot DB update. Forcing update...`);
+  // Force update if task actually completed (based on executor report)
+  // OR retry the task if unclear
 }
 
 // 4. Check if wave completed

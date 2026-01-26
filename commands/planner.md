@@ -58,10 +58,10 @@ Quale modalità preferisci?
 | Execution | haiku | haiku | Isolated |
 | Validation | sonnet | sonnet | Isolated |
 
-**Escalation Rules**:
-- Task > 3 files: haiku → sonnet
-- Task complexity alta: haiku → sonnet
-- Coordinamento > 3 task paralleli: sonnet → **opus**
+**Model Selection** (planner specifies upfront, NO auto-escalation):
+- Planner assigns model to EACH task during planning phase
+- Executor uses EXACTLY the model specified (no override)
+- If task scope changes during execution → re-plan, don't auto-escalate
 
 ### Context Isolation (Token Optimization)
 - **task-executor**: FRESH session per task. No parent context inheritance.
@@ -118,6 +118,20 @@ W1 (Phase) → W2 (Phase)
 |------|-------------|------|-------|--------|
 | T1-01 | [task] | F-01 | haiku | pending |
 
+**MODEL ASSIGNMENT (MANDATORY)**:
+Ogni task DEVE avere il modello specificato. L'executor usa ESATTAMENTE quello indicato.
+
+| Complessità | Modello | Criteri |
+|-------------|---------|---------|
+| **Semplice** | `haiku` | 1-2 file, logica lineare, test esistenti, no architettura |
+| **Media** | `sonnet` | 3+ file, logica condizionale, nuovi test, API changes |
+| **Alta** | `opus` | Cross-cutting, architettura, breaking changes, security |
+
+**Esempi**:
+- `haiku`: Fix typo, aggiorna costante, modifica testo UI, aggiungi campo form
+- `sonnet`: Nuovo endpoint API, refactor componente, integrazione servizio
+- `opus`: Nuovo sistema auth, migrazione DB, redesign architettura
+
 ## LEARNINGS LOG (aggiornato durante esecuzione)
 | Wave | Issue | Root Cause | Resolution | Preventive Rule |
 |------|-------|------------|------------|-----------------|
@@ -127,7 +141,16 @@ W1 (Phase) → W2 (Phase)
 ### 3. Register in DB
 ```bash
 plan-db.sh add-wave {plan_id} "W1" "Phase"  # Returns db_wave_id
-plan-db.sh add-task {db_wave_id} T1-01 "Desc" P1 feature
+# MANDATORY: specify --model for EVERY task
+plan-db.sh add-task {db_wave_id} T1-01 "Desc" P1 feature --model haiku
+plan-db.sh add-task {db_wave_id} T1-02 "Complex task" P1 feature --model sonnet
+plan-db.sh add-task {db_wave_id} T1-03 "Architectural change" P0 feature --model opus
+```
+
+**Model shorthand** (without --model flag):
+```bash
+plan-db.sh add-task {db_wave_id} T1-01 "Desc" P1 feature haiku
+plan-db.sh add-task {db_wave_id} T1-02 "Complex task" P1 feature sonnet
 ```
 
 ### 4. User Approval (MANDATORY STOP)

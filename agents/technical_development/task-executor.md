@@ -213,6 +213,47 @@ plan-db.sh update-task {id} skipped "Skip reason"
 - **Don't report false positives** - if files weren't modified, report BLOCKED
 
 ---
+
+## ⛔ MANDATORY EXIT CHECKLIST (DO NOT SKIP)
+
+**BEFORE returning to coordinator, you MUST verify ALL items:**
+
+```bash
+# 1. Verify task marked in_progress (should have happened in Phase 2)
+sqlite3 ~/.claude/data/dashboard.db \
+  "SELECT status FROM tasks WHERE id={db_task_id};" | grep -q "in_progress\|done" \
+  || echo "ERROR: Task never marked in_progress!"
+
+# 2. Verify task marked done (Phase 5)
+sqlite3 ~/.claude/data/dashboard.db \
+  "SELECT status FROM tasks WHERE id={db_task_id};" | grep -q "done" \
+  || { echo "BLOCKED: Task not marked done in DB!"; exit 1; }
+
+# 3. Verify notes were written
+sqlite3 ~/.claude/data/dashboard.db \
+  "SELECT notes FROM tasks WHERE id={db_task_id};" | grep -q "." \
+  || echo "WARNING: No completion notes in DB"
+```
+
+**FINAL OUTPUT FORMAT** (required):
+```
+## TASK COMPLETION
+
+DB Status: [done|blocked|skipped]
+DB Update Command Run: [yes|no]
+Task ID: {db_task_id}
+Summary: [1-2 sentence summary]
+
+---
+Returning to coordinator.
+```
+
+**If you did NOT run `plan-db.sh update-task {db_task_id} done`:**
+→ RUN IT NOW before returning
+→ DO NOT claim completion without DB update
+
+---
+**v1.8.0** (2026-01-26): Added MANDATORY EXIT CHECKLIST (anti-forget)
 **v1.7.0** (2026-01-26): Added Phase 4.5 Proof of Modification (Plan 085 lesson)
 **v1.6.0** (2026-01-25): Added mandatory worktree verification (Phase 0)
 **v1.5.0** (2026-01-22): Extracted TDD to module, optimized for tokens

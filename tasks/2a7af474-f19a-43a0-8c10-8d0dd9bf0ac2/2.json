@@ -1,0 +1,9 @@
+{
+  "id": "2",
+  "subject": "Create ADR-0074 for cookie handling standards",
+  "description": "Document all cookie handling patterns:\n- Cookie name constants in one place\n- Signed vs unsigned cookie patterns\n- Validation requirements per cookie type\n- Security boundaries (proxy vs API)",
+  "activeForm": "Creating ADR-0074",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

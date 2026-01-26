@@ -3,13 +3,11 @@
 # Hook for PreToolUse on Bash commands
 # Reads tool input from stdin, checks if it's a git operation in a worktree scenario
 
-set -euo pipefail
-
 # Read the tool input JSON from stdin
 INPUT=$(cat)
 
 # Extract the command from the JSON
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""')
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null || echo "")
 
 # Only check git commands that modify state
 if ! echo "$COMMAND" | grep -qE '^git (commit|push|add|checkout|merge|rebase|reset|stash)'; then

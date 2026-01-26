@@ -4,7 +4,7 @@
 
 # Get command from stdin (Claude passes tool input as JSON)
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | jq -r '.command // empty' 2>/dev/null)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 
 # Exit if no command
 [ -z "$COMMAND" ] && exit 0

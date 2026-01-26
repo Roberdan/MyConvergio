@@ -1,0 +1,9 @@
+{
+  "id": "5",
+  "subject": "Add logout button to navigation bar",
+  "description": "Add logout button under settings in navigation bar that:\n1. Calls /api/auth/logout\n2. Redirects to /welcome page\n3. Clears all auth cookies",
+  "activeForm": "Adding logout button",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -72,6 +72,9 @@ Every task MUST include `test_criteria` specifying what tests the task-executor 
     - type: e2e
       target: "Logout flow"
       description: "Click logout → redirect to /login"
+  regression_scope:           # MANDATORY for refactor/fix tasks
+    - "e2e/auth.spec.ts"      # Existing E2E tests that must pass
+    - "session-auth"          # Unit test area to verify
 ```
 
 **Test Types by Task Category:**
@@ -83,6 +86,31 @@ Every task MUST include `test_criteria` specifying what tests the task-executor 
 | Business Logic | unit (all branches) |
 | Refactoring | existing tests must pass + new unit if gaps |
 | Bug Fix | regression test that fails before fix |
+
+### Step 2.6: Regression Scope Definition (MANDATORY for refactor/fix)
+
+For tasks that modify existing functionality, define `regression_scope` to identify which existing tests MUST pass after the change.
+
+```yaml
+regression_scope:
+  - "e2e/auth.spec.ts"           # Full E2E test file to run
+  - "session-auth"               # Pattern for unit test files
+  - "e2e/smoke/critical-paths"   # Critical path smoke tests
+```
+
+**When Required:**
+| Task Type | regression_scope |
+|-----------|------------------|
+| New feature | Optional (no existing tests to break) |
+| Refactoring | **MANDATORY** - list all affected areas |
+| Bug fix | **MANDATORY** - prove fix doesn't break other flows |
+| API change | **MANDATORY** - list all consumers |
+| Auth/Security | **MANDATORY** - always include `e2e/smoke/` |
+
+**Thor Validation Gate**: At wave completion, Thor verifies:
+1. All `regression_scope` tests pass
+2. No new test skips introduced
+3. Coverage didn't decrease on modified files
 
 **Framework Detection**: Task-executor auto-detects from project:
 - `package.json` → Jest/Vitest/Playwright

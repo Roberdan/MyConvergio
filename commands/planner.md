@@ -165,18 +165,53 @@ await Task({
 });
 ```
 
-### 7. Thor Validation (per wave)
+### 7. Thor Validation (per wave) - MANDATORY, NON-SKIPPABLE
+
+**CRITICAL**: Thor validation is MANDATORY after EVERY wave. Never trust task executor reports without verification.
+
 ```bash
-plan-db.sh validate {plan_id}
+# Step 1: Launch Thor subagent (MANDATORY)
+Task({
+  subagent_type: "thor-quality-assurance-guardian",
+  prompt: `Validate Wave {wave_code} for Plan {plan_id}.
+
+  F-xx requirements: [list from plan]
+  Expected file changes: [list files that should have been modified]
+
+  VERIFY:
+  1. Each F-xx has actual code implementation
+  2. git diff shows expected changes
+  3. Grep for expected patterns in modified files
+  4. No regressions introduced`
+});
+
+# Step 2: Build validation (ONLY after Thor passes)
 npm run lint && npm run typecheck && npm run build
+
+# Step 3: Update DB
+plan-db.sh validate {plan_id}
 ```
 
-## Anti-Failure
+**Thor Validation Rules**:
+1. **NEVER skip Thor** - even if all task executors report success
+2. **NEVER trust executor reports** - always verify actual file contents
+3. **Thor reads files directly** - confirms patterns exist in code
+4. **Wave blocked until Thor passes** - no exceptions
+
+**If Thor Fails**:
+- DO NOT proceed to next wave
+- Identify which F-xx failed
+- Re-execute failed tasks OR fix manually
+- Re-run Thor until PASS
+
+## Anti-Failure (STRICT ENFORCEMENT)
 - Never skip approval gate
 - Never fake timestamps (only executor sets them)
 - Never mark done without F-xx check
-- Never bypass Thor
+- **NEVER bypass Thor** - learned from Plan 085 failure where executors lied
+- **NEVER trust executor reports** - always verify with Thor + file reads
 - Use db_wave_id (numeric) not wave_code ("W1")
+- **Wave completion = Thor PASS** - not just executor reports
 
 ## State Transitions
 `pending → in_progress → done|blocked|skipped`

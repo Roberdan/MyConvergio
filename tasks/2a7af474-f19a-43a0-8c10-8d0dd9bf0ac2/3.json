@@ -1,0 +1,9 @@
+{
+  "id": "3",
+  "subject": "Add cookie rules to CLAUDE.md and project rules",
+  "description": "Create .claude/rules/cookies.md with:\n- Cookie naming conventions\n- Required validation patterns\n- When to use validateAuth() vs direct access\n- CSRF token handling",
+  "activeForm": "Adding cookie rules",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

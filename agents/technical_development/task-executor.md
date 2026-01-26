@@ -116,6 +116,48 @@ CANNOT MARK DONE: F-xx verification failed
 ACTION: Fix, re-verify, proceed
 ```
 
+### Phase 4.5: Proof of Modification (MANDATORY)
+
+**CRITICAL**: You MUST provide proof that files were actually modified. Claiming "done" without evidence is a FAILURE.
+
+```bash
+# Step 1: Show git diff for modified files
+git diff --stat
+git diff {modified_files}
+
+# Step 2: Grep for expected patterns
+grep -n "expected_pattern" {modified_file}
+
+# Step 3: Read file sections to confirm changes
+Read {file_path} lines {start}-{end}
+```
+
+**Required Output** (include in task completion message):
+```markdown
+## PROOF OF MODIFICATION
+
+### Files Changed:
+- `path/to/file.tsx`: [what changed]
+
+### Git Diff Summary:
+```
+[paste git diff --stat output]
+```
+
+### Pattern Verification:
+```bash
+$ grep -n "w-28 sm:w-72" src/components/example.tsx
+42:  className="w-28 sm:w-72 lg:w-64"
+```
+
+PROOF STATUS: VERIFIED
+```
+
+**If no files were modified**:
+- DO NOT claim completion
+- Report: "BLOCKED: No file modifications detected"
+- Ask coordinator for clarification
+
 ### Phase 5: Complete
 ```bash
 # Mark done with tokens
@@ -155,7 +197,8 @@ plan-db.sh update-task {id} skipped "Skip reason"
 5. ✓ Implementation makes tests PASS (GREEN)
 6. ✓ Coverage ≥80% on new files
 7. ✓ F-xx requirements verified
-8. ✓ Token count recorded
+8. ✓ **Proof of modification provided** (git diff + grep)
+9. ✓ Token count recorded
 
 ## Anti-Patterns
 
@@ -166,8 +209,11 @@ plan-db.sh update-task {id} skipped "Skip reason"
 - Don't execute if already done
 - Don't invent acceptance criteria
 - Don't use relative paths that could resolve to wrong worktree
+- **Don't claim completion without proof** (git diff, grep, file reads)
+- **Don't report false positives** - if files weren't modified, report BLOCKED
 
 ---
+**v1.7.0** (2026-01-26): Added Phase 4.5 Proof of Modification (Plan 085 lesson)
 **v1.6.0** (2026-01-25): Added mandatory worktree verification (Phase 0)
 **v1.5.0** (2026-01-22): Extracted TDD to module, optimized for tokens
 **v1.4.0** (2026-01-22): Added TDD workflow

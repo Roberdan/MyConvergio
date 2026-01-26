@@ -18,6 +18,7 @@ Active plans: `sqlite3 ~/.claude/data/dashboard.db "SELECT id, name, status FROM
 3. **User Approval Gate**: BLOCK execution until explicit "si"/"yes"/"procedi"
 4. **Thor Enforcement**: Wave done = Thor passed + build passed
 5. **Worktree Isolation**: ALWAYS work in the correct worktree. EVERY task prompt MUST include worktree path
+6. **Knowledge Codification**: Ogni errore/learning DEVE essere documentato in ADR + codificato in ESLint rules. Thor valida prima della closure
 
 ## Parallelization Mode (USER CHOICE)
 
@@ -116,6 +117,11 @@ W1 (Phase) → W2 (Phase)
 | Task | Description | F-xx | Model | Status |
 |------|-------------|------|-------|--------|
 | T1-01 | [task] | F-01 | haiku | pending |
+
+## LEARNINGS LOG (aggiornato durante esecuzione)
+| Wave | Issue | Root Cause | Resolution | Preventive Rule |
+|------|-------|------------|------------|-----------------|
+| W1 | [cosa è andato storto] | [perché] | [come risolto] | [regola ESLint o pattern] |
 ```
 
 ### 3. Register in DB
@@ -204,6 +210,116 @@ plan-db.sh validate {plan_id}
 - Re-execute failed tasks OR fix manually
 - Re-run Thor until PASS
 
+### 8. Knowledge Capture (per wave, DOPO Thor pass)
+
+**MANDATORY**: Dopo ogni wave completata, aggiorna LEARNINGS LOG nel plan file.
+
+```markdown
+## LEARNINGS LOG
+| Wave | Issue | Root Cause | Resolution | Preventive Rule |
+|------|-------|------------|------------|-----------------|
+| W1 | Import circolare | A importava B che importava A | Estratto tipo in file condiviso | eslint-plugin-import/no-cycle |
+| W1 | Cookie non validato | Usato cookie.value senza check | Aggiunto validateVisitorId() | Grep rule in pre-commit |
+```
+
+**Cosa documentare**:
+- Errori incontrati durante l'esecuzione
+- Falsi positivi/negativi dei test
+- Pattern che hanno causato problemi
+- Decisioni architetturali non ovvie
+- Workaround temporanei (da rimuovere!)
+
+### 9. ADR + ESLint Codification (pre-closure, OBBLIGATORIO)
+
+**CRITICAL**: Prima di chiudere il piano, TUTTI i learnings devono essere codificati.
+
+#### 9.1. Crea/Aggiorna ADR
+
+Per ogni learning significativo, crea ADR in `docs/adr/`:
+
+```markdown
+# ADR {NNNN}: {Titolo Learning}
+
+## Status
+Accepted
+
+## Context
+[Problema riscontrato durante Piano {ID}]
+
+## Decision
+[Soluzione adottata]
+
+## Consequences
+- [Positivo]: Previene regressione X
+- [Negativo]: Richiede Y in più
+
+## Enforcement
+- ESLint rule: `{rule-name}`
+- Pre-commit check: `{script}`
+```
+
+#### 9.2. Crea Regole ESLint
+
+Per ogni learning che può essere automatizzato:
+
+```javascript
+// eslint.config.mjs - aggiungere regola
+{
+  rules: {
+    // ADR-0XXX: {descrizione breve}
+    "no-restricted-syntax": ["error", {
+      selector: "...",
+      message: "ADR-0XXX: {messaggio}"
+    }]
+  }
+}
+```
+
+**Tipi di regole**:
+- `no-restricted-imports`: Import vietati
+- `no-restricted-syntax`: Pattern AST vietati
+- Custom rule in `eslint-local-rules/`: Logica complessa
+
+#### 9.3. Thor Valida Codification
+
+**MANDATORY**: Thor deve verificare che le regole esistano e funzionino.
+
+```typescript
+Task({
+  subagent_type: "thor-quality-assurance-guardian",
+  prompt: `Validate Knowledge Codification for Plan {plan_id}.
+
+  LEARNINGS from plan:
+  [lista dal LEARNINGS LOG]
+
+  VERIFY:
+  1. ADR esiste per ogni learning significativo
+  2. ESLint rule esiste per ogni learning automatizzabile
+  3. ESLint rule FUNZIONA: crea file di test temporaneo con pattern vietato, verifica che lint fallisca
+  4. Pre-commit hook include le nuove regole (se applicabile)
+  5. CHANGELOG aggiornato con link a ADR
+
+  TEST COMMAND:
+  # Per ogni nuova regola, crea test case
+  echo "pattern vietato" > /tmp/test-rule.ts
+  npm run lint /tmp/test-rule.ts 2>&1 | grep -q "ADR-XXXX" || echo "RULE NOT WORKING"
+
+  FAIL se: ADR mancante, regola non funziona, learning non codificato`
+});
+```
+
+#### 9.4. Checklist Pre-Closure
+
+| Check | Verified |
+|-------|----------|
+| Tutti i learnings hanno ADR (se significativi) | [ ] |
+| Tutti i learnings automatizzabili hanno ESLint rule | [ ] |
+| Ogni regola ESLint ha test case che FALLISCE | [ ] |
+| CHANGELOG aggiornato con sezione "Learnings" | [ ] |
+| Thor ha validato codification | [ ] |
+
+**BLOCKED se qualsiasi check è [ ]**
+
 ## Anti-Failure (STRICT ENFORCEMENT)
 - Never skip approval gate
 - Never fake timestamps (only executor sets them)
@@ -212,6 +328,9 @@ plan-db.sh validate {plan_id}
 - **NEVER trust executor reports** - always verify with Thor + file reads
 - Use db_wave_id (numeric) not wave_code ("W1")
 - **Wave completion = Thor PASS** - not just executor reports
+- **NEVER close plan without Knowledge Codification** - learnings must be in ADR + ESLint
+- **NEVER skip ESLint rule testing** - ogni regola deve avere test case che FALLISCE
+- **Learnings not codified = plan NOT done** - Thor blocks closure if missing
 
 ## State Transitions
 `pending → in_progress → done|blocked|skipped`

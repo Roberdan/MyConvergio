@@ -39,6 +39,12 @@ while [[ $# -gt 0 ]]; do
       echo "  -n, --no-refresh     Disabilita auto-refresh (vista singola)"
       echo "  -h, --help           Mostra questo help"
       echo ""
+      echo "Sezioni mostrate:"
+      echo "  - Overview: conteggi totali (todo/doing/done)"
+      echo "  - Piani Attivi: in esecuzione con progress e PR"
+      echo "  - In Pipeline: piani creati ma non ancora lanciati"
+      echo "  - Completamenti: ultimi 3 + ultime 24h"
+      echo ""
       echo "Comportamento default:"
       echo "  - Auto-refresh ogni 5 minuti (300 secondi)"
       echo "  - Task completati compressi (solo conteggio)"
@@ -392,6 +398,53 @@ sqlite3 "$DB" "SELECT id, name, status, updated_at, started_at, created_at, proj
   echo ""
 done
 
+
+# Piani in Pipeline (todo - non ancora lanciati)
+pipeline_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status='todo'")
+if [ "$pipeline_count" -gt 0 ]; then
+  echo -e "${BOLD}${WHITE}📋 In Pipeline ($pipeline_count)${NC}"
+  sqlite3 "$DB" "SELECT id, name, created_at, project_id FROM plans WHERE status='todo' ORDER BY created_at DESC LIMIT 5" | while IFS='|' read -r pid pname pcreated pproject; do
+    # Days since created
+    if [ -n "$pcreated" ]; then
+      create_date=$(echo "$pcreated" | cut -d' ' -f1)
+      days_old=$(( ($(date +%s) - $(date -j -f "%Y-%m-%d" "$create_date" +%s 2>/dev/null || echo 0)) / 86400 ))
+      if [ "$days_old" -eq 0 ]; then
+        age_info="${GREEN}oggi${NC}"
+      elif [ "$days_old" -eq 1 ]; then
+        age_info="${YELLOW}ieri${NC}"
+      elif [ "$days_old" -gt 7 ]; then
+        age_info="${RED}${days_old}g fa${NC}"
+      else
+        age_info="${GRAY}${days_old}g fa${NC}"
+      fi
+    else
+      age_info=""
+    fi
+
+    # Wave and task counts
+    wave_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
+    task_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
+
+    # Truncate name
+    short_name=$(echo "$pname" | cut -c1-50)
+    [ ${#pname} -gt 50 ] && short_name="${short_name}..."
+
+    # Project display
+    project_display=""
+    [ -n "$pproject" ] && project_display="${BLUE}[$pproject]${NC} "
+
+    echo -e "${GRAY}├─${NC} ${BLUE}◯${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC} ${GRAY}(creato: ${age_info}${GRAY})${NC}"
+    echo -e "${GRAY}│  └─${NC} ${GRAY}${wave_count} waves, ${task_count} tasks${NC}"
+  done
+
+  # Show if more exist
+  if [ "$pipeline_count" -gt 5 ]; then
+    remaining=$((pipeline_count - 5))
+    echo -e "${GRAY}│  ${NC}${GRAY}... e altri $remaining piani in attesa${NC}"
+  fi
+  echo -e "${GRAY}└─${NC}"
+  echo ""
+fi
 
 # Blocked tasks (if requested)
 if [ "$SHOW_BLOCKED" -eq 1 ]; then

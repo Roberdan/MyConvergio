@@ -1,3 +1,9 @@
+---
+context: fork
+allowed-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit"]
+user-invocable: true
+---
+
 # Debugging Skill
 
 > Reusable workflow extracted from dario-debugger expertise.

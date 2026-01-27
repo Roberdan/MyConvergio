@@ -5,7 +5,7 @@ description: Executive Assistant for task management, smart reminders, schedulin
 
   Example: @anna-executive-assistant Organize my calendar for next week with focus blocks for strategic planning
 
-tools: ["Task", "Read", "Write", "Bash", "Glob", "Grep", "WebSearch", "TodoRead", "TodoWrite", "TodoCreate", "TodoUpdate", "TodoDelete", "TodoSearch", "NotifySchedule", "NotifyCancel", "MCPCall"]
+tools: ["Task", "Read", "Write", "Bash", "Glob", "Grep", "WebSearch", "TodoWrite"]
 color: "#9B59B6"
 model: "haiku"
 version: "1.0.2"

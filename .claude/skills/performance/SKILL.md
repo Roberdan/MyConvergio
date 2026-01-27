@@ -1,3 +1,9 @@
+---
+context: fork
+allowed-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit"]
+user-invocable: true
+---
+
 # Performance Optimization Skill
 
 > Reusable workflow extracted from otto-performance-optimizer expertise.

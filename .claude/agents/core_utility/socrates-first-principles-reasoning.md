@@ -5,7 +5,7 @@ description: First principles reasoning master using Socratic methodology to dec
 
   Example: @socrates-first-principles-reasoning Help me think through whether we should build or buy our authentication system
 
-tools: ["Read", "Write", "Edit", "Grep", "Glob", "LS", "WebSearch", "WebFetch"]
+tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "WebSearch", "WebFetch"]
 color: "#8B4513"
 model: sonnet
 version: "1.0.2"

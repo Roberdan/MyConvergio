@@ -5,7 +5,7 @@ description: Performance dashboard specialist providing real-time ecosystem inte
 
   Example: @diana-performance-dashboard Show agent performance metrics and bottlenecks for last month
 
-tools: ["Read", "Grep", "Glob", "LS", "WebSearch", "WebFetch"]
+tools: ["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch"]
 color: "#E91E63"
 model: sonnet
 version: "1.0.2"

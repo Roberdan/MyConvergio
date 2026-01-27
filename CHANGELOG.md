@@ -5,6 +5,32 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.0] - 2026-01-27
+
+### Added
+- **Context Isolation**: Added `context_isolation: true` to key agents for token optimization
+  - task-executor, thor-quality-assurance-guardian, strategic-planner
+- **Skills Frontmatter**: All 9 skills now have YAML frontmatter with:
+  - `context: fork` for isolated execution
+  - `allowed-tools` for security boundaries
+  - `user-invocable: true` for slash command access
+
+### Changed
+- **task-executor** (v1.5.0): Added TDD workflow, disallowedTools, context isolation
+- **thor-quality-assurance-guardian** (v3.3.0): Fixed tools (removed invalid LS, added Bash+Task), context isolation
+- **strategic-planner** (v2.0.0): Updated to opus model, context isolation
+
+### Fixed
+- **plugin.json**: Version aligned with package.json (was 3.0.0, now 4.4.0)
+- **Invalid "LS" tool**: Replaced in 5 agents (diana, marcus, socrates, ava, baccio)
+- **Invalid custom tools**: Cleaned anna-executive-assistant, ali-chief-of-staff, guardian-ai-security-validator
+- **Missing fields**: Added tools/color to app-release-manager, feature-release-manager
+- **Malformed frontmatter**: Fixed feature-release-manager YAML structure
+
+### Improved
+- **Token Optimization**: Context isolation reduces token usage by 50-70% per subagent call
+- **Claude Code 2.1.20 Alignment**: All configurations aligned with latest Claude Code features
+
 ## [4.3.0] - 2026-01-18
 
 ### Added

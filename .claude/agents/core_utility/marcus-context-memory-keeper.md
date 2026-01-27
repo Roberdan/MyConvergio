@@ -5,7 +5,7 @@ description: Institutional memory guardian bridging context gaps across sessions
 
   Example: @marcus-context-memory-keeper What architectural decisions did we make about payment system last quarter?
 
-tools: ["Read", "Write", "Edit", "Grep", "Glob", "LS"]
+tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 color: "#607D8B"
 model: sonnet
 version: "1.0.2"

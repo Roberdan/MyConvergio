@@ -1,3 +1,9 @@
+---
+context: fork
+allowed-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit"]
+user-invocable: true
+---
+
 # Project Management Skill
 
 > Reusable workflow extracted from davide-project-manager expertise.

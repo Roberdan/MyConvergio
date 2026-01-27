@@ -1,3 +1,9 @@
+---
+context: fork
+allowed-tools: ["Read", "Glob", "Grep", "Bash", "Task"]
+user-invocable: true
+---
+
 # Multi-Claude Parallel Orchestration Skill
 
 ## Overview

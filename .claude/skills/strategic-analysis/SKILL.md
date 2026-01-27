@@ -1,3 +1,9 @@
+---
+context: fork
+allowed-tools: ["Read", "Glob", "Grep", "WebSearch", "WebFetch"]
+user-invocable: true
+---
+
 # Strategic Analysis Skill
 
 > Reusable workflow extracted from domik-mckinsey-strategic-decision-maker expertise.

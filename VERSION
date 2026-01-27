@@ -3,7 +3,7 @@
 # Follows Semantic Versioning 2.0.0 (https://semver.org/)
 
 # System Version
-SYSTEM_VERSION=4.3.0
+SYSTEM_VERSION=4.4.0
 
 # Framework Documents
 # These are foundational documents that govern all agents
@@ -16,8 +16,8 @@ dario-debugger=0.1.0 2025-12-15T09:09:44Z
 otto-performance-optimizer=0.1.0 2025-12-15T09:09:44Z
 paolo-best-practices-enforcer=0.1.0 2025-12-15T09:09:44Z
 rex-code-reviewer=0.1.0 2025-12-15T09:09:44Z
-feature-release-manager=0.1.0 2025-12-15T09:09:44Z
-app-release-manager=0.1.0 2025-12-15T09:09:44Z
+feature-release-manager=1.1.0 2026-01-27T00:00:00Z
+app-release-manager=2.1.0 2026-01-27T00:00:00Z
 sophia-govaffairs=0.1.0 2025-12-15T09:09:44Z
 guardian-ai-security-validator=0.1.0 2025-12-15T09:09:44Z
 fiona-market-analyst=0.1.0 2025-12-15T09:09:44Z
@@ -28,10 +28,11 @@ evan-ic6da=0.1.0 2025-12-15T09:09:44Z
 marcello-pm=0.1.0 2025-12-15T09:09:45Z
 anna-executive-assistant=0.1.0 2025-12-15T09:09:45Z
 oliver-pm=0.1.0 2025-12-15T09:09:45Z
-strategic-planner=1.6.1 2025-12-30T19:45:00Z
+strategic-planner=2.0.0 2026-01-27T00:00:00Z
 strategic-planner-templates=1.0.0 2026-01-18T00:00:00Z
 strategic-planner-thor=1.0.0 2026-01-18T00:00:00Z
 strategic-planner-git=1.0.0 2026-01-18T00:00:00Z
-thor-quality-assurance-guardian=2.0.0 2025-12-30T19:45:00Z
+thor-quality-assurance-guardian=3.3.0 2026-01-27T00:00:00Z
+task-executor=1.5.0 2026-01-27T00:00:00Z
 taskmaster-strategic-task-decomposition-master=1.0.3 2025-12-28T13:14:06Z
 davide-project-manager=1.0.3 2025-12-28T13:14:06Z

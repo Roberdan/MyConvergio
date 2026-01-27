@@ -5,7 +5,7 @@ description: Elite Technology Architect for system design, scalable architecture
 
   Example: @baccio-tech-architect Design microservices architecture for healthcare platform with HIPAA compliance
 
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "LS", "WebFetch", "WebSearch"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "WebFetch", "WebSearch"]
 color: "#34495E"
 model: "sonnet"
 version: "1.0.2"

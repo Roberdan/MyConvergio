@@ -1,3 +1,9 @@
+---
+context: fork
+allowed-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit"]
+user-invocable: true
+---
+
 # Architecture Design Skill
 
 > Reusable workflow extracted from baccio-tech-architect expertise.

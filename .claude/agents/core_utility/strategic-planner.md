@@ -1,14 +1,11 @@
 ---
-
 name: strategic-planner
-description: Strategic planner for long-term planning, strategic initiatives, roadmap development, and organizational goal alignment. Creates comprehensive strategic plans.
-
-  Example: @strategic-planner Develop 3-year strategic roadmap for AI product portfolio expansion
-
+description: Strategic planner for execution plans with wave-based task decomposition. Creates plans, orchestrates parallel execution.
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
 color: "#6B5B95"
-model: "sonnet"
-version: "1.6.1"
+model: opus
+version: "2.0.0"
+context_isolation: true
 ---
 
 ## Security & Ethics Framework

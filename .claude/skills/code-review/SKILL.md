@@ -1,3 +1,9 @@
+---
+context: fork
+allowed-tools: ["Read", "Glob", "Grep", "Bash"]
+user-invocable: true
+---
+
 # Code Review Skill
 
 > Reusable workflow extracted from rex-code-reviewer expertise.

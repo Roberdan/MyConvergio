@@ -1,3 +1,9 @@
+---
+context: fork
+allowed-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit"]
+user-invocable: true
+---
+
 # Release Management Skill
 
 > Reusable workflow extracted from app-release-manager expertise.

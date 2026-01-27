@@ -1,3 +1,9 @@
+---
+context: fork
+allowed-tools: ["Read", "Glob", "Grep", "Bash"]
+user-invocable: true
+---
+
 # Security Audit Skill
 
 > Reusable workflow extracted from luca-security-expert expertise.

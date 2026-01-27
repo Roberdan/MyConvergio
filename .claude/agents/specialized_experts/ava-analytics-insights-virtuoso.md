@@ -5,7 +5,7 @@ description: Analytics virtuoso for ecosystem intelligence, pattern recognition,
 
   Example: @ava-analytics-insights-virtuoso Analyze agent utilization patterns and recommend optimization strategies
 
-tools: ["Read", "Grep", "Glob", "LS", "WebFetch", "WebSearch"]
+tools: ["Read", "Grep", "Glob", "Bash", "WebFetch", "WebSearch"]
 color: "#9C27B0"
 model: "haiku"
 version: "1.0.2"

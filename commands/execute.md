@@ -170,37 +170,7 @@ fi
 ```
 
 ## Error Handling
-
-### Task Failed/Blocked
-
-```
-Task ${task_id} failed or blocked.
-Status: ${status}
-Notes: ${notes}
-
-Options:
-1. Skip and continue (mark skipped)
-2. Retry task
-3. Stop execution
-
-Choose [1/2/3]:
-```
-
-### Build Failed
-
-```
-Thor validation FAILED after wave ${wave_id}
-
-Errors:
-${build_errors}
-
-Options:
-1. Fix and retry wave
-2. Continue anyway (NOT RECOMMENDED)
-3. Stop execution
-
-Choose [1/2/3]:
-```
+> See [error-handling.md](./execute-modules/error-handling.md) for failure scenarios and recovery strategies.
 
 ## Output Format
 

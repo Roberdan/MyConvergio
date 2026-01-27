@@ -1,3 +1,15 @@
+---
+name: security-audit
+description: OWASP-aligned security assessments with vulnerability analysis and remediation
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+context: fork
+user-invocable: true
+---
+
 # Security Audit Skill
 
 > Reusable workflow extracted from luca-security-expert expertise.

@@ -1,3 +1,16 @@
+---
+name: project-management
+description: Agile/Waterfall project planning, tracking, and delivery management
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Write
+  - Edit
+context: fork
+user-invocable: true
+---
+
 # Project Management Skill
 
 > Reusable workflow extracted from davide-project-manager expertise.

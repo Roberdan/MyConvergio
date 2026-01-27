@@ -1,3 +1,16 @@
+---
+name: performance
+description: Data-driven performance optimization through profiling and infrastructure tuning
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+  - Edit
+context: fork
+user-invocable: true
+---
+
 # Performance Optimization Skill
 
 > Reusable workflow extracted from otto-performance-optimizer expertise.

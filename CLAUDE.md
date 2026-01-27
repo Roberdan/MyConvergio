@@ -14,9 +14,9 @@
 3. **Minimum complexity**: Only what's requested. No over-engineering.
 4. **Complete execution**: Plan started = plan finished. No skipping tasks.
 5. **Proof required**: "done" needs evidence. User approves closure.
-6. **Max 250 lines/file**: Check before writing. Split if exceeds. No exceptions without approval.
+6. **Max 250 lines/file**: Check before writing. Split if exceeds. No exceptions.
 
-## Pre-Closure Checklist (MANDATORY before saying "done")
+## Pre-Closure Checklist (MANDATORY)
 ```bash
 git status --short              # Must be clean
 ls -la {files} && wc -l {files} # Verify existence + line counts
@@ -25,302 +25,98 @@ git log --oneline -3            # Show commits as proof
 **NEVER claim done with uncommitted changes or unverified files.**
 
 ## Dashboard
-- **URL**: http://localhost:31415
-- **Health**: GET /api/health
-- **DB**: ~/.claude/data/dashboard.db
+- **URL**: http://localhost:31415 | **DB**: ~/.claude/data/dashboard.db
 - **Reboot**: `cd ~/.claude/dashboard && node reboot.js`
-- **PM2**: `pm2 status` | `pm2 logs claude-dashboard`
-
-### Multi-Machine DB Sync
-Dashboard DB is local to each machine. Use `sync-dashboard-db.sh` to keep them aligned.
-
-**Config**: `~/.claude/config/sync-db.conf` (contains REMOTE_HOST - keep private)
-
-```bash
-# Commands (alias: dbsync)
-dbsync status              # Compare local vs remote DBs
-dbsync pull                # Remote → Local (sync completed plans)
-dbsync push                # Local → Remote (sync completed plans)
-dbsync copy-plan <id>      # Copy specific plan to remote
-dbsync copy-plan <id> pull # Copy specific plan from remote
-dbsync full-pull           # Replace local with remote (backup first)
-dbsync full-push           # Replace remote with local (backup first)
-```
-
-**When to sync**: After completing work on remote machine, run `dbsync pull` locally.
+- **Sync**: `dbsync status|pull|push` (multi-machine)
 
 ## Quick Scripts
 ```bash
-# Plan management
-~/.claude/scripts/plan-db.sh create {project} "Name"
-~/.claude/scripts/plan-db.sh add-wave {plan} "W1-DataIntegration" "Description"
-~/.claude/scripts/plan-db.sh add-task {wave_db_id} T1-01 "Task title" P1 feature
-~/.claude/scripts/plan-db.sh update-task {id} done "Summary"
-
-# Wave naming: use descriptive names (not just W1, W2)
-# Examples: W1-DataIntegration, W2-UIHarmonization, W3-APIDesign
+plan-db.sh create {project} "Name"
+plan-db.sh add-wave {plan} "W1-DataIntegration" "Description"
+plan-db.sh add-task {wave_db_id} T1-01 "Task title" P1 feature
+plan-db.sh update-task {id} done "Summary"
 ```
 
 ## Database Conventions
-- Tasks use `wave_id_fk` (numeric FK) for associations, NOT `wave_id` string
-- Direct SQL queries should use `wave_id_fk = {db_wave_id}` instead of `wave_id = 'W1'`
-- Use `~/.claude/scripts/plan-db.sh` for all DB operations (handles FK correctly)
+- Tasks use `wave_id_fk` (numeric FK), NOT `wave_id` string
+- Use `plan-db.sh` for all DB operations (handles FK correctly)
 
-## Worktree Discipline (MANDATORY for multi-worktree scenarios)
+## Worktree Discipline
+> **Full details**: `~/.claude/reference/operational/worktree-discipline.md`
 
-### Creating Worktrees
-**ALWAYS use the script** (never raw `git worktree add`):
-```bash
-~/.claude/scripts/worktree-create.sh <branch> [path]
-# Examples:
-worktree-create.sh feature/api-v2              # Auto-path: ../repo-api-v2
-worktree-create.sh fix/bug-123 ../myfix        # Custom path
-```
-The script automatically:
-- Creates worktree with proper branch
-- **Symlinks all .env* files** from main repo (no missing configs!)
-- Runs npm install if package.json exists
-
-### Before ANY git operation (commit, push, add, checkout):
-```bash
-~/.claude/scripts/worktree-check.sh [expected-worktree]  # Verify context first!
-```
-
-### Rules
-1. **Create via script**: Never `git worktree add` directly - use `worktree-create.sh`
-2. **.env = symlinks**: All worktrees share .env from main repo via symlinks
-3. **Know where you are**: Check pwd and branch before git operations
-4. **One worktree = one task**: Don't switch between worktrees mid-task
-5. **Clean before switch**: Commit or stash before changing worktree
-6. **Hook protection**: `worktree-guard.sh` warns on multi-worktree git ops
-
-**If confused**: Run `worktree-check.sh` to see full context.
+**Quick rules**: Always use `worktree-create.sh`, verify with `worktree-check.sh` before git ops.
 
 ## Workflow: Prompt → Plan → Execute → Verify (MANDATORY)
 
-**ENFORCEMENT**: This workflow is MANDATORY for all non-trivial tasks. Skipping steps is PROHIBITED.
-
-**Context pre-computed**: All slash commands (`/prompt`, `/planner`, `/execute`, `/prepare`) include inline bash that pre-computes project context (git status, branch, active plans). No need to query for basic context - it's already injected.
+**ENFORCEMENT**: This workflow is MANDATORY. Skipping steps is PROHIBITED.
 
 ### Step 1: /prompt (Requirements Extraction)
-- ALWAYS start with `/prompt` for new features/tasks
 - Extract ALL requirements as F-xx
-- User confirms requirements before proceeding
-- Output: F-xx table with acceptance criteria
+- User confirms before proceeding
 
 ### Step 2: /planner (Plan Creation)
-- Create plan with waves/tasks after /prompt approval
-- Register in DB: `plan-db.sh create`, `add-wave`, `add-task`
-- Each task linked to F-xx requirements
-- User approves plan before execution
+- Create plan with waves/tasks
+- Register in DB, user approves
 
-### Step 3: Start Execution (AUTO → IN FLIGHT)
+### Step 3: Execute (TDD Workflow)
 ```bash
-plan-db.sh start {plan_id}  # MANDATORY before first task
+plan-db.sh start {plan_id}  # MANDATORY first
 ```
-- Plan moves to status='doing' → visible as **IN FLIGHT** in dashboard
-- This step is AUTOMATIC when execution begins
+Use `/execute {plan_id}` for automated execution with task-executor.
 
-### Step 4: Execute Tasks (TDD Workflow)
-**Use `/execute {plan_id}`** - Automated execution of all tasks
+**TDD is MANDATORY**: Tests BEFORE implementation (RED → GREEN → REFACTOR).
 
-The executor will:
-1. Load all pending tasks from DB
-2. For each task: launch `task-executor` subagent with **TDD workflow**:
-   - **RED**: Write failing tests based on `test_criteria` from plan
-   - **GREEN**: Implement minimum code to pass tests
-   - **REFACTOR**: Clean up if needed
-3. After each wave: run Thor validation
-4. Report progress and completion
-
-**TDD is MANDATORY**: Every task has `test_criteria` defined by planner. Task-executor writes tests BEFORE implementation.
-
-Manual alternative (if needed):
-- `Task(subagent_type='task-executor')` for single task
-- `plan-db.sh update-task {id} done "Summary"` for manual updates
-
-### Step 5: Thor Validation (Per Wave)
+### Step 4: Thor Validation (Per Wave)
 ```bash
-~/.claude/scripts/plan-db.sh validate {plan_id}
-npm run lint && npm run typecheck && npm run build
-npm test  # TDD Gate: all tests must pass
+plan-db.sh validate {plan_id}
+npm run lint && npm run typecheck && npm run build && npm test
 ```
-- Wave is DONE only if: All tasks done + Thor PASS + Build PASS + **Tests PASS**
-- Thor verifies F-xx requirements with evidence
-- **Gate 8 (TDD)**: Test files exist, coverage ≥80% on new files, no regression
+Wave DONE only if: All tasks + Thor PASS + Build PASS + Tests PASS
 
-### Step 6: Closure (User Approval)
+### Step 5: Closure (User Approval)
 - List ALL F-xx with [x] or [ ] status
 - User must explicitly approve ("finito"/"done")
 - Agent CANNOT self-declare completion
 
-### Enforcement Rules
-- **Skip /prompt?** → BLOCKED: Return to step 1
-- **Skip /planner?** → BLOCKED: Cannot execute without plan
-- **Skip Thor?** → BLOCKED: Cannot close wave
-- **Self-declare done?** → REJECTED: User must approve
+### Enforcement
+- Skip /prompt? → BLOCKED
+- Skip /planner? → BLOCKED
+- Skip Thor? → BLOCKED
+- Self-declare done? → REJECTED
 
-## Execution Optimization (Token & Performance)
+## Optimization References
 
-### Context Isolation (50-70% Token Reduction)
+> **Detailed documentation** (read when needed):
 
-**Isolated Subagents** (FRESH session per invocation):
-- `task-executor` (v1.5.0): NO parent context, TDD workflow (tests first), modular
-- `thor-quality-assurance-guardian` (v3.3.0): Skeptical validation, Gate 8 TDD, modular
+| Topic | Reference |
+|-------|-----------|
+| Tool usage priorities | `~/.claude/reference/operational/tool-preferences.md` |
+| Token & performance | `~/.claude/reference/operational/execution-optimization.md` |
+| MCP alternatives | `~/.claude/reference/operational/external-services.md` |
+| Worktree workflow | `~/.claude/reference/operational/worktree-discipline.md` |
 
-**Benefits**:
-- Task executor: ~30K tokens/task (vs 50-100K with inherited context)
-- Thor: Unbiased validation (no assumptions from parent session)
-- Parallel execution: No context collision between concurrent tasks
+### Quick Tool Priority
+1. LSP (if available) → 2. Glob/Grep/Read/Edit → 3. Subagents → 4. Bash (git/npm only)
 
-**MCP Restrictions**:
-- `task-executor`: disables WebSearch/WebFetch (uses Read/Grep only)
-- Focus on codebase operations, not web research during execution
-
-### Token Tracking via API (MANDATORY for task-executor)
-
-```bash
-# Record token usage at task completion
-curl -s -X POST http://127.0.0.1:31415/api/tokens \
-  -H "Content-Type: application/json" \
-  -d '{
-    "project_id": "{project}",
-    "plan_id": {plan_id},
-    "wave_id": "{wave}",
-    "task_id": "{task}",
-    "agent": "task-executor",
-    "model": "{model}",
-    "input_tokens": {input},
-    "output_tokens": {output},
-    "cost_usd": {cost}
-  }'
-```
-
-**Tracking**: Tokens aggregated per task → wave → plan for accurate metrics in dashboard.
-
-### Model Escalation Strategy
-
-| Agent Type | Default | Escalation Rule |
-|------------|---------|-----------------|
-| Task Executor | haiku | → sonnet if >3 files or high complexity |
-| Coordinator (Standard) | sonnet | → opus if >3 concurrent tasks |
-| Coordinator (Max Parallel) | **opus** | Required for unlimited parallelization |
-| Validator (Thor) | sonnet | No escalation |
-
-### Parallelization Modes (User Choice)
-
-**Standard Mode** (default):
-- Max 3 concurrent task-executors
-- Sonnet coordination
-- Cost: $ moderate, Speed: ⚡⚡ normal
-
-**Max Parallel Mode** (optional):
-- Unlimited concurrent task-executors
-- **Opus coordination** (required)
-- Cost: $$$ high, Speed: ⚡⚡⚡⚡ (3-5x faster)
-- Use case: Urgent deadlines, large plans (10+ tasks)
-
-**Selection**: Planner asks user after plan approval, before execution starts.
-
-## Tool Preferences (Context Optimization)
-
-### Priority Order (fastest to slowest, least to most tokens)
-1. **LSP** (if available) → go-to-definition, find-references, hover for type info
-2. **Dedicated tools** → Glob, Grep, Read, Edit, Write
-3. **Subagents** → Explore for open-ended search, task-executor for plan tasks
-4. **Bash** → ONLY for git, npm, build commands
-
-### Tool Mapping
-| Task | Use | NOT |
-|------|-----|-----|
-| Find file by name | Glob | `find`, `ls` |
-| Search code content | Grep | `grep`, `rg` |
-| Read file | Read | `cat`, `head`, `tail` |
-| Edit file | Edit | `sed`, `awk` |
-| Create file | Write | `echo >`, `cat <<EOF` |
-| Navigate to definition | LSP go-to-definition | Grep for class/function |
-| Find all usages | LSP find-references | Grep for symbol |
-| Explore codebase | `Task(subagent_type='Explore')` | Multiple grep/glob |
-
-### LSP Usage (when available)
-```
-# Instead of: Grep for "class MyComponent" then Read file
-# Do: LSP go-to-definition on MyComponent usage
-
-# Instead of: Grep for all usages of a function
-# Do: LSP find-references on function name
-```
-
-### Parallel Execution
-- **ALWAYS** parallelize independent tool calls in single message
-- **ALWAYS** parallelize independent subagent launches
-- **NEVER** wait for result if not needed for next call
-- Example: Read 3 files → single message with 3 Read calls
-
-### Subagent Routing
-| Scenario | Subagent |
-|----------|----------|
-| Open-ended codebase exploration | `Explore` (quick/medium/thorough) |
+### Quick Subagent Routing
+| Task | Use |
+|------|-----|
+| Explore codebase | `Explore` |
 | Execute plan task | `task-executor` |
-| Create execution plan | `strategic-planner` |
 | Quality validation | `thor-quality-assurance-guardian` |
-| Multi-step research | `general-purpose` |
-
-### External Services (MCP Alternative)
-**Context Savings**: Disabling MCP servers saves **21.4k tokens (10.7%)**
-
-| Service | CLI/API | Helper Script | MCP Overhead |
-|---------|---------|---------------|--------------|
-| Grafana | HTTP API + `grr` | `~/.claude/scripts/grafana-helper.sh` | 13.8k tokens |
-| Supabase | `supabase` CLI | `~/.claude/scripts/supabase-helper.sh` | 5.0k tokens |
-| Vercel | `vercel` CLI | `~/.claude/scripts/vercel-helper.sh` | 2.6k tokens |
-
-**Usage**:
-```bash
-# Grafana operations
-grafana-helper.sh dashboards
-grafana-helper.sh dashboard <uid>
-grafana-helper.sh datasources
-
-# Supabase operations
-supabase-helper.sh projects
-supabase-helper.sh migrate <name>
-supabase-helper.sh deploy <function>
-
-# Vercel operations
-vercel-helper.sh deployments
-vercel-helper.sh deploy --prod
-vercel-helper.sh logs
-```
-
-**MCP Configuration**: To disable MCP servers and save tokens, configure in Claude Code settings or add to config:
-```json
-{
-  "mcpServers": {
-    "grafana": { "disabled": true },
-    "supabase": { "disabled": true },
-    "vercel": { "disabled": true }
-  }
-}
-```
 
 ## Repo Knowledge
 ```bash
-# Generate context for new repo
-~/.claude/scripts/repo-index.sh
-
-# Quick repo summary
-repo-info   # (after source ~/.claude/shell-aliases.sh)
+~/.claude/scripts/repo-index.sh  # Generate context
+repo-info                        # Quick summary
 ```
-Generated files in `.claude/`: `repo-info.md`, `symbols.txt`, `entry-points.md`
 
 ## Rules Reference
-Supplementary rules in `~/.claude/rules/` (core rules are HERE in CLAUDE.md):
-- `execution.md` - PR rules, git conventions, verification definitions
-- `guardian.md` - Thor enforcement, F-xx requirements, dispute protocol
-- `agent-discovery.md` - Agent routing for specialists
+Supplementary rules in `~/.claude/rules/`:
+- `execution.md` - PR rules, git, verification
+- `guardian.md` - Thor enforcement, F-xx, disputes
+- `agent-discovery.md` - Agent routing
 - `engineering-standards.md` - Code style, security, testing
 
-## Extended Agents (via agent-discovery.md)
+## Extended Agents
 Technical: baccio, dario, marco, otto, rex, luca | Leadership: ali, amy, antonio, dan
-All at: ~/GitHub/MyConvergio/agents/

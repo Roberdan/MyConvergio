@@ -6,8 +6,11 @@
     "BASH_DEFAULT_TIMEOUT_MS": "60000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "NODE_OPTIONS": "--max-old-space-size=16384",
-    "UV_THREADPOOL_SIZE": "12"
+    "UV_THREADPOOL_SIZE": "12",
+    "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1"
   },
+  "language": "italian",
+  "plansDirectory": "~/.claude/plans",
   "permissions": {
     "allow": [],
     "deny": [],

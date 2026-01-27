@@ -1,3 +1,16 @@
+---
+name: debugging
+description: Scientific bug investigation with root cause analysis and evidence-based diagnosis
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+  - Edit
+context: fork
+user-invocable: true
+---
+
 # Debugging Skill
 
 > Reusable workflow extracted from dario-debugger expertise.

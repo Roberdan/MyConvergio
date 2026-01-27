@@ -1,3 +1,15 @@
+---
+name: strategic-analysis
+description: McKinsey-level strategic analysis with MECE frameworks and quantitative prioritization
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - WebSearch
+context: fork
+user-invocable: true
+---
+
 # Strategic Analysis Skill
 
 > Reusable workflow extracted from domik-mckinsey-strategic-decision-maker expertise.

@@ -1,3 +1,15 @@
+---
+name: code-review
+description: Comprehensive code review with security, patterns, and quality focus
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+context: fork
+user-invocable: true
+---
+
 # Code Review Skill
 
 > Reusable workflow extracted from rex-code-reviewer expertise.

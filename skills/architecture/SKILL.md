@@ -1,3 +1,15 @@
+---
+name: architecture
+description: Design scalable system architectures using DDD, Clean Architecture, cloud-native patterns
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - WebSearch
+context: fork
+user-invocable: true
+---
+
 # Architecture Design Skill
 
 > Reusable workflow extracted from baccio-tech-architect expertise.

@@ -1,3 +1,16 @@
+---
+name: orchestration
+description: Parallel execution using multiple Claude instances in Kitty terminal
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+  - Task
+context: fork
+user-invocable: true
+---
+
 # Multi-Claude Parallel Orchestration Skill
 
 ## Overview

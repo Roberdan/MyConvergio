@@ -19,3 +19,7 @@ Keywords → Match agent domain → Use specialist → Ambiguous? Ask user
 
 ## Skills
 Path: MyConvergio skills (plugin dir or `$MYCONVERGIO_HOME/skills/`) - architecture, code-review, debugging, performance, security-audit
+
+## Maturity
+Agents/skills follow lifecycle: `experimental → preview → stable → deprecated`
+Details: `~/.claude/rules/maturity-lifecycle.md`. Prefer `stable` agents for routing.

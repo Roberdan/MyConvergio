@@ -6,13 +6,15 @@ Supplementary rules auto-loaded on every Claude session. Core rules are in `~/.c
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| execution.md | 34 | PR rules, git, verification definitions |
+| execution.md | 42 | PR rules, git, verification, phase isolation |
 | guardian.md | 41 | Thor enforcement, F-xx, dispute protocol |
-| agent-discovery.md | 22 | Agent routing |
+| agent-discovery.md | 25 | Agent routing + maturity lifecycle |
 | engineering-standards.md | 35 | Code/security/testing |
-| file-size-limits.md | 24 | Max 250 lines/file |
+| file-size-limits.md | 24 | Max 250 lines/file enforcement |
+| filetype-instructions.md | 64 | Context-aware conventions per file type |
+| maturity-lifecycle.md | 40 | Agent/skill lifecycle stages |
 
-**Total**: ~156 lines (~390 tokens)
+**Total**: ~271 lines (~680 tokens)
 
 ## Hierarchy
 

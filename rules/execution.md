@@ -31,3 +31,12 @@ Branch: feature/, fix/, chore/. PRs for review. Conventional commits.
 
 ## Quality Gates
 Lint, typecheck, test before commit. No secrets in code. Fix problems when seen.
+
+## Phase Isolation
+Each workflow phase uses fresh context. Pass data via files/DB, not conversation:
+- `/prompt` → writes F-xx document
+- `/research` → writes research document to `.copilot-tracking/research/`
+- `/planner` → writes plan to DB + file
+- `/execute` → task-executor runs in isolated subagent
+- Thor → always fresh context (context_isolation: true)
+Never carry accumulated context between phases. Start fresh, read artifacts.

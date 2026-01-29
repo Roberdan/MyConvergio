@@ -1,6 +1,6 @@
-# Agent Discovery
+# Agent Discovery & Maturity
 
-Route: MyConvergio agents (plugin dir or `$MYCONVERGIO_HOME/agents/`) first, fallback `~/.claude/agents/`.
+Route: MyConvergio agents first (`$MYCONVERGIO_HOME/agents/`), fallback `~/.claude/agents/`.
 
 ## Agents by Domain
 - **Technical**: baccio (architect), dario (debug), marco (devops), otto (perf), rex (review), luca (security)
@@ -11,15 +11,18 @@ Route: MyConvergio agents (plugin dir or `$MYCONVERGIO_HOME/agents/`) first, fal
 - **Core**: socrates (reasoning), strategic-planner, thor (qa), marcus (memory)
 
 ## Routing
-Keywords → Match agent domain → Use specialist → Ambiguous? Ask user
-
-## Delegation Rules
-**Delegate when**: Specialized expertise needed | Parallel workstreams | Fresh context needed
-**Don't delegate**: Simple tasks | No clear benefit | Overhead > value
+Keywords → Match domain → Use specialist → Ambiguous? Ask user
+**Delegate when**: Specialist needed | Parallel work | Fresh context
+**Don't delegate**: Simple tasks | Overhead > value
 
 ## Skills
-Path: MyConvergio skills (plugin dir or `$MYCONVERGIO_HOME/skills/`) - architecture, code-review, debugging, performance, security-audit
+Path: `$MYCONVERGIO_HOME/skills/` — architecture, code-review, debugging, performance, security-audit
 
-## Maturity
-Agents/skills follow lifecycle: `experimental → preview → stable → deprecated`
-Details: `~/.claude/rules/maturity-lifecycle.md`. Prefer `stable` agents for routing.
+## Maturity Lifecycle
+`experimental → preview → stable → deprecated`. Prefer `stable`. New = `experimental`.
+
+**Stable agents**: strategic-planner, thor, task-executor, marcus, socrates, wanda, xavier
+**Preview agents**: diana, po, taskmaster, app-release-manager
+**Stable skills**: architecture, code-review, debugging, security-audit
+**Preview skills**: performance, orchestration
+**Deprecated**: strategic-analysis, project-management (in `.disabled/`)

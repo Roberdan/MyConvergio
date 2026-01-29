@@ -48,55 +48,15 @@ plan-db.sh update-task {id} done "Summary"
 
 ## Workflow: Prompt → Plan → Execute → Verify (MANDATORY)
 
-**ENFORCEMENT**: This workflow is MANDATORY. Skipping steps is PROHIBITED.
+1. `/prompt` → Extract F-xx requirements, user confirms
+2. `/research` (optional) → Research doc at `.copilot-tracking/research/`
+3. `/planner` → Waves/tasks in DB, user approves
+4. `plan-db.sh start {id}` → `/execute {id}` (TDD: RED→GREEN→REFACTOR)
+5. Thor validation per wave → `plan-db.sh validate {id}` + build + tests
+6. Closure → All F-xx with [x]/[ ], user approves ("finito")
 
-### Step 1: /prompt (Requirements Extraction)
-- Extract ALL requirements as F-xx
-- User confirms before proceeding
-
-### Step 1.5: /research (Investigation) — Optional but Recommended
-- Produce research document at `.copilot-tracking/research/`
-- Investigate codebase, APIs, alternatives BEFORE planning
-- Output = file artifact, not context (enables phase isolation)
-
-### Step 2: /planner (Plan Creation)
-- Consumes research document if available
-- Create plan with waves/tasks
-- Register in DB, user approves
-
-### Step 3: Execute (TDD Workflow)
-```bash
-plan-db.sh start {plan_id}  # MANDATORY first
-```
-Use `/execute {plan_id}` for automated execution with task-executor.
-
-**TDD is MANDATORY**: Tests BEFORE implementation (RED → GREEN → REFACTOR).
-
-### Step 4: Thor Validation (Per Wave)
-```bash
-plan-db.sh validate {plan_id}
-npm run lint && npm run typecheck && npm run build && npm test
-```
-Wave DONE only if: All tasks + Thor PASS + Build PASS + Tests PASS
-
-### Step 5: Closure (User Approval)
-- List ALL F-xx with [x] or [ ] status
-- User must explicitly approve ("finito"/"done")
-- Agent CANNOT self-declare completion
-
-### Phase Isolation (Context Clearing)
-Each phase MUST use fresh context. Outputs are files/DB, not conversation context:
-- `/prompt` output → F-xx document (file)
-- `/research` output → research document (file)
-- `/planner` output → plan in DB + file
-- `/execute` → fresh subagent per task (already enforced)
-- Thor → always context-isolated (already enforced)
-
-### Enforcement
-- Skip /prompt? → BLOCKED
-- Skip /planner? → BLOCKED
-- Skip Thor? → BLOCKED
-- Self-declare done? → REJECTED
+**Skip any step → BLOCKED. Self-declare done → REJECTED.**
+Phase isolation: each phase uses fresh context, data via files/DB only.
 
 ## Optimization References
 
@@ -126,48 +86,13 @@ Each phase MUST use fresh context. Outputs are files/DB, not conversation contex
 repo-info                        # Quick summary
 ```
 
-## Rules Reference
-Supplementary rules in `~/.claude/rules/`:
-- `execution.md` - PR rules, git, verification, phase isolation
-- `guardian.md` - Thor enforcement, F-xx, disputes
-- `agent-discovery.md` - Agent routing + maturity lifecycle
-- `engineering-standards.md` - Code style, security, testing
-- `filetype-instructions.md` - Context-aware conventions per file type
-- `maturity-lifecycle.md` - Agent/skill lifecycle stages
-
 ## Extended Agents
 Technical: baccio, dario, marco, otto, rex, luca | Leadership: ali, amy, antonio, dan
 
 <!-- CODEGRAPH_START -->
 ## CodeGraph
 
-CodeGraph builds a semantic knowledge graph of codebases for faster, smarter code exploration.
+If `.codegraph/` exists: use `codegraph_search`, `codegraph_context`, `codegraph_callers`, `codegraph_callees`, `codegraph_impact`, `codegraph_node` for fast code exploration. Tell Explore agents to use codegraph tools.
 
-### If `.codegraph/` exists in the project
-
-**Use codegraph tools for faster exploration.** These tools provide instant lookups via the code graph instead of scanning files:
-
-| Tool | Use For |
-|------|---------|
-| `codegraph_search` | Find symbols by name (functions, classes, types) |
-| `codegraph_context` | Get relevant code context for a task |
-| `codegraph_callers` | Find what calls a function |
-| `codegraph_callees` | Find what a function calls |
-| `codegraph_impact` | See what's affected by changing a symbol |
-| `codegraph_node` | Get details + source code for a symbol |
-
-**When spawning Explore agents in a codegraph-enabled project:**
-
-Tell the Explore agent to use codegraph tools for faster exploration.
-
-**For quick lookups in the main session:**
-- Use `codegraph_search` instead of grep for finding symbols
-- Use `codegraph_callers`/`codegraph_callees` to trace code flow
-- Use `codegraph_impact` before making changes to see what's affected
-
-### If `.codegraph/` does NOT exist
-
-At the start of a session, ask the user if they'd like to initialize CodeGraph:
-
-"I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
+If `.codegraph/` doesn't exist: ask user to run `codegraph init -i`.
 <!-- CODEGRAPH_END -->

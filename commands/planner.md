@@ -40,6 +40,23 @@ plan-db.sh create {project_id} "{PlanName}" \
   --markdown-path "$PLAN_MD"
 ```
 
+### 1.5 Technical Clarification (MANDATORY before plan)
+
+After reading the prompt file, STOP. Identify technical ambiguities. Use AskUserQuestion.
+
+**Always ask:**
+1. **Approach**: "Per F-xx propongo [approccio]. Alternative: [B, C]. Preferenze?"
+2. **File scope**: "I file coinvolti: [list]. Altri da toccare? Qualcuno da NON toccare?"
+3. **Constraints**: "Breaking changes ok? Nuove dipendenze? Vincoli tecnici?"
+
+**Ask if complex:**
+- Test strategy (unit vs integration vs e2e)
+- Migration/backwards compatibility needs
+- Performance requirements
+
+**Rule**: If writing a task description requires GUESSING about implementation → STOP and ASK.
+User answers all questions → proceed to plan creation.
+
 ### 2. Plan File (`~/.claude/plans/{project}/{PlanName}-Main.md`)
 ```markdown
 # Piano: {Name}

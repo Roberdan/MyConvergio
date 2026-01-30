@@ -13,9 +13,31 @@ Recent work: `git log --oneline -3 2>/dev/null || echo "no commits"`
 ## Activation
 When message starts with `/prompt`.
 
+## Phase 0: Clarification Gate (MANDATORY - before ANY F-xx extraction)
+
+After reading user input, STOP. Identify ambiguities and gaps. Use AskUserQuestion to clarify.
+
+**Always ask (no exceptions):**
+1. **Scope**: "Cosa e' incluso? Cosa e' escluso? Cosa NON deve cambiare?"
+2. **Negative requirements**: "C'e' qualcosa che NON deve succedere o che vuoi evitare?"
+3. **Edge cases**: If you see ambiguity, ask about the specific scenario
+4. **Priority**: If requirements could conflict, ask which wins
+
+**Ask if relevant:**
+- Target users/environment
+- Performance/quality constraints
+- Dependencies on other features
+- Existing behavior to preserve vs change
+
+**Rules:**
+- If you're about to write an F-xx and you're GUESSING what the user means: STOP and ASK
+- Minimum 1 round of clarification before F-xx extraction
+- User answers → proceed. User says "tutto chiaro" → proceed.
+- NEVER fill in gaps with assumptions. Ask or mark as TBD.
+
 ## CRITICAL: Capture ALL Requirements
 
-1. Read user input multiple times
+1. Read user input + clarification answers
 2. Extract EVERY requirement (explicit + implicit) as F-xx
 3. Use EXACT user words in quotes - NEVER paraphrase
 4. Ask: "Ho catturato tutto? Manca qualcosa?"

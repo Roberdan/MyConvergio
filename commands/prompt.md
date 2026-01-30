@@ -55,9 +55,24 @@ User: "Voglio un bottone rosso per esportare CSV con tutti i campi"
 - User confirms
 ```
 
+## File Output (MANDATORY)
+
+**MUST** save the full output to `.copilot-tracking/prompt-{NNN}.md` where NNN is the next available number.
+
+```bash
+# Find next number
+NEXT=$(ls .copilot-tracking/prompt-*.md 2>/dev/null | wc -l | tr -d ' ')
+NEXT=$((NEXT + 1))
+PROMPT_FILE=".copilot-tracking/prompt-$(printf '%03d' $NEXT).md"
+```
+
+Save the complete output (Objective, F-xx table, Scope, etc.) to this file.
+
+**Pipeline link**: Acceptance Criteria in the F-xx table become `--test-criteria` in the planner DB registration. Write them as verifiable checks (e.g., "build succeeds", "npm run lint passes", "page renders at /path").
+
 ## Rules
-- NEVER skip requirement - if user said it → F-xx
+- NEVER skip requirement - if user said it -> F-xx
 - NEVER paraphrase - EXACT words
 - NEVER assume - if unclear, ASK
 - After output: "Manca qualcosa?"
-- User confirms → "Procedere alla pianificazione? (yes/no)"
+- User confirms -> "Procedere alla pianificazione? (yes/no)"

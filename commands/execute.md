@@ -41,9 +41,11 @@ sqlite3 ~/.claude/data/dashboard.db \
 # If status != 'doing', start it
 plan-db.sh start $PLAN_ID
 
-# CRITICAL: Read the plan markdown file (contains root cause analysis, F-xx, wave details)
+# CRITICAL: Read plan markdown + source prompt paths
 PLAN_MARKDOWN_PATH=$(sqlite3 ~/.claude/data/dashboard.db \
   "SELECT markdown_path FROM plans WHERE id=$PLAN_ID;")
+SOURCE_FILE=$(sqlite3 ~/.claude/data/dashboard.db \
+  "SELECT source_file FROM plans WHERE id=$PLAN_ID;")
 if [ -n "$PLAN_MARKDOWN_PATH" ] && [ -f "$PLAN_MARKDOWN_PATH" ]; then
   PLAN_CONTENT=$(cat "$PLAN_MARKDOWN_PATH")
 else
@@ -125,43 +127,45 @@ CRITICAL: You are a FRESH session. Do NOT reference previous tasks or files from
 });
 
 // 3. MANDATORY: Verify task updated in DB
-// Run verification script AFTER every task-executor returns
-await Bash({
-  command: `~/.claude/scripts/verify-task-update.sh ${task.db_id} done`
-});
-// If verify fails (exit 1), task-executor forgot to update DB
-// → Log warning and force update OR retry task
-
-const status = await checkTaskStatus(task.db_id);
-if (status !== 'done') {
-  console.log(`⚠️ Task ${task.task_id} NOT updated in DB (status: ${status})`);
-  console.log(`→ Executor forgot DB update. Forcing update...`);
-  // Force update if task actually completed (based on executor report)
-  // OR retry the task if unclear
-}
-
-// 4. Check if wave completed
-const waveComplete = await checkWaveComplete(task.wave_db_id);
-if (waveComplete) {
-  console.log(`Wave ${task.wave_id} completed - Running Thor validation`);
-  await runThorValidation(plan_id);
-}
+Bash(`~/.claude/scripts/verify-task-update.sh ${task.db_id} done`);
+// If exit 1: force update via plan-db.sh update-task {db_id} done "Forced"
 ```
 
-### Phase 4: Wave Completion Check
+### Phase 4: Wave Completion + Thor Validation
 
-After each task, check if wave is complete:
+After each task, check wave completion and launch Thor:
 
 ```bash
-# Check wave completion
+# 1. Check wave completion
 WAVE_STATUS=$(sqlite3 ~/.claude/data/dashboard.db \
   "SELECT tasks_done = tasks_total FROM waves WHERE id=$WAVE_DB_ID;")
+```
 
-if [ "$WAVE_STATUS" = "1" ]; then
-  echo "Wave complete - Thor validation required"
-  plan-db.sh validate $PLAN_ID
-  npm run lint && npm run typecheck && npm run build
-fi
+If `WAVE_STATUS = 1` (wave complete), launch Thor as subagent:
+
+```
+Task(
+  subagent_type="thor-quality-assurance-guardian",
+  model="sonnet",
+  description="Thor validates Wave WX",
+  prompt="THOR VALIDATION SESSION
+  Plan ID: {PLAN_ID}
+  Wave: {wave_id} (db_id: {WAVE_DB_ID})
+  Plan Markdown: {PLAN_MARKDOWN_PATH}
+  Source Prompt: {SOURCE_FILE}
+  WORKTREE: {WORKTREE_PATH}
+  F-xx Requirements: [extract from plan markdown]
+
+  Validate this wave. Read the plan markdown for F-xx and task specs."
+)
+```
+
+After Thor returns:
+```bash
+# Only on Thor PASS:
+plan-db.sh validate $PLAN_ID
+npm run ci:summary  # lint+typecheck+build
+# On Thor FAIL: fix issues, re-launch Thor (max 3 iterations)
 ```
 
 ### Phase 5: Plan Completion

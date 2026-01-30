@@ -33,7 +33,11 @@ Active plans: `sqlite3 ~/.claude/data/dashboard.db "SELECT id, name, status FROM
 ```bash
 WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 ~/.claude/scripts/worktree-check.sh "$WORKTREE_PATH"
-plan-db.sh create {project_id} "{PlanName}"
+PROMPT_FILE=".copilot-tracking/prompt-{NNN}.md"
+PLAN_MD="~/.claude/plans/{project}/{PlanName}-Main.md"
+plan-db.sh create {project_id} "{PlanName}" \
+  --source-file "$PROMPT_FILE" \
+  --markdown-path "$PLAN_MD"
 ```
 
 ### 2. Plan File (`~/.claude/plans/{project}/{PlanName}-Main.md`)
@@ -60,10 +64,21 @@ plan-db.sh create {project_id} "{PlanName}"
 ```
 
 ### 3. Register in DB
+
+**MANDATORY**: For EVERY task, extract acceptance criteria from the prompt file and set `--test-criteria`. The `--description` MUST contain what to do, which files to touch, and the F-xx reference.
+
 ```bash
 plan-db.sh add-wave {plan_id} "W1" "Phase"
-plan-db.sh add-task {db_wave_id} T1-01 "Desc" P1 feature --model sonnet
+plan-db.sh add-task {db_wave_id} T1-01 "Fix i18n loading" P1 feature \
+  --model sonnet \
+  --description "Change Object.assign to namespace-scoped in src/i18n/request.ts. See F-03." \
+  --test-criteria '{"verify":["npm run i18n:check passes","0 ESLint i18n warnings","build succeeds"]}'
 ```
+
+Rules:
+- `--description`: what + which files + F-xx ref (one sentence)
+- `--test-criteria`: JSON array of verifiable checks from prompt acceptance criteria
+- Missing test_criteria = Thor cannot validate = pipeline broken
 
 ### 4. User Approval (MANDATORY STOP)
 Present F-xx list → User says "si"/"yes" → Proceed
@@ -94,17 +109,27 @@ await Task({
 
 ### 8. Thor Validation (per wave) - MANDATORY
 
-```typescript
-Task({
-  subagent_type: "thor-quality-assurance-guardian",
-  prompt: `Validate Wave {wave} for Plan {plan_id}.
-  F-xx requirements: [list]
-  VERIFY: code exists, git diff shows changes, no regressions`
-});
+```
+Task(
+  subagent_type="thor-quality-assurance-guardian",
+  model="sonnet",
+  description="Thor validates Wave WX",
+  prompt="THOR VALIDATION SESSION
+  Plan ID: {plan_id}
+  Wave: {wave_id}
+  Plan Markdown: {PLAN_MD}
+  Source Prompt: {PROMPT_FILE}
+  WORKTREE: {WORKTREE_PATH}
+  F-xx Requirements: [list from plan markdown]
 
-// Only after Thor passes:
-npm run lint && npm run typecheck && npm run build
+  Validate this wave. Read plan markdown for F-xx and task specs."
+)
+```
+
+After Thor PASS:
+```bash
 plan-db.sh validate {plan_id}
+npm run ci:summary
 ```
 
 **Rules**: NEVER skip Thor. NEVER trust executor reports. Thor reads files directly.

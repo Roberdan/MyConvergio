@@ -4,32 +4,33 @@ Reference file for planner.md. Contains templates, integrity rules, and model st
 
 ---
 
-## Model Strategy (Cost Optimization)
+## Model Strategy (Cost-of-Failure Optimization)
 
-| Phase | Model | Escalation | Rationale |
-|-------|-------|------------|-----------|
-| Planning | **opus** | - | Complex reasoning, architecture (PINNED) |
-| Execution | **haiku** | → sonnet | Fast, cheap for simple tasks |
-| Validation | sonnet | - | Quality checks, F-xx verification |
-| Thor | sonnet | - | ISE compliance, thorough review |
+| Phase | Model | Rationale |
+|-------|-------|-----------|
+| Planning | **opus** | Complex reasoning, architecture (PINNED) |
+| Execution | **sonnet** (default), **opus** when reasoning needed | See decision tree below |
+| Validation | sonnet | Quality checks, F-xx verification |
+| Thor | sonnet | ISE compliance, thorough review |
 
-**Cost optimization**: Haiku for task-executor reduces token costs by ~80% vs opus.
+**Full reference**: [model-strategy.md](../commands/planner-modules/model-strategy.md)
 
 **Model Annotation per Task** (MANDATORY):
 ```markdown
 | Task | Description | F-xx | Model | Status |
 |------|-------------|------|-------|--------|
-| T1-01 | Simple fix | F-01 | haiku | pending |
-| T1-02 | Complex refactor | F-02 | sonnet | pending |
-| T1-03 | Architecture | F-03 | opus | pending |
+| T1-01 | Fix typo in header | F-01 | haiku | pending |
+| T1-02 | Add API endpoint (existing pattern) | F-02 | sonnet | pending |
+| T1-03 | Integrate payment + notification services | F-03 | opus | pending |
 ```
 
-**Escalation Criteria (haiku → sonnet)**:
-- Task involves >3 files
-- Architecture/refactoring decisions
-- Complex error debugging
-- Multi-step reasoning required
-- Task failed once with haiku
+**Decision tree**:
+- String/constant/config only, 1 file → `haiku`
+- Clear requirements, existing pattern, 1-3 files → `sonnet`
+- Reasoning needed, ambiguous, 4+ files, no pattern → `opus`
+
+**Principle**: Pick based on cost of getting it wrong, not cost of the call.
+One failed retry costs more than the model upgrade.
 
 ---
 

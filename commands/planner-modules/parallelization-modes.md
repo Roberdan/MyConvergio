@@ -17,7 +17,7 @@ Quale modalità preferisci?
 |---------|-------|
 | Concurrency | Max 3 task-executor |
 | Coordinator | Sonnet |
-| Task Model | Haiku (→ Sonnet se complesso) |
+| Task Model | Sonnet (default), Haiku solo triviali |
 | Cost | $ moderato |
 | Speed | ⚡⚡ normale |
 
@@ -32,7 +32,7 @@ Quale modalità preferisci?
 |---------|-------|
 | Concurrency | Unlimited |
 | Coordinator | **OPUS** (required) |
-| Task Model | Haiku (→ Sonnet se complesso) |
+| Task Model | Sonnet (default), Haiku solo triviali |
 | Cost | $$$ elevato |
 | Speed | ⚡⚡⚡⚡ (3-5x faster) |
 

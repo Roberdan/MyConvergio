@@ -27,7 +27,7 @@ curl -s -X POST http://127.0.0.1:31415/api/tokens \
 
 | Agent Type | Default | Escalation Rule |
 |------------|---------|-----------------|
-| Task Executor | haiku | → sonnet if >3 files or high complexity |
+| Task Executor | sonnet | → opus if cross-cutting or architectural |
 | Coordinator (Standard) | sonnet | → opus if >3 concurrent tasks |
 | Coordinator (Max Parallel) | **opus** | Required for unlimited parallelization |
 | Validator (Thor) | sonnet | No escalation |

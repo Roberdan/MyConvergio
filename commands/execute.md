@@ -74,7 +74,7 @@ console.log(`Executing: ${task.task_id} - ${task.title}`);
 // Model comes from planner (stored in DB) - NOT derived from priority
 await Task({
   subagent_type: "task-executor",
-  model: task.model || 'haiku',  // Use planner-specified model (haiku|sonnet|opus)
+  model: task.model || 'sonnet',  // Use planner-specified model (haiku|sonnet|opus), default sonnet
   description: `Execute task ${task.task_id}`,
   prompt: `
 TASK EXECUTION (Isolated Session - Start Fresh)

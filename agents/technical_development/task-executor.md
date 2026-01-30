@@ -4,7 +4,7 @@ description: Specialized executor for plan tasks. TDD workflow, F-xx verificatio
 tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task"]
 disallowedTools: ["WebSearch", "WebFetch"]
 color: "#10b981"
-model: haiku
+model: sonnet
 version: "1.5.0"
 context_isolation: true
 ---

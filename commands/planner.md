@@ -52,7 +52,7 @@ plan-db.sh create {project_id} "{PlanName}"
 ## WAVES
 | Task | Description | F-xx | Model | Status |
 |------|-------------|------|-------|--------|
-| T1-01 | [task] | F-01 | haiku | pending |
+| T1-01 | [task] | F-01 | sonnet | pending |
 
 ## LEARNINGS LOG
 | Wave | Issue | Root Cause | Resolution | Preventive Rule |
@@ -62,7 +62,7 @@ plan-db.sh create {project_id} "{PlanName}"
 ### 3. Register in DB
 ```bash
 plan-db.sh add-wave {plan_id} "W1" "Phase"
-plan-db.sh add-task {db_wave_id} T1-01 "Desc" P1 feature --model haiku
+plan-db.sh add-task {db_wave_id} T1-01 "Desc" P1 feature --model sonnet
 ```
 
 ### 4. User Approval (MANDATORY STOP)

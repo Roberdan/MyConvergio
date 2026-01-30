@@ -118,7 +118,7 @@ cmd_add_task() {
     local title="$3"
     shift 3
 
-    local priority="P1" type="feature" assignee="" test_criteria="" model="haiku"
+    local priority="P1" type="feature" assignee="" test_criteria="" model="sonnet"
 
     set +u
     while [[ $# -gt 0 ]]; do

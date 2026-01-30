@@ -93,8 +93,9 @@ Kept:
 ### 5. Model Selection
 
 Agents already optimized with appropriate models:
-- `haiku` - rex, dario, otto, paolo, marco, feature-release-manager
-- `sonnet` - thor, baccio, app-release-manager
+- `haiku` - Only trivial tasks (typo/config/constant changes)
+- `sonnet` - Default for execution: rex, dario, otto, paolo, marco, task-executor, thor, baccio
+- `opus` - Planning, architecture, complex debugging
 
 ---
 

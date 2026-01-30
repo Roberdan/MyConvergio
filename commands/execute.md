@@ -27,6 +27,9 @@ When message contains `/execute {plan_id}` or `/execute` (uses current plan).
 ### Phase 1: Initialize
 
 ```bash
+# CRITICAL: Ensure scripts are in PATH for this session
+export PATH="$HOME/.claude/scripts:$PATH"
+
 # CRITICAL: Verify and capture worktree FIRST
 WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 ~/.claude/scripts/worktree-check.sh "$WORKTREE_PATH"
@@ -113,9 +116,10 @@ Test Criteria: ${task.test_criteria}  // MUST exist - check-readiness enforces t
 ${PLAN_CONTENT}
 
 Requirements:
-1. **VERIFY WORKTREE FIRST**: Run 'cd ${WORKTREE_PATH}' before ANY operation
-2. **READ THE PLAN CONTEXT ABOVE** - it contains root cause analysis, F-xx requirements, and detailed task specs
-3. Mark as in_progress via plan-db.sh
+1. **PATH SETUP**: Run 'export PATH="$HOME/.claude/scripts:$PATH"' FIRST
+2. **VERIFY WORKTREE FIRST**: Run 'cd ${WORKTREE_PATH}' before ANY operation
+3. **READ THE PLAN CONTEXT ABOVE** - it contains root cause analysis, F-xx requirements, and detailed task specs
+4. Mark as in_progress via plan-db.sh
 4. Execute the work per task title AND plan context
 5. Test and verify against F-xx criteria
 6. Track tokens via POST /api/tokens
@@ -160,6 +164,7 @@ Task(
   model="sonnet",
   description="Thor validates Wave WX",
   prompt="THOR VALIDATION SESSION
+  FIRST: Run 'export PATH=$HOME/.claude/scripts:$PATH' before any command.
   Plan ID: {PLAN_ID}
   Wave: {wave_id} (db_id: {WAVE_DB_ID})
   Plan Markdown: {PLAN_MARKDOWN_PATH}

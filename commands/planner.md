@@ -31,6 +31,7 @@ Active plans: `sqlite3 ~/.claude/data/dashboard.db "SELECT id, name, status FROM
 
 ### 1. Setup
 ```bash
+export PATH="$HOME/.claude/scripts:$PATH"
 WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 ~/.claude/scripts/worktree-check.sh "$WORKTREE_PATH"
 PROMPT_FILE=".copilot-tracking/prompt-{NNN}.md"

@@ -1,59 +1,41 @@
 # Execution Error Handling
 
-## Task Failed/Blocked
+## Task Failure (executor owns retry)
 
-```
-Task ${task_id} failed or blocked.
-Status: ${status}
-Notes: ${notes}
+1. Task-executor returns → `verify-task-update.sh` checks DB
+2. If task NOT done: retry with error context (max 2 retries)
+3. After 2 retries: mark task `blocked`, ASK USER via AskUserQuestion
+4. User options: different approach, skip, stop
 
-Options:
-1. Skip and continue (mark skipped)
-2. Retry task
-3. Stop execution
+## Thor Rejection (executor owns dispute loop)
 
-Choose [1/2/3]:
-```
+1. Thor returns structured THOR_REJECT (failed_tasks, evidence, fixes)
+2. Executor launches targeted task-executor per failed item
+3. Re-launches Thor (max 3 rounds total)
+4. After round 3 still REJECT: ESCALATE to user with full context
 
-## Build Failed
+## Build Failure
 
-```
-Thor validation FAILED after wave ${wave_id}
-
-Errors:
-${build_errors}
-
-Options:
-1. Fix and retry wave
-2. Continue anyway (NOT RECOMMENDED)
-3. Stop execution
-
-Choose [1/2/3]:
-```
-
-## Thor Validation Failure
-
-**If Thor Fails**:
-1. DO NOT proceed to next wave
-2. Identify which F-xx failed
-3. Re-execute failed tasks OR fix manually
-4. Re-run Thor until PASS
+1. Run `npm run ci:summary` to identify errors
+2. Launch task-executor to fix specific build errors
+3. Re-run build (max 2 retries)
+4. If still fails: ASK USER
 
 ## Recovery Strategies
 
-| Failure Type | Strategy |
-|--------------|----------|
-| Task timeout | Retry with sonnet (complexity escalation) |
-| Test failure | Fix implementation, re-run tests |
-| Build error | Check TypeScript/lint errors first |
-| Thor rejection | Read actual files, verify changes exist |
+| Failure | Auto-Action | Escalation |
+|---------|-------------|------------|
+| Task timeout | Retry with sonnet | User after 2 retries |
+| Test failure | Fix + re-test | User after 2 retries |
+| Build error | Fix TS/lint errors | User after 2 retries |
+| Thor rejection | Fix per THOR_REJECT | User after 3 rounds |
+| Missing metadata | check-readiness blocks | Immediate (no retry) |
 
 ## Anti-Failure Rules
 
 - Never skip approval gate
-- Never fake timestamps (only executor sets them)
+- Never fake timestamps
 - Never mark done without F-xx check
-- **NEVER bypass Thor** - learned from Plan 085 failure
-- **NEVER trust executor reports** - always verify with Thor + file reads
-- Use db_wave_id (numeric) not wave_code ("W1")
+- **NEVER bypass Thor** - learned from Plan 085
+- **NEVER trust executor reports** - verify with Thor + file reads
 - **Wave completion = Thor PASS** - not just executor reports

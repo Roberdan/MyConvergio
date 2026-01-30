@@ -132,10 +132,15 @@ CRITICAL: You are a FRESH session. Do NOT reference previous tasks or files from
 `
 });
 
-// 3. MANDATORY: Verify task updated in DB
+// 3. Verify task completed in DB
 Bash(`~/.claude/scripts/verify-task-update.sh ${task.db_id} done`);
-// If exit 1: force update via plan-db.sh update-task {db_id} done "Forced"
 ```
+
+**Task retry loop** (executor owns this):
+1. After task-executor returns, run `verify-task-update.sh`
+2. If task NOT done: re-launch task-executor with error context (max 2 retries)
+3. After 2 retries still failing: mark task `blocked`, log reason, ASK USER via AskUserQuestion
+4. User can: retry with different approach, skip task, or stop execution
 
 ### Phase 4: Wave Completion + Thor Validation
 
@@ -166,13 +171,34 @@ Task(
 )
 ```
 
-After Thor returns:
+**Thor review loop** (executor owns this, max 3 rounds):
+
+**Round N - Thor PASS:**
 ```bash
-# Only on Thor PASS:
 plan-db.sh validate $PLAN_ID
-npm run ci:summary  # lint+typecheck+build
-# On Thor FAIL: fix issues, re-launch Thor (max 3 iterations)
+npm run ci:summary
 ```
+Proceed to next wave.
+
+**Round N - Thor REJECT:**
+Thor returns structured rejection (see Thor REJECT format below).
+1. Parse rejection: which tasks failed, what evidence Thor wants
+2. Launch targeted task-executor for EACH failed item:
+   ```
+   Task(subagent_type="task-executor", prompt="
+     FIX REQUEST from Thor (Round N/3):
+     Thor said: {rejection_reason}
+     Evidence needed: {what_thor_wants}
+     Fix THIS specific issue. Then verify: {test_criteria}")
+   ```
+3. After fixes, re-launch Thor (same prompt + "Round N+1, previous issues: ...")
+4. Thor re-evaluates with fresh file reads
+
+**Round 3 - Thor still REJECT:**
+STOP. Present to user via AskUserQuestion:
+- Thor's specific objections
+- What was attempted in 3 rounds
+- Options: override Thor, fix manually, abandon wave
 
 ### Phase 5: Plan Completion
 
@@ -211,16 +237,9 @@ Wave complete: `--- Wave WX Complete --- Thor: PASS | Build: PASS`
 ## Quick Reference
 
 ```bash
-# Execute specific plan
-/execute 42
-
-# Execute current plan (if set)
-/execute
-
-# Check plan status
-plan-db.sh status
-
-# Manual task execution (if needed)
-plan-db.sh update-task {id} in_progress
-plan-db.sh update-task {id} done "Summary" --tokens N
+/execute 42                                       # Specific plan
+/execute                                          # Current plan
+plan-db.sh status                                 # Check status
+plan-db.sh update-task {id} in_progress           # Manual start
+plan-db.sh update-task {id} done "Summary" --tokens N  # Manual complete
 ```

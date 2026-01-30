@@ -96,16 +96,24 @@ Ask EVERY time:
 ### APPROVED
 All gates passed. Work verified complete.
 
-### REJECTED
+### REJECTED (structured - executor parses this)
 ```
-Issues found:
-1. [Specific issue]
-
-Required fixes:
-1. [Exact action]
-
-Retry: X/3
+THOR_REJECT:
+  round: X/3
+  failed_tasks:
+    - task_id: T2-01
+      issue: "Object.assign still present in request.ts:62"
+      evidence: "grep shows pattern on line 62"
+      fix: "Replace Object.assign(messages, nsData) with messages[ns] = nsData"
+    - task_id: T2-03
+      issue: "ESLint rule not updated"
+      evidence: "npx eslint shows 14 warnings"
+      fix: "Update loadMessages() in no-missing-i18n-keys.js"
+  build_status: FAIL|PASS
+  blocking_fxx: [F-03, F-09]
 ```
+Executor uses `failed_tasks` to launch targeted fix task-executors.
+After round 3: ESCALATED to user.
 
 ### ESCALATED
 After 3 failures: Roberto must intervene. Worker STOP.

@@ -34,12 +34,22 @@ WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 # Get plan_id from argument or current context
 PLAN_ID={plan_id}
 
-# Verify plan exists and get details
+# Verify plan exists and get details + plan markdown path
 sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT id, name, status, tasks_done, tasks_total FROM plans WHERE id=$PLAN_ID;"
+  "SELECT id, name, status, tasks_done, tasks_total, markdown_path, source_file FROM plans WHERE id=$PLAN_ID;"
 
 # If status != 'doing', start it
 plan-db.sh start $PLAN_ID
+
+# CRITICAL: Read the plan markdown file (contains root cause analysis, F-xx, wave details)
+PLAN_MARKDOWN_PATH=$(sqlite3 ~/.claude/data/dashboard.db \
+  "SELECT markdown_path FROM plans WHERE id=$PLAN_ID;")
+if [ -n "$PLAN_MARKDOWN_PATH" ] && [ -f "$PLAN_MARKDOWN_PATH" ]; then
+  PLAN_CONTENT=$(cat "$PLAN_MARKDOWN_PATH")
+else
+  echo "WARNING: No plan markdown found. Executor will work with task titles only."
+  PLAN_CONTENT=""
+fi
 ```
 
 Output: "Piano {name} (ID: {plan_id}) - IN FLIGHT - Worktree: {WORKTREE_PATH}"
@@ -48,9 +58,10 @@ Output: "Piano {name} (ID: {plan_id}) - IN FLIGHT - Worktree: {WORKTREE_PATH}"
 
 ```bash
 # Get all pending tasks ordered by wave position, then task_id
-# INCLUDES model column - planner specifies haiku/sonnet/opus per task
+# INCLUDES model, description, test_criteria columns
 sqlite3 -json ~/.claude/data/dashboard.db "
-  SELECT t.id as db_id, t.task_id, t.title, t.status, t.priority,
+  SELECT t.id as db_id, t.task_id, t.title, t.description,
+         t.status, t.priority, t.test_criteria,
          t.model,  -- haiku|sonnet|opus (from planner)
          w.id as wave_db_id, w.wave_id, w.name as wave_name
   FROM tasks t
@@ -74,7 +85,7 @@ console.log(`Executing: ${task.task_id} - ${task.title}`);
 // Model comes from planner (stored in DB) - NOT derived from priority
 await Task({
   subagent_type: "task-executor",
-  model: task.model || 'sonnet',  // Use planner-specified model (haiku|sonnet|opus), default sonnet
+  model: task.model || 'sonnet',
   description: `Execute task ${task.task_id}`,
   prompt: `
 TASK EXECUTION (Isolated Session - Start Fresh)
@@ -86,16 +97,22 @@ Task: ${task.task_id} (db_id: ${task.db_id})
 **WORKTREE**: ${WORKTREE_PATH}
 
 Title: ${task.title}
+Description: ${task.description || task.title}
 Priority: ${task.priority}
+Test Criteria: ${task.test_criteria || 'See plan markdown below'}
+
+## PLAN CONTEXT (from planner analysis)
+${PLAN_CONTENT}
 
 Requirements:
 1. **VERIFY WORKTREE FIRST**: Run 'cd ${WORKTREE_PATH}' before ANY operation
-2. Mark as in_progress via plan-db.sh
-3. Execute the work per task title (ALL files relative to WORKTREE)
-4. Test and verify against F-xx criteria
-5. Track tokens via POST /api/tokens
-6. Mark as done with summary via plan-db.sh
-7. Report completion
+2. **READ THE PLAN CONTEXT ABOVE** - it contains root cause analysis, F-xx requirements, and detailed task specs
+3. Mark as in_progress via plan-db.sh
+4. Execute the work per task title AND plan context
+5. Test and verify against F-xx criteria
+6. Track tokens via POST /api/tokens
+7. Mark as done with summary via plan-db.sh
+8. Report completion
 
 CRITICAL WORKTREE RULES:
 - NEVER operate outside ${WORKTREE_PATH}
@@ -103,7 +120,7 @@ CRITICAL WORKTREE RULES:
 - Run 'pwd' and verify before git operations
 - If pwd != WORKTREE, cd to it FIRST
 
-CRITICAL: You are a FRESH session. Do NOT reference previous tasks or files from parent context. Read what you need for THIS task only.
+CRITICAL: You are a FRESH session. Do NOT reference previous tasks or files from parent context. Read what you need for THIS task only. But DO use the PLAN CONTEXT above for understanding what to do and why.
 `
 });
 

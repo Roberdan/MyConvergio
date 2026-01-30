@@ -17,11 +17,24 @@ cmd_list() {
 }
 
 # Create a new plan
+# Usage: create <project_id> <name> [--source-file path] [--markdown-path path]
 cmd_create() {
     local project_id="$1"
     local name="$2"
+    shift 2
     local is_master=0
     local parent_id="NULL"
+    local source_file="" markdown_path=""
+
+    set +u
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --source-file) source_file="$2"; shift 2 ;;
+            --markdown-path) markdown_path="$2"; shift 2 ;;
+            *) shift ;;
+        esac
+    done
+    set -u
 
     local safe_project_id="$(sql_escape "$project_id")"
     local safe_name="$(sql_escape "$name")"
@@ -35,9 +48,18 @@ cmd_create() {
         [[ -n "$master_id" ]] && parent_id="$master_id"
     fi
 
+    local sf_val="NULL" mp_val="NULL" md_val="NULL"
+    if [[ -n "$source_file" ]]; then
+        sf_val="'$(sql_escape "$source_file")'"
+    fi
+    if [[ -n "$markdown_path" ]]; then
+        mp_val="'$(sql_escape "$markdown_path")'"
+        md_val="'$(sql_escape "$(dirname "$markdown_path")")'"
+    fi
+
     sqlite3 "$DB_FILE" "
-        INSERT INTO plans (project_id, name, is_master, parent_plan_id, status)
-        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo');
+        INSERT INTO plans (project_id, name, is_master, parent_plan_id, status, source_file, markdown_path, markdown_dir)
+        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo', $sf_val, $mp_val, $md_val);
     "
     local plan_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name='$safe_name';")
 

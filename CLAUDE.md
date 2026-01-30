@@ -31,7 +31,7 @@ git log --oneline -3            # Show commits as proof
 
 ## Quick Scripts
 ```bash
-plan-db.sh create {project} "Name"
+plan-db.sh create {project} "Name" --source-file {prompt.md} --markdown-path {plan.md}
 plan-db.sh add-wave {plan} "W1-DataIntegration" "Description"
 plan-db.sh add-task {wave_db_id} T1-01 "Task title" P1 feature
 plan-db.sh update-task {id} done "Summary"
@@ -40,6 +40,26 @@ plan-db.sh update-task {id} done "Summary"
 ## Database Conventions
 - Tasks use `wave_id_fk` (numeric FK), NOT `wave_id` string
 - Use `plan-db.sh` for all DB operations (handles FK correctly)
+- **NEVER invent column names**. Use ONLY the columns listed below.
+
+### DB Schema (EXACT - do NOT guess columns)
+```sql
+-- plans: id, project_id, name, source_file, is_master, parent_plan_id,
+--   status, tasks_total, tasks_done, created_at, started_at, completed_at,
+--   validated_at, validated_by, markdown_dir, markdown_path, archived_at,
+--   archived_path, updated_at, git_clean_at_closure, parallel_mode
+
+-- waves: id, project_id, wave_id, name, status, assignee, tasks_done,
+--   tasks_total, started_at, completed_at, plan_id, position,
+--   planned_start, planned_end, depends_on, estimated_hours, markdown_path
+
+-- tasks: id, project_id, wave_id, task_id, title, description, status,
+--   assignee, priority, type, duration_minutes, started_at, completed_at,
+--   tokens, validated_at, validated_by, markdown_path,
+--   executor_session_id, executor_started_at, executor_last_activity,
+--   executor_status, notes, wave_id_fk, plan_id, test_criteria, model
+```
+**Key lookups**: plan file = `plans.markdown_path`, prompt = `plans.source_file`, task detail = `tasks.title` + `tasks.description`
 
 ## Worktree Discipline
 > **Full details**: `~/.claude/reference/operational/worktree-discipline.md`

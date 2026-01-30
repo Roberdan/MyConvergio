@@ -41,22 +41,35 @@ plan-db.sh create {project_id} "{PlanName}" \
   --markdown-path "$PLAN_MD"
 ```
 
-### 1.5 Technical Clarification (MANDATORY before plan)
+### 1.5 Read Existing Documentation (MANDATORY before plan)
 
-After reading the prompt file, STOP. Identify technical ambiguities. Use AskUserQuestion.
+Before planning, READ existing docs to avoid repeating solved problems:
+
+```bash
+# Scan relevant ADRs
+ls docs/adr/*.md | head -20   # List existing ADRs
+# Read ADRs related to the feature area (grep for keywords from prompt)
+grep -rl "keyword" docs/adr/ | head -5
+# Check CHANGELOG for recent decisions
+head -50 CHANGELOG.md
+```
+
+**Use ADRs to inform the plan**: If an ADR says "use X pattern" or "avoid Y approach", the plan MUST follow it.
+**Cite ADRs in task descriptions**: e.g., "Per ADR 0082, use namespace-scoped i18n files."
+**Conflict = ASK user**: If prompt conflicts with existing ADR, ask before proceeding.
+
+### 1.6 Technical Clarification (MANDATORY before plan)
+
+After reading prompt + docs, STOP. Identify ambiguities. Use AskUserQuestion.
 
 **Always ask:**
 1. **Approach**: "Per F-xx propongo [approccio]. Alternative: [B, C]. Preferenze?"
 2. **File scope**: "I file coinvolti: [list]. Altri da toccare? Qualcuno da NON toccare?"
 3. **Constraints**: "Breaking changes ok? Nuove dipendenze? Vincoli tecnici?"
 
-**Ask if complex:**
-- Test strategy (unit vs integration vs e2e)
-- Migration/backwards compatibility needs
-- Performance requirements
+**Ask if complex:** Test strategy, migration needs, performance requirements.
 
-**Rule**: If writing a task description requires GUESSING about implementation → STOP and ASK.
-User answers all questions → proceed to plan creation.
+**Rule**: If GUESSING about implementation → STOP and ASK.
 
 ### 2. Plan File (`~/.claude/plans/{project}/{PlanName}-Main.md`)
 ```markdown
@@ -79,6 +92,13 @@ User answers all questions → proceed to plan creation.
 ## LEARNINGS LOG
 | Wave | Issue | Root Cause | Resolution | Preventive Rule |
 |------|-------|------------|------------|-----------------|
+
+## MANDATORY FINAL TASK (always last wave)
+| Task | Description | F-xx | Model | Status |
+|------|-------------|------|-------|--------|
+| TF-01 | Update/create ADRs for learnings from this plan | - | sonnet | pending |
+| TF-02 | Update CHANGELOG.md with plan changes | - | haiku | pending |
+| TF-03 | Create ESLint rules for automatable learnings | - | sonnet | pending |
 ```
 
 ### 3. Register in DB
@@ -94,9 +114,11 @@ plan-db.sh add-task {db_wave_id} T1-01 "Fix i18n loading" P1 feature \
 ```
 
 Rules:
-- `--description`: what + which files + F-xx ref (one sentence)
+- `--description`: what + which files + F-xx ref + relevant ADR (one sentence)
 - `--test-criteria`: JSON array of verifiable checks from prompt acceptance criteria
 - Missing test_criteria = Thor cannot validate = pipeline broken
+- **MANDATORY**: Always create a final wave "WF-Documentation" with tasks TF-01/02/03 (ADR, CHANGELOG, ESLint)
+- Task descriptions MUST cite relevant existing ADRs (e.g., "Per ADR 0082...")
 
 ### 4. User Approval (MANDATORY STOP)
 Present F-xx list → User says "si"/"yes" → Proceed

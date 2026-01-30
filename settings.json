@@ -31,11 +31,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/warn-bash-antipatterns.sh",
-            "timeout": 3
-          },
-          {
-            "type": "command",
             "command": "~/.claude/hooks/worktree-guard.sh",
             "timeout": 5
           },
@@ -55,11 +50,6 @@
             "type": "command",
             "command": "~/.claude/hooks/enforce-line-limit.sh",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/auto-format.sh",
-            "timeout": 10
           }
         ]
       },

@@ -201,6 +201,24 @@ cmd_validate_fxx() {
     return 0
 }
 
+# Check plan readiness for execution (BLOCKS if metadata missing)
+cmd_check_readiness() {
+    local plan_id="$1"
+    local errors=0
+    echo -e "${BLUE}======= READINESS CHECK - Plan $plan_id =======${NC}"
+    local md=$(sqlite3 "$DB_FILE" "SELECT markdown_path FROM plans WHERE id=$plan_id;")
+    local src=$(sqlite3 "$DB_FILE" "SELECT source_file FROM plans WHERE id=$plan_id;")
+    if [[ -z "$md" ]]; then echo -e "${RED}  FAIL: markdown_path not set${NC}"; errors=$((errors+1)); else echo -e "${GREEN}  OK: markdown_path${NC}"; fi
+    if [[ -z "$src" ]]; then echo -e "${RED}  FAIL: source_file not set${NC}"; errors=$((errors+1)); else echo -e "${GREEN}  OK: source_file${NC}"; fi
+    local no_desc=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE plan_id=$plan_id AND status='pending' AND (description IS NULL OR description='');")
+    local no_tc=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE plan_id=$plan_id AND status='pending' AND (test_criteria IS NULL OR test_criteria='');")
+    if [[ "$no_desc" -gt 0 ]]; then echo -e "${RED}  FAIL: $no_desc tasks missing description${NC}"; errors=$((errors+1)); else echo -e "${GREEN}  OK: all tasks have description${NC}"; fi
+    if [[ "$no_tc" -gt 0 ]]; then echo -e "${RED}  FAIL: $no_tc tasks missing test_criteria${NC}"; errors=$((errors+1)); else echo -e "${GREEN}  OK: all tasks have test_criteria${NC}"; fi
+    [[ $errors -gt 0 ]] && { echo -e "${RED}BLOCKED: $errors issues. Fix before /execute.${NC}"; return 1; }
+    echo -e "${GREEN}READY: Plan $plan_id is ready for execution${NC}"
+    return 0
+}
+
 # Sync counters
 cmd_sync() {
     local plan_id="$1"

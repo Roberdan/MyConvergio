@@ -41,7 +41,11 @@ When launched by `/execute`, you receive these parameters in your prompt:
 6. After PASS: `plan-db.sh validate {plan_id}`
 7. After PASS: `npm run ci:summary`
 
-**If plan markdown or source prompt is missing**: WARN but continue with task titles and DB data only. Do NOT fail solely due to missing metadata.
+**Missing metadata handling:**
+- Plan markdown missing: WARN, continue with DB data only
+- Source prompt missing: WARN, continue with plan markdown only
+- **test_criteria missing for ANY pending task: REJECT** -- planner must populate before execution
+- Run `plan-db.sh check-readiness {plan_id}` as first step to catch gaps early
 
 ## Validation Protocol
 

@@ -54,6 +54,12 @@ else
 fi
 ```
 
+```bash
+# MANDATORY: Readiness gate (BLOCKS if metadata missing)
+plan-db.sh check-readiness $PLAN_ID
+# If exit 1: STOP. Fix missing metadata before proceeding.
+```
+
 Output: "Piano {name} (ID: {plan_id}) - IN FLIGHT - Worktree: {WORKTREE_PATH}"
 
 ### Phase 2: Load Tasks
@@ -101,7 +107,7 @@ Task: ${task.task_id} (db_id: ${task.db_id})
 Title: ${task.title}
 Description: ${task.description || task.title}
 Priority: ${task.priority}
-Test Criteria: ${task.test_criteria || 'See plan markdown below'}
+Test Criteria: ${task.test_criteria}  // MUST exist - check-readiness enforces this
 
 ## PLAN CONTEXT (from planner analysis)
 ${PLAN_CONTENT}

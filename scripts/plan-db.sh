@@ -47,6 +47,7 @@ case "${1:-help}" in
     kanban-json) cmd_kanban_json ;;
     json)        cmd_json "${2:?plan_id required}" ;;
     status)      cmd_status "${2:-}" ;;
+    check-readiness) cmd_check_readiness "${2:?plan_id required}" ;;
     sync)        cmd_sync "${2:?plan_id required}" ;;
     *)
         echo "Plan DB CLI - Task/Wave/Plan Management"
@@ -64,6 +65,7 @@ case "${1:-help}" in
         echo "  complete <plan_id>             Mark done"
         echo ""
         echo "Validation:"
+        echo "  check-readiness <plan_id>      BLOCKS if metadata missing (run before /execute)"
         echo "  validate <plan_id> [by]        Thor validates (counters, orphans)"
         echo "  validate-fxx <plan_id>         Validate F-xx from markdown"
         echo "  sync <plan_id>                 Fix out-of-sync counters"

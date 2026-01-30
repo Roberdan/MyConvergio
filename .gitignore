@@ -73,3 +73,4 @@ playwright-report/
 test-results/
 plugins/cache/
 paste-cache/
+tasks/

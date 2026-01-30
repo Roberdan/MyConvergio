@@ -1,3 +1,12 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(for f in /Users/roberdan/.claude/rules/filetype-instructions.md /Users/roberdan/.claude/commands/research.md /Users/roberdan/.claude/rules/maturity-lifecycle.md /Users/roberdan/.claude/reference/operational/memory-protocol.md /Users/roberdan/.claude/scripts/memory-save.sh /Users/roberdan/.claude/CLAUDE.md /Users/roberdan/.claude/rules/agent-discovery.md /Users/roberdan/.claude/rules/execution.md)",
+      "Bash(done)",
+      "Bash(/Users/roberdan/.claude/scripts/memory-save.sh:*)",
+      "Bash(git add:*)"
+    ]
+  },
   "outputStyle": "default"
 }

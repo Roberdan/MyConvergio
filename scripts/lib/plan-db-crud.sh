@@ -133,20 +133,21 @@ cmd_add_wave() {
 }
 
 # Add task to wave
-# Usage: add-task <wave_id> <task_id> <title> [P0-P3] [feature|bug|chore] [--model haiku|sonnet|opus] [--test-criteria 'json']
+# Usage: add-task <wave_id> <task_id> <title> [P0-P3] [feature|bug|chore] [--model haiku|sonnet|opus] [--test-criteria 'json'] [--description 'text']
 cmd_add_task() {
     local db_wave_id="$1"
     local task_id="$2"
     local title="$3"
     shift 3
 
-    local priority="P1" type="feature" assignee="" test_criteria="" model="sonnet"
+    local priority="P1" type="feature" assignee="" test_criteria="" model="sonnet" description=""
 
     set +u
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --test-criteria) [[ -z "${2}" ]] && { log_error "Missing --test-criteria value"; set -u; exit 1; }; test_criteria="$2"; shift 2 ;;
             --model) [[ -z "${2}" ]] && { log_error "Missing --model value"; set -u; exit 1; }; model="$2"; shift 2 ;;
+            --description) [[ -z "${2}" ]] && { log_error "Missing --description value"; set -u; exit 1; }; description="$2"; shift 2 ;;
             P0|P1|P2|P3) priority="$1"; shift ;;
             bug|feature|chore|doc|test) type="$1"; shift ;;
             haiku|sonnet|opus) model="$1"; shift ;;
@@ -167,13 +168,16 @@ cmd_add_task() {
     local safe_assignee="$(sql_escape "$assignee")"
     local safe_test_criteria="$(sql_escape "$test_criteria")"
     local safe_model="$(sql_escape "$model")"
+    local safe_description="$(sql_escape "$description")"
 
     local tc_val="NULL"
     [[ -n "$test_criteria" ]] && tc_val="'$safe_test_criteria'"
+    local desc_val="NULL"
+    [[ -n "$description" ]] && desc_val="'$safe_description'"
 
     sqlite3 "$DB_FILE" "
-        INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, status, priority, type, assignee, test_criteria, model)
-        VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', 'pending', '$safe_priority', '$safe_type', '$safe_assignee', $tc_val, '$safe_model');
+        INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, description, status, priority, type, assignee, test_criteria, model)
+        VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', COALESCE($desc_val, '$safe_title'), 'pending', '$safe_priority', '$safe_type', '$safe_assignee', $tc_val, '$safe_model');
     "
     sqlite3 "$DB_FILE" "UPDATE waves SET tasks_total = tasks_total + 1 WHERE id = $db_wave_id;"
     sqlite3 "$DB_FILE" "UPDATE plans SET tasks_total = tasks_total + 1 WHERE id = $plan_id;"

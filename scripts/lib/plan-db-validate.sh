@@ -155,18 +155,21 @@ cmd_validate_fxx() {
     echo -e "${BLUE}======= F-xx VALIDATION - Plan $plan_id =======${NC}"
     echo ""
 
-    local markdown_dir=$(sqlite3 "$DB_FILE" "SELECT markdown_dir FROM plans WHERE id = $plan_id;")
+    # Try markdown_path first (exact file), fallback to markdown_dir search
+    local plan_file=$(sqlite3 "$DB_FILE" "SELECT markdown_path FROM plans WHERE id = $plan_id;")
     local plan_name=$(sqlite3 "$DB_FILE" "SELECT name FROM plans WHERE id = $plan_id;")
 
-    [[ -z "$markdown_dir" ]] && markdown_dir="$HOME/.claude/plans/active/${plan_name}"
-
-    local plan_file=""
-    for f in "$markdown_dir/plan.md" "$markdown_dir/${plan_name}.md" "$markdown_dir"/*.md; do
-        [[ -f "$f" ]] && { plan_file="$f"; break; }
-    done
+    if [[ -z "$plan_file" || ! -f "$plan_file" ]]; then
+        local markdown_dir=$(sqlite3 "$DB_FILE" "SELECT markdown_dir FROM plans WHERE id = $plan_id;")
+        [[ -z "$markdown_dir" ]] && markdown_dir="$HOME/.claude/plans/active/${plan_name}"
+        plan_file=""
+        for f in "$markdown_dir/plan.md" "$markdown_dir/${plan_name}.md" "$markdown_dir"/*.md; do
+            [[ -f "$f" ]] && { plan_file="$f"; break; }
+        done
+    fi
 
     if [[ -z "$plan_file" || ! -f "$plan_file" ]]; then
-        log_error "Plan markdown not found in: $markdown_dir"
+        log_error "Plan markdown not found. Set markdown_path: plan-db.sh create ... --markdown-path <file>"
         return 1
     fi
 
@@ -181,7 +184,7 @@ cmd_validate_fxx() {
             if [[ "$line" =~ \[x\] ]] || [[ "$line" =~ \[X\] ]]; then
                 echo -e "  ${GREEN}[x]${NC} $fxx - ${req_text}..."
                 ((verified++))
-            elif [[ "$line" =~ \[\s*\] ]] || [[ "$line" =~ \[\] ]]; then
+            elif [[ "$line" =~ \[[[:space:]]*\] ]]; then
                 echo -e "  ${RED}[ ]${NC} $fxx - ${req_text}..."
                 ((pending++))
             fi

@@ -58,7 +58,7 @@ case "${1:-help}" in
         echo "  create <project_id> <name> [--source-file path] [--markdown-path path]"
         echo "  start <plan_id>                Start execution"
         echo "  add-wave <plan_id> <id> <name> [--depends-on id] [--estimated-hours N]"
-        echo "  add-task <wave_id> <id> <title> [P0-P3] [type] [--test-criteria 'json']"
+        echo "  add-task <wave_id> <id> <title> [P0-P3] [type] [--description 'text'] [--test-criteria 'json']"
         echo "  update-task <task_id> <status> [notes] [--tokens N]"
         echo "  update-wave <wave_id> <status>"
         echo "  complete <plan_id>             Mark done"

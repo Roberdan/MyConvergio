@@ -58,7 +58,7 @@ cmd_create() {
         md_val="'$(sql_escape "$(dirname "$markdown_path")")'"
     fi
     if [[ -n "$worktree_path" ]]; then
-        wp_val="'$(sql_escape "$worktree_path")'"
+        wp_val="'$(sql_escape "$(_normalize_path "$worktree_path")")'"
     fi
 
     sqlite3 "$DB_FILE" "
@@ -288,7 +288,21 @@ cmd_complete() {
     log_info "Plan $plan_id completed!"
 }
 
-# Get worktree path for a plan
+# Normalize path: replace $HOME with ~ for portability across machines
+# /home/roberdan/GitHub/X -> ~/GitHub/X
+# /Users/roberdan/GitHub/X -> ~/GitHub/X
+_normalize_path() {
+    local p="$1"
+    echo "$p" | sed "s|^${HOME}|~|"
+}
+
+# Expand path: replace leading ~ with $HOME for runtime use
+_expand_path() {
+    local p="$1"
+    echo "$p" | sed "s|^~|${HOME}|"
+}
+
+# Get worktree path for a plan (expanded to $HOME)
 # Usage: get-worktree <plan_id>
 cmd_get_worktree() {
     local plan_id="$1"
@@ -298,15 +312,16 @@ cmd_get_worktree() {
         log_error "No worktree_path set for plan $plan_id"
         exit 1
     fi
-    echo "$wt_path"
+    echo "$(_expand_path "$wt_path")"
 }
 
-# Set worktree path for a plan
+# Set worktree path for a plan (normalized to ~)
 # Usage: set-worktree <plan_id> <path>
 cmd_set_worktree() {
     local plan_id="$1"
     local wt_path="$2"
-    local safe_path="$(sql_escape "$wt_path")"
+    local normalized="$(_normalize_path "$wt_path")"
+    local safe_path="$(sql_escape "$normalized")"
     sqlite3 "$DB_FILE" "UPDATE plans SET worktree_path = '$safe_path' WHERE id = $plan_id;"
-    log_info "Set worktree for plan $plan_id: $wt_path"
+    log_info "Set worktree for plan $plan_id: $normalized"
 }

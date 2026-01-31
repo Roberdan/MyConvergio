@@ -77,6 +77,14 @@ Make failing tests PASS:
 2. Run tests after each change
 3. Continue until GREEN
 
+### Phase 3.5: Quick CI Check (if project has ci-summary.sh)
+
+```bash
+[[ -f "./scripts/ci-summary.sh" ]] && ./scripts/ci-summary.sh --quick
+```
+
+Use `--quick` (lint+types only) during task execution. Full build/tests run at Thor wave validation.
+
 ### Phase 4: Verify (F-xx GATE)
 
 ```markdown

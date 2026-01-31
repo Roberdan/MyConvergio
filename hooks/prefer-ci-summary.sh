@@ -83,8 +83,15 @@ fi
 # === BLOCK: VERBOSE NPM (lint/typecheck) ===
 if echo "$BASE_CMD" | grep -qE "^npm run (lint|typecheck|test:unit)( |$)"; then
 	if [ -f "./scripts/ci-summary.sh" ]; then
-		echo "TOKEN-WASTE: Use './scripts/ci-summary.sh' instead." >&2
-		echo "Steps: --lint|--types|--build|--unit|--i18n|--e2e|--a11y|--full|--all" >&2
+		echo "TOKEN-WASTE: Use './scripts/ci-summary.sh --quick' (lint+types) or '--full' (all)." >&2
+		exit 0
+	fi
+fi
+
+# === HINT: ci:summary default → suggest --quick ===
+if echo "$BASE_CMD" | grep -qE "^(npm run ci:summary|\\./scripts/ci-summary\\.sh)$"; then
+	if [ -f "./scripts/ci-summary.sh" ]; then
+		echo "HINT: Consider './scripts/ci-summary.sh --quick' for faster feedback (skips build)." >&2
 		exit 0
 	fi
 fi

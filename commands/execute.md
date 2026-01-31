@@ -92,7 +92,7 @@ Task(
   WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK}
   Tasks in wave: [list task_ids + titles from CTX]
   Verify criteria: [list test_criteria for each task in wave]
-  Run: lint, typecheck, build, tests. Check F-xx. Read files directly."
+  Run: ci-summary.sh --full (or ci-summary.sh --all if i18n/e2e needed). Check F-xx. Read files directly."
 )
 ```
 

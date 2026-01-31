@@ -36,12 +36,20 @@ This returns: project_id, project_name, path, branch, active_plans, worktrees, h
 
 ### 1.5 Read Existing Documentation (MANDATORY before plan)
 
-Before planning, READ existing docs to avoid repeating solved problems:
+**DO NOT use Explore agent for ADRs. Use direct Glob/Grep (2 calls max):**
 
-- Scan ADRs in `docs/adr/` related to the feature area
-- Check CHANGELOG.md for recent decisions
+```bash
+# 1. List ADR titles (one Glob call)
+Glob("docs/adr/*.md")
 
-**Use ADRs to inform the plan**. **Cite ADRs in task descriptions**. **Conflict = ASK user**.
+# 2. Grep for keywords related to the feature (one Grep call)
+Grep(pattern="keyword1|keyword2", path="docs/adr/", output_mode="files_with_matches")
+```
+
+Then Read ONLY the matched ADR files (not all of them).
+Also check CHANGELOG.md last 20 lines for recent decisions.
+
+**Cite relevant ADRs in task `ref` fields. Conflict = ASK user.**
 
 ### 1.6 Technical Clarification (MANDATORY before plan)
 
@@ -107,9 +115,9 @@ Present to user: "Questi task sono delegabili a Codex: [list]. Vuoi delegarli?"
 ### 3. Create Plan + Import (2 calls total)
 
 ```bash
-PROMPT_FILE=".copilot-tracking/prompt-{NNN}.md"
+PROMPT_FILE=".copilot-tracking/prompt-{NNN}.json"
 
-# Single command: creates plan + worktree + mkdir + sets markdown_path
+# Single command: creates plan + worktree
 PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" \
   --source-file "$PROMPT_FILE" --auto-worktree)
 

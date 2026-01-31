@@ -46,19 +46,25 @@ service-digest.sh ci|pr|deploy|all # Token-efficient external service status
 worktree-cleanup.sh --all-merged   # Auto-remove merged worktrees
 ```
 
-## Service Digest (NON-NEGOTIABLE)
+## Digest Scripts (NON-NEGOTIABLE)
 
-**NEVER read raw CI logs, PR comments, or deploy logs directly.** Use digest scripts:
+**NEVER run verbose commands directly.** Use digest scripts — compact JSON, cached.
 
-| Instead of                    | Use                                |
-| ----------------------------- | ---------------------------------- |
-| `gh run view --log-failed`    | `service-digest.sh ci [run-id]`    |
-| `gh pr view --comments`       | `service-digest.sh pr [pr-number]` |
-| `gh api .../pulls/N/comments` | `service-digest.sh pr N`           |
-| `vercel logs`                 | `service-digest.sh deploy`         |
-| All three at once             | `service-digest.sh all`            |
+| Instead of                 | Use                           |
+| -------------------------- | ----------------------------- |
+| `gh run view --log-failed` | `service-digest.sh ci`        |
+| `gh pr view --comments`    | `service-digest.sh pr`        |
+| `vercel logs`              | `service-digest.sh deploy`    |
+| `npm install` / `npm ci`   | `npm-digest.sh install`       |
+| `npm run build`            | `build-digest.sh`             |
+| `npm audit`                | `audit-digest.sh`             |
+| `npx vitest` / `npm test`  | `test-digest.sh`              |
+| `git diff main...feat`     | `diff-digest.sh main feat`    |
+| `npx prisma migrate`       | `migration-digest.sh status`  |
+| merge/rebase conflicts     | `merge-digest.sh`             |
+| stack traces               | `cmd 2>&1 \| error-digest.sh` |
 
-Hook `prefer-ci-summary.sh` enforces this. `--no-cache` for fresh data.
+Hook `prefer-ci-summary.sh` blocks raw commands (exit 2). `--no-cache` for fresh data.
 
 ## Database Conventions
 

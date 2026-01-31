@@ -70,11 +70,45 @@ if echo "$COMMAND" | grep -qE "vercel-helper\.sh logs"; then
 	exit 2
 fi
 
-# === VERBOSE NPM CI COMMANDS ===
-if echo "$COMMAND" | grep -qE "^npm run (lint|typecheck|build|test:unit)( |$)"; then
+# === NPM INSTALL ===
+# Block: npm install / npm ci (massive output)
+if echo "$COMMAND" | grep -qE "^npm (install|ci)( |$)"; then
+	echo "TOKEN-WASTE: Use 'npm-digest.sh install' or 'npm-digest.sh ci' instead." >&2
+	echo "npm-digest.sh captures output server-side, returns compact JSON summary." >&2
+	exit 2
+fi
+
+# === NPM AUDIT ===
+if echo "$COMMAND" | grep -qE "^npm audit( |$)" && ! echo "$COMMAND" | grep -q "\-\-json"; then
+	echo "TOKEN-WASTE: Use 'audit-digest.sh' instead of raw npm audit." >&2
+	echo "audit-digest.sh returns only critical/high items as JSON." >&2
+	exit 2
+fi
+
+# === BUILD ===
+# Block: npm run build (verbose webpack/next output)
+if echo "$COMMAND" | grep -qE "^npm run build( |$)"; then
+	echo "TOKEN-WASTE: Use 'build-digest.sh' instead of raw npm run build." >&2
+	echo "build-digest.sh returns status + errors + bundle_size as JSON." >&2
+	exit 2
+fi
+
+# === TESTS ===
+# Block: raw test invocations
+if echo "$COMMAND" | grep -qE "^(npx (vitest|jest|playwright)|npm run test|npm test)( |$)"; then
+	if [ -f "./scripts/ci-summary.sh" ]; then
+		echo "TOKEN-WASTE: Use './scripts/ci-summary.sh --unit|--e2e' instead." >&2
+	else
+		echo "TOKEN-WASTE: Use 'test-digest.sh' instead of raw test runner." >&2
+		echo "test-digest.sh returns only failures as JSON." >&2
+	fi
+	exit 2
+fi
+
+# === VERBOSE NPM CI COMMANDS (lint/typecheck via ci-summary) ===
+if echo "$COMMAND" | grep -qE "^npm run (lint|typecheck|test:unit)( |$)"; then
 	if [ -f "./scripts/ci-summary.sh" ]; then
 		echo "TOKEN-WASTE: Use './scripts/ci-summary.sh' instead." >&2
-		echo "Detected: $COMMAND" >&2
 		echo "Steps: --lint|--types|--build|--unit|--i18n|--e2e|--a11y|--full|--all" >&2
 		exit 0
 	fi
@@ -88,22 +122,23 @@ if echo "$COMMAND" | grep -qE "npm run lint.*&&.*npm run (typecheck|build)"; the
 	fi
 fi
 
-# === PLAYWRIGHT DIRECT INVOCATION ===
-if echo "$COMMAND" | grep -qE "^(npx playwright test|npm run test( |$))"; then
-	if [ -f "./scripts/ci-summary.sh" ]; then
-		echo "TOKEN-WASTE: Use './scripts/ci-summary.sh --e2e' or '--a11y' instead." >&2
-		echo "Detected: $COMMAND" >&2
-		echo "Saves ~95% tokens by extracting only failures." >&2
-		exit 0
-	fi
+# === GIT DIFF (large) ===
+# Block: raw git diff without --stat (can be thousands of lines)
+if echo "$COMMAND" | grep -qE "^git diff [^-]"; then
+	echo "TOKEN-WASTE: Use 'diff-digest.sh' for large diffs." >&2
+	echo "diff-digest.sh returns file list + size breakdown as JSON." >&2
+	echo "Then use Read tool on specific files." >&2
+	exit 2
 fi
 
-# === VERBOSE GIT ===
-if echo "$COMMAND" | grep -qE "^git diff [^-].*\| head"; then
-	echo "TOKEN-HINT: Use 'git diff --stat' for overview, then Read tool for specific files." >&2
-	exit 0
+# === PRISMA/DRIZZLE MIGRATIONS ===
+if echo "$COMMAND" | grep -qE "^npx (prisma|drizzle-kit) (migrate|db push|generate|check)"; then
+	echo "TOKEN-WASTE: Use 'migration-digest.sh [status|push|generate]' instead." >&2
+	echo "migration-digest.sh returns tables + destructive changes as JSON." >&2
+	exit 2
 fi
 
+# === VERBOSE GIT LOG ===
 if echo "$COMMAND" | grep -qE "^git log[^|]*$" && ! echo "$COMMAND" | grep -q "oneline"; then
 	echo "TOKEN-HINT: Use 'git log --oneline -N' to reduce output." >&2
 	exit 0

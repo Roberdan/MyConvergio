@@ -38,11 +38,27 @@ git log --oneline -3            # Show commits as proof
 ## Quick Scripts
 
 ```bash
-plan-db.sh create {project} "Name" --source-file {prompt.md} --markdown-path {plan.md}
-plan-db.sh add-wave {plan} "W1-DataIntegration" "Description"
-plan-db.sh add-task {wave_db_id} T1-01 "Task title" P1 feature
+plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree
+plan-db.sh import {plan_id} spec.json
 plan-db.sh update-task {id} done "Summary"
+planner-init.sh                    # Single-call project context bootstrap
+service-digest.sh ci|pr|deploy|all # Token-efficient external service status
+worktree-cleanup.sh --all-merged   # Auto-remove merged worktrees
 ```
+
+## Service Digest (NON-NEGOTIABLE)
+
+**NEVER read raw CI logs, PR comments, or deploy logs directly.** Use digest scripts:
+
+| Instead of                    | Use                                |
+| ----------------------------- | ---------------------------------- |
+| `gh run view --log-failed`    | `service-digest.sh ci [run-id]`    |
+| `gh pr view --comments`       | `service-digest.sh pr [pr-number]` |
+| `gh api .../pulls/N/comments` | `service-digest.sh pr N`           |
+| `vercel logs`                 | `service-digest.sh deploy`         |
+| All three at once             | `service-digest.sh all`            |
+
+Hook `prefer-ci-summary.sh` enforces this. `--no-cache` for fresh data.
 
 ## Database Conventions
 
@@ -114,6 +130,7 @@ repo-info                        # Quick summary
 **Codex**: Suggest for mechanical/repetitive bulk tasks. Never for architecture, security, debugging.
 
 <!-- CODEGRAPH_START -->
+
 ## CodeGraph
 
 CodeGraph builds a semantic knowledge graph of codebases for faster, smarter code exploration.
@@ -122,20 +139,21 @@ CodeGraph builds a semantic knowledge graph of codebases for faster, smarter cod
 
 **Use codegraph tools for faster exploration.** These tools provide instant lookups via the code graph instead of scanning files:
 
-| Tool | Use For |
-|------|---------|
-| `codegraph_search` | Find symbols by name (functions, classes, types) |
-| `codegraph_context` | Get relevant code context for a task |
-| `codegraph_callers` | Find what calls a function |
-| `codegraph_callees` | Find what a function calls |
-| `codegraph_impact` | See what's affected by changing a symbol |
-| `codegraph_node` | Get details + source code for a symbol |
+| Tool                | Use For                                          |
+| ------------------- | ------------------------------------------------ |
+| `codegraph_search`  | Find symbols by name (functions, classes, types) |
+| `codegraph_context` | Get relevant code context for a task             |
+| `codegraph_callers` | Find what calls a function                       |
+| `codegraph_callees` | Find what a function calls                       |
+| `codegraph_impact`  | See what's affected by changing a symbol         |
+| `codegraph_node`    | Get details + source code for a symbol           |
 
 **When spawning Explore agents in a codegraph-enabled project:**
 
 Tell the Explore agent to use codegraph tools for faster exploration.
 
 **For quick lookups in the main session:**
+
 - Use `codegraph_search` instead of grep for finding symbols
 - Use `codegraph_callers`/`codegraph_callees` to trace code flow
 - Use `codegraph_impact` before making changes to see what's affected
@@ -145,4 +163,5 @@ Tell the Explore agent to use codegraph tools for faster exploration.
 At the start of a session, ask the user if they'd like to initialize CodeGraph:
 
 "I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
+
 <!-- CODEGRAPH_END -->

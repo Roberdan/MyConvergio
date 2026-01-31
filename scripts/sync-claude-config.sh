@@ -96,14 +96,7 @@ cmd_push() {
     scp -q "$BUNDLE" "$REMOTE_HOST:$BUNDLE"
 
     info "Applying on remote..."
-    ssh "$REMOTE_HOST" bash -s <<REMOTE_SCRIPT
-set -euo pipefail
-cd $REMOTE_REPO
-git bundle verify $BUNDLE >/dev/null 2>&1
-git fetch $BUNDLE HEAD:refs/heads/_sync_tmp 2>/dev/null
-git merge --ff-only _sync_tmp
-git branch -d _sync_tmp
-REMOTE_SCRIPT
+    ssh "$REMOTE_HOST" "cd $REMOTE_REPO && git bundle verify $BUNDLE >/dev/null 2>&1 && git fetch $BUNDLE HEAD:refs/heads/_sync_tmp && git merge --ff-only _sync_tmp && git branch -d _sync_tmp"
 
     local new_rh; new_rh=$(remote_head)
     if [[ "$lh" == "$new_rh" ]]; then
@@ -122,16 +115,7 @@ cmd_pull() {
     lh=$(local_head); rh=$(remote_head)
     if [[ "$lh" == "$rh" ]]; then ok "Already in sync."; return 0; fi
 
-    ssh "$REMOTE_HOST" bash -s <<REMOTE_SCRIPT
-set -euo pipefail
-cd $REMOTE_REPO
-if ! git merge-base --is-ancestor $lh HEAD 2>/dev/null; then
-    echo "DIVERGED"; exit 1
-fi
-git bundle create $BUNDLE ${lh}..HEAD 2>/dev/null
-REMOTE_SCRIPT
-
-    if [[ $? -ne 0 ]]; then
+    if ! ssh "$REMOTE_HOST" "cd $REMOTE_REPO && git merge-base --is-ancestor $lh HEAD && git bundle create $BUNDLE ${lh}..HEAD" 2>/dev/null; then
         err "Cannot fast-forward. Run 'csync push' first."; return 1
     fi
 

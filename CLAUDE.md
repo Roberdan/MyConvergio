@@ -47,7 +47,8 @@ plan-db.sh update-task {id} done "Summary"
 -- plans: id, project_id, name, source_file, is_master, parent_plan_id,
 --   status, tasks_total, tasks_done, created_at, started_at, completed_at,
 --   validated_at, validated_by, markdown_dir, markdown_path, archived_at,
---   archived_path, updated_at, git_clean_at_closure, parallel_mode
+--   archived_path, updated_at, git_clean_at_closure, parallel_mode,
+--   worktree_path
 
 -- waves: id, project_id, wave_id, name, status, assignee, tasks_done,
 --   tasks_total, started_at, completed_at, plan_id, position,

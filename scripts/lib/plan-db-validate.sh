@@ -208,8 +208,10 @@ cmd_check_readiness() {
     echo -e "${BLUE}======= READINESS CHECK - Plan $plan_id =======${NC}"
     local md=$(sqlite3 "$DB_FILE" "SELECT markdown_path FROM plans WHERE id=$plan_id;")
     local src=$(sqlite3 "$DB_FILE" "SELECT source_file FROM plans WHERE id=$plan_id;")
+    local wt=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM plans WHERE id=$plan_id;")
     if [[ -z "$md" ]]; then echo -e "${RED}  FAIL: markdown_path not set${NC}"; errors=$((errors+1)); else echo -e "${GREEN}  OK: markdown_path${NC}"; fi
     if [[ -z "$src" ]]; then echo -e "${RED}  FAIL: source_file not set${NC}"; errors=$((errors+1)); else echo -e "${GREEN}  OK: source_file${NC}"; fi
+    if [[ -z "$wt" ]]; then echo -e "${RED}  FAIL: worktree_path not set (run /planner to create worktree)${NC}"; errors=$((errors+1)); else echo -e "${GREEN}  OK: worktree_path ($wt)${NC}"; fi
     local no_desc=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE plan_id=$plan_id AND status='pending' AND (description IS NULL OR description='');")
     local no_tc=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE plan_id=$plan_id AND status='pending' AND (test_criteria IS NULL OR test_criteria='');")
     if [[ "$no_desc" -gt 0 ]]; then echo -e "${RED}  FAIL: $no_desc tasks missing description${NC}"; errors=$((errors+1)); else echo -e "${GREEN}  OK: all tasks have description${NC}"; fi

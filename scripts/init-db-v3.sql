@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS plans (
   completed_at DATETIME,
   validated_at DATETIME,
   validated_by TEXT,
+  worktree_path TEXT,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
   FOREIGN KEY (parent_plan_id) REFERENCES plans(id) ON DELETE SET NULL,
   UNIQUE(project_id, name)

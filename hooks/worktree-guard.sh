@@ -1,7 +1,7 @@
 #!/bin/bash
-# Worktree Guard - Warns when git operations happen outside expected context
+# Worktree Guard - BLOCKS git write operations on main/master when worktrees exist
 # Hook for PreToolUse on Bash commands
-# Reads tool input from stdin, checks if it's a git operation in a worktree scenario
+# Exit 2 = BLOCK (stderr shown to Claude), Exit 0 = ALLOW
 
 # Read the tool input JSON from stdin
 INPUT=$(cat)
@@ -26,21 +26,23 @@ if [ "$WORKTREE_COUNT" -le 1 ]; then
     exit 0  # Single repo, no worktree confusion possible
 fi
 
-# We're in a multi-worktree scenario - emit a warning
+# Multi-worktree scenario: check if we're on main/master (the protected branch)
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "DETACHED")
-CURRENT_DIR=$(basename "$GIT_ROOT")
-DIRTY_COUNT=$(git status --porcelain 2>/dev/null | /usr/bin/wc -l | tr -d ' ')
 
-# Build warning message
-WARNING="[WORKTREE GUARD] Multi-worktree detected!"
-WARNING="$WARNING | PWD: $CURRENT_DIR | Branch: $CURRENT_BRANCH"
-if [ "$DIRTY_COUNT" -gt 0 ]; then
-    WARNING="$WARNING | Uncommitted: $DIRTY_COUNT files"
+if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+    # BLOCK: git write operation on main/master with active worktrees
+    CURRENT_DIR=$(basename "$GIT_ROOT")
+    echo "[WORKTREE GUARD] BLOCKED: git write operation on '$CURRENT_BRANCH' while $WORKTREE_COUNT worktrees are active." >&2
+    echo "  PWD: $CURRENT_DIR | Branch: $CURRENT_BRANCH" >&2
+    echo "  Active worktrees:" >&2
+    git worktree list 2>/dev/null | while read -r line; do
+        echo "    $line" >&2
+    done
+    echo "  FIX: cd to the correct worktree directory, or use:" >&2
+    echo "    ~/.claude/scripts/worktree-check.sh   # See all worktrees" >&2
+    echo "    plan-db.sh get-worktree <plan_id>     # Get worktree for a plan" >&2
+    exit 2
 fi
-WARNING="$WARNING | Worktrees: $WORKTREE_COUNT"
 
-# Output as JSON for Claude to see
-echo "{\"worktree_warning\": \"$WARNING\", \"current_dir\": \"$CURRENT_DIR\", \"branch\": \"$CURRENT_BRANCH\", \"worktree_count\": $WORKTREE_COUNT, \"dirty_files\": $DIRTY_COUNT}"
-
-# Don't block, just warn
+# On a non-main branch (likely a worktree branch) - allow but log context
 exit 0

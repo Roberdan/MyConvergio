@@ -32,14 +32,32 @@ Active plans: `sqlite3 ~/.claude/data/dashboard.db "SELECT id, name, status FROM
 ### 1. Setup
 ```bash
 export PATH="$HOME/.claude/scripts:$PATH"
-WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-~/.claude/scripts/worktree-check.sh "$WORKTREE_PATH"
+MAIN_REPO=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+REPO_NAME=$(basename "$MAIN_REPO")
 PROMPT_FILE=".copilot-tracking/prompt-{NNN}.md"
 PLAN_MD="~/.claude/plans/{project}/{PlanName}-Main.md"
-plan-db.sh create {project_id} "{PlanName}" \
+
+# 1a. Create plan in DB (without worktree yet)
+PLAN_ID=$(plan-db.sh create {project_id} "{PlanName}" \
   --source-file "$PROMPT_FILE" \
-  --markdown-path "$PLAN_MD"
+  --markdown-path "$PLAN_MD")
+
+# 1b. MANDATORY: Create dedicated worktree for this plan
+PLAN_SLUG=$(echo "{PlanName}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g')
+WORKTREE_BRANCH="plan/${PLAN_ID}-${PLAN_SLUG}"
+WORKTREE_PATH="${MAIN_REPO}/../${REPO_NAME}-plan-${PLAN_ID}"
+~/.claude/scripts/worktree-create.sh "$WORKTREE_BRANCH" "$WORKTREE_PATH"
+
+# 1c. Store worktree path in DB
+plan-db.sh set-worktree $PLAN_ID "$WORKTREE_PATH"
+
+# 1d. Switch to worktree for all subsequent operations
+cd "$WORKTREE_PATH"
+~/.claude/scripts/worktree-check.sh "$WORKTREE_PATH"
 ```
+
+**RULE**: All subsequent operations (ADR reads, file analysis, task creation) happen INSIDE the worktree.
+The main repo is NEVER modified directly - only via worktree branches.
 
 ### 1.5 Read Existing Documentation (MANDATORY before plan)
 

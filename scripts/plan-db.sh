@@ -11,6 +11,8 @@
 #   update-task <task_id> <status> - Update task status
 #   update-wave <wave_id> <status> - Update wave status
 #   complete <plan_id>             - Mark plan as done
+#   get-worktree <plan_id>         - Get worktree path for plan
+#   set-worktree <plan_id> <path>  - Set worktree path for plan
 #   validate <plan_id>             - Thor validates plan
 #   validate-fxx <plan_id>         - Validate F-xx requirements
 #   kanban                         - Show kanban board
@@ -41,6 +43,8 @@ case "${1:-help}" in
     update-task) cmd_update_task "${2:?task_id required}" "${3:?status required}" "${@:4}" ;;
     update-wave) cmd_update_wave "${2:?wave_id required}" "${3:?status required}" ;;
     complete)    cmd_complete "${2:?plan_id required}" ;;
+    get-worktree) cmd_get_worktree "${2:?plan_id required}" ;;
+    set-worktree) cmd_set_worktree "${2:?plan_id required}" "${3:?path required}" ;;
     validate)    cmd_validate "${2:?plan_id required}" "${3:-thor}" ;;
     validate-fxx) cmd_validate_fxx "${2:?plan_id required}" ;;
     kanban)      cmd_kanban ;;
@@ -56,13 +60,15 @@ case "${1:-help}" in
         echo ""
         echo "CRUD:"
         echo "  list <project_id>              List plans"
-        echo "  create <project_id> <name> [--source-file path] [--markdown-path path]"
+        echo "  create <project_id> <name> [--source-file path] [--markdown-path path] [--worktree-path path]"
         echo "  start <plan_id>                Start execution"
         echo "  add-wave <plan_id> <id> <name> [--depends-on id] [--estimated-hours N]"
         echo "  add-task <wave_id> <id> <title> [P0-P3] [type] [--description 'text'] [--test-criteria 'json']"
         echo "  update-task <task_id> <status> [notes] [--tokens N]"
         echo "  update-wave <wave_id> <status>"
         echo "  complete <plan_id>             Mark done"
+        echo "  get-worktree <plan_id>         Get worktree path for plan"
+        echo "  set-worktree <plan_id> <path>  Set worktree path for plan"
         echo ""
         echo "Validation:"
         echo "  check-readiness <plan_id>      BLOCKS if metadata missing (run before /execute)"

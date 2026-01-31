@@ -30,16 +30,23 @@ When message contains `/execute {plan_id}` or `/execute` (uses current plan).
 # CRITICAL: Ensure scripts are in PATH for this session
 export PATH="$HOME/.claude/scripts:$PATH"
 
-# CRITICAL: Verify and capture worktree FIRST
-WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-~/.claude/scripts/worktree-check.sh "$WORKTREE_PATH"
-
 # Get plan_id from argument or current context
 PLAN_ID={plan_id}
 
+# CRITICAL: Read worktree path FROM THE DB (set by planner)
+WORKTREE_PATH=$(plan-db.sh get-worktree $PLAN_ID)
+if [ -z "$WORKTREE_PATH" ]; then
+  echo "FATAL: Plan $PLAN_ID has no worktree_path. Run /planner first to create a dedicated worktree."
+  exit 1
+fi
+
+# Switch to worktree and verify
+cd "$WORKTREE_PATH" || { echo "FATAL: Cannot access worktree at $WORKTREE_PATH"; exit 1; }
+~/.claude/scripts/worktree-check.sh "$WORKTREE_PATH"
+
 # Verify plan exists and get details + plan markdown path
 sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT id, name, status, tasks_done, tasks_total, markdown_path, source_file FROM plans WHERE id=$PLAN_ID;"
+  "SELECT id, name, status, tasks_done, tasks_total, markdown_path, source_file, worktree_path FROM plans WHERE id=$PLAN_ID;"
 
 # If status != 'doing', start it
 plan-db.sh start $PLAN_ID

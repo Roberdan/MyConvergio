@@ -166,6 +166,15 @@ else
     log_info "plan_versions table already exists"
 fi
 
+# Migration 6: Add worktree_path to plans table
+if ! column_exists "plans" "worktree_path"; then
+    log_info "Adding worktree_path column to plans..."
+    sqlite3 "$DB_PATH" "ALTER TABLE plans ADD COLUMN worktree_path TEXT;"
+    log_info "worktree_path column added"
+else
+    log_info "plans.worktree_path already exists"
+fi
+
 # Verify database integrity
 log_info "Verifying database integrity..."
 integrity=$(sqlite3 "$DB_PATH" "PRAGMA integrity_check;")

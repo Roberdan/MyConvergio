@@ -17,20 +17,21 @@ cmd_list() {
 }
 
 # Create a new plan
-# Usage: create <project_id> <name> [--source-file path] [--markdown-path path]
+# Usage: create <project_id> <name> [--source-file path] [--markdown-path path] [--worktree-path path]
 cmd_create() {
     local project_id="$1"
     local name="$2"
     shift 2
     local is_master=0
     local parent_id="NULL"
-    local source_file="" markdown_path=""
+    local source_file="" markdown_path="" worktree_path=""
 
     set +u
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --source-file) source_file="$2"; shift 2 ;;
             --markdown-path) markdown_path="$2"; shift 2 ;;
+            --worktree-path) worktree_path="$2"; shift 2 ;;
             *) shift ;;
         esac
     done
@@ -48,7 +49,7 @@ cmd_create() {
         [[ -n "$master_id" ]] && parent_id="$master_id"
     fi
 
-    local sf_val="NULL" mp_val="NULL" md_val="NULL"
+    local sf_val="NULL" mp_val="NULL" md_val="NULL" wp_val="NULL"
     if [[ -n "$source_file" ]]; then
         sf_val="'$(sql_escape "$source_file")'"
     fi
@@ -56,10 +57,13 @@ cmd_create() {
         mp_val="'$(sql_escape "$markdown_path")'"
         md_val="'$(sql_escape "$(dirname "$markdown_path")")'"
     fi
+    if [[ -n "$worktree_path" ]]; then
+        wp_val="'$(sql_escape "$worktree_path")'"
+    fi
 
     sqlite3 "$DB_FILE" "
-        INSERT INTO plans (project_id, name, is_master, parent_plan_id, status, source_file, markdown_path, markdown_dir)
-        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo', $sf_val, $mp_val, $md_val);
+        INSERT INTO plans (project_id, name, is_master, parent_plan_id, status, source_file, markdown_path, markdown_dir, worktree_path)
+        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo', $sf_val, $mp_val, $md_val, $wp_val);
     "
     local plan_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name='$safe_name';")
 
@@ -282,4 +286,27 @@ cmd_complete() {
         VALUES ($plan_id, $version, 'completed', 'Plan completed', 'executor');
     "
     log_info "Plan $plan_id completed!"
+}
+
+# Get worktree path for a plan
+# Usage: get-worktree <plan_id>
+cmd_get_worktree() {
+    local plan_id="$1"
+    local wt_path
+    wt_path=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM plans WHERE id = $plan_id;")
+    if [[ -z "$wt_path" ]]; then
+        log_error "No worktree_path set for plan $plan_id"
+        exit 1
+    fi
+    echo "$wt_path"
+}
+
+# Set worktree path for a plan
+# Usage: set-worktree <plan_id> <path>
+cmd_set_worktree() {
+    local plan_id="$1"
+    local wt_path="$2"
+    local safe_path="$(sql_escape "$wt_path")"
+    sqlite3 "$DB_FILE" "UPDATE plans SET worktree_path = '$safe_path' WHERE id = $plan_id;"
+    log_info "Set worktree for plan $plan_id: $wt_path"
 }

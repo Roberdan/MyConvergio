@@ -101,8 +101,8 @@ ERRORS=$(grep -iE 'error|failed|P[0-9]{4}|constraint' "$TMPLOG" |
 PENDING=0
 APPLIED=0
 if [[ "$ORM" == "prisma" && "$CMD" == "status" ]]; then
-	PENDING=$(grep -coE 'not yet applied' "$TMPLOG" 2>/dev/null || echo 0)
-	APPLIED=$(grep -coE 'applied migration' "$TMPLOG" 2>/dev/null || echo 0)
+	PENDING=$(grep -coE 'not yet applied' "$TMPLOG" 2>/dev/null) || PENDING=0
+	APPLIED=$(grep -coE 'applied migration' "$TMPLOG" 2>/dev/null) || APPLIED=0
 fi
 
 RESULT=$(jq -n \

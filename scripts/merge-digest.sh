@@ -39,7 +39,7 @@ if [[ -z "$CONFLICTED" ]]; then
 fi
 
 # Count conflicts
-CONFLICT_COUNT=$(echo "$CONFLICTED" | grep -c . || echo 0)
+CONFLICT_COUNT=$(echo "$CONFLICTED" | grep -c .) || CONFLICT_COUNT=0
 
 # Extract conflict blocks from each file (compact: file + ours + theirs + context)
 FILES_JSON="[]"

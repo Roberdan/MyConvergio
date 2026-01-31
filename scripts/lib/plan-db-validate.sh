@@ -115,7 +115,8 @@ cmd_validate() {
                 WHERE w.plan_id = $plan_id AND t.status = 'done'
             );
         "
-		local count=$(echo "$done_tasks" | grep -c . || echo 0)
+		local count
+		count=$(echo "$done_tasks" | grep -c .) || count=0
 		echo -e "${GREEN}Marked $count tasks as validated${NC}"
 	fi
 

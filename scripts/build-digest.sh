@@ -59,7 +59,7 @@ BUILD_TIME=""
 
 if [[ "$FRAMEWORK" == "nextjs" ]]; then
 	# Count routes from Next.js output
-	ROUTES=$(grep -cE '^\s*(├|└|\/)\s' "$TMPLOG" 2>/dev/null || echo 0)
+	ROUTES=$(grep -cE '^\s*(├|└|\/)\s' "$TMPLOG" 2>/dev/null) || ROUTES=0
 	# Extract bundle size
 	BUNDLE_SIZE=$(grep -oE 'First Load JS.*' "$TMPLOG" | tail -1 |
 		sed 's/First Load JS shared by all//' | tr -d '[:space:]' || echo "")
@@ -72,7 +72,7 @@ elif [[ "$FRAMEWORK" == "vite" ]]; then
 fi
 
 # TypeScript errors count
-TS_ERRORS=$(grep -cE 'TS[0-9]+:' "$TMPLOG" 2>/dev/null || echo 0)
+TS_ERRORS=$(grep -cE 'TS[0-9]+:' "$TMPLOG" 2>/dev/null) || TS_ERRORS=0
 
 RESULT=$(jq -n \
 	--arg framework "$FRAMEWORK" \

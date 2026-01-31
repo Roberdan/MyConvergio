@@ -114,8 +114,8 @@ fi
 
 # Fallback: parse from raw output if JSON parsing got nothing
 if [[ "$TOTAL" -eq 0 && "$EXIT_CODE" -ne 0 ]]; then
-	TOTAL=$(grep -coE '(PASS|FAIL|✓|✗|✘)' "$TMPLOG" 2>/dev/null || echo 0)
-	FAILED=$(grep -coE '(FAIL|✗|✘)' "$TMPLOG" 2>/dev/null || echo 0)
+	TOTAL=$(grep -coE '(PASS|FAIL|✓|✗|✘)' "$TMPLOG" 2>/dev/null) || TOTAL=0
+	FAILED=$(grep -coE '(FAIL|✗|✘)' "$TMPLOG" 2>/dev/null) || FAILED=0
 	PASSED=$((TOTAL - FAILED))
 
 	FAILURES=$(grep -A2 -iE 'FAIL|✗|✘|Error:' "$TMPLOG" |

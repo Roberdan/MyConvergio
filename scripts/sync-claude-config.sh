@@ -39,7 +39,7 @@ check_clean() {
     else
         dirty=$(ssh "$REMOTE_HOST" "git -C $REMOTE_REPO status --porcelain 2>/dev/null | head -3")
     fi
-    [[ -n "$dirty" ]] && warn "${where^} has uncommitted changes (proceeding)"
+    [[ -n "$dirty" ]] && warn "$where has uncommitted changes (proceeding)"
     return 0
 }
 

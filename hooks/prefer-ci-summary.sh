@@ -23,8 +23,8 @@ echo "$COMMAND" | grep -qE "ci-summary\.sh --(quick|full|all|lint|types|build|un
 echo "$COMMAND" | grep -qE "(\./scripts/|npm run )(release|pre-push|pre-release)" && exit 0
 
 # === BLOCK: wc -l (broken on this system) ===
-# Skip check for git commit messages (wc -l may appear in commit text)
-if echo "$BASE_CMD" | grep -qE "wc -l" && ! echo "$BASE_CMD" | grep -qE "^git (commit|tag)"; then
+# Check FULL command (wc -l is usually after a pipe). Skip git commit messages.
+if echo "$COMMAND" | grep -qE "wc -l" && ! echo "$BASE_CMD" | grep -qE "^git (commit|tag)"; then
 	echo "BLOCKED: wc -l is broken on this system." >&2
 	echo "Use: grep -c . <file>  OR  awk 'END{print NR}' <file>" >&2
 	exit 2

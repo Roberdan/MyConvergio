@@ -44,17 +44,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/enforce-line-limit.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
+        "matcher": "Edit|MultiEdit|Write",
         "hooks": [
           {
             "type": "command",

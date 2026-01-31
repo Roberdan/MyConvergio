@@ -120,8 +120,24 @@ Rules:
 - **MANDATORY**: Always create a final wave "WF-Documentation" with tasks TF-01/02/03 (ADR, CHANGELOG, ESLint)
 - Task descriptions MUST cite relevant existing ADRs (e.g., "Per ADR 0082...")
 
+### 3.5 Codex Delegation Tagging (MANDATORY)
+
+Review each task against Codex delegation criteria (see `~/.claude/rules/codex-delegation.md`).
+
+**Tag as `codex: true`** if task is: translations, bulk renames, boilerplate, JSON/config updates, repetitive test generation, >500 lines of simple edits.
+
+```bash
+# For codex-eligible tasks, add metadata
+plan-db.sh update-task {db_task_id} pending "Codex-eligible" \
+  --notes "codex: true | prompt: Translate all Italian strings in messages/de/*.json to German"
+```
+
+**Present to user**: "Questi task sono delegabili a Codex: [list]. Vuoi delegarli? (aspetto 1 min, poi procedo io)"
+
+**Never delegate**: architectural decisions, security code, debugging, cross-cutting logic, CI/build, DB schema, API design.
+
 ### 4. User Approval (MANDATORY STOP)
-Present F-xx list → User says "si"/"yes" → Proceed
+Present F-xx list + Codex delegation proposals → User says "si"/"yes" → Proceed
 
 ### 5. Parallelization Mode Selection
 > See [parallelization-modes.md](./planner-modules/parallelization-modes.md)

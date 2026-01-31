@@ -67,11 +67,14 @@ git rev-parse --show-toplevel  # Must match WORKTREE_PATH
 ```bash
 # Load task with test_criteria from DB
 TASK=$(sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT id, task_id, title, status, test_criteria FROM tasks WHERE id={db_task_id};")
+  "SELECT id, task_id, title, status, test_criteria, notes FROM tasks WHERE id={db_task_id};")
 # Verify status = pending
 # Parse test_criteria (JSON format)
 TEST_CRITERIA=$(echo "$TASK" | cut -d'|' -f5)
+NOTES=$(echo "$TASK" | cut -d'|' -f6)
 ```
+
+**Codex Delegation Check**: If `notes` contains `codex: true`, propose delegation to coordinator before starting: "Task {task_id} is Codex-eligible. Delegate? (1 min timeout, then I proceed)". See `~/.claude/rules/codex-delegation.md`.
 
 **If test_criteria is NULL**: Check plan markdown for test specs, or BLOCK task (TDD required).
 

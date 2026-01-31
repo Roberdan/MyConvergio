@@ -11,12 +11,16 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 
 [ -z "$COMMAND" ] && exit 0
 
-# Extract base command (before any pipe)
-BASE_CMD=$(echo "$COMMAND" | sed 's/|.*//' | sed 's/[[:space:]]*$//')
+# Extract the LAST command in a chain (after && or ;), before any pipe
+# This ensures "cd /path && npm run build | tail" → "npm run build"
+BASE_CMD=$(echo "$COMMAND" | sed 's/|.*//' | sed 's/.*&&//' | sed 's/.*;//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
 
 # === ALWAYS ALLOW: our optimized scripts ===
-echo "$COMMAND" | grep -qE "digest\.sh|ci-summary|service-digest" && exit 0
-echo "$COMMAND" | grep -qE "release|pre-push|pre-release" && exit 0
+echo "$COMMAND" | grep -qE "digest\.sh|service-digest" && exit 0
+# ci-summary WITH explicit flag → allow immediately
+echo "$COMMAND" | grep -qE "ci-summary\.sh --(quick|full|all|lint|types|build|unit|i18n|e2e|a11y)" && exit 0
+# Release/deploy scripts (no ^ anchor: may be after cd &&)
+echo "$COMMAND" | grep -qE "(\./scripts/|npm run )(release|pre-push|pre-release)" && exit 0
 
 # === BLOCK: wc -l (broken on this system) ===
 # Skip check for git commit messages (wc -l may appear in commit text)
@@ -84,12 +88,14 @@ fi
 if echo "$BASE_CMD" | grep -qE "^npm run (lint|typecheck|test:unit)( |$)"; then
 	if [ -f "./scripts/ci-summary.sh" ]; then
 		echo "TOKEN-WASTE: Use './scripts/ci-summary.sh --quick' (lint+types) or '--full' (all)." >&2
-		exit 0
+	else
+		echo "TOKEN-WASTE: Use '$HOME/.claude/scripts/test-digest.sh' instead." >&2
 	fi
+	exit 2
 fi
 
 # === HINT: ci:summary default → suggest --quick ===
-if echo "$BASE_CMD" | grep -qE "^(npm run ci:summary|\\./scripts/ci-summary\\.sh)$"; then
+if echo "$BASE_CMD" | grep -qE "^(npm run ci:summary|\\./scripts/ci-summary\\.sh)( |$)"; then
 	if [ -f "./scripts/ci-summary.sh" ]; then
 		echo "HINT: Consider './scripts/ci-summary.sh --quick' for faster feedback (skips build)." >&2
 		exit 0

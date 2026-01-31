@@ -57,7 +57,7 @@ After reading prompt + docs, STOP. Identify ambiguities. Use AskUserQuestion.
 
 ### 2. Generate Plan Spec (JSON)
 
-Write a `spec.json` file with this structure:
+Write a `spec.json` file with compact task format optimized for machine execution:
 
 ```json
 {
@@ -73,12 +73,13 @@ Write a `spec.json` file with this structure:
       "tasks": [
         {
           "id": "T1-01",
-          "title": "Task title",
+          "do": "atomic action: what to implement",
+          "files": ["src/path/file.ts", "src/path/other.ts"],
+          "verify": ["grep -q 'pattern' file.ts", "npm test -- file.test.ts"],
+          "ref": "F-01",
           "priority": "P1",
           "type": "feature",
-          "model": "sonnet",
-          "description": "What + which files + F-xx ref + relevant ADR",
-          "test_criteria": ["verifiable check 1", "verifiable check 2"]
+          "model": "sonnet"
         }
       ]
     }
@@ -86,13 +87,15 @@ Write a `spec.json` file with this structure:
 }
 ```
 
-Rules:
+**Compact format rules:**
 
-- `description`: what + which files + F-xx ref + relevant ADR (one sentence)
-- `test_criteria`: array of verifiable checks from prompt acceptance criteria
-- Missing test_criteria = Thor cannot validate = pipeline broken
-- **MANDATORY**: Always include a final wave "WF-Documentation" with TF-01 (ADR), TF-02 (CHANGELOG), TF-03 (ESLint)
-- Task descriptions MUST cite relevant existing ADRs
+- `do`: ONE atomic action. If you need "and", split into 2 tasks.
+- `files`: explicit file paths the task-executor must touch. No guessing.
+- `verify`: machine-checkable commands. `grep`, `test`, `npm test -- file`. Not prose.
+- `ref`: F-xx requirement ID this task satisfies
+- Missing `verify` = Thor cannot validate = pipeline broken
+- **MANDATORY**: Final wave "WF-Documentation" with TF-01 (ADR), TF-02 (CHANGELOG), TF-03 (ESLint)
+- Task `do` fields MUST cite relevant existing ADRs when applicable
 
 ### 2.5 Codex Delegation Tagging
 
@@ -110,7 +113,7 @@ PROMPT_FILE=".copilot-tracking/prompt-{NNN}.md"
 PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" \
   --source-file "$PROMPT_FILE" --auto-worktree)
 
-# Single command: bulk imports waves+tasks from spec, auto-renders markdown
+# Single command: bulk imports waves+tasks from spec
 plan-db.sh import $PLAN_ID /path/to/spec.json
 
 # Switch to worktree
@@ -152,20 +155,19 @@ await Task({
 
 ### 8. Thor Validation (per wave) - MANDATORY
 
+Thor gets task data from DB context, not from markdown files.
+
 ```
 Task(
   subagent_type="thor-quality-assurance-guardian",
   model="sonnet",
   description="Thor validates Wave WX",
-  prompt="THOR VALIDATION SESSION
-  Plan ID: {plan_id}
-  Wave: {wave_id}
-  Plan Markdown: {PLAN_MD}
-  Source Prompt: {PROMPT_FILE}
-  WORKTREE: {WORKTREE_PATH}
-  F-xx Requirements: [list from plan markdown]
-
-  Validate this wave. Read plan markdown for F-xx and task specs."
+  prompt="THOR VALIDATION
+  Plan: {plan_id} | Wave: {wave_id} (db_id: {wave_db_id})
+  WORKTREE: {WORKTREE_PATH} | FRAMEWORK: {framework}
+  Tasks in wave: [list task_ids + titles from CTX]
+  Verify criteria: [list test_criteria for each task in wave]
+  Run: lint, typecheck, build, tests. Check F-xx. Read files directly."
 )
 ```
 
@@ -182,7 +184,6 @@ plan-db.sh validate {plan_id}
 > See [knowledge-codification.md](./planner-modules/knowledge-codification.md)
 
 Update LEARNINGS LOG -> Create ADRs -> Create ESLint rules -> Thor validates.
-Re-render markdown after updates: `plan-db.sh render $PLAN_ID`
 
 ## State Transitions
 

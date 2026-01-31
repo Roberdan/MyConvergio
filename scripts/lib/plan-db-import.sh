@@ -13,15 +13,14 @@ cmd_import() {
 		exit 1
 	}
 
-	# Save spec alongside plan markdown
-	local markdown_path
-	markdown_path=$(sqlite3 "$DB_FILE" "SELECT markdown_path FROM plans WHERE id=$plan_id;")
-	if [[ -n "$markdown_path" ]]; then
-		local plan_dir
-		plan_dir=$(dirname "$(_expand_path "$markdown_path")")
-		mkdir -p "$plan_dir"
-		cp "$spec_file" "$plan_dir/spec.json"
-	fi
+	# Save spec in plan folder
+	local project_id
+	project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM plans WHERE id=$plan_id;")
+	local plan_name
+	plan_name=$(sqlite3 "$DB_FILE" "SELECT name FROM plans WHERE id=$plan_id;")
+	local plan_dir="${HOME}/.claude/plans/${project_id}"
+	mkdir -p "$plan_dir"
+	cp "$spec_file" "$plan_dir/${plan_name}-spec.json"
 
 	local wave_count
 	wave_count=$(jq '.waves | length' "$spec_file")
@@ -45,19 +44,34 @@ cmd_import() {
 
 		for ((j = 0; j < task_count; j++)); do
 			local t_id t_title t_pri t_type t_model t_desc t_criteria
-			t_id=$(jq -r ".waves[$i].tasks[$j].id" "$spec_file")
-			t_title=$(jq -r ".waves[$i].tasks[$j].title" "$spec_file")
-			t_pri=$(jq -r ".waves[$i].tasks[$j].priority // \"P1\"" "$spec_file")
-			t_type=$(jq -r ".waves[$i].tasks[$j].type // \"feature\"" "$spec_file")
-			t_model=$(jq -r ".waves[$i].tasks[$j].model // \"sonnet\"" "$spec_file")
-			t_desc=$(jq -r ".waves[$i].tasks[$j].description // \"\"" "$spec_file")
-			t_criteria=$(jq -c ".waves[$i].tasks[$j].test_criteria // []" "$spec_file")
+			local t_base=".waves[$i].tasks[$j]"
+			t_id=$(jq -r "$t_base.id" "$spec_file")
+			t_pri=$(jq -r "$t_base.priority // \"P1\"" "$spec_file")
+			t_type=$(jq -r "$t_base.type // \"feature\"" "$spec_file")
+			t_model=$(jq -r "$t_base.model // \"sonnet\"" "$spec_file")
+
+			# Compact format (do/files/verify) or legacy (title/description/test_criteria)
+			local has_do
+			has_do=$(jq -r "$t_base | has(\"do\")" "$spec_file")
+			if [[ "$has_do" == "true" ]]; then
+				t_title=$(jq -r "$t_base.do" "$spec_file")
+				local t_files t_ref
+				t_files=$(jq -r "$t_base.files // [] | join(\", \")" "$spec_file")
+				t_ref=$(jq -r "$t_base.ref // empty" "$spec_file")
+				t_desc="$t_title"
+				[[ -n "$t_files" ]] && t_desc="$t_desc | Files: $t_files"
+				[[ -n "$t_ref" ]] && t_desc="$t_desc | Ref: $t_ref"
+				t_criteria=$(jq -c "$t_base.verify // []" "$spec_file")
+			else
+				t_title=$(jq -r "$t_base.title" "$spec_file")
+				t_desc=$(jq -r "$t_base.description // \"\"" "$spec_file")
+				t_criteria=$(jq -c "$t_base.test_criteria // []" "$spec_file")
+			fi
 
 			local task_args=("$db_wave_id" "$t_id" "$t_title" "$t_pri" "$t_type")
 			task_args+=(--model "$t_model")
 			[[ -n "$t_desc" ]] && task_args+=(--description "$t_desc")
 			if [[ "$t_criteria" != "[]" && "$t_criteria" != "null" ]]; then
-				# Wrap in {"verify":[...]} format expected by Thor
 				t_criteria=$(echo "$t_criteria" | jq -c '{verify: .}')
 				task_args+=(--test-criteria "$t_criteria")
 			fi
@@ -68,9 +82,6 @@ cmd_import() {
 	done
 
 	log_info "Imported $wave_count waves, $total_tasks tasks"
-
-	# Auto-render markdown
-	cmd_render "$plan_id" >/dev/null
 }
 
 # Render plan markdown from DB + spec.json

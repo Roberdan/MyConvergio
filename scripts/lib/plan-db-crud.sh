@@ -422,6 +422,11 @@ cmd_complete() {
         VALUES ($plan_id, $version, 'completed', 'Plan completed', 'executor');
     "
 	log_info "Plan $plan_id completed!"
+
+	# Auto-cleanup worktree if merged
+	if [[ -x "$SCRIPT_DIR/worktree-cleanup.sh" ]]; then
+		"$SCRIPT_DIR/worktree-cleanup.sh" --plan "$plan_id" 2>&1 || true
+	fi
 }
 
 # Normalize path: replace $HOME with ~ for portability across machines

@@ -1,48 +1,60 @@
 #!/bin/bash
-# Worktree Guard - BLOCKS git write operations on main/master when worktrees exist
+# Worktree Guard - Warns on main operations with active worktrees
 # Hook for PreToolUse on Bash commands
-# Exit 2 = BLOCK (stderr shown to Claude), Exit 0 = ALLOW
+# Exit 2 = BLOCK, Exit 0 = ALLOW
+#
+# POLICY: Warn, don't block. NEVER suggest deleting worktrees.
+# Other agents/sessions may be using them.
 
-# Read the tool input JSON from stdin
 INPUT=$(cat)
-
-# Extract the command from the JSON
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null || echo "")
+
+# Check git worktree add — BLOCK if path is inside current repo
+if echo "$COMMAND" | grep -qE 'git worktree add'; then
+	GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+	# Extract the path argument (first non-flag arg after 'add')
+	WT_PATH=$(echo "$COMMAND" | sed -E 's/.*git worktree add (-b [^ ]+ )?//' | awk '{print $1}')
+	if [ -n "$WT_PATH" ] && [ -n "$GIT_ROOT" ]; then
+		RESOLVED=$(cd "$(dirname "$WT_PATH")" 2>/dev/null && pwd)/$(basename "$WT_PATH") 2>/dev/null || true
+		if [[ "$RESOLVED" == "$GIT_ROOT"/* ]]; then
+			echo "[WORKTREE GUARD] BLOCKED: Worktree path is INSIDE the repo!" >&2
+			echo "  Path: $WT_PATH (resolves to $RESOLVED)" >&2
+			echo "  This poisons TypeScript, ESLint, and build for the main repo." >&2
+			echo "  Use a SIBLING path: $GIT_ROOT/../<name>" >&2
+			exit 2
+		fi
+	fi
+	exit 0
+fi
 
 # Only check git commands that modify state
 if ! echo "$COMMAND" | grep -qE '^git (commit|push|add|checkout|merge|rebase|reset|stash)'; then
-    exit 0
+	exit 0
 fi
 
-# Get current directory context
 GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-if [ -z "$GIT_ROOT" ]; then
-    exit 0  # Not in a git repo, let it fail naturally
-fi
+[ -z "$GIT_ROOT" ] && exit 0
 
-# Check if we're in a worktree scenario (multiple worktrees exist)
-WORKTREE_COUNT=$(git worktree list 2>/dev/null | /usr/bin/wc -l | tr -d ' ')
-if [ "$WORKTREE_COUNT" -le 1 ]; then
-    exit 0  # Single repo, no worktree confusion possible
-fi
+WORKTREE_COUNT=$(git worktree list 2>/dev/null | grep -c '' || echo 0)
+[ "$WORKTREE_COUNT" -le 1 ] && exit 0
 
-# Multi-worktree scenario: check if we're on main/master (the protected branch)
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "DETACHED")
 
-if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
-    # BLOCK: git write operation on main/master with active worktrees
-    CURRENT_DIR=$(basename "$GIT_ROOT")
-    echo "[WORKTREE GUARD] BLOCKED: git write operation on '$CURRENT_BRANCH' while $WORKTREE_COUNT worktrees are active." >&2
-    echo "  PWD: $CURRENT_DIR | Branch: $CURRENT_BRANCH" >&2
-    echo "  Active worktrees:" >&2
-    git worktree list 2>/dev/null | while read -r line; do
-        echo "    $line" >&2
-    done
-    echo "  FIX: cd to the correct worktree directory, or use:" >&2
-    echo "    ~/.claude/scripts/worktree-check.sh   # See all worktrees" >&2
-    echo "    plan-db.sh get-worktree <plan_id>     # Get worktree for a plan" >&2
-    exit 2
+# BLOCK: git worktree remove (protect other agents' work)
+# ALLOW: worktree-cleanup.sh (safe - verifies merge before removing)
+if echo "$COMMAND" | grep -qE 'git worktree remove'; then
+	echo "[WORKTREE GUARD] BLOCKED: Use worktree-cleanup.sh instead of direct git worktree remove." >&2
+	echo "  worktree-cleanup.sh --branch <branch> (verifies merge + updates DB)" >&2
+	echo "  worktree-cleanup.sh --plan <id> (cleanup by plan ID)" >&2
+	echo "  worktree-cleanup.sh --all-merged (cleanup all merged worktrees)" >&2
+	exit 2
 fi
 
-# On a non-main branch (likely a worktree branch) - allow but log context
+# WARN (not block) on main with active worktrees
+if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+	echo "[WORKTREE GUARD] WARNING: git operation on '$CURRENT_BRANCH' with $WORKTREE_COUNT worktrees active." >&2
+	echo "  Proceeding. Make sure you intend to commit to main." >&2
+	exit 0
+fi
+
 exit 0

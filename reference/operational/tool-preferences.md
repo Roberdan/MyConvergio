@@ -45,3 +45,19 @@
 | Create execution plan | `strategic-planner` |
 | Quality validation | `thor-quality-assurance-guardian` |
 | Multi-step research | `general-purpose` |
+
+## CI/Build Commands (Token Optimization)
+
+**MANDATORY**: Use project scripts instead of raw commands when available.
+
+| Raw command (AVOID) | Optimized alternative |
+|---------------------|----------------------|
+| `npm run lint` | `./scripts/ci-summary.sh --lint` |
+| `npm run typecheck` | `./scripts/ci-summary.sh --types` |
+| `npm run build` | `./scripts/ci-summary.sh --build` |
+| `npm run test:unit` | `./scripts/ci-summary.sh --unit` |
+| `gh run view --log` | `./scripts/ci-check.sh <id>` |
+| `git diff file \| head` | `git diff --stat` + Read tool |
+| `git log` (verbose) | `git log --oneline -N` |
+
+Hook `prefer-ci-summary.sh` enforces this automatically.

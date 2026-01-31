@@ -138,10 +138,18 @@ if echo "$COMMAND" | grep -qE "^npx (prisma|drizzle-kit) (migrate|db push|genera
 	exit 2
 fi
 
-# === VERBOSE GIT LOG ===
-if echo "$COMMAND" | grep -qE "^git log[^|]*$" && ! echo "$COMMAND" | grep -q "oneline"; then
-	echo "TOKEN-HINT: Use 'git log --oneline -N' to reduce output." >&2
-	exit 0
+# === GIT STATUS / LOG (redundant calls) ===
+# Block: bare git status (use git-digest.sh for everything in one call)
+if echo "$COMMAND" | grep -qE "^git status( |$)"; then
+	echo "TOKEN-WASTE: Use 'git-digest.sh' instead (status+branch+log in ONE call)." >&2
+	echo "git-digest.sh --full includes file lists. Cache: 5s." >&2
+	exit 2
+fi
+
+# Block: verbose git log (use git-digest.sh which includes recent commits)
+if echo "$COMMAND" | grep -qE "^git log( |$)" && ! echo "$COMMAND" | grep -qE "\-\-(oneline|format)"; then
+	echo "TOKEN-WASTE: Use 'git-digest.sh' (includes last 5 commits)." >&2
+	exit 2
 fi
 
 exit 0

@@ -42,16 +42,17 @@ Create a family of **digest scripts** that:
 
 ### Development Operations
 
-| Script                | Replaces                                   | Output                                                           | Cache TTL |
-| --------------------- | ------------------------------------------ | ---------------------------------------------------------------- | --------- |
-| `npm-digest.sh`       | `npm install`, `npm ci`                    | packages added/removed, audit summary, peer warnings             | 120s      |
-| `build-digest.sh`     | `npm run build`                            | Framework-detected (Next.js/Vite), errors, warnings, bundle size | 30s       |
-| `test-digest.sh`      | `npx vitest`, `npx jest`, `npx playwright` | Auto-detect framework, only failures as JSON                     | 15s       |
-| `audit-digest.sh`     | `npm audit`                                | Only critical/high items, fixable count                          | 300s      |
-| `diff-digest.sh`      | `git diff main...feature`                  | File list, insertions/deletions, type breakdown, top files       | 30s       |
-| `merge-digest.sh`     | Manual Read of conflicted files            | Conflict blocks as JSON with ours/theirs content                 | none      |
-| `error-digest.sh`     | Reading raw stack traces                   | Parse stdin: error type, message, file:line, strip node_modules  | none      |
-| `migration-digest.sh` | `npx prisma migrate`, `npx drizzle-kit`    | Tables modified, destructive changes, pending migrations         | 60s       |
+| Script                | Replaces                                   | Output                                                             | Cache TTL |
+| --------------------- | ------------------------------------------ | ------------------------------------------------------------------ | --------- |
+| `npm-digest.sh`       | `npm install`, `npm ci`                    | packages added/removed, audit summary, peer warnings               | 120s      |
+| `build-digest.sh`     | `npm run build`                            | Framework-detected (Next.js/Vite), errors, warnings, bundle size   | 30s       |
+| `test-digest.sh`      | `npx vitest`, `npx jest`, `npx playwright` | Auto-detect framework, only failures as JSON                       | 15s       |
+| `audit-digest.sh`     | `npm audit`                                | Only critical/high items, fixable count                            | 300s      |
+| `diff-digest.sh`      | `git diff main...feature`                  | File list, insertions/deletions, type breakdown, top files         | 30s       |
+| `merge-digest.sh`     | Manual Read of conflicted files            | Conflict blocks as JSON with ours/theirs content                   | none      |
+| `error-digest.sh`     | Reading raw stack traces                   | Parse stdin: error type, message, file:line, strip node_modules    | none      |
+| `migration-digest.sh` | `npx prisma migrate`, `npx drizzle-kit`    | Tables modified, destructive changes, pending migrations           | 60s       |
+| `git-digest.sh`       | `git status`, `git log`, `git branch`      | Branch, clean/dirty, ahead/behind, staged/unstaged counts, commits | 5s        |
 
 ### Shared Infrastructure
 

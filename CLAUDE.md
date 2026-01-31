@@ -22,9 +22,8 @@
 ## Pre-Closure Checklist (MANDATORY)
 
 ```bash
-git status --short              # Must be clean
+git-digest.sh                   # Status+branch+commits in ONE call (must show clean:true)
 ls -la {files} && wc -l {files} # Verify existence + line counts
-git log --oneline -3            # Show commits as proof
 ```
 
 **NEVER claim done with uncommitted changes or unverified files.**
@@ -63,6 +62,7 @@ worktree-cleanup.sh --all-merged   # Auto-remove merged worktrees
 | `npx prisma migrate`       | `migration-digest.sh status`  |
 | merge/rebase conflicts     | `merge-digest.sh`             |
 | stack traces               | `cmd 2>&1 \| error-digest.sh` |
+| `git status` / `git log`   | `git-digest.sh [--full]`      |
 
 Hook `prefer-ci-summary.sh` blocks raw commands (exit 2). `--no-cache` for fresh data.
 

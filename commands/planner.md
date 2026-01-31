@@ -155,6 +155,7 @@ Manual fallback:
 await Task({
   subagent_type: "task-executor",
   model: task.model,
+  max_turns: 30,
   prompt: `Project: {id} | Plan: {plan_id} | Task: T1-01
   **WORKTREE**: {absolute_worktree_path}
   F-xx: [acceptance criteria]`,

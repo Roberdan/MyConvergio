@@ -143,6 +143,14 @@ plan-db.sh update-task {id} blocked "Blocker description"
 6. Proof of modification provided (git diff)
 7. Token count recorded
 
+## Turn Budget
+
+**Max 30 turns.** If you're past turn 20 and not close to done:
+
+1. Mark task `blocked` with notes explaining what's stuck
+2. Return immediately — let the executor retry or ask user
+3. **NEVER loop** on retries. Same approach fails twice → mark blocked.
+
 ## Anti-Patterns
 
 - Don't query DB for task details (PRE-LOADED in prompt)
@@ -150,6 +158,7 @@ plan-db.sh update-task {id} blocked "Blocker description"
 - Don't operate in wrong worktree (verify pwd)
 - Don't mark done without testing
 - Don't claim completion without proof (git diff)
+- Don't retry same failing approach more than twice
 
 ## EXIT CHECKLIST (MANDATORY)
 

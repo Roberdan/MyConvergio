@@ -53,6 +53,7 @@ const wavePeers = pendingTasks
 await Task({
   subagent_type: "task-executor",
   model: task.model || "sonnet",
+  max_turns: 30,
   description: `Execute ${task.task_id}`,
   prompt: `TASK ${task.task_id} | Wave: ${task.wave_id} | db_id: ${task.db_id}
 WORKTREE: ${WORKTREE_PATH}
@@ -84,6 +85,7 @@ Track in-memory. When `wave_done == wave_tasks_total`:
 Task(
   subagent_type="thor-quality-assurance-guardian",
   model="sonnet",
+  max_turns=20,
   description="Thor validates ${wave_id}",
   prompt="THOR VALIDATION
   Plan: ${PLAN_ID} | Wave: ${wave_id} (db_id: ${wave_db_id})

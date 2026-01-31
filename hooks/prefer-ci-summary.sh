@@ -96,9 +96,14 @@ if echo "$BASE_CMD" | grep -qE "^(npm run ci:summary|\\./scripts/ci-summary\\.sh
 	fi
 fi
 
-# === BLOCK: GIT DIFF (large, no --stat) ===
-if echo "$BASE_CMD" | grep -qE "^git diff [^-]"; then
-	echo "TOKEN-WASTE: Use 'diff-digest.sh' for diffs." >&2
+# === BLOCK: GIT DIFF (all forms except --stat-only) ===
+# Allow: git diff --stat (compact, used in commit verify)
+# Block: bare git diff, git diff --cached, git diff --name-only, git diff branch
+if echo "$BASE_CMD" | grep -qE "^git diff"; then
+	if echo "$BASE_CMD" | grep -qE "^git diff --stat( |$)"; then
+		exit 0
+	fi
+	echo "TOKEN-WASTE: Use 'git-digest.sh --full' for file lists, 'diff-digest.sh' for content." >&2
 	exit 2
 fi
 

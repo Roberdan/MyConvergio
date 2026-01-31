@@ -100,9 +100,8 @@ VERDICT: PASS
 ### Phase 4.5: Proof of Modification (MANDATORY)
 
 ```bash
-git diff --stat
-git diff {modified_files}
-grep -n "expected_pattern" {modified_file}
+git-digest.sh --full   # ONE call: status + changed files + recent commits
+grep -n "expected_pattern" {modified_file}  # targeted verification only
 ```
 
 **Required Output**:
@@ -110,13 +109,13 @@ grep -n "expected_pattern" {modified_file}
 ```markdown
 ## PROOF OF MODIFICATION
 
-### Files Changed:
+### Git Digest:
 
-- `path/to/file.tsx`: [what changed]
+[paste git-digest.sh --full JSON output]
 
-### Git Diff Summary:
+### Pattern Verification:
 
-[paste git diff --stat output]
+[paste grep evidence for key changes]
 PROOF STATUS: VERIFIED
 ```
 
@@ -148,7 +147,7 @@ plan-db.sh update-task {id} blocked "Blocker description"
 3. Tests initially FAILED (RED confirmed)
 4. Implementation makes tests PASS (GREEN)
 5. F-xx requirements verified
-6. Proof of modification provided (git diff)
+6. Proof of modification provided (git-digest.sh --full)
 7. Token count recorded
 
 ## Turn Budget
@@ -165,7 +164,8 @@ plan-db.sh update-task {id} blocked "Blocker description"
 - Don't re-detect framework (PRE-LOADED as FRAMEWORK)
 - Don't operate in wrong worktree (verify pwd)
 - Don't mark done without testing
-- Don't claim completion without proof (git diff)
+- Don't claim completion without proof (git-digest.sh --full)
+- Don't use raw git diff/status/log — use git-digest.sh or diff-digest.sh
 - Don't retry same failing approach more than twice
 
 ## EXIT CHECKLIST (MANDATORY)

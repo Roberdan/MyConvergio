@@ -19,7 +19,8 @@ echo "$COMMAND" | grep -qE "digest\.sh|ci-summary|service-digest" && exit 0
 echo "$COMMAND" | grep -qE "release|pre-push|pre-release" && exit 0
 
 # === BLOCK: wc -l (broken on this system) ===
-if echo "$COMMAND" | grep -qE "wc -l"; then
+# Skip check for git commit messages (wc -l may appear in commit text)
+if echo "$BASE_CMD" | grep -qE "wc -l" && ! echo "$BASE_CMD" | grep -qE "^git (commit|tag)"; then
 	echo "BLOCKED: wc -l is broken on this system." >&2
 	echo "Use: grep -c . <file>  OR  awk 'END{print NR}' <file>" >&2
 	exit 2

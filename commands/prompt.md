@@ -61,7 +61,7 @@ Save to `.copilot-tracking/prompt-{NNN}.json`:
 ```
 
 ```bash
-NEXT=$(ls .copilot-tracking/prompt-*.json 2>/dev/null | grep -c . || echo 0)
+NEXT=$(ls .copilot-tracking/prompt-*.json 2>/dev/null | grep -c .) || NEXT=0
 NEXT=$((NEXT + 1))
 PROMPT_FILE=".copilot-tracking/prompt-$(printf '%03d' $NEXT).json"
 ```

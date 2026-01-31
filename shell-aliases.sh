@@ -6,7 +6,7 @@
 # These silently use modern tools (no echo messages)
 command -v fd &>/dev/null && alias find='fd'
 command -v rg &>/dev/null && alias grep='rg'
-command -v bat &>/dev/null && { alias cat='bat --paging=never'; alias catp='bat'; }
+command -v bat &>/dev/null && alias catp='bat'
 command -v dust &>/dev/null && alias du='dust'
 command -v delta &>/dev/null && alias diff='delta'
 command -v btop &>/dev/null && alias top='btop' && alias htop='btop'

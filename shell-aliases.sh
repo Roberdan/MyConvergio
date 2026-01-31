@@ -77,3 +77,6 @@ repo-index() {
 alias grafana='~/.claude/scripts/grafana-helper.sh'
 alias supabase-wrap='~/.claude/scripts/supabase-helper.sh'
 alias vercel-wrap='~/.claude/scripts/vercel-helper.sh'
+
+# === Claude config sync (Mac ↔ Linux) ===
+alias csync='~/.claude/scripts/sync-claude-config.sh'

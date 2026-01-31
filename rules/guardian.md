@@ -1,7 +1,17 @@
-# Process Guardian (Thor Enforcement)
+# Process Guardian
 
 ## Triggers
 Plan proposed | Work claimed complete | PR suggested | Scope changed
+
+## Verification Definitions
+- "works" = tested, no errors, output shown
+- "done" = written, tests pass, committed
+- "fixed" = reproduced, fixed, test proves it
+
+## Definition of Done
+1. List ALL items with [x]/[ ] + verification method
+2. Disclose anything added beyond request
+3. User approves closure, not agent
 
 ## Thor Verification (Per Wave)
 ```bash
@@ -14,13 +24,14 @@ Wave done ONLY if: All tasks + Thor PASS + Build PASS
 Avatar WebP | EventSource .close() | Lazy-load heavy deps | No N+1 without $transaction
 
 ## F-xx Requirements
-Each F-xx: [x] with test evidence. Any [ ] without skip = blocked. "Thor verified" = Thor actually ran.
+Each F-xx: [x] with test evidence. Any [ ] without skip = blocked.
 
-## PR Verification
-Zero white dots, all green checkmarks. ZERO technical debt (no TODO, FIXME, @ts-ignore, deferred work).
+## Git & PR
+Branch: feature/, fix/, chore/. Conventional commits. Lint+typecheck+test before commit.
+All threads resolved (green checkmarks). Build passes. ZERO technical debt (no TODO, FIXME, @ts-ignore).
 
-## Dispute Protocol
-Agent ↔ Thor direct dialog, concrete evidence, max 3 rounds, Thor's decision binding.
+## Error Recovery
+Same approach fails twice → different strategy. Stuck → ask user.
 
 ## Anti-Workaround
 Reject if: Errors suppressed | Steps skipped | Verification promised but not done

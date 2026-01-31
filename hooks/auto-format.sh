@@ -1,9 +1,14 @@
 #!/bin/bash
 # Auto-format hook for Claude Code
-# Runs after Write tool to format code automatically
+# Runs after Edit/Write/MultiEdit to format code automatically
+# PostToolUse hook receives JSON on stdin
 
-# Get file path from Claude's environment
-FILE="${CLAUDE_FILE_PATH:-}"
+# Read JSON input from stdin
+INPUT=$(cat)
+
+# Extract file_path from tool_input
+FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+[ -z "$FILE" ] && FILE="${CLAUDE_FILE_PATH:-}"
 
 # Exit if no file path
 [ -z "$FILE" ] || [ ! -f "$FILE" ] && exit 0

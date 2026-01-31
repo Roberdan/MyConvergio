@@ -140,7 +140,7 @@ Rules:
 
 ### 3.5 Codex Delegation Tagging (MANDATORY)
 
-Review each task against Codex delegation criteria (see `~/.claude/rules/codex-delegation.md`).
+Review each task against Codex delegation criteria (see CLAUDE.md § Codex Delegation).
 
 **Tag as `codex: true`** if task is: translations, bulk renames, boilerplate, JSON/config updates, repetitive test generation, >500 lines of simple edits.
 

@@ -49,10 +49,10 @@ UNTRACKED=0
 CONFLICTS=0
 
 if [[ -n "$STATUS_RAW" ]]; then
-	STAGED=$(echo "$STATUS_RAW" | grep -cE '^[MADRC]' 2>/dev/null || echo 0)
-	UNSTAGED=$(echo "$STATUS_RAW" | grep -cE '^.[MADRC]' 2>/dev/null || echo 0)
-	UNTRACKED=$(echo "$STATUS_RAW" | grep -cE '^\?\?' 2>/dev/null || echo 0)
-	CONFLICTS=$(echo "$STATUS_RAW" | grep -cE '^(UU|AA|DD)' 2>/dev/null || echo 0)
+	STAGED=$(echo "$STATUS_RAW" | grep -cE '^[MADRC]') || STAGED=0
+	UNSTAGED=$(echo "$STATUS_RAW" | grep -cE '^.[MADRC]') || UNSTAGED=0
+	UNTRACKED=$(echo "$STATUS_RAW" | grep -cE '^\?\?') || UNTRACKED=0
+	CONFLICTS=$(echo "$STATUS_RAW" | grep -cE '^(UU|AA|DD)') || CONFLICTS=0
 fi
 
 CLEAN="true"
@@ -60,23 +60,28 @@ CLEAN="true"
 
 # Recent commits (compact: hash + subject)
 COMMITS=$(git log --oneline -5 2>/dev/null |
-	jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null || echo "[]")
+	jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null) || COMMITS="[]"
 
 # Stash count
-STASH_COUNT=$(git stash list 2>/dev/null | grep -c . || echo 0)
+STASH_COUNT=$(git stash list 2>/dev/null | grep -c .) || STASH_COUNT=0
 
 # Build result
 if [[ "$FULL" -eq 1 ]]; then
-	# File-level details
-	STAGED_FILES=$(echo "$STATUS_RAW" | grep -E '^[MADRC]' |
-		awk '{print $2}' |
-		jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null || echo "[]")
-	UNSTAGED_FILES=$(echo "$STATUS_RAW" | grep -E '^.[MADRC]' |
-		awk '{print $2}' |
-		jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null || echo "[]")
-	UNTRACKED_FILES=$(echo "$STATUS_RAW" | grep -E '^\?\?' |
-		awk '{print $2}' |
-		jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null || echo "[]")
+	# File-level details (default to empty arrays)
+	STAGED_FILES="[]"
+	UNSTAGED_FILES="[]"
+	UNTRACKED_FILES="[]"
+	if [[ -n "$STATUS_RAW" ]]; then
+		STAGED_FILES=$(echo "$STATUS_RAW" | grep -E '^[MADRC]' |
+			awk '{print $2}' |
+			jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null) || STAGED_FILES="[]"
+		UNSTAGED_FILES=$(echo "$STATUS_RAW" | grep -E '^.[MADRC]' |
+			awk '{print $2}' |
+			jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null) || UNSTAGED_FILES="[]"
+		UNTRACKED_FILES=$(echo "$STATUS_RAW" | grep -E '^\?\?' |
+			awk '{print $2}' |
+			jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null) || UNTRACKED_FILES="[]"
+	fi
 
 	RESULT=$(jq -n \
 		--arg branch "$BRANCH" \

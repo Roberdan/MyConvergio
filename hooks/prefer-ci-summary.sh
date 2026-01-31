@@ -39,7 +39,7 @@ if echo "$COMMAND" | grep -qE "^npm run (lint|typecheck|build|test:unit)( |$)"; 
   if [ -f "./scripts/ci-summary.sh" ]; then
     echo "TOKEN-WASTE: Use './scripts/ci-summary.sh' instead."
     echo "Detected: $COMMAND"
-    echo "Steps: --lint|--types|--build|--unit|--i18n|--full"
+    echo "Steps: --lint|--types|--build|--unit|--i18n|--e2e|--a11y|--full|--all"
     exit 0
   fi
 fi
@@ -48,6 +48,16 @@ fi
 if echo "$COMMAND" | grep -qE "npm run lint.*&&.*npm run (typecheck|build)"; then
   if [ -f "./scripts/ci-summary.sh" ]; then
     echo "TOKEN-WASTE: Use 'npm run ci:summary' instead of chained commands."
+    exit 0
+  fi
+fi
+
+# --- Playwright direct invocation ---
+if echo "$COMMAND" | grep -qE "^(npx playwright test|npm run test( |$))"; then
+  if [ -f "./scripts/ci-summary.sh" ]; then
+    echo "TOKEN-WASTE: Use './scripts/ci-summary.sh --e2e' or '--a11y' instead."
+    echo "Detected: $COMMAND"
+    echo "Saves ~95% tokens by extracting only failures."
     exit 0
   fi
 fi

@@ -56,6 +56,9 @@
 | `npm run typecheck` | `./scripts/ci-summary.sh --types` |
 | `npm run build` | `./scripts/ci-summary.sh --build` |
 | `npm run test:unit` | `./scripts/ci-summary.sh --unit` |
+| `npx playwright test` | `./scripts/ci-summary.sh --e2e` |
+| `npm run test` (E2E) | `./scripts/ci-summary.sh --e2e` |
+| A11y/axe-core tests | `./scripts/ci-summary.sh --a11y` |
 | `gh run view --log` | `./scripts/ci-check.sh <id>` |
 | `git diff file \| head` | `git diff --stat` + Read tool |
 | `git log` (verbose) | `git log --oneline -N` |

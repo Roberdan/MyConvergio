@@ -20,7 +20,16 @@ Read files directly. NEVER trust executor self-reports.
 
 ```bash
 export PATH="$HOME/.claude/scripts:$PATH"
-PLAN_ID={plan_id}
+
+# Auto-detect project and active plan from current directory
+INIT=$(planner-init.sh)
+PLAN_ID=$(echo "$INIT" | jq -r '.active_plans[0].id // empty')
+
+if [[ -z "$PLAN_ID" ]]; then
+  echo "No active plan found. Run: plan-db.sh list $(echo "$INIT" | jq -r '.project_id')"
+  exit 1
+fi
+
 WORKTREE=$(plan-db.sh get-worktree $PLAN_ID)
 cd "$WORKTREE"
 ```

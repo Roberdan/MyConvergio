@@ -26,7 +26,20 @@ Execute plan tasks with mandatory drift check, worktree guard, and TDD.
 
 ```bash
 export PATH="$HOME/.claude/scripts:$PATH"
-PLAN_ID={plan_id}
+
+# Auto-detect project and active plan from current directory
+INIT=$(planner-init.sh)
+PROJECT_ID=$(echo "$INIT" | jq -r '.project_id')
+# Find active plan (status=doing or todo)
+PLAN_ID=$(echo "$INIT" | jq -r '.active_plans[0].id // empty')
+
+if [[ -z "$PLAN_ID" ]]; then
+  echo "No active plan for project $PROJECT_ID."
+  echo "Active plans:" && plan-db.sh list "$PROJECT_ID"
+  echo "Specify plan_id to execute."
+  exit 1
+fi
+
 CTX=$(plan-db.sh get-context $PLAN_ID)
 echo "$CTX" | jq '{name, status, tasks_done, tasks_total, framework, worktree_path}'
 WORKTREE_PATH=$(echo "$CTX" | jq -r '.worktree_path')

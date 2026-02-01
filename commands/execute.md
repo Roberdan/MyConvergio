@@ -35,6 +35,28 @@ cd "$WORKTREE_PATH" && pwd
 plan-db.sh check-readiness $PLAN_ID
 ```
 
+### Phase 1.5: Drift Check (MANDATORY before first task)
+
+```bash
+DRIFT_JSON=$(plan-db.sh drift-check $PLAN_ID) || true
+DRIFT_LEVEL=$(echo "$DRIFT_JSON" | jq -r '.drift')
+BEHIND=$(echo "$DRIFT_JSON" | jq -r '.branch_behind')
+OVERLAPS=$(echo "$DRIFT_JSON" | jq -r '.overlap_count')
+
+if [[ "$DRIFT_LEVEL" == "major" ]]; then
+  echo "DRIFT: major ($OVERLAPS file overlaps, plan stale)"
+  echo "$DRIFT_JSON" | jq '{drift,days_stale,branch_behind,overlapping_files}'
+  # AskUserQuestion: "Drift rilevato. Procedi / Riallinea (rebase) / Ripianifica?"
+  # If "rebase": plan-db.sh rebase-plan $PLAN_ID
+  # If "replan": invoke /planner with drift report as context. STOP execution.
+elif [[ "$DRIFT_LEVEL" == "minor" ]]; then
+  echo "DRIFT: minor (behind=$BEHIND). Auto-rebasing..."
+  plan-db.sh rebase-plan $PLAN_ID || {
+    echo "Rebase failed. Ask user."; # AskUserQuestion
+  }
+fi
+```
+
 ### Phase 2: Tasks from CTX
 
 Tasks are in `CTX.pending_tasks`. No separate query, no file reading needed.

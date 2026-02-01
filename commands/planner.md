@@ -122,21 +122,27 @@ Write a `spec.json` file with compact task format optimized for machine executio
   - TF-03: Create ESLint rules for automatable learnings
 - Task `do` fields MUST cite relevant existing ADRs when applicable
 
-### 2.5 Codex/Copilot Delegation Tagging
+### 2.5 Copilot Delegation Tagging
 
-Review each task against Codex delegation criteria (see CLAUDE.md).
-Mark codex-eligible tasks in the spec with `"codex": true`.
-Present to user: "Questi task sono delegabili a Codex/Copilot: [list]. Vuoi delegarli?"
+Review each task against delegation criteria (see CLAUDE.md).
+Mark eligible tasks in spec with `"codex": true`.
+Present: "Questi task sono delegabili a Copilot: [list]. Vuoi delegarli?"
 **Never delegate**: architecture, security, debugging, cross-cutting logic, CI/build, DB schema, API design.
 
-**Prompt enrichment for delegated tasks** (MANDATORY):
-When generating the prompt for a Codex/Copilot task, ALWAYS include:
+**Prompt enrichment** (MANDATORY): Use `copilot-task-prompt.sh <db_task_id>` which auto-includes:
 
-1. The task `do` + `files` + `verify` from the spec
-2. Project coding standards from `.github/copilot-instructions.md` (if exists)
-3. Relevant constraints: `"Rules: [max 250 lines/file, TDD, no TODO/FIXME, conventional commits]"`
-4. Relevant ADRs cited in the task `ref` field
-   This ensures Copilot sessions follow project standards even without Claude Code hooks.
+- Task `do` + `files` + `verify` from DB
+- Worktree guard enforcement (NEVER on main)
+- TDD workflow + plan-db.sh update commands
+- Coding standards inline
+
+**Execution modes for delegated tasks**:
+
+- **Kitty orchestration**: `worker-launch.sh copilot "Copilot-N" <id> --cwd <worktree>`
+- **Standalone**: `copilot-worker.sh <id> --model claude-sonnet-4-5 --timeout 600`
+- **Mixed mode**: `orchestrate.sh <plan> 4 --engine mixed` (auto-routes by codex flag)
+
+Copilot CLI requires: `copilot --allow-all` (no confirmations), `GH_TOKEN` set.
 
 ### 3. Create Plan + Import (2 calls total)
 

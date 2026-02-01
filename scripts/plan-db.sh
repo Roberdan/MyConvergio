@@ -30,6 +30,7 @@ source "$SCRIPT_DIR/lib/plan-db-crud.sh"
 source "$SCRIPT_DIR/lib/plan-db-validate.sh"
 source "$SCRIPT_DIR/lib/plan-db-display.sh"
 source "$SCRIPT_DIR/lib/plan-db-import.sh"
+source "$SCRIPT_DIR/lib/plan-db-drift.sh"
 
 # Initialize DB
 init_db
@@ -57,6 +58,8 @@ sync) cmd_sync "${2:?plan_id required}" ;;
 import) cmd_import "${2:?plan_id required}" "${3:?spec_file required}" ;;
 render) cmd_render "${2:?plan_id required}" ;;
 get-context) cmd_get_context "${2:?plan_id required}" ;;
+drift-check) cmd_check_drift "${2:?plan_id required}" ;;
+rebase-plan) cmd_rebase_plan "${2:?plan_id required}" ;;
 *)
 	echo "Plan DB CLI - Task/Wave/Plan Management"
 	echo ""
@@ -78,6 +81,8 @@ get-context) cmd_get_context "${2:?plan_id required}" ;;
 	echo "  check-readiness <plan_id>      BLOCKS if metadata missing (run before /execute)"
 	echo "  validate <plan_id> [by]        Thor validates (counters, orphans)"
 	echo "  validate-fxx <plan_id>         Validate F-xx from markdown"
+	echo "  drift-check <plan_id>          Check plan staleness vs main (JSON report)"
+	echo "  rebase-plan <plan_id>          Rebase plan worktree onto latest main"
 	echo "  sync <plan_id>                 Fix out-of-sync counters"
 	echo ""
 	echo "Bulk:"

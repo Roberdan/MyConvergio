@@ -41,14 +41,18 @@ Test Criteria: {test_criteria}
 
 ## Workflow (MANDATORY)
 
-### Phase 0: Worktree Setup
+### Phase 0: Worktree Setup + Guard (MANDATORY)
 
 ```bash
 export PATH="$HOME/.claude/scripts:$PATH"
 cd "{absolute_worktree_path}" && pwd
+
+# HARD BLOCKER: verify correct worktree, not on main
+worktree-guard.sh "{absolute_worktree_path}"
+# If this fails: STOP immediately. Do NOT proceed.
 ```
 
-That's it. Worktree is pre-verified by the executor.
+**NEVER work on main/master.** If `worktree-guard.sh` prints `WORKTREE_VIOLATION`, mark task as `blocked` and return.
 
 ### Phase 1: Mark Started
 

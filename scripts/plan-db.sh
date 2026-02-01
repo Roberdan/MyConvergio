@@ -54,6 +54,7 @@ kanban-json) cmd_kanban_json ;;
 json) cmd_json "${2:?plan_id required}" ;;
 status) cmd_status "${2:-}" ;;
 check-readiness) cmd_check_readiness "${2:?plan_id required}" ;;
+evaluate-wave) cmd_evaluate_wave "${2:?wave_db_id required}" ;;
 sync) cmd_sync "${2:?plan_id required}" ;;
 import) cmd_import "${2:?plan_id required}" "${3:?spec_file required}" ;;
 render) cmd_render "${2:?plan_id required}" ;;
@@ -79,6 +80,7 @@ rebase-plan) cmd_rebase_plan "${2:?plan_id required}" ;;
 	echo ""
 	echo "Validation:"
 	echo "  check-readiness <plan_id>      BLOCKS if metadata missing (run before /execute)"
+	echo "  evaluate-wave <wave_db_id>     Check wave preconditions (returns JSON)"
 	echo "  validate <plan_id> [by]        Thor validates (counters, orphans)"
 	echo "  validate-fxx <plan_id>         Validate F-xx from markdown"
 	echo "  drift-check <plan_id>          Check plan staleness vs main (JSON report)"

@@ -15,7 +15,7 @@ cmd_validate() {
 	local project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM plans WHERE id = $plan_id;")
 
 	# Check 1: Counter sync - waves
-	echo -e "${YELLOW}[1/5] Wave counter sync...${NC}"
+	echo -e "${YELLOW}[1/7] Wave counter sync...${NC}"
 	local wave_issues=$(sqlite3 "$DB_FILE" "
         SELECT w.wave_id, w.tasks_done, w.tasks_total,
                (SELECT COUNT(*) FROM tasks t WHERE t.wave_id_fk = w.id AND t.status = 'done') as actual_done,
@@ -33,7 +33,7 @@ cmd_validate() {
 	fi
 
 	# Check 2: Orphan tasks
-	echo -e "${YELLOW}[2/5] Orphan tasks...${NC}"
+	echo -e "${YELLOW}[2/7] Orphan tasks...${NC}"
 	local orphans=$(sqlite3 "$DB_FILE" "
         SELECT t.id, t.task_id, t.wave_id FROM tasks t
         WHERE t.plan_id = $plan_id
@@ -48,7 +48,7 @@ cmd_validate() {
 	fi
 
 	# Check 3: Incomplete tasks in done waves
-	echo -e "${YELLOW}[3/5] Incomplete in done waves...${NC}"
+	echo -e "${YELLOW}[3/7] Incomplete in done waves...${NC}"
 	local incomplete=$(sqlite3 "$DB_FILE" "
         SELECT w.wave_id, t.task_id, t.status FROM tasks t
         JOIN waves w ON t.wave_id_fk = w.id
@@ -63,7 +63,7 @@ cmd_validate() {
 	fi
 
 	# Check 4: Plan counter sync
-	echo -e "${YELLOW}[4/5] Plan counter sync...${NC}"
+	echo -e "${YELLOW}[4/7] Plan counter sync...${NC}"
 	local plan_totals=$(sqlite3 "$DB_FILE" "
         SELECT p.tasks_done, p.tasks_total,
                (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE plan_id = p.id) as actual_done,
@@ -80,13 +80,50 @@ cmd_validate() {
 	fi
 
 	# Check 5: Date consistency
-	echo -e "${YELLOW}[5/5] Date consistency...${NC}"
+	echo -e "${YELLOW}[5/7] Date consistency...${NC}"
 	local bad_dates=$(sqlite3 "$DB_FILE" "
         SELECT wave_id FROM waves WHERE plan_id = $plan_id AND planned_end < planned_start;
     ")
 	if [ -n "$bad_dates" ]; then
 		echo -e "${YELLOW}  WARNING: Waves with end < start${NC}"
 		((warnings++))
+	else
+		echo -e "${GREEN}  OK${NC}"
+	fi
+
+	# Check 6: executor_agent presence for done tasks
+	echo -e "${YELLOW}[6/7] Executor agent tracking...${NC}"
+	local missing_agent=$(sqlite3 "$DB_FILE" "
+	    SELECT COUNT(*) FROM tasks t
+	    JOIN waves w ON t.wave_id_fk = w.id
+	    WHERE w.plan_id = $plan_id AND t.status = 'done' AND (t.executor_agent IS NULL OR t.executor_agent = '');
+	")
+	if [ "$missing_agent" -gt 0 ]; then
+		echo -e "${YELLOW}  WARNING: $missing_agent done tasks missing executor_agent${NC}"
+		((warnings++))
+	else
+		echo -e "${GREEN}  OK${NC}"
+	fi
+
+	# Check 7: output_data JSON validity
+	echo -e "${YELLOW}[7/7] Output data JSON validity...${NC}"
+	local invalid_json=0
+	local tasks_with_output
+	tasks_with_output=$(sqlite3 "$DB_FILE" "
+	    SELECT t.task_id, t.output_data FROM tasks t
+	    JOIN waves w ON t.wave_id_fk = w.id
+	    WHERE w.plan_id = $plan_id AND t.output_data IS NOT NULL AND t.output_data != '';
+	")
+	while IFS='|' read -r tid output; do
+		[[ -z "$tid" ]] && continue
+		if ! echo "$output" | jq -e . >/dev/null 2>&1; then
+			echo -e "${RED}  ERROR: Task $tid has invalid JSON in output_data${NC}"
+			((invalid_json++))
+		fi
+	done <<<"$tasks_with_output"
+	if [ "$invalid_json" -gt 0 ]; then
+		echo -e "${RED}  ERROR: $invalid_json tasks with invalid output_data JSON${NC}"
+		((errors++))
 	else
 		echo -e "${GREEN}  OK${NC}"
 	fi
@@ -211,11 +248,161 @@ cmd_validate_fxx() {
 	return 0
 }
 
+# Detect cycles in wave dependency graph (DFS 3-color)
+# Usage: detect_precondition_cycles <plan_id>
+# Returns 0 if no cycles, 1 if cycle found (prints path to stderr)
+detect_precondition_cycles() {
+	local plan_id="$1"
+
+	# Query all waves for this plan
+	local wave_data
+	wave_data=$(sqlite3 "$DB_FILE" \
+		"SELECT wave_id, COALESCE(depends_on,''), COALESCE(precondition,'') FROM waves WHERE plan_id = $plan_id ORDER BY position;" \
+		2>/dev/null) || true
+
+	# Nothing to check
+	[[ -z "$wave_data" ]] && return 0
+
+	# Build adjacency list using temp files (portable across
+	# bash versions; avoids associative array edge cases)
+	local tmpdir
+	tmpdir=$(mktemp -d /tmp/cycle-detect-XXXXXX)
+	trap "rm -rf '$tmpdir'" RETURN
+
+	# Collect all wave_ids
+	local -a all_waves=()
+	while IFS='|' read -r wid depends_on precondition; do
+		all_waves+=("$wid")
+		local adj_file="$tmpdir/adj_${wid}"
+		touch "$adj_file"
+
+		# Source 1: depends_on field (comma-separated wave_ids)
+		if [[ -n "$depends_on" ]]; then
+			local dep
+			for dep in $(echo "$depends_on" | tr ',' ' '); do
+				dep=$(echo "$dep" | xargs) # trim whitespace
+				[[ -n "$dep" ]] && echo "$dep" >>"$adj_file"
+			done
+		fi
+
+		# Source 2: precondition JSON - extract wave_id refs
+		if [[ -n "$precondition" && "$precondition" != "null" ]]; then
+			local json_deps
+			json_deps=$(echo "$precondition" |
+				jq -r '.[].wave_id // empty' 2>/dev/null) || true
+			if [[ -n "$json_deps" ]]; then
+				echo "$json_deps" >>"$adj_file"
+			fi
+		fi
+
+		# Deduplicate adjacency entries
+		if [[ -s "$adj_file" ]]; then
+			sort -u "$adj_file" -o "$adj_file"
+		fi
+	done <<<"$wave_data"
+
+	# DFS 3-color: white=0, gray=1, black=2
+	for wid in "${all_waves[@]}"; do
+		echo "0" >"$tmpdir/color_${wid}"
+	done
+
+	echo "0" >"$tmpdir/result"
+
+	# Recursive DFS visit
+	_dfs_visit() {
+		local node="$1"
+		local color_file="$tmpdir/color_${node}"
+
+		# Skip if wave_id is referenced but not in this plan
+		[[ ! -f "$color_file" ]] && return 0
+
+		local color
+		color=$(<"$color_file")
+
+		# Already fully processed
+		[[ "$color" == "2" ]] && return 0
+
+		# Gray = back edge = cycle
+		if [[ "$color" == "1" ]]; then
+			local cycle_path=""
+			if [[ -f "$tmpdir/path" ]]; then
+				local in_cycle=0
+				while IFS= read -r p; do
+					if [[ "$p" == "$node" ]]; then
+						in_cycle=1
+					fi
+					if [[ $in_cycle -eq 1 ]]; then
+						[[ -n "$cycle_path" ]] && cycle_path="${cycle_path} -> "
+						cycle_path="${cycle_path}${p}"
+					fi
+				done <"$tmpdir/path"
+				cycle_path="${cycle_path} -> ${node}"
+			else
+				cycle_path="${node} -> ${node}"
+			fi
+			echo "CYCLE DETECTED: $cycle_path" >&2
+			echo "1" >"$tmpdir/result"
+			return 1
+		fi
+
+		# Mark gray (in progress)
+		echo "1" >"$color_file"
+		echo "$node" >>"$tmpdir/path"
+
+		# Visit all neighbors
+		local adj_file="$tmpdir/adj_${node}"
+		if [[ -f "$adj_file" && -s "$adj_file" ]]; then
+			while IFS= read -r neighbor; do
+				[[ -z "$neighbor" ]] && continue
+				if ! _dfs_visit "$neighbor"; then
+					return 1
+				fi
+			done <"$adj_file"
+		fi
+
+		# Mark black (done)
+		echo "2" >"$color_file"
+
+		# Remove node from path stack
+		if [[ -f "$tmpdir/path" ]]; then
+			local new_path
+			new_path=$(grep -v "^${node}$" "$tmpdir/path" 2>/dev/null) || true
+			echo "$new_path" >"$tmpdir/path"
+		fi
+
+		return 0
+	}
+
+	# Run DFS from each unvisited node
+	for wid in "${all_waves[@]}"; do
+		local color
+		color=$(<"$tmpdir/color_${wid}")
+		if [[ "$color" == "0" ]]; then
+			>"$tmpdir/path"
+			if ! _dfs_visit "$wid"; then
+				return 1
+			fi
+		fi
+	done
+
+	return 0
+}
+
 # Check plan readiness for execution (BLOCKS if metadata missing)
 cmd_check_readiness() {
 	local plan_id="$1"
 	local errors=0
 	echo -e "${BLUE}======= READINESS CHECK - Plan $plan_id =======${NC}"
+
+	# Check 0: Cycle detection in preconditions
+	echo -e "${YELLOW}[0/N] Precondition cycle detection...${NC}"
+	if ! detect_precondition_cycles "$plan_id"; then
+		echo -e "${RED}  FAIL: Circular dependencies in wave preconditions${NC}"
+		errors=$((errors + 1))
+	else
+		echo -e "${GREEN}  OK: No cycles${NC}"
+	fi
+
 	local src=$(sqlite3 "$DB_FILE" "SELECT source_file FROM plans WHERE id=$plan_id;")
 	local wt=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM plans WHERE id=$plan_id;")
 	if [[ -z "$src" ]]; then
@@ -271,4 +458,111 @@ cmd_sync() {
         FROM waves WHERE plan_id = $plan_id ORDER BY position;
     "
 	log_info "Sync complete"
+}
+
+# Evaluate wave preconditions - returns READY, SKIP, or BLOCKED
+# Usage: cmd_evaluate_wave <wave_db_id>
+# Output: JSON to stdout
+cmd_evaluate_wave() {
+	local wave_db_id="$1"
+
+	# Get wave metadata
+	local wave_row
+	wave_row=$(sqlite3 "$DB_FILE" \
+		"SELECT plan_id, wave_id, precondition FROM waves WHERE id = $wave_db_id;")
+	if [[ -z "$wave_row" ]]; then
+		echo '{"result":"BLOCKED","wave_id":"?","details":[{"error":"wave not found"}]}'
+		return 1
+	fi
+
+	local plan_id wave_id precondition
+	plan_id=$(echo "$wave_row" | cut -d'|' -f1)
+	wave_id=$(echo "$wave_row" | cut -d'|' -f2)
+	precondition=$(echo "$wave_row" | cut -d'|' -f3-)
+
+	# No precondition = always READY
+	if [[ -z "$precondition" || "$precondition" == "null" ]]; then
+		echo "{\"result\":\"READY\",\"wave_id\":\"$wave_id\",\"details\":[]}"
+		return 0
+	fi
+
+	# Validate JSON
+	if ! echo "$precondition" | jq -e '.' >/dev/null 2>&1; then
+		echo "{\"result\":\"BLOCKED\",\"wave_id\":\"$wave_id\",\"details\":[{\"error\":\"invalid precondition JSON\"}]}"
+		return 1
+	fi
+
+	local cond_count
+	cond_count=$(echo "$precondition" | jq 'length')
+	local details="[]"
+	local final_result="READY"
+
+	for ((i = 0; i < cond_count; i++)); do
+		local cond cond_type met="false"
+		cond=$(echo "$precondition" | jq -c ".[$i]")
+		cond_type=$(echo "$cond" | jq -r '.type')
+
+		case "$cond_type" in
+		wave_status)
+			local target_wave_id target_status actual_status
+			target_wave_id=$(echo "$cond" | jq -r '.wave_id')
+			target_status=$(echo "$cond" | jq -r '.status')
+			actual_status=$(sqlite3 "$DB_FILE" \
+				"SELECT status FROM waves WHERE plan_id = $plan_id AND wave_id = '$target_wave_id';")
+			if [[ "$actual_status" == "$target_status" ]]; then
+				met="true"
+			else
+				if [[ "$final_result" != "SKIP" ]]; then final_result="BLOCKED"; fi
+			fi
+			;;
+		output_match)
+			local task_id output_path equals_val actual_data extracted
+			task_id=$(echo "$cond" | jq -r '.task_id')
+			output_path=$(echo "$cond" | jq -r '.output_path')
+			equals_val=$(echo "$cond" | jq -r '.equals')
+			actual_data=$(sqlite3 "$DB_FILE" \
+				"SELECT output_data FROM tasks WHERE plan_id = $plan_id AND task_id = '$task_id';")
+			if [[ -n "$actual_data" ]]; then
+				extracted=$(echo "$actual_data" | jq -r "$output_path" 2>/dev/null || echo "")
+				if [[ "$extracted" == "$equals_val" ]]; then
+					met="true"
+				else
+					if [[ "$final_result" != "SKIP" ]]; then final_result="BLOCKED"; fi
+				fi
+			else
+				if [[ "$final_result" != "SKIP" ]]; then final_result="BLOCKED"; fi
+			fi
+			;;
+		skip_if)
+			local task_id output_path equals_val actual_data extracted
+			task_id=$(echo "$cond" | jq -r '.task_id')
+			output_path=$(echo "$cond" | jq -r '.output_path')
+			equals_val=$(echo "$cond" | jq -r '.equals')
+			actual_data=$(sqlite3 "$DB_FILE" \
+				"SELECT output_data FROM tasks WHERE plan_id = $plan_id AND task_id = '$task_id';")
+			if [[ -n "$actual_data" ]]; then
+				extracted=$(echo "$actual_data" | jq -r "$output_path" 2>/dev/null || echo "")
+				if [[ "$extracted" == "$equals_val" ]]; then
+					met="true"
+					final_result="SKIP"
+				fi
+			fi
+			# skip_if not met is fine - does not block
+			;;
+		*)
+			if [[ "$final_result" != "SKIP" ]]; then final_result="BLOCKED"; fi
+			;;
+		esac
+
+		details=$(echo "$details" | jq \
+			--argjson cond "$cond" \
+			--argjson met "$met" \
+			'. + [{"condition": $cond, "met": $met}]')
+	done
+
+	echo "$details" | jq -c \
+		--arg result "$final_result" \
+		--arg wave_id "$wave_id" \
+		'{"result": $result, "wave_id": $wave_id, "details": .}'
+	return 0
 }

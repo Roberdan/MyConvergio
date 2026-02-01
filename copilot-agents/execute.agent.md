@@ -90,6 +90,21 @@ git-digest.sh --full
 plan-db.sh update-task {db_task_id} done "Summary"
 ```
 
+### Phase 3.5: Output Data (Inter-Wave Communication)
+
+When completing a task, include `output_data` for inter-wave communication:
+
+```bash
+plan-db.sh update-task {db_task_id} done "Summary" \
+  --output-data '{"summary":"what was accomplished","artifacts":["file/path"]}'
+```
+
+**Use when:**
+
+- Task produces data consumed by later waves (e.g., migration scripts, API endpoints)
+- Next wave has preconditions depending on this task's output
+- You need to pass context forward (e.g., generated IDs, config paths)
+
 ### Phase 4: Wave Completion
 
 When all tasks in a wave are done:

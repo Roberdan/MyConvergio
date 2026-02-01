@@ -27,14 +27,16 @@ cmd_import() {
 	local total_tasks=0
 
 	for ((i = 0; i < wave_count; i++)); do
-		local w_id w_name w_hours w_depends
+		local w_id w_name w_hours w_depends w_precondition
 		w_id=$(jq -r ".waves[$i].id" "$spec_file")
 		w_name=$(jq -r ".waves[$i].name" "$spec_file")
 		w_hours=$(jq -r ".waves[$i].estimated_hours // 8" "$spec_file")
 		w_depends=$(jq -r ".waves[$i].depends_on // empty" "$spec_file")
+		w_precondition=$(jq -c ".waves[$i].precondition // empty" "$spec_file")
 
 		local wave_args=("$plan_id" "$w_id" "$w_name" --estimated-hours "$w_hours")
 		[[ -n "$w_depends" ]] && wave_args+=(--depends-on "$w_depends")
+		[[ -n "$w_precondition" ]] && wave_args+=(--precondition "$w_precondition")
 
 		local db_wave_id
 		db_wave_id=$(cmd_add_wave "${wave_args[@]}" 2>/dev/null)
@@ -43,12 +45,20 @@ cmd_import() {
 		task_count=$(jq ".waves[$i].tasks | length" "$spec_file")
 
 		for ((j = 0; j < task_count; j++)); do
-			local t_id t_title t_pri t_type t_model t_desc t_criteria
+			local t_id t_title t_pri t_type t_model t_desc t_criteria t_executor_agent
 			local t_base=".waves[$i].tasks[$j]"
 			t_id=$(jq -r "$t_base.id" "$spec_file")
 			t_pri=$(jq -r "$t_base.priority // \"P1\"" "$spec_file")
 			t_type=$(jq -r "$t_base.type // \"feature\"" "$spec_file")
 			t_model=$(jq -r "$t_base.model // \"sonnet\"" "$spec_file")
+
+			# Read executor_agent (with codex backward compat)
+			t_executor_agent=$(jq -r "$t_base.executor_agent // empty" "$spec_file")
+			if [[ -z "$t_executor_agent" ]]; then
+				local t_codex
+				t_codex=$(jq -r "$t_base.codex // false" "$spec_file")
+				[[ "$t_codex" == "true" ]] && t_executor_agent="codex" || t_executor_agent="claude"
+			fi
 
 			# Compact format (do/files/verify) or legacy (title/description/test_criteria)
 			local has_do
@@ -75,6 +85,7 @@ cmd_import() {
 				t_criteria=$(echo "$t_criteria" | jq -c '{verify: .}')
 				task_args+=(--test-criteria "$t_criteria")
 			fi
+			[[ -n "$t_executor_agent" ]] && task_args+=(--executor-agent "$t_executor_agent")
 
 			cmd_add_task "${task_args[@]}" 2>/dev/null
 			total_tasks=$((total_tasks + 1))
@@ -213,6 +224,8 @@ cmd_get_context() {
 			'status', t.status, 'priority', t.priority,
 			'test_criteria', COALESCE(t.test_criteria,''),
 			'model', COALESCE(t.model, 'sonnet'),
+			'output_data', COALESCE(t.output_data,''),
+			'executor_agent', COALESCE(t.executor_agent,''),
 			'wave_db_id', w.id, 'wave_id', w.wave_id,
 			'wave_name', w.name,
 			'wave_tasks_done', w.tasks_done,
@@ -221,6 +234,20 @@ cmd_get_context() {
 		FROM tasks t
 		JOIN waves w ON t.wave_id_fk = w.id
 		WHERE t.plan_id = $plan_id AND t.status IN ('pending', 'in_progress')
+		ORDER BY w.position, t.task_id;")
+
+	# Completed tasks output (ALL done tasks with output_data)
+	local completed_output_json
+	completed_output_json=$(sqlite3 "$DB_FILE" "
+		SELECT COALESCE(json_group_array(json_object(
+			'task_id', t.task_id,
+			'wave_id', w.wave_id,
+			'executor_agent', COALESCE(t.executor_agent,''),
+			'output_data', COALESCE(t.output_data,'')
+		)), '[]')
+		FROM tasks t
+		JOIN waves w ON t.wave_id_fk = w.id
+		WHERE t.plan_id = $plan_id AND t.status = 'done' AND t.output_data IS NOT NULL AND t.output_data != ''
 		ORDER BY w.position, t.task_id;")
 
 	# Detect test framework from worktree
@@ -246,11 +273,13 @@ cmd_get_context() {
 		--arg wt "$wt_expanded" \
 		--arg md "$md_expanded" \
 		--argjson tasks "$tasks_json" \
+		--argjson completed_output "$completed_output_json" \
 		--arg fw "$framework" \
 		'. + {
 			worktree_path: $wt,
 			markdown_path: $md,
 			pending_tasks: $tasks,
+			completed_tasks_output: $completed_output,
 			framework: $fw
 		}'
 }

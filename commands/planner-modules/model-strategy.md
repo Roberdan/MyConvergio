@@ -2,12 +2,12 @@
 
 ## Phase-Model Mapping
 
-| Phase | Standard Mode | Max Parallel |
-|-------|---------------|--------------|
-| Planning | opus | opus |
-| Coordination | sonnet | **opus** |
-| Execution | **sonnet** (default) | sonnet |
-| Validation | sonnet | sonnet |
+| Phase        | Standard Mode        | Max Parallel |
+| ------------ | -------------------- | ------------ |
+| Planning     | opus                 | opus         |
+| Coordination | sonnet               | **opus**     |
+| Execution    | **sonnet** (default) | sonnet       |
+| Validation   | sonnet               | sonnet       |
 
 ## Model Selection (MANDATORY per task)
 
@@ -18,27 +18,47 @@ If task scope changes during execution → re-plan, don't auto-escalate.
 
 **DEFAULT IS SONNET.** Use haiku only for trivial. Use opus when reasoning matters.
 
+## Agent Routing (executor_agent)
+
+Each task specifies which agent executes it via `executor_agent`:
+
+| Value              | Use For                                                | Example                             |
+| ------------------ | ------------------------------------------------------ | ----------------------------------- |
+| `claude` (default) | Architecture, security, debugging, cross-cutting logic | Complex features, API design        |
+| `copilot`          | Mechanical, repetitive, well-defined tasks             | Bulk file updates, simple CRUD      |
+| `codex`            | Mechanical bulk tasks with clear specs                 | Rename variables, add boilerplate   |
+| `manual`           | Tasks requiring human intervention                     | Design review, stakeholder approval |
+
+**Decision criteria:**
+
+- Cost-of-failure HIGH → `claude` (opus/sonnet)
+- Mechanical + well-defined → `copilot` or `codex`
+- Requires judgment → `claude`
+- **Never delegate**: architecture, security, debugging, DB schema, API design
+
+Replaces the legacy `codex: true/false` boolean. Backward compatible: `codex: true` maps to `executor_agent: "codex"`.
+
 ## Cost-of-Failure Principle
 
 Pick the model based on **cost of getting it wrong**, not cost of the call:
 
-| Scenario | Cheap model cost | Failure + retry cost | Right choice |
-|----------|-----------------|---------------------|--------------|
-| Fix typo | haiku $0.01 | N/A (can't fail) | haiku |
-| Add endpoint | sonnet $0.15 | retry $0.30+ | sonnet |
-| Integrate 2 services | sonnet $0.15 | debug+rewrite $1+ | **opus** |
-| Debug unknown cause | sonnet $0.15 | 3 wrong attempts $0.45+ | **opus** |
+| Scenario             | Cheap model cost | Failure + retry cost    | Right choice |
+| -------------------- | ---------------- | ----------------------- | ------------ |
+| Fix typo             | haiku $0.01      | N/A (can't fail)        | haiku        |
+| Add endpoint         | sonnet $0.15     | retry $0.30+            | sonnet       |
+| Integrate 2 services | sonnet $0.15     | debug+rewrite $1+       | **opus**     |
+| Debug unknown cause  | sonnet $0.15     | 3 wrong attempts $0.45+ | **opus**     |
 
 **Rule**: If P(failure) > 40%, use the next model up. One failed retry already
 costs more than the upgrade.
 
 ## Assignment Criteria
 
-| Complexity | Model | Criteria |
-|------------|-------|----------|
-| **Trivial** | `haiku` | Single file, zero logic (string/config/constant), no new code paths |
-| **Standard** | `sonnet` | Clear requirements, known patterns, 1-3 files, tests with obvious assertions |
-| **Requires reasoning** | `opus` | Ambiguous requirements, architectural decisions, cross-cutting concerns, unknown root cause, 4+ files with dependencies |
+| Complexity             | Model    | Criteria                                                                                                                |
+| ---------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Trivial**            | `haiku`  | Single file, zero logic (string/config/constant), no new code paths                                                     |
+| **Standard**           | `sonnet` | Clear requirements, known patterns, 1-3 files, tests with obvious assertions                                            |
+| **Requires reasoning** | `opus`   | Ambiguous requirements, architectural decisions, cross-cutting concerns, unknown root cause, 4+ files with dependencies |
 
 ## Haiku: ONLY for these cases
 
@@ -70,7 +90,7 @@ costs more than the upgrade.
 - **Data model changes**: Schema migrations, breaking API changes
 
 **Key insight**: Sonnet executes well. Opus reasons well. If the task is about
-*what to do* (not just *how*), use Opus. Getting it wrong once costs more than
+_what to do_ (not just _how_), use Opus. Getting it wrong once costs more than
 Opus upfront.
 
 ## Decision Tree (Planner MUST follow)
@@ -107,6 +127,7 @@ If the plan naturally produces trivial tasks (rename, config), those go to haiku
 **Rule**: Optimize for reliability first, cost second.
 
 **Task size guidance**:
+
 - 1 task = 1 coherent unit of work (a function, a component, an endpoint)
 - If splitting makes a task lose its logical coherence → don't split
 - Prefer fewer reliable tasks over many fragile ones

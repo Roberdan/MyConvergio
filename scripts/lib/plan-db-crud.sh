@@ -145,7 +145,7 @@ cmd_add_wave() {
 	local name="$3"
 	shift 3
 
-	local assignee="" planned_start="" planned_end="" estimated_hours="8" depends_on=""
+	local assignee="" planned_start="" planned_end="" estimated_hours="8" depends_on="" precondition=""
 
 	set +u
 	while [[ $# -gt 0 ]]; do
@@ -195,6 +195,15 @@ cmd_add_wave() {
 			depends_on="$2"
 			shift 2
 			;;
+		--precondition)
+			[[ -z "${2}" ]] && {
+				log_error "Missing --precondition value"
+				set -u
+				exit 1
+			}
+			precondition="$2"
+			shift 2
+			;;
 		*)
 			assignee="$1"
 			shift
@@ -210,17 +219,18 @@ cmd_add_wave() {
 	local safe_planned_end="$(sql_escape "$planned_end")"
 	local safe_depends_val="$(sql_escape "$depends_on")"
 
-	local start_val="NULL" end_val="NULL" depends_val="NULL"
+	local start_val="NULL" end_val="NULL" depends_val="NULL" precond_val="NULL"
 	[[ -n "$planned_start" ]] && start_val="'$safe_planned_start'"
 	[[ -n "$planned_end" ]] && end_val="'$safe_planned_end'"
 	[[ -n "$depends_on" ]] && depends_val="'$safe_depends_val'"
+	[[ -n "$precondition" ]] && precond_val="'$(sql_escape "$precondition")'"
 
 	local safe_wave_id="$(sql_escape "$wave_id")"
 	local safe_name="$(sql_escape "$name")"
 	local safe_assignee="$(sql_escape "$assignee")"
 	sqlite3 "$DB_FILE" "
-        INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position, estimated_hours, planned_start, planned_end, depends_on)
-        VALUES ('$project_id', $plan_id, '$safe_wave_id', '$safe_name', 'pending', '$safe_assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val);
+        INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position, estimated_hours, planned_start, planned_end, depends_on, precondition)
+        VALUES ('$project_id', $plan_id, '$safe_wave_id', '$safe_name', 'pending', '$safe_assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val, $precond_val);
     "
 	local db_wave_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE plan_id=$plan_id AND wave_id='$safe_wave_id';")
 	log_info "Added wave: $name (ID: $db_wave_id)"
@@ -235,7 +245,7 @@ cmd_add_task() {
 	local title="$3"
 	shift 3
 
-	local priority="P1" type="feature" assignee="" test_criteria="" model="sonnet" description=""
+	local priority="P1" type="feature" assignee="" test_criteria="" model="sonnet" description="" executor_agent=""
 
 	set +u
 	while [[ $# -gt 0 ]]; do
@@ -265,6 +275,15 @@ cmd_add_task() {
 				exit 1
 			}
 			description="$2"
+			shift 2
+			;;
+		--executor-agent)
+			[[ -z "${2}" ]] && {
+				log_error "Missing --executor-agent value"
+				set -u
+				exit 1
+			}
+			executor_agent="$2"
 			shift 2
 			;;
 		P0 | P1 | P2 | P3)
@@ -300,15 +319,18 @@ cmd_add_task() {
 	local safe_test_criteria="$(sql_escape "$test_criteria")"
 	local safe_model="$(sql_escape "$model")"
 	local safe_description="$(sql_escape "$description")"
+	local safe_executor_agent="$(sql_escape "$executor_agent")"
 
 	local tc_val="NULL"
 	[[ -n "$test_criteria" ]] && tc_val="'$safe_test_criteria'"
 	local desc_val="NULL"
 	[[ -n "$description" ]] && desc_val="'$safe_description'"
+	local exec_agent_val="NULL"
+	[[ -n "$executor_agent" ]] && exec_agent_val="'$safe_executor_agent'"
 
 	sqlite3 "$DB_FILE" "
-        INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, description, status, priority, type, assignee, test_criteria, model)
-        VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', COALESCE($desc_val, '$safe_title'), 'pending', '$safe_priority', '$safe_type', '$safe_assignee', $tc_val, '$safe_model');
+        INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, description, status, priority, type, assignee, test_criteria, model, executor_agent)
+        VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', COALESCE($desc_val, '$safe_title'), 'pending', '$safe_priority', '$safe_type', '$safe_assignee', $tc_val, '$safe_model', $exec_agent_val);
     "
 	sqlite3 "$DB_FILE" "UPDATE waves SET tasks_total = tasks_total + 1 WHERE id = $db_wave_id;"
 	sqlite3 "$DB_FILE" "UPDATE plans SET tasks_total = tasks_total + 1 WHERE id = $plan_id;"
@@ -325,11 +347,15 @@ cmd_update_task() {
 	local status="$2"
 	shift 2
 
-	local notes="" tokens=""
+	local notes="" tokens="" output_data=""
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
 		--tokens)
 			tokens="$2"
+			shift 2
+			;;
+		--output-data)
+			output_data="$2"
 			shift 2
 			;;
 		*)
@@ -340,6 +366,14 @@ cmd_update_task() {
 	done
 
 	local notes_escaped=$(sql_escape "$notes")
+
+	# Validate JSON if output_data provided
+	if [[ -n "$output_data" ]]; then
+		echo "$output_data" | jq -e . >/dev/null 2>&1 || {
+			log_error "Invalid JSON in --output-data"
+			exit 1
+		}
+	fi
 
 	case "$status" in
 	pending | in_progress | done | blocked | skipped) ;;
@@ -358,10 +392,13 @@ cmd_update_task() {
 	local tokens_sql=""
 	[[ -n "$tokens" ]] && tokens_sql=", tokens = $tokens"
 
+	local output_sql=""
+	[[ -n "$output_data" ]] && output_sql=", output_data = '$(sql_escape "$output_data")'"
+
 	if [[ "$status" == "in_progress" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
 	elif [[ "$status" == "done" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now'), notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now'), notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
 		# NOTE: wave/plan counters updated automatically by SQLite trigger (task_done_counter)
 
 		# Check if wave is now complete (for auto-marking wave as done)
@@ -373,7 +410,7 @@ cmd_update_task() {
 			log_info "Wave $wave_id_text completed!"
 		}
 	else
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', notes = '$notes_escaped'$tokens_sql WHERE id = $task_id;"
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
 	fi
 	[[ -n "$tokens" ]] && log_info "Task $task_id: $old_status -> $status (tokens: $tokens)" || log_info "Task $task_id: $old_status -> $status"
 }

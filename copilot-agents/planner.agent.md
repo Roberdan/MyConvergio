@@ -52,6 +52,9 @@ Write `spec.json` with compact task format:
       "id": "W1-Name",
       "name": "Wave description",
       "estimated_hours": 8,
+      "precondition": [
+        { "type": "wave_status", "wave_id": "W0", "status": "done" }
+      ],
       "tasks": [
         {
           "id": "T1-01",
@@ -62,7 +65,7 @@ Write `spec.json` with compact task format:
           "priority": "P1",
           "type": "feature",
           "model": "sonnet",
-          "codex": false
+          "executor_agent": "claude"
         }
       ]
     }
@@ -75,7 +78,15 @@ Write `spec.json` with compact task format:
 - `do`: ONE atomic action. If you need "and", split into 2 tasks.
 - `files`: explicit paths the executor must touch.
 - `verify`: machine-checkable commands. Not prose.
-- `codex: true` for mechanical/repetitive tasks delegable to Copilot workers.
+
+**New Fields:**
+
+- **Tasks**: `executor_agent` (replaces `codex` boolean)
+  - Values: `"claude"` | `"copilot"` | `"codex"` | `"manual"`
+  - Use `"codex"` for mechanical/repetitive tasks delegable to Copilot workers
+- **Waves**: `precondition` (array of precondition objects)
+  - Type `"wave_status"`: Block wave until specified wave reaches status
+  - Example: `[{"type":"wave_status","wave_id":"W1","status":"done"}]`
 
 ### 4. Create Plan + Import
 

@@ -80,6 +80,26 @@ cd "$WORKTREE"
 - All tests PASS
 - Coverage >= 80% on new files
 
+## Inter-Wave Validation Checks
+
+### Check 6/7: executor_agent Presence (WARNING)
+
+- All tasks should have `executor_agent` field
+- Query: `SELECT task_id FROM tasks WHERE executor_agent IS NULL`
+- Non-blocking: warn but allow wave completion
+
+### Check 7/7: output_data JSON Validity (ERROR)
+
+- If task has `output_data`, must be valid JSON
+- Invalid JSON blocks wave completion
+- Read actual `output_data` column from DB
+
+### Readiness Check: Precondition Cycle Detection
+
+- Run before wave execution: `plan-db.sh check-readiness {plan_id}`
+- Detects circular precondition dependencies
+- Blocks execution if cycle detected
+
 ## Output Format
 
 ```

@@ -137,6 +137,26 @@ curl -s -X POST http://127.0.0.1:31415/api/tokens \
   -d '{"project_id":"{proj}","plan_id":{plan},"wave_id":"{wave}","task_id":"{task}","agent":"task-executor","model":"{model}","input_tokens":{in},"output_tokens":{out},"cost_usd":{cost}}'
 ```
 
+## Output Data (Inter-Wave Communication)
+
+When marking a task as done, include structured output via `--output-data`:
+
+```bash
+plan-db.sh update-task {id} done "Summary" --tokens N --output-data '{"summary":"what was done","artifacts":["file1.ts","file2.ts"],"metrics":{"lines_added":42,"tests_added":3}}'
+```
+
+### output_data JSON Format
+
+- `summary` (string): Brief description of what was accomplished
+- `artifacts` (string[]): Files created or modified
+- `metrics` (object): Quantitative results (lines, tests, coverage)
+- Additional fields as needed for inter-wave communication
+
+### executor_agent Self-Identification
+
+Include `--executor-agent claude` (or appropriate agent name) when reporting context.
+The executor_agent is set at task creation by the planner, but can be overridden.
+
 ## Database Commands
 
 ```bash

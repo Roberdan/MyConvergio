@@ -107,6 +107,7 @@ Write a `spec.json` file with compact task format optimized for machine executio
   {
     "id": "TX-doc",
     "do": "Update CHANGELOG.md with WX changes + append learnings to docs/adr/plan-{id}-notes.md",
+    "description": "CHANGELOG: ## [Unreleased] / ### WX: {name} / - Added|Changed|Fixed: ... / Running notes: ## WX: {name} / - Decision: {1 line} / - Issue: ... → Fix: ... / - Pattern: {insight}",
     "files": ["CHANGELOG.md", "docs/adr/plan-{id}-notes.md"],
     "verify": ["grep -q 'WX' CHANGELOG.md"],
     "ref": "F-docs",
@@ -114,6 +115,7 @@ Write a `spec.json` file with compact task format optimized for machine executio
     "model": "sonnet"
   }
   ```
+  The `description` field carries the format template so the executor doesn't need to look it up.
 - **MANDATORY final wave** "WF-Documentation":
   - TF-01: Convert running notes → formal ADRs (compact format, see knowledge-codification.md)
   - TF-02: Finalize CHANGELOG.md (merge per-wave entries, add version header)

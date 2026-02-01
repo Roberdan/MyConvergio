@@ -76,6 +76,7 @@ Make failing tests PASS:
 1. Write minimum code to pass tests
 2. Run tests after each change
 3. Continue until GREEN
+4. **If task type is `documentation` in WF-\* wave**: Read `~/.claude/commands/planner-modules/knowledge-codification.md` for ADR compact format (max 20 lines) and CHANGELOG/running notes templates. Follow those formats exactly.
 
 ### Phase 3.5: Quick CI Check (if project has ci-summary.sh)
 

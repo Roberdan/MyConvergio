@@ -122,12 +122,21 @@ Write a `spec.json` file with compact task format optimized for machine executio
   - TF-03: Create ESLint rules for automatable learnings
 - Task `do` fields MUST cite relevant existing ADRs when applicable
 
-### 2.5 Codex Delegation Tagging
+### 2.5 Codex/Copilot Delegation Tagging
 
 Review each task against Codex delegation criteria (see CLAUDE.md).
 Mark codex-eligible tasks in the spec with `"codex": true`.
-Present to user: "Questi task sono delegabili a Codex: [list]. Vuoi delegarli?"
+Present to user: "Questi task sono delegabili a Codex/Copilot: [list]. Vuoi delegarli?"
 **Never delegate**: architecture, security, debugging, cross-cutting logic, CI/build, DB schema, API design.
+
+**Prompt enrichment for delegated tasks** (MANDATORY):
+When generating the prompt for a Codex/Copilot task, ALWAYS include:
+
+1. The task `do` + `files` + `verify` from the spec
+2. Project coding standards from `.github/copilot-instructions.md` (if exists)
+3. Relevant constraints: `"Rules: [max 250 lines/file, TDD, no TODO/FIXME, conventional commits]"`
+4. Relevant ADRs cited in the task `ref` field
+   This ensures Copilot sessions follow project standards even without Claude Code hooks.
 
 ### 3. Create Plan + Import (2 calls total)
 

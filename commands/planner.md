@@ -102,7 +102,22 @@ Write a `spec.json` file with compact task format optimized for machine executio
 - `verify`: machine-checkable commands. `grep`, `test`, `npm test -- file`. Not prose.
 - `ref`: F-xx requirement ID this task satisfies
 - Missing `verify` = Thor cannot validate = pipeline broken
-- **MANDATORY**: Final wave "WF-Documentation" with TF-01 (ADR), TF-02 (CHANGELOG), TF-03 (ESLint)
+- **MANDATORY per-wave docs**: EVERY wave MUST end with a documentation task:
+  ```json
+  {
+    "id": "TX-doc",
+    "do": "Update CHANGELOG.md with WX changes + append learnings to docs/adr/plan-{id}-notes.md",
+    "files": ["CHANGELOG.md", "docs/adr/plan-{id}-notes.md"],
+    "verify": ["grep -q 'WX' CHANGELOG.md"],
+    "ref": "F-docs",
+    "type": "documentation",
+    "model": "sonnet"
+  }
+  ```
+- **MANDATORY final wave** "WF-Documentation":
+  - TF-01: Convert running notes → formal ADRs (compact format, see knowledge-codification.md)
+  - TF-02: Finalize CHANGELOG.md (merge per-wave entries, add version header)
+  - TF-03: Create ESLint rules for automatable learnings
 - Task `do` fields MUST cite relevant existing ADRs when applicable
 
 ### 2.5 Codex Delegation Tagging

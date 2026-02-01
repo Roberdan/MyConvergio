@@ -5,49 +5,98 @@
 Every error/learning MUST be documented in ADR + codified in ESLint rules.
 Thor validates before closure.
 
+## 0. Per-Wave Documentation (EVERY wave, not optional)
+
+Each wave's **final task** (TX-doc, model=haiku) updates two files:
+
+### CHANGELOG.md (incremental)
+
+```markdown
+## [Unreleased]
+
+### WX: {wave name}
+
+- Added: {feature/file}
+- Changed: {modification}
+- Fixed: {bug}
+- Learnings: {brief note, ref ADR if created}
+```
+
+### Running Notes (`docs/adr/plan-{id}-notes.md`)
+
+```markdown
+# Plan {id} Running Notes
+
+## W1: {wave name}
+
+- Decision: {what and why, 1 line}
+- Issue: {problem} → Fix: {solution}
+- Pattern: {reusable insight}
+
+## W2: {wave name}
+
+...
+```
+
+These notes feed the FINAL wave ADR creation. Skipping = Thor blocks closure.
+
 ## 1. Learnings Log (Update During Execution)
 
 In plan file, maintain:
 
 ```markdown
 ## LEARNINGS LOG
-| Wave | Issue | Root Cause | Resolution | Preventive Rule |
-|------|-------|------------|------------|-----------------|
-| W1 | Import circolare | A importava B che importava A | Estratto tipo in file condiviso | eslint-plugin-import/no-cycle |
-| W1 | Cookie non validato | Usato cookie.value senza check | Aggiunto validateVisitorId() | Grep rule in pre-commit |
+
+| Wave | Issue               | Root Cause       | Resolution                | Preventive Rule |
+| ---- | ------------------- | ---------------- | ------------------------- | --------------- |
+| W1   | Import circolare    | A→B→A cycle      | Extracted shared types    | no-cycle        |
+| W1   | Cookie non validato | Raw cookie.value | Added validateVisitorId() | grep pre-commit |
 ```
 
 **What to document**:
+
 - Errors during execution
 - Test false positives/negatives
 - Problematic patterns
 - Non-obvious architectural decisions
 - Temporary workarounds (to remove!)
 
-## 2. Create/Update ADR
+## 2. Create ADRs (compact format, max 20 lines)
 
 For each significant learning, create ADR in `docs/adr/`:
 
 ```markdown
-# ADR {NNNN}: {Learning Title}
+# ADR {NNNN}: {Title}
 
-## Status
-Accepted
+Status: Accepted | Date: {DD Mon YYYY} | Plan: {plan_id}
 
 ## Context
-[Problem encountered during Plan {ID}]
+
+{2-3 sentences: what problem, when encountered}
 
 ## Decision
-[Solution adopted]
+
+{2-3 sentences: what we chose, why}
 
 ## Consequences
-- [Positive]: Prevents regression X
-- [Negative]: Requires Y extra
+
+- Positive: {outcome}
+- Negative: {tradeoff}
 
 ## Enforcement
-- ESLint rule: `{rule-name}`
-- Pre-commit check: `{script}`
+
+- Rule: `{eslint-rule-or-grep-pattern}`
+- Check: `{verification command}`
+- Ref: {related ADR IDs if any}
 ```
+
+**Format rules**:
+
+- Max 20 lines per ADR. No prose filler.
+- Status/Date/Plan on ONE line (grep-friendly)
+- Consequences use `Positive:`/`Negative:` labels (grep-friendly)
+- Enforcement MUST include a runnable check command
+- One ADR per decision. Don't merge unrelated learnings.
 
 ## 3. Create ESLint Rules
 
@@ -67,6 +116,7 @@ For automatable learnings:
 ```
 
 **Rule types**:
+
 - `no-restricted-imports`: Forbidden imports
 - `no-restricted-syntax`: Forbidden AST patterns
 - Custom rule in `eslint-local-rules/`: Complex logic
@@ -81,34 +131,33 @@ Task({
   LEARNINGS from plan: [list from LEARNINGS LOG]
 
   VERIFY:
-  1. ADR exists for each significant learning
+  1. ADR exists for each significant learning (compact format, max 20 lines)
   2. ESLint rule exists for each automatable learning
   3. ESLint rule WORKS: create temp test file with forbidden pattern, verify lint fails
   4. Pre-commit hook includes new rules (if applicable)
-  5. CHANGELOG updated with ADR link
+  5. CHANGELOG updated with per-wave entries
+  6. Running notes exist at docs/adr/plan-{id}-notes.md
 
-  TEST COMMAND:
-  echo "forbidden pattern" > /tmp/test-rule.ts
-  npm run lint /tmp/test-rule.ts 2>&1 | grep -q "ADR-XXXX" || echo "RULE NOT WORKING"
-
-  FAIL if: ADR missing, rule doesn't work, learning not codified`
+  FAIL if: ADR missing, rule doesn't work, learning not codified`,
 });
 ```
 
 ## 5. Pre-Closure Checklist
 
-| Check | Verified |
-|-------|----------|
-| All learnings have ADR (if significant) | [ ] |
-| All automatable learnings have ESLint rule | [ ] |
-| Each ESLint rule has test case that FAILS | [ ] |
-| CHANGELOG updated with "Learnings" section | [ ] |
-| Thor validated codification | [ ] |
+| Check                                            | Verified |
+| ------------------------------------------------ | -------- |
+| Per-wave CHANGELOG entries present for all waves | [ ]      |
+| Running notes file exists with entries per wave  | [ ]      |
+| All learnings have ADR (if significant)          | [ ]      |
+| All automatable learnings have ESLint rule       | [ ]      |
+| Each ESLint rule has test case that FAILS        | [ ]      |
+| Thor validated codification                      | [ ]      |
 
 **BLOCKED if any check is [ ]**
 
 ## Anti-Failure Rules
 
 - **NEVER close plan without Knowledge Codification**
-- **NEVER skip ESLint rule testing** - ogni regola deve avere test case che FALLISCE
-- **Learnings not codified = plan NOT done** - Thor blocks closure if missing
+- **NEVER skip per-wave documentation** — every wave updates CHANGELOG + notes
+- **NEVER skip ESLint rule testing** — ogni regola deve avere test case che FALLISCE
+- **Learnings not codified = plan NOT done** — Thor blocks closure if missing

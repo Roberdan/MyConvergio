@@ -1,10 +1,10 @@
 ---
 name: report
-description: "Generate professional research reports in Morgan Stanley style"
+description: "Convergio Think Tank - Professional research reports in Morgan Stanley style"
 invocable: true
 ---
 
-# /report - Professional Report Generator
+# /report - Convergio Think Tank
 
 ## Usage
 
@@ -14,7 +14,7 @@ invocable: true
 
 ## Description
 
-Generates professional research reports following Morgan Stanley equity research methodology. Supports multiple report types with LaTeX output for high-quality PDFs.
+**Convergio Think Tank (CTT)** generates professional research reports following Morgan Stanley equity research methodology. Supports multiple report types with LaTeX output for high-quality PDFs.
 
 ## Report Types
 
@@ -51,12 +51,12 @@ The report generator follows a 5-phase workflow:
 
 ## Output
 
-The generator produces:
+CTT-branded deliverables:
 
-- `report-[topic]-[date].tex` - Main LaTeX document
+- `ctt-[topic]-[date].tex` - Main LaTeX document
+- `ctt-[topic]-[date].pdf` - Compiled PDF report
 - `tables/` - Data tables in LaTeX format
 - `sources.bib` - Bibliography file
-- `compile.sh` - Script to build PDF
 
 ## Instructions
 

@@ -1,7 +1,13 @@
-# Research Report Generator - Configuration
+# Convergio Think Tank (CTT) - Report Configuration
 # This file defines report types and their specific requirements
 
-version: "1.0.0"
+version: "1.1.0"
+
+# Branding
+branding:
+  name: "Convergio Think Tank"
+  short_name: "CTT"
+  tagline: "Independent Research & Analysis"
 
 # Default settings applied to all reports
 defaults:
@@ -9,8 +15,8 @@ defaults:
   output_format: "latex"
   pdf_engine: "xelatex"
   date_format: "MMMM D, YYYY"
-  organization: "Research Analysis"
-  disclaimer: "This report is for informational purposes only and does not constitute investment advice."
+  organization: "Convergio Think Tank"
+  disclaimer: "This report is produced by Convergio Think Tank for informational purposes only and does not constitute investment, legal, or professional advice. The analysis and opinions expressed are those of the research team and are subject to change without notice."
 
 # Report type definitions
 report_types:

@@ -23,7 +23,7 @@ if [[ "$CMD" == "audit" ]]; then
 	exec "$SCRIPT_DIR/audit-digest.sh" "$@"
 fi
 
-CACHE_KEY="npm-${CMD}-$(pwd | md5sum 2>/dev/null | cut -c1-8 || echo 'x')"
+CACHE_KEY="npm-${CMD}-$(digest_hash "$(pwd)")"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0
@@ -52,7 +52,7 @@ MODERATE=$(echo "$VULN_LINE" | grep -oE '[0-9]+ moderate' | grep -oE '[0-9]+' ||
 PEER_WARNS=$(grep -iE 'peer dep|ERESOLVE|peer.*required' "$TMPLOG" |
 	sed 's/^npm warn //' |
 	head -5 |
-	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:150])' 2>/dev/null || echo "[]")
+	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:150])' 2>/dev/null) || PEER_WARNS="[]"
 
 # Extract errors if failed
 ERRORS="[]"
@@ -60,7 +60,7 @@ if [[ "$EXIT_CODE" -ne 0 ]]; then
 	ERRORS=$(grep -iE '^npm ERR!|error|ENOENT|EPERM|EACCES' "$TMPLOG" |
 		grep -viE 'npm warn|peer' |
 		head -5 |
-		jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null || echo "[]")
+		jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null) || ERRORS="[]"
 fi
 
 STATUS="ok"

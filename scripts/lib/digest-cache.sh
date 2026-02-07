@@ -6,6 +6,18 @@
 
 DIGEST_CACHE_DIR="/tmp/claude-digest-cache"
 
+# Cross-platform short hash (macOS md5 vs Linux md5sum)
+# Usage: digest_hash "string" → 8-char hex
+digest_hash() {
+	if command -v md5sum &>/dev/null; then
+		echo -n "$1" | md5sum | cut -c1-8
+	elif command -v md5 &>/dev/null; then
+		echo -n "$1" | md5 | cut -c1-8
+	else
+		echo "x"
+	fi
+}
+
 # Check cache freshness. Returns 0 (hit) or 1 (miss).
 # Usage: digest_cache_get <key> <ttl_seconds>
 # On hit, prints cached content to stdout.

@@ -21,7 +21,7 @@ for arg in "$@"; do
 done
 
 # Short TTL — git state changes often. 5s avoids rapid double-calls.
-CACHE_KEY="git-$(pwd | md5sum 2>/dev/null | cut -c1-8 || echo 'x')-${FULL}"
+CACHE_KEY="git-$(digest_hash "$(pwd)")-${FULL}"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0

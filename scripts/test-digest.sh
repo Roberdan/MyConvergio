@@ -25,7 +25,7 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-CACHE_KEY="test-${SUITE}-$(pwd | md5sum 2>/dev/null | cut -c1-8 || echo 'x')"
+CACHE_KEY="test-${SUITE}-$(digest_hash "$(pwd)")"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0
@@ -55,11 +55,22 @@ fi
 
 TMPLOG=$(mktemp)
 TMPJSON=$(mktemp)
-trap "rm -f '$TMPLOG' '$TMPJSON'" EXIT
+TEST_PID=""
+cleanup() {
+	[[ -n "$TEST_PID" ]] && kill "$TEST_PID" 2>/dev/null && wait "$TEST_PID" 2>/dev/null || true
+	rm -f "$TMPLOG" "$TMPJSON"
+}
+trap cleanup EXIT INT TERM
+
+# Kill stale vitest/playwright processes from previous interrupted runs
+pkill -f "vitest run" 2>/dev/null || true
 
 # Run tests, capture output
 EXIT_CODE=0
-eval "$TEST_CMD $*" >"$TMPLOG" 2>&1 || EXIT_CODE=$?
+eval "$TEST_CMD $*" >"$TMPLOG" 2>&1 &
+TEST_PID=$!
+wait "$TEST_PID" || EXIT_CODE=$?
+TEST_PID=""
 
 STATUS="pass"
 [[ "$EXIT_CODE" -ne 0 ]] && STATUS="fail"
@@ -121,7 +132,7 @@ if [[ "$TOTAL" -eq 0 && "$EXIT_CODE" -ne 0 ]]; then
 	FAILURES=$(grep -A2 -iE 'FAIL|✗|✘|Error:' "$TMPLOG" |
 		grep -viE 'node_modules|Snapshot' |
 		head -10 |
-		jq -R -s 'split("\n") | map(select(length > 0)) | map({test:"",file:"",msg:.[0:200]})' 2>/dev/null || echo "[]")
+		jq -R -s 'split("\n") | map(select(length > 0)) | map({test:"",file:"",msg:.[0:200]})' 2>/dev/null) || FAILURES="[]"
 fi
 
 [[ -z "$FAILURES" ]] && FAILURES="[]"

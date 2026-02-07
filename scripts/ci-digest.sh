@@ -86,7 +86,7 @@ if [[ "$FAILED_COUNT" -gt 0 ]]; then
 			head -10 |
 			jq -R -s 'split("\n") | map(select(length > 0)) | map({
 				msg: (. | sub("^[^\t]*\t[^\t]*\t"; "") | .[0:200])
-			})')
+			})' 2>/dev/null) || ERRORS="[]"
 	fi
 fi
 

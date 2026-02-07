@@ -14,7 +14,7 @@ NO_CACHE=0
 	shift
 }
 
-CACHE_KEY="build-$(pwd | md5sum 2>/dev/null | cut -c1-8 || echo 'x')"
+CACHE_KEY="build-$(digest_hash "$(pwd)")"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0
@@ -43,14 +43,14 @@ ERRORS=$(grep -iE 'error[:\s]|Error:|FAIL|Module not found|Cannot find|SyntaxErr
 	grep -viE 'warning|warn|deprecat|experimental|Linting' |
 	sed 's/^[[:space:]]*//' |
 	sort -u | head -10 |
-	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null || echo "[]")
+	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null) || ERRORS="[]"
 
 # Extract warnings
 WARNINGS=$(grep -iE 'warning|warn' "$TMPLOG" |
 	grep -viE 'error|ERR!|node_modules' |
 	sed 's/^[[:space:]]*//' |
 	sort -u | head -5 |
-	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:150])' 2>/dev/null || echo "[]")
+	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:150])' 2>/dev/null) || WARNINGS="[]"
 
 # Framework-specific parsing
 ROUTES=0

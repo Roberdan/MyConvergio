@@ -80,7 +80,7 @@ if [[ "$STATUS" == "error" ]]; then
 			sed 's/^[[:space:]]*//' |
 			sort -u |
 			head -10 |
-			jq -R -s 'split("\n") | map(select(length > 0)) | map({msg: .[0:200]})')
+			jq -R -s 'split("\n") | map(select(length > 0)) | map({msg: .[0:200]})' 2>/dev/null) || ERRORS="[]"
 
 		WARNINGS=$(cat "$TMPLOG" |
 			grep -iE 'warning|warn' |
@@ -88,7 +88,7 @@ if [[ "$STATUS" == "error" ]]; then
 			sed 's/^[[:space:]]*//' |
 			sort -u |
 			head -5 |
-			jq -R -s 'split("\n") | map(select(length > 0)) | map({msg: .[0:150]})')
+			jq -R -s 'split("\n") | map(select(length > 0)) | map({msg: .[0:150]})' 2>/dev/null) || WARNINGS="[]"
 	fi
 	rm -f "$TMPLOG"
 fi

@@ -29,7 +29,7 @@ if [[ "$ORM" == "unknown" ]]; then
 	exit 0
 fi
 
-CACHE_KEY="migration-${ORM}-${CMD}-$(pwd | md5sum 2>/dev/null | cut -c1-8 || echo 'x')"
+CACHE_KEY="migration-${ORM}-${CMD}-$(digest_hash "$(pwd)")"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0
@@ -85,17 +85,17 @@ STATUS="ok"
 TABLES=$(grep -ioE '(CREATE|ALTER|DROP)\s+TABLE\s+\S+|model\s+\w+' "$TMPLOG" |
 	sed 's/model //' |
 	sort -u |
-	jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null || echo "[]")
+	jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null) || TABLES="[]"
 
 # Extract warnings about destructive changes
 DESTRUCTIVE=$(grep -iE 'drop|delete|remove|destructive|data loss|truncate' "$TMPLOG" |
 	head -5 |
-	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null || echo "[]")
+	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null) || DESTRUCTIVE="[]"
 
 # Extract errors
 ERRORS=$(grep -iE 'error|failed|P[0-9]{4}|constraint' "$TMPLOG" |
 	head -5 |
-	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null || echo "[]")
+	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null) || ERRORS="[]"
 
 # Migration count (prisma)
 PENDING=0

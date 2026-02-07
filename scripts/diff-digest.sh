@@ -22,7 +22,7 @@ HEAD="${2:-HEAD}"
 }
 [[ "${3:-}" == "--no-cache" ]] && NO_CACHE=1
 
-CACHE_KEY="diff-$(echo "${BASE}..${HEAD}" | md5sum 2>/dev/null | cut -c1-8 || echo 'x')"
+CACHE_KEY="diff-$(digest_hash "${BASE}..${HEAD}")"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0

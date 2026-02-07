@@ -69,7 +69,7 @@ if [[ -z "$NODE_ERRORS" || "$NODE_ERRORS" == "[]" ]]; then
 			msg: .[0:200],
 			file: "",
 			line: null
-		})' 2>/dev/null || echo "[]")
+		})' 2>/dev/null) || NODE_ERRORS="[]"
 fi
 
 [[ -z "$NODE_ERRORS" ]] && NODE_ERRORS="[]"
@@ -79,7 +79,7 @@ ERROR_COUNT=$(echo "$NODE_ERRORS" | jq 'length' 2>/dev/null || echo 0)
 ASSERTIONS=$(grep -iE 'expect|assert|toBe|toEqual|toHaveBeenCalled|AssertionError' "$TMPLOG" |
 	grep -viE 'node_modules|\.d\.ts' |
 	head -5 |
-	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null || echo "[]")
+	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null) || ASSERTIONS="[]"
 
 jq -n \
 	--argjson errors "$NODE_ERRORS" \

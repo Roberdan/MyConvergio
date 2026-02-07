@@ -368,12 +368,14 @@ render_dashboard() {
 			fi
 		fi
 
-		# Host tag
+		# Host tag: LINUX (red) for remote, MAC (green) for local
 		local_host="${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}"
 		local_host="${local_host%.local}"
 		host_tag=""
 		if [ -n "$exec_host" ] && [ "$exec_host" != "$local_host" ]; then
-			host_tag=" ${YELLOW}@${exec_host}${NC}"
+			host_tag=" ${RED}LINUX${NC}"
+		else
+			host_tag=" ${GREEN}MAC${NC}"
 		fi
 
 		echo -e "${GRAY}├─${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC}${host_tag} $([ -n "$time_info" ] && echo -e "${GRAY}(${time_info}${GRAY})${NC}")"

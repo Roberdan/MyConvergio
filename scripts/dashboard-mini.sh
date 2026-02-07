@@ -14,13 +14,16 @@ BOLD='\033[1m'
 
 DB="$HOME/.claude/data/dashboard.db"
 SYNC_SCRIPT="$HOME/.claude/scripts/sync-dashboard-db.sh"
+REMOTE_GIT_CACHE="$HOME/.claude/data/remote-git-cache.json"
 
 # Quick sync: pull remote changes before rendering (silent, best-effort)
 # Sets REMOTE_ONLINE=1 if sync succeeded, 0 if remote unreachable
 REMOTE_ONLINE=0
+REMOTE_HOST_RESOLVED=""
 quick_sync() {
 	REMOTE_ONLINE=0
 	[ ! -x "$SYNC_SCRIPT" ] && return 0
+	REMOTE_HOST_RESOLVED="$(grep '^REMOTE_HOST=' "$HOME/.claude/config/sync-db.conf" 2>/dev/null | cut -d'"' -f2)"
 	# Skip if synced less than 30s ago (but still mark online from last result)
 	local marker="$HOME/.claude/data/last-quick-sync"
 	if [ -f "$marker" ]; then
@@ -38,12 +41,136 @@ quick_sync() {
 		fi
 	fi
 	# Run incremental sync with 3s SSH timeout, fully silent
-	local remote_host
-	remote_host="$(grep '^REMOTE_HOST=' "$HOME/.claude/config/sync-db.conf" 2>/dev/null | cut -d'"' -f2)"
-	if ssh -o ConnectTimeout=3 -o BatchMode=yes "$remote_host" "echo ok" &>/dev/null; then
+	if ssh -o ConnectTimeout=3 -o BatchMode=yes "$REMOTE_HOST_RESOLVED" "echo ok" &>/dev/null; then
 		"$SYNC_SCRIPT" incremental &>/dev/null
 		touch "$marker"
 		REMOTE_ONLINE=1
+		# Fetch git status for all remote active projects (piggyback on SSH)
+		_fetch_remote_git_status
+	fi
+}
+
+# Fetch git status from remote for active projects, cache as JSON
+_fetch_remote_git_status() {
+	[ -z "$REMOTE_HOST_RESOLVED" ] && return 0
+	local projects
+	projects=$(sqlite3 "$DB" "SELECT DISTINCT p.project_id FROM plans p WHERE p.status='doing' AND p.execution_host IS NOT NULL AND p.execution_host != ''" 2>/dev/null)
+	[ -z "$projects" ] && return 0
+	# Build a bash script to run remotely — produces valid JSON per project
+	local proj_list=""
+	while IFS= read -r proj; do
+		[ -z "$proj" ] && continue
+		proj_list+="$proj "
+	done <<<"$projects"
+	# Single SSH call, inline script on remote
+	ssh -o ConnectTimeout=3 -o BatchMode=yes "$REMOTE_HOST_RESOLVED" bash -s -- $proj_list <<'REMOTE_SCRIPT' >"$REMOTE_GIT_CACHE" 2>/dev/null || true
+printf '{'
+first=1
+for proj in "$@"; do
+  [ "$first" -eq 1 ] && first=0 || printf ','
+  printf '"%s":' "$proj"
+  # Case-insensitive directory match (project_id may differ in case)
+  dir=$(find "$HOME/GitHub" -maxdepth 1 -iname "$proj" -type d 2>/dev/null | head -1)
+  if [ -n "$dir" ] && { [ -d "$dir/.git" ] || [ -f "$dir/.git" ]; }; then
+    cd "$dir"
+    branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    ahead=$(git rev-list --count @{u}..HEAD 2>/dev/null || echo 0)
+    behind=$(git rev-list --count HEAD..@{u} 2>/dev/null || echo 0)
+    dirty=$(git status --porcelain 2>/dev/null | head -1)
+    clean="true"; [ -n "$dirty" ] && clean="false"
+    sha=$(git rev-parse --short HEAD 2>/dev/null || echo "")
+    printf '{"branch":"%s","ahead":%s,"behind":%s,"clean":%s,"sha":"%s"}' \
+      "$branch" "${ahead:-0}" "${behind:-0}" "$clean" "$sha"
+  else
+    printf '{}'
+  fi
+done
+printf '}'
+REMOTE_SCRIPT
+}
+
+# Read cached git field for a project: _get_remote_git <project> <field>
+_get_remote_git() {
+	local proj="$1" field="$2"
+	[ ! -f "$REMOTE_GIT_CACHE" ] && echo "" && return
+	jq -r ".[\"$proj\"].$field // empty" "$REMOTE_GIT_CACHE" 2>/dev/null
+}
+
+# Resolve remote project directory (case-insensitive)
+_resolve_remote_dir() {
+	ssh -o ConnectTimeout=3 "$REMOTE_HOST_RESOLVED" \
+		"find ~/GitHub -maxdepth 1 -iname '$1' -type d 2>/dev/null | head -1" 2>/dev/null
+}
+
+# Interactive: push from remote
+_remote_push() {
+	local proj="$1"
+	[ -z "$REMOTE_HOST_RESOLVED" ] && echo -e "${RED}Remote host not configured${NC}" && return 1
+	local rdir
+	rdir=$(_resolve_remote_dir "$proj")
+	[ -z "$rdir" ] && echo -e "${RED}Directory $proj non trovata su Linux${NC}" && return 1
+	echo -e "${CYAN}Pushing $proj from Linux ($rdir)...${NC}"
+	ssh -o ConnectTimeout=5 "$REMOTE_HOST_RESOLVED" "cd $rdir && git push 2>&1" 2>&1
+	echo -e "${GREEN}Done.${NC}"
+}
+
+# Interactive: show full remote git status
+_remote_git_detail() {
+	local proj="$1"
+	[ -z "$REMOTE_HOST_RESOLVED" ] && echo -e "${RED}Remote host not configured${NC}" && return 1
+	local rdir
+	rdir=$(_resolve_remote_dir "$proj")
+	[ -z "$rdir" ] && echo -e "${RED}Directory $proj non trovata su Linux${NC}" && return 1
+	echo -e "${CYAN}Git status for $proj on Linux ($rdir):${NC}"
+	ssh -o ConnectTimeout=5 "$REMOTE_HOST_RESOLVED" "cd $rdir && ~/.claude/scripts/git-digest.sh --full 2>&1" 2>&1
+}
+
+# Interactive handler: list remote projects, let user pick, execute action
+_handle_remote_action() {
+	local action="$1" # "push" or "status"
+	if [ "$REMOTE_ONLINE" -eq 0 ]; then
+		echo -e "${RED}Linux non raggiungibile${NC}"
+		return 1
+	fi
+	# Get unique remote projects from active plans
+	local projects
+	projects=$(sqlite3 "$DB" "SELECT DISTINCT p.project_id FROM plans p WHERE p.status='doing' AND p.execution_host IS NOT NULL AND p.execution_host != ''" 2>/dev/null)
+	if [ -z "$projects" ]; then
+		echo -e "${YELLOW}Nessun piano remoto attivo${NC}"
+		return 0
+	fi
+	# Build numbered list
+	local i=1 proj_array=()
+	echo -e "${BOLD}${WHITE}Progetti remoti:${NC}"
+	while IFS= read -r proj; do
+		[ -z "$proj" ] && continue
+		local ahead
+		ahead=$(_get_remote_git "$proj" "ahead")
+		local indicator=""
+		[ "${ahead:-0}" -gt 0 ] && indicator=" ${YELLOW}(↑${ahead} unpushed)${NC}"
+		echo -e "  ${CYAN}${i})${NC} ${WHITE}${proj}${NC}${indicator}"
+		proj_array+=("$proj")
+		((i++))
+	done <<<"$projects"
+	# Auto-select if only one project
+	local choice
+	if [ "${#proj_array[@]}" -eq 1 ]; then
+		choice=1
+	else
+		echo -ne "\n${GRAY}Scegli progetto (1-${#proj_array[@]}): ${NC}"
+		read -r choice
+	fi
+	# Validate
+	if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "${#proj_array[@]}" ]; then
+		echo -e "${RED}Scelta non valida${NC}"
+		return 1
+	fi
+	local selected="${proj_array[$((choice - 1))]}"
+	echo ""
+	if [ "$action" = "push" ]; then
+		_remote_push "$selected"
+	else
+		_remote_git_detail "$selected"
 	fi
 }
 
@@ -120,7 +247,7 @@ while [[ $# -gt 0 ]]; do
 		echo "Comportamento default:"
 		echo "  - Auto-refresh ogni 5 minuti (300 secondi)"
 		echo "  - Task completati compressi (solo conteggio)"
-		echo "  - Premi R per refresh immediato, Q per uscire"
+		echo "  - Premi R per refresh, Q per uscire, P per push Linux, L per git Linux"
 		echo ""
 		echo "Esempi:"
 		echo "  piani                 # Dashboard compatta con auto-refresh"
@@ -419,6 +546,30 @@ render_dashboard() {
 
 		echo -e "${GRAY}├─${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC}${host_tag} $([ -n "$time_info" ] && echo -e "${GRAY}(${time_info}${GRAY})${NC}")"
 		[ -n "$branch_display" ] && echo -e "${GRAY}│  ├─${NC} $branch_display"
+		# Remote git status inline (only for LINUX plans when online)
+		if [ "$is_remote" -eq 1 ] && [ "$REMOTE_ONLINE" -eq 1 ] && [ -f "$REMOTE_GIT_CACHE" ]; then
+			local r_ahead r_behind r_clean r_branch r_git_line
+			r_ahead=$(_get_remote_git "$pproject" "ahead")
+			r_behind=$(_get_remote_git "$pproject" "behind")
+			r_clean=$(_get_remote_git "$pproject" "clean")
+			r_branch=$(_get_remote_git "$pproject" "branch")
+			r_git_line=""
+			if [ -n "$r_branch" ]; then
+				r_git_line="${GRAY}git:${NC} ${CYAN}${r_branch}${NC}"
+				if [ "${r_ahead:-0}" -gt 0 ]; then
+					r_git_line+=" ${YELLOW}↑${r_ahead} unpushed${NC}"
+				fi
+				if [ "${r_behind:-0}" -gt 0 ]; then
+					r_git_line+=" ${RED}↓${r_behind} behind${NC}"
+				fi
+				if [ "$r_clean" = "false" ]; then
+					r_git_line+=" ${RED}dirty${NC}"
+				elif [ "${r_ahead:-0}" -eq 0 ] && [ "${r_behind:-0}" -eq 0 ]; then
+					r_git_line+=" ${GREEN}clean${NC}"
+				fi
+				echo -e "${GRAY}│  ├─${NC} ${r_git_line}"
+			fi
+		fi
 		echo -e "${GRAY}│  ├─${NC} Progress: $bar ${WHITE}${task_progress}%${NC} ${GRAY}(${task_done}/${task_total} tasks)${NC}"
 		echo -e "${GRAY}│  ├─${NC} Waves: ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC} complete ${GRAY}(${wave_progress}%)${NC}"
 		echo -e "${GRAY}│  └─${NC} Runtime: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
@@ -764,12 +915,26 @@ if [ "$REFRESH_INTERVAL" -gt 0 ]; then
 
 		# Countdown con aggiornamento ogni secondo, intercetta tasti
 		for ((i = REFRESH_INTERVAL; i > 0; i--)); do
-			printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci)${NC}    " "$i"
+			printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci, ${WHITE}P${GRAY}=push, ${WHITE}L${GRAY}=linux git)${NC}    " "$i"
 			if read -t 1 -n 1 key 2>/dev/null; then
 				case "$key" in
 				q | Q)
 					echo -e "\n${YELLOW}Dashboard terminata.${NC}"
 					exit 0
+					;;
+				p | P)
+					echo ""
+					_handle_remote_action "push"
+					echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+					read -n 1 -s
+					break
+					;;
+				l | L)
+					echo ""
+					_handle_remote_action "status"
+					echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+					read -n 1 -s
+					break
 					;;
 				*)
 					# Any other key = immediate refresh

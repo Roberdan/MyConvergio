@@ -74,7 +74,7 @@ remote-status) cmd_remote_status "${2:-}" ;;
 cluster-status) cmd_cluster_status ;;
 cluster-tasks) cmd_cluster_tasks ;;
 token-report) cmd_token_report ;;
-autosync) cmd_autosync "${2:-start}" ;;
+autosync) "$SCRIPT_DIR/plan-db-autosync.sh" "${2:-status}" ;;
 *)
 	echo "Plan DB CLI - Task/Wave/Plan Management"
 	echo ""

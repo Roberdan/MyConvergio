@@ -37,6 +37,18 @@ and token reporting across all execution hosts.
 - Added: `token-report` — Per-project token/cost totals aggregated by host
 - Changed: Dispatch entries and help text updated for all cluster commands
 
+**W4-AutoSync: Automated Database Synchronization** — Background daemon for
+continuous DB sync, heartbeat, and config coordination.
+
+- Added: `plan-db-autosync.sh` daemon with start/stop/status subcommands
+- Added: Debounced sync (5s after last DB write), heartbeat every 60s
+- Added: Cross-platform file mtime detection (Darwin stat -f / Linux stat -c)
+- Added: `incremental` mode in sync-dashboard-db.sh (changed rows since last sync)
+- Added: Token usage table sync via incremental_sync
+- Added: Heartbeat row sync to remote in incremental_sync
+- Added: Config sync integration (auto-push ~/.claude changes after DB sync)
+- Changed: Dispatch in plan-db.sh calls standalone autosync script
+
 ---
 
 **Opus 4.6 Configuration Upgrade** — Settings, hooks, and tooling updated

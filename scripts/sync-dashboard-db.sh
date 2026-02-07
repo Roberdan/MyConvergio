@@ -135,16 +135,32 @@ incremental_sync() {
 		log_info "First sync: last 24 hours"
 	fi
 
-	# Sync changed plans
-	local plan_rows
-	plan_rows=$(sqlite3 "$LOCAL_DB" "SELECT id FROM plans WHERE 1=1 $since_clause;" 2>/dev/null | tr '\n' ' ')
+	# Resolve local hostname for execution_host routing
+	local local_host="${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}"
+	local_host="${local_host%.local}"
 
-	if [[ -n "$plan_rows" ]]; then
-		for pid in $plan_rows; do
-			log_info "Syncing plan $pid"
-			copy_plan "$pid" "push"
-		done
-	fi
+	# PUSH: locally-executed plans changed since last sync
+	local pid
+	sqlite3 "$LOCAL_DB" "
+		SELECT id FROM plans
+		WHERE (execution_host IS NULL OR execution_host = '' OR execution_host = '$local_host')
+		$since_clause;
+	" 2>/dev/null | while read -r pid; do
+		[[ -z "$pid" ]] && continue
+		log_info "Push plan $pid → remote (local)"
+		copy_plan "$pid" "push"
+	done
+
+	# PULL: active plans executed on remote host (no since filter - always pull latest)
+	sqlite3 "$LOCAL_DB" "
+		SELECT id FROM plans
+		WHERE execution_host IS NOT NULL AND execution_host != ''
+		AND execution_host != '$local_host' AND status NOT IN ('done');
+	" 2>/dev/null | while read -r pid; do
+		[[ -z "$pid" ]] && continue
+		log_info "Pull plan $pid ← remote (remote execution)"
+		copy_plan "$pid" "pull"
+	done
 
 	# Sync token_usage (T4-06)
 	local token_count
@@ -189,8 +205,10 @@ copy_plan() {
             INSERT OR REPLACE INTO waves SELECT * FROM src.waves WHERE plan_id=$plan_id;
             INSERT OR REPLACE INTO tasks SELECT * FROM src.tasks WHERE plan_id=$plan_id;
             DETACH src;
+            UPDATE waves SET tasks_done = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id AND tasks.status = 'done'), tasks_total = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id) WHERE plan_id = $plan_id;
+            UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE waves.plan_id = plans.id), tasks_total = (SELECT COALESCE(SUM(tasks_total), 0) FROM waves WHERE waves.plan_id = plans.id) WHERE id = $plan_id;
         \" && rm /tmp/source_dashboard.db"
-		log_info "Plan $plan_id copied to remote"
+		log_info "Plan $plan_id copied to remote (counters resynced)"
 	else
 		log_info "Copying plan $plan_id: Remote → Local"
 		scp "$REMOTE_HOST:$REMOTE_DB" "/tmp/source_dashboard.db"
@@ -202,7 +220,12 @@ copy_plan() {
             DETACH src;
         "
 		rm /tmp/source_dashboard.db
-		log_info "Plan $plan_id copied to local"
+		# Resync counters (INSERT OR REPLACE bypasses UPDATE triggers)
+		sqlite3 "$LOCAL_DB" "
+			UPDATE waves SET tasks_done = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id AND tasks.status = 'done'), tasks_total = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id) WHERE plan_id = $plan_id;
+			UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE waves.plan_id = plans.id), tasks_total = (SELECT COALESCE(SUM(tasks_total), 0) FROM waves WHERE waves.plan_id = plans.id) WHERE id = $plan_id;
+		"
+		log_info "Plan $plan_id copied to local (counters resynced)"
 	fi
 }
 

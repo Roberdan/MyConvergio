@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+**Opus 4.6 Configuration Upgrade** — Settings, hooks, and tooling updated
+for Claude Opus 4.6 adaptive thinking and 128K output tokens.
+
+- Changed: `CLAUDE_CODE_MAX_OUTPUT_TOKENS` from 64K to 128K
+- Removed: `MAX_THINKING_TOKENS` (deprecated, adaptive thinking is default)
+- Changed: MCP codegraph permissions to wildcard `mcp__codegraph__*`
+- Changed: `SessionStart` hook replaced with native `Setup` event
+- Added: Session cost estimate in status line (ctx% \* model pricing)
+- Added: `adversarial-debugger` agent (3 parallel Explore subagents with competing hypotheses)
+- Added: `plan-db-safe.sh` wrapper with pre-checks before task done transitions
+- Changed: CLAUDE.md updated with Opus 4.6 identity and new agent routing
+
+---
+
 **Inter-Wave Communication & Agent Tracking** — Enables conditional wave execution,
 structured task output for cross-wave data passing, and multi-agent routing with
 executor tracking. Schema v4.0.

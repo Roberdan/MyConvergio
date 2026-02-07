@@ -1,6 +1,6 @@
 # Claude Config
 
-**Identity**: Principal Software Engineer | ISE Fundamentals
+**Identity**: Principal Software Engineer | ISE Fundamentals | Opus 4.6 (adaptive thinking, 128K output)
 **Style**: Concise, action-first, no emojis | Datetime: DD Mese YYYY, HH:MM CET
 **Shell**: `cat` is standard (use `bat`/`catp` for highlighting). Prefer `Read` tool over Bash.
 
@@ -40,6 +40,7 @@ ls -la {files} && wc -l {files} # Verify existence + line counts
 plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree
 plan-db.sh import {plan_id} spec.json
 plan-db.sh update-task {id} done "Summary"
+plan-db-safe.sh update-task {id} done "S" # Pre-checks before marking done
 planner-init.sh                    # Single-call project context bootstrap
 service-digest.sh ci|pr|deploy|all # Token-efficient external service status
 worktree-cleanup.sh --all-merged   # Auto-remove merged worktrees
@@ -119,6 +120,7 @@ Wave cannot be marked `done` in DB without `plan-db.sh validate` succeeding.
 | Explore codebase   | `Explore`                         |
 | Execute plan task  | `task-executor`                   |
 | Quality validation | `thor-quality-assurance-guardian` |
+| Complex debugging  | `adversarial-debugger`            |
 
 ## Repo Knowledge
 
@@ -132,10 +134,11 @@ repo-info                        # Quick summary
 **Extended**: baccio, dario, marco, otto, rex, luca (technical) | ali, amy, antonio, dan (leadership)
 **Route**: MyConvergio agents first (`$MYCONVERGIO_HOME/agents/`), fallback `~/.claude/agents/`
 **Delegate when**: Specialist needed | Parallel work | Fresh context
-**Maturity** — Stable: strategic-planner, thor, task-executor, marcus, socrates, wanda, xavier | Preview: diana, po, taskmaster, app-release-manager
+**Maturity** — Stable: strategic-planner, thor, task-executor, marcus, socrates, wanda, xavier | Preview: diana, po, taskmaster, app-release-manager, adversarial-debugger
 **Codex**: Suggest for mechanical/repetitive bulk tasks. Never for architecture, security, debugging.
 
 <!-- CODEGRAPH_START -->
+
 ## CodeGraph
 
 CodeGraph builds a semantic knowledge graph of codebases for faster, smarter code exploration.
@@ -144,20 +147,21 @@ CodeGraph builds a semantic knowledge graph of codebases for faster, smarter cod
 
 **Use codegraph tools for faster exploration.** These tools provide instant lookups via the code graph instead of scanning files:
 
-| Tool | Use For |
-|------|---------|
-| `codegraph_search` | Find symbols by name (functions, classes, types) |
-| `codegraph_context` | Get relevant code context for a task |
-| `codegraph_callers` | Find what calls a function |
-| `codegraph_callees` | Find what a function calls |
-| `codegraph_impact` | See what's affected by changing a symbol |
-| `codegraph_node` | Get details + source code for a symbol |
+| Tool                | Use For                                          |
+| ------------------- | ------------------------------------------------ |
+| `codegraph_search`  | Find symbols by name (functions, classes, types) |
+| `codegraph_context` | Get relevant code context for a task             |
+| `codegraph_callers` | Find what calls a function                       |
+| `codegraph_callees` | Find what a function calls                       |
+| `codegraph_impact`  | See what's affected by changing a symbol         |
+| `codegraph_node`    | Get details + source code for a symbol           |
 
 **When spawning Explore agents in a codegraph-enabled project:**
 
 Tell the Explore agent to use codegraph tools for faster exploration.
 
 **For quick lookups in the main session:**
+
 - Use `codegraph_search` instead of grep for finding symbols
 - Use `codegraph_callers`/`codegraph_callees` to trace code flow
 - Use `codegraph_impact` before making changes to see what's affected
@@ -167,4 +171,5 @@ Tell the Explore agent to use codegraph tools for faster exploration.
 At the start of a session, ask the user if they'd like to initialize CodeGraph:
 
 "I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
+
 <!-- CODEGRAPH_END -->

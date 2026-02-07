@@ -6,21 +6,21 @@ This repository is **fully self-contained**. All rules are defined within:
 
 ### Primary Rules System (Active)
 
-| Document | Location | Purpose |
-|----------|----------|---------|
-| execution.md | `.claude/rules/` | How Work Gets Done (Anthropic 4.5 best practices) |
-| guardian.md | `.claude/rules/` | Process Guardian, Thor Enforcement, Quality Gates |
-| agent-discovery.md | `.claude/rules/` | Agent Routing, Subagent Orchestration |
-| engineering-standards.md | `.claude/rules/` | Code Quality, Security, Testing, API Design |
-| file-size-limits.md | `.claude/rules/` | File Size Constraints (max 300 lines) |
+| Document                 | Location         | Purpose                                           |
+| ------------------------ | ---------------- | ------------------------------------------------- |
+| execution.md             | `.claude/rules/` | How Work Gets Done (Claude Code best practices)   |
+| guardian.md              | `.claude/rules/` | Process Guardian, Thor Enforcement, Quality Gates |
+| agent-discovery.md       | `.claude/rules/` | Agent Routing, Subagent Orchestration             |
+| engineering-standards.md | `.claude/rules/` | Code Quality, Security, Testing, API Design       |
+| file-size-limits.md      | `.claude/rules/` | File Size Constraints (max 250 lines)             |
 
 ### Legacy System (Backward Compatibility)
 
-| Document | Location | Purpose |
-|----------|----------|---------|
-| CONSTITUTION.md | `.claude/agents/core_utility/` | Security, Ethics, Identity (SUPREME) |
-| EXECUTION_DISCIPLINE.md | `.claude/agents/core_utility/` | Legacy Execution Rules |
-| CommonValuesAndPrinciples.md | `.claude/agents/core_utility/` | Organizational Values |
+| Document                     | Location                       | Purpose                              |
+| ---------------------------- | ------------------------------ | ------------------------------------ |
+| CONSTITUTION.md              | `.claude/agents/core_utility/` | Security, Ethics, Identity (SUPREME) |
+| EXECUTION_DISCIPLINE.md      | `.claude/agents/core_utility/` | Legacy Execution Rules               |
+| CommonValuesAndPrinciples.md | `.claude/agents/core_utility/` | Organizational Values                |
 
 **Note**: New work should reference `.claude/rules/`. Legacy files maintained for backward compatibility.
 
@@ -35,6 +35,7 @@ This repository is **fully self-contained**. All rules are defined within:
 Location: `dashboard/`
 
 Features:
+
 - Real-time git panel auto-refresh (Server-Sent Events + chokidar)
 - Project management UI
 - System shutdown button
@@ -51,6 +52,7 @@ Start: `cd dashboard && node server.js`
 Location: `.claude/templates/`
 
 Templates:
+
 - `tests.json` - Structured test status tracking
 - `progress.txt` - Unstructured progress notes
 - `README.md` - Usage guidelines
@@ -65,7 +67,8 @@ Use for complex projects requiring context window refresh or multi-session work.
 
 `.claude/rules/execution.md`
 
-This includes (Anthropic Claude 4.5 best practices):
+This includes (Claude Code best practices):
+
 - Context awareness and multi-window workflows
 - Parallel tool calling
 - Default to action
@@ -104,6 +107,7 @@ This includes (Anthropic Claude 4.5 best practices):
 ## Agent Development
 
 ### File Structure
+
 ```
 .claude/agents/
 ├── [category]/
@@ -111,7 +115,9 @@ This includes (Anthropic Claude 4.5 best practices):
 ```
 
 ### Agent File Requirements
+
 Every agent MUST have:
+
 ```yaml
 ---
 name: agent-name
@@ -124,16 +130,17 @@ version: "1.0.0"
 ```
 
 ### Agent Categories
-| Category | Purpose |
-|----------|---------|
-| `core_utility/` | Foundation (Constitution, Values, Execution Discipline) |
-| `business_operations/` | PM, operations, customer success |
-| `compliance_legal/` | Security, legal, healthcare compliance |
-| `design_ux/` | UX/UI, creative direction |
-| `leadership_strategy/` | C-level, strategic planning |
-| `release_management/` | Release and feature management |
-| `specialized_experts/` | Domain specialists |
-| `technical_development/` | Engineering, architecture, DevOps |
+
+| Category                 | Purpose                                                 |
+| ------------------------ | ------------------------------------------------------- |
+| `core_utility/`          | Foundation (Constitution, Values, Execution Discipline) |
+| `business_operations/`   | PM, operations, customer success                        |
+| `compliance_legal/`      | Security, legal, healthcare compliance                  |
+| `design_ux/`             | UX/UI, creative direction                               |
+| `leadership_strategy/`   | C-level, strategic planning                             |
+| `release_management/`    | Release and feature management                          |
+| `specialized_experts/`   | Domain specialists                                      |
+| `technical_development/` | Engineering, architecture, DevOps                       |
 
 ---
 
@@ -142,6 +149,7 @@ version: "1.0.0"
 DDD (bounded contexts) • Clean Architecture (SOLID) • Event-Driven • 12-Factor • Observability
 
 ### Anti-Patterns
+
 - Over-engineering beyond requested changes
 - Abstractions for one-time operations
 - Error handling for impossible scenarios
@@ -154,31 +162,31 @@ DDD (bounded contexts) • Clean Architecture (SOLID) • Event-Driven • 12-Fa
 
 ### Primary (Active)
 
-| Resource | Location |
-|----------|----------|
-| Execution Rules | `.claude/rules/execution.md` |
-| Process Guardian | `.claude/rules/guardian.md` |
-| Agent Discovery | `.claude/rules/agent-discovery.md` |
+| Resource              | Location                                 |
+| --------------------- | ---------------------------------------- |
+| Execution Rules       | `.claude/rules/execution.md`             |
+| Process Guardian      | `.claude/rules/guardian.md`              |
+| Agent Discovery       | `.claude/rules/agent-discovery.md`       |
 | Engineering Standards | `.claude/rules/engineering-standards.md` |
-| File Size Limits | `.claude/rules/file-size-limits.md` |
-| Rules Hierarchy | `.claude/rules/README.md` |
-| State Templates | `.claude/templates/` |
-| Dashboard | `dashboard/` |
+| File Size Limits      | `.claude/rules/file-size-limits.md`      |
+| Rules Hierarchy       | `.claude/rules/README.md`                |
+| State Templates       | `.claude/templates/`                     |
+| Dashboard             | `dashboard/`                             |
 
 ### Legacy (Backward Compatibility)
 
-| Resource | Location |
-|----------|----------|
-| Constitution | `.claude/agents/core_utility/CONSTITUTION.md` |
-| Execution Discipline (old) | `.claude/agents/core_utility/EXECUTION_DISCIPLINE.md` |
-| Values | `.claude/agents/core_utility/CommonValuesAndPrinciples.md` |
+| Resource                   | Location                                                   |
+| -------------------------- | ---------------------------------------------------------- |
+| Constitution               | `.claude/agents/core_utility/CONSTITUTION.md`              |
+| Execution Discipline (old) | `.claude/agents/core_utility/EXECUTION_DISCIPLINE.md`      |
+| Values                     | `.claude/agents/core_utility/CommonValuesAndPrinciples.md` |
 
 ### External
 
-| Resource | Location |
-|----------|----------|
-| ISE Playbook | https://microsoft.github.io/code-with-engineering-playbook/ |
-| Claude Code Docs | https://docs.anthropic.com/en/docs/claude-code |
+| Resource                 | Location                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
+| ISE Playbook             | https://microsoft.github.io/code-with-engineering-playbook/                                      |
+| Claude Code Docs         | https://docs.anthropic.com/en/docs/claude-code                                                   |
 | Anthropic Best Practices | https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-4-best-practices |
 
 ---
@@ -186,11 +194,13 @@ DDD (bounded contexts) • Clean Architecture (SOLID) • Event-Driven • 12-Fa
 ## Contributing
 
 ### Before Making Changes
+
 1. Read Constitution and Execution Discipline
 2. Understand existing patterns
 3. Follow planning requirements from EXECUTION_DISCIPLINE.md
 
 ### Agent Modifications
+
 - Update version number in frontmatter
 - Add entry to Changelog section
 - Ensure Security & Ethics Framework is intact

@@ -14,5 +14,36 @@
     "allow": [],
     "deny": [],
     "defaultMode": "askEveryTime"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/worktree-guard.sh",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/prefer-ci-summary.sh",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/enforce-line-limit.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
   }
 }

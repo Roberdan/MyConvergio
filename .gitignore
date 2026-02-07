@@ -54,6 +54,7 @@ out/
 !.claude/settings-templates/
 !.claude/templates/
 !.claude/scripts/
+!.claude/reference/
 !.claude/CLAUDE.md
 .claude/logs/
 

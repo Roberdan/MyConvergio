@@ -27,6 +27,16 @@ worktree/branch info in all CLI display commands.
 - Added: `token_usage.execution_host` column via migration (backfill existing rows)
 - Changed: Token tracking hooks write normalized hostname per record
 
+**W3-RemoteCluster: Cross-Machine Visibility** — Remote status, cluster views,
+and token reporting across all execution hosts.
+
+- Added: `plan-db-remote.sh` module with remote/cluster/token commands
+- Added: `remote-status [project_id]` — SSH to remote host, runs plan-db.sh status
+- Added: `cluster-status` — Unified local+remote plan view with connectivity indicator
+- Added: `cluster-tasks` — In-progress tasks from both machines with host info
+- Added: `token-report` — Per-project token/cost totals aggregated by host
+- Changed: Dispatch entries and help text updated for all cluster commands
+
 ---
 
 **Opus 4.6 Configuration Upgrade** — Settings, hooks, and tooling updated

@@ -32,6 +32,7 @@ source "$SCRIPT_DIR/lib/plan-db-display.sh"
 source "$SCRIPT_DIR/lib/plan-db-import.sh"
 source "$SCRIPT_DIR/lib/plan-db-drift.sh"
 source "$SCRIPT_DIR/lib/plan-db-cluster.sh"
+source "$SCRIPT_DIR/lib/plan-db-remote.sh"
 
 # Host identification for cross-machine tracking
 export PLAN_DB_HOST="${PLAN_DB_HOST:-$(hostname -s 2>/dev/null || hostname)}"
@@ -72,6 +73,7 @@ heartbeat) cmd_heartbeat ;;
 remote-status) cmd_remote_status "${2:-}" ;;
 cluster-status) cmd_cluster_status ;;
 cluster-tasks) cmd_cluster_tasks ;;
+token-report) cmd_token_report ;;
 autosync) cmd_autosync "${2:-start}" ;;
 *)
 	echo "Plan DB CLI - Task/Wave/Plan Management"
@@ -106,6 +108,7 @@ autosync) cmd_autosync "${2:-start}" ;;
 	echo "  remote-status [project_id]     Show status from remote host"
 	echo "  cluster-status                 Unified view of all hosts"
 	echo "  cluster-tasks                  In-progress tasks across hosts"
+	echo "  token-report                   Per-project token/cost by host"
 	echo "  autosync [start|stop|status]   Auto-sync daemon"
 	echo "  where [plan_id]                Show execution host for plans"
 	echo ""

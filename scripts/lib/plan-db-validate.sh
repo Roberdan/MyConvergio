@@ -177,7 +177,7 @@ cmd_validate() {
 		local close_version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
 		sqlite3 "$DB_FILE" "
             INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by)
-            VALUES ($plan_id, $close_version, 'closed', 'Auto-closed after Thor validation', '$validated_by');
+            VALUES ($plan_id, $close_version, 'completed', 'Auto-closed after Thor validation', '$validated_by');
         "
 	fi
 

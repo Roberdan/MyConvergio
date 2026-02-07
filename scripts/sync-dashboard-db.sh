@@ -1,15 +1,8 @@
 #!/bin/bash
-# sync-dashboard-db.sh - Sincronizza dashboard.db tra Mac e Linux
-# Usage: sync-dashboard-db.sh [push|pull|status]
-#
-# Modes:
-#   pull   - Linux → Mac (default, Linux is source of truth)
-#   push   - Mac → Linux
-#   status - Compare both databases
-
+# sync-dashboard-db.sh - Sync dashboard.db between machines
+# Usage: sync-dashboard-db.sh [push|pull|incremental|status]
 set -e
 
-# Load configuration from file (keeps sensitive info out of script)
 CONFIG_FILE="$HOME/.claude/config/sync-db.conf"
 if [[ -f "$CONFIG_FILE" ]]; then
 	source "$CONFIG_FILE"
@@ -19,13 +12,10 @@ else
 	exit 1
 fi
 
-# Defaults (can be overridden in config)
 LOCAL_DB="${LOCAL_DB:-$HOME/.claude/data/dashboard.db}"
 REMOTE_DB="${REMOTE_DB:-~/.claude/data/dashboard.db}"
 BACKUP_DIR="$HOME/.claude/data/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-
-# Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
@@ -53,7 +43,7 @@ backup_local() {
 }
 
 backup_remote() {
-	ssh "$REMOTE_HOST" "mkdir -p ~/.claude/data/backups && cp $REMOTE_DB ~/.claude/data/backups/dashboard_remote_$TIMESTAMP.db"
+	ssh -o ConnectTimeout=10 "$REMOTE_HOST" "mkdir -p ~/.claude/data/backups && cp $REMOTE_DB ~/.claude/data/backups/dashboard_remote_$TIMESTAMP.db"
 	log_info "Remote backup created"
 }
 
@@ -63,23 +53,18 @@ show_status() {
 
 	echo ""
 	log_info "=== Remote DB (Linux) ==="
-	ssh "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"SELECT id, name, status, tasks_done||'/'||tasks_total as progress, COALESCE(execution_host, '-') as host FROM plans WHERE status != 'done' OR completed_at > datetime('now', '-7 days') ORDER BY id DESC LIMIT 10;\""
+	ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"SELECT id, name, status, tasks_done||'/'||tasks_total as progress, COALESCE(execution_host, '-') as host FROM plans WHERE status != 'done' OR completed_at > datetime('now', '-7 days') ORDER BY id DESC LIMIT 10;\""
 }
 
 sync_plans() {
 	local direction=$1
-	local source_db source_host target_db
-
 	if [[ "$direction" == "pull" ]]; then
 		log_info "Syncing: Linux → Mac"
-
-		# Get plans from remote that are more recent
-		ssh "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
+		ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
             SELECT id, status, tasks_done, tasks_total,
                    COALESCE(completed_at, ''), COALESCE(updated_at, '')
             FROM plans WHERE status = 'done' OR updated_at IS NOT NULL;
         \"" | while IFS='|' read -r id status tasks_done tasks_total completed_at updated_at; do
-			# Update local if remote is done and local isn't, or remote is more recent
 			local_status=$(sqlite3 "$LOCAL_DB" "SELECT status FROM plans WHERE id=$id;" 2>/dev/null || echo "")
 
 			if [[ "$local_status" != "$status" ]] || [[ "$local_status" != "done" && "$status" == "done" ]]; then
@@ -91,10 +76,9 @@ sync_plans() {
                         completed_at=$([ -n "$completed_at" ] && echo \"'$completed_at'\" || echo "NULL"),
                         updated_at=CURRENT_TIMESTAMP
                     WHERE id=$id;
+                    UPDATE tasks SET status='done', completed_at=CURRENT_TIMESTAMP WHERE plan_id=$id AND status != 'done';
+                    UPDATE waves SET status='done', tasks_done=tasks_total, completed_at=CURRENT_TIMESTAMP WHERE plan_id=$id AND status != 'done';
                 "
-				# Also sync tasks for this plan
-				sqlite3 "$LOCAL_DB" "UPDATE tasks SET status='done', completed_at=CURRENT_TIMESTAMP WHERE plan_id=$id AND status != 'done';"
-				sqlite3 "$LOCAL_DB" "UPDATE waves SET status='done', tasks_done=tasks_total, completed_at=CURRENT_TIMESTAMP WHERE plan_id=$id AND status != 'done';"
 			fi
 		done
 
@@ -106,11 +90,11 @@ sync_plans() {
                    COALESCE(completed_at, ''), COALESCE(updated_at, '')
             FROM plans WHERE status = 'done' OR updated_at IS NOT NULL;
         " | while IFS='|' read -r id status tasks_done tasks_total completed_at updated_at; do
-			remote_status=$(ssh "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"SELECT status FROM plans WHERE id=$id;\"" 2>/dev/null || echo "")
+			remote_status=$(ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"SELECT status FROM plans WHERE id=$id;\"" 2>/dev/null || echo "")
 
 			if [[ "$remote_status" != "$status" ]] || [[ "$remote_status" != "done" && "$status" == "done" ]]; then
 				log_info "Updating remote plan $id: $remote_status → $status ($tasks_done/$tasks_total)"
-				ssh "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
+				ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
                     UPDATE plans SET
                         status='$status',
                         tasks_done=$tasks_done,
@@ -126,18 +110,63 @@ sync_plans() {
 }
 
 full_pull() {
-	log_info "Full database pull from Linux"
 	backup_local
-	scp "$REMOTE_HOST:$REMOTE_DB" "$LOCAL_DB.new"
-	mv "$LOCAL_DB.new" "$LOCAL_DB"
-	log_info "Database replaced with remote copy"
+	scp "$REMOTE_HOST:$REMOTE_DB" "$LOCAL_DB.new" && mv "$LOCAL_DB.new" "$LOCAL_DB"
+	log_info "Full pull complete"
 }
 
 full_push() {
-	log_info "Full database push to Linux"
 	backup_remote
 	scp "$LOCAL_DB" "$REMOTE_HOST:$REMOTE_DB"
-	log_info "Remote database replaced with local copy"
+	log_info "Full push complete"
+}
+
+incremental_sync() {
+	local last_sync=""
+	local sync_file="$HOME/.claude/data/last-sync.txt"
+	[[ -f "$sync_file" ]] && last_sync=$(cat "$sync_file")
+
+	local since_clause=""
+	if [[ -n "$last_sync" ]]; then
+		since_clause="AND updated_at > '$last_sync'"
+		log_info "Incremental sync since: $last_sync"
+	else
+		since_clause="AND updated_at > datetime('now', '-24 hours')"
+		log_info "First sync: last 24 hours"
+	fi
+
+	# Sync changed plans
+	local plan_rows
+	plan_rows=$(sqlite3 "$LOCAL_DB" "SELECT id FROM plans WHERE 1=1 $since_clause;" 2>/dev/null | tr '\n' ' ')
+
+	if [[ -n "$plan_rows" ]]; then
+		for pid in $plan_rows; do
+			log_info "Syncing plan $pid"
+			copy_plan "$pid" "push"
+		done
+	fi
+
+	# Sync token_usage (T4-06)
+	local token_count
+	token_count=$(sqlite3 "$LOCAL_DB" "SELECT COUNT(*) FROM token_usage WHERE 1=1 $since_clause;" 2>/dev/null || echo 0)
+
+	if [[ "$token_count" -gt 0 ]]; then
+		log_info "Syncing $token_count token_usage rows"
+		sqlite3 "$LOCAL_DB" ".dump token_usage" | ssh -o ConnectTimeout=10 "$REMOTE_HOST" \
+			"sqlite3 $REMOTE_DB" 2>/dev/null || log_warn "Token sync partial"
+	fi
+
+	# Sync heartbeats
+	sqlite3 "$LOCAL_DB" "SELECT host, last_seen, plan_count, os FROM host_heartbeats;" |
+		while IFS='|' read -r host seen count os; do
+			ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
+				INSERT OR REPLACE INTO host_heartbeats (host, last_seen, plan_count, os)
+				VALUES ('$host', '$seen', $count, '$os');
+			\"" 2>/dev/null
+		done
+
+	date '+%Y-%m-%d %H:%M:%S' >"$sync_file"
+	log_info "Incremental sync complete"
 }
 
 copy_plan() {
@@ -154,7 +183,7 @@ copy_plan() {
 	if [[ "$direction" == "push" ]]; then
 		log_info "Copying plan $plan_id: Local → Remote"
 		scp "$LOCAL_DB" "$REMOTE_HOST:/tmp/source_dashboard.db"
-		ssh "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
+		ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
             ATTACH '/tmp/source_dashboard.db' AS src;
             INSERT OR REPLACE INTO plans SELECT * FROM src.plans WHERE id=$plan_id;
             INSERT OR REPLACE INTO waves SELECT * FROM src.waves WHERE plan_id=$plan_id;
@@ -203,22 +232,19 @@ status)
 	check_ssh
 	show_status
 	;;
+incremental)
+	check_ssh
+	incremental_sync
+	;;
 copy-plan)
 	check_ssh
 	copy_plan "$2" "$3"
 	;;
 *)
-	echo "Usage: $0 [pull|push|full-pull|full-push|copy-plan|status]"
-	echo ""
-	echo "  pull              - Sync completed plans from remote to local"
-	echo "  push              - Sync completed plans from local to remote"
-	echo "  full-pull         - Replace local DB with remote (backup first)"
-	echo "  full-push         - Replace remote DB with local (backup first)"
-	echo "  copy-plan <id>    - Copy specific plan to remote (push, default)"
-	echo "  copy-plan <id> pull - Copy specific plan from remote"
-	echo "  status            - Show recent plans on both machines"
-	echo ""
-	echo "Config: $CONFIG_FILE"
+	echo "Usage: $0 [pull|push|incremental|full-pull|full-push|copy-plan|status]"
+	echo "  pull/push - Sync completed plans | incremental - Changed rows only"
+	echo "  full-pull/full-push - Replace entire DB | copy-plan <id> [push|pull]"
+	echo "  status - Compare both DBs | Config: $CONFIG_FILE"
 	exit 1
 	;;
 esac

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -uo pipefail
 
 # Colors
 RED='\033[0;31m'
@@ -12,6 +13,26 @@ NC='\033[0m'
 BOLD='\033[1m'
 
 DB="$HOME/.claude/data/dashboard.db"
+
+# Cross-platform date to epoch (Mac uses -j, Linux uses -d)
+date_to_epoch() {
+	local dt="$1"
+	if [[ "$(uname)" == "Darwin" ]]; then
+		date -j -f "%Y-%m-%d %H:%M:%S" "$dt" +%s 2>/dev/null || echo 0
+	else
+		date -d "$dt" +%s 2>/dev/null || echo 0
+	fi
+}
+
+# Cross-platform date-only to epoch
+date_only_to_epoch() {
+	local dt="$1"
+	if [[ "$(uname)" == "Darwin" ]]; then
+		date -j -f "%Y-%m-%d" "$dt" +%s 2>/dev/null || echo 0
+	else
+		date -d "$dt" +%s 2>/dev/null || echo 0
+	fi
+}
 
 # Parse arguments
 VERBOSE=0
@@ -85,6 +106,12 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
+# Validate PLAN_ID is numeric (prevent SQL injection)
+if [ -n "$PLAN_ID" ] && ! [[ "$PLAN_ID" =~ ^[0-9]+$ ]]; then
+	echo "Error: plan ID must be numeric" >&2
+	exit 1
+fi
+
 # Function to format elapsed time
 format_elapsed() {
 	local seconds=$1
@@ -125,7 +152,7 @@ render_dashboard() {
 		plan_info=$(sqlite3 "$DB" "SELECT id, name, status, project_id, source_file, created_at, started_at, completed_at, validated_at, validated_by, worktree_path, parallel_mode FROM plans WHERE id = $PLAN_ID")
 		if [ -z "$plan_info" ]; then
 			echo -e "${RED}Piano #$PLAN_ID non trovato${NC}"
-			exit 1
+			return 1
 		fi
 
 		pid=$(echo "$plan_info" | cut -d'|' -f1)
@@ -169,12 +196,12 @@ render_dashboard() {
 
 		# Elapsed time
 		if [ -n "$pcompleted" ] && [ -n "$pstarted" ]; then
-			start_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$pstarted" +%s 2>/dev/null || echo 0)
-			end_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$pcompleted" +%s 2>/dev/null || echo 0)
+			start_ts=$(date_to_epoch "$pstarted")
+			end_ts=$(date_to_epoch "$pcompleted")
 			elapsed_time=$(format_elapsed $((end_ts - start_ts)))
 			echo -e "${GRAY}├─${NC} Duration: ${CYAN}$elapsed_time${NC}"
 		elif [ -n "$pstarted" ]; then
-			start_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$pstarted" +%s 2>/dev/null || echo 0)
+			start_ts=$(date_to_epoch "$pstarted")
 			elapsed_time=$(format_elapsed $(($(date +%s) - start_ts)))
 			echo -e "${GRAY}├─${NC} Running: ${YELLOW}$elapsed_time${NC}"
 		fi
@@ -214,7 +241,7 @@ render_dashboard() {
 		done
 		echo -e "${GRAY}└─${NC}"
 
-		exit 0
+		return 0
 	fi
 
 	echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════╗${NC}"
@@ -222,51 +249,55 @@ render_dashboard() {
 	echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════╝${NC}"
 	echo ""
 
-	# Overview
-	total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans")
-	done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status='done'")
-	doing=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status='doing'")
-	todo=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status='todo'")
-
-	# Task stats across all active plans
-	total_tasks=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id IN (SELECT id FROM plans WHERE status='doing'))")
-	done_tasks=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id IN (SELECT id FROM plans WHERE status='doing'))")
-	in_progress_tasks=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='in_progress' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id IN (SELECT id FROM plans WHERE status='doing'))")
+	# Overview (single query instead of 7 separate calls)
+	local overview
+	overview=$(sqlite3 "$DB" "
+		SELECT
+			(SELECT COUNT(*) FROM plans),
+			(SELECT COUNT(*) FROM plans WHERE status='done'),
+			(SELECT COUNT(*) FROM plans WHERE status='doing'),
+			(SELECT COUNT(*) FROM plans WHERE status='todo'),
+			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id IN (SELECT id FROM plans WHERE status='doing'))),
+			(SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id IN (SELECT id FROM plans WHERE status='doing'))),
+			(SELECT COUNT(*) FROM tasks WHERE status='in_progress' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id IN (SELECT id FROM plans WHERE status='doing')));
+	")
+	total=$(echo "$overview" | cut -d'|' -f1)
+	local plan_done=$(echo "$overview" | cut -d'|' -f2)
+	doing=$(echo "$overview" | cut -d'|' -f3)
+	todo=$(echo "$overview" | cut -d'|' -f4)
+	total_tasks=$(echo "$overview" | cut -d'|' -f5)
+	done_tasks=$(echo "$overview" | cut -d'|' -f6)
+	in_progress_tasks=$(echo "$overview" | cut -d'|' -f7)
 
 	echo -e "${BOLD}${WHITE}📊 Overview${NC}"
-	echo -e "${GRAY}├─${NC} Piani: ${GREEN}${done}${NC} done, ${YELLOW}${doing}${NC} doing, ${BLUE}${todo}${NC} todo ${GRAY}(${total} totali)${NC}"
+	echo -e "${GRAY}├─${NC} Piani: ${GREEN}${plan_done}${NC} done, ${YELLOW}${doing}${NC} doing, ${BLUE}${todo}${NC} todo ${GRAY}(${total} totali)${NC}"
 	echo -e "${GRAY}└─${NC} Tasks attivi: ${GREEN}${done_tasks}${NC} done, ${YELLOW}${in_progress_tasks}${NC} in progress ${GRAY}(${total_tasks} totali)${NC}"
 	echo ""
 
-	# Piani attivi
+	# Piani attivi (single query with subqueries to avoid N+1)
 	echo -e "${BOLD}${WHITE}🚀 Piani Attivi${NC}"
-	sqlite3 "$DB" "SELECT id, name, status, updated_at, started_at, created_at, project_id FROM plans WHERE status IN ('doing', 'in_progress') ORDER BY id" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated pproject; do
-		# Wave stats
-		wave_stats=$(sqlite3 "$DB" "SELECT COUNT(*), SUM(CASE WHEN status='done' THEN 1 ELSE 0 END), SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END) FROM waves WHERE plan_id = $pid")
-
-		wave_total=$(echo "$wave_stats" | cut -d'|' -f1)
-		wave_done=$(echo "$wave_stats" | cut -d'|' -f2)
-		wave_doing=$(echo "$wave_stats" | cut -d'|' -f3)
+	sqlite3 "$DB" "
+		SELECT p.id, p.name, p.status, p.updated_at, p.started_at, p.created_at, p.project_id,
+			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id),
+			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status='done'),
+			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status='in_progress'),
+			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id)),
+			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id) AND status='done'),
+			COALESCE((SELECT SUM(total_tokens) FROM token_usage WHERE project_id=p.project_id), 0)
+		FROM plans p WHERE p.status IN ('doing', 'in_progress') ORDER BY p.id
+	" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated pproject wave_total wave_done wave_doing task_total task_done total_tokens; do
 
 		# Elapsed time (running time)
 		if [ -n "$pstarted" ]; then
-			start_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$pstarted" +%s 2>/dev/null || echo 0)
+			start_ts=$(date_to_epoch "$pstarted")
 		else
-			start_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$pcreated" +%s 2>/dev/null || echo 0)
+			start_ts=$(date_to_epoch "$pcreated")
 		fi
 		now_ts=$(date +%s)
 		elapsed_seconds=$((now_ts - start_ts))
 		elapsed_time=$(format_elapsed $elapsed_seconds)
 
-		# Token usage (usa project_id perché plan_id è sempre NULL nel DB)
-		total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
 		tokens_formatted=$(format_tokens $total_tokens)
-
-		# Task stats
-		task_stats=$(sqlite3 "$DB" "SELECT COUNT(*), SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
-
-		task_total=$(echo "$task_stats" | cut -d'|' -f1)
-		task_done=$(echo "$task_stats" | cut -d'|' -f2)
 
 		# Task progress (more accurate)
 		if [ "$task_total" -gt 0 ]; then
@@ -295,7 +326,7 @@ render_dashboard() {
 		# Time since last update
 		if [ -n "$pupdated" ]; then
 			update_date=$(echo "$pupdated" | cut -d' ' -f1)
-			days_ago=$((($(date +%s) - $(date -j -f "%Y-%m-%d" "$update_date" +%s 2>/dev/null || echo 0)) / 86400))
+			days_ago=$((($(date +%s) - $(date_only_to_epoch "$update_date")) / 86400))
 			if [ "$days_ago" -eq 0 ]; then
 				time_info="${GREEN}oggi${NC}"
 			elif [ "$days_ago" -eq 1 ]; then
@@ -475,7 +506,7 @@ render_dashboard() {
 			# Days since created
 			if [ -n "$pcreated" ]; then
 				create_date=$(echo "$pcreated" | cut -d' ' -f1)
-				days_old=$((($(date +%s) - $(date -j -f "%Y-%m-%d" "$create_date" +%s 2>/dev/null || echo 0)) / 86400))
+				days_old=$((($(date +%s) - $(date_only_to_epoch "$create_date")) / 86400))
 				if [ "$days_old" -eq 0 ]; then
 					age_info="${GREEN}oggi${NC}"
 				elif [ "$days_old" -eq 1 ]; then
@@ -543,12 +574,12 @@ render_dashboard() {
 
 		# Elapsed time (total execution time)
 		if [ -n "$completed" ] && [ -n "$started" ]; then
-			start_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$started" +%s 2>/dev/null || echo 0)
-			end_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$completed" +%s 2>/dev/null || echo 0)
+			start_ts=$(date_to_epoch "$started")
+			end_ts=$(date_to_epoch "$completed")
 			elapsed_seconds=$((end_ts - start_ts))
 		elif [ -n "$completed" ] && [ -n "$created" ]; then
-			start_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$created" +%s 2>/dev/null || echo 0)
-			end_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$completed" +%s 2>/dev/null || echo 0)
+			start_ts=$(date_to_epoch "$created")
+			end_ts=$(date_to_epoch "$completed")
 			elapsed_seconds=$((end_ts - start_ts))
 		else
 			elapsed_seconds=0
@@ -625,12 +656,12 @@ render_dashboard() {
 
 			# Elapsed time (total execution time)
 			if [ -n "$completed" ] && [ -n "$started" ]; then
-				start_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$started" +%s 2>/dev/null || echo 0)
-				end_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$completed" +%s 2>/dev/null || echo 0)
+				start_ts=$(date_to_epoch "$started")
+				end_ts=$(date_to_epoch "$completed")
 				elapsed_seconds=$((end_ts - start_ts))
 			elif [ -n "$completed" ] && [ -n "$created" ]; then
-				start_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$created" +%s 2>/dev/null || echo 0)
-				end_ts=$(date -j -f "%Y-%m-%d %H:%M:%S" "$completed" +%s 2>/dev/null || echo 0)
+				start_ts=$(date_to_epoch "$created")
+				end_ts=$(date_to_epoch "$completed")
 				elapsed_seconds=$((end_ts - start_ts))
 			else
 				elapsed_seconds=0

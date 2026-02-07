@@ -24,7 +24,7 @@ cmd_create() {
 	shift 2
 	local is_master=0
 	local parent_id="NULL"
-	local source_file="" markdown_path="" worktree_path="" auto_worktree=0
+	local source_file="" markdown_path="" worktree_path="" auto_worktree=0 description=""
 
 	set +u
 	while [[ $# -gt 0 ]]; do
@@ -45,6 +45,10 @@ cmd_create() {
 			auto_worktree=1
 			shift
 			;;
+		--description)
+			description="$2"
+			shift 2
+			;;
 		*) shift ;;
 		esac
 	done
@@ -62,7 +66,12 @@ cmd_create() {
 		[[ -n "$master_id" ]] && parent_id="$master_id"
 	fi
 
-	local sf_val="NULL" mp_val="NULL" md_val="NULL" wp_val="NULL"
+	# Auto-extract description from source file if not explicitly provided
+	if [[ -z "$description" && -n "$source_file" && -f "$source_file" ]]; then
+		description=$(grep -v '^\s*#' "$source_file" | grep -v '^\s*//' | grep -v '^\s*$' | head -1 | cut -c1-200)
+	fi
+
+	local sf_val="NULL" mp_val="NULL" md_val="NULL" wp_val="NULL" desc_val="NULL"
 	if [[ -n "$source_file" ]]; then
 		sf_val="'$(sql_escape "$source_file")'"
 	fi
@@ -73,10 +82,13 @@ cmd_create() {
 	if [[ -n "$worktree_path" ]]; then
 		wp_val="'$(sql_escape "$(_normalize_path "$worktree_path")")'"
 	fi
+	if [[ -n "$description" ]]; then
+		desc_val="'$(sql_escape "$description")'"
+	fi
 
 	sqlite3 "$DB_FILE" "
-        INSERT INTO plans (project_id, name, is_master, parent_plan_id, status, source_file, markdown_path, markdown_dir, worktree_path)
-        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo', $sf_val, $mp_val, $md_val, $wp_val);
+        INSERT INTO plans (project_id, name, is_master, parent_plan_id, status, source_file, markdown_path, markdown_dir, worktree_path, description)
+        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo', $sf_val, $mp_val, $md_val, $wp_val, $desc_val);
     "
 	local plan_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name='$safe_name';")
 
@@ -126,10 +138,16 @@ cmd_create() {
 # Start a plan
 cmd_start() {
 	local plan_id="$1"
-	sqlite3 "$DB_FILE" "
-        UPDATE plans SET status = 'doing', started_at = datetime('now'), execution_host = '$PLAN_DB_HOST'
-        WHERE id = $plan_id;
-    "
+	local force_flag="${2:-}"
+
+	# Atomic claim via cmd_claim (from plan-db-cluster.sh)
+	if ! cmd_claim "$plan_id" "$force_flag"; then
+		log_error "Failed to claim plan $plan_id. Use --force to override."
+		return 1
+	fi
+
+	# Plan is now claimed and status set to 'doing' by cmd_claim
+	# Record version history
 	local version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
 	sqlite3 "$DB_FILE" "
         INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by, changed_host)
@@ -438,22 +456,42 @@ cmd_update_wave() {
 # Complete plan
 cmd_complete() {
 	local plan_id="$1"
-	local plan_info=$(sqlite3 "$DB_FILE" "SELECT tasks_done, tasks_total, validated_at FROM plans WHERE id = $plan_id;")
+	local force_flag="${2:-}"
+	local plan_info=$(sqlite3 "$DB_FILE" "SELECT tasks_done, tasks_total, validated_at, worktree_path FROM plans WHERE id = $plan_id;")
 	local tasks_done=$(echo "$plan_info" | cut -d'|' -f1)
 	local tasks_total=$(echo "$plan_info" | cut -d'|' -f2)
 	local validated_at=$(echo "$plan_info" | cut -d'|' -f3)
+	local worktree_path=$(echo "$plan_info" | cut -d'|' -f4)
 
 	if [[ -z "$tasks_total" || "$tasks_total" -eq 0 ]]; then
 		log_error "Cannot complete plan $plan_id: no tasks"
-		exit 1
+		return 1
 	fi
 	if [[ "$tasks_done" -lt "$tasks_total" ]]; then
 		log_error "Cannot complete plan $plan_id: $tasks_done/$tasks_total tasks done"
-		exit 1
+		return 1
 	fi
 	if [[ -z "$validated_at" ]]; then
 		log_error "Cannot complete plan $plan_id: Thor validation required"
-		exit 1
+		return 1
+	fi
+
+	# Check worktree merge status if worktree exists
+	if [[ -n "$worktree_path" && "$force_flag" != "--force" ]]; then
+		local wt_expanded="$(_expand_path "$worktree_path")"
+		if [[ -d "$wt_expanded" && -x "$SCRIPT_DIR/worktree-merge-check.sh" ]]; then
+			local branch_name=$(git -C "$wt_expanded" branch --show-current 2>/dev/null || echo "")
+			if [[ -n "$branch_name" && "$branch_name" != "main" ]]; then
+				local wt_status=$("$SCRIPT_DIR/worktree-merge-check.sh" 2>/dev/null | grep "$branch_name" | awk -F'|' '{print $3}' | xargs || echo "UNKNOWN")
+				if [[ "$wt_status" =~ DIRTY|BEHIND|CONFLICT ]]; then
+					log_error "Cannot complete plan $plan_id: worktree not ready for merge ($wt_status)"
+					echo "  Worktree: $worktree_path" >&2
+					echo "  Status: $wt_status" >&2
+					echo "  Action: Commit changes, merge to main, or use --force to bypass check" >&2
+					return 1
+				fi
+			fi
+		fi
 	fi
 
 	sqlite3 "$DB_FILE" "UPDATE plans SET status = 'done', completed_at = datetime('now'), execution_host = '$PLAN_DB_HOST' WHERE id = $plan_id;"
@@ -525,7 +563,20 @@ cmd_where() {
 		local host=$(echo "$info" | cut -d'|' -f3)
 		[[ -z "$host" ]] && host="unknown"
 
-		echo -e "Plan $plan_id (${BLUE}$name${NC}) -> ${GREEN}$host${NC} [$status]"
+		# Liveness check for remote hosts
+		local liveness=""
+		if [[ "$host" == "$PLAN_DB_HOST" || "$host" == "unknown" ]]; then
+			liveness="${GREEN}LOCAL${NC}"
+		elif type cmd_is_alive &>/dev/null; then
+			local alive_result=$(cmd_is_alive "$host" 2>/dev/null)
+			case "$alive_result" in
+			ALIVE) liveness="${GREEN}ALIVE${NC}" ;;
+			STALE) liveness="${YELLOW}STALE${NC}" ;;
+			*) liveness="${RED}UNREACHABLE${NC}" ;;
+			esac
+		fi
+
+		echo -e "Plan $plan_id (${BLUE}$name${NC}) -> ${GREEN}$host${NC} [$status] $liveness"
 		echo ""
 
 		# Show per-task hosts for active tasks

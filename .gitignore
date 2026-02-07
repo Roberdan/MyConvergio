@@ -76,6 +76,13 @@ coverage/
 *.tar.gz
 *.rar
 
+# Copilot tracking (local-only, never commit)
+.copilot-tracking/
+
+# Research report outputs (generated files, never commit)
+agents/research_report/Reports/
+agents/research_report/output/
+
 # Personal notes (add your own patterns)
 NOTES.md
 TODO.md

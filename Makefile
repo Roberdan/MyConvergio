@@ -11,10 +11,16 @@
 AGENTS_SRC := .claude/agents
 RULES_SRC := .claude/rules
 SKILLS_SRC := .claude/skills
+HOOKS_SRC := hooks
+REFERENCE_SRC := .claude/reference
+SCRIPTS_SRC := .claude/scripts
 CLAUDE_HOME := $(HOME)/.claude
 GLOBAL_AGENTS := $(CLAUDE_HOME)/agents
 GLOBAL_RULES := $(CLAUDE_HOME)/rules
 GLOBAL_SKILLS := $(CLAUDE_HOME)/skills
+GLOBAL_HOOKS := $(CLAUDE_HOME)/hooks
+GLOBAL_REFERENCE := $(CLAUDE_HOME)/reference
+GLOBAL_SCRIPTS := $(CLAUDE_HOME)/scripts
 
 # Colors
 GREEN := \033[0;32m
@@ -79,11 +85,27 @@ install:
 	@cp -r $(SKILLS_SRC)/* $(GLOBAL_SKILLS)/
 	@SKILLS_COUNT=$$(find $(GLOBAL_SKILLS) -type d -mindepth 1 -maxdepth 1 | wc -l | tr -d ' '); \
 	echo "  $(GREEN)✓$(NC) Installed $$SKILLS_COUNT skills"
+	@# Install hooks
+	@mkdir -p $(GLOBAL_HOOKS)/lib
+	@cp -r $(HOOKS_SRC)/*.sh $(GLOBAL_HOOKS)/ 2>/dev/null || true
+	@cp -r $(HOOKS_SRC)/lib/*.sh $(GLOBAL_HOOKS)/lib/ 2>/dev/null || true
+	@chmod +x $(GLOBAL_HOOKS)/*.sh $(GLOBAL_HOOKS)/lib/*.sh 2>/dev/null || true
+	@HOOKS_COUNT=$$(find $(GLOBAL_HOOKS) -name '*.sh' | wc -l | tr -d ' '); \
+	echo "  $(GREEN)✓$(NC) Installed $$HOOKS_COUNT hooks"
+	@# Install reference docs
+	@mkdir -p $(GLOBAL_REFERENCE)/operational
+	@cp -r $(REFERENCE_SRC)/* $(GLOBAL_REFERENCE)/ 2>/dev/null || true
+	@echo "  $(GREEN)✓$(NC) Installed reference docs"
+	@# Install scripts
+	@mkdir -p $(GLOBAL_SCRIPTS)/lib
+	@cp -r $(SCRIPTS_SRC)/* $(GLOBAL_SCRIPTS)/ 2>/dev/null || true
+	@chmod +x $(GLOBAL_SCRIPTS)/*.sh $(GLOBAL_SCRIPTS)/lib/*.sh 2>/dev/null || true
+	@echo "  $(GREEN)✓$(NC) Installed scripts"
 	@echo ""
-	@echo "$(GREEN)✅ Installation complete!$(NC)"
+	@echo "$(GREEN)Installation complete!$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Note:$(NC) Your ~/.claude/CLAUDE.md was NOT modified."
-	@echo "      Create your own or copy from docs/examples/ if needed."
+	@echo "      Copy settings from .claude/settings-templates/ to activate hooks."
 
 install-local:
 	@echo "$(BLUE)Installing to current project ./.claude/...$(NC)"
@@ -112,9 +134,13 @@ clean:
 	@rm -rf $(GLOBAL_AGENTS)/* 2>/dev/null || true
 	@rm -rf $(GLOBAL_RULES)/* 2>/dev/null || true
 	@rm -rf $(GLOBAL_SKILLS)/* 2>/dev/null || true
+	@rm -rf $(GLOBAL_HOOKS)/* 2>/dev/null || true
+	@rm -rf $(GLOBAL_REFERENCE)/* 2>/dev/null || true
 	@echo "  $(GREEN)✓$(NC) Cleaned ~/.claude/agents/"
 	@echo "  $(GREEN)✓$(NC) Cleaned ~/.claude/rules/"
 	@echo "  $(GREEN)✓$(NC) Cleaned ~/.claude/skills/"
+	@echo "  $(GREEN)✓$(NC) Cleaned ~/.claude/hooks/"
+	@echo "  $(GREEN)✓$(NC) Cleaned ~/.claude/reference/"
 	@echo ""
 	@echo "$(YELLOW)Note:$(NC) ~/.claude/CLAUDE.md was NOT removed (user config)."
 
@@ -141,6 +167,12 @@ version:
 		echo "  Skills: $$SKILLS_COUNT"; \
 	else \
 		echo "  Skills: $(RED)not installed$(NC)"; \
+	fi
+	@if [ -d "$(GLOBAL_HOOKS)" ]; then \
+		HOOKS_COUNT=$$(find $(GLOBAL_HOOKS) -name '*.sh' 2>/dev/null | wc -l | tr -d ' '); \
+		echo "  Hooks:  $$HOOKS_COUNT"; \
+	else \
+		echo "  Hooks:  $(RED)not installed$(NC)"; \
 	fi
 
 test:

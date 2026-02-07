@@ -31,7 +31,7 @@ warn() { echo -e "${YELLOW}⚠${NC} $*"; }
 error() { echo -e "${RED}✗${NC} $*" >&2; }
 
 usage() {
-  cat << EOF
+	cat <<EOF
 Usage: $0 [OPTIONS]
 
 Modular installation for MyConvergio agents with context optimization.
@@ -75,159 +75,159 @@ CONTEXT OPTIMIZATION:
 
 For more information: https://github.com/Roberdan/MyConvergio
 EOF
-  exit 0
+	exit 0
 }
 
 list_options() {
-  info "Available Tiers:"
-  jq -r '.tiers | to_entries[] | "  \(.key): \(.value.description)"' "$CONFIG_FILE"
+	info "Available Tiers:"
+	jq -r '.tiers | to_entries[] | "  \(.key): \(.value.description)"' "$CONFIG_FILE"
 
-  echo ""
-  info "Available Categories:"
-  find "$PROJECT_ROOT/.claude/agents" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort
+	echo ""
+	info "Available Categories:"
+	find "$PROJECT_ROOT/.claude/agents" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort
 
-  echo ""
-  info "Available Variants:"
-  jq -r '.variants | to_entries[] | "  \(.key): \(.value.description)"' "$CONFIG_FILE"
+	echo ""
+	info "Available Variants:"
+	jq -r '.variants | to_entries[] | "  \(.key): \(.value.description)"' "$CONFIG_FILE"
 
-  echo ""
-  info "Available Rules:"
-  jq -r '.rules | to_entries[] | "  \(.key): \(.value.description)"' "$CONFIG_FILE"
+	echo ""
+	info "Available Rules:"
+	jq -r '.rules | to_entries[] | "  \(.key): \(.value.description)"' "$CONFIG_FILE"
 
-  exit 0
+	exit 0
 }
 
 get_agents_for_tier() {
-  local tier=$1
-  jq -r --arg tier "$tier" '.tiers[$tier].agents | if type == "array" then .[] else . end' "$CONFIG_FILE"
+	local tier=$1
+	jq -r --arg tier "$tier" '.tiers[$tier].agents | if type == "array" then .[] else . end' "$CONFIG_FILE"
 }
 
 get_categories_for_tier() {
-  local tier=$1
-  local cats=$(jq -r --arg tier "$tier" '.tiers[$tier].categories | if type == "array" then .[] else . end' "$CONFIG_FILE")
+	local tier=$1
+	local cats=$(jq -r --arg tier "$tier" '.tiers[$tier].categories | if type == "array" then .[] else . end' "$CONFIG_FILE")
 
-  if [ "$cats" = "all" ]; then
-    find "$PROJECT_ROOT/.claude/agents" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort
-  else
-    echo "$cats"
-  fi
+	if [ "$cats" = "all" ]; then
+		find "$PROJECT_ROOT/.claude/agents" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort
+	else
+		echo "$cats"
+	fi
 }
 
 install_agent() {
-  local agent_file=$1
-  local target_category=$2
+	local agent_file=$1
+	local target_category=$2
 
-  local agent_name=$(basename "$agent_file" .md | sed 's/\.lean$//')
-  local target_path="$TARGET_DIR/agents/$target_category"
+	local agent_name=$(basename "$agent_file" .md | sed 's/\.lean$//')
+	local target_path="$TARGET_DIR/agents/$target_category"
 
-  mkdir -p "$target_path"
+	mkdir -p "$target_path"
 
-  if [ "$VARIANT" = "lean" ]; then
-    # Check if lean variant exists
-    local lean_file="${agent_file%.md}.lean.md"
-    if [ -f "$lean_file" ]; then
-      cp "$lean_file" "$target_path/$agent_name.md"
-      success "Installed $agent_name (lean) → $target_category/"
-    else
-      warn "Lean variant not found for $agent_name, installing full version"
-      cp "$agent_file" "$target_path/$agent_name.md"
-      success "Installed $agent_name (full) → $target_category/"
-    fi
-  else
-    cp "$agent_file" "$target_path/$agent_name.md"
-    success "Installed $agent_name → $target_category/"
-  fi
+	if [ "$VARIANT" = "lean" ]; then
+		# Check if lean variant exists
+		local lean_file="${agent_file%.md}.lean.md"
+		if [ -f "$lean_file" ]; then
+			cp "$lean_file" "$target_path/$agent_name.md"
+			success "Installed $agent_name (lean) → $target_category/"
+		else
+			warn "Lean variant not found for $agent_name, installing full version"
+			cp "$agent_file" "$target_path/$agent_name.md"
+			success "Installed $agent_name (full) → $target_category/"
+		fi
+	else
+		cp "$agent_file" "$target_path/$agent_name.md"
+		success "Installed $agent_name → $target_category/"
+	fi
 }
 
 install_category() {
-  local category=$1
-  local category_path="$PROJECT_ROOT/.claude/agents/$category"
+	local category=$1
+	local category_path="$PROJECT_ROOT/.claude/agents/$category"
 
-  if [ ! -d "$category_path" ]; then
-    error "Category not found: $category"
-    return 1
-  fi
+	if [ ! -d "$category_path" ]; then
+		error "Category not found: $category"
+		return 1
+	fi
 
-  info "Installing category: $category"
-  local count=0
+	info "Installing category: $category"
+	local count=0
 
-  for agent_file in "$category_path"/*.md; do
-    [ -f "$agent_file" ] || continue
-    [[ "$(basename "$agent_file")" =~ \.lean\.md$ ]] && continue
+	for agent_file in "$category_path"/*.md; do
+		[ -f "$agent_file" ] || continue
+		[[ "$(basename "$agent_file")" =~ \.lean\.md$ ]] && continue
 
-    install_agent "$agent_file" "$category"
-    ((count++))
-  done
+		install_agent "$agent_file" "$category"
+		((count++))
+	done
 
-  success "Installed $count agents from $category"
+	success "Installed $count agents from $category"
 }
 
 install_rules() {
-  local rules_type=$1
+	local rules_type=$1
 
-  if [ "$rules_type" = "none" ]; then
-    info "Skipping rules installation (none selected)"
-    return 0
-  fi
+	if [ "$rules_type" = "none" ]; then
+		info "Skipping rules installation (none selected)"
+		return 0
+	fi
 
-  info "Installing rules: $rules_type"
-  mkdir -p "$TARGET_DIR/rules"
+	info "Installing rules: $rules_type"
+	mkdir -p "$TARGET_DIR/rules"
 
-  local files=$(jq -r --arg type "$rules_type" '.rules[$type].files[]' "$CONFIG_FILE")
-  local count=0
+	local files=$(jq -r --arg type "$rules_type" '.rules[$type].files[]' "$CONFIG_FILE")
+	local count=0
 
-  for file in $files; do
-    local source_file="$PROJECT_ROOT/.claude/rules/$file"
-    if [ -f "$source_file" ]; then
-      cp "$source_file" "$TARGET_DIR/rules/$(basename "$file")"
-      success "Installed rule: $(basename "$file")"
-      ((count++))
-    else
-      warn "Rule file not found: $file"
-    fi
-  done
+	for file in $files; do
+		local source_file="$PROJECT_ROOT/.claude/rules/$file"
+		if [ -f "$source_file" ]; then
+			cp "$source_file" "$TARGET_DIR/rules/$(basename "$file")"
+			success "Installed rule: $(basename "$file")"
+			((count++))
+		else
+			warn "Rule file not found: $file"
+		fi
+	done
 
-  success "Installed $count rule files"
+	success "Installed $count rule files"
 }
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
-  case $1 in
-    -t|--tier)
-      TIER="$2"
-      shift 2
-      ;;
-    -v|--variant)
-      VARIANT="$2"
-      shift 2
-      ;;
-    -r|--rules)
-      RULES="$2"
-      shift 2
-      ;;
-    -d|--target-dir)
-      TARGET_DIR="$2"
-      shift 2
-      ;;
-    -c|--categories)
-      CATEGORIES="$2"
-      shift 2
-      ;;
-    -a|--agents)
-      AGENTS="$2"
-      shift 2
-      ;;
-    -l|--list)
-      list_options
-      ;;
-    -h|--help)
-      usage
-      ;;
-    *)
-      error "Unknown option: $1"
-      usage
-      ;;
-  esac
+	case $1 in
+	-t | --tier)
+		TIER="$2"
+		shift 2
+		;;
+	-v | --variant)
+		VARIANT="$2"
+		shift 2
+		;;
+	-r | --rules)
+		RULES="$2"
+		shift 2
+		;;
+	-d | --target-dir)
+		TARGET_DIR="$2"
+		shift 2
+		;;
+	-c | --categories)
+		CATEGORIES="$2"
+		shift 2
+		;;
+	-a | --agents)
+		AGENTS="$2"
+		shift 2
+		;;
+	-l | --list)
+		list_options
+		;;
+	-h | --help)
+		usage
+		;;
+	*)
+		error "Unknown option: $1"
+		usage
+		;;
+	esac
 done
 
 # Main installation logic
@@ -239,10 +239,10 @@ echo "  Variant: $VARIANT"
 echo "  Rules: $RULES"
 
 # Validate tier
-if ! jq -e --arg tier "$TIER" '.tiers[$tier]' "$CONFIG_FILE" > /dev/null 2>&1; then
-  error "Invalid tier: $TIER"
-  info "Available tiers: minimal, standard, full"
-  exit 1
+if ! jq -e --arg tier "$TIER" '.tiers[$tier]' "$CONFIG_FILE" >/dev/null 2>&1; then
+	error "Invalid tier: $TIER"
+	info "Available tiers: minimal, standard, full"
+	exit 1
 fi
 
 # Create target directory structure
@@ -251,47 +251,66 @@ mkdir -p "$TARGET_DIR/rules"
 
 # Install agents based on selection
 if [ -n "$AGENTS" ]; then
-  # Install specific agents
-  info "Installing specific agents: $AGENTS"
-  IFS=',' read -ra AGENT_LIST <<< "$AGENTS"
-  for agent_name in "${AGENT_LIST[@]}"; do
-    agent_name=$(echo "$agent_name" | xargs) # trim whitespace
+	# Install specific agents
+	info "Installing specific agents: $AGENTS"
+	IFS=',' read -ra AGENT_LIST <<<"$AGENTS"
+	for agent_name in "${AGENT_LIST[@]}"; do
+		agent_name=$(echo "$agent_name" | xargs) # trim whitespace
 
-    # Find agent file across all categories
-    local found=false
-    for category in "$PROJECT_ROOT/.claude/agents"/*; do
-      [ -d "$category" ] || continue
-      local agent_file="$category/$agent_name.md"
-      if [ -f "$agent_file" ]; then
-        install_agent "$agent_file" "$(basename "$category")"
-        found=true
-        break
-      fi
-    done
+		# Find agent file across all categories
+		local found=false
+		for category in "$PROJECT_ROOT/.claude/agents"/*; do
+			[ -d "$category" ] || continue
+			local agent_file="$category/$agent_name.md"
+			if [ -f "$agent_file" ]; then
+				install_agent "$agent_file" "$(basename "$category")"
+				found=true
+				break
+			fi
+		done
 
-    if [ "$found" = false ]; then
-      warn "Agent not found: $agent_name"
-    fi
-  done
+		if [ "$found" = false ]; then
+			warn "Agent not found: $agent_name"
+		fi
+	done
 elif [ -n "$CATEGORIES" ]; then
-  # Install specific categories
-  IFS=',' read -ra CAT_LIST <<< "$CATEGORIES"
-  for category in "${CAT_LIST[@]}"; do
-    category=$(echo "$category" | xargs) # trim whitespace
-    install_category "$category"
-  done
+	# Install specific categories
+	IFS=',' read -ra CAT_LIST <<<"$CATEGORIES"
+	for category in "${CAT_LIST[@]}"; do
+		category=$(echo "$category" | xargs) # trim whitespace
+		install_category "$category"
+	done
 else
-  # Install tier
-  info "Installing tier: $TIER"
+	# Install tier
+	info "Installing tier: $TIER"
 
-  local tier_cats=$(get_categories_for_tier "$TIER")
-  for category in $tier_cats; do
-    install_category "$category"
-  done
+	local tier_cats=$(get_categories_for_tier "$TIER")
+	for category in $tier_cats; do
+		install_category "$category"
+	done
 fi
 
 # Install rules
 install_rules "$RULES"
+
+# Install hooks (always - token optimization)
+if [ -d "$PROJECT_ROOT/hooks" ]; then
+	info "Installing hooks..."
+	mkdir -p "$TARGET_DIR/hooks/lib"
+	cp "$PROJECT_ROOT"/hooks/*.sh "$TARGET_DIR/hooks/" 2>/dev/null || true
+	cp "$PROJECT_ROOT"/hooks/lib/*.sh "$TARGET_DIR/hooks/lib/" 2>/dev/null || true
+	chmod +x "$TARGET_DIR"/hooks/*.sh "$TARGET_DIR"/hooks/lib/*.sh 2>/dev/null || true
+	local hooks_count=$(find "$TARGET_DIR/hooks" -name "*.sh" -type f | wc -l | xargs)
+	success "Installed $hooks_count hooks"
+fi
+
+# Install reference docs (always - on-demand context)
+if [ -d "$PROJECT_ROOT/.claude/reference" ]; then
+	info "Installing reference docs..."
+	mkdir -p "$TARGET_DIR/reference"
+	cp -r "$PROJECT_ROOT/.claude/reference/"* "$TARGET_DIR/reference/" 2>/dev/null || true
+	success "Installed reference docs"
+fi
 
 success "Installation complete!"
 info "Agents installed to: $TARGET_DIR/agents/"
@@ -309,19 +328,19 @@ echo "  Variant: $VARIANT"
 # Estimate context size
 local context_size="unknown"
 case "$TIER" in
-  minimal)
-    context_size="~50KB"
-    ;;
-  standard)
-    context_size="~200KB"
-    ;;
-  full)
-    context_size="~600KB"
-    ;;
+minimal)
+	context_size="~50KB"
+	;;
+standard)
+	context_size="~200KB"
+	;;
+full)
+	context_size="~600KB"
+	;;
 esac
 
 if [ "$VARIANT" = "lean" ]; then
-  context_size="$context_size (lean: ~50% smaller)"
+	context_size="$context_size (lean: ~50% smaller)"
 fi
 
 echo "  Estimated context: $context_size"

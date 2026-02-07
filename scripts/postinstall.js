@@ -12,20 +12,20 @@
  * - Preserves user's custom files and CLAUDE.md
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
 
-const CLAUDE_HOME = path.join(os.homedir(), '.claude');
-const PACKAGE_ROOT = path.join(__dirname, '..');
-const MANIFEST_FILE = path.join(CLAUDE_HOME, '.myconvergio-manifest.json');
+const CLAUDE_HOME = path.join(os.homedir(), ".claude");
+const PACKAGE_ROOT = path.join(__dirname, "..");
+const MANIFEST_FILE = path.join(CLAUDE_HOME, ".myconvergio-manifest.json");
 
 // Colors for terminal output
 const colors = {
-  reset: '\x1b[0m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
+  reset: "\x1b[0m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
 };
 
 function log(color, message) {
@@ -61,7 +61,7 @@ function copyRecursive(src, dest, installedFiles = []) {
 function loadManifest() {
   try {
     if (fs.existsSync(MANIFEST_FILE)) {
-      return JSON.parse(fs.readFileSync(MANIFEST_FILE, 'utf8'));
+      return JSON.parse(fs.readFileSync(MANIFEST_FILE, "utf8"));
     }
   } catch {}
   return { files: [], version: null };
@@ -71,7 +71,7 @@ function saveManifest(files, version) {
   const manifest = {
     version,
     installedAt: new Date().toISOString(),
-    files
+    files,
   };
   fs.mkdirSync(CLAUDE_HOME, { recursive: true });
   fs.writeFileSync(MANIFEST_FILE, JSON.stringify(manifest, null, 2));
@@ -79,19 +79,19 @@ function saveManifest(files, version) {
 
 function getVersion() {
   try {
-    const versionFile = path.join(PACKAGE_ROOT, 'VERSION');
-    const content = fs.readFileSync(versionFile, 'utf8');
+    const versionFile = path.join(PACKAGE_ROOT, "VERSION");
+    const content = fs.readFileSync(versionFile, "utf8");
     const match = content.match(/SYSTEM_VERSION=(.+)/);
-    return match ? match[1].trim() : 'unknown';
+    return match ? match[1].trim() : "unknown";
   } catch {
-    const pkg = require('../package.json');
+    const pkg = require("../package.json");
     return pkg.version;
   }
 }
 
 function createBackup() {
-  const backupDir = path.join(os.homedir(), '.claude-backup-' + Date.now());
-  const dirs = ['agents', 'rules', 'skills'];
+  const backupDir = path.join(os.homedir(), ".claude-backup-" + Date.now());
+  const dirs = ["agents", "rules", "skills", "hooks", "reference"];
   let hasContent = false;
 
   for (const dir of dirs) {
@@ -107,13 +107,27 @@ function createBackup() {
 
 function countDirs(dir) {
   if (!fs.existsSync(dir)) return 0;
-  return fs.readdirSync(dir).filter(f =>
-    fs.statSync(path.join(dir, f)).isDirectory()
-  ).length;
+  return fs
+    .readdirSync(dir)
+    .filter((f) => fs.statSync(path.join(dir, f)).isDirectory()).length;
+}
+
+function makeFilesExecutable(dir) {
+  if (!fs.existsSync(dir)) return;
+  const items = fs.readdirSync(dir);
+  for (const item of items) {
+    const fullPath = path.join(dir, item);
+    const stat = fs.statSync(fullPath);
+    if (stat.isDirectory()) {
+      makeFilesExecutable(fullPath);
+    } else if (item.endsWith(".sh")) {
+      fs.chmodSync(fullPath, 0o755);
+    }
+  }
 }
 
 function hasExistingContent() {
-  const dirs = ['agents', 'rules', 'skills'];
+  const dirs = ["agents", "rules", "skills", "hooks", "reference"];
   for (const dir of dirs) {
     const dirPath = path.join(CLAUDE_HOME, dir);
     if (fs.existsSync(dirPath) && fs.readdirSync(dirPath).length > 0) {
@@ -124,41 +138,41 @@ function hasExistingContent() {
 }
 
 function getInstallProfile() {
-  const profile = process.env.MYCONVERGIO_PROFILE || 'minimal';
-  const validProfiles = ['minimal', 'standard', 'full', 'lean'];
+  const profile = process.env.MYCONVERGIO_PROFILE || "minimal";
+  const validProfiles = ["minimal", "standard", "full", "lean"];
   if (!validProfiles.includes(profile)) {
     log(colors.yellow, `Unknown profile "${profile}", using "minimal"`);
-    return 'minimal';
+    return "minimal";
   }
   return profile;
 }
 
 function getAgentsForProfile(profile, srcAgents) {
   const minimal = [
-    'leadership_strategy/ali-chief-of-staff.md',
-    'core_utility/thor-quality-assurance-guardian.md',
-    'technical_development/baccio-tech-architect.md',
-    'technical_development/rex-code-reviewer.md',
-    'technical_development/dario-debugger.md',
-    'technical_development/otto-performance-optimizer.md',
-    'release_management/app-release-manager.md',
-    'release_management/feature-release-manager.md',
+    "leadership_strategy/ali-chief-of-staff.md",
+    "core_utility/thor-quality-assurance-guardian.md",
+    "technical_development/baccio-tech-architect.md",
+    "technical_development/rex-code-reviewer.md",
+    "technical_development/dario-debugger.md",
+    "technical_development/otto-performance-optimizer.md",
+    "release_management/app-release-manager.md",
+    "release_management/feature-release-manager.md",
   ];
 
   const standard = [
-    'leadership_strategy',
-    'technical_development',
-    'release_management',
-    'compliance_legal',
-    'core_utility',
+    "leadership_strategy",
+    "technical_development",
+    "release_management",
+    "compliance_legal",
+    "core_utility",
   ];
 
-  if (profile === 'minimal') {
-    return { type: 'files', list: minimal };
-  } else if (profile === 'standard') {
-    return { type: 'categories', list: standard };
+  if (profile === "minimal") {
+    return { type: "files", list: minimal };
+  } else if (profile === "standard") {
+    return { type: "categories", list: standard };
   } else {
-    return { type: 'full', list: [] };
+    return { type: "full", list: [] };
   }
 }
 
@@ -169,13 +183,13 @@ function copyAgentsByProfile(srcAgents, destAgents, profile) {
   fs.mkdirSync(destAgents, { recursive: true });
 
   // Always copy core utility files (CONSTITUTION, etc)
-  const coreUtilSrc = path.join(srcAgents, 'core_utility');
-  const coreUtilDest = path.join(destAgents, 'core_utility');
+  const coreUtilSrc = path.join(srcAgents, "core_utility");
+  const coreUtilDest = path.join(destAgents, "core_utility");
   if (fs.existsSync(coreUtilSrc)) {
     copyRecursive(coreUtilSrc, coreUtilDest, installedFiles);
   }
 
-  if (agentSpec.type === 'files') {
+  if (agentSpec.type === "files") {
     // Copy specific files
     for (const agentPath of agentSpec.list) {
       const srcPath = path.join(srcAgents, agentPath);
@@ -190,10 +204,10 @@ function copyAgentsByProfile(srcAgents, destAgents, profile) {
         installedFiles.push(destPath);
       }
     }
-  } else if (agentSpec.type === 'categories') {
+  } else if (agentSpec.type === "categories") {
     // Copy entire categories
     for (const category of agentSpec.list) {
-      if (category === 'core_utility') continue; // Already copied
+      if (category === "core_utility") continue; // Already copied
       const srcCat = path.join(srcAgents, category);
       const destCat = path.join(destAgents, category);
       if (fs.existsSync(srcCat)) {
@@ -211,22 +225,29 @@ function copyAgentsByProfile(srcAgents, destAgents, profile) {
 function main() {
   // Skip if running in CI or if MYCONVERGIO_SKIP_POSTINSTALL is set
   if (process.env.CI || process.env.MYCONVERGIO_SKIP_POSTINSTALL) {
-    console.log('Skipping postinstall (CI environment or MYCONVERGIO_SKIP_POSTINSTALL set)');
+    console.log(
+      "Skipping postinstall (CI environment or MYCONVERGIO_SKIP_POSTINSTALL set)",
+    );
     return;
   }
 
   const profile = getInstallProfile();
   log(colors.blue, `\n📦 MyConvergio Post-Install (${profile} profile)\n`);
 
-  const srcAgents = path.join(PACKAGE_ROOT, '.claude', 'agents');
-  const srcRules = path.join(PACKAGE_ROOT, '.claude', 'rules');
-  const srcSkills = path.join(PACKAGE_ROOT, '.claude', 'skills');
-  const srcTemplates = path.join(PACKAGE_ROOT, '.claude', 'templates');
-  const srcScripts = path.join(PACKAGE_ROOT, '.claude', 'scripts');
+  const srcAgents = path.join(PACKAGE_ROOT, ".claude", "agents");
+  const srcRules = path.join(PACKAGE_ROOT, ".claude", "rules");
+  const srcSkills = path.join(PACKAGE_ROOT, ".claude", "skills");
+  const srcTemplates = path.join(PACKAGE_ROOT, ".claude", "templates");
+  const srcScripts = path.join(PACKAGE_ROOT, ".claude", "scripts");
+  const srcHooks = path.join(PACKAGE_ROOT, "hooks");
+  const srcReference = path.join(PACKAGE_ROOT, ".claude", "reference");
 
   // Check if source directories exist
   if (!fs.existsSync(srcAgents)) {
-    log(colors.yellow, 'Warning: Source agents directory not found. Skipping installation.');
+    log(
+      colors.yellow,
+      "Warning: Source agents directory not found. Skipping installation.",
+    );
     return;
   }
 
@@ -237,46 +258,83 @@ function main() {
   if (existingManifest.version) {
     log(colors.yellow, `Upgrading from v${existingManifest.version}...`);
   } else if (hasContent) {
-    log(colors.yellow, 'Existing ~/.claude/ content detected (not installed via npm).');
+    log(
+      colors.yellow,
+      "Existing ~/.claude/ content detected (not installed via npm).",
+    );
   }
 
   if (hasContent) {
-    log(colors.yellow, 'Creating backup before installation...\n');
+    log(colors.yellow, "Creating backup before installation...\n");
     const backupDir = createBackup();
     if (backupDir) {
       log(colors.green, `  ✓ Backup created: ${backupDir}\n`);
     }
   } else {
-    log(colors.blue, 'Fresh installation to ~/.claude/\n');
+    log(colors.blue, "Fresh installation to ~/.claude/\n");
   }
 
   let installedFiles = [];
 
   // Install agents based on profile
-  installedFiles = copyAgentsByProfile(srcAgents, path.join(CLAUDE_HOME, 'agents'), profile);
-  const agentCount = installedFiles.filter(f => f.endsWith('.md') &&
-    !f.includes('CONSTITUTION') && !f.includes('CommonValues')).length;
+  installedFiles = copyAgentsByProfile(
+    srcAgents,
+    path.join(CLAUDE_HOME, "agents"),
+    profile,
+  );
+  const agentCount = installedFiles.filter(
+    (f) =>
+      f.endsWith(".md") &&
+      !f.includes("CONSTITUTION") &&
+      !f.includes("CommonValues"),
+  ).length;
   log(colors.green, `  ✓ Installed ${agentCount} agents`);
 
   // Install rules
-  copyRecursive(srcRules, path.join(CLAUDE_HOME, 'rules'), installedFiles);
+  copyRecursive(srcRules, path.join(CLAUDE_HOME, "rules"), installedFiles);
   log(colors.green, `  ✓ Installed rules`);
 
   // Install skills
-  copyRecursive(srcSkills, path.join(CLAUDE_HOME, 'skills'), installedFiles);
-  const skillsCount = countDirs(path.join(CLAUDE_HOME, 'skills'));
+  copyRecursive(srcSkills, path.join(CLAUDE_HOME, "skills"), installedFiles);
+  const skillsCount = countDirs(path.join(CLAUDE_HOME, "skills"));
   log(colors.green, `  ✓ Installed ${skillsCount} skills`);
 
   // Install templates (FIX: was missing)
   if (fs.existsSync(srcTemplates)) {
-    copyRecursive(srcTemplates, path.join(CLAUDE_HOME, 'templates'), installedFiles);
+    copyRecursive(
+      srcTemplates,
+      path.join(CLAUDE_HOME, "templates"),
+      installedFiles,
+    );
     log(colors.green, `  ✓ Installed templates`);
   }
 
   // Install scripts (plan-db.sh, register-project.sh, etc.)
   if (fs.existsSync(srcScripts)) {
-    copyRecursive(srcScripts, path.join(CLAUDE_HOME, 'scripts'), installedFiles);
+    copyRecursive(
+      srcScripts,
+      path.join(CLAUDE_HOME, "scripts"),
+      installedFiles,
+    );
+    makeFilesExecutable(path.join(CLAUDE_HOME, "scripts"));
     log(colors.green, `  ✓ Installed scripts`);
+  }
+
+  // Install hooks (enforcement hooks for token optimization)
+  if (fs.existsSync(srcHooks)) {
+    copyRecursive(srcHooks, path.join(CLAUDE_HOME, "hooks"), installedFiles);
+    makeFilesExecutable(path.join(CLAUDE_HOME, "hooks"));
+    log(colors.green, `  ✓ Installed hooks`);
+  }
+
+  // Install reference docs (on-demand context)
+  if (fs.existsSync(srcReference)) {
+    copyRecursive(
+      srcReference,
+      path.join(CLAUDE_HOME, "reference"),
+      installedFiles,
+    );
+    log(colors.green, `  ✓ Installed reference docs`);
   }
 
   // Save manifest for safe uninstall
@@ -284,23 +342,29 @@ function main() {
   saveManifest(installedFiles, version);
   log(colors.green, `  ✓ Saved manifest (${installedFiles.length} files)`);
 
-  process.stderr.write('\n');
-  log(colors.green, '✅ MyConvergio installed successfully!');
-  process.stderr.write('\n');
+  process.stderr.write("\n");
+  log(colors.green, "✅ MyConvergio installed successfully!");
+  process.stderr.write("\n");
 
-  if (profile === 'minimal') {
-    log(colors.yellow, '💡 Minimal installation complete (8 core agents)');
-    process.stderr.write('    To install more agents, run:\n');
-    process.stderr.write('    • myconvergio install --standard  (20 agents)\n');
-    process.stderr.write('    • myconvergio install --full      (all 57 agents)\n');
-    process.stderr.write('    • myconvergio install --lean      (optimized)\n\n');
+  if (profile === "minimal") {
+    log(colors.yellow, "💡 Minimal installation complete (8 core agents)");
+    process.stderr.write("    To install more agents, run:\n");
+    process.stderr.write("    • myconvergio install --standard  (20 agents)\n");
+    process.stderr.write(
+      "    • myconvergio install --full      (all 57 agents)\n",
+    );
+    process.stderr.write(
+      "    • myconvergio install --lean      (optimized)\n\n",
+    );
   }
 
-  log(colors.yellow, 'Your ~/.claude/CLAUDE.md was NOT modified.');
-  process.stderr.write('Create your own configuration file if needed.\n');
-  process.stderr.write('\n💡 For safer installation with conflict detection, run:\n');
-  process.stderr.write('   myconvergio install-interactive\n');
-  process.stderr.write('\nRun `myconvergio help` for available commands.\n\n');
+  log(colors.yellow, "Your ~/.claude/CLAUDE.md was NOT modified.");
+  process.stderr.write("Create your own configuration file if needed.\n");
+  process.stderr.write(
+    "\n💡 For safer installation with conflict detection, run:\n",
+  );
+  process.stderr.write("   myconvergio install-interactive\n");
+  process.stderr.write("\nRun `myconvergio help` for available commands.\n\n");
 }
 
 main();

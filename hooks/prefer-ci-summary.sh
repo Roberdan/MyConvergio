@@ -37,14 +37,17 @@ if echo "$BASE_CMD" | grep -qE "gh run view.*--log"; then
 	exit 2
 fi
 
-# === BLOCK: PR COMMENTS ===
+# === BLOCK: PR COMMENTS (read only, allow writes with -f/-F/-X POST) ===
 if echo "$BASE_CMD" | grep -qE "gh pr view.*--comments"; then
 	echo "TOKEN-WASTE: Use 'service-digest.sh pr <pr-number>' instead." >&2
 	exit 2
 fi
 if echo "$BASE_CMD" | grep -qE "gh api.*pulls/[0-9]+/(comments|reviews)"; then
-	echo "TOKEN-WASTE: Use 'service-digest.sh pr <pr-number>' instead." >&2
-	exit 2
+	# Allow write operations (replies, posting comments)
+	if ! echo "$COMMAND" | grep -qE " -[fF] | --method | -X "; then
+		echo "TOKEN-WASTE: Use 'service-digest.sh pr <pr-number>' instead." >&2
+		exit 2
+	fi
 fi
 
 # Allow other gh commands (gh pr create, gh pr list, gh run list, etc.)

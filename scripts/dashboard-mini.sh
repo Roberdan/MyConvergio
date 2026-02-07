@@ -13,6 +13,39 @@ NC='\033[0m'
 BOLD='\033[1m'
 
 DB="$HOME/.claude/data/dashboard.db"
+SYNC_SCRIPT="$HOME/.claude/scripts/sync-dashboard-db.sh"
+
+# Quick sync: pull remote changes before rendering (silent, best-effort)
+# Sets REMOTE_ONLINE=1 if sync succeeded, 0 if remote unreachable
+REMOTE_ONLINE=0
+quick_sync() {
+	REMOTE_ONLINE=0
+	[ ! -x "$SYNC_SCRIPT" ] && return 0
+	# Skip if synced less than 30s ago (but still mark online from last result)
+	local marker="$HOME/.claude/data/last-quick-sync"
+	if [ -f "$marker" ]; then
+		local last now diff
+		if [[ "$(uname)" == "Darwin" ]]; then
+			last=$(stat -f '%m' "$marker" 2>/dev/null || echo 0)
+		else
+			last=$(stat -c '%Y' "$marker" 2>/dev/null || echo 0)
+		fi
+		now=$(date +%s)
+		diff=$((now - last))
+		if [ "$diff" -lt 30 ]; then
+			REMOTE_ONLINE=1
+			return 0
+		fi
+	fi
+	# Run incremental sync with 3s SSH timeout, fully silent
+	local remote_host
+	remote_host="$(grep '^REMOTE_HOST=' "$HOME/.claude/config/sync-db.conf" 2>/dev/null | cut -d'"' -f2)"
+	if ssh -o ConnectTimeout=3 -o BatchMode=yes "$remote_host" "echo ok" &>/dev/null; then
+		"$SYNC_SCRIPT" incremental &>/dev/null
+		touch "$marker"
+		REMOTE_ONLINE=1
+	fi
+}
 
 # Cross-platform date to epoch (Mac uses -j, Linux uses -d)
 date_to_epoch() {
@@ -368,12 +401,18 @@ render_dashboard() {
 			fi
 		fi
 
-		# Host tag: LINUX (red) for remote, MAC (green) for local
+		# Host tag: LINUX for remote (green if synced, red+OFFLINE if not), MAC for local
 		local_host="${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}"
 		local_host="${local_host%.local}"
 		host_tag=""
+		is_remote=0
 		if [ -n "$exec_host" ] && [ "$exec_host" != "$local_host" ]; then
-			host_tag=" ${RED}LINUX${NC}"
+			is_remote=1
+			if [ "$REMOTE_ONLINE" -eq 1 ]; then
+				host_tag=" ${GREEN}LINUX${NC}"
+			else
+				host_tag=" ${RED}LINUX${NC} ${GRAY}(offline)${NC}"
+			fi
 		else
 			host_tag=" ${GREEN}MAC${NC}"
 		fi
@@ -716,6 +755,7 @@ if [ "$REFRESH_INTERVAL" -gt 0 ]; then
 	# Clear immediately and render (no sleep, no empty space)
 	clear
 	while true; do
+		quick_sync
 		render_dashboard
 
 		# Timestamp e countdown
@@ -743,5 +783,6 @@ if [ "$REFRESH_INTERVAL" -gt 0 ]; then
 	done
 else
 	# Single render mode
+	quick_sync
 	render_dashboard
 fi

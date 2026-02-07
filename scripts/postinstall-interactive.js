@@ -7,38 +7,38 @@
  * Usage: node postinstall-interactive.js [--accept-all|--keep-all|--skip-conflicts]
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
 
-const backupManager = require('./backup-manager');
-const conflictResolver = require('./conflict-resolver');
+const backupManager = require("./backup-manager");
+const conflictResolver = require("./conflict-resolver");
 
-const CLAUDE_HOME = path.join(os.homedir(), '.claude');
-const PACKAGE_ROOT = path.join(__dirname, '..');
+const CLAUDE_HOME = path.join(os.homedir(), ".claude");
+const PACKAGE_ROOT = path.join(__dirname, "..");
 
 // Parse CLI flags
 const args = process.argv.slice(2);
-const mode = args.includes('--accept-all')
-  ? 'accept-all'
-  : args.includes('--keep-all')
-  ? 'keep-all'
-  : args.includes('--skip-conflicts')
-  ? 'skip-conflicts'
-  : 'interactive';
+const mode = args.includes("--accept-all")
+  ? "accept-all"
+  : args.includes("--keep-all")
+    ? "keep-all"
+    : args.includes("--skip-conflicts")
+      ? "skip-conflicts"
+      : "interactive";
 
 // Directory and file mapping
 const INSTALL_MAP = {
   dirs: [
-    { src: '.claude/agents', dest: 'agents' },
-    { src: '.claude/rules', dest: 'rules' },
-    { src: '.claude/skills', dest: 'skills' },
-    { src: '.claude/templates', dest: 'templates' },
-    { src: '.claude/scripts', dest: 'scripts' }
+    { src: ".claude/agents", dest: "agents" },
+    { src: ".claude/rules", dest: "rules" },
+    { src: ".claude/skills", dest: "skills" },
+    { src: ".claude/templates", dest: "templates" },
+    { src: ".claude/scripts", dest: "scripts" },
+    { src: "hooks", dest: "hooks" },
+    { src: ".claude/reference", dest: "reference" },
   ],
-  files: [
-    { src: '.claude/CLAUDE.md', dest: 'CLAUDE.md' }
-  ]
+  files: [{ src: ".claude/CLAUDE.md", dest: "CLAUDE.md" }],
 };
 
 // Copy directory recursively, collecting installed files
@@ -72,7 +72,11 @@ function collectInstallationFiles() {
     const destDir = path.join(CLAUDE_HOME, dirMap.dest);
 
     if (fs.existsSync(srcDir)) {
-      const conflicts = conflictResolver.detectConflicts(srcDir, destDir, dirMap.dest);
+      const conflicts = conflictResolver.detectConflicts(
+        srcDir,
+        destDir,
+        dirMap.dest,
+      );
       files.conflicts.push(...conflicts);
 
       // Also track new files (files that don't exist in target)
@@ -101,7 +105,7 @@ function collectInstallationFiles() {
             targetHash: destHash,
             sourceSize: fs.statSync(srcFile).size,
             targetSize: fs.statSync(destFile).size,
-            action: null
+            action: null,
           });
         }
       } else {
@@ -114,7 +118,7 @@ function collectInstallationFiles() {
 }
 
 // Find new files (exist in source but not in target)
-function findNewFiles(srcDir, destDir, relativePath = '') {
+function findNewFiles(srcDir, destDir, relativePath = "") {
   const newFiles = [];
 
   if (!fs.existsSync(srcDir)) return newFiles;
@@ -141,29 +145,33 @@ function findNewFiles(srcDir, destDir, relativePath = '') {
 
 // Show pre-flight summary
 function showPreflightSummary(files) {
-  console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║          MyConvergio Installation Pre-Flight Check        ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  console.log(
+    "\n╔════════════════════════════════════════════════════════════╗",
+  );
+  console.log("║          MyConvergio Installation Pre-Flight Check        ║");
+  console.log(
+    "╚════════════════════════════════════════════════════════════╝\n",
+  );
 
   console.log(`📂 Installation target: ${CLAUDE_HOME}\n`);
 
   console.log(`✨ New files to install: ${files.new.length}`);
   if (files.new.length > 0 && files.new.length <= 10) {
-    files.new.forEach(f => console.log(`   + ${f}`));
+    files.new.forEach((f) => console.log(`   + ${f}`));
   } else if (files.new.length > 10) {
-    files.new.slice(0, 5).forEach(f => console.log(`   + ${f}`));
+    files.new.slice(0, 5).forEach((f) => console.log(`   + ${f}`));
     console.log(`   ... and ${files.new.length - 5} more`);
   }
-  console.log('');
+  console.log("");
 
   console.log(`⚠️  Conflicting files: ${files.conflicts.length}`);
   if (files.conflicts.length > 0 && files.conflicts.length <= 10) {
-    files.conflicts.forEach(c => console.log(`   ! ${c.file}`));
+    files.conflicts.forEach((c) => console.log(`   ! ${c.file}`));
   } else if (files.conflicts.length > 10) {
-    files.conflicts.slice(0, 5).forEach(c => console.log(`   ! ${c.file}`));
+    files.conflicts.slice(0, 5).forEach((c) => console.log(`   ! ${c.file}`));
     console.log(`   ... and ${files.conflicts.length - 5} more`);
   }
-  console.log('');
+  console.log("");
 }
 
 // Install new files (non-conflicting)
@@ -194,7 +202,13 @@ function installNewFiles(files) {
   return installed;
 }
 
-function installNewFilesInDir(srcDir, destDir, relativePath, newFilesList, installed) {
+function installNewFilesInDir(
+  srcDir,
+  destDir,
+  relativePath,
+  newFilesList,
+  installed,
+) {
   if (!fs.existsSync(srcDir)) return;
 
   fs.mkdirSync(destDir, { recursive: true });
@@ -220,7 +234,7 @@ function installNewFilesInDir(srcDir, destDir, relativePath, newFilesList, insta
 
 // Main installation flow
 async function main() {
-  console.log('\n🚀 MyConvergio Interactive Installation\n');
+  console.log("\n🚀 MyConvergio Interactive Installation\n");
 
   // Ensure Claude home exists
   if (!fs.existsSync(CLAUDE_HOME)) {
@@ -228,21 +242,21 @@ async function main() {
   }
 
   // Pre-flight check
-  console.log('Step 1: Analyzing your current installation...\n');
+  console.log("Step 1: Analyzing your current installation...\n");
   const files = collectInstallationFiles();
   showPreflightSummary(files);
 
   // Create backup if there's existing content
   let backupDir = null;
   if (files.conflicts.length > 0 || files.new.length > 0) {
-    console.log('Step 2: Creating safety backup...\n');
-    backupDir = backupManager.createBackup('pre-install');
+    console.log("Step 2: Creating safety backup...\n");
+    backupDir = backupManager.createBackup("pre-install");
 
     if (backupDir) {
       console.log(`✅ Backup created: ${backupDir}`);
-      console.log(`   Restore script: ${path.join(backupDir, 'restore.sh')}\n`);
+      console.log(`   Restore script: ${path.join(backupDir, "restore.sh")}\n`);
     } else {
-      console.log('ℹ️  No existing content to backup.\n');
+      console.log("ℹ️  No existing content to backup.\n");
     }
   }
 
@@ -251,30 +265,36 @@ async function main() {
   let skippedConflicts = [];
 
   if (files.conflicts.length > 0) {
-    console.log('Step 3: Resolving conflicts...\n');
+    console.log("Step 3: Resolving conflicts...\n");
 
-    if (mode === 'skip-conflicts') {
-      console.log('⏭️  Skipping all conflicts (--skip-conflicts flag)\n');
+    if (mode === "skip-conflicts") {
+      console.log("⏭️  Skipping all conflicts (--skip-conflicts flag)\n");
       skippedConflicts = files.conflicts;
     } else {
       conflictResolver.showConflictSummary(files.conflicts);
 
-      const resolution = await conflictResolver.resolveConflicts(files.conflicts, mode);
+      const resolution = await conflictResolver.resolveConflicts(
+        files.conflicts,
+        mode,
+      );
       resolvedConflicts = resolution.resolved;
       skippedConflicts = resolution.skipped;
 
-      conflictResolver.showResolutionSummary(resolvedConflicts, skippedConflicts);
+      conflictResolver.showResolutionSummary(
+        resolvedConflicts,
+        skippedConflicts,
+      );
     }
   }
 
   // Install new files
-  console.log('\nStep 4: Installing new files...\n');
+  console.log("\nStep 4: Installing new files...\n");
   const installedNew = installNewFiles(files);
   console.log(`✅ Installed ${installedNew.length} new file(s)\n`);
 
   // Apply conflict resolutions
   if (resolvedConflicts.length > 0) {
-    console.log('Step 5: Applying conflict resolutions...\n');
+    console.log("Step 5: Applying conflict resolutions...\n");
     const results = conflictResolver.applyResolutions(resolvedConflicts);
 
     if (results.success.length > 0) {
@@ -282,16 +302,22 @@ async function main() {
     }
 
     if (results.failed.length > 0) {
-      console.log(`❌ Failed to apply ${results.failed.length} resolution(s):\n`);
-      results.failed.forEach(f => console.log(`   - ${f.file}: ${f.error}`));
-      console.log('');
+      console.log(
+        `❌ Failed to apply ${results.failed.length} resolution(s):\n`,
+      );
+      results.failed.forEach((f) => console.log(`   - ${f.file}: ${f.error}`));
+      console.log("");
     }
   }
 
   // Final report
-  console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║                 INSTALLATION COMPLETE                      ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  console.log(
+    "\n╔════════════════════════════════════════════════════════════╗",
+  );
+  console.log("║                 INSTALLATION COMPLETE                      ║");
+  console.log(
+    "╚════════════════════════════════════════════════════════════╝\n",
+  );
 
   console.log(`📊 Summary:`);
   console.log(`   - New files installed: ${installedNew.length}`);
@@ -300,21 +326,21 @@ async function main() {
 
   if (backupDir) {
     console.log(`🔄 Backup Location: ${backupDir}`);
-    console.log(`   To restore: bash ${path.join(backupDir, 'restore.sh')}\n`);
+    console.log(`   To restore: bash ${path.join(backupDir, "restore.sh")}\n`);
   }
 
   if (skippedConflicts.length > 0) {
-    console.log('⚠️  Some files were skipped due to conflicts.');
-    console.log('   Re-run with --accept-all to use MyConvergio versions\n');
+    console.log("⚠️  Some files were skipped due to conflicts.");
+    console.log("   Re-run with --accept-all to use MyConvergio versions\n");
   }
 
-  console.log('✨ MyConvergio is ready to use!\n');
+  console.log("✨ MyConvergio is ready to use!\n");
 }
 
 // Run if called directly
 if (require.main === module) {
-  main().catch(err => {
-    console.error('\n❌ Installation failed:', err.message);
+  main().catch((err) => {
+    console.error("\n❌ Installation failed:", err.message);
     console.error(err.stack);
     process.exit(1);
   });

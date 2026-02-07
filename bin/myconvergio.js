@@ -625,7 +625,7 @@ ${colors.yellow}Usage:${colors.reset}
   myconvergio [command] [options]
 
 ${colors.yellow}Commands:${colors.reset}
-  install              Install/reinstall agents, rules, and skills to ~/.claude/
+  install              Install agents, rules, skills, hooks, and reference to ~/.claude/
   install-interactive  Interactive installation with conflict detection
   uninstall            Remove all installed components from ~/.claude/
   agents               List all installed agents with versions

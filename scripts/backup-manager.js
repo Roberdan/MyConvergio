@@ -6,19 +6,30 @@
  * Handles backup creation, restoration, and management
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const crypto = require('crypto');
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+const crypto = require("crypto");
 
-const CLAUDE_HOME = path.join(os.homedir(), '.claude');
+const CLAUDE_HOME = path.join(os.homedir(), ".claude");
 
-function createBackup(reason = 'manual') {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0];
+function createBackup(reason = "manual") {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .split(".")[0];
   const backupDir = path.join(os.homedir(), `.claude-backup-${timestamp}`);
 
-  const dirs = ['agents', 'rules', 'skills', 'templates', 'scripts'];
-  const files = ['CLAUDE.md'];
+  const dirs = [
+    "agents",
+    "rules",
+    "skills",
+    "templates",
+    "scripts",
+    "hooks",
+    "reference",
+  ];
+  const files = ["CLAUDE.md"];
 
   let hasContent = false;
   const backedUpFiles = [];
@@ -47,7 +58,7 @@ function createBackup(reason = 'manual') {
         path: file,
         size: fs.statSync(srcFile).size,
         sha256: getFileSHA256(srcFile),
-        modified: fs.statSync(srcFile).mtime.toISOString()
+        modified: fs.statSync(srcFile).mtime.toISOString(),
       });
     }
   }
@@ -64,12 +75,12 @@ function createBackup(reason = 'manual') {
     claude_home: CLAUDE_HOME,
     files: backedUpFiles,
     total_size: backedUpFiles.reduce((sum, f) => sum + f.size, 0),
-    file_count: backedUpFiles.length
+    file_count: backedUpFiles.length,
   };
 
   fs.writeFileSync(
-    path.join(backupDir, 'MANIFEST.json'),
-    JSON.stringify(manifest, null, 2)
+    path.join(backupDir, "MANIFEST.json"),
+    JSON.stringify(manifest, null, 2),
   );
 
   // Generate restore script
@@ -95,12 +106,15 @@ function copyRecursiveWithManifest(src, dest, manifestFiles) {
       fs.copyFileSync(srcPath, destPath);
 
       // Add to manifest (relative to backup root)
-      const relativePath = path.relative(path.dirname(path.dirname(dest)), destPath);
+      const relativePath = path.relative(
+        path.dirname(path.dirname(dest)),
+        destPath,
+      );
       manifestFiles.push({
         path: relativePath,
         size: stat.size,
         sha256: getFileSHA256(srcPath),
-        modified: stat.mtime.toISOString()
+        modified: stat.mtime.toISOString(),
       });
     }
   }
@@ -108,7 +122,11 @@ function copyRecursiveWithManifest(src, dest, manifestFiles) {
 
 function getFileSHA256(filepath) {
   const content = fs.readFileSync(filepath);
-  return crypto.createHash('sha256').update(content).digest('hex').substring(0, 8);
+  return crypto
+    .createHash("sha256")
+    .update(content)
+    .digest("hex")
+    .substring(0, 8);
 }
 
 function generateRestoreScript(backupDir, manifest) {
@@ -131,6 +149,8 @@ echo "  - Replace ~/.claude/rules/ with backup"
 echo "  - Replace ~/.claude/skills/ with backup"
 echo "  - Replace ~/.claude/templates/ with backup"
 echo "  - Replace ~/.claude/scripts/ with backup"
+echo "  - Replace ~/.claude/hooks/ with backup"
+echo "  - Replace ~/.claude/reference/ with backup"
 echo "  - Restore ~/.claude/CLAUDE.md"
 echo ""
 echo "  Your current ~/.claude/ will be backed up to:"
@@ -156,6 +176,8 @@ echo "Restoring files..."
 [ -d "$BACKUP_DIR/skills" ] && cp -r "$BACKUP_DIR/skills" "$CLAUDE_HOME/"
 [ -d "$BACKUP_DIR/templates" ] && cp -r "$BACKUP_DIR/templates" "$CLAUDE_HOME/"
 [ -d "$BACKUP_DIR/scripts" ] && cp -r "$BACKUP_DIR/scripts" "$CLAUDE_HOME/"
+[ -d "$BACKUP_DIR/hooks" ] && cp -r "$BACKUP_DIR/hooks" "$CLAUDE_HOME/"
+[ -d "$BACKUP_DIR/reference" ] && cp -r "$BACKUP_DIR/reference" "$CLAUDE_HOME/"
 [ -f "$BACKUP_DIR/CLAUDE.md" ] && cp "$BACKUP_DIR/CLAUDE.md" "$CLAUDE_HOME/"
 
 echo "✅ Restore complete!"
@@ -164,28 +186,36 @@ echo "📂 Safety backup: $SAFETY_BACKUP"
 echo "   (in case you need to undo this restore)"
 `;
 
-  const scriptPath = path.join(backupDir, 'restore.sh');
+  const scriptPath = path.join(backupDir, "restore.sh");
   fs.writeFileSync(scriptPath, script);
-  fs.chmodSync(scriptPath, '755');
+  fs.chmodSync(scriptPath, "755");
 }
 
 function restoreBackup(backupDir, options = {}) {
   const { onlyFiles = null } = options;
 
   // Validate backup
-  const manifestPath = path.join(backupDir, 'MANIFEST.json');
+  const manifestPath = path.join(backupDir, "MANIFEST.json");
   if (!fs.existsSync(manifestPath)) {
-    throw new Error('Invalid backup: MANIFEST.json not found');
+    throw new Error("Invalid backup: MANIFEST.json not found");
   }
 
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
   // Create safety backup before restore
-  const safetyBackup = createBackup('pre-restore');
+  const safetyBackup = createBackup("pre-restore");
 
   // Restore files
-  const dirs = ['agents', 'rules', 'skills', 'templates', 'scripts'];
-  const files = ['CLAUDE.md'];
+  const dirs = [
+    "agents",
+    "rules",
+    "skills",
+    "templates",
+    "scripts",
+    "hooks",
+    "reference",
+  ];
+  const files = ["CLAUDE.md"];
 
   if (onlyFiles && onlyFiles.length > 0) {
     // Selective restore
@@ -256,19 +286,19 @@ function listBackups() {
 
   const items = fs.readdirSync(homeDir);
   for (const item of items) {
-    if (item.startsWith('.claude-backup-')) {
+    if (item.startsWith(".claude-backup-")) {
       const backupPath = path.join(homeDir, item);
-      const manifestPath = path.join(backupPath, 'MANIFEST.json');
+      const manifestPath = path.join(backupPath, "MANIFEST.json");
 
       if (fs.existsSync(manifestPath)) {
-        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
         backups.push({
           path: backupPath,
           name: item,
           timestamp: manifest.timestamp,
           reason: manifest.reason,
           fileCount: manifest.file_count,
-          size: manifest.total_size
+          size: manifest.total_size,
         });
       }
     }
@@ -303,5 +333,5 @@ module.exports = {
   restoreBackup,
   listBackups,
   cleanOldBackups,
-  getFileSHA256
+  getFileSHA256,
 };

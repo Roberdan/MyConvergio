@@ -4,9 +4,9 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v4.3.0** | 58 Specialized Agents | Safe Installation | Dashboard | Claude 4.5 Best Practices
+**v4.5.0** | 58 Specialized Agents | Hooks & Token Optimization | Safe Installation | Dashboard
 
-> *"Intent is human, momentum is agent"*
+> _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
@@ -15,76 +15,65 @@
 
 ---
 
-## What's New in v4.3.0
+## What's New in v4.5.0
 
-**Strategic planner modules + worktree scripts + enhanced validation!**
+**Token optimization overhaul: hooks, digest scripts, reference docs, and streamlined install pipeline!**
 
-### Strategic Planner Modules (NEW)
-- **strategic-planner-templates.md**: Reusable plan document templates
-- **strategic-planner-thor.md**: Thor validation gate integration
-- **strategic-planner-git.md**: Git worktree workflow for parallel execution
+### Hooks System (NEW)
 
-### Worktree Scripts (NEW)
-- **worktree-create.sh**: Creates worktree with automatic .env symlinks
-- **worktree-check.sh**: Shows current git context with worktree verification
+10 enforcement hooks saving ~21k tokens/session:
 
-### Enhanced Dashboard
-- **Git State Tracking**: Plans capture `git_clean_at_closure` status
-- **Validation Badges**: Visual indicators (Verified/Unverified/Inconsistent)
-- **Kanban Improvements**: Confirmation modals, plan IDs, mismatch warnings
+- **prefer-ci-summary.sh**: Blocks verbose CLI commands, enforces digest scripts
+- **enforce-line-limit.sh**: Max 250 lines per file, rejects oversized writes
+- **worktree-guard.sh**: Prevents `git checkout` on main when worktrees exist
+- **block-direct-curl.sh**: Enforces WebFetch tool over raw curl
+- **enforce-edit-over-sed.sh**: Enforces Edit tool over sed/awk
+- Plus 5 more enforcement hooks with shared `lib/common.sh`
 
-### Config Sync & Portability
-- **Rules/Commands/Scripts Sync**: Latest global config aligned into MyConvergio
-- **New Plan-DB Utilities**: Migration helpers, validators, and quick references
-- **Public Docs Cleanup**: Removed author-specific paths for portability
+### Digest Scripts (NEW)
 
-### Safe Installation
-- **Interactive Installation**: Conflict detection with file-by-file resolution
-- **Backup/Restore System**: Automatic backups with manifest tracking and SHA256 verification
-- **Git Tracking (Opt-In)**: Optional version control for `~/.claude` configuration
-- **Backward Compatible**: Silent installation for CI/CD environments
-- **Commands**: `myconvergio backup`, `restore`, `list-backups`, `git-init`, `git-status`, `git-commit`
+14 token-optimized CLI wrappers — compact JSON output, 5-minute caching:
 
-### Dashboard
-- **Real-Time Git Monitoring**: Auto-refresh git panel with Server-Sent Events + chokidar
-- **Project Management UI**: Visualize git status, diff, log, branches in real-time
-- **System Shutdown**: Graceful server termination with one click
-- **Start**: `cd dashboard && node server.js` → http://127.0.0.1:31415
+- `git-digest.sh`, `build-digest.sh`, `test-digest.sh`, `npm-digest.sh`
+- `service-digest.sh`, `diff-digest.sh`, `audit-digest.sh`, `error-digest.sh`
+- `merge-digest.sh`, `migration-digest.sh` + 4 more
 
-### Execution Rules (Claude 4.5 Best Practices)
-Based on [Anthropic's official best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-4-best-practices):
-- **Context Awareness**: Multi-window workflows with automatic context compaction
-- **Parallel Tool Calling**: Execute independent operations simultaneously
-- **Default to Action**: Infer intent and implement (not just suggest)
-- **Anti-Overengineering**: No premature abstractions, features beyond request, or hypothetical requirements
-- **Definition of Done**: Mandatory completion checklist before closure
-- **PR Enforcement**: Zero unresolved comments, all threads marked resolved on GitHub
+### Reference Docs (NEW)
 
-### Skills (NEW)
-- **Structured Research**: Hypothesis-driven research with confidence calibration, competing hypotheses, source verification
+7 on-demand operational references in `.claude/reference/operational/`:
 
-### State Tracking Templates (NEW)
-- **Multi-Session Work**: `tests.json` (structured), `progress.txt` (unstructured), README for complex projects requiring context refresh
+- Tool preferences, execution optimization, external services
+- Worktree discipline, memory protocol, continuous optimization
 
-### Previous Highlights (v3.8.0)
-- **EXECUTION_DISCIPLINE.md**: Single source of truth for all execution rules
-- **Reference Model**: `.claude/CLAUDE.md` reduced 54%
-- **Fully Self-Contained**: No external dependencies
+### Install Pipeline Updates
 
-### Previous Highlights (v3.7.0)
-- **Installation Profiles**: Choose your footprint - minimal (50KB), standard (200KB), or full (600KB)
-- **Lean Agent Variants**: 58 optimized agents with 20% smaller context
-- **Hardware-Aware Settings**: Auto-detect and configure for your machine
+All 5 install paths now handle hooks + reference:
 
-### Previous Highlights (v3.6.0)
-- **Multi-Terminal Support**: Works with Kitty, tmux, Zed, Warp, iTerm2
-- **Thor Quality Guardian**: Brutal quality validation with zero tolerance
+- `bin/myconvergio.js` CLI, `scripts/postinstall.js` (npm)
+- `scripts/postinstall-interactive.js`, `scripts/selective-install.sh`
+- `scripts/backup-manager.js` — backup/restore includes hooks + reference
 
-### Previous Highlights (v3.0.0)
-- **58 Specialized Agents**: Enterprise-grade AI assistants for every domain
-- **3 Slash Commands**: `/myconvergio:status`, `/myconvergio:team`, `/myconvergio:plan`
-- **9 Reusable Skills**: Architecture, debugging, code review, and more
-- **Constitution-Based Security**: 8 articles protecting all agents
+### Settings Templates
+
+Hardware-aware profiles with hooks configuration:
+
+- **low-spec.json**: 3 essential hooks (~50KB context)
+- **mid-spec.json**: 7 hooks (~200KB context)
+- **high-spec.json**: 11 hooks, full enforcement (~600KB context)
+
+### Previous Highlights (v4.3.0)
+
+- Strategic planner modules (templates, thor, git)
+- Worktree scripts with automatic .env symlinks
+- Safe installation with conflict detection and backup/restore
+- Dashboard with real-time git monitoring and SSE
+
+### Previous Highlights (v3.x)
+
+- 58 specialized agents with Constitution-based security
+- Installation profiles (minimal/standard/full)
+- Multi-terminal support (Kitty, tmux, Zed, Warp, iTerm2)
+- Thor Quality Guardian with zero-tolerance validation
 
 ---
 
@@ -93,6 +82,7 @@ Based on [Anthropic's official best practices](https://platform.claude.com/docs/
 ### Installation
 
 #### Option A: Clone & Use (Recommended)
+
 ```bash
 git clone https://github.com/roberdan/MyConvergio.git
 cd MyConvergio
@@ -100,6 +90,7 @@ claude --plugin-dir .
 ```
 
 #### Option B: Global npm Install
+
 ```bash
 # Full install (all 58 agents)
 npm install -g myconvergio
@@ -108,17 +99,21 @@ npm install -g myconvergio
 MYCONVERGIO_PROFILE=minimal npm install -g myconvergio  # 9 agents, ~50KB
 MYCONVERGIO_PROFILE=lean npm install -g myconvergio     # 58 agents, ~600KB
 ```
+
 Copies agents to `~/.claude/agents/`. See [Context Optimization Guide](./docs/CONTEXT_OPTIMIZATION.md) for details.
 
 #### Option C: Claude Marketplace (Coming Soon)
+
 ```bash
 claude plugins install myconvergio
 ```
-*Pending Anthropic approval*
+
+_Pending Anthropic approval_
 
 ### Usage
 
 **Invoke any agent:**
+
 ```bash
 @ali-chief-of-staff Help me design our global expansion strategy
 @baccio-tech-architect Design microservices architecture for healthcare platform
@@ -126,6 +121,7 @@ claude plugins install myconvergio
 ```
 
 **Use slash commands:**
+
 ```bash
 /myconvergio:status    # Show ecosystem status
 /myconvergio:team      # List all 58 agents by category
@@ -140,27 +136,32 @@ MyConvergio follows a structured delivery flow that mirrors Claude Code best pra
 See `docs/workflow.md` for the full reference.
 
 ### 1) Prompt
+
 Use `/prompt` to extract requirements (F-xx) and confirm scope before planning.
 
 Docs: `.claude/commands/prompt.md`
 
 ### 2) Planner
+
 Use `/planner` to generate a multi-wave plan with tasks tied to F-xx criteria.
 
 Docs: `.claude/commands/planner.md`
 
 ### 3) Execution (Executor Tracking)
+
 Use the executor tracking helpers to log execution state and generate task markdown.
 
 Docs: `EXECUTOR_TRACKING.md`  
 Scripts: `.claude/scripts/executor-tracking.sh`, `.claude/scripts/generate-task-md.sh`
 
 ### 4) Thor QA Guardian
+
 Use the Thor agent to validate completion, evidence, and quality gates.
 
 Agent: `.claude/agents/core_utility/thor-quality-assurance-guardian.md`
 
 ### 5) Dashboard
+
 Use the dashboard to monitor plans, waves, tasks, and activity in real time.
 
 Quick Start: `dashboard/`  
@@ -173,6 +174,7 @@ API Tests: `dashboard/TEST-README.md`
 **Production-ready project dashboard with real-time git monitoring.**
 
 ### Features
+
 - **Real-Time Git Panel**: Auto-refresh on git changes (commits, checkouts, branch switches) using Server-Sent Events
 - **Project Management UI**: Visualize git status, diff, log, branches
 - **Gantt Timeline**: True timeline with active wave/task highlighting and progress gradients
@@ -185,6 +187,7 @@ API Tests: `dashboard/TEST-README.md`
 - **Notifications**: System-wide notification center
 
 ### Quick Start
+
 ```bash
 cd dashboard
 npm install  # First time only (installs chokidar)
@@ -203,21 +206,25 @@ node server.js
 <img src="./docs/images/dashboard-git-panel.png" alt="Dashboard Git Panel" width="800"/>
 
 The git panel automatically refreshes when you:
+
 - Make commits
 - Switch branches
 - Pull/push changes
 - Stage/unstage files
 
 ### Architecture
+
 - **Backend**: Node.js HTTP server with SQLite database (`~/.claude/data/dashboard.db`)
 - **Frontend**: Vanilla JS with SSE for real-time updates
 - **File Watcher**: chokidar monitoring `.git` directory for changes
 - **API Routes**: RESTful endpoints for projects, git, notifications, system
 
 ### Database
+
 Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). No additional configuration required.
 
 ### Known Limitations
+
 - **File Preview**: Markdown rendering focuses on plan/wave/task docs, not arbitrary repo file browsing.
 - **Local Repository Only**: The dashboard is designed for local development. Remote repository integrations (GitHub, GitLab) are planned for future releases.
 
@@ -226,93 +233,101 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 ## Agent Portfolio (58 Specialists)
 
 ### Leadership & Strategy (7)
-| Agent | Description |
-|-------|-------------|
-| `ali-chief-of-staff` | Master orchestrator for complex multi-domain challenges |
-| `satya-board-of-directors` | Board-level strategic advisor |
-| `domik-mckinsey-strategic-decision-maker` | McKinsey Partner-level strategic decisions |
-| `antonio-strategy-expert` | Strategy frameworks (OKR, Lean, Agile) |
-| `amy-cfo` | Chief Financial Officer for financial strategy |
-| `dan-engineering-gm` | Engineering General Manager |
-| `matteo-strategic-business-architect` | Business strategy architect |
+
+| Agent                                     | Description                                             |
+| ----------------------------------------- | ------------------------------------------------------- |
+| `ali-chief-of-staff`                      | Master orchestrator for complex multi-domain challenges |
+| `satya-board-of-directors`                | Board-level strategic advisor                           |
+| `domik-mckinsey-strategic-decision-maker` | McKinsey Partner-level strategic decisions              |
+| `antonio-strategy-expert`                 | Strategy frameworks (OKR, Lean, Agile)                  |
+| `amy-cfo`                                 | Chief Financial Officer for financial strategy          |
+| `dan-engineering-gm`                      | Engineering General Manager                             |
+| `matteo-strategic-business-architect`     | Business strategy architect                             |
 
 ### Technical Development (7)
-| Agent | Description |
-|-------|-------------|
-| `baccio-tech-architect` | Elite Technology Architect for system design |
-| `marco-devops-engineer` | DevOps for CI/CD and infrastructure |
-| `dario-debugger` | Systematic debugging expert |
-| `rex-code-reviewer` | Code review specialist |
-| `otto-performance-optimizer` | Performance optimization |
-| `paolo-best-practices-enforcer` | Coding standards enforcer |
-| `omri-data-scientist` | Data Scientist for ML and AI |
+
+| Agent                           | Description                                  |
+| ------------------------------- | -------------------------------------------- |
+| `baccio-tech-architect`         | Elite Technology Architect for system design |
+| `marco-devops-engineer`         | DevOps for CI/CD and infrastructure          |
+| `dario-debugger`                | Systematic debugging expert                  |
+| `rex-code-reviewer`             | Code review specialist                       |
+| `otto-performance-optimizer`    | Performance optimization                     |
+| `paolo-best-practices-enforcer` | Coding standards enforcer                    |
+| `omri-data-scientist`           | Data Scientist for ML and AI                 |
 
 ### Business Operations (11)
-| Agent | Description |
-|-------|-------------|
-| `davide-project-manager` | Project Manager (Agile, Scrum, Waterfall) |
-| `marcello-pm` | Product Manager for strategy and roadmaps |
-| `oliver-pm` | Senior Product Manager |
-| `luke-program-manager` | Program Manager for portfolios |
-| `anna-executive-assistant` | Executive Assistant with task management |
-| `andrea-customer-success-manager` | Customer Success Manager |
-| `fabio-sales-business-development` | Sales & Business Development |
-| `sofia-marketing-strategist` | Marketing Strategist |
-| `steve-executive-communication-strategist` | Executive Communication |
-| `enrico-business-process-engineer` | Business Process Engineer |
-| `dave-change-management-specialist` | Change Management specialist |
+
+| Agent                                      | Description                               |
+| ------------------------------------------ | ----------------------------------------- |
+| `davide-project-manager`                   | Project Manager (Agile, Scrum, Waterfall) |
+| `marcello-pm`                              | Product Manager for strategy and roadmaps |
+| `oliver-pm`                                | Senior Product Manager                    |
+| `luke-program-manager`                     | Program Manager for portfolios            |
+| `anna-executive-assistant`                 | Executive Assistant with task management  |
+| `andrea-customer-success-manager`          | Customer Success Manager                  |
+| `fabio-sales-business-development`         | Sales & Business Development              |
+| `sofia-marketing-strategist`               | Marketing Strategist                      |
+| `steve-executive-communication-strategist` | Executive Communication                   |
+| `enrico-business-process-engineer`         | Business Process Engineer                 |
+| `dave-change-management-specialist`        | Change Management specialist              |
 
 ### Design & UX (3)
-| Agent | Description |
-|-------|-------------|
-| `jony-creative-director` | Creative Director for brand innovation |
-| `sara-ux-ui-designer` | UX/UI Designer |
-| `stefano-design-thinking-facilitator` | Design Thinking facilitator |
+
+| Agent                                 | Description                            |
+| ------------------------------------- | -------------------------------------- |
+| `jony-creative-director`              | Creative Director for brand innovation |
+| `sara-ux-ui-designer`                 | UX/UI Designer                         |
+| `stefano-design-thinking-facilitator` | Design Thinking facilitator            |
 
 ### Compliance & Legal (5)
-| Agent | Description |
-|-------|-------------|
-| `elena-legal-compliance-expert` | Legal & Compliance expert |
-| `luca-security-expert` | Cybersecurity expert |
+
+| Agent                                   | Description                        |
+| --------------------------------------- | ---------------------------------- |
+| `elena-legal-compliance-expert`         | Legal & Compliance expert          |
+| `luca-security-expert`                  | Cybersecurity expert               |
 | `dr-enzo-healthcare-compliance-manager` | Healthcare Compliance (HIPAA, FDA) |
-| `sophia-govaffairs` | Government Affairs specialist |
-| `guardian-ai-security-validator` | AI Security validator |
+| `sophia-govaffairs`                     | Government Affairs specialist      |
+| `guardian-ai-security-validator`        | AI Security validator              |
 
 ### Specialized Experts (13)
-| Agent | Description |
-|-------|-------------|
-| `behice-cultural-coach` | Cultural intelligence expert |
-| `fiona-market-analyst` | Market Analyst for financial research |
-| `michael-vc` | Venture Capital analyst |
-| `angela-da` | Senior Decision Architect |
-| `ethan-da` | Data Analytics specialist |
-| `evan-ic6da` | Principal Decision Architect (IC6) |
-| `ava-analytics-insights-virtuoso` | Analytics virtuoso |
-| `riccardo-storyteller` | Narrative designer |
-| `jenny-inclusive-accessibility-champion` | Accessibility champion |
-| `giulia-hr-talent-acquisition` | HR & Talent Acquisition |
-| `sam-startupper` | Silicon Valley startup expert |
-| `wiz-investor-venture-capital` | Venture Capital investor |
-| `coach-team-coach` | Team Coach |
+
+| Agent                                    | Description                           |
+| ---------------------------------------- | ------------------------------------- |
+| `behice-cultural-coach`                  | Cultural intelligence expert          |
+| `fiona-market-analyst`                   | Market Analyst for financial research |
+| `michael-vc`                             | Venture Capital analyst               |
+| `angela-da`                              | Senior Decision Architect             |
+| `ethan-da`                               | Data Analytics specialist             |
+| `evan-ic6da`                             | Principal Decision Architect (IC6)    |
+| `ava-analytics-insights-virtuoso`        | Analytics virtuoso                    |
+| `riccardo-storyteller`                   | Narrative designer                    |
+| `jenny-inclusive-accessibility-champion` | Accessibility champion                |
+| `giulia-hr-talent-acquisition`           | HR & Talent Acquisition               |
+| `sam-startupper`                         | Silicon Valley startup expert         |
+| `wiz-investor-venture-capital`           | Venture Capital investor              |
+| `coach-team-coach`                       | Team Coach                            |
 
 ### Core Utility (9)
-| Agent | Description |
-|-------|-------------|
-| `marcus-context-memory-keeper` | Institutional memory guardian |
-| `thor-quality-assurance-guardian` | Quality watchdog |
-| `diana-performance-dashboard` | Performance dashboard specialist |
-| `socrates-first-principles-reasoning` | First principles reasoning master |
-| `strategic-planner` | Wave-based execution plan creator |
-| `taskmaster-strategic-task-decomposition-master` | Task decomposition expert |
-| `po-prompt-optimizer` | Prompt engineering expert |
-| `wanda-workflow-orchestrator` | Workflow orchestrator |
-| `xavier-coordination-patterns` | Coordination patterns architect |
+
+| Agent                                            | Description                       |
+| ------------------------------------------------ | --------------------------------- |
+| `marcus-context-memory-keeper`                   | Institutional memory guardian     |
+| `thor-quality-assurance-guardian`                | Quality watchdog                  |
+| `diana-performance-dashboard`                    | Performance dashboard specialist  |
+| `socrates-first-principles-reasoning`            | First principles reasoning master |
+| `strategic-planner`                              | Wave-based execution plan creator |
+| `taskmaster-strategic-task-decomposition-master` | Task decomposition expert         |
+| `po-prompt-optimizer`                            | Prompt engineering expert         |
+| `wanda-workflow-orchestrator`                    | Workflow orchestrator             |
+| `xavier-coordination-patterns`                   | Coordination patterns architect   |
 
 ### Release Management (2)
-| Agent | Description |
-|-------|-------------|
-| `app-release-manager` | Release engineering with quality gates |
-| `feature-release-manager` | Feature completion and issue closure |
+
+| Agent                     | Description                            |
+| ------------------------- | -------------------------------------- |
+| `app-release-manager`     | Release engineering with quality gates |
+| `feature-release-manager` | Feature completion and issue closure   |
 
 ---
 
@@ -322,50 +337,23 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 MyConvergio/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin manifest
-├── agents/                    # 58 specialized agents
-│   ├── ali-chief-of-staff.md
-│   ├── baccio-tech-architect.md
-│   └── ...
-├── commands/                  # 3 slash commands
-│   ├── status.md
-│   ├── team.md
-│   └── plan.md
-├── hooks/
-│   └── hooks.json
-├── skills/                    # 10 reusable workflows
-│   ├── structured-research/   # NEW - Hypothesis-driven research
-│   ├── architecture/
-│   ├── code-review/
-│   ├── debugging/
-│   ├── performance/
-│   ├── security-audit/
-│   ├── strategic-analysis/
-│   ├── release-management/
-│   ├── project-management/
-│   └── orchestration/
-├── dashboard/                 # NEW - Production dashboard
-│   ├── server.js             # Node.js HTTP server
-│   ├── dashboard.html        # Frontend UI
-│   ├── server/               # API routes (git, notifications, system)
-│   ├── js/                   # Frontend modules (SSE, git panel)
-│   └── css/                  # Styling
-└── .claude/
-    ├── CLAUDE.md             # Main config with primary/legacy systems
-    ├── agents/core_utility/
-    │   ├── CONSTITUTION.md        # Security & Ethics (Supreme)
-    │   ├── EXECUTION_DISCIPLINE.md # Legacy execution rules
-    │   └── CommonValuesAndPrinciples.md
-    ├── rules/                # NEW - Primary rules (Claude 4.5 best practices)
-    │   ├── execution.md      # Context awareness, parallel calls
-    │   ├── guardian.md       # Thor enforcement, PR rules
-    │   ├── agent-discovery.md # Subagent orchestration
-    │   ├── engineering-standards.md
-    │   ├── file-size-limits.md
-    │   └── [6 domain-specific rules]
-    └── templates/            # NEW - State tracking for multi-session work
-        ├── tests.json
-        ├── progress.txt
-        └── README.md
+├── .claude/
+│   ├── CLAUDE.md             # Main config
+│   ├── agents/               # 58 agents (8 categories)
+│   ├── rules/                # Execution rules
+│   ├── scripts/              # 30 digest + utility scripts
+│   ├── reference/            # 7 on-demand operational docs
+│   ├── skills/               # 10 reusable workflows
+│   └── templates/            # State tracking templates
+├── hooks/                    # 10 enforcement hooks + lib/
+│   ├── prefer-ci-summary.sh
+│   ├── enforce-line-limit.sh
+│   ├── worktree-guard.sh
+│   └── lib/common.sh
+├── dashboard/                # Production dashboard (SSE + SQLite)
+├── commands/                 # 3 slash commands
+├── scripts/                  # Install/backup/test scripts
+└── bin/myconvergio.js        # CLI entry point
 ```
 
 ---
@@ -374,21 +362,23 @@ MyConvergio/
 
 Reusable workflows you can reference in your projects:
 
-| Skill | Use Case |
-|-------|----------|
+| Skill                 | Use Case                                                       |
+| --------------------- | -------------------------------------------------------------- |
 | `structured-research` | **NEW** Hypothesis-driven research with confidence calibration |
-| `code-review` | Systematic code review process |
-| `debugging` | Root cause analysis methodology |
-| `architecture` | System design patterns |
-| `security-audit` | Security assessment framework |
-| `performance` | Performance optimization |
-| `strategic-analysis` | McKinsey-style analysis |
-| `release-management` | Release engineering |
-| `project-management` | Agile/Scrum workflows |
-| `orchestration` | Multi-agent coordination |
+| `code-review`         | Systematic code review process                                 |
+| `debugging`           | Root cause analysis methodology                                |
+| `architecture`        | System design patterns                                         |
+| `security-audit`      | Security assessment framework                                  |
+| `performance`         | Performance optimization                                       |
+| `strategic-analysis`  | McKinsey-style analysis                                        |
+| `release-management`  | Release engineering                                            |
+| `project-management`  | Agile/Scrum workflows                                          |
+| `orchestration`       | Multi-agent coordination                                       |
 
 ### Structured Research (NEW)
-Based on [Anthropic Claude 4.5 best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-4-best-practices#research-and-information-gathering):
+
+Based on [Anthropic best practices](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview):
+
 - Generate 2-4 competing hypotheses
 - Track confidence levels (0-100%) with evidence
 - Verify across multiple independent sources
@@ -396,6 +386,7 @@ Based on [Anthropic Claude 4.5 best practices](https://platform.claude.com/docs/
 - Maintain research state (`hypothesis-tree.json`, `research-notes.md`)
 
 **Example:**
+
 ```bash
 Research the best approach for implementing authentication in our app.
 Use structured-research skill to evaluate OAuth2 vs JWT vs session cookies.
@@ -407,19 +398,21 @@ Use structured-research skill to evaluate OAuth2 vs JWT vs session cookies.
 
 MyConvergio includes two rule systems:
 
-### Primary Rules (Active - Claude 4.5 Best Practices)
+### Primary Rules (Active)
+
 Located in `.claude/rules/` - **Use these for new work:**
 
-| Rule | Purpose |
-|------|---------|
-| `execution.md` | **UPDATED** How work gets done (context awareness, parallel calls, anti-overengineering, Definition of Done) |
-| `guardian.md` | **NEW** Thor enforcement, PR comment resolution, completion verification |
-| `agent-discovery.md` | **UPDATED** Agent routing, subagent orchestration patterns |
-| `engineering-standards.md` | **UPDATED** Code quality, security (OWASP), testing, API design |
-| `file-size-limits.md` | **NEW** Max 300 lines per file with split strategies |
-| `README.md` | Rules hierarchy and usage guide |
+| Rule                       | Purpose                                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `execution.md`             | **UPDATED** How work gets done (context awareness, parallel calls, anti-overengineering, Definition of Done) |
+| `guardian.md`              | **NEW** Thor enforcement, PR comment resolution, completion verification                                     |
+| `agent-discovery.md`       | **UPDATED** Agent routing, subagent orchestration patterns                                                   |
+| `engineering-standards.md` | **UPDATED** Code quality, security (OWASP), testing, API design                                              |
+| `file-size-limits.md`      | **NEW** Max 250 lines per file with split strategies                                                         |
+| `README.md`                | Rules hierarchy and usage guide                                                                              |
 
 ### Domain-Specific Rules
+
 Copy to your project's `.claude/rules/` for consistent standards:
 
 - `code-style.md` - ESLint, Prettier, PEP8
@@ -430,6 +423,7 @@ Copy to your project's `.claude/rules/` for consistent standards:
 - `ethical-guidelines.md` - Privacy, accessibility
 
 ### State Tracking Templates (NEW)
+
 Located in `.claude/templates/` for multi-session work:
 
 - `tests.json` - Structured test status tracking
@@ -442,19 +436,21 @@ Located in `.claude/templates/` for multi-session work:
 
 This repository is **fully self-contained** with two rule systems:
 
-### Primary Rules (Active - Claude 4.5 Best Practices)
-| Document | Purpose | Priority |
-|----------|---------|----------|
-| [CONSTITUTION.md](./agents/CONSTITUTION.md) | Security, Ethics, Identity | SUPREME |
-| [execution.md](./.claude/rules/execution.md) | **NEW** How Work Gets Done (context awareness, parallel calls, anti-overengineering) | 2nd |
-| [guardian.md](./.claude/rules/guardian.md) | **NEW** Thor enforcement, PR comment resolution, completion verification | 3rd |
-| [engineering-standards.md](./.claude/rules/engineering-standards.md) | Code quality, security, testing, API design | 4th |
+### Primary Rules (Active)
+
+| Document                                                             | Purpose                                                                              | Priority |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------- |
+| [CONSTITUTION.md](./agents/CONSTITUTION.md)                          | Security, Ethics, Identity                                                           | SUPREME  |
+| [execution.md](./.claude/rules/execution.md)                         | **NEW** How Work Gets Done (context awareness, parallel calls, anti-overengineering) | 2nd      |
+| [guardian.md](./.claude/rules/guardian.md)                           | **NEW** Thor enforcement, PR comment resolution, completion verification             | 3rd      |
+| [engineering-standards.md](./.claude/rules/engineering-standards.md) | Code quality, security, testing, API design                                          | 4th      |
 
 ### Legacy System (Backward Compatibility)
-| Document | Purpose | Priority |
-|----------|---------|----------|
-| [EXECUTION_DISCIPLINE.md](./.claude/agents/core_utility/EXECUTION_DISCIPLINE.md) | Legacy execution rules (maintained for backward compatibility) | - |
-| CommonValuesAndPrinciples.md | Organizational Values | - |
+
+| Document                                                                         | Purpose                                                        | Priority |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------- | -------- |
+| [EXECUTION_DISCIPLINE.md](./.claude/agents/core_utility/EXECUTION_DISCIPLINE.md) | Legacy execution rules (maintained for backward compatibility) | -        |
+| CommonValuesAndPrinciples.md                                                     | Organizational Values                                          | -        |
 
 **Recommendation:** New work should reference `.claude/rules/execution.md` instead of EXECUTION_DISCIPLINE.md. See [.claude/rules/README.md](./.claude/rules/README.md) for hierarchy details.
 
@@ -466,37 +462,39 @@ This repository is **fully self-contained** with two rule systems:
 
 All agents implement the [MyConvergio Constitution](./agents/CONSTITUTION.md):
 
-| Article | Protection |
-|---------|------------|
-| I | Identity Lock - Immutable agent identity |
-| II | Ethical Principles - Fairness, transparency, accountability |
-| III | Security Directives - Anti-hijacking, input validation |
-| IV | Operational Boundaries - Role adherence |
-| V | Failure Modes - Graceful degradation |
-| VI | Collaboration - Safe inter-agent communication |
-| VII | **Accessibility & Inclusion (NON-NEGOTIABLE)** |
-| VIII | Accountability - Logging and audit trails |
+| Article | Protection                                                  |
+| ------- | ----------------------------------------------------------- |
+| I       | Identity Lock - Immutable agent identity                    |
+| II      | Ethical Principles - Fairness, transparency, accountability |
+| III     | Security Directives - Anti-hijacking, input validation      |
+| IV      | Operational Boundaries - Role adherence                     |
+| V       | Failure Modes - Graceful degradation                        |
+| VI      | Collaboration - Safe inter-agent communication              |
+| VII     | **Accessibility & Inclusion (NON-NEGOTIABLE)**              |
+| VIII    | Accountability - Logging and audit trails                   |
 
 ---
 
 ## The Agentic Manifesto
 
-*Human purpose. AI momentum.*
+_Human purpose. AI momentum._
 
 ### What we believe
+
 1. **Intent is human, momentum is agent.**
 2. **Impact must reach every mind and body.**
 3. **Trust grows from transparent provenance.**
 4. **Progress is judged by outcomes, not output.**
 
 ### How we act
+
 1. Humans stay accountable for decisions and effects.
 2. Agents amplify capability, never identity.
 3. We design from the edge first: disability, language, connectivity.
 4. Safety rails precede scale.
 5. Learn in small loops, ship value early.
 
-*Read the full [Agentic Manifesto](./AgenticManifesto.md)*
+_Read the full [Agentic Manifesto](./AgenticManifesto.md)_
 
 ---
 
@@ -541,8 +539,8 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 <div align="center">
 
-*Built with AI assistance in Milano, following the Agentic Manifesto principles*
+_Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v4.3.0** | January 2026 | Claude Code Plugin
+**v4.5.0** | February 2026 | Claude Code Plugin
 
 </div>

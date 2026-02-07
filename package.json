@@ -42,7 +42,11 @@
     "commands/",
     "skills/",
     "hooks/",
-    "docs/",
+    "docs/*.md",
+    "docs/adr/",
+    "docs/releases/",
+    "docs/images/",
+    "docs/templates/",
     "VERSION",
     "LICENSE"
   ],

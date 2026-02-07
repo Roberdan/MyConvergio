@@ -3,9 +3,11 @@
 > Reusable workflow extracted from davide-project-manager expertise.
 
 ## Purpose
+
 Execute comprehensive project planning, tracking, and delivery using proven methodologies (Agile, Waterfall, Hybrid) to ensure on-time, on-budget delivery while maintaining quality and stakeholder satisfaction.
 
 ## When to Use
+
 - New project initiation and planning
 - Sprint planning for Agile teams
 - Waterfall project execution
@@ -102,6 +104,7 @@ Execute comprehensive project planning, tracking, and delivery using proven meth
     - Create project closure report
 
 ## Inputs Required
+
 - **Project requirements**: Goals, scope, success criteria
 - **Stakeholders**: Sponsor, product owner, team members, customers
 - **Constraints**: Budget, timeline, resource availability
@@ -109,6 +112,7 @@ Execute comprehensive project planning, tracking, and delivery using proven meth
 - **Tools**: Project management software (Jira, Trello, MS Project)
 
 ## Outputs Produced
+
 - **Project Charter**: Objectives, scope, stakeholders, success criteria
 - **Project Plan**: WBS, schedule, budget, resource allocation
 - **Risk Register**: Risks with likelihood, impact, mitigation strategies
@@ -119,127 +123,23 @@ Execute comprehensive project planning, tracking, and delivery using proven meth
 
 ## Sprint Planning Template (Agile)
 
-```markdown
-# Sprint {N} Planning - {Date Range}
-
-## Sprint Goal
-[One-sentence goal for this sprint]
-
-## Capacity
-- Team size: {count} developers
-- Sprint duration: {weeks} weeks
-- Available capacity: {hours} hours
-- Planned capacity: {hours} hours (80% of available)
-
-## Stories Selected
-| Story ID | Title | Story Points | Assignee | Dependencies |
-|----------|-------|--------------|----------|--------------|
-| US-123   | ...   | 5            | Alice    | None         |
-| US-124   | ...   | 3            | Bob      | US-123       |
-
-## Definition of Done
-- [ ] Code complete and reviewed
-- [ ] Unit tests written and passing (>80% coverage)
-- [ ] Integration tests passing
-- [ ] Documentation updated
-- [ ] Deployed to staging
-- [ ] Product owner acceptance
-
-## Risks
-- **Risk**: API dependency not ready
-  - Mitigation: Mock API for development, parallel track with API team
-
-## Sprint Ceremonies
-- Daily Standup: 9:00 AM daily
-- Sprint Review: {date} at {time}
-- Sprint Retrospective: {date} at {time}
-```
+Sprint {N}: {Goal} | Capacity: {count} devs × {weeks}w = {hours}h @ 80% = {planned}h
+Stories: US-{id} ({points}SP, {owner}) | DoD: Code+Tests+Docs+Staging+PO approval
+Risks: {risk} → Mitigation: {strategy} | Ceremonies: Daily 9AM, Review/Retro {dates}
 
 ## Risk Assessment Matrix
 
-### Risk Score Calculation
 Risk Score = Likelihood (1-5) × Impact (1-5)
-
-| Likelihood | Score | Definition |
-|-----------|-------|------------|
-| Very Unlikely | 1 | <10% chance |
-| Unlikely | 2 | 10-30% chance |
-| Possible | 3 | 30-50% chance |
-| Likely | 4 | 50-70% chance |
-| Very Likely | 5 | >70% chance |
-
-| Impact | Score | Definition |
-|--------|-------|------------|
-| Negligible | 1 | <1 day delay, <$1K cost |
-| Minor | 2 | 1-3 days delay, <$5K cost |
-| Moderate | 3 | 1 week delay, <$20K cost |
-| Major | 4 | 2-4 weeks delay, <$50K cost |
-| Severe | 5 | >1 month delay, >$50K cost |
-
-### Risk Prioritization
-- **Critical (20-25)**: Immediate action required, senior leadership escalation
-- **High (15-19)**: Active mitigation, weekly monitoring
-- **Medium (8-14)**: Mitigation plan, bi-weekly monitoring
-- **Low (1-7)**: Monitor, document, accept risk
+Likelihood: 1=<10%, 2=10-30%, 3=30-50%, 4=50-70%, 5=>70%
+Impact: 1=<1d/<$1K, 2=1-3d/<$5K, 3=1w/<$20K, 4=2-4w/<$50K, 5=>1m/>$50K
+Priority: Critical(20-25)=immediate, High(15-19)=7d, Medium(8-14)=30d, Low(1-7)=accept
 
 ## Status Report Template
 
-```markdown
-# Project Status Report - {Date}
-
-## Executive Summary
-**Status**: 🟢 On Track / 🟡 At Risk / 🔴 Critical
-
-**Key Highlights**:
-- {Major accomplishment this period}
-- {Important milestone reached}
-
-## Progress This Period
-- Completed: {count} tasks ({X}% of sprint)
-- In Progress: {count} tasks
-- Blocked: {count} tasks
-
-## Milestones
-| Milestone | Planned Date | Forecast Date | Status |
-|-----------|--------------|---------------|--------|
-| Alpha     | 2025-02-01   | 2025-02-01    | ✅ Complete |
-| Beta      | 2025-03-15   | 2025-03-20    | 🟡 5-day slip |
-| GA        | 2025-04-30   | 2025-04-30    | 🟢 On track |
-
-## Budget Status
-- Budget: ${total}K
-- Spent: ${spent}K ({percent}%)
-- Forecast: ${forecast}K
-- Status: 🟢 Within budget / 🟡 Trending over
-
-## Top Risks & Issues
-1. **🔴 Critical API dependency delayed**
-   - Impact: 2-week slip to Beta
-   - Mitigation: Working with API team, created mock for parallel development
-
-2. **🟡 Key developer on leave next sprint**
-   - Impact: Reduced capacity
-   - Mitigation: Cross-training backup developer this sprint
-
-## Key Decisions Needed
-1. {Decision required with deadline}
-2. {Approval needed for budget increase}
-
-## Next Period Focus
-- {Key objective 1}
-- {Key objective 2}
-```
-
-## Agile vs Waterfall Decision Matrix
-
-| Factor | Agile | Waterfall |
-|--------|-------|-----------|
-| Requirements stability | ❌ Changing frequently | ✅ Well-defined, stable |
-| Project size | ✅ Small to medium | ✅ Large, complex |
-| Team experience | ✅ Experienced, self-organizing | ✅ Structured, junior-friendly |
-| Customer availability | ✅ High involvement | ❌ Limited involvement |
-| Risk tolerance | ✅ Iterative, adaptive | ❌ Need predictability |
-| Regulatory | ⚠️ Needs documentation | ✅ Heavy documentation |
+Status: {🟢/🟡/🔴} | Highlights: {accomplishments} | Completed: {count} tasks ({%})
+Milestones: {name} {planned} → {forecast} {status} | Budget: ${spent}K/${total}K ({%})
+Top Risks: {risk} - Impact: {impact}, Mitigation: {strategy}
+Decisions Needed: {decision by date} | Next Focus: {objectives}
 
 ## Example Usage
 
@@ -321,12 +221,14 @@ Stakeholder satisfaction: 4.8/5.0
 ## Resource Allocation Guidelines
 
 ### Optimal Utilization Levels
+
 - **70-80%**: Ideal - allows for slack, meetings, emergencies
 - **80-90%**: High - sustainable for short periods only
 - **90-100%**: Overutilized - risk of burnout, quality issues
 - **>100%**: Critical - immediate intervention required
 
 ### Load Balancing Strategies
+
 - Cross-train team members for flexibility
 - Maintain 20% buffer for unplanned work
 - Balance workload across sprints
@@ -339,15 +241,19 @@ Stakeholder satisfaction: 4.8/5.0
 # Change Request: {ID}
 
 ## Requested By
+
 {Name}, {Date}
 
 ## Description
+
 {What is the requested change?}
 
 ## Justification
+
 {Why is this change needed?}
 
 ## Impact Analysis
+
 - **Scope**: {How does this affect deliverables?}
 - **Schedule**: {Delay in days/weeks}
 - **Budget**: {Additional cost}
@@ -356,16 +262,19 @@ Stakeholder satisfaction: 4.8/5.0
 - **Risk**: {New risks introduced}
 
 ## Decision
+
 ☐ Approved - {Reason}
 ☐ Rejected - {Reason}
 ☐ Deferred - {To when and why}
 
 ## Approval
+
 - Project Sponsor: {Name}, {Date}
 - Product Owner: {Name}, {Date}
 ```
 
 ## Related Agents
+
 - **davide-project-manager** - Full agent with reasoning and adaptation
 - **luke-program-manager** - Multi-project portfolio management
 - **ali-chief-of-staff** - Cross-functional coordination
@@ -373,6 +282,7 @@ Stakeholder satisfaction: 4.8/5.0
 - **enrico-business-process-engineer** - Process optimization
 
 ## ISE Engineering Fundamentals Alignment
+
 - Value quality and precision over speed
 - Ship incremental value in small chunks
 - Collective code ownership - everyone can contribute

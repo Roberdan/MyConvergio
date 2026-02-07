@@ -13,7 +13,7 @@ Display the current status of the MyConvergio agent ecosystem.
 When the user runs `/myconvergio:status`, provide:
 
 1. **Agent Count Summary**
-   - Total agents: 57
+   - Total agents: 58
    - By category breakdown
 
 2. **Category Breakdown**
@@ -34,4 +34,4 @@ When the user runs `/myconvergio:status`, provide:
    - Invoke any agent with `@agent-name`
 
 4. **Version**
-   Report current plugin version: 3.0.0
+   Report current plugin version: 4.5.0

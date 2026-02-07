@@ -3,9 +3,11 @@
 > Reusable workflow extracted from otto-performance-optimizer expertise.
 
 ## Purpose
+
 Systematically identify and eliminate performance bottlenecks through data-driven profiling, algorithmic optimization, and infrastructure tuning to achieve scalability and efficiency goals.
 
 ## When to Use
+
 - Performance degradation investigation
 - Pre-release performance validation
 - Scalability planning and capacity assessment
@@ -74,6 +76,7 @@ Systematically identify and eliminate performance bottlenecks through data-drive
    - Regular performance review cadence
 
 ## Inputs Required
+
 - **Performance targets**: Specific latency, throughput, resource goals
 - **Current metrics**: Baseline performance measurements
 - **Workload profile**: Traffic patterns, peak loads, data volumes
@@ -81,6 +84,7 @@ Systematically identify and eliminate performance bottlenecks through data-drive
 - **Environment**: Production specs, infrastructure configuration
 
 ## Outputs Produced
+
 - **Profiling Report**: Flame graphs, hot spots, bottleneck analysis
 - **Optimization Roadmap**: Prioritized improvements with expected impact
 - **Before/After Benchmarks**: Quantified performance improvements
@@ -88,36 +92,17 @@ Systematically identify and eliminate performance bottlenecks through data-drive
 - **Monitoring Setup**: Metrics, dashboards, and alerting configuration
 - **Cost Analysis**: Infrastructure cost savings from optimization
 
-## Profiling Tools by Category
+## Profiling Tools
 
-### CPU Profiling
-- **Python**: cProfile, py-spy, line_profiler
-- **JavaScript/Node**: Chrome DevTools, clinic.js, 0x, node --prof
-- **C/C++/Objective-C**: Instruments, perf, Valgrind, Intel VTune
-- **Java/Kotlin**: JProfiler, async-profiler, JFR, VisualVM
-- **Go**: pprof, trace, benchstat
-
-### Memory Profiling
-- **Python**: memory_profiler, tracemalloc, objgraph
-- **JavaScript/Node**: Chrome DevTools heap profiler, node --heap-prof
-- **C/C++**: Valgrind, AddressSanitizer, LeakSanitizer
-- **Java**: VisualVM, JProfiler, heap dumps
-- **Go**: pprof heap profile
-
-### Database Profiling
-- **PostgreSQL**: EXPLAIN ANALYZE, pg_stat_statements
-- **MySQL**: EXPLAIN, slow query log, pt-query-digest
-- **MongoDB**: explain(), profiler, slow query log
-- **Redis**: SLOWLOG, redis-cli --latency
-
-### System Profiling
-- **Linux**: perf, eBPF/bpftrace, sysstat, iotop
-- **macOS**: Instruments, dtrace, fs_usage
-- **Network**: Wireshark, tcpdump, netstat, ss
+CPU: Python (cProfile, py-spy), JS/Node (DevTools, clinic.js), C/C++ (Instruments, perf, Valgrind), Java (JProfiler, JFR), Go (pprof)
+Memory: Python (memory_profiler, tracemalloc), JS/Node (heap profiler), C/C++ (Valgrind, ASan), Java (heap dumps), Go (pprof heap)
+Database: PostgreSQL (EXPLAIN ANALYZE, pg_stat_statements), MySQL (EXPLAIN, slow query), MongoDB (explain(), profiler), Redis (SLOWLOG)
+System: Linux (perf, eBPF, sysstat), macOS (Instruments, dtrace), Network (Wireshark, tcpdump)
 
 ## Optimization Strategies Catalog
 
 ### Algorithmic Optimization
+
 - **Complexity Reduction**: O(n²) → O(n log n) → O(n)
 - **Data Structure Selection**: Array vs Hash vs Tree
 - **Caching Results**: Memoization, computed properties
@@ -125,6 +110,7 @@ Systematically identify and eliminate performance bottlenecks through data-drive
 - **Batch Processing**: N+1 → single batch operation
 
 ### Database Optimization
+
 - **Query Optimization**: Rewrite inefficient queries
 - **Index Strategy**: B-tree, hash, partial, covering indexes
 - **Connection Pooling**: Optimal pool size (typically 2-10× CPU cores)
@@ -133,6 +119,7 @@ Systematically identify and eliminate performance bottlenecks through data-drive
 - **Caching**: Redis/Memcached for hot data
 
 ### Frontend Optimization
+
 - **Core Web Vitals**:
   - LCP (Largest Contentful Paint) < 2.5s
   - FID (First Input Delay) < 100ms
@@ -143,6 +130,7 @@ Systematically identify and eliminate performance bottlenecks through data-drive
 - **CDN**: Geographic distribution, edge caching
 
 ### Backend Optimization
+
 - **API Response**: Reduce payload size, compression
 - **Async Processing**: Queue long-running tasks
 - **Connection Reuse**: HTTP keep-alive, connection pooling
@@ -150,6 +138,7 @@ Systematically identify and eliminate performance bottlenecks through data-drive
 - **Concurrency**: Proper use of async/await, workers
 
 ### Infrastructure Optimization
+
 - **Auto-Scaling**: Horizontal and vertical scaling policies
 - **Right-Sizing**: Match resources to actual usage
 - **Load Balancing**: Distribute traffic efficiently
@@ -159,24 +148,28 @@ Systematically identify and eliminate performance bottlenecks through data-drive
 ## Performance Metrics Checklist
 
 ### Latency Metrics
+
 - [ ] P50 (median) latency measured
 - [ ] P95 latency (95th percentile) tracked
 - [ ] P99 latency (worst case) monitored
 - [ ] Max latency identified
 
 ### Throughput Metrics
+
 - [ ] Requests per second (RPS) capacity known
 - [ ] Transactions per second (TPS) measured
 - [ ] Concurrent users handled documented
 - [ ] Peak load capacity established
 
 ### Resource Metrics
+
 - [ ] CPU utilization tracked (target: <70% at peak)
 - [ ] Memory usage monitored (avoid swapping)
 - [ ] Disk I/O measured (IOPS, throughput)
 - [ ] Network bandwidth utilization tracked
 
 ### User Experience Metrics
+
 - [ ] Time to First Byte (TTFB) < 200ms
 - [ ] First Contentful Paint (FCP) < 1.8s
 - [ ] Time to Interactive (TTI) < 3.8s
@@ -218,22 +211,27 @@ Output:
 ## Optimization Anti-Patterns to Avoid
 
 ### Premature Optimization
+
 - ❌ Optimizing without profiling data
 - ✅ Profile first, identify actual bottleneck, then optimize
 
 ### Micro-Optimizations
+
 - ❌ Focusing on saving nanoseconds while ignoring second-long delays
 - ✅ Focus on bottlenecks with measurable user impact
 
 ### Benchmark Gaming
+
 - ❌ Optimizing for artificial benchmarks not real workloads
 - ✅ Use representative production-like workloads
 
 ### Complexity Creep
+
 - ❌ Adding complexity for marginal 2% gains
 - ✅ Balance performance with maintainability
 
 ### Ignoring Trade-offs
+
 - ❌ Not considering memory usage, code complexity, maintainability
 - ✅ Document trade-offs explicitly
 
@@ -243,6 +241,7 @@ Output:
 ## Performance Budget: [Feature/Page Name]
 
 ### Targets
+
 - P95 Latency: < [target]ms
 - Throughput: > [target] req/sec
 - Page Load: < [target]s
@@ -251,15 +250,18 @@ Output:
 - Memory Usage: < [target]MB
 
 ### Current Metrics
+
 - P95 Latency: [current]ms
 - Throughput: [current] req/sec
 - Status: ✅ Within budget / ❌ Exceeds budget
 
 ### Action Required
+
 [If budget exceeded, optimization plan]
 ```
 
 ## Related Agents
+
 - **otto-performance-optimizer** - Full agent with profiling expertise
 - **baccio-tech-architect** - Architecture-level performance design
 - **dario-debugger** - Performance-related bug investigation
@@ -267,6 +269,7 @@ Output:
 - **marco-devops-engineer** - Infrastructure performance tuning
 
 ## ISE Engineering Fundamentals Alignment
+
 - Leverage observability (metrics, tracing) for performance
 - Load testing validates behavior under peak load
 - Performance testing measures against baselines

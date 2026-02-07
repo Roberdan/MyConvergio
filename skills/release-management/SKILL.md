@@ -3,9 +3,11 @@
 > Reusable workflow extracted from app-release-manager expertise.
 
 ## Purpose
+
 Execute comprehensive pre-release quality assurance through automated checks, security audits, versioning, and professional release preparation to ensure production-ready software with zero tolerance for quality issues.
 
 ## When to Use
+
 - Pre-release quality validation
 - Version release preparation
 - Production deployment readiness assessment
@@ -98,6 +100,7 @@ Execute comprehensive pre-release quality assurance through automated checks, se
     - Notify stakeholders
 
 ## Inputs Required
+
 - **Repository**: Clean git working tree, committed changes
 - **Version**: Target version number (or auto-increment)
 - **Release Type**: major/minor/patch (for SemVer)
@@ -105,6 +108,7 @@ Execute comprehensive pre-release quality assurance through automated checks, se
 - **Deployment target**: Staging, production, or both
 
 ## Outputs Produced
+
 - **Release Report**: Comprehensive checklist with pass/fail status
 - **Auto-Fix Log**: List of issues automatically fixed
 - **Blocking Issues**: Prioritized list of issues preventing release
@@ -116,6 +120,7 @@ Execute comprehensive pre-release quality assurance through automated checks, se
 ## Zero Tolerance Policy
 
 ### Blocking Issues (NO RELEASE)
+
 - ❌ ANY compiler warning
 - ❌ ANY test failure
 - ❌ ANY security vulnerability
@@ -129,86 +134,25 @@ Execute comprehensive pre-release quality assurance through automated checks, se
 
 ## Auto-Fix Protocol
 
-### Immediately Auto-Fixable Issues
-| Issue | Auto-Fix Action | Priority |
-|-------|----------------|----------|
-| Compiler warnings | Edit source to fix | P0 |
-| TODO/FIXME comments | Remove or create ticket | P0 |
-| Debug prints | Remove all printf/console.log | P0 |
-| Version mismatches | Update VERSION file | P0 |
-| Trailing whitespace | sed strip command | P1 |
-| Missing EOF newline | echo >> file | P1 |
-| Unused imports | Remove automatically | P1 |
-| Outdated models | Update config, rebuild | P0 |
-
-### Auto-Fix Execution Pattern
-```
-FOR EACH issue found:
-  IF auto-fixable:
-    1. FIX IT IMMEDIATELY (use Edit/Write tools)
-    2. VERIFY fix worked
-    3. LOG: "Auto-fixed: {description}"
-  ELSE:
-    1. ADD to blocking issues list
-    2. CONTINUE checking
-
-AFTER all auto-fixes:
-  RE-RUN affected checks
-  IF issues remain: BLOCK release
-  ELSE: APPROVE release
-```
+Auto-fixable: Compiler warnings, TODO/FIXME, debug prints, version mismatches (P0), trailing whitespace, missing EOF, unused imports (P1)
+Pattern: Fix immediately → Verify → Log → Re-run checks → Block if issues remain
 
 ## SemVer Version Bumping
 
-### Semantic Versioning (MAJOR.MINOR.PATCH)
-- **MAJOR**: Breaking changes, incompatible API changes
-- **MINOR**: New features, backward-compatible additions
-- **PATCH**: Bug fixes, backward-compatible fixes
+MAJOR.MINOR.PATCH: Breaking (2.0.0), Feature (1.5.0), Bugfix (1.4.3)
 
-### Version Increment Rules
-```
-Current: 1.4.2
-
-Bump major (breaking): 2.0.0
-Bump minor (feature):  1.5.0
-Bump patch (bugfix):   1.4.3
-```
-
-## Changelog Format (Keep a Changelog)
+## Changelog Format
 
 ```markdown
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/),
-and this project adheres to [Semantic Versioning](https://semver.org/).
-
-## [Unreleased]
-
 ## [1.5.0] - 2025-01-15
 
-### Added
-- New user authentication system with OAuth2
-- Real-time notifications via WebSockets
-- Export data to CSV feature
+### Added: OAuth2 auth, WebSocket notifications, CSV export
 
-### Changed
-- Improved API response time by 60% through caching
-- Updated UI to Material Design 3
+### Changed: 60% faster API via caching, Material Design 3
 
-### Fixed
-- Fixed memory leak in background worker
-- Resolved race condition in payment processing
+### Fixed: Memory leak, race condition in payments
 
-### Security
-- Patched SQL injection vulnerability in search
-- Updated dependencies to address CVE-2024-12345
-
-## [1.4.2] - 2025-01-01
-
-### Fixed
-- Critical bug in user session management
+### Security: SQL injection patch, CVE-2024-12345
 ```
 
 ## Release Report Template
@@ -219,6 +163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## Status: ✅ APPROVED / 🔴 BLOCKED
 
 ## Summary
+
 - Total Checks: {count}
 - Passed: {count}
 - Failed: {count}
@@ -227,47 +172,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## Phase Results
 
 ### ✅ Phase 0: Model Freshness
+
 - Models checked: {count}
 - Models updated: {count}
 - Status: UP_TO_DATE
 
 ### ✅ Phase 1: Compilation & Build
+
 - Compiler warnings: 0
 - Build succeeded: Yes
 - Binary size: {size}MB
 
 ### ✅ Phase 2: Security Audit
+
 - Hardcoded secrets: None found
 - Unsafe functions: None found
 - Dependency vulnerabilities: 0
 
 ### ✅ Phase 3: Code Quality
+
 - TODO/FIXME: 0 (auto-fixed: {count})
 - Debug prints: 0 (auto-fixed: {count})
 - Commented code: None
 
 ### ✅ Phase 4: Tests
+
 - Unit tests: {passed}/{total} (100%)
 - Integration tests: {passed}/{total} (100%)
 - E2E tests: {passed}/{total} (100%)
 
 ### ✅ Phase 5: Documentation
+
 - README: Up-to-date
 - API docs: Complete
 - CHANGELOG: Updated
 
 ### ✅ Phase 6: Version Management
+
 - Version: {version}
 - SemVer: Valid
 - Git tag: Created
 
 ## Auto-Fixes Applied
+
 1. Removed 3 TODO comments
 2. Stripped trailing whitespace (12 files)
 3. Removed 5 debug print statements
 4. Updated outdated model config
 
 ## Next Steps
+
 1. Create GitHub release
 2. Publish to npm/PyPI
 3. Deploy to production
@@ -318,6 +272,7 @@ Next Steps:
 ## Rollback Procedures
 
 ### If Release Fails in Production
+
 1. **Immediate**: Revert to previous version tag
 2. **Git**: `git revert {commit}` or `git checkout v{previous}`
 3. **Deploy**: Trigger rollback deployment
@@ -325,6 +280,7 @@ Next Steps:
 5. **Post-Mortem**: Blameless analysis of what went wrong
 
 ## Related Agents
+
 - **app-release-manager** - Full agent with reasoning and orchestration
 - **thor-quality-assurance-guardian** - Quality standards enforcement
 - **rex-code-reviewer** - Pre-release code review
@@ -332,6 +288,7 @@ Next Steps:
 - **marco-devops-engineer** - Deployment automation
 
 ## ISE Engineering Fundamentals Alignment
+
 - Code without tests is incomplete - 100% test pass required
 - Security integrated into release pipeline
 - Automated quality gates block bad releases

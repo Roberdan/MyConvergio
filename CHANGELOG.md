@@ -48,6 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Token Optimization**: Hooks + digest scripts save ~21k tokens per session
 - **Install System**: Full coverage of all components (agents, rules, skills, hooks, reference, scripts)
 - **Global Config Alignment**: Rules, hooks, and settings now match author's optimized ~/.claude/
+- **Agent Compaction**: All 16 oversized agents trimmed to max 250 lines (total -3308 lines)
+  - Heavy agents split into compact core + `.claude/reference/` docs
+  - 4 new reference docs: task-executor-workflow, app-release-checklist, ali-orchestration-protocol, strategic-planner-modules
+- **Skill Compaction**: All 6 oversized skills trimmed to max 250 lines (-804 lines)
+- **Removed**: `thor-quality-assurance-guardian.lean.md` (was larger than full version)
+- **Fixed**: `commands/status.md` — agent count (57→58), version (3.0.0→4.5.0)
+- **Fixed**: "Claude 4.5" outdated references → generic model-agnostic text
 
 ## [4.4.0] - 2026-01-27
 

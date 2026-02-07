@@ -15,7 +15,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-MyConvergio is a collection of 58 specialized Claude Code subagents for enterprise software management, strategic leadership, and technical excellence. Distributed via npm (`npm install -g myconvergio`) or git clone + `make install`.
+MyConvergio is a collection of 59 specialized Claude Code subagents for enterprise software management, strategic leadership, and technical excellence. Distributed via npm (`npm install -g myconvergio`) or git clone + `make install`. Optimized for Claude Opus 4.6 (adaptive thinking, 128K output).
 
 **Core Design**: Single agent context isolation, no direct inter-agent communication, manual orchestration via Task tool.
 
@@ -39,16 +39,16 @@ MyConvergio/
 
 ## Agent Categories
 
-| Category              | Count | Key Agents                                         |
-| --------------------- | ----- | -------------------------------------------------- |
-| leadership_strategy   | 7     | ali (orchestrator), antonio, satya, dan            |
-| technical_development | 7     | baccio, rex, dario, otto, marco, paolo, luca       |
-| business_operations   | 11    | amy, anna, davide, marcello, oliver                |
-| core_utility          | 9     | thor, strategic-planner, marcus, guardian          |
-| release_management    | 2     | app-release-manager, feature-release-manager       |
-| compliance_legal      | 5     | elena, dr-enzo, sophia                             |
-| specialized_experts   | 13    | domik, behice, fiona, angela, ethan, evan, michael |
-| design_ux             | 3     | creative-director, ux-designer, design-thinking    |
+| Category              | Count | Key Agents                                                         |
+| --------------------- | ----- | ------------------------------------------------------------------ |
+| leadership_strategy   | 7     | ali (orchestrator), antonio, satya, dan                            |
+| technical_development | 8     | baccio, rex, dario, otto, marco, paolo, luca, adversarial-debugger |
+| business_operations   | 11    | amy, anna, davide, marcello, oliver                                |
+| core_utility          | 9     | thor, strategic-planner, marcus, guardian                          |
+| release_management    | 2     | app-release-manager, feature-release-manager                       |
+| compliance_legal      | 5     | elena, dr-enzo, sophia                                             |
+| specialized_experts   | 13    | domik, behice, fiona, angela, ethan, evan, michael                 |
+| design_ux             | 3     | creative-director, ux-designer, design-thinking                    |
 
 ## Model Tiering
 

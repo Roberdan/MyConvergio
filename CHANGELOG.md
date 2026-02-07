@@ -5,6 +5,24 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.0] - 2026-02-07
+
+### Added
+
+- **adversarial-debugger agent** (v1.0.0): Spawns 3 parallel Explore subagents with competing hypotheses for complex bug diagnosis. Read-only, evidence-based, adversarial pattern inspired by Agent Teams.
+- **plan-db-safe.sh**: Wrapper around plan-db.sh with pre-checks (file existence, lint, untracked tests) before allowing update-task done transitions.
+
+### Changed
+
+- **Settings templates**: Removed deprecated `MAX_THINKING_TOKENS` from all tiers (Opus 4.6 uses adaptive thinking). Doubled `CLAUDE_CODE_MAX_OUTPUT_TOKENS` across all tiers (high: 128K, mid: 64K, low: 32K) to leverage Opus 4.6 128K output support.
+- **CLAUDE.md**: Updated agent count (59), added Opus 4.6 optimization note, added adversarial-debugger to technical_development category.
+
+### Removed
+
+- `MAX_THINKING_TOKENS` env var from all settings templates (deprecated on Opus 4.6, replaced by adaptive thinking with effort levels).
+
+---
+
 ## [4.5.0] - 2026-02-07
 
 ### Added

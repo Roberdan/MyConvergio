@@ -3,7 +3,7 @@
 # Follows Semantic Versioning 2.0.0 (https://semver.org/)
 
 # System Version
-SYSTEM_VERSION=4.5.0
+SYSTEM_VERSION=4.6.0
 
 # Framework Documents
 # These are foundational documents that govern all agents
@@ -36,3 +36,4 @@ thor-quality-assurance-guardian=3.3.0 2026-01-27T00:00:00Z
 task-executor=1.5.0 2026-01-27T00:00:00Z
 taskmaster-strategic-task-decomposition-master=1.0.3 2025-12-28T13:14:06Z
 davide-project-manager=1.0.3 2025-12-28T13:14:06Z
+adversarial-debugger=1.0.0 2026-02-07T00:00:00Z

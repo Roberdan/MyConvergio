@@ -3,8 +3,7 @@
   "_comment": "Low-spec settings for machines with 8GB RAM, 4 cores",
   "_recommended_for": "Intel Core i5, Apple M1, 8GB RAM laptops",
   "env": {
-    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16000",
-    "MAX_THINKING_TOKENS": "8000",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "32000",
     "BASH_DEFAULT_TIMEOUT_MS": "30000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "NODE_OPTIONS": "--max-old-space-size=4096",

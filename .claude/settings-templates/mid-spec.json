@@ -3,8 +3,7 @@
   "_comment": "Mid-spec settings for machines with 16GB RAM, 8 cores",
   "_recommended_for": "Intel Core i7, Apple M1 Pro/M2, 16GB RAM",
   "env": {
-    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "32000",
-    "MAX_THINKING_TOKENS": "16000",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
     "BASH_DEFAULT_TIMEOUT_MS": "45000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "NODE_OPTIONS": "--max-old-space-size=8192",

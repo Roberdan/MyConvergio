@@ -74,3 +74,13 @@ test-results/
 plugins/cache/
 paste-cache/
 tasks/
+
+# Copilot tracking (local-only, never commit)
+.copilot-tracking/
+
+# Research report outputs (generated files, never commit)
+agents/research_report/Reports/
+agents/research_report/output/
+
+# Package lock (not needed for this config repo)
+package-lock.json

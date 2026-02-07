@@ -58,19 +58,28 @@ TMPJSON=$(mktemp)
 TEST_PID=""
 cleanup() {
 	[[ -n "$TEST_PID" ]] && kill "$TEST_PID" 2>/dev/null && wait "$TEST_PID" 2>/dev/null || true
-	rm -f "$TMPLOG" "$TMPJSON"
+	rm -f "$TMPLOG" "$TMPJSON" "$PIDFILE"
 }
 trap cleanup EXIT INT TERM
 
-# Kill stale vitest/playwright processes from previous interrupted runs
-pkill -f "vitest run" 2>/dev/null || true
+# Kill stale test process from previous interrupted run (scoped to this project)
+PIDFILE="/tmp/test-digest-$(echo "$(pwd)" | md5sum 2>/dev/null | cut -c1-8 || md5 -q -s "$(pwd)" | cut -c1-8).pid"
+if [[ -f "$PIDFILE" ]]; then
+	OLD_PID=$(cat "$PIDFILE")
+	if kill -0 "$OLD_PID" 2>/dev/null; then
+		kill "$OLD_PID" 2>/dev/null && wait "$OLD_PID" 2>/dev/null || true
+	fi
+	rm -f "$PIDFILE"
+fi
 
 # Run tests, capture output
 EXIT_CODE=0
 eval "$TEST_CMD $*" >"$TMPLOG" 2>&1 &
 TEST_PID=$!
+echo "$TEST_PID" >"$PIDFILE"
 wait "$TEST_PID" || EXIT_CODE=$?
 TEST_PID=""
+rm -f "$PIDFILE"
 
 STATUS="pass"
 [[ "$EXIT_CODE" -ne 0 ]] && STATUS="fail"

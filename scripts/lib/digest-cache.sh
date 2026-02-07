@@ -15,9 +15,9 @@ digest_cache_get() {
 	[[ ! -f "$cache_file" ]] && return 1
 	local now age file_mod
 	now=$(date +%s)
-	# macOS stat vs Linux stat
-	file_mod=$(stat -f %m "$cache_file" 2>/dev/null || stat -c %Y "$cache_file" 2>/dev/null)
-	age=$((now - file_mod))
+	# macOS stat vs Linux stat (default to 0 if both fail)
+	file_mod=$(stat -f %m "$cache_file" 2>/dev/null || stat -c %Y "$cache_file" 2>/dev/null || echo 0)
+	age=$((now - ${file_mod:-0}))
 	[[ $age -lt $ttl ]] && {
 		cat "$cache_file"
 		return 0

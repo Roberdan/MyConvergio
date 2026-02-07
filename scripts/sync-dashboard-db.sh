@@ -53,7 +53,7 @@ backup_local() {
 }
 
 backup_remote() {
-	ssh "$REMOTE_HOST" "mkdir -p ~/.claude/data/backups && cp $REMOTE_DB ~/.claude/data/backups/dashboard_remote_$TIMESTAMP.db"
+	ssh -o ConnectTimeout=10 "$REMOTE_HOST" "mkdir -p ~/.claude/data/backups && cp $REMOTE_DB ~/.claude/data/backups/dashboard_remote_$TIMESTAMP.db"
 	log_info "Remote backup created"
 }
 
@@ -63,7 +63,7 @@ show_status() {
 
 	echo ""
 	log_info "=== Remote DB (Linux) ==="
-	ssh "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"SELECT id, name, status, tasks_done||'/'||tasks_total as progress, COALESCE(execution_host, '-') as host FROM plans WHERE status != 'done' OR completed_at > datetime('now', '-7 days') ORDER BY id DESC LIMIT 10;\""
+	ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"SELECT id, name, status, tasks_done||'/'||tasks_total as progress, COALESCE(execution_host, '-') as host FROM plans WHERE status != 'done' OR completed_at > datetime('now', '-7 days') ORDER BY id DESC LIMIT 10;\""
 }
 
 sync_plans() {
@@ -74,7 +74,7 @@ sync_plans() {
 		log_info "Syncing: Linux → Mac"
 
 		# Get plans from remote that are more recent
-		ssh "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
+		ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
             SELECT id, status, tasks_done, tasks_total,
                    COALESCE(completed_at, ''), COALESCE(updated_at, '')
             FROM plans WHERE status = 'done' OR updated_at IS NOT NULL;
@@ -106,11 +106,11 @@ sync_plans() {
                    COALESCE(completed_at, ''), COALESCE(updated_at, '')
             FROM plans WHERE status = 'done' OR updated_at IS NOT NULL;
         " | while IFS='|' read -r id status tasks_done tasks_total completed_at updated_at; do
-			remote_status=$(ssh "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"SELECT status FROM plans WHERE id=$id;\"" 2>/dev/null || echo "")
+			remote_status=$(ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"SELECT status FROM plans WHERE id=$id;\"" 2>/dev/null || echo "")
 
 			if [[ "$remote_status" != "$status" ]] || [[ "$remote_status" != "done" && "$status" == "done" ]]; then
 				log_info "Updating remote plan $id: $remote_status → $status ($tasks_done/$tasks_total)"
-				ssh "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
+				ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
                     UPDATE plans SET
                         status='$status',
                         tasks_done=$tasks_done,
@@ -154,7 +154,7 @@ copy_plan() {
 	if [[ "$direction" == "push" ]]; then
 		log_info "Copying plan $plan_id: Local → Remote"
 		scp "$LOCAL_DB" "$REMOTE_HOST:/tmp/source_dashboard.db"
-		ssh "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
+		ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
             ATTACH '/tmp/source_dashboard.db' AS src;
             INSERT OR REPLACE INTO plans SELECT * FROM src.plans WHERE id=$plan_id;
             INSERT OR REPLACE INTO waves SELECT * FROM src.waves WHERE plan_id=$plan_id;

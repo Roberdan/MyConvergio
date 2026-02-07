@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+**W1-Foundation: Distributed Execution** — Cross-machine plan execution with atomic
+claim protocol, host tracking, and worktree merge enforcement.
+
+- Added: `host_heartbeats` table and `plans.description` column (migrate-v5-cluster.sh)
+- Added: `plan-db-cluster.sh` module with claim/release/heartbeat/is_alive commands
+- Added: SSH/config helpers in plan-db-core.sh (load_sync_config, ssh_check, config_sync_check)
+- Changed: `cmd_start` now uses atomic claim protocol (blocks if plan claimed by other host, --force to override)
+- Changed: `cmd_complete` requires worktree merged before plan closure (--force to skip)
+- Added: Cluster command dispatch entries in plan-db.sh
+
+---
+
 **Opus 4.6 Configuration Upgrade** — Settings, hooks, and tooling updated
 for Claude Opus 4.6 adaptive thinking and 128K output tokens.
 

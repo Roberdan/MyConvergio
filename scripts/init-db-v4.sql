@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS plans (
   validated_by TEXT,
   worktree_path TEXT,
   execution_host TEXT,
+  description TEXT,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
   FOREIGN KEY (parent_plan_id) REFERENCES plans(id) ON DELETE SET NULL,
   UNIQUE(project_id, name)
@@ -104,6 +105,14 @@ CREATE TABLE IF NOT EXISTS metrics_history (
   metric_value REAL NOT NULL,
   recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
+);
+
+-- Host heartbeats for distributed execution liveness
+CREATE TABLE IF NOT EXISTS host_heartbeats (
+  host TEXT PRIMARY KEY,
+  last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+  plan_count INTEGER DEFAULT 0,
+  os TEXT
 );
 
 -- Indexes

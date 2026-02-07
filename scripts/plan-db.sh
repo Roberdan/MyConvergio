@@ -31,6 +31,7 @@ source "$SCRIPT_DIR/lib/plan-db-validate.sh"
 source "$SCRIPT_DIR/lib/plan-db-display.sh"
 source "$SCRIPT_DIR/lib/plan-db-import.sh"
 source "$SCRIPT_DIR/lib/plan-db-drift.sh"
+source "$SCRIPT_DIR/lib/plan-db-cluster.sh"
 
 # Host identification for cross-machine tracking
 export PLAN_DB_HOST="${PLAN_DB_HOST:-$(hostname -s 2>/dev/null || hostname)}"
@@ -42,12 +43,12 @@ init_db
 case "${1:-help}" in
 list) cmd_list "${2:?project_id required}" ;;
 create) cmd_create "${2:?project_id required}" "${3:?name required}" "${@:4}" ;;
-start) cmd_start "${2:?plan_id required}" ;;
+start) cmd_start "${2:?plan_id required}" "${3:-}" ;;
 add-wave) cmd_add_wave "${2:?plan_id required}" "${3:?wave_id required}" "${4:?name required}" "${@:5}" ;;
 add-task) cmd_add_task "${2:?wave_id required}" "${3:?task_id required}" "${4:?title required}" "${@:5}" ;;
 update-task) cmd_update_task "${2:?task_id required}" "${3:?status required}" "${@:4}" ;;
 update-wave) cmd_update_wave "${2:?wave_id required}" "${3:?status required}" ;;
-complete) cmd_complete "${2:?plan_id required}" ;;
+complete) cmd_complete "${2:?plan_id required}" "${3:-}" ;;
 get-worktree) cmd_get_worktree "${2:?plan_id required}" ;;
 set-worktree) cmd_set_worktree "${2:?plan_id required}" "${3:?path required}" ;;
 validate) cmd_validate "${2:?plan_id required}" "${3:-thor}" ;;
@@ -65,6 +66,13 @@ get-context) cmd_get_context "${2:?plan_id required}" ;;
 drift-check) cmd_check_drift "${2:?plan_id required}" ;;
 rebase-plan) cmd_rebase_plan "${2:?plan_id required}" ;;
 where) cmd_where "${2:-}" ;;
+claim) cmd_claim "${2:?plan_id required}" "${3:-}" ;;
+release) cmd_release "${2:?plan_id required}" ;;
+heartbeat) cmd_heartbeat ;;
+remote-status) cmd_remote_status "${2:-}" ;;
+cluster-status) cmd_cluster_status ;;
+cluster-tasks) cmd_cluster_tasks ;;
+autosync) cmd_autosync "${2:-start}" ;;
 *)
 	echo "Plan DB CLI - Task/Wave/Plan Management"
 	echo ""
@@ -90,7 +98,16 @@ where) cmd_where "${2:-}" ;;
 	echo "  drift-check <plan_id>          Check plan staleness vs main (JSON report)"
 	echo "  rebase-plan <plan_id>          Rebase plan worktree onto latest main"
 	echo "  sync <plan_id>                 Fix out-of-sync counters"
-	echo "  where [plan_id]                Show execution host for active plans"
+	echo ""
+	echo "Cluster:"
+	echo "  claim <plan_id> [--force]      Claim plan for this host"
+	echo "  release <plan_id>              Release plan from this host"
+	echo "  heartbeat                      Write heartbeat for this host"
+	echo "  remote-status [project_id]     Show status from remote host"
+	echo "  cluster-status                 Unified view of all hosts"
+	echo "  cluster-tasks                  In-progress tasks across hosts"
+	echo "  autosync [start|stop|status]   Auto-sync daemon"
+	echo "  where [plan_id]                Show execution host for plans"
 	echo ""
 	echo "Bulk:"
 	echo "  import <plan_id> <spec.json>   Bulk import waves+tasks from JSON spec"

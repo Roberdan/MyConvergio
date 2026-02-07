@@ -45,6 +45,8 @@ quick_sync() {
 		"$SYNC_SCRIPT" incremental &>/dev/null
 		touch "$marker"
 		REMOTE_ONLINE=1
+		# Sync ~/.claude git repo (Mac=master, push to Linux)
+		git -C "$HOME/.claude" push linux main --quiet 2>/dev/null || true
 		# Fetch git status for all remote active projects (piggyback on SSH)
 		_fetch_remote_git_status
 	fi

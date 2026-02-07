@@ -283,9 +283,10 @@ render_dashboard() {
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status='in_progress'),
 			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id)),
 			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id) AND status='done'),
-			COALESCE((SELECT SUM(total_tokens) FROM token_usage WHERE project_id=p.project_id), 0)
+			COALESCE((SELECT SUM(total_tokens) FROM token_usage WHERE project_id=p.project_id), 0),
+			COALESCE(p.execution_host, '')
 		FROM plans p WHERE p.status IN ('doing', 'in_progress') ORDER BY p.id
-	" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated pproject wave_total wave_done wave_doing task_total task_done total_tokens; do
+	" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated pproject wave_total wave_done wave_doing task_total task_done total_tokens exec_host; do
 
 		# Elapsed time (running time)
 		if [ -n "$pstarted" ]; then
@@ -367,7 +368,15 @@ render_dashboard() {
 			fi
 		fi
 
-		echo -e "${GRAY}├─${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC} $([ -n "$time_info" ] && echo -e "${GRAY}(${time_info}${GRAY})${NC}")"
+		# Host tag
+		local_host="${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}"
+		local_host="${local_host%.local}"
+		host_tag=""
+		if [ -n "$exec_host" ] && [ "$exec_host" != "$local_host" ]; then
+			host_tag=" ${YELLOW}@${exec_host}${NC}"
+		fi
+
+		echo -e "${GRAY}├─${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC}${host_tag} $([ -n "$time_info" ] && echo -e "${GRAY}(${time_info}${GRAY})${NC}")"
 		[ -n "$branch_display" ] && echo -e "${GRAY}│  ├─${NC} $branch_display"
 		echo -e "${GRAY}│  ├─${NC} Progress: $bar ${WHITE}${task_progress}%${NC} ${GRAY}(${task_done}/${task_total} tasks)${NC}"
 		echo -e "${GRAY}│  ├─${NC} Waves: ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC} complete ${GRAY}(${wave_progress}%)${NC}"

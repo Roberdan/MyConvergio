@@ -22,6 +22,18 @@ cmd_import() {
 	mkdir -p "$plan_dir"
 	cp "$spec_file" "$plan_dir/${plan_name}-spec.json"
 
+	# Auto-set plan description from spec if not already set
+	local existing_desc
+	existing_desc=$(sqlite3 "$DB_FILE" "SELECT description FROM plans WHERE id=$plan_id;")
+	if [[ -z "$existing_desc" || "$existing_desc" == "{" ]]; then
+		local spec_desc
+		spec_desc=$(jq -r '.description // .user_request // empty' "$spec_file" 2>/dev/null | head -1 | cut -c1-200)
+		if [[ -n "$spec_desc" ]]; then
+			sqlite3 "$DB_FILE" "UPDATE plans SET description = '$(sql_escape "$spec_desc")' WHERE id=$plan_id;"
+			log_info "Set plan description from spec"
+		fi
+	fi
+
 	local wave_count
 	wave_count=$(jq '.waves | length' "$spec_file")
 	local total_tasks=0

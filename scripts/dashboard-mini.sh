@@ -446,9 +446,10 @@ render_dashboard() {
 			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id)),
 			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id) AND status='done'),
 			COALESCE((SELECT SUM(total_tokens) FROM token_usage WHERE project_id=p.project_id), 0),
-			COALESCE(p.execution_host, '')
+			COALESCE(p.execution_host, ''),
+			COALESCE(p.description, '')
 		FROM plans p WHERE p.status IN ('doing', 'in_progress') ORDER BY p.id
-	" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated pproject wave_total wave_done wave_doing task_total task_done total_tokens exec_host; do
+	" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated pproject wave_total wave_done wave_doing task_total task_done total_tokens exec_host pdescription; do
 
 		# Elapsed time (running time)
 		if [ -n "$pstarted" ]; then
@@ -547,6 +548,7 @@ render_dashboard() {
 		fi
 
 		echo -e "${GRAY}├─${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC}${host_tag} $([ -n "$time_info" ] && echo -e "${GRAY}(${time_info}${GRAY})${NC}")"
+		[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$pdescription${NC}"
 		[ -n "$branch_display" ] && echo -e "${GRAY}│  ├─${NC} $branch_display"
 		# Remote git status inline (only for LINUX plans when online)
 		if [ "$is_remote" -eq 1 ] && [ "$REMOTE_ONLINE" -eq 1 ] && [ -f "$REMOTE_GIT_CACHE" ]; then
@@ -705,7 +707,7 @@ render_dashboard() {
 	pipeline_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status='todo'")
 	if [ "$pipeline_count" -gt 0 ]; then
 		echo -e "${BOLD}${WHITE}📋 In Pipeline ($pipeline_count)${NC}"
-		sqlite3 "$DB" "SELECT id, name, created_at, project_id FROM plans WHERE status='todo' ORDER BY created_at DESC" | while IFS='|' read -r pid pname pcreated pproject; do
+		sqlite3 "$DB" "SELECT id, name, created_at, project_id, COALESCE(description, '') FROM plans WHERE status='todo' ORDER BY created_at DESC" | while IFS='|' read -r pid pname pcreated pproject pdescription; do
 			# Days since created
 			if [ -n "$pcreated" ]; then
 				create_date=$(echo "$pcreated" | cut -d' ' -f1)
@@ -736,6 +738,7 @@ render_dashboard() {
 			[ -n "$pproject" ] && project_display="${BLUE}[$pproject]${NC} "
 
 			echo -e "${GRAY}├─${NC} ${BLUE}◯${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC} ${GRAY}(creato: ${age_info}${GRAY})${NC}"
+			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$pdescription${NC}"
 			echo -e "${GRAY}│  └─${NC} ${GRAY}${wave_count} waves, ${task_count} tasks${NC}"
 		done
 
@@ -766,7 +769,7 @@ render_dashboard() {
 		echo -e "${GRAY}│  ${NC}${GRAY}Usa ${WHITE}piani -e${GRAY} per vedere dettagli task${NC}"
 	fi
 
-	sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id FROM plans WHERE status = 'done' ORDER BY COALESCE(completed_at, updated_at, created_at) DESC LIMIT 3" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project; do
+	sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(description, '') FROM plans WHERE status = 'done' ORDER BY COALESCE(completed_at, updated_at, created_at) DESC LIMIT 3" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project pdescription; do
 		# Use completed_at or updated_at for display
 		display_date="${completed:-${updated:-$created}}"
 		date=$(echo "$display_date" | cut -d' ' -f1)
@@ -810,10 +813,12 @@ render_dashboard() {
 		# Compact view: single line with count
 		if [ "$EXPAND_COMPLETED" -eq 0 ]; then
 			echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${done_project_display}${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
+			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$pdescription${NC}"
 			echo -e "${GRAY}│  └─${NC} ${GRAY}${task_count} task │${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
 		else
 			# Expanded view: with task list
 			echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${done_project_display}${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
+			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$pdescription${NC}"
 			echo -e "${GRAY}│  ├─${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
 
 			if [ "$task_count" -gt 0 ]; then
@@ -842,12 +847,12 @@ render_dashboard() {
 
 	# Piani completati nelle ultime 24 ore
 	echo -e "${BOLD}${WHITE}🎉 Completati ultime 24h${NC}"
-	completed_24h=$(sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC")
+	completed_24h=$(sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(description, '') FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC")
 
 	if [ -z "$completed_24h" ]; then
 		echo -e "${GRAY}└─${NC} Nessun piano completato nelle ultime 24 ore"
 	else
-		echo "$completed_24h" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created h24_project; do
+		echo "$completed_24h" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created h24_project pdescription; do
 			# Use completed_at or updated_at for display
 			display_date="${completed:-${updated:-$created}}"
 			date=$(echo "$display_date" | cut -d' ' -f1)
@@ -890,12 +895,21 @@ render_dashboard() {
 			[ -n "$h24_project" ] && h24_project_display="${BLUE}[$h24_project]${NC} "
 
 			echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${h24_project_display}${WHITE}$short_name${NC} ${GRAY}($time)${NC} $thor_status"
+			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$pdescription${NC}"
 			echo -e "${GRAY}│  └─${NC} ${GRAY}${task_count} task │${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
 		done
 		echo -e "${GRAY}└─${NC}"
 	fi
 
-	echo ""
+	# Warn about active/pipeline plans missing descriptions
+	local missing_desc
+	missing_desc=$(sqlite3 "$DB" "SELECT GROUP_CONCAT('#' || id, ', ') FROM plans WHERE status IN ('doing', 'todo') AND (description IS NULL OR description = '' OR description = '{')")
+	if [ -n "$missing_desc" ]; then
+		echo -e "${YELLOW}⚠ Piani senza descrizione: ${WHITE}${missing_desc}${NC}"
+		echo -e "${GRAY}  Usa: plan-db.sh update-desc <id> \"descrizione\"${NC}"
+		echo ""
+	fi
+
 	echo -e "${GRAY}Dashboard: ${CYAN}http://localhost:31415${NC} ${GRAY}│ Usa ${WHITE}piani -h${GRAY} per opzioni${NC}"
 	echo ""
 }

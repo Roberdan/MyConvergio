@@ -9,7 +9,7 @@ LOG_FILE="$HOME/.claude/logs/token-tracking.log"
 
 mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
 
-log() { echo "$(date '+%H:%M:%S') $1" >> "$LOG_FILE" 2>/dev/null & }
+log() { echo "$(date '+%H:%M:%S') $1" >>"$LOG_FILE" 2>/dev/null & }
 
 # Quick dependency check
 check_deps jq sqlite3 || exit 0
@@ -25,7 +25,7 @@ CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
 # Get project_id
 PROJECT_ID=""
 if [[ -n "$CWD" && -f "$DB_FILE" ]]; then
-  PROJECT_ID=$(sqlite3 "$DB_FILE" "SELECT id FROM projects WHERE path LIKE '%${CWD}%' LIMIT 1;" 2>/dev/null)
+	PROJECT_ID=$(sqlite3 "$DB_FILE" "SELECT id FROM projects WHERE path LIKE '%${CWD}%' LIMIT 1;" 2>/dev/null)
 fi
 PROJECT_ID="${PROJECT_ID:-$(basename "$CWD")}"
 
@@ -49,20 +49,22 @@ TOTAL=$((INPUT_TOKENS + OUTPUT_TOKENS))
 # Calculate cost
 COST_USD=0
 if have_bin bc; then
-  case "$MODEL" in
-    *opus*) COST_USD=$(echo "scale=4; ($INPUT_TOKENS * 0.000015) + ($OUTPUT_TOKENS * 0.000075)" | bc) ;;
-    *) COST_USD=$(echo "scale=4; ($INPUT_TOKENS * 0.000003) + ($OUTPUT_TOKENS * 0.000015)" | bc) ;;
-  esac
+	case "$MODEL" in
+	*opus*) COST_USD=$(echo "scale=4; ($INPUT_TOKENS * 0.000015) + ($OUTPUT_TOKENS * 0.000075)" | bc) ;;
+	*) COST_USD=$(echo "scale=4; ($INPUT_TOKENS * 0.000003) + ($OUTPUT_TOKENS * 0.000015)" | bc) ;;
+	esac
 fi
 
 # Async DB write
 if [[ -f "$DB_FILE" ]]; then
-  {
-    sqlite3 "$DB_FILE" "
-      INSERT INTO token_usage (project_id, agent, model, input_tokens, output_tokens, cost_usd)
-      VALUES ('$PROJECT_ID', 'claude-code', '${MODEL}', $INPUT_TOKENS, $OUTPUT_TOKENS, ${COST_USD:-0});
+	{
+		EXEC_HOST="${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}"
+		EXEC_HOST="${EXEC_HOST%.local}"
+		sqlite3 "$DB_FILE" "
+      INSERT INTO token_usage (project_id, agent, model, input_tokens, output_tokens, cost_usd, execution_host)
+      VALUES ('$PROJECT_ID', 'claude-code', '${MODEL}', $INPUT_TOKENS, $OUTPUT_TOKENS, ${COST_USD:-0}, '$EXEC_HOST');
     " 2>/dev/null
-  } &
+	} &
 fi
 
 log "$PROJECT_ID | $MODEL | in:$INPUT_TOKENS out:$OUTPUT_TOKENS | \$${COST_USD}"

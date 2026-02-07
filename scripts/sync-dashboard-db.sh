@@ -59,53 +59,56 @@ show_status() {
 sync_plans() {
 	local direction=$1
 	if [[ "$direction" == "pull" ]]; then
-		log_info "Syncing: Linux → Mac"
-		ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
-            SELECT id, status, tasks_done, tasks_total,
-                   COALESCE(completed_at, ''), COALESCE(updated_at, '')
-            FROM plans WHERE status = 'done' OR updated_at IS NOT NULL;
-        \"" | while IFS='|' read -r id status tasks_done tasks_total completed_at updated_at; do
-			local_status=$(sqlite3 "$LOCAL_DB" "SELECT status FROM plans WHERE id=$id;" 2>/dev/null || echo "")
-
-			if [[ "$local_status" != "$status" ]] || [[ "$local_status" != "done" && "$status" == "done" ]]; then
-				log_info "Updating plan $id: $local_status → $status ($tasks_done/$tasks_total)"
-				sqlite3 "$LOCAL_DB" "
-                    UPDATE plans SET
-                        status='$status',
-                        tasks_done=$tasks_done,
-                        completed_at=$([ -n "$completed_at" ] && echo \"'$completed_at'\" || echo "NULL"),
-                        updated_at=CURRENT_TIMESTAMP
-                    WHERE id=$id;
-                    UPDATE tasks SET status='done', completed_at=CURRENT_TIMESTAMP WHERE plan_id=$id AND status != 'done';
-                    UPDATE waves SET status='done', tasks_done=tasks_total, completed_at=CURRENT_TIMESTAMP WHERE plan_id=$id AND status != 'done';
-                "
-			fi
+		log_info "Syncing: Linux → Mac (full plan data)"
+		scp "$REMOTE_HOST:$REMOTE_DB" "/tmp/sync_source.db"
+		local plan_ids
+		plan_ids=$(sqlite3 "$LOCAL_DB" "
+			ATTACH '/tmp/sync_source.db' AS src;
+			SELECT src_p.id FROM src.plans src_p
+			LEFT JOIN plans p ON p.id = src_p.id
+			WHERE src_p.status != COALESCE(p.status, '') OR src_p.tasks_done != COALESCE(p.tasks_done, 0) OR p.id IS NULL;
+			DETACH src;
+		" 2>/dev/null)
+		for id in $plan_ids; do
+			[[ -z "$id" ]] && continue
+			log_info "Pull plan $id"
+			sqlite3 "$LOCAL_DB" "
+				ATTACH '/tmp/sync_source.db' AS src;
+				INSERT OR REPLACE INTO plans SELECT * FROM src.plans WHERE id=$id;
+				INSERT OR REPLACE INTO waves SELECT * FROM src.waves WHERE plan_id=$id;
+				INSERT OR REPLACE INTO tasks SELECT * FROM src.tasks WHERE plan_id=$id;
+				DETACH src;
+				UPDATE waves SET tasks_done = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id AND tasks.status = 'done'), tasks_total = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id) WHERE plan_id = $id;
+				UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE waves.plan_id = plans.id), tasks_total = (SELECT COALESCE(SUM(tasks_total), 0) FROM waves WHERE waves.plan_id = plans.id) WHERE id = $id;
+			"
 		done
+		rm -f /tmp/sync_source.db
 
 	elif [[ "$direction" == "push" ]]; then
-		log_info "Syncing: Mac → Linux"
-
-		sqlite3 "$LOCAL_DB" "
-            SELECT id, status, tasks_done, tasks_total,
-                   COALESCE(completed_at, ''), COALESCE(updated_at, '')
-            FROM plans WHERE status = 'done' OR updated_at IS NOT NULL;
-        " | while IFS='|' read -r id status tasks_done tasks_total completed_at updated_at; do
-			remote_status=$(ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"SELECT status FROM plans WHERE id=$id;\"" 2>/dev/null || echo "")
-
-			if [[ "$remote_status" != "$status" ]] || [[ "$remote_status" != "done" && "$status" == "done" ]]; then
-				log_info "Updating remote plan $id: $remote_status → $status ($tasks_done/$tasks_total)"
-				ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
-                    UPDATE plans SET
-                        status='$status',
-                        tasks_done=$tasks_done,
-                        completed_at=$([ -n "$completed_at" ] && echo \"'$completed_at'\" || echo 'NULL'),
-                        updated_at=CURRENT_TIMESTAMP
-                    WHERE id=$id;
-                    UPDATE tasks SET status='done', completed_at=CURRENT_TIMESTAMP WHERE plan_id=$id AND status != 'done';
-                    UPDATE waves SET status='done', tasks_done=tasks_total, completed_at=CURRENT_TIMESTAMP WHERE plan_id=$id AND status != 'done';
-                \""
-			fi
-		done
+		log_info "Syncing: Mac → Linux (full plan data)"
+		scp "$LOCAL_DB" "$REMOTE_HOST:/tmp/sync_source.db"
+		ssh -o ConnectTimeout=10 "$REMOTE_HOST" bash -s -- "$REMOTE_DB" <<'PUSH_SCRIPT'
+DB="$1"
+for id in $(sqlite3 "$DB" "
+	ATTACH '/tmp/sync_source.db' AS src;
+	SELECT src_p.id FROM src.plans src_p LEFT JOIN plans p ON p.id = src_p.id
+	WHERE src_p.status != COALESCE(p.status, '') OR src_p.tasks_done != COALESCE(p.tasks_done, 0) OR p.id IS NULL;
+	DETACH src;
+"); do
+	[ -z "$id" ] && continue
+	echo "[INFO] Push plan $id"
+	sqlite3 "$DB" "
+		ATTACH '/tmp/sync_source.db' AS src;
+		INSERT OR REPLACE INTO plans SELECT * FROM src.plans WHERE id=$id;
+		INSERT OR REPLACE INTO waves SELECT * FROM src.waves WHERE plan_id=$id;
+		INSERT OR REPLACE INTO tasks SELECT * FROM src.tasks WHERE plan_id=$id;
+		DETACH src;
+		UPDATE waves SET tasks_done = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id AND tasks.status = 'done'), tasks_total = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id) WHERE plan_id = $id;
+		UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE waves.plan_id = plans.id), tasks_total = (SELECT COALESCE(SUM(tasks_total), 0) FROM waves WHERE waves.plan_id = plans.id) WHERE id = $id;
+	"
+done
+rm -f /tmp/sync_source.db
+PUSH_SCRIPT
 	fi
 }
 

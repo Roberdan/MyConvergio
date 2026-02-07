@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [v5.0] - 07 February 2026 — Distributed Plan Execution
 
 **W1-Foundation: Distributed Execution** — Cross-machine plan execution with atomic
 claim protocol, host tracking, and worktree merge enforcement.

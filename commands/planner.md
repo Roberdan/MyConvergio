@@ -144,6 +144,20 @@ Present: "Questi task sono delegabili a Copilot: [list]. Vuoi delegarli?"
 
 Copilot CLI requires: `copilot --allow-all` (no confirmations), `GH_TOKEN` set.
 
+### 2.7 Cross-Plan Conflict Check (MANDATORY before import)
+
+```bash
+CONFLICT_REPORT=$(plan-db.sh conflict-check-spec $PROJECT_ID /path/to/spec.json)
+RISK=$(echo "$CONFLICT_REPORT" | jq -r '.overall_risk')
+```
+
+**If risk != "none"**, present via AskUserQuestion (show conflicting plans + overlapping files):
+
+- **Merge**: Add tasks to the existing plan | **Sequence**: Wave dependency on conflicting plan
+- **Parallel**: Separate worktree (accept merge risk) | **Abort**: Rethink scope
+
+**If risk == "none"**, proceed silently to step 3.
+
 ### 3. Create Plan + Import (2 calls total)
 
 ```bash

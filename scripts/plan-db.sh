@@ -31,6 +31,7 @@ source "$SCRIPT_DIR/lib/plan-db-validate.sh"
 source "$SCRIPT_DIR/lib/plan-db-display.sh"
 source "$SCRIPT_DIR/lib/plan-db-import.sh"
 source "$SCRIPT_DIR/lib/plan-db-drift.sh"
+source "$SCRIPT_DIR/lib/plan-db-conflicts.sh"
 source "$SCRIPT_DIR/lib/plan-db-cluster.sh"
 source "$SCRIPT_DIR/lib/plan-db-remote.sh"
 
@@ -65,6 +66,8 @@ import) cmd_import "${2:?plan_id required}" "${3:?spec_file required}" ;;
 render) cmd_render "${2:?plan_id required}" ;;
 get-context) cmd_get_context "${2:?plan_id required}" ;;
 drift-check) cmd_check_drift "${2:?plan_id required}" ;;
+conflict-check) cmd_check_conflicts "${2:?plan_id required}" ;;
+conflict-check-spec) cmd_check_conflicts_spec "${2:?project_id required}" "${3:?spec_file required}" ;;
 rebase-plan) cmd_rebase_plan "${2:?plan_id required}" ;;
 where) cmd_where "${2:-}" ;;
 claim) cmd_claim "${2:?plan_id required}" "${3:-}" ;;
@@ -98,6 +101,8 @@ autosync) "$SCRIPT_DIR/plan-db-autosync.sh" "${2:-status}" ;;
 	echo "  validate <plan_id> [by]        Thor validates (counters, orphans)"
 	echo "  validate-fxx <plan_id>         Validate F-xx from markdown"
 	echo "  drift-check <plan_id>          Check plan staleness vs main (JSON report)"
+	echo "  conflict-check <plan_id>       Cross-plan file overlap detection (JSON)"
+	echo "  conflict-check-spec <proj> <spec.json>  Pre-import conflict check"
 	echo "  rebase-plan <plan_id>          Rebase plan worktree onto latest main"
 	echo "  sync <plan_id>                 Fix out-of-sync counters"
 	echo ""

@@ -55,6 +55,20 @@ else
 fi
 
 echo ""
+echo "Migrating token_usage table..."
+if column_exists "token_usage" "execution_host"; then
+	echo "  [SKIP] token_usage.execution_host already exists"
+else
+	echo "  [ADD]  token_usage.execution_host"
+	sqlite3 "$DB_PATH" "ALTER TABLE token_usage ADD COLUMN execution_host TEXT DEFAULT NULL;"
+	# Backfill existing rows with current hostname
+	local_host="${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}"
+	local_host="${local_host%.local}"
+	backfill_count=$(sqlite3 "$DB_PATH" "UPDATE token_usage SET execution_host = '$local_host' WHERE execution_host IS NULL; SELECT changes();")
+	echo "  [FILL] Backfilled $backfill_count rows with host: $local_host"
+fi
+
+echo ""
 echo "=== Verification ==="
 echo "host_heartbeats table:"
 if table_exists "host_heartbeats"; then

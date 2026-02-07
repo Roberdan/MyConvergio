@@ -11,6 +11,21 @@ claim protocol, host tracking, and worktree merge enforcement.
 - Changed: `cmd_start` now uses atomic claim protocol (blocks if plan claimed by other host, --force to override)
 - Changed: `cmd_complete` requires worktree merged before plan closure (--force to skip)
 - Added: Cluster command dispatch entries in plan-db.sh
+- Fixed: `exit 1` in cmd_complete changed to `return 1` (sourced function)
+- Fixed: db_query() wrapper with `.timeout 5000` for SQLITE_BUSY retry
+- Fixed: SSH calls in sync-dashboard-db.sh now use `-o ConnectTimeout=10`
+
+**W2-CLIDisplay: Enhanced CLI Output** — Host, description, liveness, and
+worktree/branch info in all CLI display commands.
+
+- Added: `--description` flag to `create` command (auto-extracts from source file)
+- Changed: `status` shows execution_host (color-coded), description, worktree/branch
+- Changed: `kanban` DOING section shows host and description
+- Added: `where` shows liveness status (LOCAL/ALIVE/STALE/UNREACHABLE) per host
+- Added: `_get_branch()` helper resolves git branch from worktree path
+- Fixed: Hostname normalization — strip `.local` suffix for consistent matching
+- Added: `token_usage.execution_host` column via migration (backfill existing rows)
+- Changed: Token tracking hooks write normalized hostname per record
 
 ---
 

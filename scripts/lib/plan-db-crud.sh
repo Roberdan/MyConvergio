@@ -24,7 +24,7 @@ cmd_create() {
 	shift 2
 	local is_master=0
 	local parent_id="NULL"
-	local source_file="" markdown_path="" worktree_path="" auto_worktree=0
+	local source_file="" markdown_path="" worktree_path="" auto_worktree=0 description=""
 
 	set +u
 	while [[ $# -gt 0 ]]; do
@@ -45,6 +45,10 @@ cmd_create() {
 			auto_worktree=1
 			shift
 			;;
+		--description)
+			description="$2"
+			shift 2
+			;;
 		*) shift ;;
 		esac
 	done
@@ -62,7 +66,12 @@ cmd_create() {
 		[[ -n "$master_id" ]] && parent_id="$master_id"
 	fi
 
-	local sf_val="NULL" mp_val="NULL" md_val="NULL" wp_val="NULL"
+	# Auto-extract description from source file if not explicitly provided
+	if [[ -z "$description" && -n "$source_file" && -f "$source_file" ]]; then
+		description=$(grep -v '^\s*#' "$source_file" | grep -v '^\s*//' | grep -v '^\s*$' | head -1 | cut -c1-200)
+	fi
+
+	local sf_val="NULL" mp_val="NULL" md_val="NULL" wp_val="NULL" desc_val="NULL"
 	if [[ -n "$source_file" ]]; then
 		sf_val="'$(sql_escape "$source_file")'"
 	fi
@@ -73,10 +82,13 @@ cmd_create() {
 	if [[ -n "$worktree_path" ]]; then
 		wp_val="'$(sql_escape "$(_normalize_path "$worktree_path")")'"
 	fi
+	if [[ -n "$description" ]]; then
+		desc_val="'$(sql_escape "$description")'"
+	fi
 
 	sqlite3 "$DB_FILE" "
-        INSERT INTO plans (project_id, name, is_master, parent_plan_id, status, source_file, markdown_path, markdown_dir, worktree_path)
-        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo', $sf_val, $mp_val, $md_val, $wp_val);
+        INSERT INTO plans (project_id, name, is_master, parent_plan_id, status, source_file, markdown_path, markdown_dir, worktree_path, description)
+        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo', $sf_val, $mp_val, $md_val, $wp_val, $desc_val);
     "
 	local plan_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name='$safe_name';")
 
@@ -551,7 +563,20 @@ cmd_where() {
 		local host=$(echo "$info" | cut -d'|' -f3)
 		[[ -z "$host" ]] && host="unknown"
 
-		echo -e "Plan $plan_id (${BLUE}$name${NC}) -> ${GREEN}$host${NC} [$status]"
+		# Liveness check for remote hosts
+		local liveness=""
+		if [[ "$host" == "$PLAN_DB_HOST" || "$host" == "unknown" ]]; then
+			liveness="${GREEN}LOCAL${NC}"
+		elif type cmd_is_alive &>/dev/null; then
+			local alive_result=$(cmd_is_alive "$host" 2>/dev/null)
+			case "$alive_result" in
+			ALIVE) liveness="${GREEN}ALIVE${NC}" ;;
+			STALE) liveness="${YELLOW}STALE${NC}" ;;
+			*) liveness="${RED}UNREACHABLE${NC}" ;;
+			esac
+		fi
+
+		echo -e "Plan $plan_id (${BLUE}$name${NC}) -> ${GREEN}$host${NC} [$status] $liveness"
 		echo ""
 
 		# Show per-task hosts for active tasks

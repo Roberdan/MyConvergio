@@ -6,7 +6,9 @@ DB_FILE="${HOME}/.claude/data/dashboard.db"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Export hostname for distributed execution tracking
-export PLAN_DB_HOST="${HOSTNAME:-$(hostname)}"
+# Strip .local suffix for consistency (macOS hostname vs DB stored values)
+PLAN_DB_HOST="${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}"
+export PLAN_DB_HOST="${PLAN_DB_HOST%.local}"
 
 # Colors
 GREEN='\033[0;32m'

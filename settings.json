@@ -9,8 +9,6 @@
     "UV_THREADPOOL_SIZE": "12",
     "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1"
   },
-  "language": "italian",
-  "plansDirectory": "~/.claude/plans",
   "permissions": {
     "allow": [
       "mcp__codegraph__codegraph_search",
@@ -118,5 +116,7 @@
     "frontend-design@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true
   },
-  "autoUpdatesChannel": "latest"
+  "language": "italian",
+  "autoUpdatesChannel": "latest",
+  "plansDirectory": "~/.claude/plans"
 }

@@ -24,8 +24,9 @@ worktree-create.sh fix/bug-123 ../myfix        # Custom path
 ```
 
 The script automatically:
+
 - Creates worktree with proper branch
-- **Symlinks all .env* files** from main repo (no missing configs!)
+- **Symlinks all .env\* files** from main repo (no missing configs!)
 - Runs npm install if package.json exists
 
 ## Before ANY git operation (commit, push, add, checkout):
@@ -54,3 +55,43 @@ plan-db.sh check-readiness <plan_id>      # Validates worktree_path is set
 ```
 
 **If confused**: Run `worktree-check.sh` to see full context.
+
+## node_modules in Worktrees (IMPORTANT)
+
+Next.js/Turbopack builds **FAIL** with symlinked node_modules. Workarounds:
+
+### Option A: Full install in worktree (RECOMMENDED for builds)
+
+```bash
+cd /path/to/worktree
+npm ci --silent  # Full install, slower but works
+```
+
+### Option B: TypeScript-only checks (faster for development)
+
+Symlink works for tsc but not for full builds:
+
+```bash
+ln -s /path/to/main/repo/node_modules /path/to/worktree/node_modules
+cd /path/to/worktree
+npx tsc --noEmit  # Works
+npm run build     # FAILS (Sentry/Turbopack path issues)
+```
+
+### Option C: Verify in main repo after merge
+
+If worktree build fails, verify post-merge in main:
+
+```bash
+cd /path/to/main/repo
+git merge worktree-branch
+npm run ci:summary  # Full verification
+```
+
+### Why symlinks fail
+
+1. Turbopack (Next.js 15) resolves absolute paths from node_modules
+2. Sentry plugin follows symlinks and gets confused by paths
+3. motion-utils and other dependencies have hardcoded path expectations
+
+**Best practice**: Use symlink for fast TypeScript checks during development, run full build verification in main repo after merge.

@@ -32,6 +32,9 @@ source "$SCRIPT_DIR/lib/plan-db-display.sh"
 source "$SCRIPT_DIR/lib/plan-db-import.sh"
 source "$SCRIPT_DIR/lib/plan-db-drift.sh"
 
+# Host identification for cross-machine tracking
+export PLAN_DB_HOST="${PLAN_DB_HOST:-$(hostname -s 2>/dev/null || hostname)}"
+
 # Initialize DB
 init_db
 
@@ -61,6 +64,7 @@ render) cmd_render "${2:?plan_id required}" ;;
 get-context) cmd_get_context "${2:?plan_id required}" ;;
 drift-check) cmd_check_drift "${2:?plan_id required}" ;;
 rebase-plan) cmd_rebase_plan "${2:?plan_id required}" ;;
+where) cmd_where "${2:-}" ;;
 *)
 	echo "Plan DB CLI - Task/Wave/Plan Management"
 	echo ""
@@ -86,6 +90,7 @@ rebase-plan) cmd_rebase_plan "${2:?plan_id required}" ;;
 	echo "  drift-check <plan_id>          Check plan staleness vs main (JSON report)"
 	echo "  rebase-plan <plan_id>          Rebase plan worktree onto latest main"
 	echo "  sync <plan_id>                 Fix out-of-sync counters"
+	echo "  where [plan_id]                Show execution host for active plans"
 	echo ""
 	echo "Bulk:"
 	echo "  import <plan_id> <spec.json>   Bulk import waves+tasks from JSON spec"

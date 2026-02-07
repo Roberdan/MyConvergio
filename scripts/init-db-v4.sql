@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS plans (
   validated_at DATETIME,
   validated_by TEXT,
   worktree_path TEXT,
+  execution_host TEXT,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
   FOREIGN KEY (parent_plan_id) REFERENCES plans(id) ON DELETE SET NULL,
   UNIQUE(project_id, name)
@@ -76,6 +77,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   completed_at DATETIME,
   validated_at DATETIME,
   validated_by TEXT,
+  executor_host TEXT,
   FOREIGN KEY (wave_id) REFERENCES waves(id) ON DELETE CASCADE
 );
 
@@ -89,6 +91,7 @@ CREATE TABLE IF NOT EXISTS plan_versions (
   tasks_before INTEGER,
   tasks_after INTEGER,
   changed_by TEXT,
+  changed_host TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
 );

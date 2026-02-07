@@ -159,10 +159,10 @@ cmd_validate() {
 
 	local version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
 	sqlite3 "$DB_FILE" "
-        INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by)
-        VALUES ($plan_id, $version, 'validated', 'Validated - 0 errors', '$validated_by');
+        INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by, changed_host)
+        VALUES ($plan_id, $version, 'validated', 'Validated - 0 errors', '$validated_by', '${PLAN_DB_HOST:-unknown}');
     "
-	echo -e "${GREEN}PASSED: Plan $plan_id validated by $validated_by${NC}"
+	echo -e "${GREEN}PASSED: Plan $plan_id validated by $validated_by (host: ${PLAN_DB_HOST:-unknown})${NC}"
 
 	# Auto-close plan if all tasks are done
 	local tasks_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done FROM plans WHERE id = $plan_id;")
@@ -170,14 +170,14 @@ cmd_validate() {
 	local current_status=$(sqlite3 "$DB_FILE" "SELECT status FROM plans WHERE id = $plan_id;")
 
 	if [[ "$tasks_total" -gt 0 && "$tasks_done" -eq "$tasks_total" && "$current_status" != "done" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE plans SET status = 'done', completed_at = datetime('now') WHERE id = $plan_id;"
+		sqlite3 "$DB_FILE" "UPDATE plans SET status = 'done', completed_at = datetime('now'), execution_host = '${PLAN_DB_HOST:-unknown}' WHERE id = $plan_id;"
 		echo -e "${GREEN}AUTO-CLOSE: Plan $plan_id marked as done (all $tasks_total tasks complete)${NC}"
 
 		# Record auto-close in version history
 		local close_version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
 		sqlite3 "$DB_FILE" "
-            INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by)
-            VALUES ($plan_id, $close_version, 'completed', 'Auto-closed after Thor validation', '$validated_by');
+            INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by, changed_host)
+            VALUES ($plan_id, $close_version, 'completed', 'Auto-closed after Thor validation', '$validated_by', '${PLAN_DB_HOST:-unknown}');
         "
 	fi
 

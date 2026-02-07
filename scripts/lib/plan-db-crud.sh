@@ -127,15 +127,15 @@ cmd_create() {
 cmd_start() {
 	local plan_id="$1"
 	sqlite3 "$DB_FILE" "
-        UPDATE plans SET status = 'doing', started_at = datetime('now')
+        UPDATE plans SET status = 'doing', started_at = datetime('now'), execution_host = '$PLAN_DB_HOST'
         WHERE id = $plan_id;
     "
 	local version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
 	sqlite3 "$DB_FILE" "
-        INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by)
-        VALUES ($plan_id, $version, 'started', 'Execution started', 'planner');
+        INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by, changed_host)
+        VALUES ($plan_id, $version, 'started', 'Execution started', 'planner', '$PLAN_DB_HOST');
     "
-	log_info "Started plan ID: $plan_id"
+	log_info "Started plan ID: $plan_id (host: $PLAN_DB_HOST)"
 }
 
 # Add wave to plan
@@ -396,9 +396,9 @@ cmd_update_task() {
 	[[ -n "$output_data" ]] && output_sql=", output_data = '$(sql_escape "$output_data")'"
 
 	if [[ "$status" == "in_progress" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
 	elif [[ "$status" == "done" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now'), notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
 		# NOTE: wave/plan counters updated automatically by SQLite trigger (task_done_counter)
 
 		# Check if wave is now complete (for auto-marking wave as done)
@@ -410,8 +410,13 @@ cmd_update_task() {
 			log_info "Wave $wave_id_text completed!"
 		}
 	else
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
 	fi
+
+	# Update plan execution_host on any task change
+	local task_plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM tasks WHERE id = $task_id;")
+	[[ -n "$task_plan_id" ]] && sqlite3 "$DB_FILE" "UPDATE plans SET execution_host = '$PLAN_DB_HOST' WHERE id = $task_plan_id;"
+
 	[[ -n "$tokens" ]] && log_info "Task $task_id: $old_status -> $status (tokens: $tokens)" || log_info "Task $task_id: $old_status -> $status"
 }
 
@@ -451,14 +456,14 @@ cmd_complete() {
 		exit 1
 	fi
 
-	sqlite3 "$DB_FILE" "UPDATE plans SET status = 'done', completed_at = datetime('now') WHERE id = $plan_id;"
+	sqlite3 "$DB_FILE" "UPDATE plans SET status = 'done', completed_at = datetime('now'), execution_host = '$PLAN_DB_HOST' WHERE id = $plan_id;"
 
 	local version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
 	sqlite3 "$DB_FILE" "
-        INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by)
-        VALUES ($plan_id, $version, 'completed', 'Plan completed', 'executor');
+        INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by, changed_host)
+        VALUES ($plan_id, $version, 'completed', 'Plan completed', 'executor', '$PLAN_DB_HOST');
     "
-	log_info "Plan $plan_id completed!"
+	log_info "Plan $plan_id completed! (host: $PLAN_DB_HOST)"
 
 	# Auto-cleanup worktree if merged
 	if [[ -x "$SCRIPT_DIR/worktree-cleanup.sh" ]]; then
@@ -502,4 +507,62 @@ cmd_set_worktree() {
 	local safe_path="$(sql_escape "$normalized")"
 	sqlite3 "$DB_FILE" "UPDATE plans SET worktree_path = '$safe_path' WHERE id = $plan_id;"
 	log_info "Set worktree for plan $plan_id: $normalized"
+}
+
+# Show execution host for plans
+# Usage: where [plan_id]
+cmd_where() {
+	local plan_id="${1:-}"
+
+	if [[ -n "$plan_id" ]]; then
+		local info=$(sqlite3 "$DB_FILE" "SELECT name, status, execution_host FROM plans WHERE id = $plan_id;")
+		if [[ -z "$info" ]]; then
+			log_error "Plan $plan_id not found"
+			return 1
+		fi
+		local name=$(echo "$info" | cut -d'|' -f1)
+		local status=$(echo "$info" | cut -d'|' -f2)
+		local host=$(echo "$info" | cut -d'|' -f3)
+		[[ -z "$host" ]] && host="unknown"
+
+		echo -e "Plan $plan_id (${BLUE}$name${NC}) -> ${GREEN}$host${NC} [$status]"
+		echo ""
+
+		# Show per-task hosts for active tasks
+		local task_hosts=$(sqlite3 "$DB_FILE" "
+			SELECT t.task_id, t.title, t.status, COALESCE(t.executor_host, '-')
+			FROM tasks t WHERE t.plan_id = $plan_id AND t.status IN ('in_progress', 'done')
+			ORDER BY t.id;
+		")
+		if [[ -n "$task_hosts" ]]; then
+			echo -e "${YELLOW}Tasks with host info:${NC}"
+			while IFS='|' read -r tid title tstatus thost; do
+				[[ -z "$tid" ]] && continue
+				local status_color="$GREEN"
+				[[ "$tstatus" == "in_progress" ]] && status_color="$YELLOW"
+				echo -e "  $tid ${status_color}[$tstatus]${NC} -> $thost"
+			done <<<"$task_hosts"
+		fi
+	else
+		echo -e "${BLUE}=== Plan Execution Hosts ===${NC}"
+		echo -e "Current host: ${GREEN}$PLAN_DB_HOST${NC}"
+		echo ""
+
+		local active=$(sqlite3 "$DB_FILE" "
+			SELECT id, name, status, COALESCE(execution_host, 'unknown')
+			FROM plans WHERE status IN ('todo', 'doing')
+			ORDER BY status, id;
+		")
+		if [[ -z "$active" ]]; then
+			echo "No active plans."
+		else
+			while IFS='|' read -r pid pname pstatus phost; do
+				[[ -z "$pid" ]] && continue
+				local host_color="$GREEN"
+				[[ "$phost" == "unknown" ]] && host_color="$RED"
+				[[ "$phost" == "$PLAN_DB_HOST" ]] && host_color="$GREEN" || host_color="$YELLOW"
+				echo -e "  Plan $pid (${BLUE}$pname${NC}) [$pstatus] -> ${host_color}$phost${NC}"
+			done <<<"$active"
+		fi
+	fi
 }

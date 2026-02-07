@@ -32,7 +32,7 @@ ls -la {files} && wc -l {files} # Verify existence + line counts
 
 - **URL**: http://localhost:31415 | **DB**: ~/.claude/data/dashboard.db
 - **Reboot**: `cd ~/.claude/dashboard && node reboot.js`
-- **Sync**: `dbsync status|pull|push` (multi-machine)
+- **Sync**: `dbsync status|pull|push|incremental` (multi-machine)
 
 ## Quick Scripts
 
@@ -41,6 +41,10 @@ plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree
 plan-db.sh import {plan_id} spec.json
 plan-db.sh update-task {id} done "Summary"
 plan-db-safe.sh update-task {id} done "S" # Pre-checks before marking done
+plan-db.sh cluster-status          # Unified local+remote plan view
+plan-db.sh remote-status           # SSH status from remote host
+plan-db.sh token-report            # Per-project token/cost by host
+plan-db.sh autosync start|stop|status # Background DB sync daemon
 planner-init.sh                    # Single-call project context bootstrap
 service-digest.sh ci|pr|deploy|all # Token-efficient external service status
 worktree-cleanup.sh --all-merged   # Auto-remove merged worktrees

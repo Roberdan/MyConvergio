@@ -1,16 +1,40 @@
 # Plan Executor
 
-Automated execution of plan tasks via task-executor subagent.
+Automated execution of plan tasks via task-executor subagent or Copilot CLI worker.
 
 ## Activation
 
 When message contains `/execute {plan_id}` or `/execute` (uses current plan).
 
+Override: `/execute {plan_id} --engine copilot` or `--engine claude` skips the prompt.
+
+## Engine Selection
+
+If the user did NOT specify `--engine` in the command, **ask which engine to use**:
+
+```
+AskUserQuestion:
+  question: "Which execution engine should I use for this plan?"
+  header: "Engine"
+  options:
+    - label: "Claude (Recommended)"
+      description: "Task-executor subagent, sonnet model, Anthropic API billing"
+    - label: "Copilot"
+      description: "GitHub Copilot CLI, Opus 4.6 model, 3x premium requests per task"
+```
+
+If `--engine` was provided in the message, use that directly (no prompt).
+
+| Engine    | How                                 | Model                        | Cost                        |
+| --------- | ----------------------------------- | ---------------------------- | --------------------------- |
+| `claude`  | Task(subagent_type="task-executor") | sonnet (or task override)    | Anthropic API               |
+| `copilot` | `copilot-worker.sh` via Bash        | claude-opus-4.6 (3x premium) | GitHub Copilot subscription |
+
 ## CRITICAL RULES
 
 1. **NEVER execute without plan_id**
 2. **NEVER skip tasks** - Execute ALL pending in order
-3. **NEVER skip Thor** - Validate after each wave
+3. **NEVER skip Thor** - Validate after each wave (always via Claude subagent, regardless of engine)
 4. **WORKTREE ISOLATION** - Pass path to EVERY task-executor
 
 ## Workflow
@@ -63,10 +87,13 @@ Tasks are in `CTX.pending_tasks`. No separate query, no file reading needed.
 
 ### Phase 3: Execute Loop
 
-For each task, build a **compact per-task prompt** (~100 tokens, NOT the full plan):
+For each task, execute using the selected engine.
+
+#### Engine: `claude` (default)
+
+Build a **compact per-task prompt** (~100 tokens, NOT the full plan):
 
 ```typescript
-// Build wave peers list (other tasks in same wave, 1 line each)
 const wavePeers = pendingTasks
   .filter((t) => t.wave_db_id === task.wave_db_id && t.db_id !== task.db_id)
   .map((t) => `${t.task_id}: ${t.title}`)
@@ -91,8 +118,29 @@ ${wavePeers}
 PATH: export PATH="$HOME/.claude/scripts:$PATH"
 `,
 });
+```
 
-Bash(`~/.claude/scripts/verify-task-update.sh ${task.db_id} done`);
+#### Engine: `copilot`
+
+Delegate to Copilot CLI via `copilot-worker.sh`:
+
+```bash
+# copilot-worker.sh reads task from DB, generates prompt, launches copilot -p
+copilot-worker.sh ${task.db_id} --model claude-opus-4.6 --timeout 600
+```
+
+**Notes on Copilot engine**:
+
+- `copilot-worker.sh` calls `copilot-task-prompt.sh` internally to build the prompt
+- Uses `--allow-all` (handles trust + yolo), `--add-dir` (worktree path)
+- Copilot runs in non-interactive `-p` mode: receives prompt, executes, exits
+- Same TDD workflow, same plan-db.sh commands, same worktree-guard.sh
+- Cost: 3 premium requests per task invocation (Opus 4.6)
+
+#### Post-execution (both engines)
+
+```bash
+~/.claude/scripts/verify-task-update.sh ${task.db_id} done
 ```
 
 **KEY**: No PLAN_CONTENT, no full markdown. Each task gets only its own data + wave peers.

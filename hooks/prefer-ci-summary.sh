@@ -117,8 +117,14 @@ if echo "$BASE_CMD" | grep -qE "^git diff"; then
 fi
 
 # === BLOCK: PRISMA/DRIZZLE ===
+# Allow: migrate dev --create-only (creates SQL file, minimal output)
+# Allow: migrate diff (read-only comparison, no DB changes)
+if echo "$COMMAND" | grep -qE "prisma migrate (dev.*--create-only|diff)"; then
+	exit 0
+fi
 if echo "$BASE_CMD" | grep -qE "^npx (prisma|drizzle-kit) (migrate|db push|generate|check)"; then
 	echo "TOKEN-WASTE: Use 'migration-digest.sh' instead." >&2
+	echo "  For new migrations: npx prisma migrate dev --name <name> --create-only" >&2
 	exit 2
 fi
 

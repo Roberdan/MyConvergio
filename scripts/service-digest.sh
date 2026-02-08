@@ -25,21 +25,35 @@ all)
 	TMPDIR_ALL=$(mktemp -d)
 	trap "rm -rf '$TMPDIR_ALL'" EXIT
 
-	"$SCRIPT_DIR/ci-digest.sh" "$@" >"$TMPDIR_ALL/ci.json" 2>/dev/null &
+	"$SCRIPT_DIR/ci-digest.sh" "$@" >"$TMPDIR_ALL/ci.json" 2>"$TMPDIR_ALL/ci.err" &
 	PID_CI=$!
-	"$SCRIPT_DIR/pr-digest.sh" "$@" >"$TMPDIR_ALL/pr.json" 2>/dev/null &
+	"$SCRIPT_DIR/pr-digest.sh" "$@" >"$TMPDIR_ALL/pr.json" 2>"$TMPDIR_ALL/pr.err" &
 	PID_PR=$!
-	"$SCRIPT_DIR/deploy-digest.sh" "$@" >"$TMPDIR_ALL/deploy.json" 2>/dev/null &
+	"$SCRIPT_DIR/deploy-digest.sh" "$@" >"$TMPDIR_ALL/deploy.json" 2>"$TMPDIR_ALL/deploy.err" &
 	PID_DEPLOY=$!
 
 	wait "$PID_CI" 2>/dev/null || true
 	wait "$PID_PR" 2>/dev/null || true
 	wait "$PID_DEPLOY" 2>/dev/null || true
 
-	# Combine into single JSON
+	# Combine into single JSON (include stderr as error field if sub-script produced no JSON)
 	CI_JSON=$(cat "$TMPDIR_ALL/ci.json" 2>/dev/null || echo '{}')
 	PR_JSON=$(cat "$TMPDIR_ALL/pr.json" 2>/dev/null || echo '{}')
 	DEPLOY_JSON=$(cat "$TMPDIR_ALL/deploy.json" 2>/dev/null || echo '{}')
+
+	# If a sub-script failed and produced no JSON, include stderr
+	if { [[ -z "$CI_JSON" ]] || [[ "$CI_JSON" == "{}" ]]; } && [[ -s "$TMPDIR_ALL/ci.err" ]]; then
+		CI_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/ci.err" | tr '\n' ' ' | cut -c1-200)" \
+			'{"status":"script_error","msg":$msg}')
+	fi
+	if { [[ -z "$PR_JSON" ]] || [[ "$PR_JSON" == "{}" ]]; } && [[ -s "$TMPDIR_ALL/pr.err" ]]; then
+		PR_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/pr.err" | tr '\n' ' ' | cut -c1-200)" \
+			'{"status":"script_error","msg":$msg}')
+	fi
+	if { [[ -z "$DEPLOY_JSON" ]] || [[ "$DEPLOY_JSON" == "{}" ]]; } && [[ -s "$TMPDIR_ALL/deploy.err" ]]; then
+		DEPLOY_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/deploy.err" | tr '\n' ' ' | cut -c1-200)" \
+			'{"status":"script_error","msg":$msg}')
+	fi
 
 	jq -n \
 		--argjson ci "$CI_JSON" \

@@ -78,7 +78,7 @@ if [[ "$FAILED_COUNT" -gt 0 ]]; then
 			perl -pe 's/\xef\xbb\xbf//g' |
 			sed 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9:.]*Z //' |
 			sed 's/##\[error\]/ERROR: /' |
-			grep -iE 'error[:\s]|FAIL|AssertionError|TypeError|ReferenceError|SyntaxError|ENOENT|EPERM|timed.out|P2002|Unique constraint' |
+			grep -iE 'error[[:space:]:]|FAIL|AssertionError|TypeError|ReferenceError|SyntaxError|ENOENT|EPERM|timed.out|P2002|Unique constraint' |
 			grep -viE 'Downloading|Setting up|Cache|Restore|Post job|Process completed|exit code|echo |##\[group\]|::warning|::notice' |
 			sed 's/^[[:space:]]*//' |
 			sed 's/"timestamp":"[^"]*",\{0,1\}//g' |

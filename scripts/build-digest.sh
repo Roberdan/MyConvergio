@@ -39,7 +39,7 @@ STATUS="ok"
 [[ "$EXIT_CODE" -ne 0 ]] && STATUS="error"
 
 # Extract errors
-ERRORS=$(grep -iE 'error[:\s]|Error:|FAIL|Module not found|Cannot find|SyntaxError|TypeError' "$TMPLOG" |
+ERRORS=$(grep -iE 'error[[:space:]:]|Error:|FAIL|Module not found|Cannot find|SyntaxError|TypeError' "$TMPLOG" |
 	grep -viE 'warning|warn|deprecat|experimental|Linting' |
 	sed 's/^[[:space:]]*//' |
 	sort -u | head -10 |

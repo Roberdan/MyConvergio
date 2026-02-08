@@ -63,7 +63,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Kill stale test process from previous interrupted run (scoped to this project)
-PIDFILE="/tmp/test-digest-$(echo "$(pwd)" | md5sum 2>/dev/null | cut -c1-8 || md5 -q -s "$(pwd)" | cut -c1-8).pid"
+PIDFILE="/tmp/test-digest-$(digest_hash "$(pwd)").pid"
 if [[ -f "$PIDFILE" ]]; then
 	OLD_PID=$(cat "$PIDFILE")
 	if kill -0 "$OLD_PID" 2>/dev/null; then

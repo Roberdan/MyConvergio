@@ -2,16 +2,26 @@
 
 Reference guide for using GitHub Copilot CLI as a Claude Code alternative on MirrorBuddy.
 
+## Decision Matrix
+
+| Plan Size | Waves          | Recommended     | Why                                                        |
+| --------- | -------------- | --------------- | ---------------------------------------------------------- |
+| 1-6 task  | 1-2 wave       | **Copilot CLI** | Rigore sufficiente, risparmia token Claude Max             |
+| 7+ task   | 3+ wave        | **Claude Code** | Serve Thor indipendente + parallelo + context preservation |
+| Qualsiasi | Wave parallele | **Claude Code** | Copilot non spawna worker paralleli                        |
+
 ## When to Use Copilot CLI
 
-- **Sequential task execution** (one task at a time, TDD, review, validation)
+- **Piani piccoli** (1-6 task, 1-2 wave) — rigore sufficiente
+- **Task sequenziali** (one at a time, TDD, review, validation)
 - **Save Claude Max tokens** for complex/parallel work
 - **Same model** (claude-opus-4.6) with same quality
 
 ## When to Use Claude Code Instead
 
+- **Piani grandi** (7+ task) — rischio compaction perde contesto del piano
 - **Parallel orchestration** (Kitty multi-worker, 3-4 executors)
-- **Thor as independent subagent** (fresh context, zero trust)
+- **Thor as independent subagent** (fresh context, zero trust validation)
 - **preCompact control** (context preservation during compaction)
 - **Deep skill workflows** (`/planner`, `/execute` multi-step)
 
@@ -88,6 +98,38 @@ Run `copilot-sync.sh status` periodically or after updating CLAUDE.md/rules.
 2. `.github/copilot-instructions.md` — project rules (combined, not override)
 3. `.github/instructions/*.instructions.md` — path-specific (via `applyTo` glob)
 4. `CLAUDE.md` — recognized by Copilot as agent-specific instructions
+
+## Rigour Gap Analysis
+
+### Where rigour is EQUAL
+
+- **Hook enforcement**: same preToolUse/postToolUse guardrails
+- **Plan DB**: same database, same commands, same validation
+- **TDD workflow**: same RED-GREEN-REFACTOR in execute.agent.md
+- **8 validation gates**: same checklist in validate.agent.md
+- **Worktree discipline**: same guards, same scripts
+- **Digest scripts**: same token-efficient wrappers
+
+### Where rigour is LOWER
+
+1. **Thor is NOT independent**. In Claude Code, Thor runs as a separate
+   subagent with fresh context — no confirmation bias from seeing the
+   executor's work. In Copilot, `@validate` shares the session context.
+   **Mitigation**: close executor session, open new one, run `@validate`.
+
+2. **No mechanical workflow enforcement**. Claude Code hooks (`subagentStart`)
+   force the sequence (mark in_progress -> TDD -> stale check -> mark done).
+   Copilot follows agent instructions but no hook blocks skipped steps.
+   If the model "forgets" a step, nothing stops it mechanically.
+
+3. **Compaction loses context**. In long sessions (many tasks), auto-compaction
+   at 95% may drop plan details. Claude Code's `preserve-context` hook saves
+   critical state. Copilot has no equivalent.
+   **Mitigation**: run `/compact` manually between waves; keep sessions short.
+
+4. **Sequential only**. A 12-task plan runs ~4 at a time with Claude Code
+   (Kitty). With Copilot, strictly one-by-one. Longer sessions = higher
+   compaction risk.
 
 ## Known Limitations
 

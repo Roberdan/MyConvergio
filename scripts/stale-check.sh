@@ -77,7 +77,8 @@ cmd_check() {
 	local total=0 changed=0 missing=0 ok_count=0
 	local changed_files="[]"
 
-	for row in $(echo "$snapshots" | jq -c '.[]'); do
+	while IFS= read -r row; do
+		[[ -z "$row" ]] && continue
 		local file stored_hash current_hash status
 		file=$(echo "$row" | jq -r '.file')
 		stored_hash=$(echo "$row" | jq -r '.stored_hash')
@@ -93,13 +94,13 @@ cmd_check() {
 		else
 			status="unchanged"
 			ok_count=$((ok_count + 1))
-			continue # skip unchanged from output
+			continue
 		fi
 
 		changed_files=$(echo "$changed_files" | jq --arg f "$file" --arg s "$status" \
 			--arg old "${stored_hash:0:12}" --arg new "${current_hash:0:12}" \
 			'. + [{"file":$f,"status":$s,"old_hash":$old,"new_hash":$new}]')
-	done
+	done < <(echo "$snapshots" | jq -c '.[]')
 
 	local stale="false"
 	[[ $changed -gt 0 || $missing -gt 0 ]] && stale="true"

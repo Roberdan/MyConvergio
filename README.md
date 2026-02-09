@@ -25,31 +25,37 @@ open http://localhost:31415
 ~/.claude/
 ├── CLAUDE.md              # Main config (loaded on every session)
 ├── README.md              # This file
+├── PLANNER-ARCHITECTURE.md # SQLite DB schema and authority rules
 ├── server.sh              # PM2 server management (start/stop/restart)
 ├── data/
-│   └── dashboard.db       # SQLite database
-├── dashboard/             # Web dashboard
-│   ├── server.js          # API server
+│   └── dashboard.db       # SQLite database (WAL mode)
+├── dashboard/             # Web dashboard + API
+│   ├── server.js          # API server (port 31415)
 │   ├── reboot.js          # Server restart script
 │   ├── ecosystem.config.js # PM2 configuration
-│   ├── js/                # Frontend JavaScript
-│   ├── css/               # Styles
 │   └── server/            # API routes
+├── docs/
+│   └── adr/               # Architecture Decision Records (0001-0006)
 ├── rules/                 # Compact rules (loaded on every session)
-│   ├── execution.md       # Execution & quality rules
-│   ├── guardian.md        # Thor enforcement
-│   ├── agent-discovery.md # Agent routing
-│   ├── engineering-standards.md
-│   └── file-size-limits.md
+│   ├── coding-standards.md # Code style rules
+│   └── guardian.md        # Process + Thor enforcement
 ├── reference/             # NOT auto-loaded (saves ~19k tokens)
+│   ├── operational/       # Quick guides (worktree, execution, memory)
 │   └── detailed/          # Full rules for on-demand reference
-├── scripts/               # CLI utilities
-│   ├── plan-db.sh         # Plan/wave/task management
-│   └── register-project.sh
-├── commands/              # Skill definitions
-│   ├── prompt.md          # /prompt skill
-│   └── planner.md         # /planner skill
-└── agents/                # Local agent definitions
+├── scripts/               # CLI utilities (30+ scripts)
+│   ├── plan-db.sh         # Plan/wave/task management (central CLI)
+│   ├── plan-db-safe.sh    # Safe wrapper with pre-checks
+│   ├── lib/               # plan-db modules (8 libraries)
+│   ├── *-digest.sh        # Token-efficient command wrappers
+│   ├── file-lock.sh       # File-level locking (concurrency)
+│   ├── stale-check.sh     # Stale context detection (concurrency)
+│   ├── wave-overlap.sh    # Intra-wave overlap check (concurrency)
+│   ├── merge-queue.sh     # Sequential merge queue (concurrency)
+│   └── session-cleanup.sh # Idle process cleanup (stability)
+├── commands/              # Skill definitions (/prompt, /planner, /execute, etc.)
+├── agents/                # Local agent definitions
+│   └── technical_development/ # task-executor, adversarial-debugger
+└── copilot-agents/        # Copilot agent definitions
 ```
 
 ## Configuration Notes
@@ -60,44 +66,20 @@ open http://localhost:31415
 
 ## Dashboard
 
-### Features
-- Real-time plan monitoring
-- SSE notifications (no polling)
-- Notification dropdown preview
-- Configurable notification triggers
-- Tree navigation (waves → tasks)
-- Health endpoint monitoring
+Real-time plan monitoring, SSE notifications, tree navigation, token tracking.
 
-### API Endpoints
-| Endpoint | Description |
-|----------|-------------|
-| GET /api/health | Server health + DB status |
-| GET /api/projects | List all projects |
-| GET /api/plans | List plans |
-| **POST /api/tokens** | **Record token usage (plan_id, wave_id, task_id, agent, model, tokens, cost)** |
-| **GET /api/tokens/summary/:plan_id** | **Get aggregated token usage for a plan (totals, by wave, by agent)** |
-| GET /api/notifications/stream | SSE real-time notifications |
-| GET /api/notifications/triggers | List trigger configs |
-| POST /api/notifications/triggers/:id/toggle | Toggle trigger |
-
-### Management
 ```bash
-# Restart server
-cd ~/.claude/dashboard && node reboot.js
-
-# With PM2 (recommended)
-pm2 status                    # Check status
-pm2 logs claude-dashboard     # View logs
-pm2 restart claude-dashboard  # Restart
-pm2 stop claude-dashboard     # Stop
-
-# Without PM2
-node reboot.js --no-pm2
+cd ~/.claude/dashboard && node reboot.js   # Restart
+pm2 status                                 # Check PM2 status
+curl http://localhost:31415/api/health     # Health check
 ```
+
+Key endpoints: `GET /api/health`, `GET /api/plans`, `POST /api/tokens`, `GET /api/tokens/summary/:plan_id`, `GET /api/notifications/stream`.
 
 ## Scripts
 
 ### server.sh - Dashboard Server
+
 ```bash
 ~/.claude/server.sh start     # Start with PM2, prints URL
 ~/.claude/server.sh stop      # Stop server
@@ -107,6 +89,7 @@ node reboot.js --no-pm2
 ```
 
 ### plan-db.sh - Plan Management
+
 ```bash
 # Create plan
 ~/.claude/scripts/plan-db.sh create {project_id} "Plan Name"
@@ -127,57 +110,118 @@ node reboot.js --no-pm2
 ```
 
 ### register-project.sh - Project Registration
+
 ```bash
 ~/.claude/scripts/register-project.sh "$(pwd)" --name "Project Name"
 ```
 
 ### cleanup-cache.sh - Cache/Log Pruning
+
 ```bash
 # Remove logs/cache files older than 30 days
 ~/.claude/scripts/cleanup-cache.sh
 ```
 
+### Concurrency Control
+
+Prevents parallel agents from overwriting each other's work. See [ADR-0005](docs/adr/0005-multi-agent-concurrency-control.md).
+
+```bash
+# File-level locking
+plan-db.sh lock acquire <file> <task_id> [--agent NAME] [--timeout N]
+plan-db.sh lock release <file>
+plan-db.sh lock release-task <task_id>    # Release all locks for a task
+plan-db.sh lock check <file>              # Who holds the lock?
+plan-db.sh lock list                      # All active locks
+
+# Stale context detection
+plan-db.sh stale-check snapshot <task_id> <file1> [file2...]
+plan-db.sh stale-check check <task_id>    # Returns stale:true/false
+plan-db.sh stale-check diff <task_id>     # Show changed files
+
+# Wave overlap detection (run before importing spec)
+plan-db.sh wave-overlap check-spec <spec.json>
+
+# Merge queue (sequential merge with validation)
+plan-db.sh merge-queue enqueue <branch> [--priority N] [--worktree PATH]
+plan-db.sh merge-queue process [--validate] [--dry-run]
+plan-db.sh merge-queue status
+```
+
+### Digest Scripts
+
+Compact JSON wrappers replacing verbose CLI commands. See [ADR-0001](docs/adr/0001-digest-scripts-token-optimization.md).
+
+```bash
+git-digest.sh [--full]                # git status + log in ONE call
+service-digest.sh ci|pr|deploy|all    # CI/PR/Deploy status
+test-digest.sh                        # Compact test output
+build-digest.sh                       # Compact build output
+diff-digest.sh main feat              # Compact diff
+```
+
+### System Stability
+
+See [ADR-0006](docs/adr/0006-system-stability-crash-prevention.md).
+
+```bash
+session-cleanup.sh [--dry-run] [--max-idle MINUTES]  # Kill idle sessions
+mdatp exclusion list                                  # Verify Defender config
+```
+
 ## Workflow
 
 ### 1. Prompt Translation (`/prompt`)
+
 - Extract F-xx requirements from user request
 - User confirms requirements list
 
 ### 2. Planning (`/planner`)
+
 - Create plan with waves and tasks
-- Link F-xx to tasks
-- User approves plan
+- Run `wave-overlap check-spec` to detect file conflicts
+- Link F-xx to tasks, user approves plan
 
 ### 3. Execution
-- Execute each task
-- Update status in DB
-- Verify F-xx criteria
+
+- Acquire file locks + snapshot file hashes (Phase 0.5)
+- TDD: write tests (RED), implement (GREEN), verify
+- Check staleness before commit (Phase 4.7)
+- Complete via `plan-db-safe.sh` (auto-releases locks)
+- Merge via `merge-queue` (not direct git merge)
 
 ### 4. Thor Verification
-- Validate per wave
-- Build must pass
-- All F-xx verified
+
+- Validate per wave (F-xx + code quality)
+- Post-merge validation on main
+- Build + lint + typecheck must pass
 
 ### 5. Closure
+
+- Knowledge codification (ADR, CHANGELOG, running notes)
 - User accepts delivery
 
 ## Context Optimization
 
 ### Token Usage
-| File | Lines | Purpose |
-|------|-------|---------|
-| CLAUDE.md | 47 | Core config, quick reference |
-| rules/*.md | 162 | Essential behavior rules |
-| **TOTAL** | **209** | ~65% reduction from original |
+
+| File        | Lines   | Purpose                      |
+| ----------- | ------- | ---------------------------- |
+| CLAUDE.md   | 47      | Core config, quick reference |
+| rules/\*.md | 162     | Essential behavior rules     |
+| **TOTAL**   | **209** | ~65% reduction from original |
 
 ### Detailed Rules
+
 Full versions in `reference/detailed/` (not auto-loaded to save context):
+
 - 9 detailed rule files with examples and edge cases
 - Access on-demand: `Read ~/.claude/reference/detailed/...`
 
 ## Troubleshooting
 
 ### Dashboard won't start
+
 ```bash
 # Check what's on port
 lsof -i:31415
@@ -188,26 +232,18 @@ cd ~/.claude/dashboard && node reboot.js
 ```
 
 ### Database issues
-```bash
-# Check DB
-sqlite3 ~/.claude/data/dashboard.db ".tables"
-sqlite3 ~/.claude/data/dashboard.db "SELECT COUNT(*) FROM projects"
 
-# Reinitialize (DESTRUCTIVE)
-rm ~/.claude/data/dashboard.db
-~/.claude/scripts/plan-db.sh init
+```bash
+sqlite3 ~/.claude/data/dashboard.db ".tables"               # Check DB
+rm ~/.claude/data/dashboard.db && plan-db.sh init            # Reinitialize (DESTRUCTIVE)
 ```
 
 ### PM2 issues
-```bash
-# Reinstall PM2
-npm install -g pm2
 
-# Clear PM2 state
-pm2 kill
-pm2 start ~/.claude/dashboard/ecosystem.config.js
-pm2 save
+```bash
+pm2 kill && pm2 start ~/.claude/dashboard/ecosystem.config.js && pm2 save
 ```
 
 ## Version
-Last updated: 06 Gennaio 2026
+
+Last updated: 09 Febbraio 2026

@@ -244,10 +244,11 @@ Generate professional LaTeX document with:
 
 ## Output Deliverables
 
-1. **Main Report**: `ctt-[topic]-[date].tex` - Full LaTeX document with CTT branding
-2. **Data Tables**: `tables/` - Extracted data in LaTeX table format
-3. **Sources**: `sources.bib` - BibTeX bibliography
-4. **Compilation Script**: `compile.sh` - Build PDF from LaTeX
+**Final output is PDF only.** All intermediate files (`.tex`, `sections/`, `tables/`, `compile.sh`, `sources.bib`) are deleted after successful PDF compilation.
+
+1. **Final PDF**: `ctt-[topic]-[date].pdf` - Compiled report, sole deliverable
+
+After `compile-report.sh` succeeds, the output directory must contain ONLY the `.pdf` file. No source files are retained.
 
 ## Branding
 

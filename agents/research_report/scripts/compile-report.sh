@@ -49,9 +49,16 @@ xelatex -output-directory="$OUTPUT_DIR" -interaction=nonstopmode "$TEX_FILE" || 
 }
 
 # Clean up auxiliary files
-echo "Cleaning up..."
+echo "Cleaning up auxiliary files..."
 cd "$OUTPUT_DIR"
 rm -f *.aux *.log *.out *.toc *.bbl *.blg *.bcf *.run.xml 2>/dev/null || true
+cd - >/dev/null
+
+# Clean up source files (keep only final PDF)
+echo "Cleaning up source files..."
+cd "$OUTPUT_DIR"
+rm -f *.tex compile.sh sources.bib 2>/dev/null || true
+rm -rf sections/ tables/ 2>/dev/null || true
 cd - >/dev/null
 
 PDF_FILE="$OUTPUT_DIR/$BASENAME.pdf"

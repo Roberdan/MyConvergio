@@ -13,11 +13,14 @@ DEFAULT_TIMEOUT=30      # seconds
 # Resolve to absolute path
 _resolve_path() {
 	local p="$1"
-	if [[ "$p" != /* ]]; then
-		p="$(pwd)/$p"
-	fi
-	# Normalize (remove /../ etc) without requiring file to exist
-	python3 -c "import os; print(os.path.normpath('$p'))" 2>/dev/null || echo "$p"
+	if [[ "$p" != /* ]]; then p="$(pwd)/$p"; fi
+	# Normalize without python3 (avoid 150ms startup penalty)
+	# Remove /./  then collapse /../  then strip trailing /
+	while [[ "$p" == */./* ]]; do p="${p//\/.\///}"; done
+	while [[ "$p" == */../* ]]; do
+		p=$(echo "$p" | sed 's|/[^/][^/]*/\.\./|/|')
+	done
+	echo "${p%/}"
 }
 
 # Check if a PID is alive on this host

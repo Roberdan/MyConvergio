@@ -28,11 +28,13 @@ _file_hash() {
 	fi
 }
 
-# Resolve to absolute path
+# Resolve to absolute path (pure bash, no python3 overhead)
 _resolve_path() {
 	local p="$1"
 	[[ "$p" != /* ]] && p="$(pwd)/$p"
-	python3 -c "import os; print(os.path.normpath('$p'))" 2>/dev/null || echo "$p"
+	while [[ "$p" == */./* ]]; do p="${p//\/.\///}"; done
+	while [[ "$p" == */../* ]]; do p=$(echo "$p" | sed 's|/[^/][^/]*/\.\./|/|'); done
+	echo "${p%/}"
 }
 
 # Get current branch
@@ -45,20 +47,20 @@ cmd_snapshot() {
 	shift
 	local branch
 	branch=$(_current_branch)
-	local count=0
+	local count=0 sql="BEGIN;"
 
+	# Batch all inserts into a single transaction
 	for file in "$@"; do
 		local abs_path hash
 		abs_path=$(_resolve_path "$file")
 		hash=$(_file_hash "$abs_path")
-
-		db_query "
-			INSERT OR REPLACE INTO file_snapshots (task_id, file_path, file_hash, branch)
+		sql="$sql INSERT OR REPLACE INTO file_snapshots (task_id, file_path, file_hash, branch)
 			VALUES ('$(sql_escape "$task_id")', '$(sql_escape "$abs_path")',
-				'$(sql_escape "$hash")', '$(sql_escape "$branch")');
-		"
+				'$(sql_escape "$hash")', '$(sql_escape "$branch")');"
 		count=$((count + 1))
 	done
+	sql="$sql COMMIT;"
+	db_query "$sql"
 
 	jq -n --arg t "$task_id" --argjson n "$count" --arg b "$branch" \
 		'{"task_id":$t,"snapshots":$n,"branch":$b}'

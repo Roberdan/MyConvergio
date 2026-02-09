@@ -20,6 +20,9 @@ pr)
 deploy)
 	"$SCRIPT_DIR/deploy-digest.sh" "$@"
 	;;
+sentry)
+	"$SCRIPT_DIR/sentry-digest.sh" "$@"
+	;;
 all)
 	# Run all three in parallel, combine results
 	TMPDIR_ALL=$(mktemp -d)
@@ -31,15 +34,19 @@ all)
 	PID_PR=$!
 	"$SCRIPT_DIR/deploy-digest.sh" "$@" >"$TMPDIR_ALL/deploy.json" 2>"$TMPDIR_ALL/deploy.err" &
 	PID_DEPLOY=$!
+	"$SCRIPT_DIR/sentry-digest.sh" list "$@" >"$TMPDIR_ALL/sentry.json" 2>"$TMPDIR_ALL/sentry.err" &
+	PID_SENTRY=$!
 
 	wait "$PID_CI" 2>/dev/null || true
 	wait "$PID_PR" 2>/dev/null || true
 	wait "$PID_DEPLOY" 2>/dev/null || true
+	wait "$PID_SENTRY" 2>/dev/null || true
 
 	# Combine into single JSON (include stderr as error field if sub-script produced no JSON)
 	CI_JSON=$(cat "$TMPDIR_ALL/ci.json" 2>/dev/null || echo '{}')
 	PR_JSON=$(cat "$TMPDIR_ALL/pr.json" 2>/dev/null || echo '{}')
 	DEPLOY_JSON=$(cat "$TMPDIR_ALL/deploy.json" 2>/dev/null || echo '{}')
+	SENTRY_JSON=$(cat "$TMPDIR_ALL/sentry.json" 2>/dev/null || echo '{}')
 
 	# If a sub-script failed and produced no JSON, include stderr
 	if { [[ -z "$CI_JSON" ]] || [[ "$CI_JSON" == "{}" ]]; } && [[ -s "$TMPDIR_ALL/ci.err" ]]; then
@@ -54,12 +61,17 @@ all)
 		DEPLOY_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/deploy.err" | tr '\n' ' ' | cut -c1-200)" \
 			'{"status":"script_error","msg":$msg}')
 	fi
+	if { [[ -z "$SENTRY_JSON" ]] || [[ "$SENTRY_JSON" == "{}" ]]; } && [[ -s "$TMPDIR_ALL/sentry.err" ]]; then
+		SENTRY_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/sentry.err" | tr '\n' ' ' | cut -c1-200)" \
+			'{"status":"script_error","msg":$msg}')
+	fi
 
 	jq -n \
 		--argjson ci "$CI_JSON" \
 		--argjson pr "$PR_JSON" \
 		--argjson deploy "$DEPLOY_JSON" \
-		'{ci:$ci,pr:$pr,deploy:$deploy}'
+		--argjson sentry "$SENTRY_JSON" \
+		'{ci:$ci,pr:$pr,deploy:$deploy,sentry:$sentry}'
 	;;
 flush)
 	digest_cache_flush
@@ -75,7 +87,8 @@ Commands:
   ci [run-id|--all]         CI run status + errors (JSON)
   pr [pr-number]            PR reviews + unresolved comments (JSON)
   deploy [deployment-url]   Vercel deployment status (JSON)
-  all                       All three in parallel, combined JSON
+  sentry [list|resolve id]  Sentry unresolved issues (JSON)
+  all                       All four in parallel, combined JSON
   flush                     Clear all cached digests
 
 Options:

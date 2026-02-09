@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/digest-cache.sh"
 
-CACHE_TTL=60
+CACHE_TTL=15
 NO_CACHE=0
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
 MODE="${1:-}"

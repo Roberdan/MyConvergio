@@ -54,6 +54,20 @@ worktree-guard.sh "{absolute_worktree_path}"
 
 **NEVER work on main/master.** If `worktree-guard.sh` prints `WORKTREE_VIOLATION`, mark task as `blocked` and return.
 
+### Phase 0.5: File Locking + Snapshot (MANDATORY)
+
+```bash
+# Acquire locks on all target files BEFORE modifying them
+for f in {target_files}; do
+  file-lock.sh acquire "$f" "{db_task_id}" --agent "task-executor" --plan-id {plan_id}
+done
+
+# Snapshot file hashes for stale detection
+stale-check.sh snapshot "{db_task_id}" {target_files}
+```
+
+**If lock is BLOCKED**: Another agent holds the file. Report conflict, mark task `blocked`.
+
 ### Phase 1: Mark Started
 
 ```bash
@@ -126,10 +140,19 @@ PROOF STATUS: VERIFIED
 
 **If no files were modified**: Report "BLOCKED: No file modifications detected"
 
+### Phase 4.7: Stale Check (MANDATORY)
+
+```bash
+stale-check.sh check "{db_task_id}"
+# If stale=true: STOP. Rebase, re-read changed files, re-verify.
+# Only proceed to Phase 5 if stale=false.
+```
+
 ### Phase 5: Complete
 
 ```bash
-plan-db.sh update-task {db_task_id} done "Summary" --tokens {N}
+# plan-db-safe.sh auto-releases locks and checks staleness
+plan-db-safe.sh update-task {db_task_id} done "Summary" --tokens {N}
 
 # Record to API (non-blocking)
 curl -s -X POST http://127.0.0.1:31415/api/tokens \

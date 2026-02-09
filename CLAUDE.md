@@ -47,6 +47,10 @@ plan-db.sh cluster-status          # Unified local+remote plan view
 plan-db.sh remote-status           # SSH status from remote host
 plan-db.sh token-report            # Per-project token/cost by host
 plan-db.sh autosync start|stop|status # Background DB sync daemon
+plan-db.sh lock acquire|release|check|list  # File-level locking
+plan-db.sh stale-check snapshot|check|diff  # Stale context detection
+plan-db.sh wave-overlap check-spec spec.json # Intra-wave overlap detection
+plan-db.sh merge-queue enqueue|process|status # Sequential merge queue
 planner-init.sh                    # Single-call project context bootstrap
 service-digest.sh ci|pr|deploy|all # Token-efficient external service status
 worktree-cleanup.sh --all-merged   # Auto-remove merged worktrees
@@ -110,6 +114,19 @@ Phase isolation: each phase uses fresh context, data via files/DB only.
 
 **Committing before Thor = VIOLATION.** Thor reads files directly, never trusts executor self-reports.
 Wave cannot be marked `done` in DB without `plan-db.sh validate` succeeding.
+
+## Concurrency Control (NON-NEGOTIABLE)
+
+**Multi-agent parallel work MUST use file locking.** Sequence:
+
+1. **Planner**: `wave-overlap.sh check-spec spec.json` before import (blocks critical overlap)
+2. **Executor start**: `file-lock.sh acquire <file> <task_id>` for each target file
+3. **Executor start**: `stale-check.sh snapshot <task_id> <files...>` to record baseline
+4. **Before commit**: `stale-check.sh check <task_id>` (BLOCKS if files changed externally)
+5. **On task done**: `plan-db-safe.sh` auto-releases locks + checks staleness
+6. **Merge**: `merge-queue.sh enqueue <branch>` then `merge-queue.sh process --validate`
+
+**Direct merge without queue = VIOLATION.** Only `merge-queue.sh process` merges to main.
 
 ## References (read on-demand)
 

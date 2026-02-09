@@ -79,6 +79,11 @@ cluster-status) cmd_cluster_status ;;
 cluster-tasks) cmd_cluster_tasks ;;
 token-report) cmd_token_report ;;
 autosync) "$SCRIPT_DIR/plan-db-autosync.sh" "${2:-status}" ;;
+# Concurrency control (delegate to standalone scripts)
+lock) "$SCRIPT_DIR/file-lock.sh" "${@:2}" ;;
+stale-check) "$SCRIPT_DIR/stale-check.sh" "${@:2}" ;;
+wave-overlap) "$SCRIPT_DIR/wave-overlap.sh" "${@:2}" ;;
+merge-queue) "$SCRIPT_DIR/merge-queue.sh" "${@:2}" ;;
 *)
 	echo "Plan DB CLI - Task/Wave/Plan Management"
 	echo ""
@@ -129,5 +134,11 @@ autosync) "$SCRIPT_DIR/plan-db-autosync.sh" "${2:-status}" ;;
 	echo "  status [project_id]            Quick status"
 	echo "  json <plan_id>                 Plan as JSON"
 	echo "  kanban-json                    Kanban as JSON"
+	echo ""
+	echo "Concurrency:"
+	echo "  lock acquire|release|check|list|cleanup  File-level locking"
+	echo "  stale-check snapshot|check|diff|cleanup  Stale context detection"
+	echo "  wave-overlap check-wave|check-plan|check-spec  Intra-wave overlap"
+	echo "  merge-queue enqueue|process|status|cancel  Sequential merge queue"
 	;;
 esac

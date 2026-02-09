@@ -77,6 +77,28 @@ pre_check_done() {
 		fail "Untracked test files found (git add them):\n$untracked_tests"
 	fi
 
+	# 4. Stale context check (if snapshots exist for this task)
+	local stale_result
+	stale_result=$("$SCRIPT_DIR/stale-check.sh" check "$task_id" 2>/dev/null || echo "")
+	if [[ -n "$stale_result" ]]; then
+		local is_stale
+		is_stale=$(echo "$stale_result" | jq -r '.stale' 2>/dev/null || echo "false")
+		if [[ "$is_stale" == "true" ]]; then
+			local changed_count
+			changed_count=$(echo "$stale_result" | jq -r '.changed + .missing' 2>/dev/null || echo "0")
+			warn "Stale context: $changed_count files changed since task started"
+			echo "$stale_result" | jq -r '.changed_files[] | "  \(.status): \(.file)"' 2>/dev/null >&2
+			fail "Files changed under your feet. Rebase/re-read before marking done."
+		fi
+		ok "Stale context check passed"
+	fi
+
+	# 5. Release file locks for this task
+	local lock_count
+	lock_count=$("$SCRIPT_DIR/file-lock.sh" release-task "$task_id" 2>/dev/null |
+		jq -r '.released_count' 2>/dev/null || echo "0")
+	[[ "$lock_count" -gt 0 ]] && ok "Released $lock_count file locks for task $task_id"
+
 	ok "Pre-checks passed for task $task_id"
 }
 

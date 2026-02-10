@@ -66,7 +66,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "codegraph mark-dirty",
+            "command": "npx -y @colbymchenry/codegraph mark-dirty",
             "async": true
           }
         ]
@@ -119,7 +119,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "codegraph sync-if-dirty"
+            "command": "npx -y @colbymchenry/codegraph sync-if-dirty"
           }
         ]
       }

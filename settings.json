@@ -60,6 +60,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "codegraph mark-dirty",
+            "async": true
+          }
+        ]
       }
     ],
     "SubagentStart": [
@@ -102,6 +112,14 @@
             "type": "command",
             "command": "~/.claude/hooks/session-end-tokens.sh",
             "timeout": 30
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "codegraph sync-if-dirty"
           }
         ]
       }

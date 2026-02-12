@@ -54,9 +54,10 @@ else
     echo "[3/4] Build check... SKIPPED (use --full)"
 fi
 
-# 4. File size check
+# 4. File size check (project source files, not ~/.claude scripts)
 echo "[4/4] File sizes (<250 lines)..."
-LARGE_FILES=$(find ~/.claude -name "*.md" -o -name "*.ts" -o -name "*.js" 2>/dev/null | \
+LARGE_FILES=$(find src/ -name "*.ts" -o -name "*.tsx" 2>/dev/null | \
+    grep -v node_modules | grep -v '.test.' | \
     while read f; do
         lines=$(cat "$f" 2>/dev/null | /usr/bin/wc -l | tr -d ' ')
         [[ $lines -gt 250 ]] && echo "$f: $lines"

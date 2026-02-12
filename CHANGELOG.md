@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased] — CLAUDE.md Restructuring
+
+### Changed
+
+- Changed: CLAUDE.md slimmed from 197 to 115 lines (42% reduction)
+- Changed: Extracted concurrency control section to `reference/operational/concurrency-control.md`
+- Changed: Extracted plan-db scripts section to `reference/operational/plan-scripts.md`
+- Changed: Extracted digest scripts mapping to `reference/operational/digest-scripts.md`
+- Changed: Added inline `_Why:_` rationale to all NON-NEGOTIABLE rules (Core Rules, Pre-Closure, Thor Gate, Worktree Discipline, Digest Scripts)
+- Added: Reference table in CLAUDE.md linking all 11 operational reference files
+- Added: ADR 0007 — CLAUDE.md Restructuring
+
+### Learnings
+
+- Pattern: Smaller system prompts + on-demand references > monolithic instructions
+- Ref: OpenAI "Harness Engineering" article, ADR 0007
+
+---
+
 ## [v5.0] - 07 February 2026 — Distributed Plan Execution
 
 **W1-Foundation: Distributed Execution** — Cross-machine plan execution with atomic

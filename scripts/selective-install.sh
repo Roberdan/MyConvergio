@@ -65,7 +65,7 @@ EXAMPLES:
 CONTEXT OPTIMIZATION:
   - Tier minimal:      ~50KB  context (5 agents)
   - Tier standard:     ~200KB context (20 agents)
-  - Tier full:         ~600KB context (57 agents)
+  - Tier full:         ~600KB context (60 agents)
 
   - Variant lean:      50% smaller (no Security Framework)
   - Variant full:      Complete documentation
@@ -310,6 +310,30 @@ if [ -d "$PROJECT_ROOT/.claude/reference" ]; then
 	mkdir -p "$TARGET_DIR/reference"
 	cp -r "$PROJECT_ROOT/.claude/reference/"* "$TARGET_DIR/reference/" 2>/dev/null || true
 	success "Installed reference docs"
+fi
+
+# Install commands (slash commands)
+if [ -d "$PROJECT_ROOT/.claude/commands" ]; then
+	info "Installing commands..."
+	mkdir -p "$TARGET_DIR/commands"
+	cp -r "$PROJECT_ROOT/.claude/commands/"* "$TARGET_DIR/commands/" 2>/dev/null || true
+	success "Installed commands"
+fi
+
+# Install protocols
+if [ -d "$PROJECT_ROOT/.claude/protocols" ]; then
+	info "Installing protocols..."
+	mkdir -p "$TARGET_DIR/protocols"
+	cp -r "$PROJECT_ROOT/.claude/protocols/"* "$TARGET_DIR/protocols/" 2>/dev/null || true
+	success "Installed protocols"
+fi
+
+# Install settings templates
+if [ -d "$PROJECT_ROOT/.claude/settings-templates" ]; then
+	info "Installing settings templates..."
+	mkdir -p "$TARGET_DIR/settings-templates"
+	cp -r "$PROJECT_ROOT/.claude/settings-templates/"* "$TARGET_DIR/settings-templates/" 2>/dev/null || true
+	success "Installed settings templates"
 fi
 
 success "Installation complete!"

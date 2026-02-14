@@ -1,5 +1,4 @@
 ---
-
 name: omri-data-scientist
 description: Data Scientist for machine learning, statistical analysis, predictive modeling, and AI-driven insights. Transforms complex data into actionable business intelligence with ISE ML/AI compliance.
 
@@ -9,6 +8,8 @@ tools: ["Read", "WebSearch", "WebFetch"]
 color: "#9B59B6"
 model: "haiku"
 version: "1.0.2"
+memory: project
+maxTurns: 15
 ---
 
 <!--

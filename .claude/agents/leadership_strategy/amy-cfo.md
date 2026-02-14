@@ -1,5 +1,4 @@
 ---
-
 name: amy-cfo
 description: Chief Financial Officer providing strategic financial leadership, ROI analysis, financial modeling, and investment strategy. Combines financial rigor with market research capabilities.
 
@@ -9,6 +8,8 @@ tools: ["Read", "WebFetch", "WebSearch", "Grep", "Glob"]
 color: "#16A085"
 model: "sonnet"
 version: "1.0.2"
+memory: user
+maxTurns: 20
 ---
 
 <!--

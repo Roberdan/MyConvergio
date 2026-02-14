@@ -1,5 +1,4 @@
 ---
-
 name: stefano-design-thinking-facilitator
 description: Design Thinking facilitator for human-centered innovation, ideation workshops, and collaborative problem-solving. Guides teams through structured creative processes.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#F1C40F"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

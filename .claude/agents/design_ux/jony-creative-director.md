@@ -1,5 +1,4 @@
 ---
-
 name: jony-creative-director
 description: Creative Director for creative strategy, brand innovation, and design leadership. Drives breakthrough creative thinking and establishes visual/brand excellence.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#F39C12"
 model: "sonnet"
 version: "1.0.2"
+memory: user
+maxTurns: 20
 ---
 
 ## Security & Ethics Framework

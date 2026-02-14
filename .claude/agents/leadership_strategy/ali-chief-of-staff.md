@@ -4,10 +4,12 @@ description: Master orchestrator coordinating all MyConvergio agents for integra
 
   Example: @ali-chief-of-staff Analyze Q4 performance across all departments and recommend strategic priorities for next quarter
 
-tools: ["Task", "Read", "Write", "Edit", "Bash", "Glob", "Grep", "WebFetch", "WebSearch", "TodoWrite", "NotebookEdit"]
+tools: ["Task", "Read", "Write", "Edit", "Bash", "Glob", "Grep", "WebFetch", "WebSearch", "TaskCreate", "TaskList", "TaskGet", "TaskUpdate", "NotebookEdit"]
 color: "#4A90E2"
 model: "opus"
 version: "2.0.0"
+memory: user
+maxTurns: 40
 ---
 
 <!--

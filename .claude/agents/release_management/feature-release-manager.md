@@ -5,6 +5,8 @@ tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit"]
 model: haiku
 color: "#27AE60"
 version: "1.1.0"
+memory: project
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

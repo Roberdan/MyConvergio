@@ -2,10 +2,12 @@
 name: ali-chief-of-staff
 description: Master orchestrator coordinating all MyConvergio agents for integrated strategic solutions. Single point of contact with full Convergio backend access (projects, talents, documents, vector knowledge base). Delivers CEO-ready intelligence for complex multi-domain challenges.
 
-tools: ["Task", "Read", "Write", "Edit", "MultiEdit", "Bash", "Glob", "Grep", "LS", "WebFetch", "WebSearch", "TodoWrite", "NotebookRead", "NotebookEdit", "query_talents_count", "query_talent_details", "query_department_structure", "query_system_status", "query_knowledge_base", "search_knowledge"]
+tools: ["Task", "Read", "Write", "Edit", "MultiEdit", "Bash", "Glob", "Grep", "LS", "WebFetch", "WebSearch", "TaskCreate", "TaskList", "TaskGet", "TaskUpdate", "NotebookRead", "NotebookEdit", "query_talents_count", "query_talent_details", "query_department_structure", "query_system_status", "query_knowledge_base", "search_knowledge"]
 color: "#4A90E2"
 model: "opus"
 version: "1.0.3"
+memory: user
+maxTurns: 40
 ---
 
 ## Core Identity

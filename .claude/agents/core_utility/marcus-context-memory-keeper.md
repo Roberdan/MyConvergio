@@ -1,5 +1,4 @@
 ---
-
 name: marcus-context-memory-keeper
 description: Institutional memory guardian bridging context gaps across sessions. Preserves strategic decisions, maintains project continuity, and provides decision genealogy for long-term intelligence.
 
@@ -9,6 +8,8 @@ tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 color: "#607D8B"
 model: sonnet
 version: "1.0.2"
+memory: project
+maxTurns: 20
 ---
 
 ## Security & Ethics Framework

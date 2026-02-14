@@ -1,5 +1,4 @@
 ---
-
 name: xavier-coordination-patterns
 description: Advanced coordination patterns architect for multi-agent collaboration architectures, swarm intelligence, and next-generation agent coordination strategies.
 
@@ -7,6 +6,8 @@ tools: ["Task", "Read", "Write", "Edit", "Grep", "Glob"]
 color: "#2E7D32"
 model: sonnet
 version: "1.0.2"
+memory: project
+maxTurns: 20
 ---
 
 ## Core Identity

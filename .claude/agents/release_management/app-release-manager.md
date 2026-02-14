@@ -5,6 +5,8 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task"]
 model: sonnet
 color: "#FF0000"
 version: "2.2.0"
+memory: project
+maxTurns: 20
 ---
 
 ## Security & Ethics Framework

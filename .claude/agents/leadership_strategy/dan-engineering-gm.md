@@ -1,5 +1,4 @@
 ---
-
 name: dan-engineering-gm
 description: Engineering General Manager for technical strategy, team leadership, development processes, and engineering culture. Bridges technical execution with business objectives.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#2ECC71"
 model: "sonnet"
 version: "1.0.2"
+memory: user
+maxTurns: 20
 ---
 
 <!--

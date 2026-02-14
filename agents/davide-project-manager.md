@@ -1,5 +1,4 @@
 ---
-
 name: davide-project-manager
 description: Project Manager for planning, execution, risk management, and stakeholder coordination. Expert in Agile, Scrum, Waterfall, and hybrid methodologies for on-time, on-budget delivery.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#2C3E50"
 model: "haiku"
 version: "1.0.3"
+memory: user
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

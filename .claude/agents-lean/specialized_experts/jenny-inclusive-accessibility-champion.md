@@ -1,5 +1,4 @@
 ---
-
 name: jenny-inclusive-accessibility-champion
 description: Accessibility champion for WCAG compliance, inclusive design, assistive technology, and universal accessibility. Ensures digital products work for users of all abilities.
 
@@ -7,6 +6,8 @@ tools: []
 color: "#9B59B6"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Core Identity

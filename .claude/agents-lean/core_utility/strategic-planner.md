@@ -1,12 +1,13 @@
 ---
-
 name: strategic-planner
 description: Strategic planner for long-term planning, strategic initiatives, roadmap development, and organizational goal alignment. Creates comprehensive strategic plans.
 
-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
+tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TaskCreate", "TaskList", "TaskGet", "TaskUpdate"]
 color: "#6B5B95"
 model: "sonnet"
 version: "1.6.1"
+memory: project
+maxTurns: 40
 ---
 
 ## Security & Ethics Framework

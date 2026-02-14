@@ -1,5 +1,4 @@
 ---
-
 name: sara-ux-ui-designer
 description: UX/UI Designer for user-centered design, interface excellence, usability testing, and design systems. Creates WCAG-compliant, accessible digital experiences that delight users.
 
@@ -7,6 +6,8 @@ tools: []
 color: "#FF69B4"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Core Identity

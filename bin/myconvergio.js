@@ -160,8 +160,7 @@ function saveManifest(files, version) {
 
 function createBackup() {
   const backupDir = path.join(os.homedir(), ".claude-backup-" + Date.now());
-  const dirs = ["agents", "rules", "skills", "hooks", "reference"];
-  let hasContent = false;
+  const dirs = ["agents", "rules", "skills", "hooks", "reference", "commands", "protocols", "scripts", "settings-templates", "templates"];
 
   for (const dir of dirs) {
     const srcDir = path.join(CLAUDE_HOME, dir);
@@ -178,7 +177,7 @@ function createBackup() {
 }
 
 function hasExistingContent() {
-  const dirs = ["agents", "rules", "skills", "hooks", "reference"];
+  const dirs = ["agents", "rules", "skills", "hooks", "reference", "commands", "protocols", "scripts", "settings-templates", "templates"];
   for (const dir of dirs) {
     const dirPath = path.join(CLAUDE_HOME, dir);
     if (fs.existsSync(dirPath) && fs.readdirSync(dirPath).length > 0) {
@@ -359,6 +358,62 @@ function install(options = {}) {
     log(colors.green, "  ✓ Installed reference docs");
   }
 
+  // Install commands (slash commands)
+  const srcCommands = path.join(PACKAGE_ROOT, ".claude", "commands");
+  if (fs.existsSync(srcCommands)) {
+    copyRecursive(
+      srcCommands,
+      path.join(CLAUDE_HOME, "commands"),
+      installedFiles,
+    );
+    log(colors.green, "  ✓ Installed commands");
+  }
+
+  // Install protocols
+  const srcProtocols = path.join(PACKAGE_ROOT, ".claude", "protocols");
+  if (fs.existsSync(srcProtocols)) {
+    copyRecursive(
+      srcProtocols,
+      path.join(CLAUDE_HOME, "protocols"),
+      installedFiles,
+    );
+    log(colors.green, "  ✓ Installed protocols");
+  }
+
+  // Install scripts (digest scripts, plan-db, etc.)
+  const srcScripts = path.join(PACKAGE_ROOT, ".claude", "scripts");
+  if (fs.existsSync(srcScripts)) {
+    copyRecursive(
+      srcScripts,
+      path.join(CLAUDE_HOME, "scripts"),
+      installedFiles,
+    );
+    makeFilesExecutable(path.join(CLAUDE_HOME, "scripts"));
+    log(colors.green, "  ✓ Installed scripts");
+  }
+
+  // Install settings templates
+  const srcSettings = path.join(PACKAGE_ROOT, ".claude", "settings-templates");
+  if (fs.existsSync(srcSettings)) {
+    copyRecursive(
+      srcSettings,
+      path.join(CLAUDE_HOME, "settings-templates"),
+      installedFiles,
+    );
+    log(colors.green, "  ✓ Installed settings templates");
+  }
+
+  // Install templates
+  const srcTemplates = path.join(PACKAGE_ROOT, ".claude", "templates");
+  if (fs.existsSync(srcTemplates)) {
+    copyRecursive(
+      srcTemplates,
+      path.join(CLAUDE_HOME, "templates"),
+      installedFiles,
+    );
+    log(colors.green, "  ✓ Installed templates");
+  }
+
   // Save manifest
   const version = getVersion();
   saveManifest(installedFiles, version);
@@ -382,7 +437,7 @@ function install(options = {}) {
   } else if (profile === "lean") {
     log(
       colors.yellow,
-      "💡 Lean installation (all 57 agents, 20% smaller + consolidated rules)",
+      "💡 Lean installation (all 60 agents, 20% smaller + consolidated rules)",
     );
     console.log("    Optimized for reduced context usage.\n");
   }
@@ -412,7 +467,7 @@ function uninstall() {
     }
 
     // Clean up empty directories
-    const dirs = ["agents", "rules", "skills", "hooks", "reference"];
+    const dirs = ["agents", "rules", "skills", "hooks", "reference", "commands", "protocols", "scripts", "settings-templates", "templates"];
     for (const dir of dirs) {
       cleanEmptyDirs(path.join(CLAUDE_HOME, dir));
     }
@@ -649,7 +704,7 @@ ${colors.yellow}Install Options:${colors.reset}
   --standard  Install 20 essential agents (~200KB)
               Leadership, technical, release, compliance categories
 
-  --full      Install all 57 agents (~800KB) [default]
+  --full      Install all 60 agents (~800KB) [default]
               Complete ecosystem
 
   --lean      Install optimized agents with reduced context (~400KB)
@@ -661,7 +716,7 @@ ${colors.yellow}Examples:${colors.reset}
 
   myconvergio install --minimal               # 8 core agents
   myconvergio install --standard              # 20 agents
-  myconvergio install --full                  # All 57 agents
+  myconvergio install --full                  # All 60 agents
   myconvergio install --lean                  # Optimized
 
   myconvergio install-interactive             # Safe interactive install

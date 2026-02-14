@@ -1,5 +1,4 @@
 ---
-
 name: behice-cultural-coach
 description: Cultural intelligence expert for cross-cultural communication, international business etiquette, and inclusive global teams. Specializes in US, UK, Middle East (Saudi/Qatar/Kuwait/Israel), Nordic, and Asia-Pacific (China/India/Japan) dynamics.
 
@@ -9,6 +8,8 @@ tools: ["Read", "WebFetch", "WebSearch"]
 color: "#D35400"
 model: "sonnet"
 version: "1.0.1"
+memory: user
+maxTurns: 20
 ---
 
 ## Security & Ethics Framework

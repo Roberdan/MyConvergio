@@ -1,5 +1,4 @@
 ---
-
 name: otto-performance-optimizer
 description: Performance optimization specialist for profiling, bottleneck analysis, and system tuning. Optimizes applications for speed, resource efficiency, and scalability.
 
@@ -9,6 +8,8 @@ tools: ["Read", "Glob", "Grep", "Bash", "WebSearch", "WebFetch"]
 color: "#F39C12"
 model: "haiku"
 version: "1.0.2"
+memory: project
+maxTurns: 15
 ---
 
 <!--

@@ -1,5 +1,4 @@
 ---
-
 name: luke-program-manager
 description: Program Manager for multi-project portfolio management, agile delivery at scale, and cross-functional coordination. Manages complex initiatives spanning multiple teams and projects.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#3498DB"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

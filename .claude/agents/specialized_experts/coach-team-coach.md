@@ -1,5 +1,4 @@
 ---
-
 name: coach-team-coach
 description: Team Coach for team building, performance coaching, conflict resolution, and collaborative excellence. Enhances team dynamics and individual performance.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#27AE60"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

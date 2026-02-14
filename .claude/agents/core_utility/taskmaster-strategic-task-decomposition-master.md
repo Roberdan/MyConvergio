@@ -1,5 +1,4 @@
 ---
-
 name: taskmaster-strategic-task-decomposition-master
 description: Task decomposition expert for breaking complex problems into executable tasks, OKR management, and strategic milestone planning. Creates structured execution plans from high-level objectives.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#BDC3C7"
 model: haiku
 version: "1.0.3"
+memory: project
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

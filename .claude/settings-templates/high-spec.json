@@ -7,7 +7,9 @@
     "BASH_DEFAULT_TIMEOUT_MS": "60000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "NODE_OPTIONS": "--max-old-space-size=16384",
-    "UV_THREADPOOL_SIZE": "12"
+    "UV_THREADPOOL_SIZE": "12",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1"
   },
   "permissions": {
     "allow": [],
@@ -83,6 +85,39 @@
             "type": "command",
             "command": "~/.claude/hooks/session-end-tokens.sh",
             "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/track-tokens.sh teammate-idle",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/track-tokens.sh task-completed",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Setup": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/version-check.sh",
+            "timeout": 10
           }
         ]
       }

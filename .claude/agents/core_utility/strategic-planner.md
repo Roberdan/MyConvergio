@@ -1,11 +1,13 @@
 ---
 name: strategic-planner
 description: Strategic planner for execution plans with wave-based task decomposition. Creates plans, orchestrates parallel execution.
-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
+tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TaskCreate", "TaskList", "TaskGet", "TaskUpdate"]
 color: "#6B5B95"
 model: opus
 version: "3.0.0"
 context_isolation: true
+memory: project
+maxTurns: 40
 ---
 
 ## Security & Ethics Framework

@@ -1,11 +1,12 @@
 ---
-
 name: guardian-ai-security-validator
 description: AI Security validator for AI/ML model security, bias detection, ethical AI validation, and responsible AI compliance. Ensures AI systems meet safety and ethical standards.
 
 tools: ["security_validation", "prompt_analysis", "threat_detection", "accessibility_check"]
 model: "sonnet"
 version: "1.0.2"
+memory: user
+maxTurns: 20
 ---
 
 ## Security & Ethics Framework

@@ -337,6 +337,43 @@ function main() {
     log(colors.green, `  ✓ Installed reference docs`);
   }
 
+  // Install commands (slash commands)
+  const srcCommands = path.join(PACKAGE_ROOT, ".claude", "commands");
+  if (fs.existsSync(srcCommands)) {
+    copyRecursive(
+      srcCommands,
+      path.join(CLAUDE_HOME, "commands"),
+      installedFiles,
+    );
+    log(colors.green, `  ✓ Installed commands`);
+  }
+
+  // Install protocols
+  const srcProtocols = path.join(PACKAGE_ROOT, ".claude", "protocols");
+  if (fs.existsSync(srcProtocols)) {
+    copyRecursive(
+      srcProtocols,
+      path.join(CLAUDE_HOME, "protocols"),
+      installedFiles,
+    );
+    log(colors.green, `  ✓ Installed protocols`);
+  }
+
+  // Install settings templates
+  const srcSettingsTemplates = path.join(
+    PACKAGE_ROOT,
+    ".claude",
+    "settings-templates",
+  );
+  if (fs.existsSync(srcSettingsTemplates)) {
+    copyRecursive(
+      srcSettingsTemplates,
+      path.join(CLAUDE_HOME, "settings-templates"),
+      installedFiles,
+    );
+    log(colors.green, `  ✓ Installed settings templates`);
+  }
+
   // Save manifest for safe uninstall
   const version = getVersion();
   saveManifest(installedFiles, version);
@@ -351,7 +388,7 @@ function main() {
     process.stderr.write("    To install more agents, run:\n");
     process.stderr.write("    • myconvergio install --standard  (20 agents)\n");
     process.stderr.write(
-      "    • myconvergio install --full      (all 57 agents)\n",
+      "    • myconvergio install --full      (all 60 agents)\n",
     );
     process.stderr.write(
       "    • myconvergio install --lean      (optimized)\n\n",

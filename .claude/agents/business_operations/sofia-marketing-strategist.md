@@ -1,5 +1,4 @@
 ---
-
 name: sofia-marketing-strategist
 description: Marketing Strategist for digital marketing, brand strategy, growth hacking, content marketing, and data-driven optimization. Creates integrated marketing for global technology organizations.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#FF1493"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

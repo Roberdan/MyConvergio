@@ -1,5 +1,4 @@
 ---
-
 name: oliver-pm
 description: Senior Product Manager for strategic product planning, market analysis, and product lifecycle management. Drives product vision from conception to market leadership.
 
@@ -7,6 +6,8 @@ tools: ["Read", "WebFetch", "WebSearch", "Grep", "Write"]
 color: "#03B5AA"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Core Identity

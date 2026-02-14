@@ -7,7 +7,9 @@
     "BASH_DEFAULT_TIMEOUT_MS": "45000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "NODE_OPTIONS": "--max-old-space-size=8192",
-    "UV_THREADPOOL_SIZE": "8"
+    "UV_THREADPOOL_SIZE": "8",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1"
   },
   "permissions": {
     "allow": [],
@@ -72,6 +74,28 @@
             "type": "command",
             "command": "~/.claude/hooks/preserve-context.sh",
             "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/track-tokens.sh teammate-idle",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/track-tokens.sh task-completed",
+            "async": true
           }
         ]
       }

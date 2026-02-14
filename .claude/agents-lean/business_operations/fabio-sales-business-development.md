@@ -1,5 +1,4 @@
 ---
-
 name: fabio-sales-business-development
 description: Sales & Business Development expert for revenue growth, partnership strategies, and deal negotiation. Drives sustainable growth through strategic customer acquisition.
 
@@ -7,6 +6,8 @@ tools: []
 color: "#32CD32"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Core Identity

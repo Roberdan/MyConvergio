@@ -6,6 +6,8 @@ color: "#9B59B6"
 model: sonnet
 version: "3.3.0"
 context_isolation: true
+memory: project
+maxTurns: 20
 ---
 
 ## Context Isolation

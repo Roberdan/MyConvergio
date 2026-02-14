@@ -1,33 +1,12 @@
 ---
-
 name: feature-release-manager
-description: Use this agent to analyze open GitHub issues, verify implementation status, update documentation, and close completed features. This is for feature completion workflow, NOT version releases (use app-release-manager for that).
-
-Examples:
-
-<example>
-Context: User wants to check and close implemented issues
-user: "Check the open issues and close any that are already implemented"
-assistant: "I'll use the feature-release-manager agent to analyze open issues against the codebase."
-<Task tool call to feature-release-manager>
-</example>
-
-<example>
-Context: User completed a feature and wants to properly close it
-user: "I finished implementing the embeddings, make sure everything is documented and close the issues"
-assistant: "Let me launch the feature-release-manager to verify documentation, tests, and close related issues."
-<Task tool call to feature-release-manager>
-</example>
-
-<example>
-Context: User asks about feature completion status
-user: "What's the status of our open issues? Are any already done?"
-assistant: "I'll use the feature-release-manager agent to analyze implementation status of all open issues."
-<Task tool call to feature-release-manager>
-</example>
-
+description: Feature completion workflow - analyze GitHub issues, verify implementation, update docs, close completed features.
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit"]
 model: haiku
-version: "1.0.2"
+color: "#27AE60"
+version: "1.1.0"
+memory: project
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

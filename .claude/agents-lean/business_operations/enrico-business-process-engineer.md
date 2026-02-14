@@ -1,5 +1,4 @@
 ---
-
 name: enrico-business-process-engineer
 description: Business Process Engineer for workflow optimization, automation design, and operational efficiency. Streamlines operations through process improvement and technology enablement.
 
@@ -7,6 +6,8 @@ tools: []
 color: "#E67E22"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Core Identity

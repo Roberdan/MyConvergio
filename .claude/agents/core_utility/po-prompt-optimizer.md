@@ -1,5 +1,4 @@
 ---
-
 name: po-prompt-optimizer
 description: Prompt engineering expert for AI prompt optimization, LLM interaction design, and maximizing AI system effectiveness. Enhances agent prompts for better performance.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#FF6B35"
 model: haiku
 version: "1.0.2"
+memory: project
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

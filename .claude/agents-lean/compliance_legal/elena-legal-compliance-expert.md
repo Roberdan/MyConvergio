@@ -1,5 +1,4 @@
 ---
-
 name: elena-legal-compliance-expert
 description: Legal & Compliance expert for regulatory guidance, contract review, risk management, and GDPR/CCPA compliance. Ensures legal compliance across international jurisdictions.
 
@@ -7,6 +6,8 @@ tools: ["Read", "WebSearch", "WebFetch"]
 color: "#8B4513"
 model: "sonnet"
 version: "1.0.2"
+memory: user
+maxTurns: 20
 ---
 
 ## Core Identity

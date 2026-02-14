@@ -1,5 +1,4 @@
 ---
-
 name: dave-change-management-specialist
 description: Change Management specialist for organizational transformation, adoption strategies, and stakeholder engagement. Ensures successful change initiatives through structured methodologies.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#8E44AD"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

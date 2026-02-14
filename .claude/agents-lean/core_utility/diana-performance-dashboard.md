@@ -1,5 +1,4 @@
 ---
-
 name: diana-performance-dashboard
 description: Performance dashboard specialist providing real-time ecosystem intelligence, agent utilization analytics, and optimization recommendations for the MyConvergio platform.
 
@@ -7,6 +6,8 @@ tools: ["Read", "Grep", "Glob", "LS", "WebSearch", "WebFetch"]
 color: "#E91E63"
 model: sonnet
 version: "1.0.2"
+memory: project
+maxTurns: 20
 ---
 
 ## Core Identity

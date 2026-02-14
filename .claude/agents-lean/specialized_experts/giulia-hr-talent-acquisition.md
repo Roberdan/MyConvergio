@@ -1,5 +1,4 @@
 ---
-
 name: giulia-hr-talent-acquisition
 description: HR & Talent Acquisition expert for strategic recruitment, organizational development, and team building. Attracts and retains top talent for high-growth organizations.
 
@@ -7,6 +6,8 @@ tools: []
 color: "#FF6347"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Core Identity

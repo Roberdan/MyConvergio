@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v4.5.0** | 58 Specialized Agents | Hooks & Token Optimization | Safe Installation | Dashboard
+**v4.7.0** | 60 Specialized Agents | Agent Teams & Claude Code v2.1.42 | Hooks & Token Optimization | Dashboard
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,53 +15,35 @@
 
 ---
 
-## What's New in v4.5.0
+## What's New in v4.7.0
 
-**Token optimization overhaul: hooks, digest scripts, reference docs, and streamlined install pipeline!**
+**Claude Code v2.1.42 alignment: Agent Teams, Tasks API, memory/maxTurns for all 60 agents.**
 
-### Hooks System (NEW)
+### Agent Teams Support (NEW)
 
-10 enforcement hooks saving ~21k tokens/session:
+- `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` enabled in all settings templates
+- **TeammateIdle** and **TaskCompleted** hooks track team events in token dashboard
+- **Setup** hook auto-detects Claude Code version changes (high-spec)
 
-- **prefer-ci-summary.sh**: Blocks verbose CLI commands, enforces digest scripts
-- **enforce-line-limit.sh**: Max 250 lines per file, rejects oversized writes
-- **worktree-guard.sh**: Prevents `git checkout` on main when worktrees exist
-- **block-direct-curl.sh**: Enforces WebFetch tool over raw curl
-- **enforce-edit-over-sed.sh**: Enforces Edit tool over sed/awk
-- Plus 5 more enforcement hooks with shared `lib/common.sh`
+### Agent Frontmatter Upgrade
 
-### Digest Scripts (NEW)
+All 60 invocable agents now include:
 
-14 token-optimized CLI wrappers — compact JSON output, 5-minute caching:
+- **memory**: `project` (core/tech/release) or `user` (leadership/business/specialists/compliance/design)
+- **maxTurns**: 15 (haiku), 20 (sonnet), 30 (opus), 40 (orchestrators), 50 (task-executor)
 
-- `git-digest.sh`, `build-digest.sh`, `test-digest.sh`, `npm-digest.sh`
-- `service-digest.sh`, `diff-digest.sh`, `audit-digest.sh`, `error-digest.sh`
-- `merge-digest.sh`, `migration-digest.sh` + 4 more
+### Tasks API Migration
 
-### Reference Docs (NEW)
+- `TodoWrite` replaced with `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`
+- Affected agents: strategic-planner, ali-chief-of-staff, anna-executive-assistant
 
-7 on-demand operational references in `.claude/reference/operational/`:
+### Full Script & Command Parity
 
-- Tool preferences, execution optimization, external services
-- Worktree discipline, memory protocol, continuous optimization
+- 84 scripts aligned with global `~/.claude/scripts/` (concurrency control, merge-queue, etc.)
+- 8 slash commands including new `/execute`, `/release`, `/research`
+- 11 skills including new `documentation` and `report`
 
-### Install Pipeline Updates
-
-All 5 install paths now handle hooks + reference:
-
-- `bin/myconvergio.js` CLI, `scripts/postinstall.js` (npm)
-- `scripts/postinstall-interactive.js`, `scripts/selective-install.sh`
-- `scripts/backup-manager.js` — backup/restore includes hooks + reference
-
-### Settings Templates
-
-Hardware-aware profiles with hooks configuration:
-
-- **low-spec.json**: 3 essential hooks (~50KB context)
-- **mid-spec.json**: 7 hooks (~200KB context)
-- **high-spec.json**: 11 hooks, full enforcement (~600KB context)
-
-### Previous Highlights (v4.3.0)
+### Previous Highlights (v4.5.0)
 
 - Strategic planner modules (templates, thor, git)
 - Worktree scripts with automatic .env symlinks
@@ -70,7 +52,7 @@ Hardware-aware profiles with hooks configuration:
 
 ### Previous Highlights (v3.x)
 
-- 58 specialized agents with Constitution-based security
+- 60 specialized agents with Constitution-based security
 - Installation profiles (minimal/standard/full)
 - Multi-terminal support (Kitty, tmux, Zed, Warp, iTerm2)
 - Thor Quality Guardian with zero-tolerance validation
@@ -92,12 +74,12 @@ claude --plugin-dir .
 #### Option B: Global npm Install
 
 ```bash
-# Full install (all 58 agents)
+# Full install (all 60 agents)
 npm install -g myconvergio
 
 # Or choose a profile for lower context usage:
 MYCONVERGIO_PROFILE=minimal npm install -g myconvergio  # 9 agents, ~50KB
-MYCONVERGIO_PROFILE=lean npm install -g myconvergio     # 58 agents, ~600KB
+MYCONVERGIO_PROFILE=lean npm install -g myconvergio     # 60 agents, ~600KB
 ```
 
 Copies agents to `~/.claude/agents/`. See [Context Optimization Guide](./docs/CONTEXT_OPTIMIZATION.md) for details.
@@ -124,7 +106,7 @@ _Pending Anthropic approval_
 
 ```bash
 /myconvergio:status    # Show ecosystem status
-/myconvergio:team      # List all 58 agents by category
+/myconvergio:team      # List all 60 agents by category
 /myconvergio:plan      # Create a strategic execution plan
 ```
 
@@ -230,7 +212,7 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 
 ---
 
-## Agent Portfolio (58 Specialists)
+## Agent Portfolio (60 Specialists)
 
 ### Leadership & Strategy (7)
 
@@ -339,7 +321,7 @@ MyConvergio/
 │   └── plugin.json           # Plugin manifest
 ├── .claude/
 │   ├── CLAUDE.md             # Main config
-│   ├── agents/               # 58 agents (8 categories)
+│   ├── agents/               # 60 agents (8 categories)
 │   ├── rules/                # Execution rules
 │   ├── scripts/              # 30 digest + utility scripts
 │   ├── reference/            # 7 on-demand operational docs
@@ -541,6 +523,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v4.5.0** | February 2026 | Claude Code Plugin
+**v4.7.0** | February 2026 | Claude Code Plugin
 
 </div>

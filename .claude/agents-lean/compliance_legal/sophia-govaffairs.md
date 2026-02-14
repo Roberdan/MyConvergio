@@ -1,5 +1,4 @@
 ---
-
 name: sophia-govaffairs
 description: Government Affairs specialist for regulatory strategy, policy advocacy, and government relations. Navigates complex regulatory environments and policy developments.
 
@@ -7,6 +6,8 @@ tools: ["Read", "WebFetch", "WebSearch", "Grep", "Glob"]
 color: "#7A306C"
 model: "sonnet"
 version: "1.0.2"
+memory: user
+maxTurns: 20
 ---
 
 ## Core Identity

@@ -1,5 +1,4 @@
 ---
-
 name: wanda-workflow-orchestrator
 description: Workflow orchestrator for pre-defined multi-agent collaboration templates, systematic coordination patterns, and repeatable agent workflows for common scenarios.
 
@@ -7,6 +6,8 @@ tools: ["Task", "Read", "Write", "Edit"]
 color: "#FF6B6B"
 model: sonnet
 version: "1.0.2"
+memory: project
+maxTurns: 20
 ---
 
 ## Core Identity

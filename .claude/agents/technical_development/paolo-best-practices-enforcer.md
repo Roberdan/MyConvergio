@@ -1,5 +1,4 @@
 ---
-
 name: paolo-best-practices-enforcer
 description: Coding standards enforcer for development workflows, team consistency, and quality gates. Establishes and maintains engineering excellence across development teams.
 
@@ -9,6 +8,8 @@ tools: ["Read", "Glob", "Grep", "Bash", "WebSearch", "Write", "Edit"]
 color: "#27AE60"
 model: "haiku"
 version: "1.0.2"
+memory: project
+maxTurns: 15
 ---
 
 <!--

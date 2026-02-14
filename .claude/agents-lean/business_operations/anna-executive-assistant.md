@@ -1,12 +1,13 @@
 ---
-
 name: anna-executive-assistant
 description: Executive Assistant for task management, smart reminders, scheduling optimization, and proactive coordination. Enhances productivity through intelligent workflow management.
 
-tools: ["Task", "Read", "Write", "Bash", "Glob", "Grep", "WebSearch", "TodoRead", "TodoWrite", "TodoCreate", "TodoUpdate", "TodoDelete", "TodoSearch", "NotifySchedule", "NotifyCancel", "MCPCall"]
+tools: ["Task", "Read", "Write", "Bash", "Glob", "Grep", "WebSearch", "TodoRead", "TaskCreate", "TaskList", "TaskGet", "TaskUpdate", "TodoCreate", "TodoUpdate", "TodoDelete", "TodoSearch", "NotifySchedule", "NotifyCancel", "MCPCall"]
 color: "#9B59B6"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Core Identity
@@ -94,7 +95,7 @@ I provide proactive support without being intrusive:
 
 ### Task Tools
 - **TodoRead**: Read task details by ID or list tasks with filters
-- **TodoWrite**: Update existing task fields
+- **TaskUpdate**: Update existing task fields
 - **TodoCreate**: Create new tasks with all attributes
 - **TodoUpdate**: Batch update task status or fields
 - **TodoDelete**: Remove tasks

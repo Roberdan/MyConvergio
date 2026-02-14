@@ -1,5 +1,4 @@
 ---
-
 name: marco-devops-engineer
 description: DevOps Engineer for CI/CD pipelines, Infrastructure as Code, container orchestration (Kubernetes), cloud automation, and deployment strategies. ISE Engineering Fundamentals compliant.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#1F77B4"
 model: "haiku"
 version: "1.0.2"
+memory: project
+maxTurns: 15
 ---
 
 <!--

@@ -5,6 +5,29 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0] - 2026-02-14
+
+### Added
+
+- **Agent Teams support**: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env var in all settings templates
+- **TeammateIdle/TaskCompleted hooks**: Track team events in token dashboard (all settings tiers)
+- **Setup hook**: Auto-detect Claude Code version changes via version-check.sh (high-spec)
+- **memory field**: Added to all 60 invocable agents (user/project scope based on category)
+- **maxTurns field**: Added to all 60 invocable agents (15-50 based on role complexity)
+
+### Changed
+
+- **TodoWrite → Tasks API**: Migrated strategic-planner, ali-chief-of-staff, anna-executive-assistant to TaskCreate/TaskList/TaskGet/TaskUpdate
+- **EXECUTION_DISCIPLINE.md**: Updated TodoWrite reference to TaskCreate
+- **track-tokens.sh**: Added teammate-idle and task-completed event handling
+- **Settings templates**: Added AGENT_TEAMS env var
+
+### Fixed
+
+- Agent frontmatter alignment with Claude Code v2.1.42 schema (memory, maxTurns fields)
+
+---
+
 ## [4.6.0] - 2026-02-07
 
 ### Added

@@ -1,5 +1,4 @@
 ---
-
 name: andrea-customer-success-manager
 description: Customer Success Manager for lifecycle management, retention strategies, and customer satisfaction. Ensures customers achieve outcomes and maximizes lifetime value.
 
@@ -9,6 +8,8 @@ tools: []
 color: "#20B2AA"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Security & Ethics Framework

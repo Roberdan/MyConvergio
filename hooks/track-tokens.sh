@@ -37,8 +37,23 @@ record_api_async() {
   echo "Recorded tokens via API"
 }
 
-# Parse input
-if [[ $# -ge 5 ]]; then
+# Parse hook event types (TeammateIdle, TaskCompleted)
+if [[ "${1:-}" == "teammate-idle" ]] || [[ "${1:-}" == "task-completed" ]]; then
+  event_type="$1"
+  if [[ ! -t 0 ]]; then
+    json=$(cat)
+    agent_name=$(echo "$json" | jq -r '.agent_name // .teammate_name // "unknown"' 2>/dev/null)
+    project=$(echo "$json" | jq -r '.project // "unknown"' 2>/dev/null)
+    if [[ -f "$DB_FILE" ]]; then
+      {
+        sqlite3 "$DB_FILE" "
+        INSERT INTO token_usage (project_id, agent, model, input_tokens, output_tokens, cost_usd)
+        VALUES ('$project', '$agent_name:$event_type', 'team-event', 0, 0, 0);
+        " 2>/dev/null
+      } &
+    fi
+  fi
+elif [[ $# -ge 5 ]]; then
   record_sqlite_async "$1" "NULL" "" "" "$2" "$3" "$4" "$5" "${6:-0}"
 elif [[ -n "${PROJECT_ID:-}" ]] && [[ -n "${AGENT:-}" ]] && [[ -n "${MODEL:-}" ]]; then
   record_sqlite_async "$PROJECT_ID" "${PLAN_ID:-NULL}" "${WAVE_ID:-}" "${TASK_ID:-}" \

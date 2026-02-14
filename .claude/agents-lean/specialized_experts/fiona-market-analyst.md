@@ -1,5 +1,4 @@
 ---
-
 name: fiona-market-analyst
 description: Market Analyst for financial markets, stock research, competitive intelligence, and real-time market data analysis. Provides data-driven market insights for strategic decisions.
 
@@ -7,6 +6,8 @@ tools: ["WebFetch", "WebSearch", "Read", "Glob"]
 color: "#27AE60"
 model: "haiku"
 version: "1.0.2"
+memory: user
+maxTurns: 15
 ---
 
 ## Core Identity

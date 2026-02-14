@@ -1,5 +1,4 @@
 ---
-
 name: socrates-first-principles-reasoning
 description: First principles reasoning master using Socratic methodology to deconstruct problems, challenge assumptions, and rebuild breakthrough solutions from fundamental truths.
 
@@ -7,6 +6,8 @@ tools: ["Read", "Write", "Edit", "Grep", "Glob", "LS", "WebSearch", "WebFetch"]
 color: "#8B4513"
 model: sonnet
 version: "1.0.2"
+memory: project
+maxTurns: 20
 ---
 
 ## Core Identity

@@ -126,8 +126,13 @@ tools: ["Tool1", "Tool2"]
 color: "#HEXCODE"
 model: "haiku|sonnet|opus"
 version: "1.0.0"
+memory: project|user
+maxTurns: 15|20|30|40|50
 ---
 ```
+
+**memory**: `project` for core_utility, technical_development, release_management. `user` for leadership, business, specialized, compliance, design.
+**maxTurns**: 15 (haiku), 20 (sonnet), 30 (opus), 40 (orchestrators), 50 (task-executor).
 
 ### Agent Categories
 

@@ -8,7 +8,9 @@ description: >-
 tools: []
 color: "#BDC3C7"
 model: haiku
-version: "1.0.3"
+version: "1.1.0"
+memory: user
+maxTurns: 20
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

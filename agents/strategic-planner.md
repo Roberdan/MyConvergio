@@ -1,10 +1,25 @@
 ---
 name: strategic-planner
 description: "Strategic planner for execution plans with wave-based task decomposition. Creates plans, orchestrates parallel execution. References separate modules for templates, Kitty orchestration, Thor validation, and Git workflow."
-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TodoWrite"]
+tools:
+  [
+    "Read",
+    "Write",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Bash",
+    "Task",
+    "TaskCreate",
+    "TaskList",
+    "TaskGet",
+    "TaskUpdate",
+  ]
 model: opus
-version: "2.0.0"
+version: "2.1.0"
 context_isolation: true
+memory: project
+maxTurns: 40
 ---
 
 ## Security & Ethics Framework

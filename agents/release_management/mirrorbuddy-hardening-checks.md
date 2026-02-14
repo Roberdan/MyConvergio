@@ -1,7 +1,10 @@
 ---
 name: mirrorbuddy-hardening-checks
 description: Production hardening validation for MirrorBuddy releases. Used by app-release-manager.
-version: "1.0.0"
+tools: ["Read", "Grep", "Glob", "Bash", "Task"]
+version: "1.1.0"
+memory: project
+maxTurns: 20
 ---
 
 # MirrorBuddy Production Hardening Checks
@@ -9,6 +12,7 @@ version: "1.0.0"
 ## When to Run
 
 Run these checks before ANY release of MirrorBuddy:
+
 - Version bumps
 - Feature releases
 - Hotfixes to production
@@ -47,20 +51,20 @@ grep -q "HEALTHCHECK" Dockerfile
 
 ### 3. Observability
 
-| Check | Command | Pass Criteria |
-|-------|---------|---------------|
-| Structured logger | `grep "JSON.stringify" src/lib/logger/` | Present |
-| Health endpoint | `curl /api/health` | Returns JSON |
-| Detailed health | `curl /api/health/detailed` | Returns JSON |
+| Check             | Command                                 | Pass Criteria |
+| ----------------- | --------------------------------------- | ------------- |
+| Structured logger | `grep "JSON.stringify" src/lib/logger/` | Present       |
+| Health endpoint   | `curl /api/health`                      | Returns JSON  |
+| Detailed health   | `curl /api/health/detailed`             | Returns JSON  |
 
 ### 4. Documentation
 
-| Document | Location | Required |
-|----------|----------|----------|
-| SLI/SLO definitions | `docs/operations/SLI-SLO.md` | Yes |
-| Incident runbook | `docs/operations/RUNBOOK.md` | Yes |
-| Procedures | `docs/operations/RUNBOOK-PROCEDURES.md` | Yes |
-| Deferred items ADR | `docs/adr/0037-*.md` | Yes |
+| Document            | Location                                | Required |
+| ------------------- | --------------------------------------- | -------- |
+| SLI/SLO definitions | `docs/operations/SLI-SLO.md`            | Yes      |
+| Incident runbook    | `docs/operations/RUNBOOK.md`            | Yes      |
+| Procedures          | `docs/operations/RUNBOOK-PROCEDURES.md` | Yes      |
+| Deferred items ADR  | `docs/adr/0037-*.md`                    | Yes      |
 
 ```bash
 # Verify docs exist
@@ -132,6 +136,6 @@ After each release, verify:
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-01-11 | Initial checklist |
+| Version | Date       | Changes           |
+| ------- | ---------- | ----------------- |
+| 1.0.0   | 2025-01-11 | Initial checklist |

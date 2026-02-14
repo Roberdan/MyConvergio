@@ -8,7 +8,9 @@ description: >-
 tools: ["Task", "Read", "Write", "Edit", "Grep", "Glob"]
 color: "#2E7D32"
 model: sonnet
-version: "2.0.0"
+version: "2.1.0"
+memory: user
+maxTurns: 20
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

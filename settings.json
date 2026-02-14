@@ -6,7 +6,8 @@
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "NODE_OPTIONS": "--max-old-space-size=16384",
     "UV_THREADPOOL_SIZE": "12",
-    "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1"
+    "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "permissions": {
     "allow": [
@@ -62,7 +63,7 @@
         ]
       },
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|MultiEdit|Write",
         "hooks": [
           {
             "type": "command",
@@ -103,6 +104,15 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/version-check.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [
@@ -123,6 +133,28 @@
           }
         ]
       }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/track-tokens.sh teammate-idle",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/track-tokens.sh task-completed",
+            "async": true
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -135,5 +167,6 @@
   },
   "language": "italian",
   "autoUpdatesChannel": "latest",
-  "plansDirectory": "~/.claude/plans"
+  "plansDirectory": "~/.claude/plans",
+  "skipDangerousModePermissionPrompt": true
 }

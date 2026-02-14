@@ -5,8 +5,10 @@ tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task"]
 disallowedTools: ["WebSearch", "WebFetch"]
 color: "#10b981"
 model: sonnet
-version: "2.0.0"
+version: "2.1.0"
 context_isolation: true
+memory: project
+maxTurns: 50
 ---
 
 # Task Executor

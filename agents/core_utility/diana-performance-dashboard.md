@@ -7,7 +7,9 @@ description: >-
 tools: ["Read", "Grep", "Glob", "LS", "WebSearch", "WebFetch"]
 color: "#E91E63"
 model: sonnet
-version: "1.0.2"
+version: "1.1.0"
+memory: user
+maxTurns: 15
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

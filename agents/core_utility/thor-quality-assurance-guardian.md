@@ -4,8 +4,11 @@ description: Brutal quality gatekeeper. Zero tolerance for incomplete work. Vali
 tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 color: "#9B59B6"
 model: sonnet
-version: "3.3.0"
+version: "3.4.0"
 context_isolation: true
+memory: project
+maxTurns: 30
+skills: ["code-review"]
 ---
 
 # Thor - Quality Gatekeeper

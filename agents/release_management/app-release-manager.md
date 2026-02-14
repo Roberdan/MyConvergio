@@ -1,9 +1,13 @@
 ---
 name: app-release-manager
 description: BRUTAL Release Manager ensuring production-ready quality. Parallel validation in 5+ phases. References app-release-manager-execution.md for phases 3-5. Added i18n, SEO, and maestri validation gates.
+tools: ["Read", "Glob", "Grep", "Bash", "Task"]
 model: sonnet
 color: "#FF0000"
-version: "3.2.0"
+version: "3.3.0"
+memory: project
+maxTurns: 40
+skills: ["security-audit"]
 ---
 
 ## Security & Ethics Framework

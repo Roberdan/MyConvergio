@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/enforce-standards.sh",
+        "timeoutSec": 10
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/worktree-guard.sh",
+        "timeoutSec": 10
+      }
+    ],
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/enforce-line-limit.sh",
+        "timeoutSec": 10
+      }
+    ],
+    "sessionEnd": [
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/session-tokens.sh",
+        "timeoutSec": 15
+      }
+    ]
+  }
+}

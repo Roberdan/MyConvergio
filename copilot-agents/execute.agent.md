@@ -2,6 +2,7 @@
 name: execute
 description: Execute plan tasks with TDD workflow, drift detection, and worktree enforcement.
 tools: ["read", "edit", "search", "execute"]
+model: gpt-5.3-codex
 handoffs:
   - label: Validate Wave
     agent: validate
@@ -12,13 +13,28 @@ handoffs:
 # Plan Executor
 
 Execute plan tasks with mandatory drift check, worktree guard, and TDD.
+Works with ANY repository — auto-detects project context.
+
+## Model Selection
+
+Default: `gpt-5.3-codex` (best code generation).
+Override per-task using `model` field from spec.json:
+
+| Task model value | Copilot CLI model |
+|---|---|
+| `codex` / `gpt-5.3-codex` | `gpt-5.3-codex` |
+| `opus` / `claude-opus-4.6` | `claude-opus-4.6` |
+| `opus-1m` | `claude-opus-4.6-1m` |
+| `sonnet` | `claude-sonnet-4` |
+| `haiku` | `claude-haiku-4.5` |
+| `codex-mini` | `gpt-5.1-codex-mini` |
 
 ## CRITICAL RULES
 
-1. **NEVER work on main/master** - Run worktree-guard.sh FIRST
-2. **NEVER skip drift check** - Always run before first task
-3. **TDD mandatory** - Tests BEFORE implementation
-4. **One task at a time** - Mark in_progress, execute, mark done
+1. **NEVER work on main/master** — Run worktree-guard.sh FIRST
+2. **NEVER skip drift check** — Always run before first task
+3. **TDD mandatory** — Tests BEFORE implementation
+4. **One task at a time** — Mark in_progress, execute, mark done
 
 ## Workflow
 
@@ -27,15 +43,13 @@ Execute plan tasks with mandatory drift check, worktree guard, and TDD.
 ```bash
 export PATH="$HOME/.claude/scripts:$PATH"
 
-# Auto-detect project and active plan from current directory
-INIT=$(planner-init.sh)
+INIT=$(planner-init.sh 2>/dev/null) || INIT='{"project_id":1}'
 PROJECT_ID=$(echo "$INIT" | jq -r '.project_id')
-# Find active plan (status=doing or todo)
 PLAN_ID=$(echo "$INIT" | jq -r '.active_plans[0].id // empty')
 
 if [[ -z "$PLAN_ID" ]]; then
   echo "No active plan for project $PROJECT_ID."
-  echo "Active plans:" && plan-db.sh list "$PROJECT_ID"
+  plan-db.sh list "$PROJECT_ID"
   echo "Specify plan_id to execute."
   exit 1
 fi
@@ -43,7 +57,6 @@ fi
 CTX=$(plan-db.sh get-context $PLAN_ID)
 echo "$CTX" | jq '{name, status, tasks_done, tasks_total, framework, worktree_path}'
 WORKTREE_PATH=$(echo "$CTX" | jq -r '.worktree_path')
-FRAMEWORK=$(echo "$CTX" | jq -r '.framework')
 cd "$WORKTREE_PATH" && pwd
 [[ "$(echo "$CTX" | jq -r '.status')" != "doing" ]] && plan-db.sh start $PLAN_ID
 plan-db.sh check-readiness $PLAN_ID
@@ -84,7 +97,7 @@ plan-db.sh update-task {db_task_id} in_progress "Started"
 # Minimum code to pass tests
 
 # 4. Verify
-git-digest.sh --full
+git-digest.sh --full 2>/dev/null || git --no-pager status
 
 # 5. Complete
 plan-db.sh update-task {db_task_id} done "Summary"
@@ -92,22 +105,14 @@ plan-db.sh update-task {db_task_id} done "Summary"
 
 ### Phase 3.5: Output Data (Inter-Wave Communication)
 
-When completing a task, include `output_data` for inter-wave communication:
-
 ```bash
 plan-db.sh update-task {db_task_id} done "Summary" \
   --output-data '{"summary":"what was accomplished","artifacts":["file/path"]}'
 ```
 
-**Use when:**
-
-- Task produces data consumed by later waves (e.g., migration scripts, API endpoints)
-- Next wave has preconditions depending on this task's output
-- You need to pass context forward (e.g., generated IDs, config paths)
+Use when task produces data consumed by later waves.
 
 ### Phase 4: Wave Completion
-
-When all tasks in a wave are done:
 
 ```bash
 plan-db.sh validate $PLAN_ID
@@ -115,14 +120,15 @@ plan-db.sh validate $PLAN_ID
 
 ## Task Format
 
-Tasks come from `CTX.pending_tasks` JSON array:
+Tasks from `CTX.pending_tasks` JSON:
 
-- `db_id`: numeric ID for plan-db.sh commands
+- `db_id`: numeric ID for plan-db.sh
 - `task_id`: display ID (T1-01)
 - `title`: what to do
 - `description`: detailed instructions
 - `test_criteria`: what tests to write
-- `wave_id`: which wave (W1, W2, etc.)
+- `wave_id`: which wave
+- `model`: which AI model (see routing table)
 
 ## Coding Standards
 

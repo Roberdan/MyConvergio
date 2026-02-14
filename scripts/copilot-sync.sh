@@ -55,8 +55,14 @@ status() {
 	check_file "$COPILOT_DIR/hooks/session-tokens.sh" "sessionEnd: token tracking"
 
 	echo ""
-	echo "Global Agents:"
+	echo "Core Agents (orchestration pipeline):"
 	for agent in prompt planner execute validate; do
+		check_file "$COPILOT_DIR/agents/${agent}.agent.md" "agent: $agent"
+	done
+
+	echo ""
+	echo "Extended Agents (universal):"
+	for agent in strategic-planner code-reviewer tdd-executor compliance-checker; do
 		check_file "$COPILOT_DIR/agents/${agent}.agent.md" "agent: $agent"
 	done
 
@@ -65,6 +71,15 @@ status() {
 	for f in "$COPILOT_DIR"/agents/*.agent.md; do
 		[ -f "$f" ] && check_model_ref "$f"
 	done
+
+	echo ""
+	echo "Model Routing:"
+	local instructions="$COPILOT_DIR/copilot-instructions.md"
+	if [ -f "$instructions" ] && grep -q "Model Routing Table" "$instructions"; then
+		ok "Model routing table present in global instructions"
+	else
+		warn "Model routing table MISSING from global instructions"
+	fi
 
 	# Check hooks.json completeness
 	echo ""
@@ -94,27 +109,39 @@ sync_config() {
 	# Ensure directories exist
 	mkdir -p "$COPILOT_DIR/hooks" "$COPILOT_DIR/agents"
 
-	# Fix model references in MirrorBuddy agents
-	local mb_agents="$HOME/GitHub/MirrorBuddy/.github/agents"
-	if [ -d "$mb_agents" ]; then
-		for f in "$mb_agents"/*.agent.md; do
-			if grep -q "Opus 4.5" "$f" 2>/dev/null; then
-				sed -i '' 's/Opus 4\.5/Opus 4.6/g' "$f"
-				ok "Fixed model ref: $(basename "$f")"
-			fi
-		done
-	fi
+	# Fix model references in project agents (any repo)
+	for repo_dir in "$HOME"/GitHub/*/; do
+		local agents_dir="${repo_dir}.github/agents"
+		if [ -d "$agents_dir" ]; then
+			for f in "$agents_dir"/*.agent.md; do
+				if grep -q "Opus 4.5" "$f" 2>/dev/null; then
+					sed -i '' 's/Opus 4\.5/Opus 4.6/g' "$f"
+					ok "Fixed model ref: $(basename "$f") ($(basename "$repo_dir"))"
+				fi
+			done
+		fi
+	done
 
 	# Ensure hooks are executable
 	chmod +x "$COPILOT_DIR/hooks/"*.sh 2>/dev/null || true
 
-	# Verify agent symlinks
+	# Symlink all agents from source
 	local src="$CLAUDE_DIR/copilot-agents"
 	if [ -d "$src" ]; then
+		# Core agents
 		for agent in prompt planner execute validate; do
 			local target="$COPILOT_DIR/agents/${agent}.agent.md"
 			local source="$src/${agent}.agent.md"
-			if [ -f "$source" ] && [ ! -L "$target" ]; then
+			if [ -f "$source" ]; then
+				ln -sf "$source" "$target"
+				ok "Symlinked: $agent"
+			fi
+		done
+		# Extended agents
+		for agent in strategic-planner code-reviewer tdd-executor compliance-checker; do
+			local target="$COPILOT_DIR/agents/${agent}.agent.md"
+			local source="$src/${agent}.agent.md"
+			if [ -f "$source" ]; then
 				ln -sf "$source" "$target"
 				ok "Symlinked: $agent"
 			fi

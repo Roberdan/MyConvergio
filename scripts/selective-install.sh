@@ -258,10 +258,10 @@ if [ -n "$AGENTS" ]; then
 		agent_name=$(echo "$agent_name" | xargs) # trim whitespace
 
 		# Find agent file across all categories
-		local found=false
+		found=false
 		for category in "$PROJECT_ROOT/.claude/agents"/*; do
 			[ -d "$category" ] || continue
-			local agent_file="$category/$agent_name.md"
+			agent_file="$category/$agent_name.md"
 			if [ -f "$agent_file" ]; then
 				install_agent "$agent_file" "$(basename "$category")"
 				found=true
@@ -284,7 +284,7 @@ else
 	# Install tier
 	info "Installing tier: $TIER"
 
-	local tier_cats=$(get_categories_for_tier "$TIER")
+	tier_cats=$(get_categories_for_tier "$TIER")
 	for category in $tier_cats; do
 		install_category "$category"
 	done
@@ -300,7 +300,7 @@ if [ -d "$PROJECT_ROOT/hooks" ]; then
 	cp "$PROJECT_ROOT"/hooks/*.sh "$TARGET_DIR/hooks/" 2>/dev/null || true
 	cp "$PROJECT_ROOT"/hooks/lib/*.sh "$TARGET_DIR/hooks/lib/" 2>/dev/null || true
 	chmod +x "$TARGET_DIR"/hooks/*.sh "$TARGET_DIR"/hooks/lib/*.sh 2>/dev/null || true
-	local hooks_count=$(find "$TARGET_DIR/hooks" -name "*.sh" -type f | wc -l | xargs)
+	hooks_count=$(find "$TARGET_DIR/hooks" -name "*.sh" -type f | wc -l | xargs)
 	success "Installed $hooks_count hooks"
 fi
 
@@ -343,14 +343,14 @@ info "Rules installed to: $TARGET_DIR/rules/"
 # Show summary
 echo ""
 info "Installation Summary:"
-local agent_count=$(find "$TARGET_DIR/agents" -name "*.md" -type f | wc -l | xargs)
-local rules_count=$(find "$TARGET_DIR/rules" -name "*.md" -type f 2>/dev/null | wc -l | xargs)
+agent_count=$(find "$TARGET_DIR/agents" -name "*.md" -type f | wc -l | xargs)
+rules_count=$(find "$TARGET_DIR/rules" -name "*.md" -type f 2>/dev/null | wc -l | xargs)
 echo "  Agents: $agent_count"
 echo "  Rules: $rules_count"
 echo "  Variant: $VARIANT"
 
 # Estimate context size
-local context_size="unknown"
+context_size="unknown"
 case "$TIER" in
 minimal)
 	context_size="~50KB"

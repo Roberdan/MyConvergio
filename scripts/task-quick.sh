@@ -8,6 +8,7 @@
 #   status              - Show current task status
 #   next                - Show next pending task
 
+# Version: 1.0.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

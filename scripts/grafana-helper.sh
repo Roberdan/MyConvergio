@@ -2,6 +2,7 @@
 # Grafana HTTP API helper
 # Replaces Grafana MCP (13.8k token overhead)
 
+# Version: 1.0.0
 set -euo pipefail
 
 # Load from .env if exists

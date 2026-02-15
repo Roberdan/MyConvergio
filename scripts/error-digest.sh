@@ -4,6 +4,7 @@
 # Usage: some-command 2>&1 | error-digest.sh
 #   Or: error-digest.sh < logfile.txt
 #   Or: error-digest.sh --run "npm test"  (captures and parses)
+# Version: 1.1.0
 set -euo pipefail
 
 MODE="stdin"
@@ -14,10 +15,11 @@ if [[ "${1:-}" == "--run" ]]; then
 fi
 
 TMPLOG=$(mktemp)
-trap "rm -f '$TMPLOG'" EXIT
+trap "rm -f '$TMPLOG'" EXIT INT TERM
 
 if [[ "$MODE" == "run" ]]; then
-	eval "$CMD" >"$TMPLOG" 2>&1 || true
+	read -ra CMD_ARGS <<<"$CMD"
+	"${CMD_ARGS[@]}" >"$TMPLOG" 2>&1 || true
 else
 	cat >"$TMPLOG"
 fi
@@ -50,8 +52,10 @@ NODE_ERRORS=$(perl -0777 -ne '
 		$line //= "";
 		$type //= "Error";
 
-		# Escape for JSON
+		# Escape for JSON (backslashes first, then quotes)
+		$msg =~ s/\\/\\\\/g;
 		$msg =~ s/"/\\"/g;
+		$file =~ s/\\/\\\\/g;
 		$file =~ s/"/\\"/g;
 		push @errors, sprintf("{\"type\":\"%s\",\"msg\":\"%s\",\"file\":\"%s\",\"line\":%s}",
 			$type, $msg, $file, $line || "null");

@@ -2,6 +2,7 @@
 # Service Digest - Unified entry point for all service digests
 # Single call for CI + PR + Deploy status. Minimal tokens.
 # Usage: service-digest.sh <ci|pr|deploy|all> [args...] [--no-cache]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -48,20 +49,20 @@ all)
 	DEPLOY_JSON=$(cat "$TMPDIR_ALL/deploy.json" 2>/dev/null || echo '{}')
 	SENTRY_JSON=$(cat "$TMPDIR_ALL/sentry.json" 2>/dev/null || echo '{}')
 
-	# If a sub-script failed and produced no JSON, include stderr
-	if { [[ -z "$CI_JSON" ]] || [[ "$CI_JSON" == "{}" ]]; } && [[ -s "$TMPDIR_ALL/ci.err" ]]; then
+	# If a sub-script failed and produced no valid JSON, include stderr
+	if ! echo "$CI_JSON" | jq empty 2>/dev/null && [[ -s "$TMPDIR_ALL/ci.err" ]]; then
 		CI_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/ci.err" | tr '\n' ' ' | cut -c1-200)" \
 			'{"status":"script_error","msg":$msg}')
 	fi
-	if { [[ -z "$PR_JSON" ]] || [[ "$PR_JSON" == "{}" ]]; } && [[ -s "$TMPDIR_ALL/pr.err" ]]; then
+	if ! echo "$PR_JSON" | jq empty 2>/dev/null && [[ -s "$TMPDIR_ALL/pr.err" ]]; then
 		PR_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/pr.err" | tr '\n' ' ' | cut -c1-200)" \
 			'{"status":"script_error","msg":$msg}')
 	fi
-	if { [[ -z "$DEPLOY_JSON" ]] || [[ "$DEPLOY_JSON" == "{}" ]]; } && [[ -s "$TMPDIR_ALL/deploy.err" ]]; then
+	if ! echo "$DEPLOY_JSON" | jq empty 2>/dev/null && [[ -s "$TMPDIR_ALL/deploy.err" ]]; then
 		DEPLOY_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/deploy.err" | tr '\n' ' ' | cut -c1-200)" \
 			'{"status":"script_error","msg":$msg}')
 	fi
-	if { [[ -z "$SENTRY_JSON" ]] || [[ "$SENTRY_JSON" == "{}" ]]; } && [[ -s "$TMPDIR_ALL/sentry.err" ]]; then
+	if ! echo "$SENTRY_JSON" | jq empty 2>/dev/null && [[ -s "$TMPDIR_ALL/sentry.err" ]]; then
 		SENTRY_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/sentry.err" | tr '\n' ' ' | cut -c1-200)" \
 			'{"status":"script_error","msg":$msg}')
 	fi

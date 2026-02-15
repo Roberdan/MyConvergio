@@ -2,6 +2,7 @@
 # Build Digest - Compact build output as JSON
 # Auto-detects Next.js/Vite/generic. Captures build output server-side.
 # Usage: build-digest.sh [--no-cache] [extra-args...]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,7 +30,7 @@ elif [[ -f "vite.config.ts" || -f "vite.config.js" ]]; then
 fi
 
 TMPLOG=$(mktemp)
-trap "rm -f '$TMPLOG'" EXIT
+trap "rm -f '$TMPLOG'" EXIT INT TERM
 
 # Run build, capture to temp file
 EXIT_CODE=0
@@ -39,7 +40,7 @@ STATUS="ok"
 [[ "$EXIT_CODE" -ne 0 ]] && STATUS="error"
 
 # Extract errors
-ERRORS=$(grep -iE 'error[[:space:]:]|Error:|FAIL|Module not found|Cannot find|SyntaxError|TypeError' "$TMPLOG" |
+ERRORS=$(grep -iE '\berror[[:space:]:]|\bError:|\bFAIL\b|Module not found|Cannot find|SyntaxError|TypeError' "$TMPLOG" |
 	grep -viE 'warning|warn|deprecat|experimental|Linting' |
 	sed 's/^[[:space:]]*//' |
 	sort -u | head -10 |

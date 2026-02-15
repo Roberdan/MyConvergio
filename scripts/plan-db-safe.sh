@@ -1,8 +1,12 @@
 #!/bin/bash
+# DEPRECATED: Pre-check wrapper never integrated into main workflow.
+# Safe to delete.
+#
 # plan-db-safe.sh - Safe wrapper around plan-db.sh
 # Pre-checks before allowing update-task to "done" status
 # Usage: plan-db-safe.sh <any plan-db.sh args>
 
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -2,6 +2,7 @@
 # Deploy Digest - Compact Vercel deployment status as JSON
 # Extracts status + errors only. No raw build logs.
 # Usage: deploy-digest.sh [deployment-url] [--no-cache]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -45,7 +46,7 @@ fi
 
 # Fetch deployment info via vercel inspect
 TMPINSPECT=$(mktemp)
-trap "rm -f '$TMPINSPECT'" EXIT
+trap "rm -f '$TMPINSPECT'" EXIT INT TERM
 vercel inspect "$DEPLOYMENT" >"$TMPINSPECT" 2>&1 || true
 
 # Parse inspect output (unstructured text, extract key fields)

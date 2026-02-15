@@ -8,6 +8,7 @@
 #   check-wave <plan_id> <wave_db_id>  - Check overlap within a wave
 #   check-plan <plan_id>               - Check all waves in a plan
 #   check-spec <spec.json>             - Check a spec file before import
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -44,7 +45,7 @@ _find_overlaps() {
 	local max_overlap=0
 	local tmpdir
 	tmpdir=$(mktemp -d)
-	trap "rm -rf '$tmpdir'" RETURN
+	trap "rm -rf '$tmpdir'" EXIT INT TERM
 
 	# Build file sets per task (using temp files instead of associative arrays)
 	local tids=""

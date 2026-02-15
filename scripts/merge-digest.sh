@@ -4,6 +4,7 @@
 # Usage: merge-digest.sh [--rebase] [branch]
 #   After a failed merge/rebase, run this to get structured conflicts.
 #   Without args: scans working tree for conflict markers.
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -48,17 +49,17 @@ while IFS= read -r filepath; do
 
 	# Extract conflict blocks with perl (handles multi-line blocks)
 	BLOCKS=$(perl -0777 -ne '
+		use JSON::PP;
 		my @blocks;
-		while (/^<{7}\s*(.*?)\n(.*?)^={7}\n(.*?)^>{7}\s*(.*?)\n/msg) {
+		while (/^<{7}\s*(.*?)\r?\n(.*?)^={7}\r?\n(.*?)^>{7}\s*(.*?)\r?\n/msg) {
 			my ($ours_label, $ours, $theirs, $theirs_label) = ($1, $2, $3, $4);
-			$ours =~ s/\n/\\n/g;
-			$theirs =~ s/\n/\\n/g;
-			# Truncate long blocks
+			$ours =~ s/\r\n/\n/g;
+			$theirs =~ s/\r\n/\n/g;
 			$ours = substr($ours, 0, 300) . "..." if length($ours) > 300;
 			$theirs = substr($theirs, 0, 300) . "..." if length($theirs) > 300;
-			push @blocks, "{\"ours\":\"$ours\",\"theirs\":\"$theirs\"}";
+			push @blocks, {ours => $ours, theirs => $theirs};
 		}
-		print "[" . join(",", @blocks) . "]";
+		print encode_json(\@blocks);
 	' "$filepath" 2>/dev/null || echo "[]")
 
 	BLOCK_COUNT=$(echo "$BLOCKS" | jq 'length' 2>/dev/null || echo 0)

@@ -2,6 +2,7 @@
 # CI Digest - Compact GitHub Actions status as JSON (~200 tokens)
 # Replaces ci-check.sh for AI consumption. Processes logs server-side.
 # Usage: ci-digest.sh [run-id|--all] [--no-cache]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -65,10 +66,10 @@ FAILED_COUNT=$(echo "$JOBS" | jq '[.[] | select(.s == "fail")] | length')
 ERRORS="[]"
 if [[ "$FAILED_COUNT" -gt 0 ]]; then
 	TMPLOG=$(mktemp)
-	trap "rm -f '$TMPLOG'" EXIT
+	trap "rm -f '$TMPLOG'" EXIT INT TERM
 
-	# Capture log to temp file — never hits tool output
-	gh run view "$RUN_ID" --log-failed >"$TMPLOG" 2>/dev/null || true
+	# Capture log to temp file — never hits tool output (limit to 5000 lines)
+	gh run view "$RUN_ID" --log-failed 2>/dev/null | head -5000 >"$TMPLOG" || true
 
 	if [[ -s "$TMPLOG" ]]; then
 		# Extract structured errors: job name + error message

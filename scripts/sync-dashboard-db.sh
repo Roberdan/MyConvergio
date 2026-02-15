@@ -1,6 +1,7 @@
 #!/bin/bash
 # sync-dashboard-db.sh - Sync dashboard.db between machines
 # Usage: sync-dashboard-db.sh [push|pull|incremental|status]
+# Version: 1.1.0
 set -e
 
 CONFIG_FILE="$HOME/.claude/config/sync-db.conf"
@@ -24,6 +25,9 @@ NC='\033[0m'
 log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+# SQL escape helper
+sql_escape() { echo "${1//\'/\'\'}"; }
 
 check_ssh() {
 	if ! ssh -o ConnectTimeout=5 "$REMOTE_HOST" "echo ok" &>/dev/null; then
@@ -141,12 +145,14 @@ incremental_sync() {
 	# Resolve local hostname for execution_host routing
 	local local_host="${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}"
 	local_host="${local_host%.local}"
+	local safe_local_host
+	safe_local_host=$(sql_escape "$local_host")
 
 	# PUSH: locally-executed plans changed since last sync
 	local pid
 	sqlite3 "$LOCAL_DB" "
 		SELECT id FROM plans
-		WHERE (execution_host IS NULL OR execution_host = '' OR execution_host = '$local_host')
+		WHERE (execution_host IS NULL OR execution_host = '' OR execution_host = '$safe_local_host')
 		$since_clause;
 	" 2>/dev/null | while read -r pid; do
 		[[ -z "$pid" ]] && continue
@@ -158,7 +164,7 @@ incremental_sync() {
 	sqlite3 "$LOCAL_DB" "
 		SELECT id FROM plans
 		WHERE execution_host IS NOT NULL AND execution_host != ''
-		AND execution_host != '$local_host' AND status NOT IN ('done');
+		AND execution_host != '$safe_local_host' AND status NOT IN ('done');
 	" 2>/dev/null | while read -r pid; do
 		[[ -z "$pid" ]] && continue
 		log_info "Pull plan $pid ← remote (remote execution)"
@@ -175,14 +181,19 @@ incremental_sync() {
 			"sqlite3 $REMOTE_DB" 2>/dev/null || log_warn "Token sync partial"
 	fi
 
-	# Sync heartbeats
-	sqlite3 "$LOCAL_DB" "SELECT host, last_seen, plan_count, os FROM host_heartbeats;" |
-		while IFS='|' read -r host seen count os; do
-			ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
-				INSERT OR REPLACE INTO host_heartbeats (host, last_seen, plan_count, os)
-				VALUES ('$host', '$seen', $count, '$os');
-			\"" 2>/dev/null
-		done
+	# Sync heartbeats (batch: build SQL locally, execute once on remote)
+	local heartbeat_sql=""
+	while IFS='|' read -r host seen count os; do
+		local safe_host safe_seen safe_os
+		safe_host=$(sql_escape "$host")
+		safe_seen=$(sql_escape "$seen")
+		safe_os=$(sql_escape "$os")
+		heartbeat_sql="${heartbeat_sql}INSERT OR REPLACE INTO host_heartbeats (host, last_seen, plan_count, os) VALUES ('$safe_host', '$safe_seen', $count, '$safe_os');"
+	done < <(sqlite3 "$LOCAL_DB" "SELECT host, last_seen, plan_count, os FROM host_heartbeats;" 2>/dev/null)
+
+	if [[ -n "$heartbeat_sql" ]]; then
+		ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"BEGIN TRANSACTION;${heartbeat_sql}COMMIT;\"" 2>/dev/null || log_warn "Heartbeat sync partial"
+	fi
 
 	date '+%Y-%m-%d %H:%M:%S' >"$sync_file"
 	log_info "Incremental sync complete"

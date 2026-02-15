@@ -3,6 +3,7 @@
 # Usage: tmux-parallel.sh [num] [directory]
 # Works from ANY terminal (including Zed)
 
+# Version: 1.0.0
 NUM="${1:-4}"
 DIR="${2:-$(pwd)}"
 SESSION="claude-workers"

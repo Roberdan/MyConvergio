@@ -8,10 +8,20 @@
 #   check <task_id>                       - Check if files changed
 #   diff <task_id>                        - Show changed files with details
 #   cleanup [task_id]                     - Remove snapshots
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/plan-db-core.sh"
+
+# Detect hash command once at startup
+if command -v shasum &>/dev/null; then
+	_HASH_CMD="shasum -a 256"
+elif command -v sha256sum &>/dev/null; then
+	_HASH_CMD="sha256sum"
+else
+	_HASH_CMD="md5"
+fi
 
 # Cross-platform file hash (SHA-256)
 _file_hash() {
@@ -19,12 +29,10 @@ _file_hash() {
 		echo "MISSING"
 		return
 	fi
-	if command -v shasum &>/dev/null; then
-		shasum -a 256 "$1" | cut -d' ' -f1
-	elif command -v sha256sum &>/dev/null; then
-		sha256sum "$1" | cut -d' ' -f1
-	else
+	if [[ "$_HASH_CMD" == "md5" ]]; then
 		md5 -q "$1" 2>/dev/null || md5sum "$1" | cut -d' ' -f1
+	else
+		$_HASH_CMD "$1" | cut -d' ' -f1
 	fi
 }
 

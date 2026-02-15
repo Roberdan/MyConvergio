@@ -6,6 +6,7 @@
 # MUST be called as first command by every worker (Claude or Copilot).
 # This is a hard blocker, not informational.
 
+# Version: 1.1.0
 set -euo pipefail
 
 EXPECTED="${1:-}"
@@ -50,7 +51,7 @@ if [[ "$GIT_ROOT_REAL" != "$EXPECTED_REAL" && "$CURRENT_REAL" != "$EXPECTED_REAL
 fi
 
 # Check 4: Worktree is valid (listed by git)
-if ! git worktree list 2>/dev/null | grep -q "^$GIT_ROOT_REAL "; then
+if ! git worktree list --porcelain 2>/dev/null | grep -qF "worktree $GIT_ROOT_REAL"; then
 	echo "WORKTREE_VIOLATION: directory is not a registered git worktree" >&2
 	echo "  Path: $GIT_ROOT_REAL" >&2
 	exit 1

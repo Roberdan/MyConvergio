@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# ARCHIVED: Migration already applied. Kept for reference only.
+# This script should not be run again on existing databases.
+# Version: 1.1.0
 set -euo pipefail
 
 # migrate-v5-cluster.sh - Add cluster/multi-machine execution tracking

@@ -3,6 +3,7 @@
 # Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]
 # Requires: copilot CLI installed, GH_TOKEN or COPILOT_TOKEN set
 
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

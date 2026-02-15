@@ -3,10 +3,12 @@
 # Usage: ./collect-all.sh [project_path] [--update-plan]
 # Output: Combined JSON to stdout, optionally updates plan.json
 
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_PATH="${1:-.}"
+LIMIT="${LIMIT:-150}"
 UPDATE_PLAN=false
 
 if [[ "${2:-}" == "--update-plan" ]]; then
@@ -77,11 +79,25 @@ run_quality() {
 	fi
 }
 
-# Run collectors (parallel where supported)
-GIT_OUTPUT=$(run_git)
-GITHUB_OUTPUT=$(run_github)
-DEBT_OUTPUT=$(run_debt)
-QUALITY_OUTPUT=$(run_quality)
+# Run collectors in parallel
+tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/collect-all-XXXXXX")
+trap "rm -rf '$tmpdir'" EXIT INT TERM
+
+run_git >"$tmpdir/git.json" 2>/dev/null &
+pid_git=$!
+run_github >"$tmpdir/github.json" 2>/dev/null &
+pid_github=$!
+run_debt >"$tmpdir/debt.json" 2>/dev/null &
+pid_debt=$!
+run_quality >"$tmpdir/quality.json" 2>/dev/null &
+pid_quality=$!
+
+wait "$pid_git" "$pid_github" "$pid_debt" "$pid_quality" 2>/dev/null || true
+
+GIT_OUTPUT=$(cat "$tmpdir/git.json" 2>/dev/null || echo '{}')
+GITHUB_OUTPUT=$(cat "$tmpdir/github.json" 2>/dev/null || echo '{}')
+DEBT_OUTPUT=$(cat "$tmpdir/debt.json" 2>/dev/null || echo '{}')
+QUALITY_OUTPUT=$(cat "$tmpdir/quality.json" 2>/dev/null || echo '{}')
 
 log_info "Collectors completed"
 

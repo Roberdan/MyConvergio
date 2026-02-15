@@ -3,6 +3,7 @@
 # Usage: worktree-create.sh <branch> [path]
 # Example: worktree-create.sh feature/new-api ../project-feature
 
+# Version: 1.0.0
 set -euo pipefail
 
 RED='\033[0;31m'

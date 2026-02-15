@@ -4,6 +4,7 @@
 
 # Import waves and tasks from a spec.json file
 # Usage: import <plan_id> <spec_file>
+# Version: 1.2.0
 cmd_import() {
 	local plan_id="$1"
 	local spec_file="$2"
@@ -34,60 +35,79 @@ cmd_import() {
 		fi
 	fi
 
-	local wave_count
-	wave_count=$(jq '.waves | length' "$spec_file")
-	local total_tasks=0
+	# Read entire spec with a single jq call to avoid hundreds of subprocesses
+	local spec_data
+	spec_data=$(jq -c '{
+		waves: [.waves[] | {
+			id: .id,
+			name: .name,
+			hours: (.estimated_hours // 8),
+			depends: (.depends_on // ""),
+			precondition: (.precondition // null),
+			tasks: [.tasks[] | {
+				id: .id,
+				title: (if has("do") then .do else .title end),
+				priority: (.priority // "P1"),
+				type: (.type // "feature"),
+				model: (.model // "sonnet"),
+				executor_agent: (.executor_agent // (if (.codex // false) then "codex" else "claude" end)),
+				has_do: has("do"),
+				files: (.files // [] | join(", ")),
+				ref: (.ref // ""),
+				verify: (.verify // []),
+				description: (.description // ""),
+				test_criteria: (.test_criteria // [])
+			}]
+		}]
+	}' "$spec_file")
+
+	local wave_count total_tasks=0
+	wave_count=$(echo "$spec_data" | jq '.waves | length')
 
 	for ((i = 0; i < wave_count; i++)); do
 		local w_id w_name w_hours w_depends w_precondition
-		w_id=$(jq -r ".waves[$i].id" "$spec_file")
-		w_name=$(jq -r ".waves[$i].name" "$spec_file")
-		w_hours=$(jq -r ".waves[$i].estimated_hours // 8" "$spec_file")
-		w_depends=$(jq -r ".waves[$i].depends_on // empty" "$spec_file")
-		w_precondition=$(jq -c ".waves[$i].precondition // empty" "$spec_file")
+		w_id=$(echo "$spec_data" | jq -r ".waves[$i].id")
+		w_name=$(echo "$spec_data" | jq -r ".waves[$i].name")
+		w_hours=$(echo "$spec_data" | jq -r ".waves[$i].hours")
+		w_depends=$(echo "$spec_data" | jq -r ".waves[$i].depends")
+		w_precondition=$(echo "$spec_data" | jq -c ".waves[$i].precondition // empty")
 
 		local wave_args=("$plan_id" "$w_id" "$w_name" --estimated-hours "$w_hours")
 		[[ -n "$w_depends" ]] && wave_args+=(--depends-on "$w_depends")
 		[[ -n "$w_precondition" ]] && wave_args+=(--precondition "$w_precondition")
 
 		local db_wave_id
-		db_wave_id=$(cmd_add_wave "${wave_args[@]}" 2>/dev/null)
+		db_wave_id=$(cmd_add_wave "${wave_args[@]}") || {
+			log_error "Failed to add wave $w_id"
+			return 1
+		}
 
 		local task_count
-		task_count=$(jq ".waves[$i].tasks | length" "$spec_file")
+		task_count=$(echo "$spec_data" | jq ".waves[$i].tasks | length")
 
 		for ((j = 0; j < task_count; j++)); do
 			local t_id t_title t_pri t_type t_model t_desc t_criteria t_executor_agent
 			local t_base=".waves[$i].tasks[$j]"
-			t_id=$(jq -r "$t_base.id" "$spec_file")
-			t_pri=$(jq -r "$t_base.priority // \"P1\"" "$spec_file")
-			t_type=$(jq -r "$t_base.type // \"feature\"" "$spec_file")
-			t_model=$(jq -r "$t_base.model // \"sonnet\"" "$spec_file")
+			t_id=$(echo "$spec_data" | jq -r "$t_base.id")
+			t_title=$(echo "$spec_data" | jq -r "$t_base.title")
+			t_pri=$(echo "$spec_data" | jq -r "$t_base.priority")
+			t_type=$(echo "$spec_data" | jq -r "$t_base.type")
+			t_model=$(echo "$spec_data" | jq -r "$t_base.model")
+			t_executor_agent=$(echo "$spec_data" | jq -r "$t_base.executor_agent")
 
-			# Read executor_agent (with codex backward compat)
-			t_executor_agent=$(jq -r "$t_base.executor_agent // empty" "$spec_file")
-			if [[ -z "$t_executor_agent" ]]; then
-				local t_codex
-				t_codex=$(jq -r "$t_base.codex // false" "$spec_file")
-				[[ "$t_codex" == "true" ]] && t_executor_agent="codex" || t_executor_agent="claude"
-			fi
-
-			# Compact format (do/files/verify) or legacy (title/description/test_criteria)
 			local has_do
-			has_do=$(jq -r "$t_base | has(\"do\")" "$spec_file")
+			has_do=$(echo "$spec_data" | jq -r "$t_base.has_do")
 			if [[ "$has_do" == "true" ]]; then
-				t_title=$(jq -r "$t_base.do" "$spec_file")
 				local t_files t_ref
-				t_files=$(jq -r "$t_base.files // [] | join(\", \")" "$spec_file")
-				t_ref=$(jq -r "$t_base.ref // empty" "$spec_file")
+				t_files=$(echo "$spec_data" | jq -r "$t_base.files")
+				t_ref=$(echo "$spec_data" | jq -r "$t_base.ref")
 				t_desc="$t_title"
 				[[ -n "$t_files" ]] && t_desc="$t_desc | Files: $t_files"
 				[[ -n "$t_ref" ]] && t_desc="$t_desc | Ref: $t_ref"
-				t_criteria=$(jq -c "$t_base.verify // []" "$spec_file")
+				t_criteria=$(echo "$spec_data" | jq -c "$t_base.verify")
 			else
-				t_title=$(jq -r "$t_base.title" "$spec_file")
-				t_desc=$(jq -r "$t_base.description // \"\"" "$spec_file")
-				t_criteria=$(jq -c "$t_base.test_criteria // []" "$spec_file")
+				t_desc=$(echo "$spec_data" | jq -r "$t_base.description")
+				t_criteria=$(echo "$spec_data" | jq -c "$t_base.test_criteria")
 			fi
 
 			local task_args=("$db_wave_id" "$t_id" "$t_title" "$t_pri" "$t_type")
@@ -99,7 +119,10 @@ cmd_import() {
 			fi
 			[[ -n "$t_executor_agent" ]] && task_args+=(--executor-agent "$t_executor_agent")
 
-			cmd_add_task "${task_args[@]}" 2>/dev/null
+			if ! cmd_add_task "${task_args[@]}"; then
+				log_error "Failed to add task $t_id to wave $w_id"
+				return 1
+			fi
 			total_tasks=$((total_tasks + 1))
 		done
 	done

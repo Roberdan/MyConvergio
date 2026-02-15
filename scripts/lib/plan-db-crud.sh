@@ -2,16 +2,18 @@
 # Plan DB CRUD - Create, Read, Update operations
 # Sourced by plan-db.sh
 
+# Version: 1.2.0
 # List plans for a project
 cmd_list() {
 	local project_id="$1"
+	local safe_project_id="$(sql_escape "$project_id")"
 	echo -e "${BLUE}Plans for project: ${project_id}${NC}"
 	echo ""
 	sqlite3 -header -column "$DB_FILE" "
         SELECT id, name,
             CASE WHEN is_master THEN 'MASTER' ELSE '' END as type,
             status, tasks_done || '/' || tasks_total as progress
-        FROM plans WHERE project_id = '$project_id'
+        FROM plans WHERE project_id = '$safe_project_id'
         ORDER BY is_master DESC, status, name;
     "
 }
@@ -324,10 +326,8 @@ cmd_add_task() {
 	done
 	set -u
 
-	local wave_info=$(sqlite3 "$DB_FILE" "SELECT project_id, wave_id, plan_id FROM waves WHERE id = $db_wave_id;")
-	local project_id=$(echo "$wave_info" | cut -d'|' -f1)
-	local wave_id_text=$(echo "$wave_info" | cut -d'|' -f2)
-	local plan_id=$(echo "$wave_info" | cut -d'|' -f3)
+	local project_id wave_id_text plan_id
+	IFS='|' read -r project_id wave_id_text plan_id < <(sqlite3 "$DB_FILE" "SELECT project_id, wave_id, plan_id FROM waves WHERE id = $db_wave_id;")
 
 	local safe_task_id="$(sql_escape "$task_id")"
 	local safe_title="$(sql_escape "$title")"
@@ -346,12 +346,14 @@ cmd_add_task() {
 	local exec_agent_val="NULL"
 	[[ -n "$executor_agent" ]] && exec_agent_val="'$safe_executor_agent'"
 
-	sqlite3 "$DB_FILE" "
-        INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, description, status, priority, type, assignee, test_criteria, model, executor_agent)
-        VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', COALESCE($desc_val, '$safe_title'), 'pending', '$safe_priority', '$safe_type', '$safe_assignee', $tc_val, '$safe_model', $exec_agent_val);
-    "
-	sqlite3 "$DB_FILE" "UPDATE waves SET tasks_total = tasks_total + 1 WHERE id = $db_wave_id;"
-	sqlite3 "$DB_FILE" "UPDATE plans SET tasks_total = tasks_total + 1 WHERE id = $plan_id;"
+	sqlite3 "$DB_FILE" <<SQL
+BEGIN TRANSACTION;
+INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, description, status, priority, type, assignee, test_criteria, model, executor_agent)
+VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', COALESCE($desc_val, '$safe_title'), 'pending', '$safe_priority', '$safe_type', '$safe_assignee', $tc_val, '$safe_model', $exec_agent_val);
+UPDATE waves SET tasks_total = tasks_total + 1 WHERE id = $db_wave_id;
+UPDATE plans SET tasks_total = tasks_total + 1 WHERE id = $plan_id;
+COMMIT;
+SQL
 
 	local db_task_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE plan_id=$plan_id AND wave_id_fk=$db_wave_id AND task_id='$safe_task_id' ORDER BY id DESC LIMIT 1;")
 	log_info "Added task: $title (ID: $db_task_id)"
@@ -420,10 +422,9 @@ cmd_update_task() {
 		# NOTE: wave/plan counters updated automatically by SQLite trigger (task_done_counter)
 
 		# Check if wave is now complete (for auto-marking wave as done)
-		local wave_fk=$(sqlite3 "$DB_FILE" "SELECT wave_id_fk FROM tasks WHERE id = $task_id;")
-		local wave_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done = tasks_total FROM waves WHERE id = $wave_fk;")
+		local wave_fk wave_done wave_id_text
+		IFS='|' read -r wave_fk wave_done wave_id_text < <(sqlite3 "$DB_FILE" "SELECT t.wave_id_fk, (w.tasks_done = w.tasks_total), w.wave_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE t.id = $task_id;")
 		[[ "$wave_done" == "1" ]] && {
-			local wave_id_text=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM waves WHERE id = $wave_fk;")
 			sqlite3 "$DB_FILE" "UPDATE waves SET status = 'done', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now') WHERE id = $wave_fk;"
 			log_info "Wave $wave_id_text completed!"
 		}
@@ -432,8 +433,7 @@ cmd_update_task() {
 	fi
 
 	# Update plan execution_host on any task change
-	local task_plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM tasks WHERE id = $task_id;")
-	[[ -n "$task_plan_id" ]] && sqlite3 "$DB_FILE" "UPDATE plans SET execution_host = '$PLAN_DB_HOST' WHERE id = $task_plan_id;"
+	sqlite3 "$DB_FILE" "UPDATE plans SET execution_host = '$PLAN_DB_HOST' WHERE id = (SELECT plan_id FROM tasks WHERE id = $task_id);"
 
 	[[ -n "$tokens" ]] && log_info "Task $task_id: $old_status -> $status (tokens: $tokens)" || log_info "Task $task_id: $old_status -> $status"
 }
@@ -457,11 +457,8 @@ cmd_update_wave() {
 cmd_complete() {
 	local plan_id="$1"
 	local force_flag="${2:-}"
-	local plan_info=$(sqlite3 "$DB_FILE" "SELECT tasks_done, tasks_total, validated_at, worktree_path FROM plans WHERE id = $plan_id;")
-	local tasks_done=$(echo "$plan_info" | cut -d'|' -f1)
-	local tasks_total=$(echo "$plan_info" | cut -d'|' -f2)
-	local validated_at=$(echo "$plan_info" | cut -d'|' -f3)
-	local worktree_path=$(echo "$plan_info" | cut -d'|' -f4)
+	local tasks_done tasks_total validated_at worktree_path
+	IFS='|' read -r tasks_done tasks_total validated_at worktree_path < <(sqlite3 "$DB_FILE" "SELECT tasks_done, tasks_total, validated_at, worktree_path FROM plans WHERE id = $plan_id;")
 
 	if [[ -z "$tasks_total" || "$tasks_total" -eq 0 ]]; then
 		log_error "Cannot complete plan $plan_id: no tasks"

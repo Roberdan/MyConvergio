@@ -2,6 +2,11 @@
 # Plan DB Display - Output and export functions
 # Sourced by plan-db.sh
 
+# Version: 1.2.0
+
+# Disable colors when stdout is not a terminal
+[[ ! -t 1 ]] && GREEN='' && YELLOW='' && BLUE='' && RED='' && NC=''
+
 # Truncate string to max length
 _truncate() {
 	local str="$1"
@@ -26,7 +31,7 @@ _get_branch() {
 	# Expand tilde
 	wt_path="${wt_path/#\~/$HOME}"
 	# Expand ../ relative paths
-	wt_path="$(cd "$(dirname "$wt_path")" 2>/dev/null && echo "$PWD/$(basename "$wt_path")")"
+	wt_path="$(cd "$(dirname "$wt_path")" 2>/dev/null && echo "${PWD}/$(basename "$wt_path")")"
 	if [[ -n "$wt_path" && -d "$wt_path" ]]; then
 		git -C "$wt_path" branch --show-current 2>/dev/null || echo "-"
 	else
@@ -42,6 +47,7 @@ cmd_kanban() {
 	echo -e "${YELLOW}DOING${NC}"
 	# Query plans directly to get execution_host, description, worktree_path
 	while IFS='|' read -r proj plan prog master exec_host desc wt_path; do
+		local host_color desc_trunc wt_display branch wt_branch
 		# Color code host
 		if [[ "$exec_host" == "$PLAN_DB_HOST" ]]; then
 			host_color="${GREEN}${exec_host}${NC}"
@@ -119,10 +125,14 @@ cmd_status() {
 
 	echo -e "${BLUE}=== Quick Status ===${NC}"
 
+	local safe_project_id=""
+	[[ -n "$project_id" ]] && safe_project_id="$(sql_escape "$project_id")"
+
 	# Active plans
 	echo -e "\n${YELLOW}Active Plans:${NC}"
 	if [[ -n "$project_id" ]]; then
 		while IFS='|' read -r plan prog exec_host desc wt_path; do
+			local host_color desc_trunc wt_display branch wt_branch
 			# Color code host
 			if [[ "$exec_host" == "$PLAN_DB_HOST" ]]; then
 				host_color="${GREEN}${exec_host}${NC}"
@@ -153,10 +163,11 @@ cmd_status() {
                    COALESCE(p.description, ''),
                    COALESCE(p.worktree_path, '')
             FROM plans p
-            WHERE p.project_id = '$project_id' AND p.status = 'doing';
+            WHERE p.project_id = '$safe_project_id' AND p.status = 'doing';
         ")
 	else
 		while IFS='|' read -r proj plan prog exec_host desc wt_path; do
+			local host_color desc_trunc wt_display branch wt_branch
 			# Color code host
 			if [[ "$exec_host" == "$PLAN_DB_HOST" ]]; then
 				host_color="${GREEN}${exec_host}${NC}"
@@ -197,7 +208,7 @@ cmd_status() {
 	sqlite3 -column "$DB_FILE" "
         SELECT task_id, title, wave_id FROM tasks
         WHERE status = 'in_progress'
-        ${project_id:+AND project_id = '$project_id'}
+        ${safe_project_id:+AND project_id = '$safe_project_id'}
         LIMIT 5;
     "
 }

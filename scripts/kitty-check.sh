@@ -1,6 +1,7 @@
 #!/bin/bash
 # Verify Kitty is properly configured for Claude orchestration
 
+# Version: 1.0.0
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

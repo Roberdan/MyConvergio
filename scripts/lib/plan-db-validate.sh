@@ -3,6 +3,7 @@
 # Sourced by plan-db.sh
 
 # Thor validates plan - ACTUAL validation checks
+# Version: 1.2.0
 cmd_validate() {
 	local plan_id="$1"
 	local validated_by="${2:-thor}"
@@ -165,9 +166,8 @@ cmd_validate() {
 	echo -e "${GREEN}PASSED: Plan $plan_id validated by $validated_by (host: ${PLAN_DB_HOST:-unknown})${NC}"
 
 	# Auto-close plan if all tasks are done
-	local tasks_done=$(sqlite3 "$DB_FILE" "SELECT tasks_done FROM plans WHERE id = $plan_id;")
-	local tasks_total=$(sqlite3 "$DB_FILE" "SELECT tasks_total FROM plans WHERE id = $plan_id;")
-	local current_status=$(sqlite3 "$DB_FILE" "SELECT status FROM plans WHERE id = $plan_id;")
+	local tasks_done tasks_total current_status
+	IFS='|' read -r tasks_done tasks_total current_status < <(sqlite3 "$DB_FILE" "SELECT tasks_done, tasks_total, status FROM plans WHERE id = $plan_id;")
 
 	if [[ "$tasks_total" -gt 0 && "$tasks_done" -eq "$tasks_total" && "$current_status" != "done" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE plans SET status = 'done', completed_at = datetime('now'), execution_host = '${PLAN_DB_HOST:-unknown}' WHERE id = $plan_id;"
@@ -267,7 +267,7 @@ detect_precondition_cycles() {
 	# bash versions; avoids associative array edge cases)
 	local tmpdir
 	tmpdir=$(mktemp -d /tmp/cycle-detect-XXXXXX)
-	trap "rm -rf '$tmpdir'" RETURN
+	trap "rm -rf '$tmpdir'" EXIT INT TERM
 
 	# Collect all wave_ids
 	local -a all_waves=()

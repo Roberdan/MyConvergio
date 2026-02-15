@@ -5,6 +5,7 @@
 # Check plan drift against current main branch
 # Returns JSON: drift level, overlapping files, recommendation
 # Exit codes: 0=clean, 1=minor drift (rebase), 2=major drift (replan)
+# Version: 1.2.0
 cmd_check_drift() {
 	local plan_id="$1"
 
@@ -27,18 +28,15 @@ cmd_check_drift() {
 	plan_status=$(echo "$plan_data" | jq -r '.status')
 	wt_path=$(_expand_path "$wt_raw")
 
-	# Calculate days since creation
-	local created_epoch now_epoch days_stale
-	created_epoch=$(date -j -f "%Y-%m-%d %H:%M:%S" "$created_at" "+%s" 2>/dev/null ||
-		date -d "$created_at" "+%s" 2>/dev/null || echo 0)
-	now_epoch=$(date "+%s")
-	days_stale=$(((now_epoch - created_epoch) / 86400))
+	# Calculate days since creation (using SQLite for portability)
+	local days_stale
+	days_stale=$(sqlite3 "$DB_FILE" "SELECT CAST(julianday('now') - julianday('$created_at') AS INTEGER);")
 
 	# Find git root (main repo, not worktree)
 	local git_root
 	if [[ -d "$wt_path" ]]; then
 		git_root=$(cd "$wt_path" && git rev-parse --path-format=absolute \
-			--git-common-dir 2>/dev/null | sed 's|/.git$||')
+			--git-common-dir 2>/dev/null | sed 's|/.git$||') || git_root=""
 	else
 		git_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
 	fi
@@ -52,15 +50,15 @@ cmd_check_drift() {
 	# Commits on main since plan creation
 	local main_commits main_files
 	main_commits=$(cd "$git_root" &&
-		git rev-list --count "main@{$created_at}..main" 2>/dev/null || echo 0)
+		git rev-list --count "main@{${created_at}}..main" 2>/dev/null || echo 0)
 	main_files=$(cd "$git_root" &&
 		git log main --since="$created_at" --name-only --format="" 2>/dev/null |
-		sort -u)
+		sort -u) || main_files=""
 
 	# Branch behind count (if worktree exists)
 	local behind=0
 	if [[ -d "$wt_path" ]]; then
-		(cd "$wt_path" && git fetch origin main --quiet 2>/dev/null)
+		(cd "$wt_path" && git fetch origin main --quiet 2>/dev/null) || true
 		behind=$(cd "$wt_path" &&
 			git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
 	fi
@@ -136,7 +134,7 @@ cmd_rebase_plan() {
 	fi
 
 	local branch
-	branch=$(cd "$wt_path" && git branch --show-current)
+	branch=$(cd "$wt_path" && git branch --show-current) || branch=""
 	if [[ "$branch" == "main" || "$branch" == "master" ]]; then
 		log_error "REFUSED: worktree is on $branch. Cannot rebase main onto itself."
 		return 1

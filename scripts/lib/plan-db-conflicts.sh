@@ -8,6 +8,7 @@
 #   conflict-check-spec <project_id> <spec.json> - Check spec before import
 
 # Extract target files from a plan's tasks in DB
+# Version: 1.2.0
 _extract_plan_files_db() {
 	db_query "
 		SELECT DISTINCT t.description || ' ' || COALESCE(t.test_criteria,'')

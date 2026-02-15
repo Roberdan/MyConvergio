@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Version: 1.1.0
 set -euo pipefail
 
 # ci-check.sh - Compact GitHub CI status (token-efficient)
@@ -9,6 +10,16 @@ set -euo pipefail
 #   ./scripts/ci-check.sh              # latest run on current branch
 #   ./scripts/ci-check.sh <run-id>     # specific run
 #   ./scripts/ci-check.sh --all        # latest run on any branch
+
+# Check dependencies
+command -v gh &>/dev/null || {
+	echo '{"error":"gh CLI not installed"}'
+	exit 1
+}
+command -v jq &>/dev/null || {
+	echo '{"error":"jq not installed"}'
+	exit 1
+}
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
 MODE="${1:-}"

@@ -4,7 +4,14 @@
 # Cache dir: /tmp/claude-digest-cache/
 # TTL: configurable per caller
 
-DIGEST_CACHE_DIR="/tmp/claude-digest-cache"
+# Version: 1.1.0
+DIGEST_CACHE_DIR="${TMPDIR:-/tmp}/claude-digest-cache"
+
+# Verify jq is available (required by all digest scripts)
+if ! command -v jq &>/dev/null; then
+	echo '{"status":"error","msg":"jq not installed — required by digest scripts"}' >&2
+	exit 1
+fi
 
 # Cross-platform short hash (macOS md5 vs Linux md5sum)
 # Usage: digest_hash "string" → 8-char hex

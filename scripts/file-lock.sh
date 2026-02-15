@@ -1,6 +1,7 @@
 #!/bin/bash
 # file-lock.sh - File-level locking for concurrent agent work
 # Backend: SQLite (dashboard.db). Commands: acquire|release|release-task|check|heartbeat|list|cleanup
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -84,20 +85,21 @@ cmd_acquire() {
 	local deadline=$((SECONDS + timeout))
 
 	while true; do
-		# Attempt atomic insert (UNIQUE constraint on file_path)
+		# Atomic: delete stale + insert in single transaction
 		if db_query "
+			BEGIN;
+			DELETE FROM file_locks
+				WHERE file_path='$(sql_escape "$abs_path")'
+				AND host='$(sql_escape "$PLAN_DB_HOST")'
+				AND (strftime('%s','now') - strftime('%s', heartbeat_at)) > $STALE_HEARTBEAT_SEC;
 			INSERT INTO file_locks (file_path, task_id, plan_id, agent_name, pid, host)
 			VALUES ('$(sql_escape "$abs_path")', '$(sql_escape "$task_id")',
 				$plan_id, '$(sql_escape "$agent")', $$, '$(sql_escape "$PLAN_DB_HOST")');
+			COMMIT;
 		" 2>/dev/null; then
 			jq -n --arg f "$abs_path" --arg t "$task_id" \
 				'{"status":"acquired","file":$f,"task_id":$t}'
 			return 0
-		fi
-
-		# Insert failed: lock exists. Try to break if stale
-		if _try_break_stale "$abs_path"; then
-			continue # retry after breaking stale lock
 		fi
 
 		# Check timeout
@@ -116,9 +118,11 @@ cmd_acquire() {
 
 		# Exponential backoff with jitter (100ms base, cap 2s)
 		local attempt=$(((SECONDS - deadline + timeout) / 2 + 1))
-		local delay
-		delay=$(awk "BEGIN{d=0.1*(2^$attempt); if(d>2)d=2; printf \"%.2f\",d*(0.5+0.5*rand())}")
-		sleep "$delay"
+		local jitter=$((RANDOM % 100))
+		local base_ms=$((100 * (1 << attempt)))
+		[[ $base_ms -gt 2000 ]] && base_ms=2000
+		local delay_ms=$(((base_ms / 2) + (base_ms * jitter / 200)))
+		sleep "0.${delay_ms}"
 	done
 }
 

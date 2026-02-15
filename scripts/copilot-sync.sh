@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Version: 1.1.0
 set -euo pipefail
 
 # copilot-sync.sh — Sync Claude Code config with Copilot CLI
@@ -7,6 +8,8 @@ set -euo pipefail
 COPILOT_DIR="$HOME/.copilot"
 CLAUDE_DIR="$HOME/.claude"
 ACTION="${1:-status}"
+CURRENT_MODEL_VERSION="${CLAUDE_MODEL_VERSION:-4.6}"
+PREVIOUS_MODEL_VERSION="4.5"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -30,14 +33,15 @@ check_file() {
 
 check_model_ref() {
 	local file="$1"
-	if grep -q "Opus 4.5" "$file" 2>/dev/null; then
-		warn "$(basename "$file"): references Opus 4.5 (should be 4.6)"
-	elif grep -q "Opus 4.6" "$file" 2>/dev/null; then
+	if grep -q "Opus ${PREVIOUS_MODEL_VERSION}" "$file" 2>/dev/null; then
+		warn "$(basename "$file"): references Opus ${PREVIOUS_MODEL_VERSION} (should be ${CURRENT_MODEL_VERSION})"
+	elif grep -q "Opus ${CURRENT_MODEL_VERSION}" "$file" 2>/dev/null; then
 		ok "$(basename "$file"): model ref"
 	fi
 }
 
 status() {
+	local DRIFT
 	DRIFT=false
 	echo "=== Copilot CLI Alignment Status ==="
 	echo ""
@@ -168,9 +172,9 @@ sync_config() {
 		local agents_dir="${repo_dir}.github/agents"
 		if [ -d "$agents_dir" ]; then
 			for f in "$agents_dir"/*.agent.md; do
-				if grep -q "Opus 4.5" "$f" 2>/dev/null; then
-					sed -i '' 's/Opus 4\.5/Opus 4.6/g' "$f" 2>/dev/null || \
-						sed -i 's/Opus 4\.5/Opus 4.6/g' "$f"
+				if grep -q "Opus ${PREVIOUS_MODEL_VERSION}" "$f" 2>/dev/null; then
+					sed -i '' "s/Opus ${PREVIOUS_MODEL_VERSION}/Opus ${CURRENT_MODEL_VERSION}/g" "$f" 2>/dev/null ||
+						sed -i "s/Opus ${PREVIOUS_MODEL_VERSION}/Opus ${CURRENT_MODEL_VERSION}/g" "$f"
 					ok "Fixed model ref: $(basename "$f") ($(basename "$repo_dir"))"
 				fi
 			done

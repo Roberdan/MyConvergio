@@ -2,6 +2,7 @@
 # Plan DB Core - Shared utilities
 # Sourced by plan-db.sh
 
+# Version: 1.3.0
 DB_FILE="${HOME}/.claude/data/dashboard.db"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -21,9 +22,12 @@ log_info() { echo -e "${GREEN}[OK]${NC} $1" >&2; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1" >&2; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 
-# SQLite wrapper with busy timeout (prevents SQLITE_BUSY on concurrent access)
+# SQLite wrapper with busy timeout and performance PRAGMAs
 db_query() {
-	sqlite3 -cmd ".timeout 5000" "$DB_FILE" "$@"
+	sqlite3 -cmd ".timeout 5000" \
+		-cmd "PRAGMA cache_size = -8000" \
+		-cmd "PRAGMA temp_store = MEMORY" \
+		"$DB_FILE" "$@"
 }
 
 # Initialize DB if needed
@@ -31,6 +35,7 @@ init_db() {
 	if [[ ! -f "$DB_FILE" ]]; then
 		mkdir -p "$(dirname "$DB_FILE")"
 		sqlite3 "$DB_FILE" <"$SCRIPT_DIR/init-db.sql"
+		sqlite3 "$DB_FILE" "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA cache_size=-8000; PRAGMA temp_store=MEMORY; PRAGMA mmap_size=268435456;"
 		log_info "Database initialized"
 	fi
 }

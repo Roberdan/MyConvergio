@@ -7,13 +7,14 @@
 # cmd_remote_status [project_id]
 # ============================================================
 # SSH to remote host and run plan-db.sh status
+# Version: 1.1.0
 cmd_remote_status() {
 	local project_id="${1:-}"
 	load_sync_config
 
 	echo -e "${BLUE}=== Remote Status: ${REMOTE_HOST} ===${NC}"
 
-	if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "$REMOTE_HOST" "echo ok" &>/dev/null; then
+	if ! ssh -o ConnectTimeout="${PLAN_DB_SSH_TIMEOUT:-5}" -o BatchMode=yes "$REMOTE_HOST" "echo ok" &>/dev/null; then
 		log_error "Cannot reach $REMOTE_HOST"
 		return 1
 	fi
@@ -49,7 +50,7 @@ cmd_cluster_status() {
 	# Connectivity check
 	local remote_online=0
 	local remote_plans=""
-	if ssh -o ConnectTimeout=5 -o BatchMode=yes "$REMOTE_HOST" "echo ok" &>/dev/null; then
+	if ssh -o ConnectTimeout="${PLAN_DB_SSH_TIMEOUT:-5}" -o BatchMode=yes "$REMOTE_HOST" "echo ok" &>/dev/null; then
 		remote_online=1
 		remote_plans=$(ssh -o ConnectTimeout=10 "$REMOTE_HOST" "
 			sqlite3 -separator '|' ~/.claude/data/dashboard.db \"
@@ -62,7 +63,7 @@ cmd_cluster_status() {
 	fi
 
 	# Header
-	local conn_status
+	local conn_status pid pname prog host status host_short
 	if [[ $remote_online -eq 1 ]]; then
 		conn_status="${GREEN}ONLINE${NC}"
 	else
@@ -115,7 +116,7 @@ cmd_cluster_tasks() {
 	"
 
 	# Remote in-progress tasks via SSH
-	if ssh -o ConnectTimeout=5 -o BatchMode=yes "$REMOTE_HOST" "echo ok" &>/dev/null; then
+	if ssh -o ConnectTimeout="${PLAN_DB_SSH_TIMEOUT:-5}" -o BatchMode=yes "$REMOTE_HOST" "echo ok" &>/dev/null; then
 		echo -e "\n${YELLOW}$REMOTE_HOST (remote):${NC}"
 		ssh -o ConnectTimeout=10 "$REMOTE_HOST" "
 			sqlite3 -column ~/.claude/data/dashboard.db \"
@@ -161,7 +162,7 @@ cmd_token_report() {
 
 	echo ""
 	echo -e "${YELLOW}Totals:${NC}"
-	local totals
+	local totals total_in total_out total_cost total_calls
 	totals=$(sqlite3 -separator '|' "$DB_FILE" "
 		SELECT SUM(input_tokens), SUM(output_tokens),
 		       PRINTF('%.2f', SUM(cost_usd)), COUNT(*)

@@ -10,6 +10,10 @@
 # Sets execution_host to $PLAN_DB_HOST and status to 'doing'
 # Prevents double-claiming unless --force is used
 # Checks config sync before claiming
+# SSH timeout (seconds) - configurable via environment variable
+PLAN_DB_SSH_TIMEOUT="${PLAN_DB_SSH_TIMEOUT:-5}"
+
+# Version: 1.1.0
 cmd_claim() {
 	local plan_id="$1"
 	local force=0
@@ -192,7 +196,7 @@ cmd_is_alive() {
 		fi
 
 		# Heartbeat is stale, try SSH
-		if ssh -o ConnectTimeout=5 -o BatchMode=yes "$host" "echo ok" &>/dev/null; then
+		if ssh -o ConnectTimeout="${PLAN_DB_SSH_TIMEOUT}" -o BatchMode=yes "$host" "echo ok" &>/dev/null; then
 			echo "ALIVE"
 			return 0
 		else
@@ -202,7 +206,7 @@ cmd_is_alive() {
 	fi
 
 	# No heartbeat record, try SSH directly
-	if ssh -o ConnectTimeout=5 -o BatchMode=yes "$host" "echo ok" &>/dev/null; then
+	if ssh -o ConnectTimeout="${PLAN_DB_SSH_TIMEOUT}" -o BatchMode=yes "$host" "echo ok" &>/dev/null; then
 		echo "ALIVE"
 		return 0
 	else

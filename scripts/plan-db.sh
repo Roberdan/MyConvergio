@@ -20,6 +20,7 @@
 #   sync <plan_id>                 - Fix counters
 #   json <plan_id>                 - Get plan as JSON
 
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -62,7 +63,7 @@ status) cmd_status "${2:-}" ;;
 check-readiness) cmd_check_readiness "${2:?plan_id required}" ;;
 evaluate-wave) cmd_evaluate_wave "${2:?wave_db_id required}" ;;
 sync) cmd_sync "${2:?plan_id required}" ;;
-update-desc) sqlite3 "$DB_FILE" "UPDATE plans SET description = '$(echo "${3:?description required}" | sed "s/'/''/g")' WHERE id = ${2:?plan_id required};" && echo "Description updated for plan #$2" ;;
+update-desc) sqlite3 "$DB_FILE" "UPDATE plans SET description = '$(sql_escape "${3:?description required}")' WHERE id = ${2:?plan_id required};" && echo "Description updated for plan #$2" ;;
 import) cmd_import "${2:?plan_id required}" "${3:?spec_file required}" ;;
 render) cmd_render "${2:?plan_id required}" ;;
 get-context) cmd_get_context "${2:?plan_id required}" ;;

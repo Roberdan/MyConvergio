@@ -2,6 +2,7 @@
 # Test Digest - Generic test runner with compact JSON output
 # Auto-detects vitest/jest/playwright. Returns only failures.
 # Usage: test-digest.sh [--suite unit|e2e|all] [--no-cache] [extra-args...]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -63,7 +64,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Kill stale test process from previous interrupted run (scoped to this project)
-PIDFILE="/tmp/test-digest-$(digest_hash "$(pwd)").pid"
+PIDFILE="${TMPDIR:-/tmp}/test-digest-$(digest_hash "$(pwd)").pid"
 if [[ -f "$PIDFILE" ]]; then
 	OLD_PID=$(cat "$PIDFILE")
 	if kill -0 "$OLD_PID" 2>/dev/null; then
@@ -74,9 +75,10 @@ fi
 
 # Run tests, capture output
 EXIT_CODE=0
-eval "$TEST_CMD $*" >"$TMPLOG" 2>&1 &
+read -ra TEST_CMD_ARGS <<<"$TEST_CMD"
+"${TEST_CMD_ARGS[@]}" "$@" >"$TMPLOG" 2>&1 &
+echo "$!" >"$PIDFILE"
 TEST_PID=$!
-echo "$TEST_PID" >"$PIDFILE"
 wait "$TEST_PID" || EXIT_CODE=$?
 TEST_PID=""
 rm -f "$PIDFILE"
@@ -117,9 +119,10 @@ if [[ "$FRAMEWORK" == "vitest" || "$FRAMEWORK" == "jest" ]]; then
 elif [[ "$FRAMEWORK" == "playwright" ]]; then
 	if [[ -s "$TMPLOG" ]]; then
 		# Playwright JSON reporter
-		TOTAL=$(jq '.stats.expected // 0' "$TMPLOG" 2>/dev/null || echo 0)
-		PASSED=$(jq '.stats.expected // 0' "$TMPLOG" 2>/dev/null || echo 0)
+		TOTAL=$(jq '(.stats.expected // 0) + (.stats.unexpected // 0) + (.stats.skipped // 0)' "$TMPLOG" 2>/dev/null || echo 0)
 		FAILED=$(jq '.stats.unexpected // 0' "$TMPLOG" 2>/dev/null || echo 0)
+		SKIPPED=$(jq '.stats.skipped // 0' "$TMPLOG" 2>/dev/null || echo 0)
+		PASSED=$((TOTAL - FAILED - SKIPPED))
 
 		FAILURES=$(jq '[.suites[].specs[] |
 			select(.ok == false) |

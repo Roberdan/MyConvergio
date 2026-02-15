@@ -2,6 +2,7 @@
 # Vercel CLI wrapper with common operations
 # Replaces Vercel MCP (2.6k token overhead)
 
+# Version: 1.0.0
 set -euo pipefail
 
 # Check if vercel CLI is installed

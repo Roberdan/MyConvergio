@@ -8,7 +8,8 @@
 #   3. wildClaude alias (for claude engine)
 #   4. copilot CLI + GH_TOKEN (for copilot engine)
 
-set -e
+# Version: 1.1.0
+set -euo pipefail
 
 PLAN=""
 NUM_WORKERS=4
@@ -84,12 +85,14 @@ launch_worker() {
 read_worker() { kitty @ get-text --match "title:^${1}$" --extent=screen 2>/dev/null; }
 
 is_complete() {
-	local output=$(read_worker "$1")
-	echo "$output" | grep -qE "DONE|All.*complete|tasks? complete"
+	local output
+	output=$(read_worker "$1")
+	echo "$output" | grep -qE "^DONE$|^### WORKER DONE ###$"
 }
 
 has_error() {
-	local output=$(read_worker "$1")
+	local output
+	output=$(read_worker "$1")
 	echo "$output" | grep -qiE "error:|failed|FAILED"
 }
 
@@ -97,10 +100,21 @@ has_error() {
 monitor_workers() {
 	local workers=("$@")
 
-	log "Monitoring ${#workers[@]} workers..."
+	local max_wait="${ORCHESTRATE_TIMEOUT:-3600}"
+	local start_time
+	start_time=$(date +%s)
+
+	log "Monitoring ${#workers[@]} workers... (timeout: ${max_wait}s)"
 	echo ""
 
 	while true; do
+		local elapsed=$(($(date +%s) - start_time))
+		if [[ $elapsed -gt $max_wait ]]; then
+			echo ""
+			error "Timeout after ${max_wait}s waiting for workers"
+			break
+		fi
+
 		local all_done=true
 		local status_line=""
 
@@ -129,7 +143,7 @@ monitor_workers() {
 
 # Copilot worker (non-interactive with --allow-all)
 launch_copilot_worker() {
-	local name="$1" task="$2" model="${3:-claude-sonnet-4-5}"
+	local name="$1" task="$2" model="${3:-claude-opus-4-6}"
 	log "Launching Copilot: $name..."
 	kitty @ launch --type=tab --title="$name" --cwd="$DIR" --keep-focus \
 		zsh -ic "copilot --allow-all --add-dir '$DIR' --model $model -p '$(echo "$task" | sed "s/'/'\\\\''/g")'"
@@ -186,7 +200,18 @@ main() {
 	log "All ${#WORKERS[@]} workers launched. Cmd+Shift+L for grid view."
 	monitor_workers "${WORKERS[@]}"
 	log "Final verification..."
-	npm run lint && npm run typecheck && npm run build 2>/dev/null || warn "Verification skipped"
+	local verify_output
+	if [[ -x "./scripts/ci-summary.sh" ]]; then
+		verify_output=$(./scripts/ci-summary.sh --quick 2>&1) || {
+			warn "Verification failed:"
+			echo "$verify_output" | tail -5
+		}
+	else
+		verify_output=$(npm run lint 2>&1 && npm run typecheck 2>&1 && npm run build 2>&1) || {
+			warn "Verification failed:"
+			echo "$verify_output" | tail -5
+		}
+	fi
 	success "Orchestration complete!"
 }
 

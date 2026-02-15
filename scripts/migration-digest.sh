@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Migration Digest - Compact Prisma/Drizzle migration output as JSON
 # Usage: migration-digest.sh [status|push|generate|create <name>|diff] [--no-cache]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,7 +37,7 @@ if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 fi
 
 TMPLOG=$(mktemp)
-trap "rm -f '$TMPLOG'" EXIT
+trap "rm -f '$TMPLOG'" EXIT INT TERM
 
 EXIT_CODE=0
 
@@ -52,9 +53,13 @@ if [[ "$ORM" == "prisma" ]]; then
 		npx prisma generate >"$TMPLOG" 2>&1 || EXIT_CODE=$?
 		;;
 	create)
-		# Requires NAME as $2 or $3 (after --no-cache)
-		MNAME="${3:-${2:-}}"
-		[[ "$MNAME" == "--no-cache" ]] && MNAME="${3:-}"
+		# Requires NAME: migration-digest.sh create <name> or migration-digest.sh --no-cache create <name>
+		MNAME=""
+		for a in "$@"; do
+			[[ "$a" == "--no-cache" || "$a" == "create" ]] && continue
+			MNAME="$a"
+			break
+		done
 		if [[ -z "$MNAME" ]]; then
 			jq -n '{"error":"missing name","msg":"Usage: migration-digest.sh create <name>"}'
 			exit 1

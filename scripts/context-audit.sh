@@ -2,9 +2,12 @@
 # Context Audit - Automated health check for Claude Code configuration
 # Usage: context-audit.sh [--maintenance]
 # Exit: 0=healthy, 1=needs attention
+# Version: 1.1.0
 set -euo pipefail
 
 source ~/.claude/hooks/lib/common.sh 2>/dev/null || true
+# Fallback if common.sh didn't load
+type have_bin &>/dev/null || have_bin() { command -v "$1" &>/dev/null; }
 
 # Use system wc to avoid custom wc in PATH
 WC=/usr/bin/wc
@@ -13,6 +16,9 @@ WARN=0
 FAIL=0
 CLAUDE_DIR="$HOME/.claude"
 GITHUB_DIR="$HOME/GitHub"
+
+# Pre-load CLAUDE.md content for fast lookups (avoids quadratic grep)
+CLAUDE_CONTENT=$(cat "$CLAUDE_DIR/CLAUDE.md" 2>/dev/null || echo "")
 
 # --- Helpers ---
 pass() { printf "  \033[32m[PASS]\033[0m %s\n" "$1"; }
@@ -46,13 +52,14 @@ if [ -d "$RULES_DIR" ]; then
 		[ -f "$f" ] || continue
 		RLINES=$($WC -l <"$f" | tr -d ' ')
 		[ "$RLINES" -gt 30 ] && warn "$(basename "$f"): $RLINES lines (target <30)"
-		# Check for phrases duplicated with CLAUDE.md
+		# Check for phrases duplicated with CLAUDE.md (uses pre-loaded content)
+		key_lines=$(grep -v '^#\|^$\|^-\|^```' "$f" 2>/dev/null | head -5) || key_lines=""
 		while IFS= read -r line; do
 			[ ${#line} -lt 20 ] && continue
-			if grep -qF "$line" "$CLAUDE_DIR/CLAUDE.md" 2>/dev/null; then
+			if echo "$CLAUDE_CONTENT" | grep -qF "$line"; then
 				DUP_COUNT=$((DUP_COUNT + 1))
 			fi
-		done < <(grep -v '^#\|^$\|^-\|^```' "$f" 2>/dev/null | head -20)
+		done <<<"$key_lines"
 	done
 	[ "$DUP_COUNT" -gt 3 ] && warn "$DUP_COUNT phrases duplicated between rules and CLAUDE.md" || pass "Minimal duplication ($DUP_COUNT phrases)"
 fi

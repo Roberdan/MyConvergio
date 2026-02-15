@@ -2,6 +2,7 @@
 # PR Digest - Compact PR review status as JSON
 # Only human comments, only unresolved threads. Skips bots.
 # Usage: pr-digest.sh [pr-number] [--no-cache]
+# Version: 1.0.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

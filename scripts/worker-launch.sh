@@ -3,6 +3,7 @@
 # Usage: worker-launch.sh <type> <tab_name> <task_db_id> --cwd <worktree>
 # Types: claude, copilot
 
+# Version: 1.1.0
 set -euo pipefail
 
 TYPE="${1:?Usage: worker-launch.sh <claude|copilot> <tab_name> <task_db_id> --cwd <dir>}"

@@ -1,5 +1,6 @@
 #!/bin/bash
-set -uo pipefail
+# Version: 1.1.0
+set -euo pipefail
 
 # Colors
 RED='\033[0;31m'
@@ -59,13 +60,18 @@ _fetch_remote_git_status() {
 	projects=$(sqlite3 "$DB" "SELECT DISTINCT p.project_id FROM plans p WHERE p.status='doing' AND p.execution_host IS NOT NULL AND p.execution_host != ''" 2>/dev/null)
 	[ -z "$projects" ] && return 0
 	# Build a bash script to run remotely — produces valid JSON per project
-	local proj_list=""
+	local proj_list="" proj
 	while IFS= read -r proj; do
 		[ -z "$proj" ] && continue
 		proj_list+="$proj "
 	done <<<"$projects"
 	# Single SSH call, inline script on remote
-	ssh -o ConnectTimeout=3 -o BatchMode=yes "$REMOTE_HOST_RESOLVED" bash -s -- $proj_list <<'REMOTE_SCRIPT' >"$REMOTE_GIT_CACHE" 2>/dev/null || true
+	# shellcheck disable=SC2086
+	local safe_proj_list=""
+	for _p in $proj_list; do
+		safe_proj_list+="$(printf '%q ' "$_p")"
+	done
+	ssh -o ConnectTimeout=3 -o BatchMode=yes "$REMOTE_HOST_RESOLVED" bash -s -- $safe_proj_list <<'REMOTE_SCRIPT' >"$REMOTE_GIT_CACHE" 2>/dev/null || true
 printf '{'
 first=1
 for proj in "$@"; do
@@ -929,37 +935,33 @@ if [ "$REFRESH_INTERVAL" -gt 0 ]; then
 		now=$(date "+%H:%M:%S")
 		echo -e "${GRAY}Ultimo aggiornamento: ${WHITE}$now${NC} ${GRAY}│ Prossimo refresh tra ${REFRESH_INTERVAL}s${NC}"
 
-		# Countdown con aggiornamento ogni secondo, intercetta tasti
-		for ((i = REFRESH_INTERVAL; i > 0; i--)); do
-			printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci, ${WHITE}P${GRAY}=push, ${WHITE}L${GRAY}=linux git)${NC}    " "$i"
-			if read -t 1 -n 1 key 2>/dev/null; then
-				case "$key" in
-				q | Q)
-					echo -e "\n${YELLOW}Dashboard terminata.${NC}"
-					exit 0
-					;;
-				p | P)
-					echo ""
-					_handle_remote_action "push"
-					echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
-					read -n 1 -s
-					break
-					;;
-				l | L)
-					echo ""
-					_handle_remote_action "status"
-					echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
-					read -n 1 -s
-					break
-					;;
-				*)
-					# Any other key = immediate refresh
-					printf "\r${CYAN}Refresh forzato...%50s${NC}\r" " "
-					break
-					;;
-				esac
-			fi
-		done
+		# Wait for keypress or timeout
+		printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci, ${WHITE}P${GRAY}=push, ${WHITE}L${GRAY}=linux git)${NC}    " "$REFRESH_INTERVAL"
+		local key=""
+		read -t "$REFRESH_INTERVAL" -n 1 key 2>/dev/null || true
+		case "$key" in
+		q | Q)
+			echo -e "\n${YELLOW}Dashboard terminata.${NC}"
+			exit 0
+			;;
+		p | P)
+			echo ""
+			_handle_remote_action "push"
+			echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+			read -n 1 -s
+			;;
+		l | L)
+			echo ""
+			_handle_remote_action "status"
+			echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+			read -n 1 -s
+			;;
+		"") ;; # timeout - normal refresh
+		*)
+			# Any other key = immediate refresh
+			printf "\r${CYAN}Refresh forzato...%50s${NC}\r" " "
+			;;
+		esac
 		clear
 	done
 else

@@ -95,7 +95,7 @@ cmd_kanban() {
     " || echo "  (none)"
 }
 
-# Get plan as JSON
+# Get plan as JSON (single object, not array)
 cmd_json() {
 	local plan_id="$1"
 	sqlite3 -json "$DB_FILE" "
@@ -105,7 +105,7 @@ cmd_json() {
         FROM plans p
         JOIN projects pr ON p.project_id = pr.id
         WHERE p.id = $plan_id;
-    "
+    " | jq '.[0] // empty'
 }
 
 # Get kanban as JSON

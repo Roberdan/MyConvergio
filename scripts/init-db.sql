@@ -236,3 +236,6 @@ CREATE INDEX IF NOT EXISTS idx_notifications_project ON notifications(project_id
 CREATE INDEX IF NOT EXISTS idx_conversation_logs_session ON conversation_logs(project_id, session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_token_usage_project ON token_usage(project_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_token_usage_task ON token_usage(task_id, recorded_at DESC);
+
+-- Alias views for common agent naming mistakes
+CREATE VIEW IF NOT EXISTS plan_tasks AS SELECT * FROM tasks;

@@ -45,9 +45,14 @@ stateDiagram-v2
     Research --> Plan: /planner
     Prompt --> Plan: Direct
     Plan --> Approve: User review
-    Approve --> Execute: plan-db.sh start
+    Approve --> Readiness: check-readiness
+    Readiness --> Execute: READY
+    Readiness --> Plan: BLOCKED (missing metadata)
     state Execute {
-        [*] --> W1
+        [*] --> EvalWave: evaluate-wave
+        EvalWave --> W1: READY
+        EvalWave --> SkipWave: SKIP (skip_if met)
+        EvalWave --> BlockWave: BLOCKED (precondition unmet)
         W1 --> PerTaskThor1: Task done
         PerTaskThor1 --> W2: PASS
         W2 --> PerTaskThor2: Task done
@@ -56,13 +61,19 @@ stateDiagram-v2
     }
     Execute --> Closure: All waves validated
     Closure --> [*]: User accepts
+    note right of Readiness
+        Checks: source_file,
+        worktree_path, description,
+        test_criteria, cycle detection
+    end note
     note right of PerTaskThor1
         Gate 1-4, 8, 9
-        validate-task
+        validate-task (Thor only)
     end note
     note right of PerWaveThor
         All 9 gates + build
-        validate-wave
+        validate-wave (requires
+        all tasks validated_at)
     end note
 ```
 
@@ -146,6 +157,31 @@ sequenceDiagram
 ```
 
 See ADR-0005 for full protocol.
+
+## Wave Preconditions
+
+```mermaid
+flowchart TD
+    W[evaluate-wave called] --> PC{Has precondition<br/>JSON?}
+    PC -->|No| READY[READY: execute wave]
+    PC -->|Yes| EVAL[Evaluate conditions]
+    EVAL --> WS[wave_status:<br/>Check target wave status]
+    EVAL --> OM[output_match:<br/>Check task output_data field]
+    EVAL --> SI[skip_if:<br/>Check skip condition]
+    WS -->|met| CHECK
+    WS -->|unmet| BLOCKED[BLOCKED: wait]
+    OM -->|met| CHECK
+    OM -->|unmet| BLOCKED
+    SI -->|met| SKIP[SKIP: skip entire wave]
+    SI -->|unmet| CHECK[All conditions met?]
+    CHECK -->|yes| READY
+    CHECK -->|no| BLOCKED
+    style READY fill:#9f9
+    style SKIP fill:#ff9
+    style BLOCKED fill:#f99
+```
+
+**Precondition types**: `wave_status` (wait for wave completion), `output_match` (check task output data), `skip_if` (conditionally skip wave). Evaluated by `plan-db.sh evaluate-wave`.
 
 ## Directory Structure
 

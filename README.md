@@ -22,6 +22,7 @@ graph TB
     subgraph "Tool Chain"
         E[plan-db.sh] --> F[(dashboard.db<br/>SQLite WAL)]
         G[*-digest.sh] --> H[Compact JSON]
+        G2[pr-ops.sh] --> H2[PR Actions<br/>reply/resolve/merge]
         I[file-lock.sh] --> F
         J[stale-check.sh] --> F
     end
@@ -193,7 +194,7 @@ flowchart TD
 ├── docs/adr/              # ADR-0001 to ADR-0008
 ├── rules/                 # Auto-loaded: coding-standards.md, guardian.md
 ├── reference/             # NOT auto-loaded: operational/, detailed/
-├── scripts/               # 30+ utilities: plan-db.sh, *-digest.sh, file-lock.sh, etc.
+├── scripts/               # 80+ utilities: plan-db.sh, *-digest.sh, pr-ops.sh, etc.
 ├── commands/              # /prompt, /planner, /execute
 └── agents/                # task-executor, adversarial-debugger, etc.
 ```
@@ -226,6 +227,26 @@ Token-efficient wrappers. Raw CLI = 500-5000 lines. Digests = ~10x reduction.
 git-digest.sh [--full]                # git status + log (ONE call)
 service-digest.sh ci|pr|deploy|all    # CI/PR/Deploy status
 test-digest.sh, build-digest.sh, diff-digest.sh main feat
+```
+
+### PR Operations (pr-ops.sh)
+
+```bash
+pr-ops.sh status [pr]                      # Compact status (wraps pr-digest.sh)
+pr-ops.sh reply <pr> <comment_id> "msg"    # Reply to review comment
+pr-ops.sh resolve <pr>                     # Resolve all review threads (GraphQL)
+pr-ops.sh ready [pr]                       # Merge readiness check (CI+reviews+threads)
+pr-ops.sh merge [pr]                       # Merge with readiness gate
+pr-ops.sh ci [pr]                          # CI status for PR branch
+```
+
+### Script Discovery
+
+```bash
+script-versions.sh                         # Grouped index (80+ scripts, 14 categories)
+script-versions.sh --json                  # JSON for programmatic use
+script-versions.sh --stale                 # Scripts missing version header
+script-versions.sh --category <name>       # Filter: digest, pr, ci, plan-db, worktree...
 ```
 
 ### Other Utilities

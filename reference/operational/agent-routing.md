@@ -47,4 +47,5 @@
 repo-info                        # Quick summary
 agent-versions.sh                # All component versions (--json, --check)
 agent-version-bump.sh <file> <major|minor|patch>  # Bump semver
+script-versions.sh               # All script versions (--json, --stale, --category <name>)
 ```

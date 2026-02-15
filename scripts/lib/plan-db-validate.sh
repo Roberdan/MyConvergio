@@ -255,17 +255,40 @@ cmd_validate() {
 
 	sqlite3 "$DB_FILE" "UPDATE plans SET validated_at = datetime('now'), validated_by = '$validated_by' WHERE id = $plan_id;"
 
-	# Also mark all done tasks as validated
-	local done_tasks=$(sqlite3 "$DB_FILE" "
-        SELECT t.id FROM tasks t
+	# Check for unvalidated done tasks — refuse to bulk-validate them (must use per-task Thor)
+	local unvalidated_count=$(sqlite3 "$DB_FILE" "
+        SELECT COUNT(*) FROM tasks t
         JOIN waves w ON t.wave_id_fk = w.id
         WHERE w.plan_id = $plan_id AND t.status = 'done' AND t.validated_at IS NULL;
     ")
-	if [ -n "$done_tasks" ]; then
+	if [ "$unvalidated_count" -gt 0 ]; then
+		log_warn "$unvalidated_count done tasks lack per-task Thor validation — run validate-task for each"
 		sqlite3 "$DB_FILE" "
-            UPDATE tasks SET validated_at = datetime('now'), validated_by = '$validated_by'
-            WHERE id IN (
-                SELECT t.id FROM tasks t
+            SELECT t.task_id, t.title FROM tasks t
+            JOIN waves w ON t.wave_id_fk = w.id
+            WHERE w.plan_id = $plan_id AND t.status = 'done' AND t.validated_at IS NULL;
+        " | while IFS='|' read -r tid title; do
+			echo "  - $tid: $title"
+		done
+	fi
+
+	# DO NOT bulk-validate tasks — this was a bypass hole
+	# Tasks must be validated individually via validate-task (which invokes Thor agent)
+	local already_validated=$(sqlite3 "$DB_FILE" "
+        SELECT COUNT(*) FROM tasks t
+        JOIN waves w ON t.wave_id_fk = w.id
+        WHERE w.plan_id = $plan_id AND t.status = 'done' AND t.validated_at IS NOT NULL;
+    ")
+	local _placeholder="$already_validated" # used for reporting only
+
+	# Legacy bulk path removed — keeping only counter checks above
+	local done_tasks=""
+	if [ -n "$done_tasks" ]; then
+		: # no-op: preserved for backwards compat of variable reference
+		sqlite3 "$DB_FILE" "
+            -- no-op: bulk validation removed
+            SELECT 1 WHERE 0;
+            -- was: UPDATE tasks SET validated_at ... WHERE id IN (SELECT t.id FROM tasks t
                 JOIN waves w ON t.wave_id_fk = w.id
                 WHERE w.plan_id = $plan_id AND t.status = 'done'
             );

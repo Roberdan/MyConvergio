@@ -1,17 +1,17 @@
 #!/bin/bash
 # plan-db-safe.sh - Safe wrapper around plan-db.sh
-# Auto-releases file locks and checks staleness before marking done.
-# Version: 1.0.0
+# Auto-releases file locks, checks staleness, warns about uncommitted changes.
+# Version: 2.0.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DB_FILE="$HOME/.claude/data/dashboard.db"
 
-# Extract task_id from args (first numeric arg after command)
 COMMAND="${1:-}"
 TASK_ID="${2:-}"
 
 if [[ "$COMMAND" == "update-task" && "${3:-}" == "done" ]]; then
-	# Before marking done: check staleness if stale-check.sh is available
+	# Before marking done: check staleness
 	if [[ -x "$SCRIPT_DIR/stale-check.sh" ]]; then
 		stale_result=$("$SCRIPT_DIR/stale-check.sh" check "$TASK_ID" 2>/dev/null || echo "ok")
 		if [[ "$stale_result" == *"stale=true"* ]]; then
@@ -20,19 +20,18 @@ if [[ "$COMMAND" == "update-task" && "${3:-}" == "done" ]]; then
 		fi
 	fi
 
-	# Check for uncommitted changes in plan worktree
-	plan_id=$(sqlite3 -cmd ".timeout 3000" "$HOME/.claude/data/dashboard.db" \
+	# Warn about uncommitted changes in plan worktree (but don't block)
+	plan_id=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
 		"SELECT plan_id FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
 	if [[ -n "$plan_id" ]]; then
-		worktree=$(sqlite3 -cmd ".timeout 3000" "$HOME/.claude/data/dashboard.db" \
+		worktree=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
 			"SELECT worktree_path FROM plans WHERE id = $plan_id;" 2>/dev/null || echo "")
 		if [[ -n "$worktree" && -d "$worktree" ]]; then
-			dirty=$(git -C "$worktree" status --porcelain 2>/dev/null | head -1)
-			if [[ -n "$dirty" ]]; then
-				echo "WARN: Uncommitted changes in worktree $worktree for task $TASK_ID" >&2
-				echo "WARN: Auto-stashing to prevent data loss..." >&2
-				git -C "$worktree" stash push -m "auto-save: task $TASK_ID marked done" 2>/dev/null || true
-				git -C "$worktree" stash pop 2>/dev/null || true
+			dirty_count=$(git -C "$worktree" status --porcelain 2>/dev/null | grep -c "" || echo "0")
+			if [[ "$dirty_count" -gt 0 ]]; then
+				echo "WARN: $dirty_count uncommitted file(s) in $worktree for task $TASK_ID" >&2
+				echo "WARN: Remember to commit before session end to avoid data loss" >&2
+				git -C "$worktree" status --porcelain 2>/dev/null | head -5 | sed 's/^/  /' >&2
 			fi
 		fi
 	fi

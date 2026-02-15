@@ -85,9 +85,9 @@ cmd_acquire() {
 	local deadline=$((SECONDS + timeout))
 
 	while true; do
-		# Atomic: delete stale + insert in single transaction
+		# Atomic: delete stale + insert in exclusive transaction (prevents race conditions)
 		if db_query "
-			BEGIN;
+			BEGIN EXCLUSIVE;
 			DELETE FROM file_locks
 				WHERE file_path='$(sql_escape "$abs_path")'
 				AND host='$(sql_escape "$PLAN_DB_HOST")'

@@ -9,6 +9,15 @@
 - Tasks use `wave_id_fk` (numeric FK), NOT `wave_id` string
 - Use `plan-db.sh` for all DB operations (handles FK correctly)
 - **NEVER invent column names**. Schema: see `PLANNER-ARCHITECTURE.md`
+- **NEVER invent subcommands**. Use ONLY the commands listed below. Run `plan-db.sh` with no args to see help.
+
+## Valid Statuses (NEVER invent values)
+
+| Entity | Valid statuses                                                 |
+| ------ | -------------------------------------------------------------- |
+| Task   | `pending` \| `in_progress` \| `done` \| `blocked` \| `skipped` |
+| Plan   | `todo` \| `doing` \| `done` \| `archived`                      |
+| Wave   | `pending` \| `in_progress` \| `done` \| `blocked`              |
 
 ## Plan Management
 

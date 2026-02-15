@@ -412,7 +412,7 @@ cmd_update_task() {
 	case "$status" in
 	pending | in_progress | done | blocked | skipped) ;;
 	*)
-		log_error "Invalid status: $status"
+		log_error "Invalid task status: '$status'. Valid: pending | in_progress | done | blocked | skipped"
 		exit 1
 		;;
 	esac
@@ -456,6 +456,14 @@ cmd_update_task() {
 cmd_update_wave() {
 	local wave_id="$1"
 	local status="$2"
+
+	case "$status" in
+	pending | in_progress | done | blocked) ;;
+	*)
+		log_error "Invalid wave status: '$status'. Valid: pending | in_progress | done | blocked"
+		exit 1
+		;;
+	esac
 
 	if [[ "$status" == "in_progress" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE waves SET status = '$status', started_at = datetime('now') WHERE id = $wave_id;"

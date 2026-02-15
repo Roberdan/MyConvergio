@@ -93,6 +93,8 @@ stale-check) "$SCRIPT_DIR/stale-check.sh" "${@:2}" ;;
 wave-overlap) "$SCRIPT_DIR/wave-overlap.sh" "${@:2}" ;;
 merge-queue) "$SCRIPT_DIR/merge-queue.sh" "${@:2}" ;;
 *)
+	echo "[ERROR] Unknown command: '${1:-}'" >&2
+	echo "" >&2
 	echo "Plan DB CLI - Task/Wave/Plan Management"
 	echo ""
 	echo "Usage: plan-db.sh <command> [args]"
@@ -150,5 +152,9 @@ merge-queue) "$SCRIPT_DIR/merge-queue.sh" "${@:2}" ;;
 	echo "  stale-check snapshot|check|diff|cleanup  Stale context detection"
 	echo "  wave-overlap check-wave|check-plan|check-spec  Intra-wave overlap"
 	echo "  merge-queue enqueue|process|status|cancel  Sequential merge queue"
+	echo ""
+	echo "Task statuses: pending | in_progress | done | blocked | skipped"
+	echo "Plan statuses: todo | doing | done | archived"
+	exit 1
 	;;
 esac

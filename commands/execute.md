@@ -1,3 +1,8 @@
+---
+name: execute
+version: "1.0.0"
+---
+
 # Plan Executor
 
 Automated execution of plan tasks via task-executor subagent or Copilot CLI worker.

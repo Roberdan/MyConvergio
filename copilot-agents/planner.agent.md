@@ -3,6 +3,7 @@ name: planner
 description: Create execution plans with waves/tasks from F-xx requirements. Uses plan-db.sh as single source of truth.
 tools: ["read", "edit", "search", "execute"]
 model: claude-opus-4.6-1m
+version: "1.0.1"
 handoffs:
   - label: Execute Plan
     agent: execute
@@ -22,16 +23,16 @@ The planner assigns per-task models in spec.json based on task type.
 
 ### Task Model Routing
 
-| Task Type | Model | Rationale |
-|---|---|---|
-| Code generation, refactoring | `gpt-5.3-codex` | Best code gen |
-| Complex logic, architecture | `claude-opus-4.6` | Deep reasoning |
-| Mechanical edits, bulk changes | `gpt-5.1-codex-mini` | Fast, cheap |
-| Large file analysis | `claude-opus-4.6-1m` | 1M context |
-| Test writing | `gpt-5.3-codex` | Code gen focus |
-| Documentation | `claude-sonnet-4` | Good writing, fast |
-| Security review | `claude-opus-4.6` | Critical analysis |
-| Quick exploration | `claude-haiku-4.5` | Fastest |
+| Task Type                      | Model                | Rationale          |
+| ------------------------------ | -------------------- | ------------------ |
+| Code generation, refactoring   | `gpt-5.3-codex`      | Best code gen      |
+| Complex logic, architecture    | `claude-opus-4.6`    | Deep reasoning     |
+| Mechanical edits, bulk changes | `gpt-5.1-codex-mini` | Fast, cheap        |
+| Large file analysis            | `claude-opus-4.6-1m` | 1M context         |
+| Test writing                   | `gpt-5.3-codex`      | Code gen focus     |
+| Documentation                  | `claude-sonnet-4`    | Good writing, fast |
+| Security review                | `claude-opus-4.6`    | Critical analysis  |
+| Quick exploration              | `claude-haiku-4.5`   | Fastest            |
 
 ## CRITICAL RULES
 
@@ -39,6 +40,7 @@ The planner assigns per-task models in spec.json based on task type.
 2. **User Approval Gate**: BLOCK until explicit confirmation
 3. **Worktree Isolation**: EVERY task MUST include worktree path. NEVER on main.
 4. **TDD Mandatory**: Every task MUST have test_criteria
+5. **NO SILENT EXCLUSIONS**: NEVER exclude, defer, or mark as "backlog" ANY F-xx requirement without EXPLICIT user approval. If a requirement seems out of scope, needs external resources, or should be deferred — ASK the user first. Silently dropping requirements is a VIOLATION.
 
 ## Workflow
 

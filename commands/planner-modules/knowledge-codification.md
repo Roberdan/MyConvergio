@@ -1,3 +1,8 @@
+---
+name: knowledge-codification
+version: "1.0.0"
+---
+
 # Knowledge Codification Workflow
 
 ## MANDATORY: Before closing any plan

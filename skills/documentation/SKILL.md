@@ -10,6 +10,7 @@ allowed-tools:
   - Bash
 context: fork
 user-invocable: true
+version: "1.0.0"
 ---
 
 # Documentation Skill

@@ -1,8 +1,14 @@
+---
+name: release
+version: "1.0.0"
+---
+
 # Release Manager
 
 Comprehensive pre-release validation via `app-release-manager` subagent.
 
 ## Context (pre-computed)
+
 ```
 Project: `basename "$(pwd)"`
 Branch: `git branch --show-current 2>/dev/null || echo "not a git repo"`
@@ -11,6 +17,7 @@ Version: `node -p "require('./package.json').version" 2>/dev/null || echo "unkno
 ```
 
 ## Activation
+
 When message contains `/release` or `/release {version}`.
 
 ## What It Does
@@ -52,13 +59,14 @@ Zero tolerance policy:
 - ANY lint error = BLOCK
 
 Output: Release report with APPROVE or BLOCK decision.
-`
+`,
 });
 ```
 
 ### Phase 2: Review Results
 
 Agent returns comprehensive report:
+
 - All checks with pass/fail status
 - Auto-fixes applied (if any)
 - Blocking issues list (if any)
@@ -67,12 +75,14 @@ Agent returns comprehensive report:
 ### Phase 3: User Decision
 
 If APPROVED:
+
 - Confirm version bump (major/minor/patch)
 - Create git tag
 - Update CHANGELOG
 - Optional: create GitHub release
 
 If BLOCKED:
+
 - Fix listed issues
 - Re-run `/release`
 
@@ -98,13 +108,13 @@ If BLOCKED:
 
 ## Auto-Fix Protocol
 
-| Issue | Auto-Fix Action |
-|-------|----------------|
-| Lint warnings | `npm run lint --fix` |
-| TODO/FIXME | Remove or create ticket |
-| Debug prints | Remove all console.log |
-| Trailing whitespace | Strip via formatter |
-| Unused imports | Remove automatically |
+| Issue               | Auto-Fix Action         |
+| ------------------- | ----------------------- |
+| Lint warnings       | `npm run lint --fix`    |
+| TODO/FIXME          | Remove or create ticket |
+| Debug prints        | Remove all console.log  |
+| Trailing whitespace | Strip via formatter     |
+| Unused imports      | Remove automatically    |
 
 After auto-fixes: re-run affected checks. If issues remain → BLOCK.
 
@@ -123,21 +133,26 @@ Bump patch (bugfix):   1.4.3
 ## [1.5.0] - 2025-01-24
 
 ### Added
+
 - New feature description
 
 ### Changed
+
 - Updated behavior description
 
 ### Fixed
+
 - Bug fix description
 
 ### Security
+
 - Security patch description
 ```
 
 ## Rollback Procedures
 
 If release fails in production:
+
 1. `git checkout v{previous}` - revert to previous tag
 2. Trigger rollback deployment
 3. Notify stakeholders

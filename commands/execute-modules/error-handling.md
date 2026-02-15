@@ -1,3 +1,8 @@
+---
+name: error-handling
+version: "1.0.0"
+---
+
 # Execution Error Handling
 
 ## Task Failure (executor owns retry)
@@ -23,12 +28,12 @@
 
 ## Recovery Strategies
 
-| Failure | Auto-Action | Escalation |
-|---------|-------------|------------|
-| Task timeout | Retry with sonnet | User after 2 retries |
-| Test failure | Fix + re-test | User after 2 retries |
-| Build error | Fix TS/lint errors | User after 2 retries |
-| Thor rejection | Fix per THOR_REJECT | User after 3 rounds |
+| Failure          | Auto-Action            | Escalation           |
+| ---------------- | ---------------------- | -------------------- |
+| Task timeout     | Retry with sonnet      | User after 2 retries |
+| Test failure     | Fix + re-test          | User after 2 retries |
+| Build error      | Fix TS/lint errors     | User after 2 retries |
+| Thor rejection   | Fix per THOR_REJECT    | User after 3 rounds  |
 | Missing metadata | check-readiness blocks | Immediate (no retry) |
 
 ## Anti-Failure Rules

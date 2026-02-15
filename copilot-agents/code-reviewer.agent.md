@@ -3,6 +3,7 @@ name: code-reviewer
 description: Security-focused code reviewer. Checks OWASP, engineering fundamentals, and project patterns. Universal across repositories.
 tools: ["read", "search", "execute"]
 model: claude-opus-4.6
+version: "1.0.0"
 ---
 
 # Code Reviewer

@@ -1,3 +1,8 @@
+---
+name: planner
+version: "1.0.1"
+---
+
 # Planner + Orchestrator
 
 Plan and execute with parallel Claude instances.
@@ -10,6 +15,7 @@ Plan and execute with parallel Claude instances.
 4. **Thor Enforcement**: Wave done = Thor passed + build passed
 5. **Worktree Isolation**: EVERY task prompt MUST include worktree path
 6. **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See [knowledge-codification.md](./planner-modules/knowledge-codification.md)
+7. **NO SILENT EXCLUSIONS**: NEVER exclude, defer, or mark as "backlog" ANY F-xx requirement without EXPLICIT user approval via AskUserQuestion. If a requirement seems out of scope, needs external resources, or should be deferred — ASK the user. Silently dropping requirements is a VIOLATION.
 
 ## Module References
 
@@ -64,6 +70,14 @@ After reading prompt + docs, STOP. Identify ambiguities. Use AskUserQuestion.
 **Rule**: If GUESSING about implementation -> STOP and ASK.
 
 ### 2. Generate Plan Spec (JSON)
+
+**EXCLUSION GATE (MANDATORY)**: Before writing spec.json, compare ALL F-xx from the prompt file against planned tasks. If ANY F-xx is NOT covered by a task:
+
+1. List the uncovered F-xx requirements
+2. Use AskUserQuestion: "Questi requisiti non sono coperti dal piano: [list]. Per ciascuno: includerli, deferirli a un piano successivo, o escluderli?"
+3. BLOCK until user responds. Only then proceed.
+
+**NEVER** use labels like "scope.out", "backlog item", "needs external resource" to silently skip requirements. The user decides what's in and what's out.
 
 Write a `spec.json` file with compact task format optimized for machine execution:
 

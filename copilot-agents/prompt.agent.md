@@ -3,6 +3,7 @@ name: prompt
 description: Extract structured requirements (F-xx) from user input. Outputs JSON to .copilot-tracking/
 tools: ["read", "search", "execute"]
 model: claude-opus-4.6
+version: "1.0.1"
 handoffs:
   - label: Plan
     agent: planner
@@ -70,7 +71,10 @@ Save to `.copilot-tracking/prompt-{NNN}.json`:
       "priority": "P2"
     }
   ],
-  "scope": { "in": ["included"], "out": ["excluded"] },
+  "scope": {
+    "in": ["included"],
+    "out": ["only items USER explicitly excluded"]
+  },
   "stop_conditions": ["All F-xx verified", "Build passes", "User confirms"]
 }
 ```
@@ -86,6 +90,7 @@ PROMPT_FILE=".copilot-tracking/prompt-$(printf '%03d' $NEXT).json"
 
 - `said`: EXACT user words. Never paraphrase.
 - `verify`: machine-checkable. grep, test command, build passes. Not prose.
+- `scope.out`: ONLY items the USER explicitly said to exclude. NEVER add items to scope.out on your own initiative.
 - This JSON is read by the planner agent to generate spec.json.
 
 ## After Output

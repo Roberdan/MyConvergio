@@ -3,6 +3,10 @@
 ## [Unreleased] — CLAUDE.md Restructuring
 
 ### Changed
+- Bumped: prompt 1.0.0 -> 1.0.1 (patch)
+- Bumped: planner 1.0.0 -> 1.0.1 (patch)
+- Bumped: planner 1.0.0 -> 1.0.1 (patch)
+- Bumped: prompt 1.0.0 -> 1.0.1 (patch)
 
 - Changed: CLAUDE.md slimmed from 197 to 115 lines (42% reduction)
 - Changed: Extracted concurrency control section to `reference/operational/concurrency-control.md`

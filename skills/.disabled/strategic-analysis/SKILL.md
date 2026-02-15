@@ -8,6 +8,7 @@ allowed-tools:
   - WebSearch
 context: fork
 user-invocable: true
+version: "1.0.0"
 ---
 
 # Strategic Analysis Skill
@@ -15,9 +16,11 @@ user-invocable: true
 > Reusable workflow extracted from domik-mckinsey-strategic-decision-maker expertise.
 
 ## Purpose
+
 Apply McKinsey-level strategic analysis using MECE frameworks, hypothesis-driven problem solving, and quantitative prioritization to drive transformational business decisions with executive-ready recommendations.
 
 ## When to Use
+
 - Strategic initiative prioritization
 - Business transformation planning
 - Technology investment decisions
@@ -90,6 +93,7 @@ Apply McKinsey-level strategic analysis using MECE frameworks, hypothesis-driven
    - Define clear next steps with ownership
 
 ## Inputs Required
+
 - **Strategic Question**: Clear, specific decision to be made
 - **Business Context**: Company strategy, market position, competitive landscape
 - **Financial Data**: Revenue, costs, growth rates, market size
@@ -98,6 +102,7 @@ Apply McKinsey-level strategic analysis using MECE frameworks, hypothesis-driven
 - **Stakeholders**: Key decision-makers and their priorities
 
 ## Outputs Produced
+
 - **Executive Summary**: Three key messages with recommendation
 - **Strategic Analysis Report**: Detailed issue tree and hypothesis testing
 - **Quantitative Models**: Financial projections, scenario analysis, ROI
@@ -109,16 +114,19 @@ Apply McKinsey-level strategic analysis using MECE frameworks, hypothesis-driven
 ## MECE Framework Principles
 
 ### Mutually Exclusive
+
 - No overlap between categories
 - Each item fits in only one bucket
 - Clear boundaries between segments
 
 ### Collectively Exhaustive
+
 - All possibilities covered
 - Nothing left out
 - Complete picture of the problem space
 
 ### Example Issue Tree
+
 ```
 Should we enter Market X?
 
@@ -143,6 +151,7 @@ Should we enter Market X?
 ### Initiative-Level Assessment (1-5 scale)
 
 #### Customer Value
+
 - **5**: CxO-validated outcomes with precise benchmarks
 - **4**: Defined outcomes with preliminary benchmarks
 - **3**: Aspirational outcomes without clear benchmarks
@@ -150,6 +159,7 @@ Should we enter Market X?
 - **1**: No clear problem or impact defined
 
 #### Microsoft Value (Annual NNR)
+
 - **5**: >$50M annual NNR
 - **4**: $20M-$50M annual NNR
 - **3**: $5M-$20M annual NNR
@@ -157,6 +167,7 @@ Should we enter Market X?
 - **1**: <$1M annual NNR
 
 #### Ecosystem Impact
+
 - **5**: Microsoft-wide blueprint with PG interest
 - **4**: Multi-industry use case, strong partner enablement
 - **3**: High relevance across industry, aligned to priority use case
@@ -165,6 +176,7 @@ Should we enter Market X?
 - **0**: Highly tailored, not replicable
 
 #### Technical Innovation
+
 - **5**: Transformational initiative co-led with PG
 - **4**: Deep frontier tech use, co-engineering with PG
 - **3**: Technically innovative, partially aligned with PG
@@ -172,6 +184,7 @@ Should we enter Market X?
 - **1**: Not new, novel, or complex
 
 #### Engineering Time to Solution
+
 - **5**: <60 Dev Days
 - **4**: 61-199 Dev Days
 - **3**: 200-499 Dev Days
@@ -179,6 +192,7 @@ Should we enter Market X?
 - **1**: >1000 Dev Days
 
 #### Time to Full Production
+
 - **5**: ≤2 months
 - **4**: 2-4 months
 - **3**: 4-8 months
@@ -186,6 +200,7 @@ Should we enter Market X?
 - **1**: >12 months or no Azure tenant
 
 ### Composite Score Calculation
+
 ```
 Total Score = (Customer Value + Microsoft Value + Ecosystem Impact +
                Technical Innovation + Engineering Efficiency +
@@ -205,42 +220,51 @@ Interpretation:
 # Strategic Recommendation: [Clear Decision Title]
 
 ## Recommendation
+
 [One sentence: What should we do?]
 
 ## Three Key Messages
+
 1. **[First key message]** - [Why it matters]
 2. **[Second key message]** - [Supporting evidence]
 3. **[Third key message]** - [What it means]
 
 ## Strategic Rationale
+
 [2-3 paragraphs explaining the "why" behind the recommendation]
 
 ## Expected Impact
+
 - Financial: [Revenue/cost impact with timeframe]
 - Strategic: [Competitive advantage, market position]
 - Organizational: [Capability building, culture]
 
 ## Implementation Roadmap
+
 - **Phase 1 (Months 1-3)**: [Quick wins, foundations]
 - **Phase 2 (Months 4-6)**: [Scale, optimization]
 - **Phase 3 (Months 7-12)**: [Full deployment, measurement]
 
 ## Key Risks & Mitigation
+
 1. **[Risk]** - Mitigation: [Strategy]
 2. **[Risk]** - Mitigation: [Strategy]
 
 ## Investment Required
+
 - Capital: $[amount]
 - People: [FTE count] over [timeframe]
 - Timeline: [Duration]
 - Expected ROI: [X]% by [timeframe]
 
 ## Success Metrics
+
 - [KPI 1]: [Target by date]
 - [KPI 2]: [Target by date]
 - [KPI 3]: [Target by date]
 
 ## Next Steps
+
 1. **[Action]** - Owner: [Name], Due: [Date]
 2. **[Action]** - Owner: [Name], Due: [Date]
 ```
@@ -303,6 +327,7 @@ Next Step: Approve $2M budget, kickoff with 6-person team by Q2
 ## Strategic Frameworks Catalog
 
 ### Porter's Five Forces
+
 - Threat of new entrants
 - Bargaining power of suppliers
 - Bargaining power of buyers
@@ -310,22 +335,27 @@ Next Step: Approve $2M budget, kickoff with 6-person team by Q2
 - Competitive rivalry
 
 ### 7S Framework (McKinsey)
+
 - Strategy, Structure, Systems
 - Shared Values, Style, Staff, Skills
 
 ### Three Horizons Model
+
 - Horizon 1: Core business optimization
 - Horizon 2: Emerging opportunities
 - Horizon 3: Transformational bets
 
 ### Value Chain Analysis
+
 - Primary: Inbound logistics, operations, outbound, marketing, service
 - Support: Infrastructure, HR, technology, procurement
 
 ### BCG Growth-Share Matrix
+
 - Stars, Cash Cows, Question Marks, Dogs
 
 ## Related Agents
+
 - **domik-mckinsey-strategic-decision-maker** - Full agent with deep analysis
 - **satya-board-of-directors** - System-thinking strategic guidance
 - **antonio-strategy-expert** - Business strategy frameworks
@@ -335,6 +365,7 @@ Next Step: Approve $2M budget, kickoff with 6-person team by Q2
 ## Decision Quality Criteria
 
 ### Six Tests of a Good Decision
+
 1. **Framing**: Right question being answered?
 2. **Alternatives**: Multiple options considered?
 3. **Information**: Reliable data gathered?
@@ -343,6 +374,7 @@ Next Step: Approve $2M budget, kickoff with 6-person team by Q2
 6. **Commitment**: Stakeholders aligned and committed?
 
 ## ISE Engineering Fundamentals Alignment
+
 - Architecture Decision Records (ADRs) for strategic tech decisions
 - Trade studies before major investments
 - Technical spikes for high-risk unknowns

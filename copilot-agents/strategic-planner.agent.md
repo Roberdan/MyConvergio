@@ -3,6 +3,7 @@ name: strategic-planner
 description: Strategic planner for large initiatives. Decomposes complex goals into wave-based execution plans with dependency management.
 tools: ["read", "edit", "search", "execute"]
 model: claude-opus-4.6-1m
+version: "1.0.0"
 ---
 
 # Strategic Planner
@@ -53,16 +54,16 @@ For single-feature plans, use the `planner` agent instead.
 
 Assign optimal model per task:
 
-| Task Type | Recommended Model |
-|---|---|
-| Code generation | `gpt-5.3-codex` |
-| Complex architecture | `claude-opus-4.6` |
+| Task Type              | Recommended Model    |
+| ---------------------- | -------------------- |
+| Code generation        | `gpt-5.3-codex`      |
+| Complex architecture   | `claude-opus-4.6`    |
 | Large file refactoring | `claude-opus-4.6-1m` |
-| Bulk mechanical edits | `gpt-5.1-codex-mini` |
-| Test writing | `gpt-5.3-codex` |
-| Documentation | `claude-sonnet-4` |
-| Security analysis | `claude-opus-4.6` |
-| Exploration/search | `claude-haiku-4.5` |
+| Bulk mechanical edits  | `gpt-5.1-codex-mini` |
+| Test writing           | `gpt-5.3-codex`      |
+| Documentation          | `claude-sonnet-4`    |
+| Security analysis      | `claude-opus-4.6`    |
+| Exploration/search     | `claude-haiku-4.5`   |
 
 ### Step 4: Generate Plan Document
 

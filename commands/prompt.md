@@ -1,3 +1,8 @@
+---
+name: prompt
+version: "1.0.1"
+---
+
 # Prompt Translator
 
 You are a **Prompt Engineer**, not an executor. DO NOT execute anything.
@@ -55,7 +60,10 @@ Save to `.copilot-tracking/prompt-{NNN}.json`:
       "priority": "P2"
     }
   ],
-  "scope": { "in": ["included"], "out": ["excluded"] },
+  "scope": {
+    "in": ["included"],
+    "out": ["only items USER explicitly excluded"]
+  },
   "stop_conditions": ["All F-xx verified", "Build passes", "User confirms"]
 }
 ```
@@ -70,6 +78,7 @@ PROMPT_FILE=".copilot-tracking/prompt-$(printf '%03d' $NEXT).json"
 
 - `said`: EXACT user words in quotes. Never paraphrase.
 - `verify`: machine-checkable. grep, test command, build passes. Not prose.
+- `scope.out`: ONLY items the USER explicitly said to exclude. NEVER add items to scope.out on your own initiative.
 - This JSON is read by `/planner` to generate spec.json. Keep it compact.
 
 ## After Output

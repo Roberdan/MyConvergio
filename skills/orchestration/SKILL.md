@@ -9,6 +9,7 @@ allowed-tools:
   - Task
 context: fork
 user-invocable: true
+version: "1.0.0"
 ---
 
 # Multi-Worker Parallel Orchestration Skill

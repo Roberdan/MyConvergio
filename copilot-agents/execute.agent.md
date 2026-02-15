@@ -3,6 +3,7 @@ name: execute
 description: Execute plan tasks with TDD workflow, drift detection, and worktree enforcement.
 tools: ["read", "edit", "search", "execute"]
 model: gpt-5.3-codex
+version: "1.0.0"
 handoffs:
   - label: Validate Wave
     agent: validate
@@ -20,14 +21,14 @@ Works with ANY repository — auto-detects project context.
 Default: `gpt-5.3-codex` (best code generation).
 Override per-task using `model` field from spec.json:
 
-| Task model value | Copilot CLI model |
-|---|---|
-| `codex` / `gpt-5.3-codex` | `gpt-5.3-codex` |
-| `opus` / `claude-opus-4.6` | `claude-opus-4.6` |
-| `opus-1m` | `claude-opus-4.6-1m` |
-| `sonnet` | `claude-sonnet-4` |
-| `haiku` | `claude-haiku-4.5` |
-| `codex-mini` | `gpt-5.1-codex-mini` |
+| Task model value           | Copilot CLI model    |
+| -------------------------- | -------------------- |
+| `codex` / `gpt-5.3-codex`  | `gpt-5.3-codex`      |
+| `opus` / `claude-opus-4.6` | `claude-opus-4.6`    |
+| `opus-1m`                  | `claude-opus-4.6-1m` |
+| `sonnet`                   | `claude-sonnet-4`    |
+| `haiku`                    | `claude-haiku-4.5`   |
+| `codex-mini`               | `gpt-5.1-codex-mini` |
 
 ## CRITICAL RULES
 

@@ -9,6 +9,7 @@ allowed-tools:
   - Edit
 context: fork
 user-invocable: true
+version: "1.0.0"
 ---
 
 # Debugging Skill
@@ -16,9 +17,11 @@ user-invocable: true
 > Reusable workflow extracted from dario-debugger expertise.
 
 ## Purpose
+
 Systematically investigate and resolve bugs through scientific methodology, root cause analysis, and evidence-based diagnosis across all technology stacks.
 
 ## When to Use
+
 - Production incidents and outages
 - Intermittent or hard-to-reproduce bugs
 - Performance degradation investigation
@@ -79,6 +82,7 @@ Systematically investigate and resolve bugs through scientific methodology, root
    - Update runbooks if applicable
 
 ## Inputs Required
+
 - **Bug description**: Expected vs actual behavior
 - **Environment**: OS, versions, configurations, recent changes
 - **Reproduction**: Steps to reproduce (if known)
@@ -86,6 +90,7 @@ Systematically investigate and resolve bugs through scientific methodology, root
 - **Scope**: When did it start? How many affected?
 
 ## Outputs Produced
+
 - **Root Cause Report**: Detailed analysis with evidence
 - **Reproduction Steps**: Minimal, reliable reproduction case
 - **Fix Recommendations**: Prioritized solutions with trade-offs
@@ -95,6 +100,7 @@ Systematically investigate and resolve bugs through scientific methodology, root
 ## Bug Classification
 
 ### Priority Levels
+
 - **🔴 P0 - Critical**: System down, data loss, security breach - immediate response
 - **🟠 P1 - High**: Major feature broken, significant user impact
 - **🟡 P2 - Medium**: Feature degraded, workaround exists
@@ -103,6 +109,7 @@ Systematically investigate and resolve bugs through scientific methodology, root
 ## Debugging Techniques
 
 ### Scientific Method
+
 1. Observe the problem
 2. Form hypothesis about cause
 3. Design experiment to test hypothesis
@@ -111,11 +118,13 @@ Systematically investigate and resolve bugs through scientific methodology, root
 6. Refine hypothesis or conclude
 
 ### Binary Search Debugging
+
 - Divide problem space in half repeatedly
 - Test midpoint to eliminate half of possibilities
 - Efficient for narrowing down cause
 
 ### 5 Whys Technique
+
 ```
 Problem: API endpoint returns 500 error
 Why? Database connection failed
@@ -127,6 +136,7 @@ Root Cause: Incomplete error handling refactor
 ```
 
 ### Time-Travel Debugging
+
 - Use tools like rr, UndoDB for execution replay
 - Step backwards through execution
 - Examine state at any point in time
@@ -157,6 +167,7 @@ CONFIDENCE: 99%
 ## Debugging Tools by Platform
 
 ### Language-Specific
+
 - **Python**: pdb, ipdb, py-spy, memory_profiler
 - **JavaScript/Node**: Chrome DevTools, node --inspect, ndb
 - **C/C++/Objective-C**: LLDB, Instruments, AddressSanitizer, Valgrind
@@ -164,12 +175,14 @@ CONFIDENCE: 99%
 - **Go**: Delve, pprof, race detector
 
 ### System-Level
+
 - **Linux**: strace, ltrace, perf, eBPF/bpftrace
 - **macOS**: dtrace, Instruments, sample, spindump
 - **Network**: Wireshark, tcpdump, mtr, curl -v
 - **Container**: docker logs, kubectl logs, container-diff
 
 ### Observability
+
 - **Logging**: ELK Stack, Splunk, Datadog
 - **Tracing**: Jaeger, Zipkin, OpenTelemetry
 - **Metrics**: Prometheus, Grafana, New Relic
@@ -178,18 +191,21 @@ CONFIDENCE: 99%
 ## Log Analysis Patterns
 
 ### Error Pattern Recognition
+
 - Stack trace analysis and grouping
 - Error rate anomaly detection
 - Correlation of errors across services
 - Timeline reconstruction
 
 ### Distributed Tracing
+
 - Follow request ID across microservices
 - Identify latency contributors
 - Find error propagation paths
 - Visualize service dependencies
 
 ## Related Agents
+
 - **dario-debugger** - Full agent with reasoning and tool expertise
 - **rex-code-reviewer** - Identifies bug-prone patterns
 - **otto-performance-optimizer** - Performance-related debugging
@@ -197,6 +213,7 @@ CONFIDENCE: 99%
 - **luca-security-expert** - Security vulnerability investigation
 
 ## ISE Engineering Fundamentals Alignment
+
 - Build applications test-ready with comprehensive logging
 - Use correlation IDs for distributed tracing
 - Include contextual metadata in all logs

@@ -3,6 +3,7 @@ name: compliance-checker
 description: Compliance and regulatory checker. Verifies security, privacy, accessibility, and legal requirements. Universal across repositories.
 tools: ["read", "search", "execute"]
 model: claude-opus-4.6-1m
+version: "1.0.0"
 ---
 
 # Compliance Checker

@@ -3,6 +3,7 @@ name: tdd-executor
 description: TDD-focused task executor. Writes failing tests first, implements minimum code, validates. Universal across repositories.
 tools: ["read", "edit", "search", "execute"]
 model: gpt-5.3-codex
+version: "1.0.0"
 ---
 
 # TDD Executor
@@ -60,8 +61,8 @@ fi
 ### TypeScript/JavaScript
 
 ```typescript
-describe('FeatureName', () => {
-  it('should handle specific case', () => {
+describe("FeatureName", () => {
+  it("should handle specific case", () => {
     // Arrange
     const input = createTestInput();
     // Act

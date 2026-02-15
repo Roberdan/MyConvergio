@@ -61,16 +61,6 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "matcher": "Edit|MultiEdit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "npx -y @colbymchenry/codegraph mark-dirty",
-            "async": true
-          }
-        ]
       }
     ],
     "SubagentStart": [
@@ -124,14 +114,6 @@
             "timeout": 30
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "npx -y @colbymchenry/codegraph sync-if-dirty"
-          }
-        ]
       }
     ],
     "TeammateIdle": [
@@ -168,5 +150,6 @@
   "language": "italian",
   "autoUpdatesChannel": "latest",
   "plansDirectory": "~/.claude/plans",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "effortLevel": "medium"
 }

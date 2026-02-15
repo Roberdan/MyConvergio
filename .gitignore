@@ -3,6 +3,10 @@
 *.db-journal
 *.db-wal
 *.db-shm
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 
 # Logs
 *.log
@@ -60,6 +64,7 @@ todos/
 /plans/
 ide/
 /data/
+teams/
 
 # Backup files
 *.backup

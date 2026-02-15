@@ -26,7 +26,7 @@ cmd_create() {
 	shift 2
 	local is_master=0
 	local parent_id="NULL"
-	local source_file="" markdown_path="" worktree_path="" auto_worktree=0 description=""
+	local source_file="" markdown_path="" worktree_path="" auto_worktree=0 description="" human_summary=""
 
 	set +u
 	while [[ $# -gt 0 ]]; do
@@ -49,6 +49,10 @@ cmd_create() {
 			;;
 		--description)
 			description="$2"
+			shift 2
+			;;
+		--human-summary)
+			human_summary="$2"
 			shift 2
 			;;
 		*) shift ;;
@@ -87,10 +91,14 @@ cmd_create() {
 	if [[ -n "$description" ]]; then
 		desc_val="'$(sql_escape "$description")'"
 	fi
+	local hs_val="NULL"
+	if [[ -n "$human_summary" ]]; then
+		hs_val="'$(sql_escape "$human_summary")'"
+	fi
 
 	sqlite3 "$DB_FILE" "
-        INSERT INTO plans (project_id, name, is_master, parent_plan_id, status, source_file, markdown_path, markdown_dir, worktree_path, description)
-        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo', $sf_val, $mp_val, $md_val, $wp_val, $desc_val);
+        INSERT INTO plans (project_id, name, is_master, parent_plan_id, status, source_file, markdown_path, markdown_dir, worktree_path, description, human_summary)
+        VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo', $sf_val, $mp_val, $md_val, $wp_val, $desc_val, $hs_val);
     "
 	local plan_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name='$safe_name';")
 

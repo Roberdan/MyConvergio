@@ -42,7 +42,7 @@ init_db() {
 
 # Escape single quotes for SQL
 sql_escape() {
-	printf '%s' "$1" | sed "s/'/''/g"
+	printf '%s' "$1" | tr '\n\r' '  ' | sed "s/'/''/g"
 }
 
 # ============================================================

@@ -287,7 +287,7 @@ fi
 
 # Function to format elapsed time
 format_elapsed() {
-	local seconds=$1
+	local seconds=${1:-0}
 	if [ "$seconds" -lt 60 ]; then
 		echo "${seconds}s"
 	elif [ "$seconds" -lt 3600 ]; then
@@ -306,7 +306,7 @@ format_elapsed() {
 
 # Function to format tokens (K for thousands, M for millions)
 format_tokens() {
-	local tokens=$1
+	local tokens=${1:-0}
 	if [ "$tokens" -lt 1000 ]; then
 		echo "${tokens}"
 	elif [ "$tokens" -lt 1000000 ]; then
@@ -315,6 +315,34 @@ format_tokens() {
 	else
 		local m=$((tokens / 1000000))
 		echo "${m}M"
+	fi
+}
+
+# Convert agentic description to human-readable summary
+truncate_desc() {
+	local desc="${1:-}"
+	[ -z "$desc" ] && return
+	# Strip agentic patterns: Worktree paths, workflow blocks, agent instructions
+	desc=$(echo "$desc" | sed -E \
+		-e 's/Worktree: [^ ]+ \([^)]*\)\.?//' \
+		-e 's/Worktree: [^ ]+\.?//' \
+		-e 's/ *(WORKFLOW|IMPORTANT|NOTE|CONSTRAINT|EXECUTION|AGENT|WARNING|CONTEXT|BRANCH|PLAN_ID|STATUS):.*$//' \
+		-e 's#/Users/[^ ]+##g' \
+		-e 's/\(branch [^)]*\)//g' \
+		-e 's/plan\/[0-9]+-[^ ]*//g')
+	# Humanize: underscores to spaces, collapse spaces, trim edges
+	desc=$(echo "$desc" | sed -E \
+		-e 's/_/ /g' \
+		-e 's/  +/ /g' \
+		-e 's/^[ .]+//' \
+		-e 's/[ .]+$//')
+	# Skip if empty or too short after cleanup
+	[ ${#desc} -lt 5 ] && return
+	# Truncate to 120 chars
+	if [ ${#desc} -gt 120 ]; then
+		echo "${desc:0:117}..."
+	else
+		echo "$desc"
 	fi
 }
 
@@ -499,7 +527,7 @@ render_dashboard() {
 
 			# Nested tasks under this wave
 			local task_lines task_count_w=0
-			task_lines=$(sqlite3 "$DB" "SELECT t.task_id, t.title, t.status, t.priority, COALESCE(t.model, ''), COALESCE(t.notes, ''), t.validated_at, COALESCE(t.effort_level, 1) FROM tasks t WHERE t.wave_id_fk = $wdb_id ORDER BY t.task_id")
+			task_lines=$(sqlite3 "$DB" "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), t.status, t.priority, COALESCE(t.model, ''), REPLACE(REPLACE(COALESCE(t.notes, ''), char(10), ' '), char(13), ''), t.validated_at, COALESCE(t.effort_level, 1) FROM tasks t WHERE t.wave_id_fk = $wdb_id ORDER BY t.task_id")
 			task_count_w=$(echo "$task_lines" | grep -c '|' 2>/dev/null || echo 0)
 
 			if [ -z "$task_lines" ]; then
@@ -575,7 +603,7 @@ render_dashboard() {
 
 		# Human action required summary with instructions
 		local human_tasks
-		human_tasks=$(sqlite3 "$DB" "SELECT t.task_id, t.title, w.wave_id, COALESCE(t.description, t.title) FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $pid AND t.status = 'blocked' AND (t.notes LIKE '%Human-only%' OR t.notes LIKE '%human%' OR t.notes LIKE '%user acceptance%')" 2>/dev/null)
+		human_tasks=$(sqlite3 "$DB" "SELECT t.task_id, t.title, w.wave_id, REPLACE(REPLACE(COALESCE(t.description, t.title), char(10), ' '), char(13), '') FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $pid AND t.status = 'blocked' AND (t.notes LIKE '%Human-only%' OR t.notes LIKE '%human%' OR t.notes LIKE '%user acceptance%')" 2>/dev/null)
 		if [ -n "$human_tasks" ]; then
 			echo ""
 			local human_count
@@ -660,9 +688,10 @@ render_dashboard() {
 			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id) AND status='done'),
 			COALESCE((SELECT SUM(total_tokens) FROM token_usage WHERE project_id=p.project_id), 0),
 			COALESCE(p.execution_host, ''),
-			COALESCE(p.description, '')
+			COALESCE(p.human_summary, REPLACE(REPLACE(COALESCE(p.description, ''), char(10), ' '), char(13), ''))
 		FROM plans p WHERE p.status IN ('doing', 'in_progress') ORDER BY p.id
 	" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated pproject wave_total wave_done wave_doing task_total task_done total_tokens exec_host pdescription; do
+		[ -z "$pid" ] && continue
 
 		# Elapsed time (running time)
 		if [ -n "$pstarted" ]; then
@@ -756,7 +785,7 @@ render_dashboard() {
 		fi
 
 		echo -e "${GRAY}├─${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC}${host_tag} $([ -n "$time_info" ] && echo -e "${GRAY}(${time_info}${GRAY})${NC}")"
-		[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$pdescription${NC}"
+		[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$(truncate_desc "$pdescription")${NC}"
 		[ -n "$branch_display" ] && echo -e "${GRAY}│  ├─${NC} $branch_display"
 		# Remote git status inline (only for LINUX plans when online)
 		if [ "$is_remote" -eq 1 ] && [ "$REMOTE_ONLINE" -eq 1 ] && [ -f "$REMOTE_GIT_CACHE" ]; then
@@ -801,7 +830,7 @@ render_dashboard() {
 		fi
 
 		# Task in esecuzione per questo piano (inline)
-		plan_tasks=$(sqlite3 "$DB" "SELECT t.task_id, t.title, t.priority FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $pid AND t.status = 'in_progress' ORDER BY t.priority DESC" 2>/dev/null)
+		plan_tasks=$(sqlite3 "$DB" "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), t.priority FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $pid AND t.status = 'in_progress' ORDER BY t.priority DESC" 2>/dev/null)
 		if [ -n "$plan_tasks" ]; then
 			echo -e "${GRAY}│  ${NC}${YELLOW}⚡ In esecuzione:${NC}"
 			echo "$plan_tasks" | while IFS='|' read -r tid ttitle tprio; do
@@ -915,7 +944,7 @@ render_dashboard() {
 	pipeline_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status='todo'")
 	if [ "$pipeline_count" -gt 0 ]; then
 		echo -e "${BOLD}${WHITE}📋 In Pipeline ($pipeline_count)${NC}"
-		sqlite3 "$DB" "SELECT id, name, created_at, project_id, COALESCE(description, '') FROM plans WHERE status='todo' ORDER BY created_at DESC" | while IFS='|' read -r pid pname pcreated pproject pdescription; do
+		sqlite3 "$DB" "SELECT id, name, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')) FROM plans WHERE status='todo' ORDER BY created_at DESC" | while IFS='|' read -r pid pname pcreated pproject pdescription; do
 			# Days since created
 			if [ -n "$pcreated" ]; then
 				create_date=$(echo "$pcreated" | cut -d' ' -f1)
@@ -946,7 +975,7 @@ render_dashboard() {
 			[ -n "$pproject" ] && project_display="${BLUE}[$pproject]${NC} "
 
 			echo -e "${GRAY}├─${NC} ${BLUE}◯${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC} ${GRAY}(creato: ${age_info}${GRAY})${NC}"
-			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$pdescription${NC}"
+			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$(truncate_desc "$pdescription")${NC}"
 			echo -e "${GRAY}│  └─${NC} ${GRAY}${wave_count} waves, ${task_count} tasks${NC}"
 		done
 
@@ -959,7 +988,7 @@ render_dashboard() {
 		blocked_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='blocked'" 2>/dev/null)
 		if [ "$blocked_count" -gt 0 ]; then
 			echo -e "${BOLD}${RED}✗ Task Bloccati ($blocked_count)${NC}"
-			sqlite3 "$DB" "SELECT t.task_id, t.title, p.id, p.project_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id JOIN plans p ON w.plan_id = p.id WHERE t.status = 'blocked' ORDER BY p.id" 2>/dev/null | while IFS='|' read -r task_id title plan_id blocked_project; do
+			sqlite3 "$DB" "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), p.id, p.project_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id JOIN plans p ON w.plan_id = p.id WHERE t.status = 'blocked' ORDER BY p.id" 2>/dev/null | while IFS='|' read -r task_id title plan_id blocked_project; do
 				short_title=$(echo "$title" | cut -c1-45)
 				[ ${#title} -gt 45 ] && short_title="${short_title}..."
 				blocked_project_display=""
@@ -977,7 +1006,8 @@ render_dashboard() {
 		echo -e "${GRAY}│  ${NC}${GRAY}Usa ${WHITE}piani -e${GRAY} per vedere dettagli task${NC}"
 	fi
 
-	sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(description, '') FROM plans WHERE status = 'done' ORDER BY COALESCE(completed_at, updated_at, created_at) DESC LIMIT 3" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project pdescription; do
+	sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')) FROM plans WHERE status = 'done' ORDER BY COALESCE(completed_at, updated_at, created_at) DESC LIMIT 3" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project pdescription; do
+		[ -z "$plan_id" ] && continue
 		# Use completed_at or updated_at for display
 		display_date="${completed:-${updated:-$created}}"
 		date=$(echo "$display_date" | cut -d' ' -f1)
@@ -1021,18 +1051,18 @@ render_dashboard() {
 		# Compact view: single line with count
 		if [ "$EXPAND_COMPLETED" -eq 0 ]; then
 			echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${done_project_display}${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
-			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$pdescription${NC}"
+			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$(truncate_desc "$pdescription")${NC}"
 			echo -e "${GRAY}│  └─${NC} ${GRAY}${task_count} task │${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
 		else
 			# Expanded view: with task list
 			echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${done_project_display}${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
-			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$pdescription${NC}"
+			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$(truncate_desc "$pdescription")${NC}"
 			echo -e "${GRAY}│  ├─${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
 
 			if [ "$task_count" -gt 0 ]; then
 				echo -e "${GRAY}│  └─${NC} ${GRAY}$task_count task completati:${NC}"
 				# Show all completed tasks (limit to first 10 for readability)
-				sqlite3 "$DB" "SELECT task_id, title FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id) ORDER BY task_id LIMIT 10" | while IFS='|' read -r tid title; do
+				sqlite3 "$DB" "SELECT task_id, REPLACE(REPLACE(title, char(10), ' '), char(13), '') FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id) ORDER BY task_id LIMIT 10" | while IFS='|' read -r tid title; do
 					short_title=$(echo "$title" | cut -c1-55)
 					if [ ${#title} -gt 55 ]; then
 						short_title="${short_title}..."
@@ -1055,12 +1085,13 @@ render_dashboard() {
 
 	# Piani completati nelle ultime 24 ore
 	echo -e "${BOLD}${WHITE}🎉 Completati ultime 24h${NC}"
-	completed_24h=$(sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(description, '') FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC")
+	completed_24h=$(sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC")
 
 	if [ -z "$completed_24h" ]; then
 		echo -e "${GRAY}└─${NC} Nessun piano completato nelle ultime 24 ore"
 	else
 		echo "$completed_24h" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created h24_project pdescription; do
+			[ -z "$plan_id" ] && continue
 			# Use completed_at or updated_at for display
 			display_date="${completed:-${updated:-$created}}"
 			date=$(echo "$display_date" | cut -d' ' -f1)
@@ -1103,7 +1134,7 @@ render_dashboard() {
 			[ -n "$h24_project" ] && h24_project_display="${BLUE}[$h24_project]${NC} "
 
 			echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${h24_project_display}${WHITE}$short_name${NC} ${GRAY}($time)${NC} $thor_status"
-			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$pdescription${NC}"
+			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$(truncate_desc "$pdescription")${NC}"
 			echo -e "${GRAY}│  └─${NC} ${GRAY}${task_count} task │${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
 		done
 		echo -e "${GRAY}└─${NC}"

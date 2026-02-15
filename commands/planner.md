@@ -77,11 +77,14 @@ If risk != "none", AskUserQuestion: Merge | Sequence | Parallel | Abort. If risk
 
 ```bash
 PROMPT_FILE=".copilot-tracking/prompt-{NNN}.json"
-PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" --source-file "$PROMPT_FILE" --auto-worktree)
+PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" --source-file "$PROMPT_FILE" --auto-worktree \
+  --human-summary "2-3 righe in italiano che spiegano COSA fa il piano per un umano. Mostrato in dashboard.")
 plan-db.sh import $PLAN_ID /path/to/spec.json
 WORKTREE_PATH=$(plan-db.sh get-worktree $PLAN_ID)
 cd "$WORKTREE_PATH"
 ```
+
+**`--human-summary` MANDATORY**: Riassunto leggibile del piano (NO path, NO istruzioni agente, NO workflow). Max 200 chars. Esempio: "Rinomina deployment Azure OpenAI da gpt-4o-realtime a gpt-realtime in tutti i file di configurazione e secrets"
 
 ### 4. User Approval (MANDATORY STOP)
 

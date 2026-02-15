@@ -5,6 +5,27 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.1] - 2026-02-15
+
+### Added
+
+- **dashboard-mini.sh**: `human_summary` column support for cleaner plan descriptions
+- **dashboard-mini.sh**: `truncate_desc()` function to strip agentic metadata (worktree paths, workflow blocks, agent instructions) and humanize display
+
+### Fixed
+
+- **dashboard-mini.sh**: Multiline parsing bugs in task/wave descriptions (replaced `char(10)` and `char(13)` in SQLite queries)
+- **plan-db-crud.sh**: Defensive status validation with helpful error messages (prevents agent hallucinated commands)
+- **plan-db-core.sh**: Improved validation error handling
+- **sync-to-myconvergio.sh**: `.DS_Store` files in subdirectories now correctly filtered
+
+### Changed
+
+- **planner-rules.md**: Updated to reflect defensive validation patterns
+- **plan-scripts.md**: Documentation alignment with validation improvements
+
+---
+
 ## [5.1.0] - 2026-02-15
 
 ### Added

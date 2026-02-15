@@ -71,6 +71,7 @@ check-readiness) cmd_check_readiness "${2:?plan_id required}" ;;
 evaluate-wave) cmd_evaluate_wave "${2:?wave_db_id required}" ;;
 sync) cmd_sync "${2:?plan_id required}" ;;
 update-desc) sqlite3 "$DB_FILE" "UPDATE plans SET description = '$(sql_escape "${3:?description required}")' WHERE id = ${2:?plan_id required};" && echo "Description updated for plan #$2" ;;
+update-summary) sqlite3 "$DB_FILE" "UPDATE plans SET human_summary = '$(sql_escape "${3:?summary required}")' WHERE id = ${2:?plan_id required};" && echo "Summary updated for plan #$2" ;;
 import) cmd_import "${2:?plan_id required}" "${3:?spec_file required}" ;;
 render) cmd_render "${2:?plan_id required}" ;;
 get-context) cmd_get_context "${2:?plan_id required}" ;;
@@ -93,6 +94,8 @@ stale-check) "$SCRIPT_DIR/stale-check.sh" "${@:2}" ;;
 wave-overlap) "$SCRIPT_DIR/wave-overlap.sh" "${@:2}" ;;
 merge-queue) "$SCRIPT_DIR/merge-queue.sh" "${@:2}" ;;
 *)
+	echo "[ERROR] Unknown command: '${1:-}'" >&2
+	echo "" >&2
 	echo "Plan DB CLI - Task/Wave/Plan Management"
 	echo ""
 	echo "Usage: plan-db.sh <command> [args]"
@@ -105,7 +108,8 @@ merge-queue) "$SCRIPT_DIR/merge-queue.sh" "${@:2}" ;;
 	echo "  add-task <wave_id> <id> <title> [P0-P3] [type] [--description 'text'] [--test-criteria 'json']"
 	echo "  update-task <task_id> <status> [notes] [--tokens N]"
 	echo "  update-wave <wave_id> <status>"
-	echo "  update-desc <plan_id> <desc>   Set plan description (shown in dashboard)"
+	echo "  update-desc <plan_id> <desc>   Set plan description (agent-facing)"
+	echo "  update-summary <plan_id> <txt> Set human-readable summary (shown in dashboard)"
 	echo "  complete <plan_id>             Mark done"
 	echo "  get-worktree <plan_id>         Get worktree path for plan"
 	echo "  set-worktree <plan_id> <path>  Set worktree path for plan"
@@ -150,5 +154,9 @@ merge-queue) "$SCRIPT_DIR/merge-queue.sh" "${@:2}" ;;
 	echo "  stale-check snapshot|check|diff|cleanup  Stale context detection"
 	echo "  wave-overlap check-wave|check-plan|check-spec  Intra-wave overlap"
 	echo "  merge-queue enqueue|process|status|cancel  Sequential merge queue"
+	echo ""
+	echo "Task statuses: pending | in_progress | done | blocked | skipped"
+	echo "Plan statuses: todo | doing | done | archived"
+	exit 1
 	;;
 esac

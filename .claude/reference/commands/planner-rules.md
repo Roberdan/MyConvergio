@@ -136,8 +136,11 @@ pending → in_progress → done|blocked|skipped
 ## DB Quick Reference
 
 ```bash
-# Create plan
-plan-db.sh create {project_id} "{name}"
+# Create plan (--human-summary is MANDATORY)
+plan-db.sh create {project_id} "{name}" --human-summary "2-3 righe che spiegano cosa fa il piano per un umano"
+
+# Set/update human summary (if plan already exists)
+plan-db.sh update-summary {plan_id} "Descrizione leggibile del piano"
 
 # Add wave (returns db_wave_id)
 plan-db.sh add-wave {plan_id} "W1" "Phase Name"

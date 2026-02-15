@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v5.0.0** | 65 Specialized Agents | Copilot CLI Support | Sync Agent | CLI Dashboard
+**v5.1.1** | 65 Specialized Agents | Copilot CLI Support | Sync Agent | CLI Dashboard
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)

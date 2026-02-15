@@ -9,11 +9,21 @@
 - Tasks use `wave_id_fk` (numeric FK), NOT `wave_id` string
 - Use `plan-db.sh` for all DB operations (handles FK correctly)
 - **NEVER invent column names**. Schema: see `PLANNER-ARCHITECTURE.md`
+- **NEVER invent subcommands**. Use ONLY the commands listed below. Run `plan-db.sh` with no args to see help.
+
+## Valid Statuses (NEVER invent values)
+
+| Entity | Valid statuses                                                 |
+| ------ | -------------------------------------------------------------- |
+| Task   | `pending` \| `in_progress` \| `done` \| `blocked` \| `skipped` |
+| Plan   | `todo` \| `doing` \| `done` \| `archived`                      |
+| Wave   | `pending` \| `in_progress` \| `done` \| `blocked`              |
 
 ## Plan Management
 
 ```bash
-plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree
+plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree --human-summary "2-3 righe leggibili che spiegano il piano"
+plan-db.sh update-summary {plan_id} "Aggiorna il summary leggibile"
 plan-db.sh import {plan_id} spec.json
 plan-db-safe.sh update-task {id} done "Summary" # ALWAYS use safe wrapper for done
 # plan-db-safe.sh auto: validate-task + validate-wave + complete plan

@@ -30,12 +30,12 @@ curl -s -X POST http://127.0.0.1:31415/api/tokens \
 
 ## Model Escalation Strategy
 
-| Agent Type                 | Default  | Escalation Rule                          |
-| -------------------------- | -------- | ---------------------------------------- |
-| Task Executor              | sonnet   | → opus if cross-cutting or architectural |
-| Coordinator (Standard)     | sonnet   | → opus if >3 concurrent tasks            |
-| Coordinator (Max Parallel) | **opus** | Required for unlimited parallelization   |
-| Validator (Thor)           | sonnet   | No escalation                            |
+| Agent Type                 | Default          | Escalation Rule                          |
+| -------------------------- | ---------------- | ---------------------------------------- |
+| Task Executor              | gpt-5.3-codex    | → opus if cross-cutting or architectural |
+| Coordinator (Standard)     | sonnet           | → opus if >3 concurrent tasks            |
+| Coordinator (Max Parallel) | **opus**         | Required for unlimited parallelization   |
+| Validator (Thor)           | opus             | No escalation                            |
 
 ## Parallelization Modes (User Choice)
 

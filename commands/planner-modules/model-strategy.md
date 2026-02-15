@@ -7,12 +7,12 @@ version: "1.0.0"
 
 ## Phase-Model Mapping
 
-| Phase        | Standard Mode        | Max Parallel |
-| ------------ | -------------------- | ------------ |
-| Planning     | opus                 | opus         |
-| Coordination | sonnet               | **opus**     |
-| Execution    | **sonnet** (default) | sonnet       |
-| Validation   | sonnet               | sonnet       |
+| Phase        | Standard Mode           | Max Parallel |
+| ------------ | ----------------------- | ------------ |
+| Planning     | opus                    | opus         |
+| Coordination | sonnet                  | **opus**     |
+| Execution    | **gpt-5.3-codex** (default) | gpt-5.3-codex |
+| Validation   | opus                    | opus         |
 
 ## Model Selection (MANDATORY per task)
 
@@ -27,20 +27,20 @@ If task scope changes during execution → re-plan, don't auto-escalate.
 
 Each task specifies which agent executes it via `executor_agent`:
 
-| Value              | Use For                                                | Model Options                    |
-| ------------------ | ------------------------------------------------------ | -------------------------------- |
-| `claude` (default) | Architecture, security, debugging, cross-cutting logic | haiku, sonnet, opus              |
-| `copilot`          | Mechanical, repetitive, well-defined tasks             | gpt-4o-mini, gpt-4o, o3, o4-mini |
-| `codex`            | Mechanical bulk tasks with clear specs                 | codex                            |
-| `manual`           | Tasks requiring human intervention                     | N/A                              |
+| Value              | Use For                                                | Model Options                              |
+| ------------------ | ------------------------------------------------------ | ------------------------------------------ |
+| `claude` (default) | Architecture, security, debugging, cross-cutting logic | haiku, sonnet, opus                        |
+| `copilot`          | Mechanical, repetitive, well-defined tasks             | gpt-5.1-codex-mini, gpt-5.3-codex, gpt-5  |
+| `codex`            | Mechanical bulk tasks with clear specs                 | gpt-5.3-codex                              |
+| `manual`           | Tasks requiring human intervention                     | N/A                                        |
 
 **Model weight tiers** (used for weighted progress):
 
-| Tier | Weight | Models                       |
-| ---- | ------ | ---------------------------- |
-| Low  | x1     | haiku, codex                 |
-| Mid  | x2     | sonnet, gpt-4o-mini, o4-mini |
-| High | x3     | opus, gpt-4o, o3, o3-pro     |
+| Tier | Weight | Models                                |
+| ---- | ------ | ------------------------------------- |
+| Low  | x1     | haiku, gpt-5.1-codex-mini             |
+| Mid  | x2     | sonnet, gpt-5.3-codex, gpt-5.1-codex |
+| High | x3     | opus, gpt-5, gpt-5.2                  |
 
 **Decision criteria:**
 

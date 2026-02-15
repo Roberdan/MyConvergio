@@ -2,14 +2,22 @@
   "mcpServers": {
     "azure-devops": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@azure-devops/mcp"
-      ],
+      "args": ["-y", "@azure-devops/mcp"],
       "env": {
         "AZURE_DEVOPS_PAT": "${AZURE_DEVOPS_PAT}",
         "AZURE_DEVOPS_ORGANIZATION": "IndustrySolutions"
       }
+    },
+    "codegraph": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@colbymchenry/codegraph",
+        "serve",
+        "--mcp",
+        "--path",
+        "/Users/roberdan/GitHub/MirrorBuddy"
+      ]
     }
   }
 }

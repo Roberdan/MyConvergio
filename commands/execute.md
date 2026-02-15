@@ -15,10 +15,10 @@ Automated task execution via task-executor subagent or Copilot CLI worker.
 
 ## Engine Selection
 
-| Engine    | Agent/Worker      | Model                 | Billing        |
-| --------- | ----------------- | --------------------- | -------------- |
-| `claude`  | task-executor     | sonnet (or override)  | Anthropic API  |
-| `copilot` | copilot-worker.sh | opus-4.6 (3x premium) | GitHub Copilot |
+| Engine    | Agent/Worker      | Model                    | Billing        |
+| --------- | ----------------- | ------------------------ | -------------- |
+| `claude`  | task-executor     | gpt-5.3-codex (default)  | Anthropic API  |
+| `copilot` | copilot-worker.sh | opus-4.6 (3x premium)    | GitHub Copilot |
 
 ## Rules
 

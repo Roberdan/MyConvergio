@@ -62,7 +62,7 @@ spec.json: `{user_request, requirements:[{id,text,wave}], waves:[{id,name,estima
 
 ### 2.5 Copilot Delegation
 
-Mark eligible: `"codex": true`. Present: "Delegabili a Copilot: [list]. Vuoi delegarli?" Never: architecture, security, debugging, cross-cutting, CI/build, DB schema, API. **Prompt**: `copilot-task-prompt.sh <id>`. **Exec**: Kitty: `worker-launch.sh copilot "Copilot-N" <id> --cwd <worktree>` | Standalone: `copilot-worker.sh <id> --model claude-sonnet-4-5 --timeout 600` | Mixed: `orchestrate.sh <plan> 4 --engine mixed`. Requires: `copilot --allow-all`, `GH_TOKEN`.
+Mark eligible: `"codex": true`. Present: "Delegabili a Copilot: [list]. Vuoi delegarli?" Never: architecture, security, debugging, cross-cutting, CI/build, DB schema, API. **Prompt**: `copilot-task-prompt.sh <id>`. **Exec**: Kitty: `worker-launch.sh copilot "Copilot-N" <id> --cwd <worktree>` | Standalone: `copilot-worker.sh <id> --model claude-sonnet-4.5 --timeout 600` | Mixed: `orchestrate.sh <plan> 4 --engine mixed`. Requires: `copilot --allow-all`, `GH_TOKEN`.
 
 ### 2.7 Cross-Plan Conflict Check (MANDATORY)
 

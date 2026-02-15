@@ -50,6 +50,7 @@ cmd_import() {
 				priority: (.priority // "P1"),
 				type: (.type // "feature"),
 				model: (.model // "sonnet"),
+				effort: (.effort // 1),
 				executor_agent: (.executor_agent // (if (.codex // false) then "codex" else "claude" end)),
 				has_do: has("do"),
 				files: (.files // [] | join(", ")),
@@ -86,13 +87,14 @@ cmd_import() {
 		task_count=$(echo "$spec_data" | jq ".waves[$i].tasks | length")
 
 		for ((j = 0; j < task_count; j++)); do
-			local t_id t_title t_pri t_type t_model t_desc t_criteria t_executor_agent
+			local t_id t_title t_pri t_type t_model t_effort t_desc t_criteria t_executor_agent
 			local t_base=".waves[$i].tasks[$j]"
 			t_id=$(echo "$spec_data" | jq -r "$t_base.id")
 			t_title=$(echo "$spec_data" | jq -r "$t_base.title")
 			t_pri=$(echo "$spec_data" | jq -r "$t_base.priority")
 			t_type=$(echo "$spec_data" | jq -r "$t_base.type")
 			t_model=$(echo "$spec_data" | jq -r "$t_base.model")
+			t_effort=$(echo "$spec_data" | jq -r "$t_base.effort")
 			t_executor_agent=$(echo "$spec_data" | jq -r "$t_base.executor_agent")
 
 			local has_do
@@ -111,7 +113,7 @@ cmd_import() {
 			fi
 
 			local task_args=("$db_wave_id" "$t_id" "$t_title" "$t_pri" "$t_type")
-			task_args+=(--model "$t_model")
+			task_args+=(--model "$t_model" --effort "$t_effort")
 			[[ -n "$t_desc" ]] && task_args+=(--description "$t_desc")
 			if [[ "$t_criteria" != "[]" && "$t_criteria" != "null" ]]; then
 				t_criteria=$(echo "$t_criteria" | jq -c '{verify: .}')

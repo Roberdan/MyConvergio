@@ -2,7 +2,7 @@
 # prefer-ci-summary.sh - PreToolUse hook on Bash
 # Intercepts verbose commands and suggests token-efficient alternatives.
 # Block = exit 2. Hint = exit 0. Allow = exit 0.
-# Version: 1.1.0
+# Version: 1.2.0
 #
 # IMPORTANT: Block rules check BASE_CMD (before pipe), so
 # "gh run view --log-failed | tail -200" is STILL blocked.
@@ -18,7 +18,7 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 BASE_CMD=$(echo "$COMMAND" | sed 's/|.*//' | sed 's/.*&&//' | sed 's/.*;//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
 
 # === ALWAYS ALLOW: our optimized scripts ===
-echo "$COMMAND" | grep -qE "digest\.sh|service-digest" && exit 0
+echo "$COMMAND" | grep -qE "digest\.sh|service-digest|pr-ops\.sh" && exit 0
 # ci-summary WITH explicit flag → allow immediately
 echo "$COMMAND" | grep -qE "ci-summary\.sh --(quick|full|all|lint|types|build|unit|i18n|e2e|a11y)" && exit 0
 # Release/deploy scripts (no ^ anchor: may be after cd &&)
@@ -50,6 +50,23 @@ if echo "$BASE_CMD" | grep -qE "gh api.*pulls/[0-9]+/(comments|reviews)"; then
 		echo "TOKEN-WASTE: Use 'service-digest.sh pr <pr-number>' instead." >&2
 		exit 2
 	fi
+	# Hint for write operations: suggest pr-ops.sh
+	if echo "$COMMAND" | grep -qE " -[fF] | -X "; then
+		echo "HINT: Consider 'pr-ops.sh reply <pr> <comment_id> \"msg\"' instead." >&2
+		exit 0
+	fi
+fi
+
+# === BLOCK: PR MERGE (without readiness check) ===
+if echo "$BASE_CMD" | grep -qE "^gh pr merge"; then
+	echo "BLOCKED: Use 'pr-ops.sh merge <pr>' instead (runs readiness check first)." >&2
+	exit 2
+fi
+
+# === BLOCK: PR VIEW (verbose, without --json) ===
+if echo "$BASE_CMD" | grep -qE "^gh pr view" && ! echo "$COMMAND" | grep -qE "\-\-json"; then
+	echo "TOKEN-WASTE: Use 'pr-ops.sh status <pr>' or 'pr-ops.sh ready <pr>' instead." >&2
+	exit 2
 fi
 
 # Allow other gh commands (gh pr create, gh pr list, gh run list, etc.)

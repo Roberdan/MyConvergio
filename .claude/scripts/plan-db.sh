@@ -13,7 +13,9 @@
 #   complete <plan_id>             - Mark plan as done
 #   get-worktree <plan_id>         - Get worktree path for plan
 #   set-worktree <plan_id> <path>  - Set worktree path for plan
-#   validate <plan_id>             - Thor validates plan
+#   validate <plan_id>             - Thor validates plan (bulk)
+#   validate-task <task_id> [plan]  - Thor validates single task
+#   validate-wave <wave_db_id>     - Thor validates all done tasks in wave
 #   validate-fxx <plan_id>         - Validate F-xx requirements
 #   kanban                         - Show kanban board
 #   status [project_id]            - Quick status
@@ -55,6 +57,11 @@ complete) cmd_complete "${2:?plan_id required}" "${3:-}" ;;
 get-worktree) cmd_get_worktree "${2:?plan_id required}" ;;
 set-worktree) cmd_set_worktree "${2:?plan_id required}" "${3:?path required}" ;;
 validate) cmd_validate "${2:?plan_id required}" "${3:-thor}" ;;
+validate-task)
+	shift 1
+	cmd_validate_task "$@"
+	;;
+validate-wave) cmd_validate_wave "${2:?wave_db_id required}" "${3:-thor}" ;;
 validate-fxx) cmd_validate_fxx "${2:?plan_id required}" ;;
 kanban) cmd_kanban ;;
 kanban-json) cmd_kanban_json ;;
@@ -106,7 +113,9 @@ merge-queue) "$SCRIPT_DIR/merge-queue.sh" "${@:2}" ;;
 	echo "Validation:"
 	echo "  check-readiness <plan_id>      BLOCKS if metadata missing (run before /execute)"
 	echo "  evaluate-wave <wave_db_id>     Check wave preconditions (returns JSON)"
-	echo "  validate <plan_id> [by]        Thor validates (counters, orphans)"
+	echo "  validate <plan_id> [by]        Thor validates plan (counters, orphans, bulk)"
+	echo "  validate-task <task_id> [plan_id] [by]  Validate single task (per-task Thor gate)"
+	echo "  validate-wave <wave_db_id> [by]         Validate all done tasks in wave"
 	echo "  validate-fxx <plan_id>         Validate F-xx from markdown"
 	echo "  drift-check <plan_id>          Check plan staleness vs main (JSON report)"
 	echo "  conflict-check <plan_id>       Cross-plan file overlap detection (JSON)"

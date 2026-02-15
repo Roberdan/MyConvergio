@@ -1,6 +1,8 @@
-# Continuous Optimization Process
+<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
 
-Monthly checklist for maintaining Claude Code configuration health.
+# Continuous Optimization
+
+Monthly checklist for Claude Code configuration health.
 
 ## Automated Audit (Monthly)
 
@@ -36,7 +38,6 @@ Run `~/.claude/scripts/context-audit.sh` and address all WARN/FAIL items.
 ### Token Usage Analysis
 
 ```bash
-# Quick token report
 sqlite3 ~/.claude/data/dashboard.db "
   SELECT date(created_at) as day, SUM(input_tokens + output_tokens) as tokens,
          printf('%.2f', SUM(cost_usd)) as cost

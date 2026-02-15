@@ -5,6 +5,45 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2026-02-15
+
+### Added
+
+- **pr-ops.sh** (v1.0.0): PR write/action operations (reply, resolve, merge, status) with readiness checks. Complements pr-digest.sh (read-only)
+- **script-versions.sh** (v1.1.0): Auto-generated index of all scripts with versions, categories, and staleness detection. Supports `--json`, `--stale`, `--category <name>`. Portable path resolution (npm global, `~/.claude`, local clone)
+- **plan-db-safe.sh** (v3.0.0): Auto-validate cascade after marking tasks done — prevents 0% dashboard progress bug. Validates task, wave completion, and plan closure automatically
+- **session-recovery.sh**: Session recovery with uncommitted change detection
+- **research-report-generator agent** + templates: Morgan Stanley-style LaTeX report generation with config and compile scripts
+- **ecosystem-sync agent**: On-demand sync from upstream config with sanitization and blocklist (Claude Code format)
+- **compaction-preservation.md**: Rules for preserving workflow-critical content during file compaction
+- **11 new reference docs**: agent-routing, workflow-details, thor-gate-details, compact-format-guide, agent-discovery, api-development, code-style, documentation-standards, ethical-guidelines, execution, guardian, security-requirements, testing-standards, MIGRATION-GUIDE, MASTER_STATUS
+- **Thor git hooks**: `thor-commit-guard.sh`, `thor-git-hook.sh` for pre-commit validation
+- **PLANNER-QUICKREF.md**, **PLAN-DB-FIXES.md**, **HOWTO-disable-mcp.md**: Operational documentation
+
+### Changed
+
+- **task-executor.md** (v2.1.0 → v2.2.0): CRITICAL — always use `plan-db-safe.sh` for `done` status (auto-validates)
+- **prefer-ci-summary.sh** (v1.1.0 → v1.2.0): Block `gh pr merge` (use `pr-ops.sh merge`), block verbose `gh pr view` (use `pr-ops.sh status`), hint for `pr-ops.sh reply`
+- **copilot execute.agent.md**: Updated to use `plan-db-safe.sh` for done status
+- **copilot-instructions.md**: Consolidated `plan-db-safe.sh` as single command for done, table formatting cleanup
+- **plan-db-validate.sh**: Major expansion with stricter validation logic
+- **dashboard-mini.sh**: Auto-expand tasks in single plan view, troubleshooting section
+- **tool-preferences.md**: Added pr-ops.sh mappings, Script Discovery section
+- **agent-routing.md**: Added `script-versions.sh` to repo knowledge
+- **planner-rules.md**, **plan-scripts.md**, **PLANNER-ARCHITECTURE.md**, **README.md**: All references updated to use `plan-db-safe.sh` for done
+- **thor-quality-assurance-guardian.md**, **thor-validation-gates.md**: Compacted format
+- **CommonValuesAndPrinciples.md**, **EXECUTION_DISCIPLINE.md**: Updated
+- **coding-standards.md**, **guardian.md**: Rule refinements
+- Multiple reference/operational docs: concurrency-control, copilot-alignment, digest-scripts, execution-optimization, external-services, memory-protocol, worktree-discipline — aligned with upstream
+
+### Fixed
+
+- **0% dashboard progress bug**: `plan-db-safe.sh` now auto-validates task/wave/plan after marking done
+- **Personal path sanitization**: Replaced hardcoded `/Users/roberdan` with `~/.claude` in AGENT-ROUTING.md, MIGRATION-GUIDE.md, plan-db-crud.sh
+- **sync-to-myconvergio.sh**: `.DS_Store` files in subdirectories now filtered correctly
+
+---
+
 ## [5.0.0] - 2026-02-15
 
 ### Added

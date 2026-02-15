@@ -151,6 +151,32 @@ version: "2.0.0"
 
 ---
 
+## 🧪 TASK TEST CRITERIA (TDD - MANDATORY)
+
+Every task MUST include test_criteria. Task-executor writes tests BEFORE implementation.
+
+```markdown
+### T-01: [Task Title]
+
+**F-xx**: F-03
+**Test Criteria** (write BEFORE implementation):
+
+| Type | Target | Description | Framework |
+|------|--------|-------------|-----------|
+| unit | ComponentName | Behavior to verify | Jest/Vitest |
+| integration | POST /api/endpoint | Expected behavior | Supertest |
+| e2e | User flow name | Complete scenario | Playwright |
+
+**Acceptance**: All tests GREEN before marking done.
+```
+
+**Quick Reference - Test Types:**
+- **unit**: Isolated component/function, mock externals
+- **integration**: Multiple units together, real DB/services
+- **e2e**: Full user journey, browser automation
+
+---
+
 ## ADR TEMPLATE
 
 ```markdown

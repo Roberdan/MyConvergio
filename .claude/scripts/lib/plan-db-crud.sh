@@ -258,14 +258,16 @@ cmd_add_wave() {
 }
 
 # Add task to wave
-# Usage: add-task <wave_id> <task_id> <title> [P0-P3] [feature|bug|chore] [--model haiku|sonnet|opus] [--test-criteria 'json'] [--description 'text']
+# Usage: add-task <wave_id> <task_id> <title> [P0-P3] [feature|bug|chore] [--model <model>] [--effort 1|2|3] [--test-criteria 'json'] [--description 'text']
+# Models: freeform (haiku, sonnet, opus, codex, gpt-4o, o3, etc.)
+# Effort: 1=low, 2=medium, 3=high (used for weighted progress)
 cmd_add_task() {
 	local db_wave_id="$1"
 	local task_id="$2"
 	local title="$3"
 	shift 3
 
-	local priority="P1" type="feature" assignee="" test_criteria="" model="sonnet" description="" executor_agent=""
+	local priority="P1" type="feature" assignee="" test_criteria="" model="sonnet" description="" executor_agent="" effort_level="1"
 
 	set +u
 	while [[ $# -gt 0 ]]; do
@@ -286,6 +288,15 @@ cmd_add_task() {
 				exit 1
 			}
 			model="$2"
+			shift 2
+			;;
+		--effort)
+			[[ -z "${2}" ]] && {
+				log_error "Missing --effort value (1/2/3)"
+				set -u
+				exit 1
+			}
+			effort_level="$2"
 			shift 2
 			;;
 		--description)
@@ -346,10 +357,13 @@ cmd_add_task() {
 	local exec_agent_val="NULL"
 	[[ -n "$executor_agent" ]] && exec_agent_val="'$safe_executor_agent'"
 
+	# Ensure effort_level column exists (pre-migration DBs may lack it)
+	sqlite3 "$DB_FILE" "ALTER TABLE tasks ADD COLUMN effort_level INTEGER DEFAULT 1 CHECK(effort_level IN (1, 2, 3));" 2>/dev/null || true
+
 	sqlite3 "$DB_FILE" <<SQL
 BEGIN TRANSACTION;
-INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, description, status, priority, type, assignee, test_criteria, model, executor_agent)
-VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', COALESCE($desc_val, '$safe_title'), 'pending', '$safe_priority', '$safe_type', '$safe_assignee', $tc_val, '$safe_model', $exec_agent_val);
+INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, description, status, priority, type, assignee, test_criteria, model, executor_agent, effort_level)
+VALUES ('$project_id', '$wave_id_text', $db_wave_id, $plan_id, '$safe_task_id', '$safe_title', COALESCE($desc_val, '$safe_title'), 'pending', '$safe_priority', '$safe_type', '$safe_assignee', $tc_val, '$safe_model', $exec_agent_val, $effort_level);
 UPDATE waves SET tasks_total = tasks_total + 1 WHERE id = $db_wave_id;
 UPDATE plans SET tasks_total = tasks_total + 1 WHERE id = $plan_id;
 COMMIT;

@@ -1,7 +1,8 @@
+<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+
 # Plan & DB Scripts
 
-> **Why these exist**: `plan-db.sh` wraps SQLite operations with correct FK handling
-> (e.g., `wave_id_fk` numeric FK, not `wave_id` string). Direct SQL risks schema violations.
+> **Why**: `plan-db.sh` wraps SQLite with correct FK handling (`wave_id_fk` numeric FK, not `wave_id` string). Direct SQL risks schema violations.
 
 ## Database Conventions
 
@@ -14,13 +15,29 @@
 ```bash
 plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree
 plan-db.sh import {plan_id} spec.json
-plan-db.sh update-task {id} done "Summary"
-plan-db-safe.sh update-task {id} done "S" # Pre-checks before marking done
+plan-db-safe.sh update-task {id} done "Summary" # ALWAYS use safe wrapper for done
+# plan-db-safe.sh auto: validate-task + validate-wave + complete plan
 plan-db.sh conflict-check {id}            # Cross-plan file overlap detection
 plan-db.sh conflict-check-spec {proj} spec.json # Pre-import conflict check
 plan-db.sh wave-overlap check-spec spec.json    # Intra-wave overlap detection
-plan-db.sh validate {id}                  # Thor validation gate
+plan-db.sh validate-task {task_id} {plan}  # Per-task Thor validation
+plan-db.sh validate-wave {wave_db_id}     # Per-wave Thor validation
+plan-db.sh validate {id}                  # Bulk Thor validation (all done tasks)
 ```
+
+## Troubleshooting: `complete` Fails (N/M tasks done)
+
+```bash
+# DB path: ~/.claude/data/dashboard.db
+# Step 1: Find incomplete tasks (ALWAYS use plan_id column, NOT wave joins)
+sqlite3 ~/.claude/data/dashboard.db "SELECT id, task_id, title, status FROM tasks WHERE plan_id = {PLAN_ID} AND status NOT IN ('done', 'validated', 'skipped');"
+# Step 2: Update each task
+plan-db-safe.sh update-task {TASK_DB_ID} done "Reason"
+# Step 3: Complete
+plan-db.sh complete {PLAN_ID}
+```
+
+**DO NOT**: Try `plan-db.sh json` (no tasks), guess DB paths, guess column names. **READ THIS FIRST.**
 
 ## Cluster & Sync
 
@@ -34,7 +51,15 @@ plan-db.sh autosync start|stop|status # Background DB sync daemon
 ## File Locking & Staleness
 
 ```bash
-plan-db.sh lock acquire|release|check|list  # File-level locking
+# File-level locking (via file-lock.sh)
+file-lock.sh acquire <file> <task_id> [--agent NAME] [--plan-id N] [--timeout N]
+file-lock.sh release <file> [task_id]
+file-lock.sh release-task <task_id>   # Release all locks for a task
+file-lock.sh check <file>              # Who holds the lock?
+file-lock.sh list [--plan-id N] [--task-id ID]
+file-lock.sh cleanup [--max-age MIN] [--dry-run]
+
+# Stale context detection
 plan-db.sh stale-check snapshot|check|diff  # Stale context detection
 plan-db.sh merge-queue enqueue|process|status # Sequential merge queue
 ```
@@ -50,5 +75,6 @@ copilot-sync.sh status|sync        # Copilot CLI alignment check/fix
 
 ## Dashboard
 
-- **CLI**: `dashboard-mini.sh` | **DB**: `~/.claude/data/dashboard.db`
-- **Sync**: `sync-dashboard-db.sh status|pull|push|incremental` (multi-machine)
+- **URL**: http://localhost:31415 | **DB**: ~/.claude/data/dashboard.db
+- **Reboot**: `cd ~/.claude/dashboard && node reboot.js`
+- **Sync**: `dbsync status|pull|push|incremental` (multi-machine)

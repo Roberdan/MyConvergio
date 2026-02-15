@@ -98,13 +98,13 @@ plan-db.sh update-task {db_task_id} in_progress "Started"
 git-digest.sh --full 2>/dev/null || git --no-pager status
 
 # 5. Complete
-plan-db.sh update-task {db_task_id} done "Summary"
+plan-db-safe.sh update-task {db_task_id} done "Summary"
 ```
 
 ### Phase 3.5: Output Data (Inter-Wave Communication)
 
 ```bash
-plan-db.sh update-task {db_task_id} done "Summary" \
+plan-db-safe.sh update-task {db_task_id} done "Summary" \
   --output-data '{"summary":"what was accomplished","artifacts":["file/path"]}'
 ```
 

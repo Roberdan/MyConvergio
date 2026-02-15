@@ -3,7 +3,146 @@
 # Sourced by plan-db.sh
 
 # Thor validates plan - ACTUAL validation checks
-# Version: 1.2.0
+# Version: 1.4.0
+
+# Validate a single task by DB id or task_id within a plan
+# Usage: validate-task <task_db_id_or_task_id> [plan_id] [validated_by] [--force] [--report 'JSON']
+# Sets validated_at + validated_by + validation_report on the task
+cmd_validate_task() {
+	local identifier="$1"
+	local plan_id="${2:-}"
+	local validated_by="${3:-thor}"
+	local force=false
+	local report=""
+
+	# Check for flags in any argument position
+	local skip_next=false
+	for i in "$@"; do
+		if [[ "$skip_next" == true ]]; then
+			skip_next=false
+			continue
+		fi
+		case "$i" in
+		--force) force=true ;;
+		--report)
+			skip_next=true
+			;;
+		esac
+	done
+	# Extract --report value
+	local prev=""
+	for arg in "$@"; do
+		if [[ "$prev" == "--report" ]]; then
+			report="$arg"
+		fi
+		prev="$arg"
+	done
+
+	local task_db_id=""
+
+	# If numeric, try as DB id first
+	if [[ "$identifier" =~ ^[0-9]+$ ]]; then
+		task_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE id = $identifier;" 2>/dev/null || echo "")
+	fi
+
+	# If not found or non-numeric, try as task_id within plan
+	if [[ -z "$task_db_id" && -n "$plan_id" ]]; then
+		task_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE task_id = '$(sql_escape "$identifier")' AND plan_id = $plan_id;" 2>/dev/null || echo "")
+	fi
+
+	if [[ -z "$task_db_id" ]]; then
+		log_error "Task not found: $identifier (plan: ${plan_id:-any})"
+		return 1
+	fi
+
+	# Verify task is done before validating
+	local task_status
+	task_status=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id = $task_db_id;")
+	if [[ "$task_status" != "done" ]]; then
+		log_error "Task $identifier status is '$task_status' — only 'done' tasks can be validated"
+		return 1
+	fi
+
+	# Check if already validated
+	local already_validated
+	already_validated=$(sqlite3 "$DB_FILE" "SELECT validated_at FROM tasks WHERE id = $task_db_id;")
+	if [[ -n "$already_validated" ]]; then
+		echo -e "${YELLOW}Task $identifier already validated at $already_validated${NC}"
+		return 0
+	fi
+
+	# Enforce Thor agent requirement unless --force is used
+	if [[ "$force" == false ]]; then
+		if [[ "$validated_by" != "thor" && "$validated_by" != "thor-quality-assurance-guardian" ]]; then
+			log_warn "Validator '$validated_by' is not a Thor agent. Use --force to validate without Thor agent verification."
+			return 1
+		fi
+	else
+		# Log warning if --force is used
+		if [[ "$validated_by" != "thor" && "$validated_by" != "thor-quality-assurance-guardian" ]]; then
+			log_warn "Task validated with --force (no Thor agent verification)"
+		fi
+	fi
+
+	# Build UPDATE with optional validation_report
+	local report_clause=""
+	if [[ -n "$report" ]]; then
+		report_clause=", validation_report = '$(sql_escape "$report")'"
+	fi
+	sqlite3 "$DB_FILE" "UPDATE tasks SET validated_at = datetime('now'), validated_by = '$(sql_escape "$validated_by")'${report_clause} WHERE id = $task_db_id;"
+
+	local task_id_text
+	task_id_text=$(sqlite3 "$DB_FILE" "SELECT task_id FROM tasks WHERE id = $task_db_id;")
+	echo -e "${GREEN}Task $task_id_text validated by $validated_by${NC}"
+	[[ -n "$report" ]] && echo -e "${GREEN}  Validation report saved ($(echo "$report" | grep -c . || echo 0) lines)${NC}"
+	return 0
+}
+
+# Validate all done tasks in a wave
+# Usage: validate-wave <wave_db_id> [validated_by]
+cmd_validate_wave() {
+	local wave_db_id="$1"
+	local validated_by="${2:-thor}"
+
+	local wave_info
+	wave_info=$(sqlite3 -separator '|' "$DB_FILE" "SELECT wave_id, plan_id, tasks_done, tasks_total FROM waves WHERE id = $wave_db_id;")
+	if [[ -z "$wave_info" ]]; then
+		log_error "Wave not found: $wave_db_id"
+		return 1
+	fi
+
+	local wave_id plan_id tasks_done tasks_total
+	IFS='|' read -r wave_id plan_id tasks_done tasks_total <<<"$wave_info"
+
+	# Check all tasks in wave are done
+	local not_done
+	not_done=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status <> 'done';")
+	if [[ "$not_done" -gt 0 ]]; then
+		log_error "Wave $wave_id has $not_done tasks not yet done — cannot validate"
+		return 1
+	fi
+
+	# Check if all done tasks have been validated by Thor
+	local not_validated
+	not_validated=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'done' AND validated_at IS NULL;")
+	if [[ "$not_validated" -gt 0 ]]; then
+		log_error "Wave $wave_id has $not_validated done tasks NOT validated by Thor — run per-task validation first"
+		# List the unvalidated tasks
+		sqlite3 "$DB_FILE" "SELECT task_id, title FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'done' AND validated_at IS NULL;" | while IFS='|' read -r tid title; do
+			echo "  - $tid: $title"
+		done
+		return 1
+	fi
+
+	# All tasks already validated - mark wave as done
+	echo -e "${YELLOW}Wave $wave_id: all tasks already validated${NC}"
+
+	# Mark wave as validated
+	sqlite3 "$DB_FILE" "UPDATE waves SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')) WHERE id = $wave_db_id;"
+
+	return 0
+}
+
 cmd_validate() {
 	local plan_id="$1"
 	local validated_by="${2:-thor}"
@@ -138,25 +277,25 @@ cmd_validate() {
 
 	sqlite3 "$DB_FILE" "UPDATE plans SET validated_at = datetime('now'), validated_by = '$validated_by' WHERE id = $plan_id;"
 
-	# Also mark all done tasks as validated
-	local done_tasks=$(sqlite3 "$DB_FILE" "
-        SELECT t.id FROM tasks t
+	# Check for unvalidated done tasks — refuse to bulk-validate them (must use per-task Thor)
+	local unvalidated_count=$(sqlite3 "$DB_FILE" "
+        SELECT COUNT(*) FROM tasks t
         JOIN waves w ON t.wave_id_fk = w.id
         WHERE w.plan_id = $plan_id AND t.status = 'done' AND t.validated_at IS NULL;
     ")
-	if [ -n "$done_tasks" ]; then
+	if [ "$unvalidated_count" -gt 0 ]; then
+		log_warn "$unvalidated_count done tasks lack per-task Thor validation — run validate-task for each"
 		sqlite3 "$DB_FILE" "
-            UPDATE tasks SET validated_at = datetime('now'), validated_by = '$validated_by'
-            WHERE id IN (
-                SELECT t.id FROM tasks t
-                JOIN waves w ON t.wave_id_fk = w.id
-                WHERE w.plan_id = $plan_id AND t.status = 'done'
-            );
-        "
-		local count
-		count=$(echo "$done_tasks" | grep -c .) || count=0
-		echo -e "${GREEN}Marked $count tasks as validated${NC}"
+            SELECT t.task_id, t.title FROM tasks t
+            JOIN waves w ON t.wave_id_fk = w.id
+            WHERE w.plan_id = $plan_id AND t.status = 'done' AND t.validated_at IS NULL;
+        " | while IFS='|' read -r tid title; do
+			echo "  - $tid: $title"
+		done
 	fi
+
+	# Bulk task validation removed (was a bypass hole)
+	# Tasks must be validated individually via validate-task
 
 	local version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
 	sqlite3 "$DB_FILE" "

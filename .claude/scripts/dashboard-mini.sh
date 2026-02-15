@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 # Colors
@@ -280,6 +280,11 @@ if [ -n "$PLAN_ID" ] && ! [[ "$PLAN_ID" =~ ^[0-9]+$ ]]; then
 	exit 1
 fi
 
+# Single plan detail mode: always expand tasks (you asked for detail, show detail)
+if [ -n "$PLAN_ID" ]; then
+	EXPAND_COMPLETED=1
+fi
+
 # Function to format elapsed time
 format_elapsed() {
 	local seconds=$1
@@ -311,6 +316,35 @@ format_tokens() {
 		local m=$((tokens / 1000000))
 		echo "${m}M"
 	fi
+}
+
+# Weighted progress using effort_level (1/2/3) and Thor validation gate.
+# A task counts as "done" ONLY if validated by Thor (validated_at IS NOT NULL).
+# Returns "done_weight|total_weight"
+calc_weighted_progress() {
+	local plan_filter="$1" # SQL WHERE clause fragment for wave selection
+	sqlite3 "$DB" "
+		SELECT
+			COALESCE(SUM(CASE WHEN t.status='done' AND t.validated_at IS NOT NULL
+				THEN COALESCE(t.effort_level, 1) ELSE 0 END), 0),
+			COALESCE(SUM(COALESCE(t.effort_level, 1)), 0)
+		FROM tasks t
+		WHERE t.wave_id_fk IN (SELECT id FROM waves WHERE $plan_filter)
+	"
+}
+
+# Render a progress bar from percentage
+# Usage: render_bar <percentage> <bar_length>
+render_bar() {
+	local pct="$1" blen="${2:-20}"
+	local filled=$((pct * blen / 100))
+	local empty=$((blen - filled))
+	local bar="${GREEN}"
+	for ((i = 0; i < filled; i++)); do bar+="█"; done
+	bar+="${GRAY}"
+	for ((i = 0; i < empty; i++)); do bar+="░"; done
+	bar+="${NC}"
+	echo -e "$bar"
 }
 
 # Function to render dashboard
@@ -380,67 +414,207 @@ render_dashboard() {
 		echo -e "${GRAY}└─${NC} Tokens: ${CYAN}$tokens_formatted${NC} ${GRAY}(progetto)${NC}"
 		echo ""
 
-		# Progress bar (same as main dashboard)
-		local task_total task_done task_progress bar_length filled empty bar
+		# Progress: dual view (executor done vs Thor validated)
+		local task_total task_done task_validated
 		task_total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
 		task_done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
-		if [ "$task_total" -gt 0 ]; then
-			task_progress=$((task_done * 100 / task_total))
-			bar_length=30
-			filled=$((task_progress * bar_length / 100))
-			empty=$((bar_length - filled))
-			bar="${GREEN}"
-			for ((i = 0; i < filled; i++)); do bar+="█"; done
-			bar+="${GRAY}"
-			for ((i = 0; i < empty; i++)); do bar+="░"; done
-			bar+="${NC}"
+		task_validated=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND validated_at IS NOT NULL AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
+
+		# Weighted progress (Thor-gated)
+		local wp_data wp_done wp_total task_progress
+		wp_data=$(calc_weighted_progress "plan_id = $pid")
+		wp_done=$(echo "$wp_data" | cut -d'|' -f1)
+		wp_total=$(echo "$wp_data" | cut -d'|' -f2)
+		if [ "$wp_total" -gt 0 ]; then
+			task_progress=$((wp_done * 100 / wp_total))
 		else
-			bar="${GRAY}░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░${NC}"
 			task_progress=0
 		fi
+		local bar
+		bar=$(render_bar "$task_progress" 30)
 
 		local wave_total wave_done wave_progress
 		wave_total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
-		wave_done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND status='done'")
+		wave_done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND tasks_done = tasks_total AND tasks_total > 0")
 		if [ "$wave_total" -gt 0 ]; then
 			wave_progress=$((wave_done * 100 / wave_total))
 		else
 			wave_progress=0
 		fi
 
-		echo -e "${BOLD}${WHITE}Progress${NC}"
-		echo -e "${GRAY}├─${NC} $bar ${WHITE}${task_progress}%${NC} ${GRAY}(${task_done}/${task_total} tasks)${NC}"
+		# Unvalidated done tasks warning
+		local unvalidated=$((task_done - task_validated))
+
+		echo -e "${BOLD}${WHITE}Progress${NC} ${GRAY}(Thor-gated: solo task validati contano)${NC}"
+		echo -e "${GRAY}├─${NC} $bar ${WHITE}${task_progress}%${NC} ${GRAY}(weighted by effort)${NC}"
+		echo -e "${GRAY}├─${NC} Executor: ${GREEN}${task_done}${NC}/${WHITE}${task_total}${NC} done  ${GRAY}│${NC}  Thor: ${GREEN}${task_validated}${NC}/${WHITE}${task_done}${NC} validated"
+		if [ "$unvalidated" -gt 0 ]; then
+			echo -e "${GRAY}│  ${NC}${YELLOW}${unvalidated} task done ma non validati da Thor${NC}"
+		fi
 		echo -e "${GRAY}└─${NC} Waves: ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC} complete ${GRAY}(${wave_progress}%)${NC}"
 		echo ""
 
-		# Waves
-		echo -e "${BOLD}${WHITE}Waves${NC}"
-		sqlite3 "$DB" "SELECT wave_id, name, status, tasks_done, tasks_total FROM waves WHERE plan_id = $pid ORDER BY position" | while IFS='|' read -r wid wname wstatus wdone wtotal; do
-			case $wstatus in
-			done) icon="${GREEN}✓${NC}" ;;
-			in_progress) icon="${YELLOW}⚡${NC}" ;;
-			blocked) icon="${RED}✗${NC}" ;;
-			*) icon="${GRAY}◯${NC}" ;;
-			esac
-			echo -e "${GRAY}├─${NC} $icon ${CYAN}$wid${NC} ${WHITE}$wname${NC} ${GRAY}($wdone/$wtotal)${NC}"
-		done
-		echo -e "${GRAY}└─${NC}"
+		# Tree view: Waves with nested tasks
+		echo -e "${BOLD}${WHITE}Waves & Tasks${NC}"
+		local wave_count=0
+		wave_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
+		local wave_idx=0
+		sqlite3 "$DB" "SELECT id, wave_id, name, status, tasks_done, tasks_total FROM waves WHERE plan_id = $pid ORDER BY position" | while IFS='|' read -r wdb_id wid wname wstatus wdone wtotal; do
+			wave_idx=$((wave_idx + 1))
+			local is_last_wave=0
+			[ "$wave_idx" -eq "$wave_count" ] && is_last_wave=1
 
-		# Tasks grouped by wave
-		echo ""
-		echo -e "${BOLD}${WHITE}Tasks${NC}"
-		sqlite3 "$DB" "SELECT t.task_id, t.title, t.status, t.priority, w.wave_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $pid ORDER BY w.position, t.task_id" | while IFS='|' read -r tid ttitle tstatus tprio twid; do
-			case $tstatus in
+			# Wave connector
+			local wave_prefix="${GRAY}├─${NC}"
+			local child_prefix="${GRAY}│  ${NC}"
+			if [ "$is_last_wave" -eq 1 ]; then
+				wave_prefix="${GRAY}└─${NC}"
+				child_prefix="${GRAY}   ${NC}"
+			fi
+
+			# Derive visual status from actual task counts (DB status can be stale)
+			local effective_wstatus="$wstatus"
+			if [ "$wdone" -eq "$wtotal" ] && [ "$wtotal" -gt 0 ]; then
+				effective_wstatus="done"
+			elif [ "$wdone" -gt 0 ] && [ "$wdone" -lt "$wtotal" ]; then
+				# Check if remaining are all human-blocked
+				local non_done_non_human
+				non_done_non_human=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wdb_id AND status <> 'done' AND NOT (status = 'blocked' AND (notes LIKE '%Human-only%' OR notes LIKE '%human%' OR notes LIKE '%user acceptance%'))")
+				if [ "$non_done_non_human" -eq 0 ]; then
+					effective_wstatus="waiting_human"
+				else
+					effective_wstatus="in_progress"
+				fi
+			fi
+
+			case $effective_wstatus in
 			done) icon="${GREEN}✓${NC}" ;;
 			in_progress) icon="${YELLOW}⚡${NC}" ;;
-			blocked) icon="${RED}✗${NC}" ;;
+			waiting_human) icon="${CYAN}👤${NC}" ;;
+			blocked) icon="${YELLOW}⏸${NC}" ;;
 			*) icon="${GRAY}◯${NC}" ;;
 			esac
-			short_title=$(echo "$ttitle" | cut -c1-55)
-			[ ${#ttitle} -gt 55 ] && short_title="${short_title}..."
-			echo -e "${GRAY}├─${NC} $icon ${CYAN}$tid${NC} ${WHITE}$short_title${NC} ${GRAY}[$tprio] ($twid)${NC}"
+
+			echo -e "${wave_prefix} $icon ${CYAN}$wid${NC} ${WHITE}$wname${NC} ${GRAY}($wdone/$wtotal)${NC}"
+
+			# Nested tasks under this wave
+			local task_lines task_count_w=0
+			task_lines=$(sqlite3 "$DB" "SELECT t.task_id, t.title, t.status, t.priority, COALESCE(t.model, ''), COALESCE(t.notes, ''), t.validated_at, COALESCE(t.effort_level, 1) FROM tasks t WHERE t.wave_id_fk = $wdb_id ORDER BY t.task_id")
+			task_count_w=$(echo "$task_lines" | grep -c '|' 2>/dev/null || echo 0)
+
+			if [ -z "$task_lines" ]; then
+				continue
+			fi
+
+			# For done waves with EXPAND_COMPLETED=0, show compressed with validation count
+			if [ "$effective_wstatus" = "done" ] && [ "$EXPAND_COMPLETED" -eq 0 ]; then
+				local w_validated
+				w_validated=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wdb_id AND validated_at IS NOT NULL")
+				if [ "$w_validated" -eq "$wtotal" ]; then
+					echo -e "${child_prefix}${GRAY}└─ ${wdone} tasks completati${NC} ${GREEN}T✓${NC}"
+				else
+					echo -e "${child_prefix}${GRAY}└─ ${wdone} tasks completati${NC} ${YELLOW}T:${w_validated}/${wtotal}${NC}"
+				fi
+				continue
+			fi
+
+			local tidx=0
+			echo "$task_lines" | while IFS='|' read -r tid ttitle tstatus tprio tmodel tnotes tvalidated teffort; do
+				[ -z "$tid" ] && continue
+				tidx=$((tidx + 1))
+				local is_last_task=0
+				[ "$tidx" -eq "$task_count_w" ] && is_last_task=1
+
+				local task_connector="${child_prefix}${GRAY}├─${NC}"
+				[ "$is_last_task" -eq 1 ] && task_connector="${child_prefix}${GRAY}└─${NC}"
+
+				# Detect human-action-required tasks
+				local is_human=0
+				if [[ "$tnotes" == *"Human-only"* ]] || [[ "$tnotes" == *"human"* ]] || [[ "$tnotes" == *"user acceptance"* ]]; then
+					is_human=1
+				fi
+
+				# Thor validation badge
+				local thor_badge=""
+				if [ "$tstatus" = "done" ]; then
+					if [ -n "$tvalidated" ]; then
+						thor_badge="${GREEN}T✓${NC}"
+					else
+						thor_badge="${RED}T!${NC}"
+					fi
+				fi
+
+				case $tstatus in
+				done) icon="${GREEN}✓${NC}" ;;
+				in_progress) icon="${YELLOW}⚡${NC}" ;;
+				blocked)
+					if [ "$is_human" -eq 1 ]; then
+						icon="${CYAN}👤${NC}"
+					else
+						icon="${YELLOW}⏸${NC}"
+					fi
+					;;
+				*) icon="${GRAY}◯${NC}" ;;
+				esac
+
+				# Effort + model badge
+				local effort_badge=""
+				case $teffort in
+				3) effort_badge="${RED}E3${NC}" ;;
+				2) effort_badge="${YELLOW}E2${NC}" ;;
+				*) effort_badge="${GRAY}E1${NC}" ;;
+				esac
+				local model_badge=""
+				[ -n "$tmodel" ] && model_badge="${GRAY}${tmodel}${NC}"
+
+				short_title=$(echo "$ttitle" | cut -c1-45)
+				[ ${#ttitle} -gt 45 ] && short_title="${short_title}..."
+				echo -e "${task_connector} $icon ${CYAN}$tid${NC} ${WHITE}$short_title${NC} ${GRAY}[$tprio]${NC} $effort_badge $model_badge $thor_badge"
+			done
 		done
-		echo -e "${GRAY}└─${NC}"
+
+		# Human action required summary with instructions
+		local human_tasks
+		human_tasks=$(sqlite3 "$DB" "SELECT t.task_id, t.title, w.wave_id, COALESCE(t.description, t.title) FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $pid AND t.status = 'blocked' AND (t.notes LIKE '%Human-only%' OR t.notes LIKE '%human%' OR t.notes LIKE '%user acceptance%')" 2>/dev/null)
+		if [ -n "$human_tasks" ]; then
+			echo ""
+			local human_count
+			human_count=$(echo "$human_tasks" | wc -l | tr -d ' ')
+			echo -e "${BOLD}${CYAN}👤 Action Required ($human_count)${NC}"
+			local hidx=0
+			echo "$human_tasks" | while IFS='|' read -r tid ttitle twid tdesc; do
+				[ -z "$tid" ] && continue
+				hidx=$((hidx + 1))
+				local is_last=0
+				[ "$hidx" -eq "$human_count" ] && is_last=1
+				local hprefix="${GRAY}├─${NC}"
+				local hchild="${GRAY}│  ${NC}"
+				if [ "$is_last" -eq 1 ]; then
+					hprefix="${GRAY}└─${NC}"
+					hchild="${GRAY}   ${NC}"
+				fi
+				echo -e "${hprefix} ${CYAN}👤${NC} ${CYAN}$tid${NC} ${WHITE}$ttitle${NC} ${GRAY}($twid)${NC}"
+				# Show actionable description
+				if [ -n "$tdesc" ] && [ "$tdesc" != "$ttitle" ]; then
+					# Wrap long descriptions
+					local desc_line
+					desc_line=$(echo "$tdesc" | cut -c1-70)
+					echo -e "${hchild}${YELLOW}→ $desc_line${NC}"
+					if [ ${#tdesc} -gt 70 ]; then
+						desc_line=$(echo "$tdesc" | cut -c71-140)
+						[ -n "$desc_line" ] && echo -e "${hchild}${YELLOW}  $desc_line${NC}"
+					fi
+				fi
+			done
+		fi
+
+		# Legend
+		echo ""
+		echo -e "${BOLD}${WHITE}Legenda${NC}"
+		echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} done  ${YELLOW}⚡${NC} in progress  ${GRAY}◯${NC} pending  ${YELLOW}⏸${NC} blocked  ${CYAN}👤${NC} richiede azione tua"
+		echo -e "${GRAY}├─${NC} Effort: ${RED}E3${NC}=alto  ${YELLOW}E2${NC}=medio  ${GRAY}E1${NC}=basso  ${GRAY}-- peso nella progress bar${NC}"
+		echo -e "${GRAY}├─${NC} Thor: ${GREEN}T✓${NC}=validato  ${RED}T!${NC}=non validato  ${GRAY}-- solo T✓ conta come done${NC}"
+		echo -e "${GRAY}└─${NC} Progress pesata: effort x validazione Thor. Task non validati non contano"
 
 		return 0
 	fi
@@ -480,7 +654,7 @@ render_dashboard() {
 	sqlite3 "$DB" "
 		SELECT p.id, p.name, p.status, p.updated_at, p.started_at, p.created_at, p.project_id,
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id),
-			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status='done'),
+			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND tasks_done=tasks_total AND tasks_total>0),
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status='in_progress'),
 			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id)),
 			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id) AND status='done'),
@@ -502,22 +676,17 @@ render_dashboard() {
 
 		tokens_formatted=$(format_tokens $total_tokens)
 
-		# Task progress (more accurate)
-		if [ "$task_total" -gt 0 ]; then
-			task_progress=$((task_done * 100 / task_total))
-			bar_length=20
-			filled=$((task_progress * bar_length / 100))
-			empty=$((bar_length - filled))
-
-			bar="${GREEN}"
-			for ((i = 0; i < filled; i++)); do bar+="█"; done
-			bar+="${GRAY}"
-			for ((i = 0; i < empty; i++)); do bar+="░"; done
-			bar+="${NC}"
+		# Weighted task progress (model-based complexity)
+		local wp_data wp_done_w wp_total_w
+		wp_data=$(calc_weighted_progress "plan_id = $pid")
+		wp_done_w=$(echo "$wp_data" | cut -d'|' -f1)
+		wp_total_w=$(echo "$wp_data" | cut -d'|' -f2)
+		if [ "$wp_total_w" -gt 0 ]; then
+			task_progress=$((wp_done_w * 100 / wp_total_w))
 		else
-			bar="${GRAY}░░░░░░░░░░░░░░░░░░░░${NC}"
 			task_progress=0
 		fi
+		bar=$(render_bar "$task_progress" 20)
 
 		# Wave progress
 		if [ "$wave_total" -gt 0 ]; then
@@ -622,7 +791,7 @@ render_dashboard() {
 			sqlite3 "$DB" "SELECT wave_id, name, status FROM waves WHERE plan_id = $pid AND status != 'done' ORDER BY position LIMIT 3" | while IFS='|' read -r wid wname wstatus; do
 				case $wstatus in
 				in_progress) icon="${YELLOW}⚡${NC}" ;;
-				blocked) icon="${RED}✗${NC}" ;;
+				blocked) icon="${YELLOW}⏸${NC}" ;;
 				*) icon="${GRAY}◯${NC}" ;;
 				esac
 				short_wname=$(echo "$wname" | cut -c1-45)

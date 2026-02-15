@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS plans (
   validated_at DATETIME,
   validated_by TEXT,
   worktree_path TEXT,
+  execution_host TEXT,
+  description TEXT,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
   FOREIGN KEY (parent_plan_id) REFERENCES plans(id) ON DELETE SET NULL,
   UNIQUE(project_id, name)
@@ -76,6 +78,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   completed_at DATETIME,
   validated_at DATETIME,
   validated_by TEXT,
+  executor_host TEXT,
   FOREIGN KEY (wave_id) REFERENCES waves(id) ON DELETE CASCADE
 );
 
@@ -89,6 +92,7 @@ CREATE TABLE IF NOT EXISTS plan_versions (
   tasks_before INTEGER,
   tasks_after INTEGER,
   changed_by TEXT,
+  changed_host TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
 );
@@ -101,6 +105,14 @@ CREATE TABLE IF NOT EXISTS metrics_history (
   metric_value REAL NOT NULL,
   recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
+);
+
+-- Host heartbeats for distributed execution liveness
+CREATE TABLE IF NOT EXISTS host_heartbeats (
+  host TEXT PRIMARY KEY,
+  last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+  plan_count INTEGER DEFAULT 0,
+  os TEXT
 );
 
 -- Indexes
@@ -160,6 +172,31 @@ LEFT JOIN tasks t ON t.wave_id = w.id
 ORDER BY p.id, w.position, t.position;
 
 -- View: Project plans summary
+-- Auto-increment wave/plan done counters when task goes to done
+CREATE TRIGGER IF NOT EXISTS task_done_counter
+AFTER UPDATE OF status ON tasks
+WHEN NEW.status = 'done' AND OLD.status != 'done'
+BEGIN
+    UPDATE waves SET tasks_done = tasks_done + 1 WHERE id = NEW.wave_id_fk;
+    UPDATE plans SET tasks_done = tasks_done + 1 WHERE id = NEW.plan_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS task_undone_counter
+AFTER UPDATE OF status ON tasks
+WHEN OLD.status = 'done' AND NEW.status != 'done'
+BEGIN
+    UPDATE waves SET tasks_done = tasks_done - 1 WHERE id = NEW.wave_id_fk;
+    UPDATE plans SET tasks_done = tasks_done - 1 WHERE id = NEW.plan_id;
+END;
+
+-- Auto-complete wave when all tasks are done (covers sync, batch, any code path)
+CREATE TRIGGER IF NOT EXISTS wave_auto_complete
+AFTER UPDATE OF tasks_done ON waves
+WHEN NEW.tasks_done = NEW.tasks_total AND NEW.tasks_total > 0 AND NEW.status != 'done'
+BEGIN
+    UPDATE waves SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')) WHERE id = NEW.id;
+END;
+
 CREATE VIEW IF NOT EXISTS v_project_plans AS
 SELECT
   pr.id as project_id,

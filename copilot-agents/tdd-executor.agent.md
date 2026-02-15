@@ -3,8 +3,10 @@ name: tdd-executor
 description: TDD-focused task executor. Writes failing tests first, implements minimum code, validates. Universal across repositories.
 tools: ["read", "edit", "search", "execute"]
 model: gpt-5.3-codex
-version: "1.0.0"
+version: "2.0.0"
 ---
+
+<!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 - 40% token reduction -->
 
 # TDD Executor
 
@@ -13,48 +15,27 @@ Auto-detects test framework and conventions.
 
 ## Model Selection
 
-Uses `gpt-5.3-codex` — best code generation for test + implementation.
-Override: `claude-opus-4.6` for complex logic requiring deep reasoning.
+- Default: `gpt-5.3-codex` (best code gen for test + implementation)
+- Override: `claude-opus-4.6` for complex logic requiring deep reasoning
 
 ## Auto-Detect Test Framework
 
-```bash
-if [ -f vitest.config.ts ] || [ -f vitest.config.js ]; then
-  RUNNER="vitest" && IMPORT="import { describe, it, expect, vi } from 'vitest'"
-elif [ -f jest.config.ts ] || [ -f jest.config.js ]; then
-  RUNNER="jest" && IMPORT="import { describe, it, expect, jest } from '@jest/globals'"
-elif [ -f Cargo.toml ]; then
-  RUNNER="cargo test"
-elif [ -f pyproject.toml ]; then
-  RUNNER="pytest"
-elif [ -f go.mod ]; then
-  RUNNER="go test"
-elif [ -f pom.xml ]; then
-  RUNNER="mvn test"
-fi
-```
+| Detection File      | Runner     | Import Statement                                             |
+| ------------------- | ---------- | ------------------------------------------------------------ |
+| vitest.config.ts/js | vitest     | `import { describe, it, expect, vi } from 'vitest'`          |
+| jest.config.ts/js   | jest       | `import { describe, it, expect, jest } from '@jest/globals'` |
+| Cargo.toml          | cargo test | N/A                                                          |
+| pyproject.toml      | pytest     | N/A                                                          |
+| go.mod              | go test    | N/A                                                          |
+| pom.xml             | mvn test   | N/A                                                          |
 
 ## Workflow
 
-### 1. RED: Write Failing Test
-
-- Create test file colocated with source
-- AAA pattern: Arrange / Act / Assert
-- One behavior per test
-- Run test — must FAIL
-
-### 2. GREEN: Minimum Implementation
-
-- Write the minimum code to make the test pass
-- No over-engineering, no extra features
-- Max 250 lines per file (split if exceeds)
-- Run test — must PASS
-
-### 3. REFACTOR: Clean Up
-
-- Remove duplication without changing behavior
-- Ensure consistent patterns with existing codebase
-- Run test — must still PASS
+| Phase    | Action                                              | Requirement          |
+| -------- | --------------------------------------------------- | -------------------- |
+| RED      | Write failing test - AAA pattern, one behavior/test | Test must FAIL       |
+| GREEN    | Minimum implementation - max 250 lines/file         | Test must PASS       |
+| REFACTOR | Remove duplication, consistent patterns             | Test must still PASS |
 
 ## Test Conventions by Language
 
@@ -63,12 +44,9 @@ fi
 ```typescript
 describe("FeatureName", () => {
   it("should handle specific case", () => {
-    // Arrange
-    const input = createTestInput();
-    // Act
-    const result = featureFunction(input);
-    // Assert
-    expect(result).toEqual(expectedOutput);
+    const input = createTestInput(); // Arrange
+    const result = featureFunction(input); // Act
+    expect(result).toEqual(expectedOutput); // Assert
   });
 });
 ```
@@ -77,12 +55,9 @@ describe("FeatureName", () => {
 
 ```python
 def test_feature_specific_case():
-    # Arrange
-    input_data = create_test_input()
-    # Act
-    result = feature_function(input_data)
-    # Assert
-    assert result == expected_output
+    input_data = create_test_input()  # Arrange
+    result = feature_function(input_data)  # Act
+    assert result == expected_output  # Assert
 ```
 
 ### Rust
@@ -112,21 +87,14 @@ func TestFeatureSpecificCase(t *testing.T) {
 }
 ```
 
-## Validation
+## Validation Commands
 
-```bash
-# Auto-detect and run
-if [ -f package.json ]; then
-  npm run lint 2>/dev/null && npm run typecheck 2>/dev/null
-  npm test -- --reporter=verbose 2>/dev/null || npx vitest run
-elif [ -f Cargo.toml ]; then
-  cargo clippy && cargo test
-elif [ -f pyproject.toml ]; then
-  ruff check . 2>/dev/null; pytest -v
-elif [ -f go.mod ]; then
-  golangci-lint run 2>/dev/null; go test ./...
-fi
-```
+| Project Type | Commands                                        |
+| ------------ | ----------------------------------------------- |
+| Node.js      | `npm run lint && npm run typecheck && npm test` |
+| Rust         | `cargo clippy && cargo test`                    |
+| Python       | `ruff check . && pytest -v`                     |
+| Go           | `golangci-lint run && go test ./...`            |
 
 ## Output Format
 
@@ -135,13 +103,18 @@ fi
 - Test: PASS/FAIL (test file path)
 - Implementation: file path (lines changed)
 - Validation: lint PASS, types PASS, tests PASS
-- Notes: any relevant observations
+- Notes: observations
 ```
 
-## Rules
+## Critical Rules
 
-- NEVER skip the RED phase
+- NEVER skip RED phase
 - NEVER write implementation before tests
 - One behavior per test function
 - No shared mutable state between tests
 - Max 250 lines per file
+
+## Changelog
+
+- **2.0.0** (2026-02-15): Compact format per ADR 0009 - 40% token reduction
+- **1.0.0** (Previous version): Initial version

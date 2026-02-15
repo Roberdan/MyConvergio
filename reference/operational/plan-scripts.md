@@ -1,7 +1,8 @@
+<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+
 # Plan & DB Scripts
 
-> **Why these exist**: `plan-db.sh` wraps SQLite operations with correct FK handling
-> (e.g., `wave_id_fk` numeric FK, not `wave_id` string). Direct SQL risks schema violations.
+> **Why**: `plan-db.sh` wraps SQLite with correct FK handling (`wave_id_fk` numeric FK, not `wave_id` string). Direct SQL risks schema violations.
 
 ## Database Conventions
 
@@ -19,7 +20,9 @@ plan-db-safe.sh update-task {id} done "S" # Pre-checks before marking done
 plan-db.sh conflict-check {id}            # Cross-plan file overlap detection
 plan-db.sh conflict-check-spec {proj} spec.json # Pre-import conflict check
 plan-db.sh wave-overlap check-spec spec.json    # Intra-wave overlap detection
-plan-db.sh validate {id}                  # Thor validation gate
+plan-db.sh validate-task {task_id} {plan}  # Per-task Thor validation
+plan-db.sh validate-wave {wave_db_id}     # Per-wave Thor validation
+plan-db.sh validate {id}                  # Bulk Thor validation (all done tasks)
 ```
 
 ## Cluster & Sync
@@ -34,7 +37,15 @@ plan-db.sh autosync start|stop|status # Background DB sync daemon
 ## File Locking & Staleness
 
 ```bash
-plan-db.sh lock acquire|release|check|list  # File-level locking
+# File-level locking (via file-lock.sh)
+file-lock.sh acquire <file> <task_id> [--agent NAME] [--plan-id N] [--timeout N]
+file-lock.sh release <file> [task_id]
+file-lock.sh release-task <task_id>   # Release all locks for a task
+file-lock.sh check <file>              # Who holds the lock?
+file-lock.sh list [--plan-id N] [--task-id ID]
+file-lock.sh cleanup [--max-age MIN] [--dry-run]
+
+# Stale context detection
 plan-db.sh stale-check snapshot|check|diff  # Stale context detection
 plan-db.sh merge-queue enqueue|process|status # Sequential merge queue
 ```

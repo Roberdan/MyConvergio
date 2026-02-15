@@ -23,16 +23,24 @@ If task scope changes during execution → re-plan, don't auto-escalate.
 
 **DEFAULT IS SONNET.** Use haiku only for trivial. Use opus when reasoning matters.
 
-## Agent Routing (executor_agent)
+## Agent Routing (executor_agent) & Model Mapping
 
 Each task specifies which agent executes it via `executor_agent`:
 
-| Value              | Use For                                                | Example                             |
-| ------------------ | ------------------------------------------------------ | ----------------------------------- |
-| `claude` (default) | Architecture, security, debugging, cross-cutting logic | Complex features, API design        |
-| `copilot`          | Mechanical, repetitive, well-defined tasks             | Bulk file updates, simple CRUD      |
-| `codex`            | Mechanical bulk tasks with clear specs                 | Rename variables, add boilerplate   |
-| `manual`           | Tasks requiring human intervention                     | Design review, stakeholder approval |
+| Value              | Use For                                                | Model Options                    |
+| ------------------ | ------------------------------------------------------ | -------------------------------- |
+| `claude` (default) | Architecture, security, debugging, cross-cutting logic | haiku, sonnet, opus              |
+| `copilot`          | Mechanical, repetitive, well-defined tasks             | gpt-4o-mini, gpt-4o, o3, o4-mini |
+| `codex`            | Mechanical bulk tasks with clear specs                 | codex                            |
+| `manual`           | Tasks requiring human intervention                     | N/A                              |
+
+**Model weight tiers** (used for weighted progress):
+
+| Tier | Weight | Models                       |
+| ---- | ------ | ---------------------------- |
+| Low  | x1     | haiku, codex                 |
+| Mid  | x2     | sonnet, gpt-4o-mini, o4-mini |
+| High | x3     | opus, gpt-4o, o3, o3-pro     |
 
 **Decision criteria:**
 
@@ -147,11 +155,37 @@ If the plan naturally produces trivial tasks (rename, config), those go to haiku
 ## DB Registration
 
 ```bash
-# MANDATORY: specify --model for EVERY task
-plan-db.sh add-task {db_wave_id} T1-01 "Fix typo" P2 chore --model haiku
-plan-db.sh add-task {db_wave_id} T1-02 "Add endpoint" P1 feature --model sonnet
-plan-db.sh add-task {db_wave_id} T1-03 "Redesign auth" P0 feature --model opus
+# MANDATORY: specify --model and --effort for EVERY task
+plan-db.sh add-task {db_wave_id} T1-01 "Fix typo" P2 chore --model haiku --effort 1
+plan-db.sh add-task {db_wave_id} T1-02 "Add endpoint" P1 feature --model sonnet --effort 2
+plan-db.sh add-task {db_wave_id} T1-03 "Redesign auth" P0 feature --model opus --effort 3
 
-# Shorthand (model as last arg)
+# Shorthand (model as last positional arg, effort defaults to 1)
 plan-db.sh add-task {db_wave_id} T1-01 "Fix typo" P2 chore haiku
 ```
+
+## Thor Validation Gate
+
+**Progress counts only Thor-validated tasks.** A task marked "done" by the executor
+does NOT contribute to the weighted progress until Thor validates it.
+
+Dashboard shows: `T✓` = Thor validated, `T!` = done but not validated.
+
+## Cross-Tool Execution (Claude plan → Copilot execution)
+
+When a plan created by Claude is executed by Copilot (or vice versa), the
+executing tool MUST be given a **T0-00 Review Plan** task as the first task
+in W0:
+
+```bash
+plan-db.sh add-task {db_w0_id} T0-00 "Review plan and reassign models/effort per task" P0 chore \
+  --model gpt-4o --effort 1 \
+  --description "Review all tasks. For each task: verify model is optimal for this executor, adjust effort_level if needed, flag any tasks that need replanning."
+```
+
+This allows the executing tool to:
+
+1. Read the full plan context
+2. Reassign `model` per task to its own optimal models
+3. Adjust `effort_level` based on its own assessment
+4. Flag any tasks that need replanning before execution starts

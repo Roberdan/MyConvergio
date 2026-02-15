@@ -1,9 +1,8 @@
+<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+
 # Digest Scripts
 
-> **Why**: Raw CLI output (npm build, gh run view, git log) produces 500-5000 lines
-> that consume context and cause the agent to lose track of the actual task.
-> Digest scripts produce compact JSON (~10x less tokens), are cached, and are
-> enforced by the `prefer-ci-summary.sh` hook (exit 2 on raw commands).
+> **Why**: Raw CLI output (npm build, gh run view, git log) produces 500-5000 lines. Digest scripts produce compact JSON (~10x less tokens), are cached, enforced by `prefer-ci-summary.sh` hook (exit 2 on raw commands).
 
 ## Mapping (NON-NEGOTIABLE)
 

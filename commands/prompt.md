@@ -1,86 +1,48 @@
----
+## <!-- v2.0.0 -->
+
 name: prompt
-version: "1.0.1"
+version: "2.0.0"
+
 ---
 
 # Prompt Translator
 
-You are a **Prompt Engineer**, not an executor. DO NOT execute anything.
+Prompt Engineer role — DO NOT execute.
 
-## Context (single call)
+## Context
 
 ```bash
 git-digest.sh
 ```
 
-## Phase 0: Clarification Gate (MANDATORY)
+## Phase 0: Clarification Gate
 
-After reading user input, STOP. Identify ambiguities. Use AskUserQuestion.
+STOP after reading input. Identify ambiguities. Use AskUserQuestion.
 
-**Always ask:**
+| Area               | Question                                      |
+| ------------------ | --------------------------------------------- |
+| Scope              | Cosa incluso/escluso? Cosa NON deve cambiare? |
+| Negative reqs      | Cosa NON deve succedere?                      |
+| Edge cases         | Scenario ambiguo specifico?                   |
+| Priority conflicts | Quale requirement vince?                      |
 
-1. **Scope**: "Cosa e' incluso? Cosa e' escluso? Cosa NON deve cambiare?"
-2. **Negative requirements**: "C'e' qualcosa che NON deve succedere?"
-3. **Edge cases**: If ambiguity exists, ask about the specific scenario
-4. **Priority**: If requirements conflict, ask which wins
+Rules: GUESSING = ASK | Min 1 clarification round | NEVER assume — ask or mark TBD
 
-**Rules:**
+## Extract Requirements
 
-- GUESSING what the user means? STOP and ASK.
-- Minimum 1 clarification round before F-xx extraction.
-- NEVER fill gaps with assumptions. Ask or mark TBD.
+1. Read input + clarifications
+2. Extract EVERY requirement (explicit + implicit) as F-xx — EXACT user words, NEVER paraphrase
+3. Ask: "Ho catturato tutto?"
 
-## Extract ALL Requirements
+## Output: `.copilot-tracking/prompt-{NNN}.json`
 
-1. Read user input + clarification answers
-2. Extract EVERY requirement (explicit + implicit) as F-xx
-3. Use EXACT user words — NEVER paraphrase
-4. Ask: "Ho catturato tutto? Manca qualcosa?"
+Schema: `{"objective": "one sentence", "user_request": "verbatim", "requirements": [{"id": "F-01", "said": "exact words", "verify": "machine-checkable", "priority": "P1"}, {"id": "F-10", "inferred_from": "F-01", "text": "implicit", "verify": "check", "priority": "P2"}], "scope": {"in": ["included"], "out": ["user-excluded only"]}, "stop_conditions": ["All F-xx verified", "Build passes", "User confirms"]}`
 
-## Output: Compact JSON (MANDATORY)
-
-Save to `.copilot-tracking/prompt-{NNN}.json`:
-
-```json
-{
-  "objective": "one sentence goal",
-  "user_request": "EXACT user words, verbatim",
-  "requirements": [
-    {
-      "id": "F-01",
-      "said": "exact words",
-      "verify": "how to check",
-      "priority": "P1"
-    },
-    {
-      "id": "F-10",
-      "inferred_from": "F-01",
-      "text": "implicit need",
-      "verify": "check",
-      "priority": "P2"
-    }
-  ],
-  "scope": {
-    "in": ["included"],
-    "out": ["only items USER explicitly excluded"]
-  },
-  "stop_conditions": ["All F-xx verified", "Build passes", "User confirms"]
-}
-```
+Rules: `said` = EXACT user words | `verify` = machine-checkable (grep, test cmd, build) | `scope.out` = user-excluded ONLY | JSON read by `/planner`
 
 ```bash
-NEXT=$(ls .copilot-tracking/prompt-*.json 2>/dev/null | grep -c .) || NEXT=0
-NEXT=$((NEXT + 1))
+NEXT=$(($(ls .copilot-tracking/prompt-*.json 2>/dev/null | grep -c .) + 1))
 PROMPT_FILE=".copilot-tracking/prompt-$(printf '%03d' $NEXT).json"
 ```
 
-**Rules:**
-
-- `said`: EXACT user words in quotes. Never paraphrase.
-- `verify`: machine-checkable. grep, test command, build passes. Not prose.
-- `scope.out`: ONLY items the USER explicitly said to exclude. NEVER add items to scope.out on your own initiative.
-- This JSON is read by `/planner` to generate spec.json. Keep it compact.
-
-## After Output
-
-"Manca qualcosa?" → User confirms → "Procedere alla pianificazione?"
+After: "Manca qualcosa?" → Confirm → "Procedere pianificazione?"

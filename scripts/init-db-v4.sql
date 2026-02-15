@@ -172,6 +172,31 @@ LEFT JOIN tasks t ON t.wave_id = w.id
 ORDER BY p.id, w.position, t.position;
 
 -- View: Project plans summary
+-- Auto-increment wave/plan done counters when task goes to done
+CREATE TRIGGER IF NOT EXISTS task_done_counter
+AFTER UPDATE OF status ON tasks
+WHEN NEW.status = 'done' AND OLD.status != 'done'
+BEGIN
+    UPDATE waves SET tasks_done = tasks_done + 1 WHERE id = NEW.wave_id_fk;
+    UPDATE plans SET tasks_done = tasks_done + 1 WHERE id = NEW.plan_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS task_undone_counter
+AFTER UPDATE OF status ON tasks
+WHEN OLD.status = 'done' AND NEW.status != 'done'
+BEGIN
+    UPDATE waves SET tasks_done = tasks_done - 1 WHERE id = NEW.wave_id_fk;
+    UPDATE plans SET tasks_done = tasks_done - 1 WHERE id = NEW.plan_id;
+END;
+
+-- Auto-complete wave when all tasks are done (covers sync, batch, any code path)
+CREATE TRIGGER IF NOT EXISTS wave_auto_complete
+AFTER UPDATE OF tasks_done ON waves
+WHEN NEW.tasks_done = NEW.tasks_total AND NEW.tasks_total > 0 AND NEW.status != 'done'
+BEGIN
+    UPDATE waves SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')) WHERE id = NEW.id;
+END;
+
 CREATE VIEW IF NOT EXISTS v_project_plans AS
 SELECT
   pr.id as project_id,

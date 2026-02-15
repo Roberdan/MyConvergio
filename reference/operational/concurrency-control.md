@@ -1,8 +1,8 @@
-# Concurrency Control (NON-NEGOTIABLE)
+<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
 
-> **Why**: Multiple agents editing the same file simultaneously causes silent overwrites.
-> File locking prevents data loss. Stale checks detect external changes before commit.
-> Merge queue prevents race conditions when multiple branches merge to main.
+# Concurrency Control
+
+> **Why**: Multi-agent file edits cause silent overwrites. File locking prevents data loss. Stale checks detect external changes before commit. Merge queue prevents race conditions.
 
 ## Sequence for Multi-Agent Parallel Work
 

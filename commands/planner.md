@@ -1,7 +1,9 @@
 ---
 name: planner
-version: "1.0.1"
+version: "2.0.0"
 ---
+
+<!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 -->
 
 # Planner + Orchestrator
 
@@ -9,252 +11,150 @@ Plan and execute with parallel Claude instances.
 
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
-1. **Task Executor MANDATORY**: Use `Task(subagent_type='task-executor')` for EVERY task
-2. **F-xx Requirements**: Extract ALL requirements. Nothing done until ALL verified [x]
-3. **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"
-4. **Thor Enforcement**: Wave done = Thor passed + build passed
-5. **Worktree Isolation**: EVERY task prompt MUST include worktree path
-6. **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See [knowledge-codification.md](./planner-modules/knowledge-codification.md)
-7. **NO SILENT EXCLUSIONS**: NEVER exclude, defer, or mark as "backlog" ANY F-xx requirement without EXPLICIT user approval via AskUserQuestion. If a requirement seems out of scope, needs external resources, or should be deferred — ASK the user. Silently dropping requirements is a VIOLATION.
+| #   | Rule                                                                                                                                                              |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Task Executor MANDATORY**: Use `Task(subagent_type='task-executor')` for EVERY task                                                                             |
+| 2   | **F-xx Requirements**: Extract ALL. Nothing done until ALL verified [x]                                                                                           |
+| 3   | **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"                                                                                                 |
+| 4   | **Thor Enforcement**: Task done = per-task Thor passed. Wave done = per-wave Thor + build passed. Gate 9 MANDATORY.                                               |
+| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path                                                                                              |
+| 6   | **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See @planner-modules/knowledge-codification.md                                                |
+| 7   | **NO SILENT EXCLUSIONS**: NEVER exclude/defer ANY F-xx without EXPLICIT user approval via AskUserQuestion. Silently dropping = VIOLATION.                         |
+| 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8). |
+| 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                           |
+| 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                     |
 
 ## Module References
 
-| Topic                  | Module                                                                   |
-| ---------------------- | ------------------------------------------------------------------------ |
-| Parallelization modes  | [parallelization-modes.md](./planner-modules/parallelization-modes.md)   |
-| Model strategy         | [model-strategy.md](./planner-modules/model-strategy.md)                 |
-| Knowledge codification | [knowledge-codification.md](./planner-modules/knowledge-codification.md) |
+| Topic                  | Module                                     |
+| ---------------------- | ------------------------------------------ |
+| Parallelization modes  | @planner-modules/parallelization-modes.md  |
+| Model strategy         | @planner-modules/model-strategy.md         |
+| Knowledge codification | @planner-modules/knowledge-codification.md |
 
 ## Workflow
 
-### 1. Init (single call)
+### 1. Init
 
 ```bash
 export PATH="$HOME/.claude/scripts:$PATH"
 CONTEXT=$(planner-init.sh)
 PROJECT_ID=$(echo "$CONTEXT" | jq -r '.project_id')
-echo "$CONTEXT" | jq .
 ```
 
-This returns: project_id, project_name, path, branch, active_plans, worktrees, has_adr, has_changelog, prompt_files. Auto-registers project if missing.
+Returns: project_id, project_name, path, branch, active_plans, worktrees, has_adr, has_changelog, prompt_files. Auto-registers. All ops INSIDE worktree.
 
-**RULE**: All subsequent operations happen INSIDE the worktree (created in step 3).
+### 1.5 Read Existing Docs (MANDATORY)
 
-### 1.5 Read Existing Documentation (MANDATORY before plan)
+NO Explore. Direct Glob/Grep (2 calls): `Glob("docs/adr/*.md")`, `Grep(pattern="kw1|kw2", path="docs/adr/", output_mode="files_with_matches")`. Read matched ADRs. Check CHANGELOG.md last 20 lines. Cite ADRs in `ref`. Conflict = ASK.
 
-**DO NOT use Explore agent for ADRs. Use direct Glob/Grep (2 calls max):**
+### 1.6 Technical Clarification (MANDATORY)
 
-```bash
-# 1. List ADR titles (one Glob call)
-Glob("docs/adr/*.md")
-
-# 2. Grep for keywords related to the feature (one Grep call)
-Grep(pattern="keyword1|keyword2", path="docs/adr/", output_mode="files_with_matches")
-```
-
-Then Read ONLY the matched ADR files (not all of them).
-Also check CHANGELOG.md last 20 lines for recent decisions.
-
-**Cite relevant ADRs in task `ref` fields. Conflict = ASK user.**
-
-### 1.6 Technical Clarification (MANDATORY before plan)
-
-After reading prompt + docs, STOP. Identify ambiguities. Use AskUserQuestion.
-
-**Always ask:**
-
-1. **Approach**: "Per F-xx propongo [approccio]. Alternative: [B, C]. Preferenze?"
-2. **File scope**: "I file coinvolti: [list]. Altri da toccare? Qualcuno da NON toccare?"
-3. **Constraints**: "Breaking changes ok? Nuove dipendenze? Vincoli tecnici?"
-
-**Rule**: If GUESSING about implementation -> STOP and ASK.
+After reading, STOP. AskUserQuestion: 1. **Approach**: "Per F-xx propongo [A]. Alternative: [B, C]. Preferenze?" 2. **Files**: "File coinvolti: [list]. Altri?" 3. **Constraints**: "Breaking changes ok? Nuove dipendenze? Vincoli?" If GUESSING -> ASK.
 
 ### 2. Generate Plan Spec (JSON)
 
-**EXCLUSION GATE (MANDATORY)**: Before writing spec.json, compare ALL F-xx from the prompt file against planned tasks. If ANY F-xx is NOT covered by a task:
+**EXCLUSION GATE**: Compare ALL F-xx vs tasks. If ANY NOT covered: 1. List uncovered. 2. AskUserQuestion: "Requisiti non coperti: [list]. Per ciascuno: includerli, deferirli, o escluderli?" 3. BLOCK. NEVER silently skip with "scope.out", "backlog", "needs external resource".
 
-1. List the uncovered F-xx requirements
-2. Use AskUserQuestion: "Questi requisiti non sono coperti dal piano: [list]. Per ciascuno: includerli, deferirli a un piano successivo, o escluderli?"
-3. BLOCK until user responds. Only then proceed.
+spec.json: `{user_request, requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
 
-**NEVER** use labels like "scope.out", "backlog item", "needs external resource" to silently skip requirements. The user decides what's in and what's out.
+**Rules**: `do`=ONE action. `files`=explicit paths. `verify`=machine-checkable. `ref`=F-xx ID. Missing `verify`=broken. **Per-wave docs**: TX-doc (CHANGELOG + plan-{id}-notes.md). **Final wave** "WF-Closure": TF-01 (notes->ADRs), TF-02 (CHANGELOG), TF-03 (ESLint), TF-pr (PR+CI). Cite ADRs in `do`.
 
-Write a `spec.json` file with compact task format optimized for machine execution:
+### 2.5 Copilot Delegation
 
-```json
-{
-  "user_request": "exact user words from prompt",
-  "requirements": [
-    { "id": "F-01", "text": "requirement description", "wave": "W1" }
-  ],
-  "waves": [
-    {
-      "id": "W1-Name",
-      "name": "Wave description",
-      "estimated_hours": 8,
-      "tasks": [
-        {
-          "id": "T1-01",
-          "do": "atomic action: what to implement",
-          "files": ["src/path/file.ts", "src/path/other.ts"],
-          "verify": ["grep -q 'pattern' file.ts", "npm test -- file.test.ts"],
-          "ref": "F-01",
-          "priority": "P1",
-          "type": "feature",
-          "model": "sonnet"
-        }
-      ]
-    }
-  ]
-}
-```
+Mark eligible: `"codex": true`. Present: "Delegabili a Copilot: [list]. Vuoi delegarli?" Never: architecture, security, debugging, cross-cutting, CI/build, DB schema, API. **Prompt**: `copilot-task-prompt.sh <id>`. **Exec**: Kitty: `worker-launch.sh copilot "Copilot-N" <id> --cwd <worktree>` | Standalone: `copilot-worker.sh <id> --model claude-sonnet-4-5 --timeout 600` | Mixed: `orchestrate.sh <plan> 4 --engine mixed`. Requires: `copilot --allow-all`, `GH_TOKEN`.
 
-**Compact format rules:**
-
-- `do`: ONE atomic action. If you need "and", split into 2 tasks.
-- `files`: explicit file paths the task-executor must touch. No guessing.
-- `verify`: machine-checkable commands. `grep`, `test`, `npm test -- file`. Not prose.
-- `ref`: F-xx requirement ID this task satisfies
-- Missing `verify` = Thor cannot validate = pipeline broken
-- **MANDATORY per-wave docs**: EVERY wave MUST end with a documentation task:
-  ```json
-  {
-    "id": "TX-doc",
-    "do": "Update CHANGELOG.md with WX changes + append learnings to docs/adr/plan-{id}-notes.md",
-    "description": "CHANGELOG: ## [Unreleased] / ### WX: {name} / - Added|Changed|Fixed: ... / Running notes: ## WX: {name} / - Decision: {1 line} / - Issue: ... → Fix: ... / - Pattern: {insight}",
-    "files": ["CHANGELOG.md", "docs/adr/plan-{id}-notes.md"],
-    "verify": ["grep -q 'WX' CHANGELOG.md"],
-    "ref": "F-docs",
-    "type": "documentation",
-    "model": "sonnet"
-  }
-  ```
-  The `description` field carries the format template so the executor doesn't need to look it up.
-- **MANDATORY final wave** "WF-Documentation":
-  - TF-01: Convert running notes → formal ADRs (compact format, see knowledge-codification.md)
-  - TF-02: Finalize CHANGELOG.md (merge per-wave entries, add version header)
-  - TF-03: Create ESLint rules for automatable learnings
-- Task `do` fields MUST cite relevant existing ADRs when applicable
-
-### 2.5 Copilot Delegation Tagging
-
-Review each task against delegation criteria (see CLAUDE.md).
-Mark eligible tasks in spec with `"codex": true`.
-Present: "Questi task sono delegabili a Copilot: [list]. Vuoi delegarli?"
-**Never delegate**: architecture, security, debugging, cross-cutting logic, CI/build, DB schema, API design.
-
-**Prompt enrichment** (MANDATORY): Use `copilot-task-prompt.sh <db_task_id>` which auto-includes:
-
-- Task `do` + `files` + `verify` from DB
-- Worktree guard enforcement (NEVER on main)
-- TDD workflow + plan-db.sh update commands
-- Coding standards inline
-
-**Execution modes for delegated tasks**:
-
-- **Kitty orchestration**: `worker-launch.sh copilot "Copilot-N" <id> --cwd <worktree>`
-- **Standalone**: `copilot-worker.sh <id> --model claude-sonnet-4-5 --timeout 600`
-- **Mixed mode**: `orchestrate.sh <plan> 4 --engine mixed` (auto-routes by codex flag)
-
-Copilot CLI requires: `copilot --allow-all` (no confirmations), `GH_TOKEN` set.
-
-### 2.7 Cross-Plan Conflict Check (MANDATORY before import)
+### 2.7 Cross-Plan Conflict Check (MANDATORY)
 
 ```bash
 CONFLICT_REPORT=$(plan-db.sh conflict-check-spec $PROJECT_ID /path/to/spec.json)
 RISK=$(echo "$CONFLICT_REPORT" | jq -r '.overall_risk')
 ```
 
-**If risk != "none"**, present via AskUserQuestion (show conflicting plans + overlapping files):
+If risk != "none", AskUserQuestion: Merge | Sequence | Parallel | Abort. If risk == "none", proceed silently.
 
-- **Merge**: Add tasks to the existing plan | **Sequence**: Wave dependency on conflicting plan
-- **Parallel**: Separate worktree (accept merge risk) | **Abort**: Rethink scope
-
-**If risk == "none"**, proceed silently to step 3.
-
-### 3. Create Plan + Import (2 calls total)
+### 3. Create Plan + Import
 
 ```bash
 PROMPT_FILE=".copilot-tracking/prompt-{NNN}.json"
-
-# Single command: creates plan + worktree
-PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" \
-  --source-file "$PROMPT_FILE" --auto-worktree)
-
-# Single command: bulk imports waves+tasks from spec
+PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" --source-file "$PROMPT_FILE" --auto-worktree)
 plan-db.sh import $PLAN_ID /path/to/spec.json
-
-# Switch to worktree
 WORKTREE_PATH=$(plan-db.sh get-worktree $PLAN_ID)
 cd "$WORKTREE_PATH"
 ```
 
 ### 4. User Approval (MANDATORY STOP)
 
-Present F-xx list + Codex delegation proposals. User says "si"/"yes" -> Proceed.
+Present F-xx + Codex proposals. "si"/"yes" -> Proceed.
 
-### 5. Parallelization Mode Selection
+### 5. Parallelization Mode
 
-> See [parallelization-modes.md](./planner-modules/parallelization-modes.md)
+See @planner-modules/parallelization-modes.md. AskUserQuestion: Standard (3) vs Max (unlimited, Opus).
 
-Ask via AskUserQuestion: Standard (3 parallel) vs Max (unlimited, Opus).
-
-### 6. Start Execution
+### 6. Start
 
 ```bash
 plan-db.sh start $PLAN_ID
 ```
 
+### 6.5 Preconditions (F-08)
+
+Tasks support preconditions to control execution flow:
+
+| Field             | Purpose                       | Example                                                |
+| ----------------- | ----------------------------- | ------------------------------------------------------ |
+| `skip_if`         | Skip task when condition met  | `"skip_if": "test -f .env"`                            |
+| `output_match`    | Validate prior task output    | `"output_match": {"task": "T1-01", "pattern": "PASS"}` |
+| `wave_status`     | Require wave state before run | `"wave_status": {"W1": "done"}`                        |
+| `check-readiness` | Pre-flight check before wave  | `plan-db.sh check-readiness $PLAN_ID $WAVE_ID`         |
+
+Executor MUST evaluate preconditions before starting. Skip=logged, fail=blocked.
+
 ### 7. Execute Tasks
 
-Use `/execute {plan_id}` for automated execution.
+Use `/execute {plan_id}`. Manual: `await Task({subagent_type: "task-executor", model: task.model, max_turns: 30, prompt: "Project: {id} | Plan: {plan_id} | Task: T1-01\n**WORKTREE**: {path}\nF-xx: [criteria]"})`
 
-Manual fallback:
+### 8. Thor Validation (MANDATORY)
 
-```typescript
-await Task({
-  subagent_type: "task-executor",
-  model: task.model,
-  max_turns: 30,
-  prompt: `Project: {id} | Plan: {plan_id} | Task: T1-01
-  **WORKTREE**: {absolute_worktree_path}
-  F-xx: [acceptance criteria]`,
-});
-```
+**8a. Per-Task**: `Task(subagent_type="thor", model="sonnet", prompt="THOR PER-TASK\nPlan:{plan_id}|Task:{task_id}|Wave:{wave_id}\nWORKTREE:{path}\ndo:{desc}|type:{type}|verify:{criteria}|ref:{F-xx}|files:{files}\nRun verify. Gate 1-4,8,9. Read files.")` -> `plan-db.sh validate-task {task_id} {plan_id}`
 
-### 8. Thor Validation (per wave) - MANDATORY
+**8b. Per-Wave**: `Task(subagent_type="thor", model="sonnet", prompt="THOR PER-WAVE\nPlan:{plan_id}|Wave:{wave_id}(db:{db_id})\nWORKTREE:{path}|FRAMEWORK:{framework}\nTasks:[list]|Verify:[all]\nALL 9 gates. lint,typecheck,build,tests. F-xx cross-task. Read files.")` -> `plan-db.sh validate-wave {wave_db_id}`
 
-Thor gets task data from DB context, not from markdown files.
+NEVER skip. NEVER trust executor. Thor reads files. Per-task MANDATORY. Per-wave AFTER all per-task. Progress=Thor-validated only. Gate 9=ADR-Smart for docs.
 
-```
-Task(
-  subagent_type="thor-quality-assurance-guardian",
-  model="sonnet",
-  description="Thor validates Wave WX",
-  prompt="THOR VALIDATION
-  Plan: {plan_id} | Wave: {wave_id} (db_id: {wave_db_id})
-  WORKTREE: {WORKTREE_PATH} | FRAMEWORK: {framework}
-  Tasks in wave: [list task_ids + titles from CTX]
-  Verify criteria: [list test_criteria for each task in wave]
-  Run: lint, typecheck, build, tests. Check F-xx. Read files directly."
-)
-```
+### 9. Knowledge Codification
 
-After Thor PASS:
+See @planner-modules/knowledge-codification.md. LEARNINGS LOG -> ADRs -> ESLint -> Thor validates.
 
-```bash
-plan-db.sh validate {plan_id}
-```
+## Rule 8: Minimize Human Intervention {#rule-8}
 
-**Rules**: NEVER skip Thor. NEVER trust executor reports. Thor reads files directly.
+Before marking `manual`, explore alternatives:
 
-### 9. Knowledge Codification (pre-closure)
+| Human task type        | Automated alternative                         |
+| ---------------------- | --------------------------------------------- |
+| "Test on mobile"       | Playwright mobile viewport + BrowserStack API |
+| "Visual QA"            | Percy/Chromatic screenshot diffing            |
+| "Bug bash"             | Smoke test suite                              |
+| "Verify in production" | Synthetic monitoring + health checks          |
+| "User acceptance"      | E2E test matching acceptance criteria         |
+| "Manual API test"      | Integration tests with real endpoints         |
 
-> See [knowledge-codification.md](./planner-modules/knowledge-codification.md)
+When unavoidable: 1. Consolidate. 2. Front-load to W0. 3. Provide checklist. 4. Never "blocked" without instructions.
 
-Update LEARNINGS LOG -> Create ADRs -> Create ESLint rules -> Thor validates.
+## Final Closure {#final-closure}
+
+EVERY plan MUST end with `TF-pr` task: `{"id": "TF-pr", "do": "Create PR, ensure CI passes, resolve comments, confirm merge-ready", "files": [], "verify": ["gh pr view --json state,statusCheckRollup | jq '.statusCheckRollup[] | select(.conclusion != \"SUCCESS\")'"], "ref": "F-closure", "priority": "P0", "type": "chore", "model": "sonnet", "effort": 2}`
+
+**Workflow**: 1. `gh pr create`. 2. Wait CI. 3. If fail: fix, push, wait (max 3). 4. If review: address, push, resolve. 5. Confirm: `gh pr view --json mergeable` = `MERGEABLE`. 6. Report: URL + CI + merge readiness.
+
+Plan NOT done until TF-pr done+Thor-validated.
+
+## Cross-Tool Execution
+
+Plan created by one tool but executed by another: Executing tool gets `T0-00 Review Plan` first (see @planner-modules/model-strategy.md). Allows model/effort reassignment. spec.json = handoff contract.
 
 ## State Transitions
 
 `pending -> in_progress -> done|blocked|skipped`
+
 Forbidden: `done -> pending`, `skipped -> done`

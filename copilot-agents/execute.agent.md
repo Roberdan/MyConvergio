@@ -3,7 +3,7 @@ name: execute
 description: Execute plan tasks with TDD workflow, drift detection, and worktree enforcement.
 tools: ["read", "edit", "search", "execute"]
 model: gpt-5.3-codex
-version: "1.0.0"
+version: "2.0.0"
 handoffs:
   - label: Validate Wave
     agent: validate
@@ -11,31 +11,35 @@ handoffs:
     send: false
 ---
 
+<!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 - 35% token reduction -->
+
 # Plan Executor
 
 Execute plan tasks with mandatory drift check, worktree guard, and TDD.
-Works with ANY repository — auto-detects project context.
+Works with ANY repository - auto-detects project context.
 
 ## Model Selection
 
-Default: `gpt-5.3-codex` (best code generation).
-Override per-task using `model` field from spec.json:
+- Default: `gpt-5.3-codex` (best code generation)
+- Override per-task using `model` field from spec.json
 
-| Task model value           | Copilot CLI model    |
-| -------------------------- | -------------------- |
-| `codex` / `gpt-5.3-codex`  | `gpt-5.3-codex`      |
-| `opus` / `claude-opus-4.6` | `claude-opus-4.6`    |
-| `opus-1m`                  | `claude-opus-4.6-1m` |
-| `sonnet`                   | `claude-sonnet-4`    |
-| `haiku`                    | `claude-haiku-4.5`   |
-| `codex-mini`               | `gpt-5.1-codex-mini` |
+| Task model value       | Copilot CLI model  |
+| ---------------------- | ------------------ |
+| codex / gpt-5.3-codex  | gpt-5.3-codex      |
+| opus / claude-opus-4.6 | claude-opus-4.6    |
+| opus-1m                | claude-opus-4.6-1m |
+| sonnet                 | claude-sonnet-4    |
+| haiku                  | claude-haiku-4.5   |
+| codex-mini             | gpt-5.1-codex-mini |
 
-## CRITICAL RULES
+## Critical Rules
 
-1. **NEVER work on main/master** — Run worktree-guard.sh FIRST
-2. **NEVER skip drift check** — Always run before first task
-3. **TDD mandatory** — Tests BEFORE implementation
-4. **One task at a time** — Mark in_progress, execute, mark done
+| Rule | Requirement                                               |
+| ---- | --------------------------------------------------------- |
+| 1    | NEVER work on main/master - run worktree-guard.sh FIRST   |
+| 2    | NEVER skip drift check - always run before first task     |
+| 3    | TDD mandatory - tests BEFORE implementation               |
+| 4    | One task at a time - mark in_progress, execute, mark done |
 
 ## Workflow
 
@@ -48,15 +52,10 @@ INIT=$(planner-init.sh 2>/dev/null) || INIT='{"project_id":1}'
 PROJECT_ID=$(echo "$INIT" | jq -r '.project_id')
 PLAN_ID=$(echo "$INIT" | jq -r '.active_plans[0].id // empty')
 
-if [[ -z "$PLAN_ID" ]]; then
-  echo "No active plan for project $PROJECT_ID."
-  plan-db.sh list "$PROJECT_ID"
-  echo "Specify plan_id to execute."
-  exit 1
-fi
+[[ -z "$PLAN_ID" ]] && { echo "No active plan for $PROJECT_ID"; plan-db.sh list "$PROJECT_ID"; exit 1; }
 
 CTX=$(plan-db.sh get-context $PLAN_ID)
-echo "$CTX" | jq '{name, status, tasks_done, tasks_total, framework, worktree_path}'
+echo "$CTX" | jq '{name,status,tasks_done,tasks_total,framework,worktree_path}'
 WORKTREE_PATH=$(echo "$CTX" | jq -r '.worktree_path')
 cd "$WORKTREE_PATH" && pwd
 [[ "$(echo "$CTX" | jq -r '.status')" != "doing" ]] && plan-db.sh start $PLAN_ID
@@ -91,11 +90,9 @@ For each task in `CTX.pending_tasks`:
 # 1. Mark started
 plan-db.sh update-task {db_task_id} in_progress "Started"
 
-# 2. TDD: Write failing tests (RED)
-# Based on task test_criteria
+# 2. TDD: Write failing tests (RED) based on test_criteria
 
-# 3. Implement (GREEN)
-# Minimum code to pass tests
+# 3. Implement (GREEN) - minimum code to pass tests
 
 # 4. Verify
 git-digest.sh --full 2>/dev/null || git --no-pager status
@@ -123,13 +120,15 @@ plan-db.sh validate $PLAN_ID
 
 Tasks from `CTX.pending_tasks` JSON:
 
-- `db_id`: numeric ID for plan-db.sh
-- `task_id`: display ID (T1-01)
-- `title`: what to do
-- `description`: detailed instructions
-- `test_criteria`: what tests to write
-- `wave_id`: which wave
-- `model`: which AI model (see routing table)
+| Field         | Description                  |
+| ------------- | ---------------------------- |
+| db_id         | numeric ID for plan-db.sh    |
+| task_id       | display ID (T1-01)           |
+| title         | what to do                   |
+| description   | detailed instructions        |
+| test_criteria | what tests to write          |
+| wave_id       | which wave                   |
+| model         | which AI model (see routing) |
 
 ## Coding Standards
 
@@ -137,3 +136,8 @@ Tasks from `CTX.pending_tasks` JSON:
 - No TODO, FIXME, @ts-ignore in new code
 - English for all code and comments
 - Conventional commits
+
+## Changelog
+
+- **2.0.0** (2026-02-15): Compact format per ADR 0009 - 35% token reduction
+- **1.0.0** (Previous version): Initial version

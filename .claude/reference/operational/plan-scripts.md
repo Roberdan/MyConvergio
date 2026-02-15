@@ -50,6 +50,5 @@ copilot-sync.sh status|sync        # Copilot CLI alignment check/fix
 
 ## Dashboard
 
-- **URL**: http://localhost:31415 | **DB**: ~/.claude/data/dashboard.db
-- **Reboot**: `cd ~/.claude/dashboard && node reboot.js`
-- **Sync**: `dbsync status|pull|push|incremental` (multi-machine)
+- **CLI**: `dashboard-mini.sh` | **DB**: `~/.claude/data/dashboard.db`
+- **Sync**: `sync-dashboard-db.sh status|pull|push|incremental` (multi-machine)

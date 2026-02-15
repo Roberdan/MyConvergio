@@ -1,10 +1,12 @@
 {
   "name": "myconvergio",
-  "version": "4.8.0",
-  "description": "Enterprise Agent Suite: 65 specialized AI agents for strategy, development, compliance, and operations - Claude Code Plugin",
+  "version": "5.0.0",
+  "description": "Enterprise Agent Suite: 65 specialized AI agents for strategy, development, compliance, and operations - Claude Code Plugin + Copilot CLI",
   "keywords": [
     "claude",
     "claude-code",
+    "copilot",
+    "copilot-cli",
     "ai-agents",
     "subagents",
     "anthropic",
@@ -39,6 +41,7 @@
     ".claude/protocols/",
     ".claude/reference/",
     ".claude-plugin/",
+    "copilot-agents/",
     "agents/",
     "commands/",
     "skills/",
@@ -58,7 +61,5 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "devDependencies": {
-    "@playwright/test": "^1.57.0"
-  }
+  "devDependencies": {}
 }

@@ -5,6 +5,33 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2026-02-15
+
+### Added
+
+- **GitHub Copilot CLI support**: 9 agents in `copilot-agents/` directory
+  - Workflow: `@prompt`, `@planner`, `@execute`, `@validate`, `@tdd-executor`
+  - Utility: `@code-reviewer`, `@compliance-checker`, `@strategic-planner`, `@ecosystem-sync`
+- **ecosystem-sync agent** (v1.0.0, release_management): On-demand sync from upstream config to MyConvergio with sanitization, blocklist, dry-run mode. Dual format (Claude Code + Copilot CLI)
+- **sync-to-myconvergio.sh**: Replacement sync script with category filtering, personal path detection, and blocklist enforcement
+
+### Removed
+
+- **Web dashboard** (`dashboard/` directory): Replaced by CLI mini-dashboard (`dashboard-mini.sh`). The web version had an unfixed path traversal vulnerability and required Node.js + browser. The CLI dashboard is zero-dependency (bash + sqlite3), cross-platform (macOS, Linux, WSL2), and reads the same SQLite database. Web dashboard remains in git history (v4.8.0) for reference.
+- 7 internal development docs from root: EXECUTOR_TRACKING, IMPLEMENTATION_PLAN, IMPLEMENTATION_STATUS, TEST_PLAN, RELEASE_NOTES_3.6.0, dashboard-audit-report, dashboard-complete-audit
+- 6 internal/duplicate docs from `docs/`: progress tracking, optimization plans, audit baselines, duplicate context-optimization
+- Stray `~` directory artifact
+
+### Changed
+
+- **README**: Added Copilot CLI section, hero Mermaid diagram, CLI dashboard docs, Windows/WSL2 note
+- **copilot-alignment.md**: Updated with upstream sync flow documentation
+- **.npmignore**: Include `copilot-agents/` in npm package
+- **CHANGELOG**: Sanitized personal path references
+- **plan-db-crud.sh**: Replaced personal path examples with generic `/Users/user/`
+
+---
+
 ## [4.8.0] - 2026-02-15
 
 ### Added
@@ -20,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Global config sync**: Full alignment with audited `~/.claude/` (105 issues fixed in prior audit)
+- **Global config sync**: Full alignment with upstream configuration (105 issues fixed in prior audit)
 - **11 agents updated**: thor (v3.4.0), task-executor (v2.1.0), marcus (v1.1.0), adversarial-debugger (v1.1.0), socrates (v1.1.0), wanda (v2.1.0), xavier (v2.1.0), diana (v1.1.0), po (v1.1.0), taskmaster (v1.1.0), app-release-manager (v3.3.0)
 - **strategic-planner** (v3.0.0): Major update with wave-based task decomposition and parallel execution
 - **78 scripts + 11 lib scripts synced** from global config (all with version headers, `set -euo pipefail`)

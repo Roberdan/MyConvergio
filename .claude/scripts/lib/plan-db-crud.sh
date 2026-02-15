@@ -507,8 +507,8 @@ cmd_complete() {
 }
 
 # Normalize path: replace $HOME with ~ for portability across machines
-# /home/roberdan/GitHub/X -> ~/GitHub/X
-# /Users/roberdan/GitHub/X -> ~/GitHub/X
+# /home/user/GitHub/X -> ~/GitHub/X
+# /Users/user/GitHub/X -> ~/GitHub/X
 _normalize_path() {
 	local p="$1"
 	echo "$p" | sed "s|^${HOME}|~|"

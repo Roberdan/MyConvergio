@@ -1,6 +1,6 @@
 # Copilot CLI Alignment with Claude Code
 
-Reference guide for using GitHub Copilot CLI as a Claude Code alternative on MirrorBuddy.
+Reference guide for using GitHub Copilot CLI as a Claude Code alternative.
 
 ## Decision Matrix
 
@@ -81,16 +81,30 @@ MirrorBuddy/.github/
 
 Copilot sessions record to dashboard.db with `agent='copilot-cli'`.
 Query: `SELECT * FROM token_usage WHERE agent='copilot-cli' ORDER BY id DESC;`
-Dashboard at http://localhost:31415 shows both Claude Code and Copilot costs.
+CLI dashboard (`dashboard-mini.sh`) shows both Claude Code and Copilot token costs.
 
 ## Sync & Maintenance
 
+### Local: Claude Code ↔ Copilot CLI
 ```bash
 copilot-sync.sh status   # Check alignment drift
 copilot-sync.sh sync     # Fix model refs, ensure symlinks, chmod hooks
 ```
 
-Run `copilot-sync.sh status` periodically or after updating CLAUDE.md/rules.
+### Upstream: ~/.claude → MyConvergio (public repo)
+```bash
+# Invoke the ecosystem-sync agent
+@ecosystem-sync            # Claude Code
+@ecosystem-sync            # Copilot CLI
+
+# Or use the script directly
+sync-to-myconvergio.sh --dry-run          # Preview changes
+sync-to-myconvergio.sh --category all     # Sync everything
+sync-to-myconvergio.sh --category copilot # Sync copilot agents only
+```
+
+Source of truth: `~/.claude/`. Direction: one-way to MyConvergio with sanitization.
+Blocklist and personal path detection are enforced automatically.
 
 ## Instruction Loading Order
 

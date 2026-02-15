@@ -15,13 +15,10 @@
 - `task-executor`: disables WebSearch/WebFetch (uses Read/Grep only)
 - Focus on codebase operations, not web research during execution
 
-## Token Tracking via API (MANDATORY for task-executor)
+## Token Tracking (MANDATORY for task-executor)
 
-```bash
-curl -s -X POST http://127.0.0.1:31415/api/tokens \
-  -H "Content-Type: application/json" \
-  -d '{"project_id":"{project}","plan_id":{plan},"wave_id":"{wave}","task_id":"{task}","agent":"task-executor","model":"{model}","input_tokens":{in},"output_tokens":{out},"cost_usd":{cost}}'
-```
+Token usage is tracked automatically via hooks to `~/.claude/data/dashboard.db`.
+View with: `dashboard-mini.sh` or query directly with `sqlite3`.
 
 ## Model Escalation Strategy
 

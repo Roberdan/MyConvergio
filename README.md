@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v4.8.0** | 65 Specialized Agents | Security Hardening | Global Config Sync | Dashboard
+**v5.0.0** | 65 Specialized Agents | Copilot CLI Support | Sync Agent | CLI Dashboard
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,34 +15,38 @@
 
 ---
 
-## What's New in v4.8.0
+## What's New in v5.0.0
 
-**Global config sync: 5 new agents, security hardening, 89 scripts audited.**
+**Copilot CLI support, ecosystem sync agent, public repo cleanup.**
 
-### 5 New Agents (60 → 65)
+### GitHub Copilot CLI Support
 
-- `sentinel-ecosystem-guardian` — Ecosystem evolution manager for config auditing
-- `research-report-generator` — Morgan Stanley-style professional research reports
-- `task-executor-tdd` — TDD workflow module (RED→GREEN→REFACTOR)
-- `thor-validation-gates` — Validation gates module for Thor quality system
-- `app-release-manager-execution` — Execution phases (3-5) for app-release-manager
+- **9 Copilot agents** shipped in `copilot-agents/` — same quality, Copilot format
+- Workflow agents: `@prompt`, `@planner`, `@execute`, `@validate`, `@tdd-executor`
+- Utility agents: `@code-reviewer`, `@compliance-checker`, `@strategic-planner`, `@ecosystem-sync`
+- Works with any project — universal, not project-specific
 
-### Security Hardening
+### Ecosystem Sync Agent
 
-- **SQL injection fix**: All SQLite hooks now use `sql_escape()` to sanitize inputs
-- **Script hardening**: All 89 scripts use `set -euo pipefail`, `trap cleanup EXIT`, quoted variables
-- 12 hooks synced with vulnerability fixes
+- **`ecosystem-sync`** agent (dual format: Claude Code + Copilot CLI)
+- On-demand sync from upstream config → MyConvergio with sanitization
+- Blocklist enforcement, personal path detection, dry-run mode
+- Script: `sync-to-myconvergio.sh --dry-run | --category agents|scripts|copilot|all`
 
-### Agent Updates
+### Public Repo Cleanup
 
-- 11 agents updated: thor (v3.4.0), task-executor (v2.1.0), strategic-planner (v3.0.0), marcus (v1.1.0), adversarial-debugger (v1.1.0), socrates (v1.1.0), wanda (v2.1.0), xavier (v2.1.0), diana (v1.1.0), po (v1.1.0), app-release-manager (v3.3.0)
-- 7 reference docs updated + 4 new, 10 commands updated, 7 skills updated
+- Removed 7 internal development docs from root
+- Removed 6 internal/duplicate docs from `docs/`
+- Sanitized personal path references
+- Consolidated documentation for public consumption
 
-### Previous Highlights
+### Previous Highlights (v4.8.0)
 
-- Agent Teams support, Tasks API, memory/maxTurns for all agents (v4.7.0)
+- 5 new agents (60 → 65): sentinel, research-report-generator, task-executor-tdd, thor-validation-gates, app-release-manager-execution
+- SQL injection fix + script hardening (89 scripts)
+- 11 agents updated, 7 reference docs, 10 commands, 7 skills
+- Agent Teams support, Tasks API, memory/maxTurns (v4.7.0)
 - Strategic planner modules, worktree scripts, dashboard (v4.5.0)
-- 65 agents with Constitution-based security, installation profiles (v3.x)
 - Multi-terminal support (Kitty, tmux, Zed, Warp, iTerm2)
 
 ---
@@ -80,9 +84,23 @@ claude plugins install myconvergio
 
 _Pending Anthropic approval_
 
+#### Option D: GitHub Copilot CLI
+
+MyConvergio ships Copilot CLI agents in `copilot-agents/`. To use them:
+
+```bash
+# Copy agents to your Copilot config
+cp copilot-agents/*.agent.md ~/.copilot/agents/
+
+# Or symlink for auto-updates
+ln -sf "$(pwd)/copilot-agents"/*.agent.md ~/.copilot/agents/
+```
+
+Available Copilot agents: `@code-reviewer`, `@compliance-checker`, `@execute`, `@planner`, `@prompt`, `@strategic-planner`, `@tdd-executor`, `@validate`, `@ecosystem-sync`
+
 ### Usage
 
-**Invoke any agent:**
+**Claude Code — invoke any agent:**
 
 ```bash
 @ali-chief-of-staff Help me design our global expansion strategy
@@ -90,12 +108,67 @@ _Pending Anthropic approval_
 @rex-code-reviewer Review this pull request for security issues
 ```
 
-**Use slash commands:**
+**Copilot CLI — invoke workflow agents:**
+
+```bash
+@prompt Extract requirements for user authentication feature
+@planner Create execution plan from requirements
+@execute Run task-001 with TDD workflow
+@validate Verify completed wave meets quality gates
+```
+
+**Use slash commands (Claude Code):**
 
 ```bash
 /myconvergio:status    # Show ecosystem status
 /myconvergio:team      # List all 65 agents by category
 /myconvergio:plan      # Create a strategic execution plan
+```
+
+---
+
+## How It Works
+
+```mermaid
+graph TB
+    subgraph USER["👤 You"]
+        REQ[Requirements]
+    end
+
+    subgraph PLATFORMS["Dual Platform Support"]
+        CC["☁️ Claude Code<br/><i>Full orchestration, parallel workers</i>"]
+        COP["🤖 Copilot CLI<br/><i>Sequential TDD, same quality</i>"]
+    end
+
+    subgraph WORKFLOW["Structured Delivery Pipeline"]
+        direction LR
+        P["📋 Prompt<br/>Extract F-xx"]
+        PL["📐 Plan<br/>Waves & Tasks"]
+        EX["⚡ Execute<br/>TDD Cycle"]
+        TH["🛡️ Thor<br/>Quality Gate"]
+    end
+
+    subgraph AGENTS["65 Specialized Agents"]
+        direction TB
+        L["7 Leadership<br/><i>ali, satya, dan...</i>"]
+        T["9 Technical<br/><i>baccio, rex, dario...</i>"]
+        C["11 Core<br/><i>thor, planner, marcus...</i>"]
+        B["11 Business<br/><i>amy, davide, oliver...</i>"]
+        O["27 More<br/><i>compliance, design,<br/>research, release...</i>"]
+    end
+
+    subgraph INFRA["89 Scripts + Hooks + CLI Dashboard"]
+        S["Digest Scripts<br/><i>Compact JSON, cached</i>"]
+        H["Hook System<br/><i>Pre/Post tool guards</i>"]
+        D["SQLite + CLI Dashboard<br/><i>Plans, tokens, waves</i>"]
+    end
+
+    REQ --> CC & COP
+    CC & COP --> P --> PL --> EX --> TH
+    TH -->|PASS| D
+    TH -->|FAIL max 3x| EX
+    WORKFLOW --> AGENTS
+    AGENTS --> INFRA
 ```
 
 ---
@@ -132,71 +205,50 @@ Agent: `.claude/agents/core_utility/thor-quality-assurance-guardian.md`
 
 ### 5) Dashboard
 
-Use the dashboard to monitor plans, waves, tasks, and activity in real time.
+Monitor plans, waves, tasks, and token usage via the CLI mini-dashboard:
 
-Quick Start: `dashboard/`  
-API Tests: `dashboard/TEST-README.md`
+```bash
+dashboard-mini.sh              # Full project overview
+dashboard-mini.sh --overview   # Cross-project summary
+dashboard-mini.sh --help       # All options
+```
+
+**Requirements**: `bash` + `sqlite3` (preinstalled on macOS/Linux). On Windows, use WSL2.
 
 ---
 
-## Dashboard
+## CLI Dashboard
 
-**Production-ready project dashboard with real-time git monitoring.**
+**Terminal-native project dashboard — no browser, no server, no dependencies.**
 
 ### Features
 
-- **Real-Time Git Panel**: Auto-refresh on git changes (commits, checkouts, branch switches) using Server-Sent Events
-- **Project Management UI**: Visualize git status, diff, log, branches
-- **Gantt Timeline**: True timeline with active wave/task highlighting and progress gradients
-- **Kanban Views**: Interactive wave/task boards with drilldowns
-- **Markdown Viewer**: Plan, wave, and task markdown rendering
-- **Conversation Viewer**: Inspect execution logs and live context
-- **Bug Tracker**: Integrated bug tracking and filters
-- **Graceful Shutdown**: One-click server termination with browser close
-- **Token Usage Tracking**: Monitor API token consumption and costs
-- **Notifications**: System-wide notification center
+- **Project Overview**: Plans, waves, tasks with progress bars and status
+- **Token Tracking**: API token consumption and cost monitoring
+- **Wave/Task Drilldown**: Detailed per-wave and per-task status
+- **Human Tasks**: Highlights tasks requiring manual intervention
+- **Git Integration**: Branch status, PR data (via `gh` CLI, optional)
+- **Cross-Platform**: macOS, Linux, WSL2 (bash + sqlite3)
+- **Multi-Machine Sync**: Optional remote sync via `sync-dashboard-db.sh`
 
 ### Quick Start
 
 ```bash
-cd dashboard
-npm install  # First time only (installs chokidar)
-node server.js
-# Open http://127.0.0.1:31415 in browser
+# Make sure dashboard-mini.sh is in your PATH
+export PATH="$HOME/.claude/scripts:$PATH"
+
+# Run the dashboard
+dashboard-mini.sh
+
+# Overview of all active projects
+dashboard-mini.sh --overview
 ```
-
-### Screenshots
-
-**Dashboard Overview**
-
-<img src="./docs/images/dashboard-overview.png" alt="Dashboard Overview" width="800"/>
-
-**Real-Time Git Panel**
-
-<img src="./docs/images/dashboard-git-panel.png" alt="Dashboard Git Panel" width="800"/>
-
-The git panel automatically refreshes when you:
-
-- Make commits
-- Switch branches
-- Pull/push changes
-- Stage/unstage files
-
-### Architecture
-
-- **Backend**: Node.js HTTP server with SQLite database (`~/.claude/data/dashboard.db`)
-- **Frontend**: Vanilla JS with SSE for real-time updates
-- **File Watcher**: chokidar monitoring `.git` directory for changes
-- **API Routes**: RESTful endpoints for projects, git, notifications, system
 
 ### Database
 
-Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). No additional configuration required.
+Reads the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). No additional configuration required.
 
-### Known Limitations
-
-- **File Preview**: Markdown rendering focuses on plan/wave/task docs, not arbitrary repo file browsing.
-- **Local Repository Only**: The dashboard is designed for local development. Remote repository integrations (GitHub, GitLab) are planned for future releases.
+> **Note**: The web dashboard (Node.js, port 31415) was removed in v5.0.0 in favor of this CLI dashboard. The web version is available in the git history (v4.8.0 and earlier) for reference.
 
 ---
 
@@ -321,12 +373,12 @@ MyConvergio/
 │   ├── reference/            # 11 on-demand operational docs
 │   ├── skills/               # 10 reusable workflows
 │   └── templates/            # State tracking templates
+├── copilot-agents/           # 9 Copilot CLI agents
 ├── hooks/                    # 12 enforcement hooks + lib/
 │   ├── prefer-ci-summary.sh
 │   ├── enforce-line-limit.sh
 │   ├── worktree-guard.sh
 │   └── lib/common.sh
-├── dashboard/                # Production dashboard (SSE + SQLite)
 ├── commands/                 # 3 slash commands
 ├── scripts/                  # Install/backup/test scripts
 └── bin/myconvergio.js        # CLI entry point
@@ -340,6 +392,11 @@ MyConvergio/
 
 ```mermaid
 graph TB
+    subgraph "Platforms"
+        CC[Claude Code<br/>65 agents, parallel workers]
+        COP[Copilot CLI<br/>9 agents, sequential TDD]
+    end
+
     subgraph "Leadership & Strategy (7)"
         ALI[ali-chief-of-staff<br/>Orchestrator]
         SATYA[satya-board-of-directors]
@@ -376,11 +433,17 @@ graph TB
         OMRI[omri-data-scientist]
     end
 
-    subgraph "Release Management (3)"
+    subgraph "Release Management (4)"
         ARM[app-release-manager]
         ARE[app-release-manager-execution]
         FRM[feature-release-manager]
+        ESYNC[ecosystem-sync<br/>Dual Platform]
     end
+
+    CC -->|full suite| ALI
+    COP -->|workflow agents| SP
+    COP -->|@code-reviewer| REX
+    COP -->|@validate| THOR
 
     ALI -->|orchestrates| SP
     SP -->|creates waves| TE
@@ -391,6 +454,7 @@ graph TB
     THOR -->|delegates| REX
     THOR -->|delegates| OTTO
     ARM -->|uses| ARE
+    ESYNC -->|syncs| ARM
 ```
 
 ### Execution Flow (Prompt → Plan → Execute → Verify)
@@ -700,6 +764,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v4.8.0** | February 2026 | Claude Code Plugin
+**v5.0.0** | February 2026 | Claude Code Plugin + Copilot CLI
 
 </div>

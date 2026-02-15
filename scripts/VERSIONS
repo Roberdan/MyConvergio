@@ -59,14 +59,6 @@ migration-digest.sh                                1.1.0
 npm-digest.sh                                      1.1.0
 orchestrate.sh                                     1.1.0
 plan-db-autosync.sh                                1.1.0
-plan-db-fixed-functions.sh                         1.1.0
-plan-db-helpers.sh                                 1.2.0
-plan-db-plan.sh                                    1.1.0
-plan-db-safe.sh                                    1.1.0
-plan-db-sync.sh                                    1.1.0
-plan-db-task.sh                                    1.1.0
-plan-db-validate.sh                                1.1.0
-plan-db-wave.sh                                    1.1.0
 plan-db.sh                                         1.2.0
 planner-init.sh                                    1.1.0
 pr-digest.sh                                       1.0.0

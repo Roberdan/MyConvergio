@@ -18,6 +18,7 @@
 4. **Complete execution**: Plan started = plan finished. No skipping tasks.
 5. **Proof required**: "done" needs evidence. User approves closure.
 6. **Max 250 lines/file**: Check before writing. Split if exceeds. _Why: agents lose context in long files, merge conflicts multiply, and review becomes unreliable._
+7. **Compaction preservation**: When rewriting/compacting ANY file, NEVER remove workflow-critical content. See `rules/compaction-preservation.md`.
 
 ## Workflow (MANDATORY)
 

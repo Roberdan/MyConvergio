@@ -71,9 +71,13 @@ fi
 HAS_ADR=$([[ -d "$PROJECT_PATH/docs/adr" ]] && echo "true" || echo "false")
 HAS_CHANGELOG=$([[ -f "$PROJECT_PATH/CHANGELOG.md" ]] && echo "true" || echo "false")
 
-# Prompt files
-PROMPT_FILES=$(ls "$PROJECT_PATH/.copilot-tracking/prompt-"*.md 2>/dev/null |
-	jq -R -s 'split("\n") | map(select(length > 0))' 2>/dev/null || echo "[]")
+# Prompt files (avoid pipefail double-output: ls fails + jq already emitted [])
+PROMPT_FILES=$(ls "$PROJECT_PATH/.copilot-tracking/prompt-"*.md 2>/dev/null) || PROMPT_FILES=""
+if [[ -n "$PROMPT_FILES" ]]; then
+	PROMPT_FILES=$(echo "$PROMPT_FILES" | jq -R -s 'split("\n") | map(select(length > 0))')
+else
+	PROMPT_FILES="[]"
+fi
 
 # Detect test framework
 FRAMEWORK="unknown"

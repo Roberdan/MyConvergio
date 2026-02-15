@@ -57,7 +57,10 @@ complete) cmd_complete "${2:?plan_id required}" "${3:-}" ;;
 get-worktree) cmd_get_worktree "${2:?plan_id required}" ;;
 set-worktree) cmd_set_worktree "${2:?plan_id required}" "${3:?path required}" ;;
 validate) cmd_validate "${2:?plan_id required}" "${3:-thor}" ;;
-validate-task) cmd_validate_task "${2:?task_id required}" "${3:-}" "${4:-thor}" ;;
+validate-task)
+	shift 1
+	cmd_validate_task "$@"
+	;;
 validate-wave) cmd_validate_wave "${2:?wave_db_id required}" "${3:-thor}" ;;
 validate-fxx) cmd_validate_fxx "${2:?plan_id required}" ;;
 kanban) cmd_kanban ;;

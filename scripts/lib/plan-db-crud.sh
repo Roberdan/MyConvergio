@@ -357,6 +357,9 @@ cmd_add_task() {
 	local exec_agent_val="NULL"
 	[[ -n "$executor_agent" ]] && exec_agent_val="'$safe_executor_agent'"
 
+	# Ensure effort_level column exists (pre-migration DBs may lack it)
+	sqlite3 "$DB_FILE" "ALTER TABLE tasks ADD COLUMN effort_level INTEGER DEFAULT 1 CHECK(effort_level IN (1, 2, 3));" 2>/dev/null || true
+
 	sqlite3 "$DB_FILE" <<SQL
 BEGIN TRANSACTION;
 INSERT INTO tasks (project_id, wave_id, wave_id_fk, plan_id, task_id, title, description, status, priority, type, assignee, test_criteria, model, executor_agent, effort_level)

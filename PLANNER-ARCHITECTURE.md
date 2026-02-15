@@ -50,7 +50,7 @@ WAVE_ID=$(sqlite3 ~/.claude/data/dashboard.db \
 TASK_ID=$(sqlite3 ~/.claude/data/dashboard.db \
   "SELECT id FROM tasks WHERE wave_id_fk=$WAVE_ID AND task_id='T1-01';")
 
-plan-db.sh update-task $TASK_ID done "Summary"
+plan-db-safe.sh update-task $TASK_ID done "Summary"  # auto-validates
 ```
 
 ## Rules

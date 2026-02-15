@@ -24,7 +24,7 @@ TASK_ID=$(plan-db.sh add-task $WAVE_ID T1-01 "Title" P1 feature)
 
 # Update
 plan-db.sh update-task {db_task_id} in_progress ""
-plan-db.sh update-task {db_task_id} done "Summary"
+plan-db-safe.sh update-task {db_task_id} done "Summary"  # auto-validates
 plan-db.sh update-wave {db_wave_id} done
 
 # Validate (Thor)

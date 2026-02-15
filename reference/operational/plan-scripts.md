@@ -15,8 +15,8 @@
 ```bash
 plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree
 plan-db.sh import {plan_id} spec.json
-plan-db.sh update-task {id} done "Summary"
-plan-db-safe.sh update-task {id} done "S" # Pre-checks before marking done
+plan-db-safe.sh update-task {id} done "Summary" # ALWAYS use safe wrapper for done
+# plan-db-safe.sh auto: validate-task + validate-wave + complete plan
 plan-db.sh conflict-check {id}            # Cross-plan file overlap detection
 plan-db.sh conflict-check-spec {proj} spec.json # Pre-import conflict check
 plan-db.sh wave-overlap check-spec spec.json    # Intra-wave overlap detection
@@ -32,7 +32,7 @@ plan-db.sh validate {id}                  # Bulk Thor validation (all done tasks
 # Step 1: Find incomplete tasks (ALWAYS use plan_id column, NOT wave joins)
 sqlite3 ~/.claude/data/dashboard.db "SELECT id, task_id, title, status FROM tasks WHERE plan_id = {PLAN_ID} AND status NOT IN ('done', 'validated', 'skipped');"
 # Step 2: Update each task
-plan-db.sh update-task {TASK_DB_ID} done "Reason"
+plan-db-safe.sh update-task {TASK_DB_ID} done "Reason"
 # Step 3: Complete
 plan-db.sh complete {PLAN_ID}
 ```

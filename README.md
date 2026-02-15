@@ -206,7 +206,8 @@ flowchart TD
 plan-db.sh create {project_id} "Plan Name"
 plan-db.sh add-wave {plan_id} "W1" "Phase Name"
 plan-db.sh add-task {wave_id} T1-01 "Task Name" P1 feature
-plan-db.sh update-task {task_id} in_progress|done|blocked
+plan-db.sh update-task {task_id} in_progress|blocked
+plan-db-safe.sh update-task {task_id} done "Summary"  # ALWAYS safe for done
 plan-db.sh validate-task {task_id} {plan_id}  # Gate 1-4,8,9
 plan-db.sh validate-wave {wave_db_id}         # All 9 gates + build
 plan-db.sh validate {plan_id}                 # Bulk validation

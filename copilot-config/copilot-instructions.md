@@ -14,20 +14,20 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 
 ### Model Routing Table
 
-| Use Case | Model | Tier |
-|---|---|---|
-| **Requirements extraction** | `claude-opus-4.6` | premium |
-| **Strategic planning** | `claude-opus-4.6-1m` | premium |
-| **Code generation / TDD** | `gpt-5.3-codex` | standard |
-| **Quality validation (Thor)** | `claude-opus-4.6` | premium |
-| **Code review / security** | `claude-opus-4.6` | premium |
-| **Compliance (full codebase)** | `claude-opus-4.6-1m` | premium |
-| **Documentation writing** | `claude-sonnet-4.5` | standard |
-| **Codebase exploration** | `claude-haiku-4.5` | fast |
-| **Quick fixes / bulk edits** | `gpt-5.1-codex-mini` | fast |
-| **Build / test execution** | `claude-haiku-4.5` | fast |
-| **Complex refactoring** | `gpt-5.3-codex` | standard |
-| **Architecture analysis** | `claude-opus-4.6-1m` | premium |
+| Use Case                       | Model                | Tier     |
+| ------------------------------ | -------------------- | -------- |
+| **Requirements extraction**    | `claude-opus-4.6`    | premium  |
+| **Strategic planning**         | `claude-opus-4.6-1m` | premium  |
+| **Code generation / TDD**      | `gpt-5.3-codex`      | standard |
+| **Quality validation (Thor)**  | `claude-opus-4.6`    | premium  |
+| **Code review / security**     | `claude-opus-4.6`    | premium  |
+| **Compliance (full codebase)** | `claude-opus-4.6-1m` | premium  |
+| **Documentation writing**      | `claude-sonnet-4.5`  | standard |
+| **Codebase exploration**       | `claude-haiku-4.5`   | fast     |
+| **Quick fixes / bulk edits**   | `gpt-5.1-codex-mini` | fast     |
+| **Build / test execution**     | `claude-haiku-4.5`   | fast     |
+| **Complex refactoring**        | `gpt-5.3-codex`      | standard |
+| **Architecture analysis**      | `claude-opus-4.6-1m` | premium  |
 
 ### When to Use 1M Context (`claude-opus-4.6-1m`)
 
@@ -52,16 +52,16 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 
 ## Orchestration Agents
 
-| Agent | Purpose | Default Model |
-|---|---|---|
-| `@prompt` | Extract F-xx requirements | `claude-opus-4.6` |
-| `@planner` | Wave/task decomposition | `claude-opus-4.6-1m` |
-| `@execute` | TDD task execution | `gpt-5.3-codex` |
-| `@validate` | Thor quality gates | `claude-opus-4.6` |
-| `@strategic-planner` | Multi-phase initiatives | `claude-opus-4.6-1m` |
-| `@code-reviewer` | Security-focused review | `claude-opus-4.6` |
-| `@tdd-executor` | Standalone TDD cycle | `gpt-5.3-codex` |
-| `@compliance-checker` | Regulatory validation | `claude-opus-4.6-1m` |
+| Agent                 | Purpose                   | Default Model        |
+| --------------------- | ------------------------- | -------------------- |
+| `@prompt`             | Extract F-xx requirements | `claude-opus-4.6`    |
+| `@planner`            | Wave/task decomposition   | `claude-opus-4.6-1m` |
+| `@execute`            | TDD task execution        | `gpt-5.3-codex`      |
+| `@validate`           | Thor quality gates        | `claude-opus-4.6`    |
+| `@strategic-planner`  | Multi-phase initiatives   | `claude-opus-4.6-1m` |
+| `@code-reviewer`      | Security-focused review   | `claude-opus-4.6`    |
+| `@tdd-executor`       | Standalone TDD cycle      | `gpt-5.3-codex`      |
+| `@compliance-checker` | Regulatory validation     | `claude-opus-4.6-1m` |
 
 ## Core Rules (NON-NEGOTIABLE)
 
@@ -143,8 +143,7 @@ Multi-agent parallel work MUST use file locking:
 ```bash
 plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree
 plan-db.sh import {plan_id} spec.json
-plan-db.sh update-task {id} done "Summary"
-plan-db-safe.sh update-task {id} done "Summary"  # Pre-checks
+plan-db-safe.sh update-task {id} done "Summary"  # ALWAYS use safe for done (auto-validates)
 plan-db.sh validate {id}
 plan-db.sh list-tasks {plan_id}
 git-digest.sh --full

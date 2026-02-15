@@ -29,15 +29,15 @@ while true; do
 	# Match both Claude-N and Copilot-N tabs
 	while IFS= read -r tab; do
 		[[ -z "$tab" ]] && continue
-		local output
+		output=""
 		output=$(kitty @ get-text --match "title:$tab" --extent=screen 2>/dev/null | tail -10)
 
 		# Worker type indicator
-		local type_color="$CYAN"
+		type_color="$CYAN"
 		[[ "$tab" == Copilot-* ]] && type_color="$MAGENTA"
 
 		# Determine status
-		local status
+		status=""
 		if echo "$output" | grep -qE "DONE|complete|All.*tasks"; then
 			status="${GREEN}COMPLETE${NC}"
 		elif echo "$output" | grep -qiE "error:|failed|FAILED|BLOCKED"; then
@@ -52,16 +52,17 @@ while true; do
 
 		echo -e "  ${type_color}$tab${NC}: $status"
 
-		local last_line
+		last_line=""
 		last_line=$(echo "$output" | grep -v "^$" | tail -1 | cut -c1-60)
 		[[ -n "$last_line" ]] && echo -e "    $last_line"
 		echo ""
 	done < <(kitty @ ls 2>/dev/null | grep -oE '"title": "(Claude|Copilot)-[0-9]+"' | grep -oE '(Claude|Copilot)-[0-9]+')
 
 	# DB-backed progress if available
-	local DB="$HOME/.claude/data/dashboard.db"
+	DB="$HOME/.claude/data/dashboard.db"
 	if [[ -f "$DB" ]]; then
-		local active done_t
+		active=0
+		done_t=0
 		active=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='in_progress';" 2>/dev/null || echo 0)
 		done_t=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND completed_at > datetime('now','-1 hour');" 2>/dev/null || echo 0)
 		[[ "$active" -gt 0 || "$done_t" -gt 0 ]] && echo -e "  ${YELLOW}DB: ${active} active, ${done_t} done (1h)${NC}"

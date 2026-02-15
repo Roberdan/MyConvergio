@@ -1,8 +1,13 @@
 #!/bin/bash
 # Session End Token Tracker - Optimized with jq streaming
 # Called by Claude Code Stop hook to record token usage
+# Version: 1.1.0
+set -uo pipefail
 
 source ~/.claude/hooks/lib/common.sh 2>/dev/null || true
+
+# Escape single quotes for safe SQL interpolation
+sql_escape() { printf '%s' "$1" | sed "s/'/''/g"; }
 
 DB_FILE="$HOME/.claude/data/dashboard.db"
 LOG_FILE="$HOME/.claude/logs/token-tracking.log"
@@ -38,6 +43,7 @@ STATS=$(jq -s '
       model: (.[0].message.model // "unknown")
     }
 ' "$TRANSCRIPT_PATH" 2>/dev/null)
+[[ -z "$STATS" ]] && exit 0 # No stats to record, exit cleanly
 
 INPUT_TOKENS=$(echo "$STATS" | jq -r '.input // 0')
 OUTPUT_TOKENS=$(echo "$STATS" | jq -r '.output // 0')
@@ -55,14 +61,20 @@ if have_bin bc; then
 	esac
 fi
 
-# Async DB write
+# Cleanup background processes on exit
+trap 'wait 2>/dev/null' EXIT
+
+# Async DB write with SQL injection protection
 if [[ -f "$DB_FILE" ]]; then
 	{
 		EXEC_HOST="${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}"
 		EXEC_HOST="${EXEC_HOST%.local}"
+		SAFE_PROJECT_ID=$(sql_escape "$PROJECT_ID")
+		SAFE_MODEL=$(sql_escape "$MODEL")
+		SAFE_EXEC_HOST=$(sql_escape "$EXEC_HOST")
 		sqlite3 "$DB_FILE" "
       INSERT INTO token_usage (project_id, agent, model, input_tokens, output_tokens, cost_usd, execution_host)
-      VALUES ('$PROJECT_ID', 'claude-code', '${MODEL}', $INPUT_TOKENS, $OUTPUT_TOKENS, ${COST_USD:-0}, '$EXEC_HOST');
+      VALUES ('$SAFE_PROJECT_ID', 'claude-code', '${SAFE_MODEL}', $INPUT_TOKENS, $OUTPUT_TOKENS, ${COST_USD:-0}, '$SAFE_EXEC_HOST');
     " 2>/dev/null
 	} &
 fi

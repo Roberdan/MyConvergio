@@ -2,9 +2,11 @@
 # prefer-ci-summary.sh - PreToolUse hook on Bash
 # Intercepts verbose commands and suggests token-efficient alternatives.
 # Block = exit 2. Hint = exit 0. Allow = exit 0.
+# Version: 1.1.0
 #
 # IMPORTANT: Block rules check BASE_CMD (before pipe), so
 # "gh run view --log-failed | tail -200" is STILL blocked.
+set -uo pipefail
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)

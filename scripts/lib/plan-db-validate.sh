@@ -3,23 +3,39 @@
 # Sourced by plan-db.sh
 
 # Thor validates plan - ACTUAL validation checks
-# Version: 1.3.0
+# Version: 1.4.0
 
 # Validate a single task by DB id or task_id within a plan
-# Usage: validate-task <task_db_id_or_task_id> [plan_id] [validated_by] [--force]
-# Sets validated_at + validated_by on the task
+# Usage: validate-task <task_db_id_or_task_id> [plan_id] [validated_by] [--force] [--report 'JSON']
+# Sets validated_at + validated_by + validation_report on the task
 cmd_validate_task() {
 	local identifier="$1"
 	local plan_id="${2:-}"
 	local validated_by="${3:-thor}"
 	local force=false
+	local report=""
 
-	# Check for --force flag in any argument position
-	for arg in "$@"; do
-		if [[ "$arg" == "--force" ]]; then
-			force=true
-			break
+	# Check for flags in any argument position
+	local skip_next=false
+	for i in "$@"; do
+		if [[ "$skip_next" == true ]]; then
+			skip_next=false
+			continue
 		fi
+		case "$i" in
+		--force) force=true ;;
+		--report)
+			skip_next=true
+			;;
+		esac
+	done
+	# Extract --report value
+	local prev=""
+	for arg in "$@"; do
+		if [[ "$prev" == "--report" ]]; then
+			report="$arg"
+		fi
+		prev="$arg"
 	done
 
 	local task_db_id=""
@@ -68,11 +84,17 @@ cmd_validate_task() {
 		fi
 	fi
 
-	sqlite3 "$DB_FILE" "UPDATE tasks SET validated_at = datetime('now'), validated_by = '$(sql_escape "$validated_by")' WHERE id = $task_db_id;"
+	# Build UPDATE with optional validation_report
+	local report_clause=""
+	if [[ -n "$report" ]]; then
+		report_clause=", validation_report = '$(sql_escape "$report")'"
+	fi
+	sqlite3 "$DB_FILE" "UPDATE tasks SET validated_at = datetime('now'), validated_by = '$(sql_escape "$validated_by")'${report_clause} WHERE id = $task_db_id;"
 
 	local task_id_text
 	task_id_text=$(sqlite3 "$DB_FILE" "SELECT task_id FROM tasks WHERE id = $task_db_id;")
 	echo -e "${GREEN}Task $task_id_text validated by $validated_by${NC}"
+	[[ -n "$report" ]] && echo -e "${GREEN}  Validation report saved ($(echo "$report" | grep -c . || echo 0) lines)${NC}"
 	return 0
 }
 
@@ -272,31 +294,8 @@ cmd_validate() {
 		done
 	fi
 
-	# DO NOT bulk-validate tasks — this was a bypass hole
-	# Tasks must be validated individually via validate-task (which invokes Thor agent)
-	local already_validated=$(sqlite3 "$DB_FILE" "
-        SELECT COUNT(*) FROM tasks t
-        JOIN waves w ON t.wave_id_fk = w.id
-        WHERE w.plan_id = $plan_id AND t.status = 'done' AND t.validated_at IS NOT NULL;
-    ")
-	local _placeholder="$already_validated" # used for reporting only
-
-	# Legacy bulk path removed — keeping only counter checks above
-	local done_tasks=""
-	if [ -n "$done_tasks" ]; then
-		: # no-op: preserved for backwards compat of variable reference
-		sqlite3 "$DB_FILE" "
-            -- no-op: bulk validation removed
-            SELECT 1 WHERE 0;
-            -- was: UPDATE tasks SET validated_at ... WHERE id IN (SELECT t.id FROM tasks t
-                JOIN waves w ON t.wave_id_fk = w.id
-                WHERE w.plan_id = $plan_id AND t.status = 'done'
-            );
-        "
-		local count
-		count=$(echo "$done_tasks" | grep -c .) || count=0
-		echo -e "${GREEN}Marked $count tasks as validated${NC}"
-	fi
+	# Bulk task validation removed (was a bypass hole)
+	# Tasks must be validated individually via validate-task
 
 	local version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
 	sqlite3 "$DB_FILE" "

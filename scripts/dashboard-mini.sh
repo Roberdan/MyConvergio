@@ -937,7 +937,7 @@ if [ "$REFRESH_INTERVAL" -gt 0 ]; then
 
 		# Wait for keypress or timeout
 		printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci, ${WHITE}P${GRAY}=push, ${WHITE}L${GRAY}=linux git)${NC}    " "$REFRESH_INTERVAL"
-		local key=""
+		key=""
 		read -t "$REFRESH_INTERVAL" -n 1 key 2>/dev/null || true
 		case "$key" in
 		q | Q)

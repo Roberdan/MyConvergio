@@ -25,6 +25,20 @@ plan-db.sh validate-wave {wave_db_id}     # Per-wave Thor validation
 plan-db.sh validate {id}                  # Bulk Thor validation (all done tasks)
 ```
 
+## Troubleshooting: `complete` Fails (N/M tasks done)
+
+```bash
+# DB path: ~/.claude/data/dashboard.db
+# Step 1: Find incomplete tasks (ALWAYS use plan_id column, NOT wave joins)
+sqlite3 ~/.claude/data/dashboard.db "SELECT id, task_id, title, status FROM tasks WHERE plan_id = {PLAN_ID} AND status NOT IN ('done', 'validated', 'skipped');"
+# Step 2: Update each task
+plan-db.sh update-task {TASK_DB_ID} done "Reason"
+# Step 3: Complete
+plan-db.sh complete {PLAN_ID}
+```
+
+**DO NOT**: Try `plan-db.sh json` (no tasks), guess DB paths, guess column names. **READ THIS FIRST.**
+
 ## Cluster & Sync
 
 ```bash

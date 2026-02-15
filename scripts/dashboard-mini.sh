@@ -280,6 +280,11 @@ if [ -n "$PLAN_ID" ] && ! [[ "$PLAN_ID" =~ ^[0-9]+$ ]]; then
 	exit 1
 fi
 
+# Single plan detail mode: always expand tasks (you asked for detail, show detail)
+if [ -n "$PLAN_ID" ]; then
+	EXPAND_COMPLETED=1
+fi
+
 # Function to format elapsed time
 format_elapsed() {
 	local seconds=$1

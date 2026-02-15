@@ -3,7 +3,7 @@
 # Follows Semantic Versioning 2.0.0 (https://semver.org/)
 
 # System Version
-SYSTEM_VERSION=5.0.0
+SYSTEM_VERSION=5.0.1
 
 # Framework Documents
 # These are foundational documents that govern all agents

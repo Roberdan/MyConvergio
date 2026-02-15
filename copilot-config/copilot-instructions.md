@@ -22,7 +22,7 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 | **Quality validation (Thor)** | `claude-opus-4.6` | premium |
 | **Code review / security** | `claude-opus-4.6` | premium |
 | **Compliance (full codebase)** | `claude-opus-4.6-1m` | premium |
-| **Documentation writing** | `claude-sonnet-4` | standard |
+| **Documentation writing** | `claude-sonnet-4.5` | standard |
 | **Codebase exploration** | `claude-haiku-4.5` | fast |
 | **Quick fixes / bulk edits** | `gpt-5.1-codex-mini` | fast |
 | **Build / test execution** | `claude-haiku-4.5` | fast |
@@ -71,6 +71,7 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 4. **Complete execution**: Plan started = plan finished. No skipping tasks.
 5. **Proof required**: "done" needs evidence. User approves closure.
 6. **Max 250 lines/file**: Check before writing. Split if exceeds. No exceptions.
+7. **Compaction preservation**: When rewriting/compacting ANY file, NEVER remove workflow-critical content. See `rules/compaction-preservation.md`.
 
 ## Pre-Closure Checklist (MANDATORY)
 

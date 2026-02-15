@@ -17,7 +17,7 @@ GitHub Copilot CLI as Claude Code alternative reference.
 - Piani piccoli (1-6 task, 1-2 wave)
 - Sequential tasks (TDD, review, validation one at a time)
 - Save Claude Max tokens for complex work
-- Same model (claude-opus-4.6), same quality
+- Same model (claude-opus-4.6 or claude-opus-4.6-1m), same quality
 
 ## Use Claude Code Instead
 

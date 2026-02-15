@@ -88,13 +88,13 @@ Agent returns:
 
 ## Zero Tolerance (Blocking)
 
-- ❌ ANY compiler/lint warning
-- ❌ ANY test failure
-- ❌ ANY security vulnerability
-- ❌ ANY TODO/FIXME in code
-- ❌ ANY hardcoded secrets
-- ❌ ANY debug prints (console.log)
-- ❌ ANY outdated deps with CVEs
+- BLOCK: ANY compiler/lint warning
+- BLOCK: ANY test failure
+- BLOCK: ANY security vulnerability
+- BLOCK: ANY TODO/FIXME in code
+- BLOCK: ANY hardcoded secrets
+- BLOCK: ANY debug prints (console.log)
+- BLOCK: ANY outdated deps with CVEs
 
 ## Auto-Fix Protocol
 

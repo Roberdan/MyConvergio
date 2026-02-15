@@ -16,7 +16,7 @@ Adapts checks based on detected project type and configuration.
 ## Model Selection
 
 - Default: `claude-opus-4.6-1m` (needs to read all compliance docs + full codebase)
-- Override: `claude-sonnet-4` for quick spot checks
+- Override: `claude-sonnet-4.5` for quick spot checks
 
 ## Auto-Detect Compliance Scope
 

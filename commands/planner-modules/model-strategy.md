@@ -179,7 +179,7 @@ in W0:
 
 ```bash
 plan-db.sh add-task {db_w0_id} T0-00 "Review plan and reassign models/effort per task" P0 chore \
-  --model gpt-4o --effort 1 \
+  --model gpt-5.3-codex --effort 1 \
   --description "Review all tasks. For each task: verify model is optimal for this executor, adjust effort_level if needed, flag any tasks that need replanning."
 ```
 

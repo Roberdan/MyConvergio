@@ -28,7 +28,7 @@ Works with ANY repository - auto-detects project context.
 | codex / gpt-5.3-codex  | gpt-5.3-codex      |
 | opus / claude-opus-4.6 | claude-opus-4.6    |
 | opus-1m                | claude-opus-4.6-1m |
-| sonnet                 | claude-sonnet-4    |
+| sonnet                 | claude-sonnet-4.5  |
 | haiku                  | claude-haiku-4.5   |
 | codex-mini             | gpt-5.1-codex-mini |
 

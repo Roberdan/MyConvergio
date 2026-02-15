@@ -65,7 +65,7 @@ For single-feature plans, use the `planner` agent instead.
 | Large file refactoring | claude-opus-4.6-1m |
 | Bulk mechanical edits  | gpt-5.1-codex-mini |
 | Test writing           | gpt-5.3-codex      |
-| Documentation          | claude-sonnet-4    |
+| Documentation          | claude-sonnet-4.5  |
 | Security analysis      | claude-opus-4.6    |
 | Exploration/search     | claude-haiku-4.5   |
 

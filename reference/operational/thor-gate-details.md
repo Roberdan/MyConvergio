@@ -1,4 +1,4 @@
-<!-- version: 1.0.0 -->
+<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
 
 # Thor Gate Details
 

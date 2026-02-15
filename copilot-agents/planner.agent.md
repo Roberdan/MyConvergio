@@ -32,7 +32,7 @@ Works with ANY repository - auto-detects project context.
 | Mechanical edits, bulk changes | gpt-5.1-codex-mini | Fast, cheap        |
 | Large file analysis            | claude-opus-4.6-1m | 1M context         |
 | Test writing                   | gpt-5.3-codex      | Code gen focus     |
-| Documentation                  | claude-sonnet-4    | Good writing, fast |
+| Documentation                  | claude-sonnet-4.5   | Good writing, fast |
 | Security review                | claude-opus-4.6    | Critical analysis  |
 | Quick exploration              | claude-haiku-4.5   | Fastest            |
 

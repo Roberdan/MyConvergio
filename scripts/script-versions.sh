@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
-# script-versions.sh — Auto-generated index of all ~/.claude/scripts with versions
+# script-versions.sh — Auto-generated index of all scripts with versions
 # Usage: script-versions.sh [--json|--stale|--category <name>]
-# Version: 1.0.0
+# Resolves scripts dir: ~/.claude/scripts → npm global → script's own dir
+# Version: 1.1.0
 set -euo pipefail
 
-SCRIPTS_DIR="${HOME}/.claude/scripts"
+# Resolve scripts directory (supports ~/.claude, npm global install, local clone)
+if [[ -d "${HOME}/.claude/scripts" ]]; then
+	SCRIPTS_DIR="${HOME}/.claude/scripts"
+elif [[ -d "$(npm root -g 2>/dev/null)/myconvergio/scripts" ]]; then
+	SCRIPTS_DIR="$(npm root -g)/myconvergio/scripts"
+else
+	SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
 MODE="${1:-table}"
 CAT_FILTER="${2:-}"
 

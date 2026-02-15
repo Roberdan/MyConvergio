@@ -3,7 +3,9 @@
 ## Critical Issues Fixed
 
 ### 1. SQL Injection Vulnerabilities ⚠️ CRITICAL
+
 **Problem**: User input not properly escaped in SQL queries
+
 ```bash
 # Example attack:
 plan-db.sh add-task 1 T1 "My'; DROP TABLE tasks; --"
@@ -15,17 +17,21 @@ plan-db.sh add-task 1 T1 "My'; DROP TABLE tasks; --"
 **Solution**: All string parameters now escaped using `sql_escape()` function
 
 ### 2. Structural Bug: wave_id should be FK, not TEXT
+
 **Problem**:
+
 - `tasks.wave_id` is TEXT ("W1") instead of INTEGER FK to `waves.id`
 - Requires complex composite key joins: `WHERE project_id = X AND wave_id = 'W1'`
 - No referential integrity enforcement
 
 **Solution**:
+
 - New column: `tasks.wave_id_fk INTEGER` with FK constraint
 - Simple joins: `WHERE wave_id_fk = waves.id`
 - Proper referential integrity
 
 ### 3. Argument Concatenation Issues
+
 **Problem**: Multiple optional arguments could be lost or concatenated incorrectly
 **Solution**: Fixed shell parameter handling and quoting
 
@@ -34,16 +40,19 @@ plan-db.sh add-task 1 T1 "My'; DROP TABLE tasks; --"
 ## Implementation Steps
 
 ### Step 1: Backup Database
+
 ```bash
 cp ~/.claude/data/dashboard.db ~/.claude/data/dashboard.db.backup.$(date +%s)
 ```
 
 ### Step 2: Run Migration
+
 ```bash
 ~/.claude/scripts/migrate-wave-fk.sh
 ```
 
 **What it does**:
+
 1. Adds `wave_id_fk` column to tasks table
 2. Populates FK values from existing data
 3. Adds proper FK constraints
@@ -51,8 +60,9 @@ cp ~/.claude/data/dashboard.db ~/.claude/data/dashboard.db.backup.$(date +%s)
 5. Validates data integrity
 
 **Expected output**:
+
 ```
-✓ Backup created: /Users/roberdan/.claude/data/dashboard.db.backup.xxxx
+✓ Backup created: ~/.claude/data/dashboard.db.backup.xxxx
 ✓ Column added
 ✓ Updated XXXX rows with wave_id_fk
 ✓ FK constraint added
@@ -61,6 +71,7 @@ cp ~/.claude/data/dashboard.db ~/.claude/data/dashboard.db.backup.$(date +%s)
 ```
 
 ### Step 3: Update plan-db.sh
+
 The migration adds `wave_id_fk` column, but plan-db.sh still uses old `wave_id TEXT` queries.
 
 **Critical functions to update** (see plan-db-fixed-functions.sh for complete implementations):
@@ -74,6 +85,7 @@ sql_escape() {
 ```
 
 Replace these functions in plan-db.sh:
+
 - `cmd_add_task()` - Use `wave_id_fk` instead of composite join
 - `cmd_update_task()` - Use FK-based lookups
 - `cmd_add_wave()` - Escape `$name` parameter
@@ -81,9 +93,10 @@ Replace these functions in plan-db.sh:
 - `cmd_validate()` - Use FK queries, escape `$validated_by`
 - `cmd_sync()` - Use FK-based counter updates
 
-See `/Users/roberdan/.claude/scripts/plan-db-fixed-functions.sh` for complete implementations.
+See `~/.claude/scripts/plan-db-fixed-functions.sh` for complete implementations.
 
 ### Step 4: Test Fixed Script
+
 ```bash
 # Test with problematic characters
 plan-db.sh create test-proj "My Project"
@@ -99,6 +112,7 @@ plan-db.sh validate 1
 ## Key Changes After Migration
 
 ### Before Migration
+
 ```sql
 -- Query tasks for a wave (composite key):
 SELECT * FROM tasks
@@ -109,6 +123,7 @@ sqlite3 "$DB_FILE" "INSERT INTO tasks (..., title) VALUES (..., '$title')"
 ```
 
 ### After Migration
+
 ```sql
 -- Query tasks for a wave (FK):
 SELECT * FROM tasks
@@ -138,6 +153,7 @@ cp ~/.claude/data/dashboard.db.backup.XXXX ~/.claude/data/dashboard.db
 ## Validation After Migration
 
 Run Thor validation:
+
 ```bash
 # On any existing plan
 plan-db.sh validate <plan_id>
@@ -146,6 +162,7 @@ plan-db.sh validate <plan_id>
 ```
 
 Check FK integrity:
+
 ```bash
 sqlite3 ~/.claude/data/dashboard.db "
     SELECT COUNT(*) FROM tasks
@@ -159,12 +176,12 @@ sqlite3 ~/.claude/data/dashboard.db "
 
 ## Files Reference
 
-| File | Purpose |
-|------|---------|
-| `migrate-wave-fk.sh` | Database schema migration (RUN FIRST) |
-| `plan-db-fixed-functions.sh` | Corrected function implementations |
-| `PLAN-DB-FIXES.md` | Detailed technical analysis |
-| `MIGRATION-GUIDE.md` | This guide (you are here) |
+| File                         | Purpose                               |
+| ---------------------------- | ------------------------------------- |
+| `migrate-wave-fk.sh`         | Database schema migration (RUN FIRST) |
+| `plan-db-fixed-functions.sh` | Corrected function implementations    |
+| `PLAN-DB-FIXES.md`           | Detailed technical analysis           |
+| `MIGRATION-GUIDE.md`         | This guide (you are here)             |
 
 ---
 
@@ -180,12 +197,12 @@ sqlite3 ~/.claude/data/dashboard.db "
 
 ## Security Assessment After Fixes
 
-| Issue | Before | After |
-|-------|--------|-------|
-| SQL Injection | CRITICAL ⚠️ | SAFE ✓ |
+| Issue                 | Before           | After                 |
+| --------------------- | ---------------- | --------------------- |
+| SQL Injection         | CRITICAL ⚠️      | SAFE ✓                |
 | Referential Integrity | BROKEN (text FK) | PROPER (integer FK) ✓ |
-| Argument Handling | UNSAFE | SAFE ✓ |
-| Validation Queries | COMPLEX | SIMPLE ✓ |
+| Argument Handling     | UNSAFE           | SAFE ✓                |
+| Validation Queries    | COMPLEX          | SIMPLE ✓              |
 
 ---
 
@@ -225,6 +242,7 @@ sqlite3 ~/.claude/data/dashboard.db "
 7. → Deploy and monitor
 
 **Start with:**
+
 ```bash
 ~/.claude/scripts/migrate-wave-fk.sh
 ```

@@ -3,15 +3,16 @@
 # Usage: ./collect-git.sh [project_path]
 # Output: JSON to stdout
 
+# Version: 1.1.0
 set -euo pipefail
 
 PROJECT_PATH="${1:-.}"
 cd "$PROJECT_PATH"
 
 # Verify git repo
-if ! git rev-parse --git-dir > /dev/null 2>&1; then
-    echo '{"collector":"git","status":"error","error":"Not a git repository"}' | jq .
-    exit 1
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+	echo '{"collector":"git","status":"error","error":"Not a git repository"}' | jq .
+	exit 1
 fi
 
 # Get current branch
@@ -57,28 +58,28 @@ STAGED_WITH_STATS=$(echo "$STAGED" "$STAGED_STATS" | jq -s '
 
 # Get remote status
 REMOTE_STATUS=""
-if git rev-parse --abbrev-ref @{upstream} > /dev/null 2>&1; then
-    AHEAD=$(git rev-list --count @{upstream}..HEAD 2>/dev/null || echo "0")
-    BEHIND=$(git rev-list --count HEAD..@{upstream} 2>/dev/null || echo "0")
-    REMOTE_STATUS="{\"ahead\":$AHEAD,\"behind\":$BEHIND}"
+if git rev-parse --abbrev-ref @{upstream} >/dev/null 2>&1; then
+	AHEAD=$(git rev-list --count @{upstream}..HEAD 2>/dev/null || echo "0")
+	BEHIND=$(git rev-list --count HEAD..@{upstream} 2>/dev/null || echo "0")
+	REMOTE_STATUS="{\"ahead\":$AHEAD,\"behind\":$BEHIND}"
 else
-    REMOTE_STATUS='{"ahead":0,"behind":0}'
+	REMOTE_STATUS='{"ahead":0,"behind":0}'
 fi
 
 # Build final JSON
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 jq -n \
-    --arg collector "git" \
-    --arg timestamp "$TIMESTAMP" \
-    --arg branch "$BRANCH" \
-    --argjson commits "$COMMITS" \
-    --argjson branches "$BRANCHES" \
-    --argjson staged "$STAGED_WITH_STATS" \
-    --argjson unstaged "$UNSTAGED" \
-    --argjson untracked "$UNTRACKED" \
-    --argjson remote "$REMOTE_STATUS" \
-    '{
+	--arg collector "git" \
+	--arg timestamp "$TIMESTAMP" \
+	--arg branch "$BRANCH" \
+	--argjson commits "$COMMITS" \
+	--argjson branches "$BRANCHES" \
+	--argjson staged "$STAGED_WITH_STATS" \
+	--argjson unstaged "$UNSTAGED" \
+	--argjson untracked "$UNTRACKED" \
+	--argjson remote "$REMOTE_STATUS" \
+	'{
         collector: $collector,
         timestamp: $timestamp,
         status: "success",

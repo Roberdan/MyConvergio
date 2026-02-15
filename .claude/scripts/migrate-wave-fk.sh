@@ -1,15 +1,19 @@
 #!/bin/bash
+# ARCHIVED: Migration already applied. Kept for reference only.
+# This script should not be run again on existing databases.
+#
 # Migration: Fix tasks.wave_id to be a proper FK to waves.id
 # Before: tasks.wave_id was TEXT ("W1"), forcing joins on (project_id, wave_id)
 # After: tasks.wave_id_fk is INTEGER FK to waves.id, proper relational structure
 
+# Version: 1.1.0
 set -euo pipefail
 
 DB_FILE="${HOME}/.claude/data/dashboard.db"
 
 if [[ ! -f "$DB_FILE" ]]; then
-    echo "ERROR: Database not found at $DB_FILE"
-    exit 1
+	echo "ERROR: Database not found at $DB_FILE"
+	exit 1
 fi
 
 echo "Starting migration: wave_id TEXT → wave_id_fk INTEGER FK..."
@@ -24,8 +28,8 @@ echo ""
 # Check if wave_id_fk already exists
 COLUMN_EXISTS=$(sqlite3 "$DB_FILE" "PRAGMA table_info(tasks);" | grep -c "wave_id_fk" || true)
 if [[ $COLUMN_EXISTS -gt 0 ]]; then
-    echo "✓ Migration already applied (wave_id_fk column exists)"
-    exit 0
+	echo "✓ Migration already applied (wave_id_fk column exists)"
+	exit 0
 fi
 
 echo "Step 1: Adding wave_id_fk column..."
@@ -53,16 +57,16 @@ echo ""
 # Check for orphaned tasks (wave_id_fk is NULL)
 ORPHANED=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IS NULL;")
 if [[ $ORPHANED -gt 0 ]]; then
-    echo "⚠ WARNING: $ORPHANED orphaned tasks found (no matching wave)"
-    sqlite3 "$DB_FILE" "
+	echo "⚠ WARNING: $ORPHANED orphaned tasks found (no matching wave)"
+	sqlite3 "$DB_FILE" "
         SELECT t.id, t.task_id, t.wave_id, t.project_id
         FROM tasks t
         WHERE t.wave_id_fk IS NULL
         LIMIT 10;
     "
-    echo ""
-    echo "These tasks reference non-existent waves. Continuing anyway..."
-    echo ""
+	echo ""
+	echo "These tasks reference non-existent waves. Continuing anyway..."
+	echo ""
 fi
 
 echo "Step 3: Adding FK constraint..."
@@ -126,11 +130,11 @@ echo "Tasks with wave_id_fk: $WITH_FK"
 echo "FK integrity violations: $FK_INTEGRITY"
 
 if [[ $FK_INTEGRITY -gt 0 ]]; then
-    echo ""
-    echo "⚠ WARNING: $FK_INTEGRITY tasks have invalid FK references"
-    echo "These will cause constraint violations. Run maintenance to clean up."
+	echo ""
+	echo "⚠ WARNING: $FK_INTEGRITY tasks have invalid FK references"
+	echo "These will cause constraint violations. Run maintenance to clean up."
 else
-    echo "✓ FK integrity validated"
+	echo "✓ FK integrity validated"
 fi
 
 echo ""

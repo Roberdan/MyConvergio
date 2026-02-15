@@ -1,9 +1,13 @@
 #!/bin/bash
 # PreCompact hook - preserve critical context before compaction
 # Extracts active plan ID, F-xx requirements, current task
+# Version: 1.1.0
 set -euo pipefail
 
 source ~/.claude/hooks/lib/common.sh 2>/dev/null || true
+
+# Escape single quotes for safe SQL interpolation
+sql_escape() { printf '%s' "$1" | sed "s/'/''/g"; }
 
 INPUT=$(cat)
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty')
@@ -21,17 +25,18 @@ PLAN_ID=$(jq -r '
 # Get current in-progress task from dashboard DB
 CURRENT_TASK=""
 if check_dashboard && [ -n "$PLAN_ID" ]; then
-  CURRENT_TASK=$(sqlite3 "$DASHBOARD_DB" \
-    "SELECT task_id || ': ' || title FROM tasks WHERE plan_id = '$PLAN_ID' AND status = 'in_progress' LIMIT 1;" \
-    2>/dev/null || echo "")
+	SAFE_PLAN_ID=$(sql_escape "$PLAN_ID")
+	CURRENT_TASK=$(sqlite3 "$DASHBOARD_DB" \
+		"SELECT task_id || ': ' || title FROM tasks WHERE plan_id = '${SAFE_PLAN_ID}' AND status = 'in_progress' LIMIT 1;" \
+		2>/dev/null || echo "")
 fi
 
 # Extract F-xx requirements mentioned in conversation
 FXX_LIST=""
 FXX_LIST=$(jq -r '
   [.[] | .message // empty | strings] | join(" ")
-' "$TRANSCRIPT_PATH" 2>/dev/null \
-  | grep -oE 'F-[0-9]+' | sort -u | tr '\n' ', ' | sed 's/,$//' || echo "")
+' "$TRANSCRIPT_PATH" 2>/dev/null |
+	grep -oE 'F-[0-9]+' | sort -u | tr '\n' ', ' | sed 's/,$//' || echo "")
 
 # Build preserved context
 PRESERVED=""
@@ -43,4 +48,4 @@ PRESERVED=""
 [ -z "$PRESERVED" ] && exit 0
 
 jq -n --arg ctx "## Preserved Context (pre-compaction)\n$PRESERVED" \
-  '{"additionalContext": $ctx}'
+	'{"additionalContext": $ctx}'

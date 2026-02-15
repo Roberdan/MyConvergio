@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Version: 1.1.0
 set -euo pipefail
 
 # plan-db-autosync.sh - Auto-sync daemon for dashboard.db

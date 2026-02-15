@@ -4,7 +4,26 @@
 # Cache dir: /tmp/claude-digest-cache/
 # TTL: configurable per caller
 
-DIGEST_CACHE_DIR="/tmp/claude-digest-cache"
+# Version: 1.1.0
+DIGEST_CACHE_DIR="${TMPDIR:-/tmp}/claude-digest-cache"
+
+# Verify jq is available (required by all digest scripts)
+if ! command -v jq &>/dev/null; then
+	echo '{"status":"error","msg":"jq not installed — required by digest scripts"}' >&2
+	exit 1
+fi
+
+# Cross-platform short hash (macOS md5 vs Linux md5sum)
+# Usage: digest_hash "string" → 8-char hex
+digest_hash() {
+	if command -v md5sum &>/dev/null; then
+		echo -n "$1" | md5sum | cut -c1-8
+	elif command -v md5 &>/dev/null; then
+		echo -n "$1" | md5 | cut -c1-8
+	else
+		echo "x"
+	fi
+}
 
 # Check cache freshness. Returns 0 (hit) or 1 (miss).
 # Usage: digest_cache_get <key> <ttl_seconds>
@@ -15,9 +34,9 @@ digest_cache_get() {
 	[[ ! -f "$cache_file" ]] && return 1
 	local now age file_mod
 	now=$(date +%s)
-	# macOS stat vs Linux stat
-	file_mod=$(stat -f %m "$cache_file" 2>/dev/null || stat -c %Y "$cache_file" 2>/dev/null)
-	age=$((now - file_mod))
+	# macOS stat vs Linux stat (default to 0 if both fail)
+	file_mod=$(stat -c %Y "$cache_file" 2>/dev/null || stat -f %m "$cache_file" 2>/dev/null || echo 0)
+	age=$((now - ${file_mod:-0}))
 	[[ $age -lt $ttl ]] && {
 		cat "$cache_file"
 		return 0

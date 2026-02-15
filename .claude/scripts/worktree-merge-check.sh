@@ -2,7 +2,8 @@
 # worktree-merge-check.sh - AI-optimized worktree merge readiness
 # Output: ~1 line per worktree, minimal tokens
 # Usage: worktree-merge-check.sh [--detail BRANCH]
-set -uo pipefail
+# Version: 1.1.0
+set -euo pipefail
 
 DETAIL="${2:-}"
 [ "${1:-}" = "--detail" ] && DETAIL="$2"

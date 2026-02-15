@@ -3,6 +3,7 @@
 # Usage: copilot-task-prompt.sh <db_task_id>
 # Output: prompt string to stdout (pipe to copilot -p)
 
+# Version: 1.1.0
 set -euo pipefail
 
 TASK_ID="${1:-}"

@@ -1,14 +1,22 @@
 ---
+name: orchestration
+description: Parallel execution using multiple Claude instances in Kitty terminal
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+  - Task
 context: fork
-allowed-tools: ["Read", "Glob", "Grep", "Bash", "Task"]
 user-invocable: true
+version: "1.0.0"
 ---
 
-# Multi-Claude Parallel Orchestration Skill
+# Multi-Worker Parallel Orchestration Skill
 
 ## Overview
 
-This skill enables parallel execution of complex plans using multiple Claude instances in Kitty terminal tabs.
+Parallel execution of plans using Claude and/or Copilot CLI workers in Kitty terminal tabs. Supports mixed-engine mode where Claude handles complex tasks and Copilot handles mechanical ones.
 
 ## When to Use
 
@@ -19,25 +27,41 @@ This skill enables parallel execution of complex plans using multiple Claude ins
 
 ## Requirements
 
-| Requirement | Details |
-|-------------|---------|
-| Terminal | **Kitty only** (not Warp/iTerm/Terminal.app) |
-| Config | `allow_remote_control yes` in kitty.conf |
-| Alias | `wildClaude='claude --dangerously-skip-permissions'` |
-| Max Workers | 4 (hard limit) |
+| Requirement | Details                                               |
+| ----------- | ----------------------------------------------------- |
+| Terminal    | **Kitty only** (not Warp/iTerm/Terminal.app)          |
+| Config      | `allow_remote_control yes` in kitty.conf              |
+| Claude      | `wildClaude='claude --dangerously-skip-permissions'`  |
+| Copilot     | `copilot` CLI + `GH_TOKEN` or `COPILOT_TOKEN` env var |
+| Max Workers | 4 (hard limit)                                        |
 
 ## Quick Start
 
 ```bash
-# From Kitty:
-./scripts/orchestration/kitty-check.sh    # Verify setup
-./scripts/orchestration/claude-parallel.sh 4   # Launch workers
-./scripts/orchestration/claude-monitor.sh      # Monitor
+# Claude-only (default):
+orchestrate.sh <plan> 4
+
+# Copilot-only (all workers use copilot --allow-all):
+orchestrate.sh <plan> 4 --engine copilot
+
+# Mixed (Claude for complex, Copilot for codex:true tasks):
+orchestrate.sh <plan> 4 --engine mixed
+
+# Monitor (detects both Claude-N and Copilot-N tabs):
+claude-monitor.sh
+
+# Launch single worker by type:
+worker-launch.sh claude "Claude-2" <task_db_id> --cwd /worktree
+worker-launch.sh copilot "Copilot-3" <task_db_id> --cwd /worktree
+
+# Standalone Copilot worker (no Kitty needed):
+copilot-worker.sh <task_db_id> --model claude-sonnet-4-5 --timeout 600
 ```
 
 ## Integration with Agents
 
 ### strategic-planner
+
 The `strategic-planner` agent can create plans with Claude assignments and execute them in parallel:
 
 ```
@@ -45,6 +69,7 @@ The `strategic-planner` agent can create plans with Claude assignments and execu
 ```
 
 When asked "Vuoi eseguire in parallelo?", it will:
+
 1. Verify Kitty environment
 2. Launch Claude workers
 3. Send tasks to each worker
@@ -58,12 +83,12 @@ Plans for parallel execution must include:
 ```markdown
 ## 🎭 RUOLI CLAUDE
 
-| Claude | Role | Tasks | Files |
-|--------|------|-------|-------|
-| CLAUDE 1 | Coordinator | Monitor | - |
-| CLAUDE 2 | Implementer | T-01, T-02 | src/api/ |
+| Claude   | Role        | Tasks      | Files           |
+| -------- | ----------- | ---------- | --------------- |
+| CLAUDE 1 | Coordinator | Monitor    | -               |
+| CLAUDE 2 | Implementer | T-01, T-02 | src/api/        |
 | CLAUDE 3 | Implementer | T-03, T-04 | src/components/ |
-| CLAUDE 4 | Implementer | T-05 | src/lib/ |
+| CLAUDE 4 | Implementer | T-05       | src/lib/        |
 ```
 
 ## Critical Rules
@@ -72,18 +97,32 @@ Plans for parallel execution must include:
 2. **MAX 4 WORKERS** - Beyond = chaos
 3. **VERIFY LAST** - lint/typecheck/build at end
 4. **GIT COORDINATION** - One commit at a time
+5. **WORKTREE MANDATORY** - Every worker runs `worktree-guard.sh` first. NEVER on main.
+6. **COPILOT: --allow-all** - Always use `copilot --allow-all` to avoid confirmation prompts
 
-## Scripts Location
+## Copilot CLI Flags Reference
 
-```
-scripts/orchestration/
-├── README.md           # Full documentation
-├── kitty-check.sh      # Verify setup
-├── claude-parallel.sh  # Launch workers
-└── claude-monitor.sh   # Monitor progress
-```
+| Flag               | Purpose                                         |
+| ------------------ | ----------------------------------------------- |
+| `--allow-all`      | Auto-approve all tools (REQUIRED)               |
+| `--add-dir <path>` | Trust worktree directory                        |
+| `--model <model>`  | Select model (claude-sonnet-4-5, gpt-4.1, etc.) |
+| `-p "prompt"`      | Non-interactive mode (for scripted execution)   |
+
+## Scripts
+
+| Script                   | Purpose                                             |
+| ------------------------ | --------------------------------------------------- |
+| `orchestrate.sh`         | Main orchestrator (--engine claude\|copilot\|mixed) |
+| `worker-launch.sh`       | Launch single worker in Kitty tab                   |
+| `copilot-worker.sh`      | Standalone Copilot task execution                   |
+| `copilot-task-prompt.sh` | Generate Copilot-compatible prompt from DB task     |
+| `worktree-guard.sh`      | Block execution if not in correct worktree          |
+| `claude-monitor.sh`      | Monitor all worker tabs (Claude + Copilot)          |
+| `kitty-check.sh`         | Verify Kitty setup                                  |
 
 ## Related
 
 - Agent: `.claude/agents/core_utility/strategic-planner.md`
 - Global config: `~/.claude/commands/planner.md`
+- Drift check: `plan-db.sh drift-check <plan_id>`

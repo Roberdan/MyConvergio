@@ -1,5 +1,6 @@
 #!/bin/bash
-set -uo pipefail
+# Version: 1.1.0
+set -euo pipefail
 
 # Colors
 RED='\033[0;31m'
@@ -59,13 +60,18 @@ _fetch_remote_git_status() {
 	projects=$(sqlite3 "$DB" "SELECT DISTINCT p.project_id FROM plans p WHERE p.status='doing' AND p.execution_host IS NOT NULL AND p.execution_host != ''" 2>/dev/null)
 	[ -z "$projects" ] && return 0
 	# Build a bash script to run remotely — produces valid JSON per project
-	local proj_list=""
+	local proj_list="" proj
 	while IFS= read -r proj; do
 		[ -z "$proj" ] && continue
 		proj_list+="$proj "
 	done <<<"$projects"
 	# Single SSH call, inline script on remote
-	ssh -o ConnectTimeout=3 -o BatchMode=yes "$REMOTE_HOST_RESOLVED" bash -s -- $proj_list <<'REMOTE_SCRIPT' >"$REMOTE_GIT_CACHE" 2>/dev/null || true
+	# shellcheck disable=SC2086
+	local safe_proj_list=""
+	for _p in $proj_list; do
+		safe_proj_list+="$(printf '%q ' "$_p")"
+	done
+	ssh -o ConnectTimeout=3 -o BatchMode=yes "$REMOTE_HOST_RESOLVED" bash -s -- $safe_proj_list <<'REMOTE_SCRIPT' >"$REMOTE_GIT_CACHE" 2>/dev/null || true
 printf '{'
 first=1
 for proj in "$@"; do
@@ -372,6 +378,39 @@ render_dashboard() {
 		total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
 		tokens_formatted=$(format_tokens $total_tokens)
 		echo -e "${GRAY}└─${NC} Tokens: ${CYAN}$tokens_formatted${NC} ${GRAY}(progetto)${NC}"
+		echo ""
+
+		# Progress bar (same as main dashboard)
+		local task_total task_done task_progress bar_length filled empty bar
+		task_total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
+		task_done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
+		if [ "$task_total" -gt 0 ]; then
+			task_progress=$((task_done * 100 / task_total))
+			bar_length=30
+			filled=$((task_progress * bar_length / 100))
+			empty=$((bar_length - filled))
+			bar="${GREEN}"
+			for ((i = 0; i < filled; i++)); do bar+="█"; done
+			bar+="${GRAY}"
+			for ((i = 0; i < empty; i++)); do bar+="░"; done
+			bar+="${NC}"
+		else
+			bar="${GRAY}░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░${NC}"
+			task_progress=0
+		fi
+
+		local wave_total wave_done wave_progress
+		wave_total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
+		wave_done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND status='done'")
+		if [ "$wave_total" -gt 0 ]; then
+			wave_progress=$((wave_done * 100 / wave_total))
+		else
+			wave_progress=0
+		fi
+
+		echo -e "${BOLD}${WHITE}Progress${NC}"
+		echo -e "${GRAY}├─${NC} $bar ${WHITE}${task_progress}%${NC} ${GRAY}(${task_done}/${task_total} tasks)${NC}"
+		echo -e "${GRAY}└─${NC} Waves: ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC} complete ${GRAY}(${wave_progress}%)${NC}"
 		echo ""
 
 		# Waves
@@ -929,37 +968,33 @@ if [ "$REFRESH_INTERVAL" -gt 0 ]; then
 		now=$(date "+%H:%M:%S")
 		echo -e "${GRAY}Ultimo aggiornamento: ${WHITE}$now${NC} ${GRAY}│ Prossimo refresh tra ${REFRESH_INTERVAL}s${NC}"
 
-		# Countdown con aggiornamento ogni secondo, intercetta tasti
-		for ((i = REFRESH_INTERVAL; i > 0; i--)); do
-			printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci, ${WHITE}P${GRAY}=push, ${WHITE}L${GRAY}=linux git)${NC}    " "$i"
-			if read -t 1 -n 1 key 2>/dev/null; then
-				case "$key" in
-				q | Q)
-					echo -e "\n${YELLOW}Dashboard terminata.${NC}"
-					exit 0
-					;;
-				p | P)
-					echo ""
-					_handle_remote_action "push"
-					echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
-					read -n 1 -s
-					break
-					;;
-				l | L)
-					echo ""
-					_handle_remote_action "status"
-					echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
-					read -n 1 -s
-					break
-					;;
-				*)
-					# Any other key = immediate refresh
-					printf "\r${CYAN}Refresh forzato...%50s${NC}\r" " "
-					break
-					;;
-				esac
-			fi
-		done
+		# Wait for keypress or timeout
+		printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci, ${WHITE}P${GRAY}=push, ${WHITE}L${GRAY}=linux git)${NC}    " "$REFRESH_INTERVAL"
+		key=""
+		read -t "$REFRESH_INTERVAL" -n 1 key 2>/dev/null || true
+		case "$key" in
+		q | Q)
+			echo -e "\n${YELLOW}Dashboard terminata.${NC}"
+			exit 0
+			;;
+		p | P)
+			echo ""
+			_handle_remote_action "push"
+			echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+			read -n 1 -s
+			;;
+		l | L)
+			echo ""
+			_handle_remote_action "status"
+			echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+			read -n 1 -s
+			;;
+		"") ;; # timeout - normal refresh
+		*)
+			# Any other key = immediate refresh
+			printf "\r${CYAN}Refresh forzato...%50s${NC}\r" " "
+			;;
+		esac
 		clear
 	done
 else

@@ -2,12 +2,13 @@
 # CI Digest - Compact GitHub Actions status as JSON (~200 tokens)
 # Replaces ci-check.sh for AI consumption. Processes logs server-side.
 # Usage: ci-digest.sh [run-id|--all] [--no-cache]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/digest-cache.sh"
 
-CACHE_TTL=60
+CACHE_TTL=15
 NO_CACHE=0
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
 MODE="${1:-}"
@@ -65,10 +66,10 @@ FAILED_COUNT=$(echo "$JOBS" | jq '[.[] | select(.s == "fail")] | length')
 ERRORS="[]"
 if [[ "$FAILED_COUNT" -gt 0 ]]; then
 	TMPLOG=$(mktemp)
-	trap "rm -f '$TMPLOG'" EXIT
+	trap "rm -f '$TMPLOG'" EXIT INT TERM
 
-	# Capture log to temp file — never hits tool output
-	gh run view "$RUN_ID" --log-failed >"$TMPLOG" 2>/dev/null || true
+	# Capture log to temp file — never hits tool output (limit to 5000 lines)
+	gh run view "$RUN_ID" --log-failed 2>/dev/null | head -5000 >"$TMPLOG" || true
 
 	if [[ -s "$TMPLOG" ]]; then
 		# Extract structured errors: job name + error message
@@ -78,7 +79,7 @@ if [[ "$FAILED_COUNT" -gt 0 ]]; then
 			perl -pe 's/\xef\xbb\xbf//g' |
 			sed 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9:.]*Z //' |
 			sed 's/##\[error\]/ERROR: /' |
-			grep -iE 'error[:\s]|FAIL|AssertionError|TypeError|ReferenceError|SyntaxError|ENOENT|EPERM|timed.out|P2002|Unique constraint' |
+			grep -iE 'error[[:space:]:]|FAIL|AssertionError|TypeError|ReferenceError|SyntaxError|ENOENT|EPERM|timed.out|P2002|Unique constraint' |
 			grep -viE 'Downloading|Setting up|Cache|Restore|Post job|Process completed|exit code|echo |##\[group\]|::warning|::notice' |
 			sed 's/^[[:space:]]*//' |
 			sed 's/"timestamp":"[^"]*",\{0,1\}//g' |
@@ -86,7 +87,7 @@ if [[ "$FAILED_COUNT" -gt 0 ]]; then
 			head -10 |
 			jq -R -s 'split("\n") | map(select(length > 0)) | map({
 				msg: (. | sub("^[^\t]*\t[^\t]*\t"; "") | .[0:200])
-			})')
+			})' 2>/dev/null) || ERRORS="[]"
 	fi
 fi
 

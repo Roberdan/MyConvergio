@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Version: 1.1.0
 set -euo pipefail
 
 # memory-save.sh - Create structured memory files for cross-session continuity
@@ -72,6 +73,7 @@ archive)
 	slug=$(echo "$description" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
 	date_str=$(date +%Y-%m-%d)
 	time_str=$(date +%H:%M)
+	timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 	target_dir="$MEMORY_DIR/$project"
 	target_file="$target_dir/${date_str}-${slug}.md"
 
@@ -86,7 +88,7 @@ archive)
 	cat >"$target_file" <<TEMPLATE
 # Memory: ${description}
 Project: ${project}
-Date: ${date_str} ${time_str} CET
+Date: ${timestamp}
 Session: $(echo "${CLAUDE_SESSION_ID:-unknown}")
 
 ## Task Overview

@@ -3,6 +3,7 @@
 # Usage: ./collect-tests.sh [project_path]
 # Output: JSON to stdout
 
+# Version: 1.1.0
 set -euo pipefail
 
 PROJECT_PATH="${1:-.}"
@@ -13,55 +14,38 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 # Look for test result files
 JEST_RESULT=""
 PLAYWRIGHT_RESULT=""
-VITEST_RESULT=""
 
-# Common locations for test results
+# Common locations for test results (project-agnostic)
 JEST_PATHS=(
-    "jest-results.json"
-    "coverage/jest-results.json"
-    "test-results/jest.json"
-    ".jest-test-results.json"
+	"coverage/jest-results.json"
+	"test-results/jest.json"
 )
 
 PLAYWRIGHT_PATHS=(
-    "playwright-report/results.json"
-    "test-results/playwright.json"
-    "e2e-results.json"
-)
-
-VITEST_PATHS=(
-    "vitest-results.json"
-    "coverage/vitest.json"
+	"playwright-report/results.json"
+	"test-results/playwright.json"
 )
 
 # Find Jest results
 for path in "${JEST_PATHS[@]}"; do
-    if [[ -f "$path" ]]; then
-        JEST_RESULT="$path"
-        break
-    fi
+	if [[ -f "$path" ]]; then
+		JEST_RESULT="$path"
+		break
+	fi
 done
 
 # Find Playwright results
 for path in "${PLAYWRIGHT_PATHS[@]}"; do
-    if [[ -f "$path" ]]; then
-        PLAYWRIGHT_RESULT="$path"
-        break
-    fi
-done
-
-# Find Vitest results
-for path in "${VITEST_PATHS[@]}"; do
-    if [[ -f "$path" ]]; then
-        VITEST_RESULT="$path"
-        break
-    fi
+	if [[ -f "$path" ]]; then
+		PLAYWRIGHT_RESULT="$path"
+		break
+	fi
 done
 
 # Parse Jest results
 JEST_DATA='null'
 if [[ -n "$JEST_RESULT" ]] && [[ -f "$JEST_RESULT" ]]; then
-    JEST_DATA=$(jq '{
+	JEST_DATA=$(jq '{
         framework: "jest",
         file: input_filename,
         passed: .numPassedTests,
@@ -77,7 +61,7 @@ fi
 # Parse Playwright results
 PLAYWRIGHT_DATA='null'
 if [[ -n "$PLAYWRIGHT_RESULT" ]] && [[ -f "$PLAYWRIGHT_RESULT" ]]; then
-    PLAYWRIGHT_DATA=$(jq '{
+	PLAYWRIGHT_DATA=$(jq '{
         framework: "playwright",
         file: input_filename,
         passed: ([.suites[].specs[].tests[] | select(.status == "passed")] | length),
@@ -92,47 +76,42 @@ fi
 # Check package.json for test scripts
 TEST_SCRIPTS='[]'
 if [[ -f "package.json" ]]; then
-    TEST_SCRIPTS=$(jq '.scripts | to_entries | map(select(.key | test("test"))) | map({name: .key, command: .value})' package.json 2>/dev/null || echo '[]')
+	TEST_SCRIPTS=$(jq '.scripts | to_entries | map(select(.key | test("test"))) | map({name: .key, command: .value})' package.json 2>/dev/null || echo '[]')
 fi
 
 # Aggregate results
 TESTS_FOUND=false
-TOTAL_PASSED=0
-TOTAL_FAILED=0
-TOTAL_SKIPPED=0
-TOTAL_TESTS=0
-
 FRAMEWORKS='[]'
 if [[ "$JEST_DATA" != "null" ]]; then
-    TESTS_FOUND=true
-    FRAMEWORKS=$(echo "$FRAMEWORKS" | jq --argjson jest "$JEST_DATA" '. + [$jest]')
+	TESTS_FOUND=true
+	FRAMEWORKS=$(echo "$FRAMEWORKS" | jq --argjson jest "$JEST_DATA" '. + [$jest]')
 fi
 if [[ "$PLAYWRIGHT_DATA" != "null" ]]; then
-    TESTS_FOUND=true
-    FRAMEWORKS=$(echo "$FRAMEWORKS" | jq --argjson pw "$PLAYWRIGHT_DATA" '. + [$pw]')
+	TESTS_FOUND=true
+	FRAMEWORKS=$(echo "$FRAMEWORKS" | jq --argjson pw "$PLAYWRIGHT_DATA" '. + [$pw]')
 fi
 
 # Calculate totals
 if [[ "$TESTS_FOUND" == true ]]; then
-    TOTALS=$(echo "$FRAMEWORKS" | jq '{
+	TOTALS=$(echo "$FRAMEWORKS" | jq '{
         passed: (map(.passed // 0) | add),
         failed: (map(.failed // 0) | add),
         skipped: (map(.skipped // 0) | add),
         total: (map(.total // 0) | add)
     }')
 else
-    TOTALS='{"passed":0,"failed":0,"skipped":0,"total":0}'
+	TOTALS='{"passed":0,"failed":0,"skipped":0,"total":0}'
 fi
 
 # Build output
 jq -n \
-    --arg collector "tests" \
-    --arg timestamp "$TIMESTAMP" \
-    --argjson frameworks "$FRAMEWORKS" \
-    --argjson totals "$TOTALS" \
-    --argjson scripts "$TEST_SCRIPTS" \
-    --argjson found "$TESTS_FOUND" \
-    '{
+	--arg collector "tests" \
+	--arg timestamp "$TIMESTAMP" \
+	--argjson frameworks "$FRAMEWORKS" \
+	--argjson totals "$TOTALS" \
+	--argjson scripts "$TEST_SCRIPTS" \
+	--argjson found "$TESTS_FOUND" \
+	'{
         collector: $collector,
         timestamp: $timestamp,
         status: "success",

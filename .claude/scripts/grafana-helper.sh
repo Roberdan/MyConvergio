@@ -2,6 +2,7 @@
 # Grafana HTTP API helper
 # Replaces Grafana MCP (13.8k token overhead)
 
+# Version: 1.0.0
 set -euo pipefail
 
 # Load from .env if exists
@@ -9,7 +10,7 @@ if [ -f "$HOME/.claude/.env" ]; then
   source "$HOME/.claude/.env"
 fi
 
-GRAFANA_URL="${GRAFANA_URL:-${GRAFANA_URL:-http://localhost:3000}}"
+GRAFANA_URL="${GRAFANA_URL:-https://mirrorbuddy.grafana.net}"
 GRAFANA_API_KEY="${GRAFANA_API_KEY:-}"
 
 if [ -z "$GRAFANA_API_KEY" ]; then
@@ -79,7 +80,7 @@ Commands:
   health                  Health check
 
 Environment:
-  GRAFANA_URL            Grafana instance URL (default: ${GRAFANA_URL:-http://localhost:3000})
+  GRAFANA_URL            Grafana instance URL (default: https://mirrorbuddy.grafana.net)
   GRAFANA_API_KEY        API key (required)
 
 Example:

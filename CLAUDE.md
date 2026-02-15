@@ -15,7 +15,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-MyConvergio is a collection of 60 specialized Claude Code subagents for enterprise software management, strategic leadership, and technical excellence. Distributed via npm (`npm install -g myconvergio`) or git clone + `make install`. Optimized for Claude Opus 4.6 (adaptive thinking, 128K output).
+MyConvergio is a collection of 65 specialized Claude Code subagents for enterprise software management, strategic leadership, and technical excellence. Distributed via npm (`npm install -g myconvergio`) or git clone + `make install`. Optimized for Claude Opus 4.6 (adaptive thinking, 128K output).
 
 **Core Design**: Single agent context isolation, no direct inter-agent communication, manual orchestration via Task tool.
 
@@ -24,10 +24,10 @@ MyConvergio is a collection of 60 specialized Claude Code subagents for enterpri
 ```
 MyConvergio/
 ├── .claude/
-│   ├── agents/              # 60 subagents (single source of truth)
+│   ├── agents/              # 65 subagents (single source of truth)
 │   ├── rules/               # Path-specific rules (guardian, coding-standards)
 │   ├── skills/              # Reusable workflows (code-review, debugging, etc.)
-│   ├── scripts/             # Digest scripts + utilities (70+ scripts)
+│   ├── scripts/             # Digest scripts + utilities (89 scripts)
 │   ├── reference/           # On-demand reference docs (read when needed)
 │   └── settings-templates/  # Hardware profiles (low/mid/high-spec.json)
 ├── hooks/                   # Enforcement hooks (token optimization)
@@ -39,22 +39,22 @@ MyConvergio/
 
 ## Agent Categories
 
-| Category              | Count | Key Agents                                                         |
-| --------------------- | ----- | ------------------------------------------------------------------ |
-| leadership_strategy   | 7     | ali (orchestrator), antonio, satya, dan                            |
-| technical_development | 8     | baccio, rex, dario, otto, marco, paolo, luca, adversarial-debugger |
-| business_operations   | 11    | amy, anna, davide, marcello, oliver                                |
-| core_utility          | 9     | thor, strategic-planner, marcus, guardian                          |
-| release_management    | 2     | app-release-manager, feature-release-manager                       |
-| compliance_legal      | 5     | elena, dr-enzo, sophia                                             |
-| specialized_experts   | 13    | domik, behice, fiona, angela, ethan, evan, michael                 |
-| design_ux             | 3     | creative-director, ux-designer, design-thinking                    |
+| Category              | Count | Key Agents                                                                            |
+| --------------------- | ----- | ------------------------------------------------------------------------------------- |
+| leadership_strategy   | 7     | ali (orchestrator), antonio, satya, dan                                               |
+| technical_development | 9     | baccio, rex, dario, otto, marco, paolo, luca, adversarial-debugger, task-executor-tdd |
+| business_operations   | 11    | amy, anna, davide, marcello, oliver                                                   |
+| core_utility          | 11    | thor, strategic-planner, marcus, guardian, sentinel, thor-validation-gates            |
+| release_management    | 3     | app-release-manager, feature-release-manager, app-release-manager-execution           |
+| compliance_legal      | 5     | elena, dr-enzo, sophia                                                                |
+| specialized_experts   | 14    | domik, behice, fiona, angela, ethan, evan, michael, research-report-generator         |
+| design_ux             | 3     | creative-director, ux-designer, design-thinking                                       |
 
 ## Model Tiering
 
 - **opus** (2): Complex orchestration (ali, satya)
-- **sonnet** (21): Strategic specialists (architects, security, compliance)
-- **haiku** (34): Workers, quick tasks, operational agents
+- **sonnet** (24): Strategic specialists (architects, security, compliance)
+- **haiku** (37): Workers, quick tasks, operational agents
 
 ## Quick Start
 

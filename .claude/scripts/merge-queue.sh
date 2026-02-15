@@ -1,6 +1,7 @@
 #!/bin/bash
 # merge-queue.sh - Sequential merge with flock exclusion + SQLite state
 # Commands: enqueue|process|status|cancel|clean
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -85,23 +86,24 @@ cmd_process() {
 	# Use flock for process-level exclusion
 	exec 9>"$LOCK_FILE"
 	if ! flock -n 9; then
+		exec 9>&-
 		echo '{"error":"another merge process is running"}' >&2
 		return 1
 	fi
 
-	# Get next item (highest priority, oldest)
+	# Atomic: select and mark as processing in one operation
 	local next
 	next=$(db_query "
-		SELECT json_object('id', id, 'branch', branch, 'worktree_path', worktree_path,
-			'plan_id', plan_id)
-		FROM merge_queue
-		WHERE status='queued'
-		ORDER BY priority DESC, id ASC
-		LIMIT 1;
+		UPDATE merge_queue SET status='processing', started_at=datetime('now')
+		WHERE id = (SELECT id FROM merge_queue WHERE status='queued'
+			ORDER BY priority DESC, id ASC LIMIT 1)
+		RETURNING json_object('id', id, 'branch', branch, 'worktree_path', worktree_path,
+			'plan_id', plan_id);
 	")
 
 	if [[ -z "$next" || "$next" == "null" ]]; then
 		echo '{"status":"empty","message":"no items in queue"}'
+		exec 9>&-
 		return 0
 	fi
 
@@ -110,12 +112,6 @@ cmd_process() {
 	branch=$(echo "$next" | jq -r '.branch')
 	wt_path=$(echo "$next" | jq -r '.worktree_path')
 	plan_id=$(echo "$next" | jq -r '.plan_id')
-
-	# Mark as processing
-	db_query "
-		UPDATE merge_queue SET status='processing', started_at=datetime('now')
-		WHERE id=$q_id;
-	"
 
 	if [[ $dry_run -eq 1 ]]; then
 		# Dry run: check if merge would succeed

@@ -1,6 +1,7 @@
 #!/bin/bash
 # SubagentStart hook - inject common context into subagents
 # Replaces boilerplate removed from individual agent files
+# Version: 1.1.0
 set -euo pipefail
 
 source ~/.claude/hooks/lib/common.sh 2>/dev/null || true
@@ -19,15 +20,15 @@ CONTEXT="## Constitution
 
 # Add security reference for code-executing agents
 case "$AGENT_TYPE" in
-  task-executor*|Bash|app-release-manager*|mirrorbuddy*)
-    CONTEXT="${CONTEXT}
+task-executor* | Bash | app-release-manager* | mirrorbuddy*)
+	CONTEXT="${CONTEXT}
 ## Security
 - Parameterized queries only (no raw SQL)
 - No secrets in code or logs
 - CSP headers required for web
 - TLS 1.2+ for external calls
 - RBAC enforcement on all endpoints"
-    ;;
+	;;
 esac
 
 # Output JSON with additionalContext

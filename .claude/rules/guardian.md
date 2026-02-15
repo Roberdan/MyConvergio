@@ -24,5 +24,5 @@ All threads resolved. Build passes. ZERO debt (no TODO, FIXME, @ts-ignore).
 ## Guardrails
 
 Avatar WebP | EventSource .close() | Lazy-load heavy deps | No N+1 without $transaction
-Same approach fails twice -> different strategy. Stuck -> ask user.
+Same approach fails twice → different strategy. Stuck → ask user.
 Reject if: Errors suppressed | Steps skipped | Verification promised but not done

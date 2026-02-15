@@ -2,6 +2,7 @@
 # NPM Digest - Compact npm install/ci output as JSON
 # Captures install output server-side, returns only summary.
 # Usage: npm-digest.sh [install|ci|audit] [--no-cache] [extra-args...]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,23 +15,25 @@ CMD="${1:-install}"
 [[ "$CMD" == "--no-cache" ]] && {
 	NO_CACHE=1
 	CMD="${2:-install}"
+	shift 2>/dev/null || true
 }
 [[ "${2:-}" == "--no-cache" ]] && NO_CACHE=1
 shift 2>/dev/null || true
 
-# For audit, delegate to audit-digest.sh
+# For audit, delegate to audit-digest.sh (pass remaining args, skip CMD)
 if [[ "$CMD" == "audit" ]]; then
+	[[ "$NO_CACHE" -eq 1 ]] && exec "$SCRIPT_DIR/audit-digest.sh" --no-cache "$@"
 	exec "$SCRIPT_DIR/audit-digest.sh" "$@"
 fi
 
-CACHE_KEY="npm-${CMD}-$(pwd | md5sum 2>/dev/null | cut -c1-8 || echo 'x')"
+CACHE_KEY="npm-${CMD}-$(digest_hash "$(pwd)")"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0
 fi
 
 TMPLOG=$(mktemp)
-trap "rm -f '$TMPLOG'" EXIT
+trap "rm -f '$TMPLOG'" EXIT INT TERM
 
 # Run npm install/ci, capture ALL output to temp file
 EXIT_CODE=0
@@ -52,7 +55,7 @@ MODERATE=$(echo "$VULN_LINE" | grep -oE '[0-9]+ moderate' | grep -oE '[0-9]+' ||
 PEER_WARNS=$(grep -iE 'peer dep|ERESOLVE|peer.*required' "$TMPLOG" |
 	sed 's/^npm warn //' |
 	head -5 |
-	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:150])' 2>/dev/null || echo "[]")
+	jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:150])' 2>/dev/null) || PEER_WARNS="[]"
 
 # Extract errors if failed
 ERRORS="[]"
@@ -60,7 +63,7 @@ if [[ "$EXIT_CODE" -ne 0 ]]; then
 	ERRORS=$(grep -iE '^npm ERR!|error|ENOENT|EPERM|EACCES' "$TMPLOG" |
 		grep -viE 'npm warn|peer' |
 		head -5 |
-		jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null || echo "[]")
+		jq -R -s 'split("\n") | map(select(length > 0)) | map(.[0:200])' 2>/dev/null) || ERRORS="[]"
 fi
 
 STATUS="ok"

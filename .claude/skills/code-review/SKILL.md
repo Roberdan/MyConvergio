@@ -1,7 +1,14 @@
 ---
+name: code-review
+description: Comprehensive code review with security, patterns, and quality focus
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
 context: fork
-allowed-tools: ["Read", "Glob", "Grep", "Bash"]
 user-invocable: true
+version: "1.0.0"
 ---
 
 # Code Review Skill
@@ -9,9 +16,11 @@ user-invocable: true
 > Reusable workflow extracted from rex-code-reviewer expertise.
 
 ## Purpose
+
 Perform comprehensive code review with focus on quality, security, design patterns, and best practices to prevent bugs before merge.
 
 ## When to Use
+
 - Pull request reviews before merge
 - Code quality assessment for legacy code
 - Security vulnerability identification
@@ -58,12 +67,14 @@ Perform comprehensive code review with focus on quality, security, design patter
    - Acknowledge good patterns
 
 ## Inputs Required
+
 - **Code to review**: Pull request diff, file paths, or commit range
 - **Context**: Purpose of changes, related requirements
 - **Standards**: Team coding standards, style guides
 - **Scope**: Full review vs focused review (security, performance, etc.)
 
 ## Outputs Produced
+
 - **Review Report**: Detailed findings by severity with file:line references
 - **Security Issues**: Vulnerabilities flagged with severity levels
 - **Pattern Assessment**: Design pattern usage evaluation
@@ -73,6 +84,7 @@ Perform comprehensive code review with focus on quality, security, design patter
 ## Review Categories
 
 ### Severity Levels
+
 - **🔴 CRITICAL**: Must fix before merge - security issues, data loss risks, breaking bugs
 - **🟠 HIGH**: Should fix - significant maintainability or performance issues
 - **🟡 MEDIUM**: Consider fixing - code smell, minor inefficiencies
@@ -82,6 +94,7 @@ Perform comprehensive code review with focus on quality, security, design patter
 ## Checklist Format
 
 ### Security Checklist
+
 - [ ] No hardcoded secrets or credentials
 - [ ] Input validation and sanitization present
 - [ ] SQL injection prevention (parameterized queries)
@@ -91,6 +104,7 @@ Perform comprehensive code review with focus on quality, security, design patter
 - [ ] No security misconfigurations
 
 ### Quality Checklist
+
 - [ ] Code without tests is incomplete - tests present
 - [ ] Edge cases and error conditions handled
 - [ ] No hardcoded values - configuration used
@@ -100,6 +114,7 @@ Perform comprehensive code review with focus on quality, security, design patter
 - [ ] No scope creep - focused on specific change
 
 ### Performance Checklist
+
 - [ ] No N+1 query patterns
 - [ ] Appropriate indexing for queries
 - [ ] Efficient algorithms (check Big O)
@@ -132,6 +147,7 @@ Output:
 ```
 
 ## Related Agents
+
 - **rex-code-reviewer** - Full agent with reasoning and adaptation
 - **thor-quality-assurance-guardian** - Quality standards enforcement
 - **luca-security-expert** - Deep security analysis
@@ -139,6 +155,7 @@ Output:
 - **dario-debugger** - Root cause analysis support
 
 ## ISE Engineering Fundamentals Alignment
+
 - Every PR must be reviewed before merge
 - Improve code quality by identifying defects early
 - Foster learning through knowledge sharing

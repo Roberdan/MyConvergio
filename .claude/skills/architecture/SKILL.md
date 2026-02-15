@@ -1,7 +1,14 @@
 ---
+name: architecture
+description: Design scalable system architectures using DDD, Clean Architecture, cloud-native patterns
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - WebSearch
 context: fork
-allowed-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit"]
 user-invocable: true
+version: "1.0.0"
 ---
 
 # Architecture Design Skill
@@ -9,9 +16,11 @@ user-invocable: true
 > Reusable workflow extracted from baccio-tech-architect expertise.
 
 ## Purpose
+
 Design scalable, maintainable, and secure system architectures using proven patterns, with emphasis on Domain-Driven Design, Clean Architecture, and cloud-native principles.
 
 ## When to Use
+
 - New system or feature architecture design
 - Legacy system modernization planning
 - Technology stack selection
@@ -80,6 +89,7 @@ Design scalable, maintainable, and secure system architectures using proven patt
    - Create capacity planning guidelines
 
 ## Inputs Required
+
 - **Business requirements**: What problem are we solving?
 - **Non-functional requirements**: Performance, security, compliance needs
 - **Scale expectations**: Current and projected users, data volume, traffic
@@ -87,6 +97,7 @@ Design scalable, maintainable, and secure system architectures using proven patt
 - **Compliance**: Regulatory requirements (GDPR, HIPAA, SOC2, etc.)
 
 ## Outputs Produced
+
 - **Architecture Blueprint**: Comprehensive system design documentation
 - **ADR (Architecture Decision Records)**: Documented design decisions with rationale
 - **Technology Stack Recommendation**: Selected technologies with justification
@@ -98,6 +109,7 @@ Design scalable, maintainable, and secure system architectures using proven patt
 ## Architecture Patterns Catalog
 
 ### Architectural Styles
+
 - **Monolithic Architecture**: Single deployable unit, simpler but less scalable
 - **Microservices**: Independent services, complex but highly scalable
 - **Serverless**: Event-driven, pay-per-use, highly elastic
@@ -105,6 +117,7 @@ Design scalable, maintainable, and secure system architectures using proven patt
 - **Service-Oriented Architecture (SOA)**: Enterprise service bus pattern
 
 ### Design Patterns
+
 - **Domain-Driven Design (DDD)**: Bounded contexts, aggregates, entities
 - **Clean Architecture**: Dependency inversion, layers, boundaries
 - **CQRS**: Command Query Responsibility Segregation
@@ -114,6 +127,7 @@ Design scalable, maintainable, and secure system architectures using proven patt
 - **Backend for Frontend (BFF)**: API per client type
 
 ### Communication Patterns
+
 - **Synchronous**: REST, GraphQL, gRPC
 - **Asynchronous**: Message queues, event streams (Kafka, RabbitMQ)
 - **Pub/Sub**: Event-driven communication
@@ -125,9 +139,11 @@ Design scalable, maintainable, and secure system architectures using proven patt
 ## Decision: [Technology/Pattern Choice]
 
 ### Context
+
 [What problem are we solving? What are the constraints?]
 
 ### Options Considered
+
 1. **Option A**: [Description]
    - Pros: [Benefits]
    - Cons: [Drawbacks]
@@ -139,9 +155,11 @@ Design scalable, maintainable, and secure system architectures using proven patt
    - Cost: [Time/Money/Complexity]
 
 ### Decision
+
 [Chosen option with rationale]
 
 ### Consequences
+
 - Positive: [Expected benefits]
 - Negative: [Known drawbacks]
 - Mitigation: [How we address drawbacks]
@@ -150,18 +168,21 @@ Design scalable, maintainable, and secure system architectures using proven patt
 ## Non-Functional Requirements Checklist
 
 ### Performance
+
 - [ ] Response time SLA defined (e.g., P95 < 200ms)
 - [ ] Throughput requirements specified
 - [ ] Scalability targets identified
 - [ ] Performance testing strategy defined
 
 ### Availability
+
 - [ ] Uptime SLA defined (e.g., 99.9%)
 - [ ] Redundancy strategy planned
 - [ ] Failover mechanisms designed
 - [ ] Disaster recovery plan created
 
 ### Security
+
 - [ ] Authentication mechanism selected
 - [ ] Authorization model defined
 - [ ] Data encryption strategy planned
@@ -169,6 +190,7 @@ Design scalable, maintainable, and secure system architectures using proven patt
 - [ ] Penetration testing planned
 
 ### Observability
+
 - [ ] Logging strategy defined
 - [ ] Metrics collection planned
 - [ ] Distributed tracing implemented
@@ -176,6 +198,7 @@ Design scalable, maintainable, and secure system architectures using proven patt
 - [ ] Alerting configured
 
 ### Maintainability
+
 - [ ] Code organization standards defined
 - [ ] Testing strategy established
 - [ ] Documentation requirements specified
@@ -207,17 +230,19 @@ Output: Comprehensive architecture blueprint with ADRs and diagrams
 ## Tech Stack Selection Criteria
 
 ### Evaluation Matrix
-| Criterion | Weight | Option A | Option B | Option C |
-|-----------|--------|----------|----------|----------|
-| Team expertise | 20% | 8/10 | 5/10 | 6/10 |
-| Scalability | 25% | 9/10 | 7/10 | 8/10 |
-| Cost | 15% | 6/10 | 9/10 | 7/10 |
-| Community support | 10% | 9/10 | 8/10 | 6/10 |
-| Compliance fit | 15% | 8/10 | 7/10 | 9/10 |
-| Vendor lock-in | 15% | 7/10 | 5/10 | 8/10 |
-| **Total** | 100% | **7.9** | **6.9** | **7.5** |
+
+| Criterion         | Weight | Option A | Option B | Option C |
+| ----------------- | ------ | -------- | -------- | -------- |
+| Team expertise    | 20%    | 8/10     | 5/10     | 6/10     |
+| Scalability       | 25%    | 9/10     | 7/10     | 8/10     |
+| Cost              | 15%    | 6/10     | 9/10     | 7/10     |
+| Community support | 10%    | 9/10     | 8/10     | 6/10     |
+| Compliance fit    | 15%    | 8/10     | 7/10     | 9/10     |
+| Vendor lock-in    | 15%    | 7/10     | 5/10     | 8/10     |
+| **Total**         | 100%   | **7.9**  | **6.9**  | **7.5**  |
 
 ## Related Agents
+
 - **baccio-tech-architect** - Full agent with reasoning and decision-making
 - **luca-security-expert** - Security architecture validation
 - **dan-engineering-gm** - Engineering leadership alignment
@@ -225,6 +250,7 @@ Output: Comprehensive architecture blueprint with ADRs and diagrams
 - **domik-mckinsey-strategic-decision-maker** - Strategic technology decisions
 
 ## ISE Engineering Fundamentals Alignment
+
 - Document Architecture Decision Records (ADRs)
 - Apply proven design patterns
 - Conduct trade studies before major decisions

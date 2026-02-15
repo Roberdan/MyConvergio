@@ -2,6 +2,7 @@
 # Supabase CLI wrapper with common operations
 # Replaces Supabase MCP (5k token overhead)
 
+# Version: 1.0.0
 set -euo pipefail
 
 # Check if supabase CLI is installed

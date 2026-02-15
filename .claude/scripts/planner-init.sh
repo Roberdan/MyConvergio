@@ -3,6 +3,7 @@
 # Returns JSON with everything the planner needs in ONE call
 # Usage: planner-init.sh [project_path]
 
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,45 +16,48 @@ PROJECT_PATH="$(cd "$PROJECT_PATH" && pwd)"
 FOLDER_NAME=$(basename "$PROJECT_PATH")
 PROJECT_ID=$(echo "$FOLDER_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-')
 
+# SQL escape helper
+sql_escape() { echo "${1//\'/\'\'}"; }
+SAFE_PROJECT_ID=$(sql_escape "$PROJECT_ID")
+
 # Auto-register if not in DB
 PROJECT_EXISTS=$(sqlite3 "$DB_FILE" \
-	"SELECT COUNT(*) FROM projects WHERE id='$PROJECT_ID';" 2>/dev/null || echo "0")
+	"SELECT COUNT(*) FROM projects WHERE id='$SAFE_PROJECT_ID';" 2>/dev/null || echo "0")
 if [[ "$PROJECT_EXISTS" == "0" ]]; then
 	"$SCRIPT_DIR/register-project.sh" "$PROJECT_PATH" >/dev/null 2>&1 || true
 fi
-
-# Project info
-PROJECT_NAME=$(sqlite3 "$DB_FILE" \
-	"SELECT name FROM projects WHERE id='$PROJECT_ID';" 2>/dev/null || echo "$FOLDER_NAME")
 
 # Git info
 GIT_BRANCH=$(cd "$PROJECT_PATH" && git branch --show-current 2>/dev/null || echo "none")
 GIT_REMOTE=$(cd "$PROJECT_PATH" && git remote get-url origin 2>/dev/null || echo "")
 
-# Active plans (SQLite JSON functions)
-ACTIVE_PLANS=$(sqlite3 "$DB_FILE" "
-    SELECT COALESCE(json_group_array(json_object(
-        'id', id, 'name', name, 'status', status,
-        'progress', tasks_done || '/' || tasks_total,
-        'worktree_path', COALESCE(worktree_path, '')
-    )), '[]') FROM (
-        SELECT * FROM plans
-        WHERE project_id='$PROJECT_ID' AND status IN ('todo','doing')
-        ORDER BY id DESC LIMIT 5
-    );
-" 2>/dev/null || echo "[]")
+# Combined DB query: project name + active plans + recent plans
+PLAN_DATA=$(sqlite3 -json "$DB_FILE" "
+    SELECT
+        (SELECT COALESCE(name, '') FROM projects WHERE id='$SAFE_PROJECT_ID') as project_name,
+        (SELECT COALESCE(json_group_array(json_object(
+            'id', id, 'name', name, 'status', status,
+            'progress', tasks_done || '/' || tasks_total,
+            'worktree_path', COALESCE(worktree_path, '')
+        )), '[]') FROM (
+            SELECT * FROM plans
+            WHERE project_id='$SAFE_PROJECT_ID' AND status IN ('todo','doing')
+            ORDER BY id DESC LIMIT 5
+        )) as active_plans,
+        (SELECT COALESCE(json_group_array(json_object(
+            'id', id, 'name', name,
+            'completed_at', COALESCE(completed_at, '')
+        )), '[]') FROM (
+            SELECT * FROM plans
+            WHERE project_id='$SAFE_PROJECT_ID' AND status='done'
+            ORDER BY completed_at DESC LIMIT 3
+        )) as recent_plans
+;" 2>/dev/null || echo '[{}]')
 
-# Recent completed plans
-RECENT_PLANS=$(sqlite3 "$DB_FILE" "
-    SELECT COALESCE(json_group_array(json_object(
-        'id', id, 'name', name,
-        'completed_at', COALESCE(completed_at, '')
-    )), '[]') FROM (
-        SELECT * FROM plans
-        WHERE project_id='$PROJECT_ID' AND status='done'
-        ORDER BY completed_at DESC LIMIT 3
-    );
-" 2>/dev/null || echo "[]")
+PROJECT_NAME=$(echo "$PLAN_DATA" | jq -r '.[0].project_name // ""' 2>/dev/null)
+[[ -z "$PROJECT_NAME" ]] && PROJECT_NAME="$FOLDER_NAME"
+ACTIVE_PLANS=$(echo "$PLAN_DATA" | jq -r '.[0].active_plans // "[]"' 2>/dev/null || echo "[]")
+RECENT_PLANS=$(echo "$PLAN_DATA" | jq -r '.[0].recent_plans // "[]"' 2>/dev/null || echo "[]")
 
 # Worktrees
 WORKTREES="[]"

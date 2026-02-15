@@ -3,6 +3,7 @@
 # Usage: worktree-check.sh [expected-worktree-name]
 # Returns: 0 if OK, 1 if mismatch or problems
 
+# Version: 1.0.0
 set -uo pipefail
 # Note: -e removed to allow grep failures without exit
 

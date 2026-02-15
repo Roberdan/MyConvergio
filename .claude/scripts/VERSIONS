@@ -1,0 +1,100 @@
+# Script Version Registry
+# Updated: 2026-02-15
+# Format: <script-path> <version>
+#
+# Versioning: semver (MAJOR.MINOR.PATCH)
+#   1.0.0 = initial baseline
+#   1.1.0 = security/bug fixes (2026-02-15 audit)
+#   1.2.0 = plan-db core optimization (2026-02-15)
+#   1.3.0 = DB performance PRAGMAs (2026-02-15)
+#
+# To regenerate:
+#   grep -h '# Version:' scripts/*.sh scripts/lib/*.sh | sort
+
+audit-digest.sh                                    1.1.0
+build-digest.sh                                    1.1.0
+ci-check.sh                                        1.1.0
+ci-digest.sh                                       1.1.0
+claude-monitor.sh                                  1.1.0
+claude-parallel.sh                                 1.0.0
+cleanup-cache.sh                                   1.1.0
+collect-all.sh                                     1.1.0
+collect-debt.sh                                    1.1.0
+collect-git.sh                                     1.0.0
+collect-github.sh                                  1.0.0
+collect-quality.sh                                 1.1.0
+collect-tests.sh                                   1.1.0
+context-audit.sh                                   1.1.0
+context-check.sh                                   1.1.0
+copilot-sync.sh                                    1.1.0
+copilot-task-prompt.sh                             1.0.0
+copilot-worker.sh                                  1.0.0
+dashboard-mini.sh                                  1.1.0
+deploy-digest.sh                                   1.1.0
+detect-terminal.sh                                 1.0.0
+diff-digest.sh                                     1.1.0
+error-digest.sh                                    1.1.0
+execution-monitor.sh                               1.1.0
+executor-tracking.sh                               1.1.0
+file-lock.sh                                       1.1.0
+fix-counters.sh                                    1.1.0
+generate-task-md.sh                                1.1.0
+git-digest.sh                                      1.1.0
+grafana-helper.sh                                  1.0.0
+init-dashboard-db.sh                               1.1.0
+install-missing-tools.sh                           1.1.0
+kitty-check.sh                                     1.0.0
+memory-save.sh                                     1.1.0
+merge-digest.sh                                    1.1.0
+merge-queue.sh                                     1.1.0
+migrate-db.sh                                      1.1.0
+migrate-plans.sh                                   1.1.0
+migrate-tasks-fk.sh                                1.1.0
+migrate-v4-host.sh                                 1.1.0
+migrate-v4.sh                                      1.1.0
+migrate-v5-cluster.sh                              1.1.0
+migrate-v5-concurrency.sh                          1.1.0
+migrate-wave-fk.sh                                 1.1.0
+migration-digest.sh                                1.1.0
+npm-digest.sh                                      1.1.0
+orchestrate.sh                                     1.1.0
+plan-db-autosync.sh                                1.1.0
+plan-db.sh                                         1.2.0
+planner-init.sh                                    1.1.0
+pr-digest.sh                                       1.0.0
+register-project.sh                                1.1.0
+repo-index.sh                                      1.1.0
+sentry-digest.sh                                   1.0.0
+service-digest.sh                                  1.1.0
+session-cleanup.sh                                 1.1.0
+stale-check.sh                                     1.1.0
+supabase-helper.sh                                 1.0.0
+sync-claude-config.sh                              1.1.0
+sync-dashboard-db.sh                               1.1.0
+task-quick.sh                                      1.0.0
+test-digest.sh                                     1.1.0
+thor-validate.sh                                   1.1.0
+tmux-monitor.sh                                    1.0.0
+tmux-parallel.sh                                   1.0.0
+tmux-send-all.sh                                   1.1.0
+track-plan-change.sh                               1.1.0
+vercel-helper.sh                                   1.0.0
+verify-task-update.sh                              1.0.0
+wave-overlap.sh                                    1.1.0
+worker-launch.sh                                   1.0.0
+worktree-check.sh                                  1.0.0
+worktree-cleanup.sh                                1.1.0
+worktree-create.sh                                 1.0.0
+worktree-guard.sh                                  1.1.0
+worktree-merge-check.sh                            1.1.0
+lib/colors.sh                                      1.0.0
+lib/digest-cache.sh                                1.1.0
+lib/plan-db-cluster.sh                             1.1.0
+lib/plan-db-conflicts.sh                           1.2.0
+lib/plan-db-core.sh                                1.3.0
+lib/plan-db-crud.sh                                1.2.0
+lib/plan-db-display.sh                             1.2.0
+lib/plan-db-drift.sh                               1.2.0
+lib/plan-db-import.sh                              1.2.0
+lib/plan-db-remote.sh                              1.1.0
+lib/plan-db-validate.sh                            1.2.0

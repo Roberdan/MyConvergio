@@ -1,8 +1,12 @@
 -- Dashboard SQLite Schema
--- Version: 2.0 | Created: 3 Gennaio 2026
+-- Version: 1.3.0 | Created: 3 Gennaio 2026
 
 PRAGMA foreign_keys = ON;
 PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
+PRAGMA cache_size = -8000;       -- 8MB cache (default 2MB)
+PRAGMA temp_store = MEMORY;      -- temp tables in RAM
+PRAGMA mmap_size = 268435456;    -- 256MB memory-mapped I/O
 
 -- Projects table
 CREATE TABLE IF NOT EXISTS projects (
@@ -117,13 +121,16 @@ SELECT
   metric_name,
   metric_value,
   recorded_at
-FROM metrics_history m1
-WHERE recorded_at = (
-  SELECT MAX(recorded_at)
-  FROM metrics_history m2
-  WHERE m2.project_id = m1.project_id
-  AND m2.metric_name = m1.metric_name
-);
+FROM (
+  SELECT
+    project_id,
+    metric_name,
+    metric_value,
+    recorded_at,
+    ROW_NUMBER() OVER (PARTITION BY project_id, metric_name ORDER BY recorded_at DESC) AS rn
+  FROM metrics_history
+)
+WHERE rn = 1;
 
 -- Plans table for centralized plan management
 CREATE TABLE IF NOT EXISTS plans (
@@ -236,3 +243,15 @@ CREATE INDEX IF NOT EXISTS idx_notifications_project ON notifications(project_id
 CREATE INDEX IF NOT EXISTS idx_conversation_logs_session ON conversation_logs(project_id, session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_token_usage_project ON token_usage(project_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_token_usage_task ON token_usage(task_id, recorded_at DESC);
+
+-- Indexes for task/wave lookups
+CREATE INDEX IF NOT EXISTS idx_tasks_wave_fk ON tasks(wave_id_fk);
+CREATE INDEX IF NOT EXISTS idx_tasks_plan ON tasks(plan_id);
+CREATE INDEX IF NOT EXISTS idx_waves_plan ON waves(plan_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+
+-- Covering index for frequent plan+status+wave queries
+CREATE INDEX IF NOT EXISTS idx_tasks_plan_status ON tasks(plan_id, status, wave_id_fk);
+
+-- Alias views for common agent naming mistakes
+CREATE VIEW IF NOT EXISTS plan_tasks AS SELECT * FROM tasks;

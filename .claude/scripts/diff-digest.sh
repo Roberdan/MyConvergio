@@ -5,6 +5,7 @@
 #   diff-digest.sh                    # diff vs main
 #   diff-digest.sh main feature/x     # diff between branches
 #   diff-digest.sh HEAD~3             # last 3 commits
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,7 +23,7 @@ HEAD="${2:-HEAD}"
 }
 [[ "${3:-}" == "--no-cache" ]] && NO_CACHE=1
 
-CACHE_KEY="diff-$(echo "${BASE}..${HEAD}" | md5sum 2>/dev/null | cut -c1-8 || echo 'x')"
+CACHE_KEY="diff-$(digest_hash "${BASE}..${HEAD}")"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0
@@ -46,14 +47,18 @@ if [[ -z "$NUMSTAT" ]]; then
 fi
 
 # Parse numstat into JSON: [{file, add, del}] sorted by total changes desc
-FILES_JSON=$(echo "$NUMSTAT" | awk '{
-	add=$1; del=$2; file=$3;
-	if (add == "-") add=0;
-	if (del == "-") del=0;
-	total=add+del;
-	printf "{\"file\":\"%s\",\"add\":%d,\"del\":%d,\"total\":%d}\n", file, add, del, total
-}' | sort -t: -k4 -nr |
-	jq -s '.' 2>/dev/null || echo "[]")
+FILES_JSON=$(echo "$NUMSTAT" | jq -R -s '
+	split("\n") | map(select(length > 0)) | map(
+		split("\t") |
+		{
+			file: .[2],
+			add: (if .[0] == "-" then 0 else (.[0] | tonumber) end),
+			del: (if .[1] == "-" then 0 else (.[1] | tonumber) end),
+			binary: (.[0] == "-"),
+			total: (if .[0] == "-" then 0 else (.[0] | tonumber) end) +
+			       (if .[1] == "-" then 0 else (.[1] | tonumber) end)
+		}
+	) | sort_by(-.total)' 2>/dev/null || echo "[]")
 
 # Totals
 FILES_CHANGED=$(echo "$FILES_JSON" | jq 'length' 2>/dev/null || echo 0)

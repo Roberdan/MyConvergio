@@ -116,11 +116,26 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.claude/scripts/context-audit.sh --maintenance",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "~/.claude/hooks/version-check.sh",
             "timeout": 10
           }
         ]
       }
     ]
-  }
+  },
+  "_statusLine_comment": "Optional: statusLine provides real-time info in the CLI. Customize the command for your needs.",
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); model=$(echo \"$input\" | jq -r '.model.display_name'); ctx=$(echo \"$input\" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1); ctxmax=$(echo \"$input\" | jq -r '.context_window.total // 200000'); branch=''; if [ -d \"$cwd/.git\" ]; then cd \"$cwd\" 2>/dev/null && branch=$(git branch --show-current 2>/dev/null); fi; cost=''; if command -v awk >/dev/null 2>&1; then toks=$(awk \"BEGIN{printf \\\"%d\\\", $ctxmax * $ctx / 100}\"); case \"$model\" in *Opus*) cost=$(awk \"BEGIN{printf \\\"$%.2f\\\", $toks*0.000015 + $toks*0.25*0.000075}\");; *) cost=$(awk \"BEGIN{printf \\\"$%.2f\\\", $toks*0.000003 + $toks*0.25*0.000015}\");; esac; fi; printf '\\033[2;38;5;117m%s\\033[0m' \"$(basename \"$cwd\")${branch:+ ($branch)} • $model • ctx:${ctx}%${cost:+ ~$cost}\""
+  },
+  "effortLevel": "medium"
 }

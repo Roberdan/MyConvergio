@@ -1,7 +1,11 @@
 #!/bin/bash
+# ARCHIVED: Migration already applied. Kept for reference only.
+# This script should not be run again on existing databases.
+#
 # Migration v5: Add concurrency control tables
 # Tables: file_locks, file_snapshots, merge_queue
 # Idempotent: safe to run multiple times
+# Version: 1.1.0
 set -euo pipefail
 
 DB_FILE="${HOME}/.claude/data/dashboard.db"

@@ -2,9 +2,11 @@
 # Worktree Guard - Warns on main operations with active worktrees
 # Hook for PreToolUse on Bash commands
 # Exit 2 = BLOCK, Exit 0 = ALLOW
+# Version: 1.1.0
 #
 # POLICY: Warn, don't block. NEVER suggest deleting worktrees.
 # Other agents/sessions may be using them.
+set -uo pipefail
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null || echo "")

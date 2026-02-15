@@ -2,6 +2,7 @@
 # Version Check Hook - Detects Claude Code updates
 # Runs in Setup hook. Compares current version against last known.
 # If different, notifies user to run @sentinel-ecosystem-guardian.
+# Version: 1.1.0
 set -euo pipefail
 
 VERSION_FILE="$HOME/.claude/data/.claude-code-version"

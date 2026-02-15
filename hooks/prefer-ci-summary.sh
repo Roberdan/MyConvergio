@@ -2,9 +2,11 @@
 # prefer-ci-summary.sh - PreToolUse hook on Bash
 # Intercepts verbose commands and suggests token-efficient alternatives.
 # Block = exit 2. Hint = exit 0. Allow = exit 0.
+# Version: 1.1.0
 #
 # IMPORTANT: Block rules check BASE_CMD (before pipe), so
 # "gh run view --log-failed | tail -200" is STILL blocked.
+set -uo pipefail
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
@@ -37,14 +39,17 @@ if echo "$BASE_CMD" | grep -qE "gh run view.*--log"; then
 	exit 2
 fi
 
-# === BLOCK: PR COMMENTS ===
+# === BLOCK: PR COMMENTS (read only, allow writes with -f/-F/-X POST) ===
 if echo "$BASE_CMD" | grep -qE "gh pr view.*--comments"; then
 	echo "TOKEN-WASTE: Use 'service-digest.sh pr <pr-number>' instead." >&2
 	exit 2
 fi
 if echo "$BASE_CMD" | grep -qE "gh api.*pulls/[0-9]+/(comments|reviews)"; then
-	echo "TOKEN-WASTE: Use 'service-digest.sh pr <pr-number>' instead." >&2
-	exit 2
+	# Allow write operations (replies, posting comments)
+	if ! echo "$COMMAND" | grep -qE " -[fF] | --method | -X "; then
+		echo "TOKEN-WASTE: Use 'service-digest.sh pr <pr-number>' instead." >&2
+		exit 2
+	fi
 fi
 
 # Allow other gh commands (gh pr create, gh pr list, gh run list, etc.)
@@ -114,8 +119,14 @@ if echo "$BASE_CMD" | grep -qE "^git diff"; then
 fi
 
 # === BLOCK: PRISMA/DRIZZLE ===
+# Allow: migrate dev --create-only (creates SQL file, minimal output)
+# Allow: migrate diff (read-only comparison, no DB changes)
+if echo "$COMMAND" | grep -qE "prisma migrate (dev.*--create-only|diff)"; then
+	exit 0
+fi
 if echo "$BASE_CMD" | grep -qE "^npx (prisma|drizzle-kit) (migrate|db push|generate|check)"; then
 	echo "TOKEN-WASTE: Use 'migration-digest.sh' instead." >&2
+	echo "  For new migrations: npx prisma migrate dev --name <name> --create-only" >&2
 	exit 2
 fi
 

@@ -1,6 +1,8 @@
 #!/bin/bash
 # Warn when Claude uses bash commands that should be tool calls
 # Hook type: PreToolUse on Bash
+# Version: 1.1.0
+set -uo pipefail
 
 # Get command from stdin (Claude passes tool input as JSON)
 INPUT=$(cat)
@@ -11,14 +13,14 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 
 # Check patterns and suggest tools
 check_pattern() {
-    local pattern="$1"
-    local tool="$2"
-    if echo "$COMMAND" | grep -qE "$pattern" 2>/dev/null; then
-        echo "ANTIPATTERN: Use $tool tool instead of bash"
-        echo "Command: $COMMAND"
-        return 0
-    fi
-    return 1
+	local pattern="$1"
+	local tool="$2"
+	if echo "$COMMAND" | grep -qE "$pattern" 2>/dev/null; then
+		echo "ANTIPATTERN: Use $tool tool instead of bash"
+		echo "Command: $COMMAND"
+		return 0
+	fi
+	return 1
 }
 
 # File search patterns -> Glob

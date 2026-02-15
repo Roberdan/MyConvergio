@@ -1,7 +1,14 @@
 ---
+name: security-audit
+description: OWASP-aligned security assessments with vulnerability analysis and remediation
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
 context: fork
-allowed-tools: ["Read", "Glob", "Grep", "Bash"]
 user-invocable: true
+version: "1.0.0"
 ---
 
 # Security Audit Skill
@@ -9,9 +16,11 @@ user-invocable: true
 > Reusable workflow extracted from luca-security-expert expertise.
 
 ## Purpose
+
 Conduct comprehensive security assessments to identify vulnerabilities, assess risks, and provide remediation strategies aligned with OWASP, zero-trust principles, and compliance requirements.
 
 ## When to Use
+
 - Pre-release security validation
 - Post-incident security review
 - Compliance audit preparation (SOC2, ISO27001, GDPR)
@@ -83,6 +92,7 @@ Conduct comprehensive security assessments to identify vulnerabilities, assess r
    - Update security baseline
 
 ## Inputs Required
+
 - **Scope**: Systems, applications, infrastructure to assess
 - **Authorization**: Written permission for security testing
 - **Access**: Test credentials, environment access
@@ -91,6 +101,7 @@ Conduct comprehensive security assessments to identify vulnerabilities, assess r
 - **Constraints**: Testing windows, off-limits areas
 
 ## Outputs Produced
+
 - **Security Assessment Report**: Comprehensive findings with evidence
 - **Risk Register**: Vulnerabilities ranked by severity and impact
 - **Remediation Roadmap**: Prioritized fixes with timelines
@@ -101,6 +112,7 @@ Conduct comprehensive security assessments to identify vulnerabilities, assess r
 ## OWASP Top 10 Checklist
 
 ### A01:2021 - Broken Access Control
+
 - [ ] Authentication required for all sensitive operations
 - [ ] Authorization checks on server-side (not just client)
 - [ ] Principle of least privilege enforced
@@ -108,6 +120,7 @@ Conduct comprehensive security assessments to identify vulnerabilities, assess r
 - [ ] CORS configured properly
 
 ### A02:2021 - Cryptographic Failures
+
 - [ ] Sensitive data encrypted at rest
 - [ ] TLS/HTTPS enforced for data in transit
 - [ ] Strong cryptographic algorithms (AES-256, RSA-2048+)
@@ -115,6 +128,7 @@ Conduct comprehensive security assessments to identify vulnerabilities, assess r
 - [ ] Proper key management and rotation
 
 ### A03:2021 - Injection
+
 - [ ] All inputs validated and sanitized
 - [ ] Parameterized queries used (no string concatenation)
 - [ ] ORM used correctly (no raw SQL injection)
@@ -122,12 +136,14 @@ Conduct comprehensive security assessments to identify vulnerabilities, assess r
 - [ ] NoSQL injection prevention
 
 ### A04:2021 - Insecure Design
+
 - [ ] Threat modeling conducted
 - [ ] Security requirements defined
 - [ ] Secure design patterns applied
 - [ ] Security by design, not as afterthought
 
 ### A05:2021 - Security Misconfiguration
+
 - [ ] Default credentials changed
 - [ ] Error messages don't leak sensitive info
 - [ ] Security headers configured (CSP, HSTS, X-Frame-Options)
@@ -135,12 +151,14 @@ Conduct comprehensive security assessments to identify vulnerabilities, assess r
 - [ ] Software up to date with security patches
 
 ### A06:2021 - Vulnerable and Outdated Components
+
 - [ ] Dependency inventory maintained (SBOM)
 - [ ] Automated vulnerability scanning
 - [ ] Regular updates applied
 - [ ] No known CVEs in dependencies
 
 ### A07:2021 - Identification and Authentication Failures
+
 - [ ] Multi-factor authentication available
 - [ ] Password complexity requirements enforced
 - [ ] Rate limiting on login attempts
@@ -148,12 +166,14 @@ Conduct comprehensive security assessments to identify vulnerabilities, assess r
 - [ ] Credential stuffing prevention
 
 ### A08:2021 - Software and Data Integrity Failures
+
 - [ ] Code signing implemented
 - [ ] CI/CD pipeline secured
 - [ ] Dependency integrity verified (checksums)
 - [ ] Auto-update mechanism secured
 
 ### A09:2021 - Security Logging and Monitoring Failures
+
 - [ ] Security events logged (login, access control)
 - [ ] Logs protected from tampering
 - [ ] Real-time alerting for anomalies
@@ -161,6 +181,7 @@ Conduct comprehensive security assessments to identify vulnerabilities, assess r
 - [ ] SIEM integration
 
 ### A10:2021 - Server-Side Request Forgery (SSRF)
+
 - [ ] URL validation and allowlisting
 - [ ] Network segmentation
 - [ ] Disable unused URL schemas
@@ -168,14 +189,15 @@ Conduct comprehensive security assessments to identify vulnerabilities, assess r
 
 ## Risk Rating Matrix
 
-| Severity | Likelihood | Impact | Action Required |
-|----------|-----------|--------|-----------------|
-| **Critical** | High + High | Data breach, system compromise | Fix within 24 hours |
-| **High** | High + Medium or Medium + High | Significant security risk | Fix within 7 days |
-| **Medium** | Medium + Medium or Low + High | Moderate security concern | Fix within 30 days |
-| **Low** | Low + Low or Low + Medium | Minor security issue | Fix in next release |
+| Severity     | Likelihood                     | Impact                         | Action Required     |
+| ------------ | ------------------------------ | ------------------------------ | ------------------- |
+| **Critical** | High + High                    | Data breach, system compromise | Fix within 24 hours |
+| **High**     | High + Medium or Medium + High | Significant security risk      | Fix within 7 days   |
+| **Medium**   | Medium + Medium or Low + High  | Moderate security concern      | Fix within 30 days  |
+| **Low**      | Low + Low or Low + Medium      | Minor security issue           | Fix in next release |
 
 ### Risk Calculation
+
 - **Likelihood**: How probable is exploitation? (Low, Medium, High)
 - **Impact**: What damage if exploited? (Low, Medium, High, Critical)
 - **Risk Score**: Likelihood × Impact = Priority
@@ -211,24 +233,28 @@ Remediation roadmap provided with 24h timeline for critical fixes
 ## Security Testing Tools
 
 ### Vulnerability Scanning
+
 - **OWASP ZAP**: Web application scanner
 - **Burp Suite**: Penetration testing toolkit
 - **Nmap**: Network scanning
 - **Nikto**: Web server scanner
 
 ### Code Analysis
+
 - **SonarQube**: Static code analysis
 - **Snyk**: Dependency vulnerability scanning
 - **Semgrep**: Pattern-based code scanning
 - **GitHub Advanced Security**: CodeQL scanning
 
 ### Infrastructure
+
 - **Trivy**: Container/IaC scanning
 - **Checkov**: Infrastructure as Code scanner
 - **AWS Security Hub**: Cloud security posture
 - **Prowler**: AWS security assessment
 
 ### Authentication Testing
+
 - **Hydra**: Brute force testing
 - **John the Ripper**: Password cracking
 - **Hashcat**: Hash cracking
@@ -244,28 +270,33 @@ Remediation roadmap provided with 24h timeline for critical fixes
 ## Compliance Frameworks
 
 ### GDPR (Data Privacy)
+
 - Data protection by design and by default
 - Right to erasure (delete user data)
 - Data breach notification (72 hours)
 - Privacy impact assessments
 
 ### SOC2 (Security Controls)
+
 - Security, availability, processing integrity
 - Confidentiality, privacy
 - Annual audits required
 
 ### ISO27001 (Information Security)
+
 - 114 security controls across 14 domains
 - Risk management framework
 - Continuous improvement cycle
 
 ### PCI-DSS (Payment Card)
+
 - Build and maintain secure network
 - Protect cardholder data
 - Vulnerability management program
 - Regular monitoring and testing
 
 ## Related Agents
+
 - **luca-security-expert** - Full agent with reasoning and threat analysis
 - **rex-code-reviewer** - Code-level security review
 - **baccio-tech-architect** - Security architecture validation
@@ -273,6 +304,7 @@ Remediation roadmap provided with 24h timeline for critical fixes
 - **elena-legal-compliance-expert** - Regulatory compliance guidance
 
 ## ISE Engineering Fundamentals Alignment
+
 - Threat modeling (STRIDE/DREAD) for all features
 - Static and dynamic security testing in CI/CD
 - Shift-left security: checks early in pipeline

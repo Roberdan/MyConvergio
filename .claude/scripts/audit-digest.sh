@@ -2,26 +2,27 @@
 # Audit Digest - Compact npm audit output as JSON
 # Returns only actionable items: critical, high, fixable.
 # Usage: audit-digest.sh [--no-cache] [extra-args...]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/digest-cache.sh"
 
-CACHE_TTL=300
+CACHE_TTL=60
 NO_CACHE=0
 [[ "${1:-}" == "--no-cache" ]] && {
 	NO_CACHE=1
 	shift
 }
 
-CACHE_KEY="audit-$(pwd | md5sum 2>/dev/null | cut -c1-8 || echo 'x')"
+CACHE_KEY="audit-$(digest_hash "$(pwd)")"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0
 fi
 
 TMPLOG=$(mktemp)
-trap "rm -f '$TMPLOG'" EXIT
+trap "rm -f '$TMPLOG'" EXIT INT TERM
 
 # Run audit with JSON output (machine-parseable)
 npm audit --json "$@" >"$TMPLOG" 2>/dev/null || true

@@ -3,6 +3,7 @@
 # Usage: worktree-cleanup.sh [--plan <plan_id>] [--branch <branch>] [--all-merged] [--dry-run]
 # Called automatically by plan-db.sh complete, or manually after merge.
 
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -88,6 +89,12 @@ cleanup_worktree() {
 	if [[ "$DRY_RUN" -eq 1 ]]; then
 		echo -e "${BLUE}  DRY-RUN: Would remove worktree $wt_path and branch $branch${NC}"
 		return 0
+	fi
+
+	# Verify path is actually a registered worktree before removal
+	if ! git worktree list --porcelain | grep -qF "worktree $wt_path"; then
+		echo -e "${RED}  SKIP: $wt_path is not a registered worktree${NC}"
+		return 1
 	fi
 
 	# Remove worktree

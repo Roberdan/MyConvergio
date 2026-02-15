@@ -5,10 +5,11 @@ tools: ["Read", "Glob", "Grep", "Bash", "Task"]
 disallowedTools: ["Write", "Edit", "WebSearch", "WebFetch"]
 color: "#ef4444"
 model: sonnet
-version: "1.0.0"
+version: "1.1.0"
 context_isolation: true
 memory: project
-maxTurns: 20
+maxTurns: 25
+skills: ["debugging"]
 ---
 
 # Adversarial Debugger

@@ -1,17 +1,46 @@
 #!/bin/bash
-# Multi-Claude Orchestrator - Run FROM Kitty terminal
-# Usage: ~/.claude/scripts/orchestrate.sh <plan-file> [num-workers]
+# Multi-Worker Orchestrator - Run FROM Kitty terminal
+# Usage: orchestrate.sh <plan-file> [num-workers] [--engine claude|copilot|mixed]
 #
 # Prerequisites:
 #   1. Run from inside Kitty terminal
 #   2. Kitty config: allow_remote_control yes
-#   3. wildClaude alias available
+#   3. wildClaude alias (for claude engine)
+#   4. copilot CLI + GH_TOKEN (for copilot engine)
 
-set -e
+# Version: 1.1.0
+set -euo pipefail
 
-PLAN="${1:?Usage: orchestrate.sh <plan-file> [num-workers]}"
-NUM_WORKERS="${2:-4}"
+PLAN=""
+NUM_WORKERS=4
+ENGINE="claude"
 DIR="$(pwd)"
+
+# Parse args (positional + flags)
+while [[ $# -gt 0 ]]; do
+	case $1 in
+	--engine)
+		ENGINE="$2"
+		shift 2
+		;;
+	--cwd)
+		DIR="$2"
+		shift 2
+		;;
+	--*) shift 2 ;;
+	*)
+		if [[ -z "$PLAN" ]]; then
+			PLAN="$1"
+		else NUM_WORKERS="$1"; fi
+		shift
+		;;
+	esac
+done
+
+[[ -z "$PLAN" ]] && {
+	echo "Usage: orchestrate.sh <plan-file> [num-workers] [--engine claude|copilot|mixed]" >&2
+	exit 1
+}
 
 # Colors
 RED='\033[0;31m'
@@ -24,185 +53,166 @@ NC='\033[0m'
 log() { echo -e "${BLUE}[ORCHESTRATOR]${NC} $1"; }
 success() { echo -e "${GREEN}[✓]${NC} $1"; }
 warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-error() { echo -e "${RED}[✗]${NC} $1"; exit 1; }
+error() {
+	echo -e "${RED}[✗]${NC} $1"
+	exit 1
+}
 
-# Verify we're in Kitty
+# Verify Kitty + resolve commands
 check_kitty() {
-    if [ -z "$KITTY_PID" ]; then
-        error "Must run FROM INSIDE Kitty terminal!
-
-Open Kitty and run this script from there."
-    fi
-
-    if ! kitty @ ls &>/dev/null; then
-        error "Kitty remote control not enabled!
-
-Add to ~/.config/kitty/kitty.conf:
-  allow_remote_control yes
-  listen_on unix:/tmp/kitty-socket
-
-Then restart Kitty."
-    fi
-
-    success "Kitty remote control active"
+	[[ -z "$KITTY_PID" ]] && error "Must run from inside Kitty terminal"
+	kitty @ ls &>/dev/null || error "Kitty remote control not enabled (allow_remote_control yes)"
+	success "Kitty remote control active"
 }
 
-# Check wildClaude alias
 check_wildclaude() {
-    if ! command -v wildClaude &>/dev/null && ! alias wildClaude &>/dev/null; then
-        warn "wildClaude alias not found, using: claude --dangerously-skip-permissions"
-        CLAUDE_CMD="claude --dangerously-skip-permissions"
-    else
-        CLAUDE_CMD="wildClaude"
-    fi
-    success "Claude command: $CLAUDE_CMD"
+	CLAUDE_CMD="claude --dangerously-skip-permissions"
+	command -v wildClaude &>/dev/null && CLAUDE_CMD="wildClaude"
+	success "Claude: $CLAUDE_CMD"
 }
 
-# Launch a Claude worker in a new tab
+# Worker lifecycle
 launch_worker() {
-    local name="$1"
-    local task="$2"
-
-    log "Launching $name..."
-
-    # Launch in new tab with wildClaude
-    kitty @ launch --type=tab --title="$name" --cwd="$DIR" --keep-focus \
-        zsh -ic "$CLAUDE_CMD"
-
-    sleep 3  # Wait for Claude to initialize
-
-    # Send the task
-    kitty @ send-text --match "title:^${name}$" "$task
+	local name="$1" task="$2"
+	log "Launching $name..."
+	kitty @ launch --type=tab --title="$name" --cwd="$DIR" --keep-focus zsh -ic "$CLAUDE_CMD"
+	sleep 3
+	kitty @ send-text --match "title:^${name}$" "$task
 "
-
-    success "Task sent to $name"
+	success "$name launched"
 }
 
-# Read output from a worker
-read_worker() {
-    local name="$1"
-    kitty @ get-text --match "title:^${name}$" --extent=screen 2>/dev/null
-}
+read_worker() { kitty @ get-text --match "title:^${1}$" --extent=screen 2>/dev/null; }
 
-# Check if worker completed
 is_complete() {
-    local name="$1"
-    local output=$(read_worker "$name")
-
-    if echo "$output" | grep -qE "✅|DONE|All.*complete|tasks? complete"; then
-        return 0
-    fi
-    return 1
+	local output
+	output=$(read_worker "$1")
+	echo "$output" | grep -qE "^DONE$|^### WORKER DONE ###$"
 }
 
-# Check if worker has error
 has_error() {
-    local name="$1"
-    local output=$(read_worker "$name")
-
-    if echo "$output" | grep -qiE "error:|failed|Error:|FAILED"; then
-        return 0
-    fi
-    return 1
+	local output
+	output=$(read_worker "$1")
+	echo "$output" | grep -qiE "error:|failed|FAILED"
 }
 
 # Monitor all workers
 monitor_workers() {
-    local workers=("$@")
+	local workers=("$@")
 
-    log "Monitoring ${#workers[@]} workers..."
-    echo ""
+	local max_wait="${ORCHESTRATE_TIMEOUT:-3600}"
+	local start_time
+	start_time=$(date +%s)
 
-    while true; do
-        local all_done=true
-        local status_line=""
+	log "Monitoring ${#workers[@]} workers... (timeout: ${max_wait}s)"
+	echo ""
 
-        for worker in "${workers[@]}"; do
-            if is_complete "$worker"; then
-                status_line+="${GREEN}✓${NC} $worker  "
-            elif has_error "$worker"; then
-                status_line+="${RED}✗${NC} $worker  "
-            else
-                status_line+="${YELLOW}⋯${NC} $worker  "
-                all_done=false
-            fi
-        done
+	while true; do
+		local elapsed=$(($(date +%s) - start_time))
+		if [[ $elapsed -gt $max_wait ]]; then
+			echo ""
+			error "Timeout after ${max_wait}s waiting for workers"
+			break
+		fi
 
-        echo -ne "\r$status_line"
+		local all_done=true
+		local status_line=""
 
-        if $all_done; then
-            echo ""
-            success "All workers completed!"
-            break
-        fi
+		for worker in "${workers[@]}"; do
+			if is_complete "$worker"; then
+				status_line+="${GREEN}✓${NC} $worker  "
+			elif has_error "$worker"; then
+				status_line+="${RED}✗${NC} $worker  "
+			else
+				status_line+="${YELLOW}⋯${NC} $worker  "
+				all_done=false
+			fi
+		done
 
-        sleep 10
-    done
+		echo -ne "\r$status_line"
+
+		if $all_done; then
+			echo ""
+			success "All workers completed!"
+			break
+		fi
+
+		sleep 10
+	done
 }
 
-# Parse plan file for task assignments
-parse_plan() {
-    local plan_file="$1"
+# Copilot worker (non-interactive with --allow-all)
+launch_copilot_worker() {
+	local name="$1" task="$2" model="${3:-claude-opus-4-6}"
+	log "Launching Copilot: $name..."
+	kitty @ launch --type=tab --title="$name" --cwd="$DIR" --keep-focus \
+		zsh -ic "copilot --allow-all --add-dir '$DIR' --model $model -p '$(echo "$task" | sed "s/'/'\\\\''/g")'"
+	success "$name launched"
+}
 
-    if [ ! -f "$plan_file" ]; then
-        error "Plan file not found: $plan_file"
-    fi
-
-    # Extract CLAUDE assignments from plan
-    # Format: | CLAUDE X | task description |
-    grep -E "CLAUDE.[0-9]" "$plan_file" | head -$NUM_WORKERS
+# Mixed mode: resolve engine by task metadata
+resolve_engine() {
+	echo "$1" | grep -qi "codex:.*true\|copilot:.*true" && echo "copilot" || echo "claude"
 }
 
 # Main
 main() {
-    echo ""
-    echo -e "${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║         MULTI-CLAUDE ORCHESTRATOR                         ║${NC}"
-    echo -e "${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    log "Plan: $PLAN"
-    log "Workers: $NUM_WORKERS"
-    log "Directory: $DIR"
-    echo ""
+	log "=== ORCHESTRATOR: $ENGINE | $NUM_WORKERS workers | $PLAN ==="
 
-    check_kitty
-    check_wildclaude
+	check_kitty
 
-    echo ""
-    log "Launching workers..."
-    echo ""
+	if [[ "$ENGINE" == "claude" || "$ENGINE" == "mixed" ]]; then
+		check_wildclaude
+	fi
+	if [[ "$ENGINE" == "copilot" || "$ENGINE" == "mixed" ]]; then
+		command -v copilot &>/dev/null || error "copilot CLI not installed"
+		[[ -n "${GH_TOKEN:-}${COPILOT_TOKEN:-}" ]] || error "GH_TOKEN or COPILOT_TOKEN required"
+		success "Copilot CLI available"
+	fi
 
-    # Define worker tasks (customize based on plan structure)
-    declare -a WORKERS
+	echo ""
+	log "Launching workers..."
+	echo ""
 
-    for i in $(seq 2 $((NUM_WORKERS + 1))); do
-        local worker_name="Claude-$i"
-        local task="Leggi $PLAN - sei CLAUDE $i. Esegui TUTTI i task assegnati a te. Quando hai finito scrivi DONE."
+	declare -a WORKERS
+	for i in $(seq 2 $((NUM_WORKERS + 1))); do
+		local task="Leggi $PLAN - sei WORKER $i. Esegui TUTTI i task assegnati a te. Quando hai finito scrivi DONE."
+		local worker_type="$ENGINE"
 
-        launch_worker "$worker_name" "$task"
-        WORKERS+=("$worker_name")
+		if [[ "$ENGINE" == "mixed" ]]; then
+			worker_type=$(resolve_engine "$task")
+		fi
 
-        sleep 2  # Stagger launches
-    done
+		local prefix="Claude"
+		[[ "$worker_type" == "copilot" ]] && prefix="Copilot"
+		local worker_name="${prefix}-${i}"
 
-    echo ""
-    log "All workers launched!"
-    echo ""
-    echo -e "${CYAN}Keyboard shortcuts:${NC}"
-    echo "  Cmd+1/2/3/4  - Switch to tab"
-    echo "  Cmd+Shift+L  - Grid layout (see all)"
-    echo "  Cmd+Shift+.  - Tab overview"
-    echo ""
+		if [[ "$worker_type" == "copilot" ]]; then
+			launch_copilot_worker "$worker_name" "$task"
+		else
+			launch_worker "$worker_name" "$task"
+		fi
 
-    # Start monitoring
-    monitor_workers "${WORKERS[@]}"
+		WORKERS+=("$worker_name")
+		sleep 2
+	done
 
-    echo ""
-    log "Running final verification..."
-    npm run lint && npm run typecheck && npm run build
-
-    echo ""
-    success "Orchestration complete!"
+	log "All ${#WORKERS[@]} workers launched. Cmd+Shift+L for grid view."
+	monitor_workers "${WORKERS[@]}"
+	log "Final verification..."
+	local verify_output
+	if [[ -x "./scripts/ci-summary.sh" ]]; then
+		verify_output=$(./scripts/ci-summary.sh --quick 2>&1) || {
+			warn "Verification failed:"
+			echo "$verify_output" | tail -5
+		}
+	else
+		verify_output=$(npm run lint 2>&1 && npm run typecheck 2>&1 && npm run build 2>&1) || {
+			warn "Verification failed:"
+			echo "$verify_output" | tail -5
+		}
+	fi
+	success "Orchestration complete!"
 }
 
-main "$@"
+main

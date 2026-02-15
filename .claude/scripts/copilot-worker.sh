@@ -3,6 +3,7 @@
 # Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]
 # Requires: copilot CLI installed, GH_TOKEN or COPILOT_TOKEN set
 
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,7 +13,7 @@ TASK_ID="${1:-}"
 shift || true
 
 # Defaults
-MODEL="claude-sonnet-4-5"
+MODEL="claude-opus-4.6"
 TIMEOUT=600
 
 # Parse optional flags
@@ -41,9 +42,13 @@ if ! command -v copilot &>/dev/null; then
 	exit 1
 fi
 
+# Auth check: copilot uses gh auth or env tokens
 if [[ -z "${GH_TOKEN:-}" && -z "${COPILOT_TOKEN:-}" ]]; then
-	echo '{"error":"GH_TOKEN or COPILOT_TOKEN not set"}' >&2
-	exit 1
+	# Check if gh auth is available as fallback
+	if ! gh auth status &>/dev/null 2>&1; then
+		echo '{"error":"No auth: set GH_TOKEN, COPILOT_TOKEN, or run gh auth login"}' >&2
+		exit 1
+	fi
 fi
 
 # Verify task exists and is pending

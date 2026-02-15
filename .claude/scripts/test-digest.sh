@@ -2,6 +2,7 @@
 # Test Digest - Generic test runner with compact JSON output
 # Auto-detects vitest/jest/playwright. Returns only failures.
 # Usage: test-digest.sh [--suite unit|e2e|all] [--no-cache] [extra-args...]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,7 +26,7 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-CACHE_KEY="test-${SUITE}-$(pwd | md5sum 2>/dev/null | cut -c1-8 || echo 'x')"
+CACHE_KEY="test-${SUITE}-$(digest_hash "$(pwd)")"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0
@@ -55,11 +56,32 @@ fi
 
 TMPLOG=$(mktemp)
 TMPJSON=$(mktemp)
-trap "rm -f '$TMPLOG' '$TMPJSON'" EXIT
+TEST_PID=""
+cleanup() {
+	[[ -n "$TEST_PID" ]] && kill "$TEST_PID" 2>/dev/null && wait "$TEST_PID" 2>/dev/null || true
+	rm -f "$TMPLOG" "$TMPJSON" "$PIDFILE"
+}
+trap cleanup EXIT INT TERM
+
+# Kill stale test process from previous interrupted run (scoped to this project)
+PIDFILE="${TMPDIR:-/tmp}/test-digest-$(digest_hash "$(pwd)").pid"
+if [[ -f "$PIDFILE" ]]; then
+	OLD_PID=$(cat "$PIDFILE")
+	if kill -0 "$OLD_PID" 2>/dev/null; then
+		kill "$OLD_PID" 2>/dev/null && wait "$OLD_PID" 2>/dev/null || true
+	fi
+	rm -f "$PIDFILE"
+fi
 
 # Run tests, capture output
 EXIT_CODE=0
-eval "$TEST_CMD $*" >"$TMPLOG" 2>&1 || EXIT_CODE=$?
+read -ra TEST_CMD_ARGS <<<"$TEST_CMD"
+"${TEST_CMD_ARGS[@]}" "$@" >"$TMPLOG" 2>&1 &
+echo "$!" >"$PIDFILE"
+TEST_PID=$!
+wait "$TEST_PID" || EXIT_CODE=$?
+TEST_PID=""
+rm -f "$PIDFILE"
 
 STATUS="pass"
 [[ "$EXIT_CODE" -ne 0 ]] && STATUS="fail"
@@ -97,9 +119,10 @@ if [[ "$FRAMEWORK" == "vitest" || "$FRAMEWORK" == "jest" ]]; then
 elif [[ "$FRAMEWORK" == "playwright" ]]; then
 	if [[ -s "$TMPLOG" ]]; then
 		# Playwright JSON reporter
-		TOTAL=$(jq '.stats.expected // 0' "$TMPLOG" 2>/dev/null || echo 0)
-		PASSED=$(jq '.stats.expected // 0' "$TMPLOG" 2>/dev/null || echo 0)
+		TOTAL=$(jq '(.stats.expected // 0) + (.stats.unexpected // 0) + (.stats.skipped // 0)' "$TMPLOG" 2>/dev/null || echo 0)
 		FAILED=$(jq '.stats.unexpected // 0' "$TMPLOG" 2>/dev/null || echo 0)
+		SKIPPED=$(jq '.stats.skipped // 0' "$TMPLOG" 2>/dev/null || echo 0)
+		PASSED=$((TOTAL - FAILED - SKIPPED))
 
 		FAILURES=$(jq '[.suites[].specs[] |
 			select(.ok == false) |
@@ -121,7 +144,7 @@ if [[ "$TOTAL" -eq 0 && "$EXIT_CODE" -ne 0 ]]; then
 	FAILURES=$(grep -A2 -iE 'FAIL|✗|✘|Error:' "$TMPLOG" |
 		grep -viE 'node_modules|Snapshot' |
 		head -10 |
-		jq -R -s 'split("\n") | map(select(length > 0)) | map({test:"",file:"",msg:.[0:200]})' 2>/dev/null || echo "[]")
+		jq -R -s 'split("\n") | map(select(length > 0)) | map({test:"",file:"",msg:.[0:200]})' 2>/dev/null) || FAILURES="[]"
 fi
 
 [[ -z "$FAILURES" ]] && FAILURES="[]"

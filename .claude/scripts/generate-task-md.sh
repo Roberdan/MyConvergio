@@ -1,8 +1,9 @@
 #!/bin/bash
 # Task Markdown Generation Script
 # Usage: ./generate-task-md.sh <project> <plan_id> <wave> <task_id> <task_name> <assignee> <estimate>
-# Example: ./generate-task-md.sh my-project 8 0 T01 "Setup database migration" "CLAUDE 2" "1h"
+# Example: ./generate-task-md.sh convergioedu 8 0 T01 "Setup database migration" "CLAUDE 2" "1h"
 
+# Version: 1.1.0
 set -e
 
 PROJECT=$1
@@ -14,9 +15,9 @@ ASSIGNEE=$6
 ESTIMATE=$7
 
 if [ -z "$PROJECT" ] || [ -z "$PLAN_ID" ] || [ -z "$WAVE" ] || [ -z "$TASK_ID" ] || [ -z "$TASK_NAME" ]; then
-  echo "❌ Usage: $0 <project> <plan_id> <wave> <task_id> <task_name> [assignee] [estimate]"
-  echo "Example: $0 my-project 8 0 T01 'Setup database migration' 'CLAUDE 2' '1h'"
-  exit 1
+	echo "❌ Usage: $0 <project> <plan_id> <wave> <task_id> <task_name> [assignee] [estimate]"
+	echo "Example: $0 convergioedu 8 0 T01 'Setup database migration' 'CLAUDE 2' '1h'"
+	exit 1
 fi
 
 ASSIGNEE=${ASSIGNEE:-"TBD"}
@@ -33,7 +34,7 @@ TASK_SLUG=$(echo "${TASK_NAME}" | tr ' ' '-' | tr '[:upper:]' '[:lower:]' | sed 
 TASK_FILE=${TASK_DIR}/${TASK_ID}-${TASK_SLUG}.md
 
 # Generate task markdown
-cat > "${TASK_FILE}" <<EOF
+cat >"${TASK_FILE}" <<EOF
 # Task: ${TASK_ID} - ${TASK_NAME}
 
 **Wave:** W${WAVE}
@@ -41,7 +42,7 @@ cat > "${TASK_FILE}" <<EOF
 **Priority:** P1
 **Assignee:** ${ASSIGNEE}
 **Estimate:** ${ESTIMATE}
-**Created:** $(date +"%Y-%m-%d %H:%M %Z")
+**Created:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 ---
 
@@ -122,24 +123,24 @@ _Command outputs will be pasted here_
 
 ---
 
-**Last Updated:** $(date +"%Y-%m-%d %H:%M %Z")
+**Last Updated:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 EOF
 
 echo "✅ Generated: ${TASK_FILE}"
 
 # Update database with markdown_path (if dashboard is running)
 RESPONSE=$(curl -s -X POST "http://localhost:31415/api/project/${PROJECT}/task/${TASK_ID}/update-markdown" \
-  -H "Content-Type: application/json" \
-  -d "{\"markdown_path\": \"${TASK_FILE}\"}" 2>&1)
+	-H "Content-Type: application/json" \
+	-d "{\"markdown_path\": \"${TASK_FILE}\"}" 2>&1)
 
-if echo "$RESPONSE" | grep -q "success"; then
-  echo "✅ Database updated with markdown_path"
-elif echo "$RESPONSE" | grep -q "error"; then
-  # Task doesn't exist yet - this is OK, will be created when planner runs
-  echo "⚠️  Task not yet in database (will be created during planning)"
+if echo "$RESPONSE" | jq -e '.status == "success"' >/dev/null 2>&1; then
+	echo "✅ Database updated with markdown_path"
+elif echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+	# Task doesn't exist yet - this is OK, will be created when planner runs
+	echo "⚠️  Task not yet in database (will be created during planning)"
 else
-  echo "⚠️  Dashboard may not be running"
-  echo "   Start dashboard to enable automatic database updates"
+	echo "⚠️  Dashboard may not be running"
+	echo "   Start dashboard to enable automatic database updates"
 fi
 
 echo ""

@@ -2,6 +2,7 @@
 # Launch N parallel Claude instances in Kitty tabs
 # Usage: claude-parallel.sh [num] [directory]
 
+# Version: 1.0.0
 NUM="${1:-4}"
 DIR="${2:-$(pwd)}"
 

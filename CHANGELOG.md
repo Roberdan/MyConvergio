@@ -5,6 +5,42 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0] - 2026-02-15
+
+### Added
+
+- **5 new agents** (60 → 65 total):
+  - `sentinel-ecosystem-guardian` (v1.0.0, core_utility): Ecosystem evolution manager for auditing and updating Claude Code configuration
+  - `research-report-generator` (v1.3.0, specialized_experts): Morgan Stanley-style professional research report generator with LaTeX output
+  - `task-executor-tdd` (v1.0.0, technical_development): TDD workflow module for task-executor (RED→GREEN→REFACTOR)
+  - `thor-validation-gates` (v1.0.0, core_utility): Validation gates module for Thor quality system
+  - `app-release-manager-execution` (v3.2.0, release_management): Execution phases (3-5) for app-release-manager
+- **6 new lib scripts**: `colors.sh`, `plan-db-cluster.sh`, `plan-db-conflicts.sh`, `plan-db-drift.sh`, `plan-db-import.sh`, `plan-db-remote.sh`
+- **4 new reference docs**: `plan-scripts.md`, `digest-scripts.md`, `concurrency-control.md`, `copilot-alignment.md`
+
+### Changed
+
+- **Global config sync**: Full alignment with audited `~/.claude/` (105 issues fixed in prior audit)
+- **11 agents updated**: thor (v3.4.0), task-executor (v2.1.0), marcus (v1.1.0), adversarial-debugger (v1.1.0), socrates (v1.1.0), wanda (v2.1.0), xavier (v2.1.0), diana (v1.1.0), po (v1.1.0), taskmaster (v1.1.0), app-release-manager (v3.3.0)
+- **strategic-planner** (v3.0.0): Major update with wave-based task decomposition and parallel execution
+- **78 scripts + 11 lib scripts synced** from global config (all with version headers, `set -euo pipefail`)
+- **12 hooks synced** with SQL injection fixes (`sql_escape()` function), reliability improvements
+- **7 reference docs updated**: codegraph, continuous-optimization, execution-optimization, external-services, memory-protocol, tool-preferences, worktree-discipline
+- **10 commands updated**: execute, planner (2.2K→9.4K), prepare, prompt, release, research + 4 modules
+- **7 skills updated**: architecture, code-review, debugging, documentation, orchestration, performance, security-audit
+- **high-spec.json**: Added `statusLine`, `effortLevel`, context-audit Setup hook
+
+### Removed
+
+- **10 deprecated scripts**: `plan-db-fixed-functions.sh`, `plan-db-helpers.sh`, `plan-db-plan.sh`, `plan-db-safe.sh`, `plan-db-sync.sh`, `plan-db-task.sh`, `plan-db-validate.sh` (root), `plan-db-wave.sh`, `PLAN-DB-FIXES.md`, `PLANNER-QUICKREF.md`
+
+### Security
+
+- **SQL injection fix**: All hooks using SQLite now use `sql_escape()` to sanitize inputs (was vulnerable to injection via filenames/tool names)
+- **Script hardening**: All 89 scripts now use `set -euo pipefail`, `trap cleanup EXIT`, quoted variables
+
+---
+
 ## [4.7.1] - 2026-02-14
 
 ### Fixed

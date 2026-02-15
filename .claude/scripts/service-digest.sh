@@ -2,6 +2,7 @@
 # Service Digest - Unified entry point for all service digests
 # Single call for CI + PR + Deploy status. Minimal tokens.
 # Usage: service-digest.sh <ci|pr|deploy|all> [args...] [--no-cache]
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,32 +21,58 @@ pr)
 deploy)
 	"$SCRIPT_DIR/deploy-digest.sh" "$@"
 	;;
+sentry)
+	"$SCRIPT_DIR/sentry-digest.sh" "$@"
+	;;
 all)
 	# Run all three in parallel, combine results
 	TMPDIR_ALL=$(mktemp -d)
 	trap "rm -rf '$TMPDIR_ALL'" EXIT
 
-	"$SCRIPT_DIR/ci-digest.sh" "$@" >"$TMPDIR_ALL/ci.json" 2>/dev/null &
+	"$SCRIPT_DIR/ci-digest.sh" "$@" >"$TMPDIR_ALL/ci.json" 2>"$TMPDIR_ALL/ci.err" &
 	PID_CI=$!
-	"$SCRIPT_DIR/pr-digest.sh" "$@" >"$TMPDIR_ALL/pr.json" 2>/dev/null &
+	"$SCRIPT_DIR/pr-digest.sh" "$@" >"$TMPDIR_ALL/pr.json" 2>"$TMPDIR_ALL/pr.err" &
 	PID_PR=$!
-	"$SCRIPT_DIR/deploy-digest.sh" "$@" >"$TMPDIR_ALL/deploy.json" 2>/dev/null &
+	"$SCRIPT_DIR/deploy-digest.sh" "$@" >"$TMPDIR_ALL/deploy.json" 2>"$TMPDIR_ALL/deploy.err" &
 	PID_DEPLOY=$!
+	"$SCRIPT_DIR/sentry-digest.sh" list "$@" >"$TMPDIR_ALL/sentry.json" 2>"$TMPDIR_ALL/sentry.err" &
+	PID_SENTRY=$!
 
 	wait "$PID_CI" 2>/dev/null || true
 	wait "$PID_PR" 2>/dev/null || true
 	wait "$PID_DEPLOY" 2>/dev/null || true
+	wait "$PID_SENTRY" 2>/dev/null || true
 
-	# Combine into single JSON
+	# Combine into single JSON (include stderr as error field if sub-script produced no JSON)
 	CI_JSON=$(cat "$TMPDIR_ALL/ci.json" 2>/dev/null || echo '{}')
 	PR_JSON=$(cat "$TMPDIR_ALL/pr.json" 2>/dev/null || echo '{}')
 	DEPLOY_JSON=$(cat "$TMPDIR_ALL/deploy.json" 2>/dev/null || echo '{}')
+	SENTRY_JSON=$(cat "$TMPDIR_ALL/sentry.json" 2>/dev/null || echo '{}')
+
+	# If a sub-script failed and produced no valid JSON, include stderr
+	if ! echo "$CI_JSON" | jq empty 2>/dev/null && [[ -s "$TMPDIR_ALL/ci.err" ]]; then
+		CI_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/ci.err" | tr '\n' ' ' | cut -c1-200)" \
+			'{"status":"script_error","msg":$msg}')
+	fi
+	if ! echo "$PR_JSON" | jq empty 2>/dev/null && [[ -s "$TMPDIR_ALL/pr.err" ]]; then
+		PR_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/pr.err" | tr '\n' ' ' | cut -c1-200)" \
+			'{"status":"script_error","msg":$msg}')
+	fi
+	if ! echo "$DEPLOY_JSON" | jq empty 2>/dev/null && [[ -s "$TMPDIR_ALL/deploy.err" ]]; then
+		DEPLOY_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/deploy.err" | tr '\n' ' ' | cut -c1-200)" \
+			'{"status":"script_error","msg":$msg}')
+	fi
+	if ! echo "$SENTRY_JSON" | jq empty 2>/dev/null && [[ -s "$TMPDIR_ALL/sentry.err" ]]; then
+		SENTRY_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/sentry.err" | tr '\n' ' ' | cut -c1-200)" \
+			'{"status":"script_error","msg":$msg}')
+	fi
 
 	jq -n \
 		--argjson ci "$CI_JSON" \
 		--argjson pr "$PR_JSON" \
 		--argjson deploy "$DEPLOY_JSON" \
-		'{ci:$ci,pr:$pr,deploy:$deploy}'
+		--argjson sentry "$SENTRY_JSON" \
+		'{ci:$ci,pr:$pr,deploy:$deploy,sentry:$sentry}'
 	;;
 flush)
 	digest_cache_flush
@@ -61,7 +88,8 @@ Commands:
   ci [run-id|--all]         CI run status + errors (JSON)
   pr [pr-number]            PR reviews + unresolved comments (JSON)
   deploy [deployment-url]   Vercel deployment status (JSON)
-  all                       All three in parallel, combined JSON
+  sentry [list|resolve id]  Sentry unresolved issues (JSON)
+  all                       All four in parallel, combined JSON
   flush                     Clear all cached digests
 
 Options:

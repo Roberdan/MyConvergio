@@ -4,6 +4,7 @@
 # Usage: git-digest.sh [--full] [--no-cache]
 #   Default: compact status (~15 lines JSON)
 #   --full: includes file-level diff details
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,7 +22,7 @@ for arg in "$@"; do
 done
 
 # Short TTL — git state changes often. 5s avoids rapid double-calls.
-CACHE_KEY="git-$(pwd | md5sum 2>/dev/null | cut -c1-8 || echo 'x')-${FULL}"
+CACHE_KEY="git-$(digest_hash "$(pwd)")-${FULL}"
 
 if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
 	exit 0
@@ -35,10 +36,13 @@ SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "")
 UPSTREAM=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || echo "")
 AHEAD=0
 BEHIND=0
+HAS_UPSTREAM="true"
 if [[ -n "$UPSTREAM" ]]; then
 	AB=$(git rev-list --left-right --count HEAD..."$UPSTREAM" 2>/dev/null || echo "0 0")
 	AHEAD=$(echo "$AB" | awk '{print $1}')
 	BEHIND=$(echo "$AB" | awk '{print $2}')
+else
+	HAS_UPSTREAM="false"
 fi
 
 # Status counts (one git status call, parsed)
@@ -87,6 +91,7 @@ if [[ "$FULL" -eq 1 ]]; then
 		--arg branch "$BRANCH" \
 		--arg sha "$SHA" \
 		--argjson clean "$CLEAN" \
+		--argjson has_upstream "$HAS_UPSTREAM" \
 		--argjson ahead "$AHEAD" \
 		--argjson behind "$BEHIND" \
 		--argjson staged "$STAGED" \
@@ -98,7 +103,7 @@ if [[ "$FULL" -eq 1 ]]; then
 		--argjson staged_files "$STAGED_FILES" \
 		--argjson unstaged_files "$UNSTAGED_FILES" \
 		--argjson untracked_files "$UNTRACKED_FILES" \
-		'{branch:$branch, sha:$sha, clean:$clean,
+		'{branch:$branch, sha:$sha, clean:$clean, has_upstream:$has_upstream,
 		  ahead:$ahead, behind:$behind,
 		  staged:$staged, unstaged:$unstaged, untracked:$untracked,
 		  conflicts:$conflicts, stashes:$stashes,
@@ -109,6 +114,7 @@ else
 		--arg branch "$BRANCH" \
 		--arg sha "$SHA" \
 		--argjson clean "$CLEAN" \
+		--argjson has_upstream "$HAS_UPSTREAM" \
 		--argjson ahead "$AHEAD" \
 		--argjson behind "$BEHIND" \
 		--argjson staged "$STAGED" \
@@ -117,7 +123,7 @@ else
 		--argjson conflicts "$CONFLICTS" \
 		--argjson stashes "$STASH_COUNT" \
 		--argjson commits "$COMMITS" \
-		'{branch:$branch, sha:$sha, clean:$clean,
+		'{branch:$branch, sha:$sha, clean:$clean, has_upstream:$has_upstream,
 		  ahead:$ahead, behind:$behind,
 		  staged:$staged, unstaged:$unstaged, untracked:$untracked,
 		  conflicts:$conflicts, stashes:$stashes, commits:$commits}')

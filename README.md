@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v4.7.0** | 60 Specialized Agents | Agent Teams & Claude Code v2.1.42 | Hooks & Token Optimization | Dashboard
+**v4.8.0** | 65 Specialized Agents | Security Hardening | Global Config Sync | Dashboard
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,47 +15,35 @@
 
 ---
 
-## What's New in v4.7.0
+## What's New in v4.8.0
 
-**Claude Code v2.1.42 alignment: Agent Teams, Tasks API, memory/maxTurns for all 60 agents.**
+**Global config sync: 5 new agents, security hardening, 89 scripts audited.**
 
-### Agent Teams Support (NEW)
+### 5 New Agents (60 → 65)
 
-- `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` enabled in all settings templates
-- **TeammateIdle** and **TaskCompleted** hooks track team events in token dashboard
-- **Setup** hook auto-detects Claude Code version changes (high-spec)
+- `sentinel-ecosystem-guardian` — Ecosystem evolution manager for config auditing
+- `research-report-generator` — Morgan Stanley-style professional research reports
+- `task-executor-tdd` — TDD workflow module (RED→GREEN→REFACTOR)
+- `thor-validation-gates` — Validation gates module for Thor quality system
+- `app-release-manager-execution` — Execution phases (3-5) for app-release-manager
 
-### Agent Frontmatter Upgrade
+### Security Hardening
 
-All 60 invocable agents now include:
+- **SQL injection fix**: All SQLite hooks now use `sql_escape()` to sanitize inputs
+- **Script hardening**: All 89 scripts use `set -euo pipefail`, `trap cleanup EXIT`, quoted variables
+- 12 hooks synced with vulnerability fixes
 
-- **memory**: `project` (core/tech/release) or `user` (leadership/business/specialists/compliance/design)
-- **maxTurns**: 15 (haiku), 20 (sonnet), 30 (opus), 40 (orchestrators), 50 (task-executor)
+### Agent Updates
 
-### Tasks API Migration
+- 11 agents updated: thor (v3.4.0), task-executor (v2.1.0), strategic-planner (v3.0.0), marcus (v1.1.0), adversarial-debugger (v1.1.0), socrates (v1.1.0), wanda (v2.1.0), xavier (v2.1.0), diana (v1.1.0), po (v1.1.0), app-release-manager (v3.3.0)
+- 7 reference docs updated + 4 new, 10 commands updated, 7 skills updated
 
-- `TodoWrite` replaced with `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`
-- Affected agents: strategic-planner, ali-chief-of-staff, anna-executive-assistant
+### Previous Highlights
 
-### Full Script & Command Parity
-
-- 84 scripts aligned with global `~/.claude/scripts/` (concurrency control, merge-queue, etc.)
-- 8 slash commands including new `/execute`, `/release`, `/research`
-- 11 skills including new `documentation` and `report`
-
-### Previous Highlights (v4.5.0)
-
-- Strategic planner modules (templates, thor, git)
-- Worktree scripts with automatic .env symlinks
-- Safe installation with conflict detection and backup/restore
-- Dashboard with real-time git monitoring and SSE
-
-### Previous Highlights (v3.x)
-
-- 60 specialized agents with Constitution-based security
-- Installation profiles (minimal/standard/full)
+- Agent Teams support, Tasks API, memory/maxTurns for all agents (v4.7.0)
+- Strategic planner modules, worktree scripts, dashboard (v4.5.0)
+- 65 agents with Constitution-based security, installation profiles (v3.x)
 - Multi-terminal support (Kitty, tmux, Zed, Warp, iTerm2)
-- Thor Quality Guardian with zero-tolerance validation
 
 ---
 
@@ -74,12 +62,12 @@ claude --plugin-dir .
 #### Option B: Global npm Install
 
 ```bash
-# Full install (all 60 agents)
+# Full install (all 65 agents)
 npm install -g myconvergio
 
 # Or choose a profile for lower context usage:
 MYCONVERGIO_PROFILE=minimal npm install -g myconvergio  # 9 agents, ~50KB
-MYCONVERGIO_PROFILE=lean npm install -g myconvergio     # 60 agents, ~600KB
+MYCONVERGIO_PROFILE=lean npm install -g myconvergio     # 65 agents, ~600KB
 ```
 
 Copies agents to `~/.claude/agents/`. See [Context Optimization Guide](./docs/CONTEXT_OPTIMIZATION.md) for details.
@@ -106,7 +94,7 @@ _Pending Anthropic approval_
 
 ```bash
 /myconvergio:status    # Show ecosystem status
-/myconvergio:team      # List all 60 agents by category
+/myconvergio:team      # List all 65 agents by category
 /myconvergio:plan      # Create a strategic execution plan
 ```
 
@@ -212,7 +200,7 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 
 ---
 
-## Agent Portfolio (60 Specialists)
+## Agent Portfolio (65 Specialists)
 
 ### Leadership & Strategy (7)
 
@@ -226,7 +214,7 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 | `dan-engineering-gm`                      | Engineering General Manager                             |
 | `matteo-strategic-business-architect`     | Business strategy architect                             |
 
-### Technical Development (7)
+### Technical Development (9)
 
 | Agent                           | Description                                  |
 | ------------------------------- | -------------------------------------------- |
@@ -237,6 +225,8 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 | `otto-performance-optimizer`    | Performance optimization                     |
 | `paolo-best-practices-enforcer` | Coding standards enforcer                    |
 | `omri-data-scientist`           | Data Scientist for ML and AI                 |
+| `adversarial-debugger`          | 3-hypothesis parallel bug diagnosis          |
+| `task-executor-tdd`             | TDD workflow module (RED→GREEN→REFACTOR)     |
 
 ### Business Operations (11)
 
@@ -272,7 +262,7 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 | `sophia-govaffairs`                     | Government Affairs specialist      |
 | `guardian-ai-security-validator`        | AI Security validator              |
 
-### Specialized Experts (13)
+### Specialized Experts (14)
 
 | Agent                                    | Description                           |
 | ---------------------------------------- | ------------------------------------- |
@@ -289,13 +279,15 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 | `sam-startupper`                         | Silicon Valley startup expert         |
 | `wiz-investor-venture-capital`           | Venture Capital investor              |
 | `coach-team-coach`                       | Team Coach                            |
+| `research-report-generator`              | Morgan Stanley-style research reports |
 
-### Core Utility (9)
+### Core Utility (11)
 
 | Agent                                            | Description                       |
 | ------------------------------------------------ | --------------------------------- |
 | `marcus-context-memory-keeper`                   | Institutional memory guardian     |
 | `thor-quality-assurance-guardian`                | Quality watchdog                  |
+| `thor-validation-gates`                          | Validation gates module for Thor  |
 | `diana-performance-dashboard`                    | Performance dashboard specialist  |
 | `socrates-first-principles-reasoning`            | First principles reasoning master |
 | `strategic-planner`                              | Wave-based execution plan creator |
@@ -303,13 +295,15 @@ Shares the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). 
 | `po-prompt-optimizer`                            | Prompt engineering expert         |
 | `wanda-workflow-orchestrator`                    | Workflow orchestrator             |
 | `xavier-coordination-patterns`                   | Coordination patterns architect   |
+| `sentinel-ecosystem-guardian`                    | Ecosystem config auditor          |
 
-### Release Management (2)
+### Release Management (3)
 
-| Agent                     | Description                            |
-| ------------------------- | -------------------------------------- |
-| `app-release-manager`     | Release engineering with quality gates |
-| `feature-release-manager` | Feature completion and issue closure   |
+| Agent                           | Description                            |
+| ------------------------------- | -------------------------------------- |
+| `app-release-manager`           | Release engineering with quality gates |
+| `app-release-manager-execution` | Execution phases (3-5) module          |
+| `feature-release-manager`       | Feature completion and issue closure   |
 
 ---
 
@@ -321,13 +315,13 @@ MyConvergio/
 │   └── plugin.json           # Plugin manifest
 ├── .claude/
 │   ├── CLAUDE.md             # Main config
-│   ├── agents/               # 60 agents (8 categories)
+│   ├── agents/               # 65 agents (8 categories)
 │   ├── rules/                # Execution rules
-│   ├── scripts/              # 30 digest + utility scripts
-│   ├── reference/            # 7 on-demand operational docs
+│   ├── scripts/              # 89 digest + utility scripts
+│   ├── reference/            # 11 on-demand operational docs
 │   ├── skills/               # 10 reusable workflows
 │   └── templates/            # State tracking templates
-├── hooks/                    # 10 enforcement hooks + lib/
+├── hooks/                    # 12 enforcement hooks + lib/
 │   ├── prefer-ci-summary.sh
 │   ├── enforce-line-limit.sh
 │   ├── worktree-guard.sh
@@ -336,6 +330,189 @@ MyConvergio/
 ├── commands/                 # 3 slash commands
 ├── scripts/                  # Install/backup/test scripts
 └── bin/myconvergio.js        # CLI entry point
+```
+
+---
+
+## Architecture
+
+### Agent Ecosystem
+
+```mermaid
+graph TB
+    subgraph "Leadership & Strategy (7)"
+        ALI[ali-chief-of-staff<br/>Orchestrator]
+        SATYA[satya-board-of-directors]
+        DOMIK[domik-mckinsey]
+        ANTONIO[antonio-strategy]
+        DAN[dan-engineering-gm]
+        AMY[amy-cfo]
+        MATTEO[matteo-business-architect]
+    end
+
+    subgraph "Core Utility (11)"
+        SP[strategic-planner<br/>Wave Planner]
+        THOR[thor-qa-guardian<br/>Quality Gate]
+        TVG[thor-validation-gates]
+        TE[task-executor]
+        TETDD[task-executor-tdd]
+        MARCUS[marcus-memory-keeper]
+        SOCRATES[socrates-reasoning]
+        WANDA[wanda-workflow]
+        XAVIER[xavier-coordination]
+        DIANA[diana-dashboard]
+        PO[po-prompt-optimizer]
+        SENTINEL[sentinel-guardian]
+    end
+
+    subgraph "Technical Development (9)"
+        BACCIO[baccio-architect]
+        REX[rex-reviewer]
+        DARIO[dario-debugger]
+        ADVDBG[adversarial-debugger]
+        OTTO[otto-performance]
+        MARCO[marco-devops]
+        PAOLO[paolo-enforcer]
+        OMRI[omri-data-scientist]
+    end
+
+    subgraph "Release Management (3)"
+        ARM[app-release-manager]
+        ARE[app-release-manager-execution]
+        FRM[feature-release-manager]
+    end
+
+    ALI -->|orchestrates| SP
+    SP -->|creates waves| TE
+    TE -->|follows| TETDD
+    TE -->|validated by| THOR
+    THOR -->|uses| TVG
+    THOR -->|delegates| BACCIO
+    THOR -->|delegates| REX
+    THOR -->|delegates| OTTO
+    ARM -->|uses| ARE
+```
+
+### Execution Flow (Prompt → Plan → Execute → Verify)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant P as /prompt
+    participant PL as /planner
+    participant SP as strategic-planner
+    participant TE as task-executor
+    participant TH as thor-qa-guardian
+    participant DB as plan-db.sh
+
+    U->>P: Define requirements (F-xx)
+    P->>U: Confirm scope
+    U->>PL: Create plan
+    PL->>SP: Generate waves & tasks
+    SP->>DB: Store plan in SQLite
+
+    loop Per Wave
+        DB->>TE: Start task (plan-db.sh start)
+        TE->>TE: TDD: RED → GREEN → REFACTOR
+        TE->>TH: Submit for validation
+        TH->>TH: 7 quality gates
+        alt PASS
+            TH->>DB: plan-db.sh validate ✓
+            TH->>TE: APPROVED
+        else FAIL
+            TH->>TE: REJECTED (max 3 rounds)
+            TE->>TE: Fix issues
+        end
+    end
+
+    DB->>U: All waves complete
+```
+
+### Hook System & Token Optimization
+
+```mermaid
+flowchart LR
+    subgraph "PreToolUse Hooks"
+        H1[prefer-ci-summary.sh<br/>Block verbose CLI]
+        H2[worktree-guard.sh<br/>Protect main branch]
+        H3[warn-bash-antipatterns.sh<br/>Prefer Read/Grep/Glob]
+    end
+
+    subgraph "PostToolUse Hooks"
+        H4[enforce-line-limit.sh<br/>Max 250 lines/file]
+        H5[auto-format.sh<br/>Prettier/ESLint]
+        H6[track-tokens.sh<br/>Token usage tracking]
+    end
+
+    subgraph "Lifecycle Hooks"
+        H7[inject-agent-context.sh<br/>SubagentStart]
+        H8[preserve-context.sh<br/>PreCompact]
+        H9[session-end-tokens.sh<br/>Stop]
+    end
+
+    subgraph "Security"
+        SEC[sql_escape<br/>SQL injection protection]
+    end
+
+    H1 & H2 & H3 --> |PreToolUse| CLAUDE[Claude Code]
+    CLAUDE --> |PostToolUse| H4 & H5 & H6
+    CLAUDE --> |Lifecycle| H7 & H8 & H9
+    H6 & H8 & H9 --> SEC
+    SEC --> DB[(SQLite<br/>dashboard.db)]
+```
+
+### Script Categories
+
+```mermaid
+mindmap
+  root((89 Scripts))
+    Digest Scripts
+      git-digest.sh
+      build-digest.sh
+      test-digest.sh
+      ci-digest.sh
+      npm-digest.sh
+      error-digest.sh
+      diff-digest.sh
+      +7 more
+    Plan DB
+      plan-db.sh (core)
+      lib/plan-db-core.sh
+      lib/plan-db-crud.sh
+      lib/plan-db-display.sh
+      lib/plan-db-validate.sh
+      lib/plan-db-cluster.sh
+      lib/plan-db-conflicts.sh
+      lib/plan-db-drift.sh
+      lib/plan-db-import.sh
+      lib/plan-db-remote.sh
+    Orchestration
+      orchestrate.sh
+      claude-parallel.sh
+      claude-monitor.sh
+      tmux-parallel.sh
+      tmux-monitor.sh
+    Worktree
+      worktree-create.sh
+      worktree-check.sh
+      worktree-guard.sh
+      worktree-cleanup.sh
+      worktree-merge-check.sh
+    Utilities
+      context-audit.sh
+      cleanup-cache.sh
+      memory-save.sh
+      file-lock.sh
+      stale-check.sh
+```
+
+### Model Tiering
+
+```mermaid
+pie title Agent Distribution by Model Tier
+    "Haiku (37)" : 37
+    "Sonnet (24)" : 24
+    "Opus (2)" : 2
 ```
 
 ---
@@ -523,6 +700,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v4.7.0** | February 2026 | Claude Code Plugin
+**v4.8.0** | February 2026 | Claude Code Plugin
 
 </div>

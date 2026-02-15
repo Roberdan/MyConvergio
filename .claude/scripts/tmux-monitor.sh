@@ -2,6 +2,7 @@
 # Monitor Claude workers in tmux session
 # Usage: tmux-monitor.sh [session_name]
 
+# Version: 1.0.0
 SESSION="${1:-claude-workers}"
 
 # Colors

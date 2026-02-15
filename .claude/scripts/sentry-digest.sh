@@ -2,6 +2,7 @@
 # Sentry Digest - Compact Sentry issues status as JSON (~200 tokens)
 # Lists unresolved issues with counts. Can resolve issues by ID.
 # Usage: sentry-digest.sh [list|resolve <id>...] [--no-cache]
+# Version: 1.0.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

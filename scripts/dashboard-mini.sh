@@ -846,7 +846,7 @@ render_dashboard() {
 		if [ -n "$pproject" ] && command -v gh &>/dev/null; then
 			project_dir="$HOME/GitHub/$pproject"
 			if [ -d "$project_dir" ]; then
-				pr_data=$(gh pr list --repo "$(git -C "$project_dir" remote get-url origin 2>/dev/null)" --state open --json number,title,url,headRefName,statusCheckRollup,comments,reviewDecision,isDraft,mergeable 2>/dev/null)
+				pr_data=$(gh pr list --repo "$(git -C "$project_dir" remote get-url origin 2>/dev/null)" --state open --json number,title,url,headRefName,statusCheckRollup,comments,reviewDecision,isDraft,mergeable 2>/dev/null || true)
 				if [ -n "$pr_data" ] && [ "$pr_data" != "[]" ]; then
 					# Normalize plan name for matching: lowercase, extract keywords
 					plan_normalized=$(echo "$pname" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | sed 's/plan-[0-9]*-//g')

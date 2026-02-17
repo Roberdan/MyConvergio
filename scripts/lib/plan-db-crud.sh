@@ -523,6 +523,9 @@ cmd_complete() {
 
 	sqlite3 "$DB_FILE" "UPDATE plans SET status = 'done', completed_at = datetime('now'), execution_host = '$PLAN_DB_HOST' WHERE id = $plan_id;"
 
+	# Calculate git line stats before worktree cleanup
+	_calc_git_stats "$plan_id"
+
 	local version=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) + 1 FROM plan_versions WHERE plan_id = $plan_id;")
 	sqlite3 "$DB_FILE" "
         INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by, changed_host)
@@ -534,6 +537,34 @@ cmd_complete() {
 	if [[ -x "$SCRIPT_DIR/worktree-cleanup.sh" ]]; then
 		"$SCRIPT_DIR/worktree-cleanup.sh" --plan "$plan_id" 2>&1 || true
 	fi
+}
+
+# Calculate git lines added/removed for a completed plan
+_calc_git_stats() {
+	local plan_id="$1"
+	local project_id started completed worktree_path
+	IFS='|' read -r project_id started completed worktree_path < <(sqlite3 "$DB_FILE" "SELECT project_id, started_at, completed_at, worktree_path FROM plans WHERE id = $plan_id;")
+	[ -z "$started" ] || [ -z "$completed" ] && return 0
+
+	# Try worktree first, then project dir
+	local git_dir=""
+	if [ -n "$worktree_path" ]; then
+		local wt_expanded="$(_expand_path "$worktree_path")"
+		[ -d "$wt_expanded" ] && git_dir="$wt_expanded"
+	fi
+	if [ -z "$git_dir" ]; then
+		git_dir=$(find ~/GitHub -maxdepth 1 -iname "$project_id" -type d 2>/dev/null | head -1)
+	fi
+	if [ -z "$git_dir" ] || { [ ! -d "$git_dir/.git" ] && [ ! -f "$git_dir/.git" ]; }; then
+		sqlite3 "$DB_FILE" "UPDATE plans SET lines_added = 0, lines_removed = 0 WHERE id = $plan_id;"
+		return 0
+	fi
+
+	local stats added removed
+	stats=$(git -C "$git_dir" log --all --shortstat --after="$started" --before="$completed" --format="" 2>/dev/null)
+	added=$(echo "$stats" | awk '{s+=$4} END {print s+0}')
+	removed=$(echo "$stats" | awk '{s+=$6} END {print s+0}')
+	sqlite3 "$DB_FILE" "UPDATE plans SET lines_added = $added, lines_removed = $removed WHERE id = $plan_id;"
 }
 
 # Normalize path: replace $HOME with ~ for portability across machines

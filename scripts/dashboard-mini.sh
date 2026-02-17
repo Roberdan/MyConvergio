@@ -510,7 +510,7 @@ render_dashboard() {
 		local pmarkdown_expanded="$pmarkdown"
 		[ -n "$pmarkdown_expanded" ] && pmarkdown_expanded=$(echo "$pmarkdown_expanded" | sed "s|^~|$HOME|")
 		if [ -n "$pmarkdown_expanded" ] && [ -f "$pmarkdown_expanded" ]; then
-			adr_list=$(grep -oE '(docs/adr/|ADR )([A-Za-z0-9_-]+)' "$pmarkdown_expanded" 2>/dev/null | sed 's/docs\/adr\///; s/ADR //' | sort -u | head -10)
+			adr_list=$(grep -oE '(docs/adr/|ADR )([A-Za-z0-9_-]+)' "$pmarkdown_expanded" 2>/dev/null | sed 's/docs\/adr\///; s/ADR //' | sort -u | head -10 || true)
 		fi
 		[ -n "$adr_list" ] && has_refs=1
 

@@ -1,28 +1,32 @@
-## <!-- v2.0.0 -->
+## <!-- v2.1.0 -->
 
 name: execute
-version: "2.0.0"
+version: "2.1.0"
 
 ---
 
 # Plan Executor
 
-Automated task execution via task-executor subagent or Copilot CLI worker.
+Automated task execution with per-task routing: Copilot CLI (default) or Claude task-executor.
 
 ## Activation
 
-`/execute {plan_id}` or `/execute` (current) | Override: `--engine claude|copilot`
+`/execute {plan_id}` or `/execute` (current) | Override: `--force-engine claude|copilot` (overrides per-task routing)
 
-## Engine Selection
+## Per-Task Engine Routing
 
-| Engine    | Agent/Worker      | Model                    | Billing        |
-| --------- | ----------------- | ------------------------ | -------------- |
-| `claude`  | task-executor     | gpt-5.3-codex (default)  | Anthropic API  |
-| `copilot` | copilot-worker.sh | opus-4.6 (3x premium)    | GitHub Copilot |
+Each task has `executor_agent` in DB (set by planner). Executor reads it and routes accordingly.
+
+| executor_agent | Agent/Worker      | Billing        |
+| -------------- | ----------------- | -------------- |
+| `copilot`      | copilot-worker.sh | GitHub (free)  |
+| `claude`       | task-executor     | Anthropic ($$) |
+
+**Default is `copilot`**. See @planner-modules/model-strategy.md for escalation criteria.
 
 ## Rules
 
-NEVER execute without plan_id | NEVER skip tasks/Thor | WORKTREE ISOLATION — pass path to EVERY task-executor
+NEVER execute without plan_id | NEVER skip tasks/Thor | WORKTREE ISOLATION — pass path to EVERY executor
 
 ## Workflow
 
@@ -34,11 +38,19 @@ NEVER execute without plan_id | NEVER skip tasks/Thor | WORKTREE ISOLATION — p
 
 `DRIFT_JSON=$(plan-db.sh drift-check $PLAN_ID)` → Check `DRIFT_LEVEL`: **major** → ASK USER (Proceed/Rebase/Replan) | **minor** → `plan-db.sh rebase-plan $PLAN_ID`
 
-### P2-3: Execute Tasks
+### P2-3: Execute Tasks (Per-Task Routing)
 
-Tasks in `CTX.pending_tasks` (no separate query).
+Tasks in `CTX.pending_tasks` (no separate query). Route each task by `executor_agent` (NULL or empty = `copilot`):
 
-**Engine: claude** — per-task prompt:
+**If `executor_agent == "copilot"` (default)**:
+
+```bash
+copilot-worker.sh ${task.db_id} --model ${task.model} --timeout 600
+```
+
+Uses `--allow-all`, `--add-dir`, `--no-ask-user`, `-p` mode. Model from DB (e.g. `gpt-5.3-codex`, `claude-opus-4.6-fast`).
+
+**If `executor_agent == "claude"`**:
 
 ```typescript
 const wavePeers = pendingTasks
@@ -60,9 +72,7 @@ PATH: export PATH="$HOME/.claude/scripts:$PATH"`,
 });
 ```
 
-**Engine: copilot** — `copilot-worker.sh ${task.db_id} --model claude-opus-4.6 --timeout 600` (uses `--allow-all`, `--add-dir`, `-p` mode, cost: 3 premium/task)
-
-**Post-exec**: `verify-task-update.sh ${task.db_id} done` | Retry max 2x → mark `blocked`, ASK USER
+**Post-exec (both engines)**: `verify-task-update.sh ${task.db_id} done` | Retry max 2x → mark `blocked`, ASK USER
 
 ### P4a: Per-Task Thor
 

@@ -3,7 +3,7 @@
 # Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]
 # Requires: copilot CLI installed, GH_TOKEN or COPILOT_TOKEN set
 
-# Version: 1.1.0
+# Version: 2.0.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,8 +12,8 @@ DB_FILE="${HOME}/.claude/data/dashboard.db"
 TASK_ID="${1:-}"
 shift || true
 
-# Defaults
-MODEL="claude-opus-4.6"
+# Defaults (gpt-5.3-codex = cheapest adequate for most tasks)
+MODEL="gpt-5.3-codex"
 TIMEOUT=600
 
 # Parse optional flags
@@ -79,6 +79,7 @@ echo "Launching Copilot worker for task $TASK_ID (timeout: ${TIMEOUT}s)..."
 EXIT_CODE=0
 timeout "$TIMEOUT" copilot \
 	--allow-all \
+	--no-ask-user \
 	--add-dir "$WT" \
 	--model "$MODEL" \
 	-p "$PROMPT" || EXIT_CODE=$?

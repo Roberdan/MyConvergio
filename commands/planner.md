@@ -60,9 +60,15 @@ spec.json: `{user_request, requirements:[{id,text,wave}], waves:[{id,name,estima
 
 **Rules**: `do`=ONE action. `files`=explicit paths. `verify`=machine-checkable. `ref`=F-xx ID. Missing `verify`=broken. **Per-wave docs**: TX-doc (CHANGELOG + plan-{id}-notes.md). **Final wave** "WF-Closure": TF-01 (notes->ADRs), TF-02 (CHANGELOG), TF-03 (ESLint), TF-pr (PR+CI). Cite ADRs in `do`.
 
-### 2.5 Copilot Delegation
+### 2.5 Copilot-First Delegation (DEFAULT)
 
-Mark eligible: `"codex": true`. Present: "Delegabili a Copilot: [list]. Vuoi delegarli?" Never: architecture, security, debugging, cross-cutting, CI/build, DB schema, API. **Prompt**: `copilot-task-prompt.sh <id>`. **Exec**: Kitty: `worker-launch.sh copilot "Copilot-N" <id> --cwd <worktree>` | Standalone: `copilot-worker.sh <id> --model claude-sonnet-4.5 --timeout 600` | Mixed: `orchestrate.sh <plan> 4 --engine mixed`. Requires: `copilot --allow-all`, `GH_TOKEN`.
+**ALL tasks default to `executor_agent: "copilot"`.** Only escalate to `claude` per decision tree in @planner-modules/model-strategy.md. Present summary: "Task su Claude (pagati): [list + perche']. Tutto il resto su Copilot (gratis). Ok?"
+
+**Copilot model assignment**: trivial -> `gpt-5.1-codex-mini` | standard -> `gpt-5.3-codex` | complex -> `claude-opus-4.6-fast`. See model-strategy for full tree.
+
+**Never delegate to Copilot**: architecture decisions, security-sensitive, investigative debugging, cross-system integration where failure cascades.
+
+**Exec**: `copilot-worker.sh <id> --model <model> --timeout 600`. Requires: `copilot --allow-all`, `GH_TOKEN`.
 
 ### 2.7 Cross-Plan Conflict Check (MANDATORY)
 

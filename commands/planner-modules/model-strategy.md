@@ -1,191 +1,119 @@
 ---
 name: model-strategy
-version: "1.0.0"
+version: "2.0.0"
 ---
 
 # Model Strategy & Assignment
 
-## Phase-Model Mapping
+## Copilot-First Principle (NON-NEGOTIABLE)
 
-| Phase        | Standard Mode           | Max Parallel |
-| ------------ | ----------------------- | ------------ |
-| Planning     | opus                    | opus         |
-| Coordination | sonnet                  | **opus**     |
-| Execution    | **gpt-5.3-codex** (default) | gpt-5.3-codex |
-| Validation   | opus                    | opus         |
+**Copilot CLI is free and unlimited. Claude API is paid.** Maximize Copilot delegation, minimize Claude API usage. Thor (Claude) validates everything -- quality doesn't degrade.
 
-## Model Selection (MANDATORY per task)
+| Phase      | Engine                | Why                                  |
+| ---------- | --------------------- | ------------------------------------ |
+| Planning   | Claude (opus)         | Reasoning, architecture, judgment    |
+| Execution  | **Copilot (default)** | Free, unlimited requests             |
+| Validation | Claude (sonnet)       | Thor must be independent of executor |
 
-Planner assigns model to EACH task during planning phase.
-Executor uses EXACTLY the model specified (no override).
+## Agent Routing (executor_agent)
 
-If task scope changes during execution → re-plan, don't auto-escalate.
+**DEFAULT IS `copilot`.** Only use `claude` when cost-of-failure justifies paid API.
 
-**DEFAULT IS SONNET.** Use haiku only for trivial. Use opus when reasoning matters.
+| Value               | Use For                                           | Billing        |
+| ------------------- | ------------------------------------------------- | -------------- |
+| `copilot` (default) | ALL tasks unless escalation criteria met          | GitHub (free)  |
+| `claude`            | Architecture, security, debug, cross-cutting ONLY | Anthropic ($$) |
+| `manual`            | Tasks requiring human intervention                | N/A            |
 
-## Agent Routing (executor_agent) & Model Mapping
+## Copilot Model Selection
 
-Each task specifies which agent executes it via `executor_agent`:
+Pick the cheapest Copilot model adequate for the task:
 
-| Value              | Use For                                                | Model Options                              |
-| ------------------ | ------------------------------------------------------ | ------------------------------------------ |
-| `claude` (default) | Architecture, security, debugging, cross-cutting logic | haiku, sonnet, opus                        |
-| `copilot`          | Mechanical, repetitive, well-defined tasks             | gpt-5.1-codex-mini, gpt-5.3-codex, gpt-5  |
-| `codex`            | Mechanical bulk tasks with clear specs                 | gpt-5.3-codex                              |
-| `manual`           | Tasks requiring human intervention                     | N/A                                        |
+| Complexity        | Copilot Model          | Premium | Use When                                           |
+| ----------------- | ---------------------- | ------- | -------------------------------------------------- |
+| **Trivial**       | `gpt-5.1-codex-mini`   | 0.33    | Config, rename, text, constants                    |
+| **Standard**      | `gpt-5.3-codex`        | 1       | CRUD, components, endpoints, tests with clear spec |
+| **Complex**       | `claude-opus-4.6-fast` | 30      | Multi-file, nuanced logic -- still free!           |
+| **Max reasoning** | `claude-opus-4.6`      | 30      | Hard tasks where copilot needs full Opus           |
 
-**Model weight tiers** (used for weighted progress):
+All Copilot models available: `claude-opus-4.6`, `claude-opus-4.6-fast`, `claude-sonnet-4.6`, `claude-sonnet-4.5`, `claude-haiku-4.5`, `gpt-5.3-codex`, `gpt-5.2-codex`, `gpt-5.1-codex-max`, `gpt-5.1-codex`, `gpt-5.1-codex-mini`, `gpt-5`, `gpt-5-mini`, `gpt-4.1`, `gemini-3-pro-preview`
 
-| Tier | Weight | Models                                |
-| ---- | ------ | ------------------------------------- |
-| Low  | x1     | haiku, gpt-5.1-codex-mini             |
-| Mid  | x2     | sonnet, gpt-5.3-codex, gpt-5.1-codex |
-| High | x3     | opus, gpt-5, gpt-5.2                  |
+## Claude Escalation Criteria (ONLY these cases)
 
-**Decision criteria:**
+Escalate to `executor_agent: "claude"` ONLY when ALL of:
 
-- Cost-of-failure HIGH → `claude` (opus/sonnet)
-- Mechanical + well-defined → `copilot` or `codex`
-- Requires judgment → `claude`
-- **Never delegate**: architecture, security, debugging, DB schema, API design
+1. Task requires **deciding what to do** (not just how)
+2. **AND** one of: architectural decision, unknown root cause, security-sensitive, cross-system integration, ambiguous requirements, no existing pattern
+3. **AND** failure would cascade to other tasks/systems
 
-Replaces the legacy `codex: true/false` boolean. Backward compatible: `codex: true` maps to `executor_agent: "codex"`.
-
-## Cost-of-Failure Principle
-
-Pick the model based on **cost of getting it wrong**, not cost of the call:
-
-| Scenario             | Cheap model cost | Failure + retry cost    | Right choice |
-| -------------------- | ---------------- | ----------------------- | ------------ |
-| Fix typo             | haiku $0.01      | N/A (can't fail)        | haiku        |
-| Add endpoint         | sonnet $0.15     | retry $0.30+            | sonnet       |
-| Integrate 2 services | sonnet $0.15     | debug+rewrite $1+       | **opus**     |
-| Debug unknown cause  | sonnet $0.15     | 3 wrong attempts $0.45+ | **opus**     |
-
-**Rule**: If P(failure) > 40%, use the next model up. One failed retry already
-costs more than the upgrade.
-
-## Assignment Criteria
-
-| Complexity             | Model    | Criteria                                                                                                                |
-| ---------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Trivial**            | `haiku`  | Single file, zero logic (string/config/constant), no new code paths                                                     |
-| **Standard**           | `sonnet` | Clear requirements, known patterns, 1-3 files, tests with obvious assertions                                            |
-| **Requires reasoning** | `opus`   | Ambiguous requirements, architectural decisions, cross-cutting concerns, unknown root cause, 4+ files with dependencies |
-
-## Haiku: ONLY for these cases
-
-- Fix typo in string/comment
-- Update a constant/config value
-- Change UI text (no logic)
-- Rename a variable (single file)
-- Update version number
-- Add/remove a CSS class (no logic)
-
-## Sonnet: solid when requirements are clear
-
-- Implement a well-defined function/method
-- Add an endpoint following existing patterns
-- Write tests when the behavior is specified
-- Refactor with clear before/after structure
-- Bug fix with known root cause
-- CRUD operations, form components, data transformations
-
-## Opus: invest upfront when reasoning matters
-
-- **Architectural decisions**: Where to put things, how to structure, which pattern
-- **Multi-file interdependencies**: 4+ files that must change consistently
-- **Unknown root cause**: Debug where the symptom doesn't point to the source
-- **Integration work**: Connecting systems that weren't designed together
-- **Ambiguous requirements**: Task needs interpretation, not just execution
-- **First-of-its-kind**: No existing pattern to follow in the codebase
-- **Security-sensitive**: Auth, permissions, data access, crypto
-- **Data model changes**: Schema migrations, breaking API changes
-
-**Key insight**: Sonnet executes well. Opus reasons well. If the task is about
-_what to do_ (not just _how_), use Opus. Getting it wrong once costs more than
-Opus upfront.
+If the task is "do X following pattern Y" -- that's Copilot, even if complex.
 
 ## Decision Tree (Planner MUST follow)
 
 ```
-Is it a string/constant/config-only change in 1 file?
-  YES → haiku
+Does the task require DECIDING what to do (architecture, design)?
+  YES → claude (opus)
   NO  ↓
-Does the task require DECIDING what to do (not just how)?
-  YES → opus
+Unknown root cause (investigative debugging)?
+  YES → claude (opus)
   NO  ↓
-Are requirements ambiguous or is root cause unknown?
-  YES → opus
+Security-sensitive (auth, crypto, permissions, data access)?
+  YES → claude (sonnet)
   NO  ↓
-Does it touch 4+ files with interdependencies?
-  YES → opus
+Cross-system integration (systems not designed together)?
+  YES → claude (opus)
   NO  ↓
-Is there an existing pattern to follow in the codebase?
-  YES → sonnet
-  NO  → opus
+ALL REMAINING → copilot
+  ↓
+  Trivial (config, rename, text, 1 file)?
+    YES → copilot + gpt-5.1-codex-mini
+    NO  ↓
+  Clear requirements + existing pattern?
+    YES → copilot + gpt-5.3-codex
+    NO  → copilot + claude-opus-4.6-fast
 ```
 
 ## Task Granularity (DO NOT fragment for model fit)
 
-Split tasks by **responsibility/concern**, NOT by model capability.
+Split by **responsibility/concern**, NOT by model capability. 1 task = 1 coherent unit. Prefer fewer reliable tasks over many fragile ones. Micro-tasks waste tokens on bootstrap.
 
-**WRONG**: Break "Add login form with validation" into 5 micro-tasks.
-Each task-executor starts with zero context — micro-tasks waste tokens
-on bootstrap and fail on anything requiring cross-piece reasoning.
+## Model Selection for Claude Tasks
 
-**RIGHT**: Keep "Add login form with validation" as one sonnet/opus task.
-If the plan naturally produces trivial tasks (rename, config), those go to haiku.
+When `executor_agent: "claude"`, pick model by complexity:
 
-**Rule**: Optimize for reliability first, cost second.
+| Complexity             | Model    | Criteria                                                    |
+| ---------------------- | -------- | ----------------------------------------------------------- |
+| **Standard**           | `sonnet` | Clear requirements, known patterns, 1-3 files               |
+| **Requires reasoning** | `opus`   | Ambiguous, architectural, cross-cutting, unknown root cause |
 
-**Task size guidance**:
+## Context Isolation
 
-- 1 task = 1 coherent unit of work (a function, a component, an endpoint)
-- If splitting makes a task lose its logical coherence → don't split
-- Prefer fewer reliable tasks over many fragile ones
-
-## Context Isolation (Token Optimization)
-
-- **task-executor**: FRESH session per task. No parent context inheritance.
+- **task-executor** (Claude): FRESH session per task. No parent context.
+- **copilot-worker.sh**: FRESH session per task. `--no-ask-user` for autonomous mode.
 - **thor**: FRESH session per validation. Skeptical, reads everything.
-- **Benefit**: 50-70% token reduction vs inherited context
-- **MCP**: task-executor has WebSearch/WebFetch disabled
 
 ## DB Registration
 
 ```bash
-# MANDATORY: specify --model and --effort for EVERY task
-plan-db.sh add-task {db_wave_id} T1-01 "Fix typo" P2 chore --model haiku --effort 1
-plan-db.sh add-task {db_wave_id} T1-02 "Add endpoint" P1 feature --model sonnet --effort 2
-plan-db.sh add-task {db_wave_id} T1-03 "Redesign auth" P0 feature --model opus --effort 3
-
-# Shorthand (model as last positional arg, effort defaults to 1)
-plan-db.sh add-task {db_wave_id} T1-01 "Fix typo" P2 chore haiku
+# MANDATORY: --model, --effort, --executor-agent for EVERY task
+plan-db.sh add-task {db_wave_id} T1-01 "Fix typo" P2 chore \
+  --model gpt-5.1-codex-mini --effort 1 --executor-agent copilot
+plan-db.sh add-task {db_wave_id} T1-02 "Add endpoint" P1 feature \
+  --model gpt-5.3-codex --effort 2 --executor-agent copilot
+plan-db.sh add-task {db_wave_id} T1-03 "Redesign auth" P0 feature \
+  --model opus --effort 3 --executor-agent claude
 ```
 
 ## Thor Validation Gate
 
-**Progress counts only Thor-validated tasks.** A task marked "done" by the executor
-does NOT contribute to the weighted progress until Thor validates it.
-
-Dashboard shows: `T✓` = Thor validated, `T!` = done but not validated.
+**Progress counts only Thor-validated tasks.** Executor doesn't matter -- Thor validates all equally. Dashboard: `T✓` = validated, `T!` = done but not validated.
 
 ## Cross-Tool Execution (Claude plan → Copilot execution)
 
-When a plan created by Claude is executed by Copilot (or vice versa), the
-executing tool MUST be given a **T0-00 Review Plan** task as the first task
-in W0:
+When a plan is executed by Copilot, the executing tool gets **T0-00 Review Plan** as first task in W0:
 
 ```bash
-plan-db.sh add-task {db_w0_id} T0-00 "Review plan and reassign models/effort per task" P0 chore \
-  --model gpt-5.3-codex --effort 1 \
-  --description "Review all tasks. For each task: verify model is optimal for this executor, adjust effort_level if needed, flag any tasks that need replanning."
+plan-db.sh add-task {db_w0_id} T0-00 "Review plan and reassign models/effort" P0 chore \
+  --model gpt-5.3-codex --effort 1 --executor-agent copilot \
+  --description "Review all tasks. Reassign model per task to optimal Copilot model. Adjust effort. Flag tasks needing replan."
 ```
-
-This allows the executing tool to:
-
-1. Read the full plan context
-2. Reassign `model` per task to its own optimal models
-3. Adjust `effort_level` based on its own assessment
-4. Flag any tasks that need replanning before execution starts

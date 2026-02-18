@@ -57,6 +57,9 @@ const wavePeers = pendingTasks
   .filter((t) => t.wave_db_id === task.wave_db_id && t.db_id !== task.db_id)
   .map((t) => `${t.task_id}: ${t.title}`)
   .join("\n");
+const priorOutputs = CTX.completed_tasks_output
+  .map((t) => `${t.task_id}: ${t.output_data}`)
+  .join("\n");
 await Task({
   subagent_type: "task-executor",
   model: task.model || "sonnet",
@@ -68,6 +71,7 @@ Do: ${task.title}
 ${task.description}
 Verify: ${task.test_criteria}
 Wave peers: ${wavePeers}
+Prior task outputs: ${priorOutputs || "none"}
 PATH: export PATH="$HOME/.claude/scripts:$PATH"`,
 });
 ```

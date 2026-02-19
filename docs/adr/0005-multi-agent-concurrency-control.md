@@ -26,17 +26,21 @@ FIFO queue with priority support. Branches are enqueued after task completion. `
 
 Three new tables in `dashboard.db` (migration: `migrate-v5-concurrency.sh`):
 
-| Table            | Purpose             | Key columns                                          |
-| ---------------- | ------------------- | ---------------------------------------------------- |
-| `file_locks`     | Active file locks   | file_path (UNIQUE), task_id, pid, host, heartbeat_at |
-| `file_snapshots` | File hash baselines | task_id+file_path (UNIQUE), file_hash, branch        |
-| `merge_queue`    | Merge queue state   | branch (UNIQUE), status, priority, result/error      |
+| Table            | Purpose             | Key columns                                                      |
+| ---------------- | ------------------- | ---------------------------------------------------------------- |
+| `file_locks`     | Active file locks   | file_path (UNIQUE), task_id, session_id, pid, host, heartbeat_at |
+| `file_snapshots` | File hash baselines | task_id+file_path (UNIQUE), file_hash, branch                    |
+| `merge_queue`    | Merge queue state   | branch (UNIQUE), status, priority, result/error                  |
 
 ### Integration Points
 
 - `plan-db.sh` exposes all four as sub-commands: `lock`, `stale-check`, `wave-overlap`, `merge-queue`
 - `plan-db-safe.sh` auto-checks staleness and releases locks when marking task done
 - `task-executor.md` has new mandatory phases: Phase 0.5 (lock+snapshot) and Phase 4.7 (stale check)
+
+### Layer 5 — Session-Based File Locking (Non-Plan Workflow)
+
+Added 19 Feb 2026. When agents work outside formal plans (teams, parallel sessions, ad-hoc), automatic hook-based file locking prevents concurrent edits. PreToolUse hooks on `Edit|Write|MultiEdit` acquire session locks via `file-lock.sh acquire-session`. Stop/sessionEnd hooks auto-release. Re-entrant (same session can edit same file repeatedly). Cross-platform: Claude Code + Copilot CLI. Opt-out: `CLAUDE_FILE_LOCK=0`. Migration: `migrate-v6-session-locks.sh` adds `session_id` column to `file_locks`.
 
 ## Consequences
 
@@ -63,3 +67,11 @@ Three new tables in `dashboard.db` (migration: `migrate-v5-concurrency.sh`):
 | `scripts/plan-db-safe.sh`                       | Added stale check + auto lock release          |
 | `agents/technical_development/task-executor.md` | Added Phase 0.5 and 4.7                        |
 | `CLAUDE.md`                                     | Added Concurrency Control section              |
+| `scripts/file-lock-session.sh`                  | New — session-based acquire/release commands   |
+| `scripts/file-lock-utils.sh`                    | New — list/cleanup (split from file-lock.sh)   |
+| `scripts/migrate-v6-session-locks.sh`           | New — adds session_id column to file_locks     |
+| `hooks/session-file-lock.sh`                    | New — Claude Code PreToolUse lock hook         |
+| `hooks/session-file-unlock.sh`                  | New — Claude Code Stop unlock hook             |
+| `hooks/lib/file-lock-common.sh`                 | New — shared lock utilities for both platforms |
+| `copilot-config/hooks/session-file-lock.sh`     | New — Copilot CLI preToolUse lock hook         |
+| `copilot-config/hooks/session-file-unlock.sh`   | New — Copilot CLI sessionEnd unlock hook       |

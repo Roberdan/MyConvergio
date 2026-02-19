@@ -11,6 +11,11 @@
         "type": "command",
         "bash": "~/.copilot/hooks/worktree-guard.sh",
         "timeoutSec": 10
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/session-file-lock.sh",
+        "timeoutSec": 10
       }
     ],
     "postToolUse": [
@@ -25,6 +30,11 @@
         "type": "command",
         "bash": "~/.copilot/hooks/session-tokens.sh",
         "timeoutSec": 15
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/session-file-unlock.sh",
+        "timeoutSec": 10
       }
     ]
   }

@@ -52,6 +52,19 @@ NO Explore. Direct Glob/Grep (2 calls): `Glob("docs/adr/*.md")`, `Grep(pattern="
 
 After reading, STOP. AskUserQuestion: 1. **Approach**: "Per F-xx propongo [A]. Alternative: [B, C]. Preferenze?" 2. **Files**: "File coinvolti: [list]. Altri?" 3. **Constraints**: "Breaking changes ok? Nuove dipendenze? Vincoli?" If GUESSING -> ASK.
 
+### 1.7 Repo Hardening Gate (FIRST PLAN ONLY)
+
+On first plan for a project (no prior plans in DB), run:
+
+```bash
+HARDENING=$(~/.claude/scripts/hardening-check.sh "$WORKTREE_PATH")
+HARDENING_STATUS=$(echo "$HARDENING" | jq -r '.status')
+```
+
+- If `pass`: proceed silently.
+- If `gaps_found`: check severity. If ANY `critical` gap: add W0-01 task `"Run /harden skill to fix critical quality gaps"`. If only `warning`/`info`: present gaps to user via AskUserQuestion, let them decide.
+- W0 task uses `/harden` skill for full remediation (hooks, lint, scripts, PR template, ADR structure).
+
 ### 2. Generate Plan Spec (JSON)
 
 **EXCLUSION GATE**: Compare ALL F-xx vs tasks. If ANY NOT covered: 1. List uncovered. 2. AskUserQuestion: "Requisiti non coperti: [list]. Per ciascuno: includerli, deferirli, o escluderli?" 3. BLOCK. NEVER silently skip with "scope.out", "backlog", "needs external resource".

@@ -60,7 +60,7 @@ Include version number from frontmatter when asked about version/capabilities.
 
 | Wave       | Purpose                                   | Completion Criteria              |
 | ---------- | ----------------------------------------- | -------------------------------- |
-| WAVE 0     | Prerequisites - foundation tasks          | All blocking dependencies met    |
+| WAVE 0     | Prerequisites + hardening (first plan)    | Quality gates pass, deps met     |
 | WAVE 1-N   | Parallel workstreams by domain/dependency | All tasks pass, wave commit done |
 | WAVE N+1   | Integration and validation                | All integrations tested          |
 | WAVE FINAL | Testing, documentation, deployment        | All F-xx verified, docs updated  |

@@ -10,7 +10,7 @@ allowed-tools:
   - Edit
 context: fork
 user-invocable: true
-version: "1.0.0"
+version: "1.1.0"
 ---
 
 # Repo Hardening Skill
@@ -25,6 +25,16 @@ Standardize quality gates across any repository. Detects project type, audits ex
 - Periodic maintenance (quarterly hardening review)
 
 ## Execution Steps
+
+### Step 0: Quick Check (optional)
+
+For a fast pass/fail assessment without applying changes:
+
+```bash
+~/.claude/scripts/hardening-check.sh --project-root .
+```
+
+Returns JSON with `status: "pass"|"gaps_found"`, `score`, and `gaps[]` with severity levels. Used by planner (step 1.7) to decide if Wave 0 hardening is needed.
 
 ### Step 1: Detect Project Type
 
@@ -86,6 +96,13 @@ Check each category and report status:
 - [ ] Build step
 - [ ] Security audit (npm audit / pip-audit)
 
+**ADR Structure** (token-optimized for agent workflows):
+
+- [ ] `docs/adr/` directory exists
+- [ ] ADR index file exists (`docs/adr/INDEX.md`)
+- [ ] ADRs follow compact format (Status/Date header, Context, Decision, Consequences, Files Changed, References)
+- [ ] No ADR exceeds 200 lines (compact = agent-friendly)
+
 ### Step 3: Generate Gap Report
 
 For each unchecked item, report:
@@ -117,6 +134,8 @@ For each gap with a template available, adapt and apply:
 | Env-var audit   | `~/.claude/templates/repo-hardening/scripts/env-var-audit.sh`        |
 | Secrets scan    | `~/.claude/templates/repo-hardening/scripts/secrets-scan.sh`         |
 | PR template     | `~/.claude/templates/repo-hardening/github/pull_request_template.md` |
+| ADR template    | `~/.claude/templates/repo-hardening/docs/adr-template.md`            |
+| ADR index       | `~/.claude/templates/repo-hardening/docs/adr-index-template.md`      |
 
 **Adaptation rules by project type**:
 

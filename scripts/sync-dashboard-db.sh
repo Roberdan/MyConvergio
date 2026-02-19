@@ -1,7 +1,7 @@
 #!/bin/bash
 # sync-dashboard-db.sh - Sync dashboard.db between machines
-# Usage: sync-dashboard-db.sh [push|pull|incremental|status]
-# Version: 1.1.0
+# Usage: sync-dashboard-db.sh [push|pull|incremental|diagnose|status]
+# Version: 1.2.0
 set -e
 
 CONFIG_FILE="$HOME/.claude/config/sync-db.conf"
@@ -199,6 +199,40 @@ incremental_sync() {
 	log_info "Incremental sync complete"
 }
 
+diagnose_sync() {
+	log_info "=== DIAGNOSTIC MODE ==="
+	log_info "Config: LOCAL_DB=$LOCAL_DB REMOTE_DB=$REMOTE_DB REMOTE_HOST=$REMOTE_HOST"
+
+	local sync_file="$HOME/.claude/data/last-sync.txt"
+	if [[ -f "$sync_file" ]]; then
+		log_info "Last sync: $(cat "$sync_file")"
+	else
+		log_warn "No last-sync.txt found (first sync)"
+	fi
+
+	log_info "--- Local DB check ---"
+	if [[ ! -f "$LOCAL_DB" ]]; then
+		log_error "Local DB missing: $LOCAL_DB"
+		return 1
+	fi
+	ls -la "$LOCAL_DB"
+	sqlite3 "$LOCAL_DB" "SELECT 'plans:', COUNT(*) FROM plans; SELECT 'tasks:', COUNT(*) FROM tasks; SELECT 'waves:', COUNT(*) FROM waves;" 2>&1 || log_error "Local DB query failed"
+
+	log_info "--- SSH connectivity ---"
+	ssh -v -o ConnectTimeout=5 "$REMOTE_HOST" "echo 'SSH OK'; ls -la $REMOTE_DB" 2>&1
+
+	log_info "--- Remote DB check ---"
+	ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"SELECT 'plans:', COUNT(*) FROM plans; SELECT 'tasks:', COUNT(*) FROM tasks; SELECT 'waves:', COUNT(*) FROM waves;\"" 2>&1 || log_error "Remote DB query failed"
+
+	log_info "--- Running incremental sync with tracing ---"
+	(
+		set -x
+		incremental_sync
+	) 2>&1
+
+	log_info "=== DIAGNOSTIC COMPLETE ==="
+}
+
 copy_plan() {
 	local plan_id=$1
 	local direction=$2
@@ -277,9 +311,14 @@ copy-plan)
 	check_ssh
 	copy_plan "$2" "$3"
 	;;
+diagnose)
+	check_ssh
+	diagnose_sync
+	;;
 *)
-	echo "Usage: $0 [pull|push|incremental|full-pull|full-push|copy-plan|status]"
+	echo "Usage: $0 [pull|push|incremental|diagnose|full-pull|full-push|copy-plan|status]"
 	echo "  pull/push - Sync completed plans | incremental - Changed rows only"
+	echo "  diagnose - Run incremental sync with verbose tracing for debugging"
 	echo "  full-pull/full-push - Replace entire DB | copy-plan <id> [push|pull]"
 	echo "  status - Compare both DBs | Config: $CONFIG_FILE"
 	exit 1

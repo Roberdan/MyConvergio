@@ -53,6 +53,11 @@
             "type": "command",
             "command": "~/.claude/hooks/auto-format.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/guard-settings.sh",
+            "timeout": 3
           }
         ]
       }

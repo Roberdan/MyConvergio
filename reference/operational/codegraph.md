@@ -31,6 +31,4 @@ Tell the Explore agent to use codegraph tools for faster exploration.
 
 ## If `.codegraph/` does NOT exist
 
-At the start of a session, ask the user if they'd like to initialize CodeGraph:
-
-"I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
+Skip codegraph. Use Glob/Grep/Read instead. Do NOT suggest running `codegraph init` — there is no CLI binary.

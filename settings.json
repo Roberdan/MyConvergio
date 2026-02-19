@@ -70,16 +70,6 @@
             "timeout": 3
           }
         ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "test -x .codegraph/codegraph && .codegraph/codegraph mark-dirty || true",
-            "async": true
-          }
-        ]
       }
     ],
     "SubagentStart": [
@@ -140,15 +130,6 @@
             "type": "command",
             "command": "~/.claude/hooks/session-file-unlock.sh",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "test -x .codegraph/codegraph && .codegraph/codegraph sync-if-dirty || true"
           }
         ]
       }

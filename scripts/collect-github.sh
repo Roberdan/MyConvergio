@@ -22,6 +22,28 @@ if ! command -v gh &>/dev/null; then
 	exit 1
 fi
 
+# Resolve owner/repo from origin remote (handles forks correctly)
+_OWNER="" _REPO="" _SLUG=""
+_get_slug() {
+	[[ -n "$_SLUG" ]] && return
+	local remote_url
+	remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+	if [[ "$remote_url" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
+		_OWNER="${BASH_REMATCH[1]}"
+		_REPO="${BASH_REMATCH[2]}"
+	else
+		_OWNER=$(gh repo view --json owner --jq '.owner.login')
+		_REPO=$(gh repo view --json name --jq '.name')
+	fi
+	_SLUG="${_OWNER}/${_REPO}"
+}
+gh_api() {
+	_get_slug
+	local path="$1"
+	shift
+	gh api "repos/${_SLUG}/${path}" "$@"
+}
+
 # Check authentication
 if ! gh auth status >/dev/null 2>&1; then
 	jq -n --arg ts "$TIMESTAMP" '{
@@ -33,8 +55,9 @@ if ! gh auth status >/dev/null 2>&1; then
 	exit 1
 fi
 
-# Get repo info
-REPO=$(gh repo view --json nameWithOwner -q '.nameWithOwner' 2>/dev/null || echo "")
+# Get repo info (from origin, not upstream)
+_get_slug
+REPO="$_SLUG"
 if [[ -z "$REPO" ]]; then
 	jq -n --arg ts "$TIMESTAMP" '{
         collector: "github",
@@ -45,35 +68,31 @@ if [[ -z "$REPO" ]]; then
 	exit 1
 fi
 
-# Get current branch PRs
+# Get current branch PRs (REST API — GraphQL has numbering issues on forks)
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 PR_DATA='null'
 if [[ -n "$BRANCH" ]]; then
-	PR_DATA=$(gh pr list --head "$BRANCH" --json number,title,state,url,additions,deletions,changedFiles,reviewDecision,statusCheckRollup --limit 1 2>/dev/null | jq '.[0] // null')
+	PR_DATA=$(gh_api "pulls?state=open" --jq "[.[] | select(.head.ref == \"$BRANCH\")] | .[0] // null" 2>/dev/null || echo 'null')
 fi
 
 # If no PR for current branch, get most recent open PR
 if [[ "$PR_DATA" == "null" ]]; then
-	PR_DATA=$(gh pr list --state open --json number,title,state,url,additions,deletions,changedFiles,reviewDecision,statusCheckRollup --limit 1 2>/dev/null | jq '.[0] // null')
+	PR_DATA=$(gh_api "pulls?state=open&per_page=1" --jq '.[0] // null' 2>/dev/null || echo 'null')
 fi
 
-# Format PR data
+# Format PR data (REST API field mapping)
 PR_JSON='null'
 if [[ "$PR_DATA" != "null" ]]; then
 	PR_JSON=$(echo "$PR_DATA" | jq '{
         number: .number,
         title: .title,
-        status: .state,
-        url: .url,
+        status: (.state // "unknown" | ascii_upcase),
+        url: .html_url,
         additions: .additions,
         deletions: .deletions,
-        files: .changedFiles,
-        reviewDecision: .reviewDecision,
-        checks: ((.statusCheckRollup // []) | map({
-            name: .name,
-            status: (if .conclusion == "SUCCESS" then "pass" elif .conclusion == "FAILURE" then "fail" elif .status == "IN_PROGRESS" then "running" else "pending" end),
-            conclusion: .conclusion
-        }))
+        files: .changed_files,
+        reviewDecision: null,
+        checks: []
     }')
 fi
 

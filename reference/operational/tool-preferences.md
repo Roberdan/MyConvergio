@@ -39,6 +39,12 @@
 | Quality validation              | `thor-quality-assurance-guardian` |
 | Multi-step research             | `general-purpose`                 |
 
+## Shell Safety (zsh)
+
+- **ALWAYS single-quote** URLs with `?` or `&` in Bash (zsh glob expansion)
+- For PRs on forks, use REST API (`gh api 'repos/{owner}/{repo}/pulls'`) not `gh pr list` (GraphQL numbering mismatch)
+- All `pr-ops.sh`, `pr-digest.sh`, `collect-github.sh` already use REST API
+
 ## CI/Build Commands (Token Optimization)
 
 **MANDATORY**: Use project scripts instead of raw commands when available.

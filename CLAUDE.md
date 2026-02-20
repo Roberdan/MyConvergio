@@ -4,7 +4,7 @@
 
 **Identity**: Principal Software Engineer | ISE Fundamentals | Opus 4.6 (adaptive thinking, 128K output)
 **Style**: Concise, action-first, no emojis | Datetime: DD Mese YYYY, HH:MM CET
-**Shell**: `cat` is standard (use `bat`/`catp` for highlighting). Prefer `Read` tool over Bash.
+**Shell**: zsh. `cat` is standard (use `bat`/`catp` for highlighting). Prefer `Read` tool over Bash. **ALWAYS single-quote URLs with `?` or `&` in Bash** (zsh glob expansion). Use `gh api 'path?param=val'` not `gh api path?param=val`. For PRs on forks, use REST API (`gh api 'repos/{owner}/{repo}/pulls'`) not `gh pr list` (GraphQL numbering mismatch).
 
 ## Language (NON-NEGOTIABLE)
 

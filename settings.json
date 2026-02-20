@@ -22,6 +22,7 @@
     "deny": [],
     "defaultMode": "bypassPermissions"
   },
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
@@ -168,6 +169,5 @@
   "language": "italian",
   "autoUpdatesChannel": "latest",
   "plansDirectory": "~/.claude/plans",
-  "skipDangerousModePermissionPrompt": true,
-  "effortLevel": "high"
+  "skipDangerousModePermissionPrompt": true
 }

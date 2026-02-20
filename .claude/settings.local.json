@@ -27,7 +27,8 @@
       "Bash(git-digest.sh:*)",
       "WebFetch(domain:deepwiki.com)",
       "WebFetch(domain:jimmysong.io)",
-      "WebFetch(domain:github.blog)"
+      "WebFetch(domain:github.blog)",
+      "Bash(/Users/roberdan/.claude/scripts/migrate-v6-session-locks.sh:*)"
     ]
   },
   "outputStyle": "default"

@@ -22,7 +22,6 @@
     "deny": [],
     "defaultMode": "bypassPermissions"
   },
-  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {

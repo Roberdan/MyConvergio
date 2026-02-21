@@ -149,6 +149,86 @@ Major release: Convergio Orchestrator v1
 
 ---
 
+## [v8.0.0] - 22 Feb 2026 — Ecosystem Optimization (Plan 189)
+
+Major release focusing on anti-hallucination infrastructure, token reduction, Copilot parity, file compliance, test coverage, and architectural improvements.
+
+### Wave 0: Validation and Foundation
+
+- Added: AGENTS.md cross-tool standard for unified agent instructions
+- Added: plan-db-schema.md comprehensive database documentation
+- Verified: @reference/ import behavior (not lazy-loaded, must be mindful of token budget)
+
+### Wave 1: Anti-Hallucination Infrastructure
+
+- Added: `secret-scanner.sh` pre-commit hook (prevents credential leaks)
+- Added: Anti-hallucination rules to CLAUDE.md and AGENTS.md
+- Added: `verify-before-claim.sh` PostToolUse hook (prevents phantom file/command claims)
+- Enhanced: Thor audit logging with better traceability
+- Added: Circuit breaker to `plan-db-safe.sh` (prevents invalid done transitions)
+- Changed: Sanitized hardcoded URLs to environment variables
+
+### Wave 2: Token Reduction
+
+- Changed: `copilot-instructions.md` consolidated (183→91 lines, -50%)
+- Changed: CLAUDE.md compacted (100→64 lines, -36%)
+- Removed: Duplicate reference files
+- Changed: `reference/detailed/*.md` files compacted to v2.0.0
+
+### Wave 3: Copilot Parity
+
+- Added: Anti-Bypass rule to Copilot config
+- Fixed: `copilot-worker.sh` retry logic (proper error handling)
+- Fixed: Model names for Copilot CLI routing
+- Added: Project template for copilot-instructions
+
+### Wave 4: File Compliance
+
+- Changed: `dashboard-mini.sh` split (1377→141 lines + 10 modules)
+- Changed: Split 4 oversized scripts (compliance with 250-line rule)
+- Changed: Compacted 3 SKILL.md files
+- Archived: debug/ and file-history/ directories (moved to archive/)
+
+### Wave 5: Test Coverage
+
+- Added: Test suites for hooks (secret-scanner, verify-before-claim)
+- Added: Test suites for agents (validation coverage)
+- Added: Schema validation tests
+- Added: Worker script tests
+
+### Wave 6: ADR Modernization
+
+- Added: ADR 0011 — Anti-Bypass Protocol
+- Added: ADR 0012 — Token Accounting
+- Added: ADR 0013 — Worktree Isolation
+- Added: ADR 0014 — ZSH Shell Safety
+- Added: ADR 0015 — AGENTS.md Cross-Tool Standard
+- Added: ADR 0016 — Session File Locking
+- Added: ADR 0017 — CodeGraph MCP-Only
+- Added: ADR 0018 — Memory Protocol
+- Changed: ADR 0003 — Updated Opus 4.6 Configuration
+- Changed: ADR 0005 — Updated Multi-Agent Concurrency Control
+- Changed: ADR 0009 — Updated Compact Markdown Format
+
+### Wave 7: MyConvergio Architecture
+
+- Added: `sync-root-agents.sh` — syncs agent configs between environments
+- Added: `generate-copilot-agents.sh` — generates Copilot agent files from templates
+- Initialized: CodeGraph MCP server for codebase understanding
+- Changed: Unified orchestrator config across all environments
+- Changed: Aligned all rules to v2.0.0 compact format
+
+### Metrics & Impact
+
+- Token Reduction: ~35% across optimized files
+- File Count: Reduced by 20+ duplicate/deprecated files
+- Line Count: -1,200+ lines from split/compacted files
+- Test Coverage: +15 test files across 4 categories
+- ADR Count: +8 new ADRs, 3 updated
+- Compliance: 100% files under 250 lines (after splits)
+
+---
+
 ## [v5.1] - 12 Feb 2026 — CLAUDE.md Restructuring (ADR 0007)
 
 - Changed: CLAUDE.md slimmed from 197 to 115 lines (42% reduction)

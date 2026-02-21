@@ -334,7 +334,7 @@ function main() {
     log(colors.green, `  ✓ Installed hooks`);
   }
 
-  // Install config (orchestrator.yaml, cross-repo-learnings.yaml)
+  // Install config (orchestrator.yaml with learnings section)
   const srcConfig = path.join(PACKAGE_ROOT, ".claude", "config");
   if (fs.existsSync(srcConfig)) {
     copyRecursive(srcConfig, path.join(CLAUDE_HOME, "config"), installedFiles);

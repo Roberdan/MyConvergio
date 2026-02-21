@@ -257,7 +257,7 @@ MyConvergio/
 ├── .claude/
 │   ├── CLAUDE.md             # Main config
 │   ├── agents/               # 65 agents (8 categories)
-│   ├── config/               # orchestrator.yaml, cross-repo-learnings.yaml
+│   ├── config/               # orchestrator.yaml (with learnings section)
 │   ├── docs/                 # gemini-setup.md, ADRs
 │   ├── hooks/                # model-registry-refresh.sh
 │   ├── rules/                # Execution rules

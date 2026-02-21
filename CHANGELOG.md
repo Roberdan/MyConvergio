@@ -58,8 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `dashboard-delegation.sh` (v1.0.0): Dashboard extensions for delegation metrics
 
 - **Configuration** (`.claude/config/`):
-  - `orchestrator.yaml`: 4 providers, routing rules (priority/type/privacy), budget caps, vault references
-  - `cross-repo-learnings.yaml`: Codified patterns from 400-commit analysis (7 problems, 4 quality gates)
+  - `orchestrator.yaml`: 4 providers, routing rules (priority/type/privacy), budget caps, vault references, learnings section (codified patterns from 400-commit analysis: 7 problems, 4 quality gates)
 
 - **Hooks** (`.claude/hooks/`):
   - `model-registry-refresh.sh`: Auto-refresh model registry when stale (>14d background, >7d info)

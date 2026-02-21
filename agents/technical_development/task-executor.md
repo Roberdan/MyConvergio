@@ -150,6 +150,15 @@ stale-check.sh check "{db_task_id}"
 # Only proceed to Phase 5 if stale=false.
 ```
 
+### Phase 4.9: Thor Self-Validation (MANDATORY)
+
+```bash
+# Thor gate — NEVER skip, even if spawned outside /execute
+plan-db.sh validate-task {db_task_id} {plan_id}
+```
+
+**If Thor REJECTS**: Fix the issue and re-run. Max 3 rounds. Do NOT proceed to Phase 5 without PASS.
+
 ### Phase 5: Complete
 
 ```bash
@@ -167,7 +176,7 @@ curl -s -X POST http://127.0.0.1:31415/api/tokens \
 When marking a task as done, include structured output via `--output-data`:
 
 ```bash
-plan-db.sh update-task {id} done "Summary" --tokens N --output-data '{"summary":"what was done","artifacts":["file1.ts","file2.ts"],"metrics":{"lines_added":42,"tests_added":3}}'
+plan-db-safe.sh update-task {id} done "Summary" --tokens N --output-data '{"summary":"what was done","artifacts":["file1.ts","file2.ts"],"metrics":{"lines_added":42,"tests_added":3}}'
 ```
 
 ### output_data JSON Format
@@ -186,9 +195,13 @@ The executor_agent is set at task creation by the planner, but can be overridden
 
 ```bash
 plan-db.sh update-task {id} in_progress "Work started"
-plan-db.sh update-task {id} done "Summary" --tokens 15234
+plan-db-safe.sh update-task {id} done "Summary" --tokens 15234
 plan-db.sh update-task {id} blocked "Blocker description"
 ```
+
+**CRITICAL**: ALWAYS use `plan-db-safe.sh` (not `plan-db.sh`) for `done` status.
+The safe wrapper auto-validates tasks, waves, and plan completion.
+Using `plan-db.sh` directly for `done` = dashboard shows 0% progress.
 
 ## Success Criteria
 
@@ -227,7 +240,7 @@ sqlite3 ~/.claude/data/dashboard.db \
 # Must show: done|[notes present]
 ```
 
-**If NOT done**: Run `plan-db.sh update-task {db_task_id} done "Summary"` NOW.
+**If NOT done**: Run `plan-db-safe.sh update-task {db_task_id} done "Summary"` NOW.
 
 **FINAL OUTPUT** (required):
 

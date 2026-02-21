@@ -526,8 +526,8 @@ graph TB
 
     CC -->|full suite| ALI
     COP -->|workflow agents| SP
-    COP -->|@code-reviewer| REX
-    COP -->|@validate| THOR
+    COP -->|code-reviewer| REX
+    COP -->|validate| THOR
 
     ALI -->|orchestrates| SP
     SP -->|creates waves| TE

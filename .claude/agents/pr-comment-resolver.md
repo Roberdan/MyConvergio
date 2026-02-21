@@ -1,6 +1,4 @@
 ---
-name: pr-comment-resolver
-description: Automated PR review comment resolver - fetch threads, analyze, fix code, commit, reply, resolve
 model: sonnet
 tools:
   - Read
@@ -59,7 +57,6 @@ Build a fix plan before making any changes. Group related fixes (same file, same
 Apply fixes using Edit tool (preferred) or Write tool (new files only).
 
 For each fix:
-
 - Make the minimal change that addresses the reviewer's concern
 - Preserve surrounding code — no drive-by cleanups
 - For Bicep files: check `@secure()` propagation, `@description()` on params/outputs, no secrets in outputs

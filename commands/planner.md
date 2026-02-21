@@ -23,6 +23,7 @@ Plan and execute with parallel Claude instances.
 | 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8). |
 | 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                           |
 | 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                     |
+| 11  | **TEST CONSOLIDATION**: Final wave MUST include `TF-tests` task BEFORE `TF-pr`. See [Test Consolidation](#test-consolidation).                                    |
 
 ## Module References
 
@@ -71,7 +72,7 @@ HARDENING_STATUS=$(echo "$HARDENING" | jq -r '.status')
 
 spec.json: `{user_request, requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
 
-**Rules**: `do`=ONE action. `files`=explicit paths. `verify`=machine-checkable. `ref`=F-xx ID. Missing `verify`=broken. **Per-wave docs**: TX-doc (CHANGELOG + plan-{id}-notes.md). **Final wave** "WF-Closure": TF-01 (notes->ADRs), TF-02 (CHANGELOG), TF-03 (ESLint), TF-pr (PR+CI). Cite ADRs in `do`.
+**Rules**: `do`=ONE action. `files`=explicit paths. `verify`=machine-checkable. `ref`=F-xx ID. Missing `verify`=broken. **Per-wave docs**: TX-doc (CHANGELOG + plan-{id}-notes.md). **Final wave** "WF-Closure": TF-01 (notes->ADRs), TF-02 (CHANGELOG), TF-03 (ESLint), TF-tests (test consolidation), TF-pr (PR+CI). Cite ADRs in `do`.
 
 ### 2.5 Copilot-First Delegation (DEFAULT)
 
@@ -162,6 +163,25 @@ Before marking `manual`, explore alternatives:
 | "Manual API test"      | Integration tests with real endpoints         |
 
 When unavoidable: 1. Consolidate. 2. Front-load to W0. 3. Provide checklist. 4. Never "blocked" without instructions.
+
+## Test Consolidation {#test-consolidation}
+
+EVERY plan MUST include `TF-tests` in the final wave, BEFORE `TF-pr`:
+
+`{"id": "TF-tests", "do": "Consolidate, deduplicate, and optimize all test files touched or created in this plan", "files": ["tests/"], "verify": ["bash -c 'for t in tests/test-*.sh; do bash \"$t\" || exit 1; done'", "No duplicate setup/teardown across test files", "All tests use SCRIPT_DIR pattern for portable paths"], "ref": "F-closure", "priority": "P0", "type": "test", "model": "sonnet", "effort": 2}`
+
+**What TF-tests MUST do:**
+
+| Check              | Action                                                                                                      |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| **Duplicates**     | Find tests checking the same behavior across files. Merge into one authoritative test                       |
+| **Shared setup**   | Extract repeated setup/teardown into `tests/lib/test-helpers.sh` (create if missing)                        |
+| **Portable paths** | All tests use `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"` — no hardcoded absolute paths |
+| **Categorize**     | Prefix: `test-unit-*` (fast, no I/O), `test-integration-*` (DB/network), `test-e2e-*` (full flow)           |
+| **Cleanup**        | Remove empty/broken test files, RED-phase leftovers (`exit 1`), bats syntax in bash files                   |
+| **Run all**        | Execute every test, 0 failures required before TF-pr                                                        |
+
+**Why**: Without this gate, tests accumulate without consolidation. Each task adds its own tests independently, leading to duplicated setup, fragile paths, conflicting patterns, and hour-long CI runs that fail for unrelated reasons.
 
 ## Final Closure {#final-closure}
 

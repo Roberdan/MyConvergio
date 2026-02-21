@@ -717,9 +717,9 @@ flowchart LR
 
 ```mermaid
 pie title Agent Distribution by Model Tier
-    "Haiku (37)" : 37
+    "Haiku (35)" : 35
     "Sonnet (24)" : 24
-    "Opus (2)" : 2
+    "Opus (6)" : 6
 ```
 
 ---

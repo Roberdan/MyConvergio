@@ -16,7 +16,7 @@ problems:
   - name: Missing RED/GREEN tests
     description: No failing test before implementation
     detection_script: scripts/detect-missing-red-green.sh
-    prevention_rule: 'TDD workflow: write failing test first'
+    prevention_rule: "TDD workflow: write failing test first"
   - name: Overlong files (>250 lines)
     description: Files exceeding 250 lines
     detection_script: scripts/detect-overlong-files.sh

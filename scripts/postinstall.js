@@ -289,10 +289,13 @@ function main() {
       !f.includes("CommonValues"),
   ).length;
   log(colors.green, `  ✓ Installed ${agentCount} agents`);
-log(colors.blue, `\nPost-install summary:`);
-log(colors.green, `  Agents installed: ${agentCount}`);
-log(colors.green, `  Profile used: ${profile}`);
-log(colors.yellow, `  To get full profile: MYCONVERGIO_PROFILE=full npm install -g myconvergio`);
+  log(colors.blue, `\nPost-install summary:`);
+  log(colors.green, `  Agents installed: ${agentCount}`);
+  log(colors.green, `  Profile used: ${profile}`);
+  log(
+    colors.yellow,
+    `  To get full profile: MYCONVERGIO_PROFILE=full npm install -g myconvergio`,
+  );
 
   // Install rules
   copyRecursive(srcRules, path.join(CLAUDE_HOME, "rules"), installedFiles);
@@ -329,6 +332,32 @@ log(colors.yellow, `  To get full profile: MYCONVERGIO_PROFILE=full npm install 
     copyRecursive(srcHooks, path.join(CLAUDE_HOME, "hooks"), installedFiles);
     makeFilesExecutable(path.join(CLAUDE_HOME, "hooks"));
     log(colors.green, `  ✓ Installed hooks`);
+  }
+
+  // Install config (orchestrator.yaml, cross-repo-learnings.yaml)
+  const srcConfig = path.join(PACKAGE_ROOT, ".claude", "config");
+  if (fs.existsSync(srcConfig)) {
+    copyRecursive(srcConfig, path.join(CLAUDE_HOME, "config"), installedFiles);
+    log(colors.green, `  ✓ Installed config`);
+  }
+
+  // Install docs (ADRs)
+  const srcDocs = path.join(PACKAGE_ROOT, ".claude", "docs");
+  if (fs.existsSync(srcDocs)) {
+    copyRecursive(srcDocs, path.join(CLAUDE_HOME, "docs"), installedFiles);
+    log(colors.green, `  ✓ Installed docs`);
+  }
+
+  // Install orchestrator hooks (.claude/hooks/)
+  const srcOrchestratorHooks = path.join(PACKAGE_ROOT, ".claude", "hooks");
+  if (fs.existsSync(srcOrchestratorHooks)) {
+    copyRecursive(
+      srcOrchestratorHooks,
+      path.join(CLAUDE_HOME, "hooks"),
+      installedFiles,
+    );
+    makeFilesExecutable(path.join(CLAUDE_HOME, "hooks"));
+    log(colors.green, `  ✓ Installed orchestrator hooks`);
   }
 
   // Install reference docs (on-demand context)

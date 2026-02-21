@@ -106,6 +106,22 @@ For each line in an instruction file, ask:
 3. **Can this be a table row instead of a bullet?** If yes, use table.
 4. **Does this belong in a separate file behind @import?** If rarely needed, split it.
 
+## @import Optimization Strategy
+
+**Update**: February 2026, T0-01 testing (Plan 189)
+
+**Key Finding**: `@import` directives in Claude Code are **NOT lazy-loaded**. T0-01 tested 9 import scenarios; all imports fully loaded into context at session start, regardless of relevance to current task.
+
+**Implications**:
+
+- `@import` is syntactic organization, not progressive disclosure
+- Token cost is same whether content is inline or imported
+- Strategy: Keep imports compact and consolidated; minimize total imported content
+- v2.0.0 format achieves 35% token reduction per-turn via compact markdown rules
+- Cross-reference: ADR-0001 digest script optimization (lazy file reads via user request)
+
+**Recommendation**: Use `@import` for logical separation (e.g., rules by domain), NOT for reducing token cost. Total instruction budget still limited to ~150-200 actionable items across all imported files.
+
 ## Consequences
 
 ### Positive
@@ -114,13 +130,15 @@ For each line in an instruction file, ask:
 - Faster agent response (less context to process)
 - Lower cost per session
 - Cross-tool compatibility documented and enforced
-- Progressive disclosure prevents context overload
+- Progressive disclosure prevents context overload (Skills only, not @imports)
+- v2.0.0 format tested in production (Plans 149, 173, 189) with measurable savings
 
 ### Negative
 
 - Learning curve for contributors writing instructions
 - Some nuance lost in compression (mitigated by "what NOT to compress" exceptions)
 - Requires periodic audit to stay within 150-instruction budget
+- @import provides no token savings, only organizational benefits
 
 ## Enforcement
 

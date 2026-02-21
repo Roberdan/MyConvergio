@@ -42,6 +42,8 @@ Three new tables in `dashboard.db` (migration: `migrate-v5-concurrency.sh`):
 
 Added 19 Feb 2026. When agents work outside formal plans (teams, parallel sessions, ad-hoc), automatic hook-based file locking prevents concurrent edits. PreToolUse hooks on `Edit|Write|MultiEdit` acquire session locks via `file-lock.sh acquire-session`. Stop/sessionEnd hooks auto-release. Re-entrant (same session can edit same file repeatedly). Cross-platform: Claude Code + Copilot CLI. Opt-out: `CLAUDE_FILE_LOCK=0`. Migration: `migrate-v6-session-locks.sh` adds `session_id` column to `file_locks`.
 
+**See ADR-0016** for detailed session-based locking architecture, performance benchmarks, and cross-platform hook integration patterns.
+
 ## Consequences
 
 - Positive: Conflicts detected before work starts (planning) or before commit (execution), not at merge. Eliminates repeated rework from overwrites. File locks are atomic (SQLite UNIQUE constraint). Stale detection catches external changes. Merge queue prevents merge-order conflicts.

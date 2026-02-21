@@ -55,3 +55,12 @@ Evaluated `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. Decision: not enabled.
 - 128K output enables longer thinking budgets and comprehensive responses
 - Setup hook only runs when explicitly invoked (cleaner than conditional)
 - adversarial-debugger available for complex debugging (Preview maturity)
+
+## February 2026 Update
+
+**Model Landscape Review** (Plan 189)
+
+- **Opus 4.6 validation**: Production-tested across Plan 149, 173, 189. Adaptive thinking stable; no manual budget_tokens needed. Used for quality gates in thor-quality-assurance-guardian.
+- **Thinking token monitoring**: Implemented via usage tracking in plan-db.sh. Extended thinking mode increases task completion quality but adds cost. Monitor via dashboard cost analytics.
+- **Multi-provider expansion**: 18 models available across Anthropic, OpenAI, Google Gemini. Per-task model routing via spec.json model field. See ADR-0010 for orchestration strategy.
+- **Token cost optimization**: ADR-0009 compact format achieves 35-47% reduction in instruction token cost. Opus 4.6 128K output ceiling allows comprehensive responses without truncation.

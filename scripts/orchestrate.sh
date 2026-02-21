@@ -1,12 +1,18 @@
 #!/bin/bash
 # Multi-Worker Orchestrator - Run FROM Kitty terminal
-# Usage: orchestrate.sh <plan-file> [num-workers] [--engine claude|copilot|mixed]
+# Multi-Worker Orchestrator - Run FROM Kitty terminal
+# Usage: orchestrate.sh <plan-file> [num-workers] [--engine claude|copilot|mixed] [--use-delegate]
 #
 # Prerequisites:
 #   1. Run from inside Kitty terminal
 #   2. Kitty config: allow_remote_control yes
 #   3. wildClaude alias (for claude engine)
 #   4. copilot CLI + GH_TOKEN (for copilot engine)
+#   5. [--use-delegate]: When enabled, each worker tab runs 'delegate.sh $TASK_ID' instead of hardcoded CLI. Default: off (backward compatible).
+#   6. This flag is backward compatible and does not affect default behavior unless specified.
+#
+# Example:
+#   orchestrate.sh plan.yaml 4 --engine claude --use-delegate
 
 # Version: 1.1.0
 set -euo pipefail
@@ -17,6 +23,7 @@ ENGINE="claude"
 DIR="$(pwd)"
 
 # Parse args (positional + flags)
+USE_DELEGATE=0
 while [[ $# -gt 0 ]]; do
 	case $1 in
 	--engine)
@@ -26,6 +33,10 @@ while [[ $# -gt 0 ]]; do
 	--cwd)
 		DIR="$2"
 		shift 2
+		;;
+	--use-delegate)
+		USE_DELEGATE=1
+		shift
 		;;
 	--*) shift 2 ;;
 	*)
@@ -75,10 +86,15 @@ check_wildclaude() {
 launch_worker() {
 	local name="$1" task="$2"
 	log "Launching $name..."
-	kitty @ launch --type=tab --title="$name" --cwd="$DIR" --keep-focus zsh -ic "$CLAUDE_CMD"
-	sleep 3
-	kitty @ send-text --match "title:^${name}$" "$task
+	if [[ "$USE_DELEGATE" == "1" ]]; then
+		kitty @ launch --type=tab --title="$name" --cwd="$DIR" --keep-focus zsh -ic "./scripts/delegate.sh '$task' # --use-delegate flag enabled"
+# When --use-delegate is enabled, each worker tab runs 'delegate.sh $TASK_ID' instead of hardcoded CLI.
+	else
+		kitty @ launch --type=tab --title="$name" --cwd="$DIR" --keep-focus zsh -ic "$CLAUDE_CMD"
+		sleep 3
+		kitty @ send-text --match "title:^${name}$" "$task
 "
+	fi
 	success "$name launched"
 }
 

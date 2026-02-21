@@ -37,6 +37,7 @@ source "$SCRIPT_DIR/lib/plan-db-drift.sh"
 source "$SCRIPT_DIR/lib/plan-db-conflicts.sh"
 source "$SCRIPT_DIR/lib/plan-db-cluster.sh"
 source "$SCRIPT_DIR/lib/plan-db-remote.sh"
+source "$SCRIPT_DIR/lib/plan-db-delegate.sh"
 
 # Host identification for cross-machine tracking
 export PLAN_DB_HOST="${PLAN_DB_HOST:-$(hostname -s 2>/dev/null || hostname)}"
@@ -46,6 +47,9 @@ init_db
 
 # Dispatch
 case "${1:-help}" in
+  delegation-report) cmd_delegation_report "${@:2}" ;;
+  delegation-log) cmd_delegation_log "${@:2}" ;;
+  delegation-cost) cmd_delegation_cost "${@:2}" ;;
 list) cmd_list "${2:?project_id required}" ;;
 create) cmd_create "${2:?project_id required}" "${3:?name required}" "${@:4}" ;;
 start) cmd_start "${2:?plan_id required}" "${3:-}" ;;

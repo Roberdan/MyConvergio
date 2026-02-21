@@ -48,6 +48,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "PreCommit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/env-vault-guard.sh",
+            "timeout": 15
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -120,6 +130,15 @@
             "type": "command",
             "command": "~/.claude/hooks/version-check.sh",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/model-registry-refresh.sh",
+            "timeout": 20
           }
         ]
       }

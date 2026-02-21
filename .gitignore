@@ -83,6 +83,9 @@ coverage/
 # Copilot tracking (local-only, never commit)
 .copilot-tracking/
 
+# CodeGraph (local-only, never commit)
+.codegraph/
+
 # Research report outputs (generated files, never commit)
 agents/research_report/Reports/
 agents/research_report/output/

@@ -5,6 +5,24 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.0] - 2026-02-21
+
+### Added
+
+- **Thor Gate 3: Credential Scanning** (ISE Playbook): Explicit grep patterns for AWS keys (AKIA/ASIA), API keys (sk-), GitHub tokens (ghp\_/gho\_/ghs\_/ghr\_), hardcoded passwords, connection strings, and private keys. REJECT on match. Source: [ISE Engineering Fundamentals — Security](https://microsoft.github.io/code-with-engineering-playbook/security/)
+- **Failed Approaches Tracking** (HVE Core): Executor logs `{task_id, approach, reason}` via `plan-db.sh log-failure` on max retries. Planner reads prior failures via `plan-db.sh get-failures` and avoids repeating same approach. Project-scoped, persists across plans.
+- **`plan-spec-schema.json`** (HVE Core): JSON Schema for spec.json validation before plan import. Enforces required fields, F-xx ID patterns, verify arrays, effort 1-3 range, task type enum. Blocks malformed plans before they consume tokens.
+- **Planner step 2.1 Schema Validation**: Mandatory validation of spec.json against schema between spec generation and import. Falls back to structural check if `jsonschema` not installed.
+- **Engineering Foundations section in README**: Documents alignment with ISE Engineering Playbook and HVE Core. Includes 17-row alignment table, 4 adopted HVE patterns, and "Where MyConvergio Goes Beyond Both" section.
+
+### Changed
+
+- Thor agent `v5.0.0` → `v5.1.0`: Gate 3 expanded with credential scanning sub-check
+- Planner command `v2.0.0` → `v2.1.0`: Failed approaches check in step 1.5, schema validation in step 2.1, section 10 (Failed Approaches Tracking)
+- Executor command `v2.1.0` → `v2.2.0`: Failed approaches logging on max retries before marking blocked
+
+---
+
 ## [6.1.0] - 2026-02-21
 
 ### Added

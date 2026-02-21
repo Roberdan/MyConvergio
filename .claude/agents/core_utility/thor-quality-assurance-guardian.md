@@ -4,7 +4,7 @@ description: Brutal quality gatekeeper. Zero tolerance for incomplete work. Vali
 tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 color: "#9B59B6"
 model: sonnet
-version: "5.0.0"
+version: "5.1.0"
 context_isolation: true
 memory: project
 maxTurns: 30
@@ -55,17 +55,34 @@ Invoked after all tasks in wave complete. Validates wave as whole.
 
 > Details: [thor-validation-gates.md](./thor-validation-gates.md)
 
-| Gate | Name                               | Scope                                             |
-| ---- | ---------------------------------- | ------------------------------------------------- |
-| 1    | Task Compliance                    | Instructions vs claim, point-by-point             |
-| 2    | Code Quality                       | Tests exist+pass, lint clean, build OK            |
-| 3    | ISE Fundamentals                   | No secrets, error handling, type safety           |
-| 4    | Repo Compliance                    | Codebase patterns, naming, structure              |
-| 5    | Documentation                      | README/API docs updated if behavior changed       |
-| 6    | Git Hygiene                        | Correct branch, committed, conventional msg       |
-| 7    | Performance                        | perf-check.sh, WebP, EventSource cleanup          |
-| 8    | **TDD** (MANDATORY)                | Tests before impl, coverage ≥80% new files        |
-| 9    | **Constitution & ADR** (MANDATORY) | CLAUDE.md rules, coding-standards, ADR compliance |
+| Gate | Name                               | Scope                                              |
+| ---- | ---------------------------------- | -------------------------------------------------- |
+| 1    | Task Compliance                    | Instructions vs claim, point-by-point              |
+| 2    | Code Quality                       | Tests exist+pass, lint clean, build OK             |
+| 3    | ISE Fundamentals + Credential Scan | No secrets, error handling, type safety, cred scan |
+| 4    | Repo Compliance                    | Codebase patterns, naming, structure               |
+| 5    | Documentation                      | README/API docs updated if behavior changed        |
+| 6    | Git Hygiene                        | Correct branch, committed, conventional msg        |
+| 7    | Performance                        | perf-check.sh, WebP, EventSource cleanup           |
+| 8    | **TDD** (MANDATORY)                | Tests before impl, coverage ≥80% new files         |
+| 9    | **Constitution & ADR** (MANDATORY) | CLAUDE.md rules, coding-standards, ADR compliance  |
+
+### Gate 3: Credential Scanning (ISE Playbook)
+
+Run on ALL changed files in task scope. **REJECT immediately** if any match:
+
+```bash
+grep -rEnI 'AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}' {files}          # AWS keys
+grep -rEnI 'sk-[a-zA-Z0-9]{20,}' {files}                          # OpenAI/Anthropic keys
+grep -rEnI 'ghp_[a-zA-Z0-9]{36}|gho_|ghs_|ghr_' {files}          # GitHub tokens
+grep -rEnI 'password\s*[=:]\s*["\x27][^"\x27]{4,}' {files}       # Hardcoded passwords
+grep -rEnI 'connectionstring\s*[=:]' {files}                       # Connection strings
+grep -rEnI 'PRIVATE KEY-----' {files}                              # Private keys
+```
+
+**Exceptions**: test fixtures with obviously fake values (e.g., `sk-test1234`), documentation examples. Reviewer must confirm exception is safe.
+
+Source: [Microsoft ISE Engineering Fundamentals — Security](https://microsoft.github.io/code-with-engineering-playbook/security/)
 
 **Inter-Wave Gates**: executor_agent tracking (WARN), output_data JSON validity (ERROR), precondition cycle detection (ERROR)
 

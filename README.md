@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v6.0.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
+**v6.2.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -922,6 +922,53 @@ MyConvergio is not competing with agent frameworks. It is a **practitioner's too
 
 ---
 
+## Engineering Foundations
+
+MyConvergio's workflow is informed by two Microsoft engineering references:
+
+- **[ISE Code-with-Engineering Playbook](https://microsoft.github.io/code-with-engineering-playbook/)** — The Industry Solutions Engineering team's internal standard for all customer engagements. Covers testing, code reviews, CI/CD, design reviews, security, observability, and agile practices.
+- **[HVE Core](https://github.com/microsoft/hve-core)** — Hierarchical Verifiable Execution framework for AI agents. Research-Plan-Implement-Review-Discover lifecycle with schema validation and failed approach tracking.
+
+### Alignment with ISE Engineering Playbook
+
+| ISE Playbook Concept         | MyConvergio Equivalent                                         | Status                                                           |
+| ---------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Definition of Ready          | `/prompt` F-xx extraction + Technical Clarification (step 1.6) | Aligned                                                          |
+| Definition of Done (feature) | Thor per-task validation (Gates 1-4, 8, 9)                     | **Enhanced** — automated, independent agent reads files directly |
+| Definition of Done (sprint)  | Thor per-wave validation (all 9 gates + build)                 | **Enhanced** — no self-reporting, 3-round rejection cycle        |
+| PR author checklist          | Pre-commit hooks (lint, typecheck, test) + TF-pr task          | Aligned                                                          |
+| PR reviewer checklist        | Thor Gates 2 (code quality) + 3 (ISE standards) + 8 (TDD)      | **Enhanced** — automated, zero human reviewer bottleneck         |
+| Code review SLA              | Not applicable (agents review immediately)                     | Adapted                                                          |
+| Design reviews / ADRs        | `/research` phase + Thor Gate 9 (Constitution & ADR)           | Aligned                                                          |
+| Trade studies                | ADR with alternatives in Context section                       | Aligned                                                          |
+| Sprint goal                  | Wave-level task grouping with shared F-xx refs                 | Adapted                                                          |
+| Conventional commits         | Enforced by Git Hygiene gate (Gate 6)                          | Aligned                                                          |
+| Branch naming convention     | `feature/`, `fix/`, `chore/` enforced by worktree-create.sh    | Aligned                                                          |
+| Credential scanning (CI)     | Thor Gate 3: grep for AWS/API/GitHub/password patterns         | Aligned                                                          |
+| TDD (Red-Green-Refactor)     | Thor Gate 8 (MANDATORY) + task-executor-tdd module             | **Enhanced** — enforced per-task, not just in CI                 |
+| 80%+ code coverage           | Thor approval criteria: coverage >= 80% new files              | Aligned                                                          |
+| Secrets in Key Vault         | `env-vault.sh` + coding-standards.md rules                     | Aligned                                                          |
+| Documentation-as-code        | Thor Gate 5 (docs updated if behavior changed)                 | Aligned                                                          |
+| Retrospectives               | Knowledge Codification (errors -> ADR + ESLint rules)          | Adapted — machine-readable instead of meeting-based              |
+
+### Patterns Adopted from HVE Core
+
+| HVE Core Pattern               | MyConvergio Implementation                                                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Failed Approaches Tracking** | Executor logs `{task_id, approach, reason}` on max retries via `plan-db.sh log-failure`. Planner reads prior failures to avoid repeating them.         |
+| **Schema-Driven Validation**   | `plan-spec-schema.json` validates spec.json structure before plan import. Catches missing `verify` arrays, invalid task IDs, effort outside 1-3 range. |
+| **Phase 5 Discover**           | Knowledge Codification rule: errors discovered during execution are codified as ADRs and ESLint rules, not just fixed.                                 |
+| **Discrepancy Logging**        | F-xx verification report with `[x] PASS` / `[ ] FAIL` evidence per requirement.                                                                        |
+
+### Where MyConvergio Goes Beyond Both
+
+- **Multi-provider routing** — Neither ISE Playbook nor HVE Core address multi-provider orchestration
+- **Independent quality validation** — ISE relies on human reviewers; HVE Core uses self-review. Thor is a separate agent that trusts nothing.
+- **Budget-aware execution** — Daily caps, fallback chains, per-task cost tracking
+- **Git worktree isolation** — Plans execute in isolated branches; no main branch corruption risk
+
+---
+
 ## Migration from npm Package
 
 If upgrading from v2.x (npm package):
@@ -965,6 +1012,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v6.0.0** | February 2026 | Multi-Provider Orchestrator + Claude Code + Copilot CLI
+**v6.2.0** | February 2026 | Multi-Provider Orchestrator + Claude Code + Copilot CLI
 
 </div>

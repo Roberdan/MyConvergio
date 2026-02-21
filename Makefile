@@ -5,7 +5,7 @@
 # =============================================================================
 
 .PHONY: install install-local upgrade test clean update check-sync sync-agents version help lint validate
-.PHONY: install-tier install-categories install-agents generate-lean list-tiers list-categories
+.PHONY: install-tier install-categories install-agents generate-lean list-tiers list-categories copilot-agents
 
 # Directories
 AGENTS_SRC := .claude/agents
@@ -225,6 +225,11 @@ install-agents:
 
 generate-lean:
 	@bash scripts/generate-lean-variants.sh --all
+
+copilot-agents:
+	@echo "$(BLUE)Generating Copilot CLI agents from .claude/agents/$(NC)"
+	@bash scripts/generate-copilot-agents.sh
+	@echo "$(GREEN)✓ Copilot agents generated in copilot-agents/$(NC)"
 
 list-tiers:
 	@echo "$(BLUE)Available Installation Tiers:$(NC)"

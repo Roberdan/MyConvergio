@@ -6,6 +6,10 @@
 # Version: 1.1.0
 set -e
 
+# Configuration
+DASHBOARD_API="${DASHBOARD_API:-http://localhost:31415/api}"
+DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:31415}"
+
 PROJECT=$1
 PLAN_ID=$2
 WAVE=$3
@@ -119,7 +123,7 @@ _Command outputs will be pasted here_
 
 - **Wave:** [W${WAVE}-wave-name.md](../../W${WAVE}-wave-name.md)
 - **Plan:** [plan-${PLAN_ID}.md](../../../../plan-${PLAN_ID}.md)
-- **Dashboard:** [View in Dashboard](http://localhost:31415?project=${PROJECT}&task=${TASK_ID})
+- **Dashboard:** [View in Dashboard](${DASHBOARD_URL}?project=${PROJECT}&task=${TASK_ID})
 
 ---
 
@@ -129,7 +133,7 @@ EOF
 echo "✅ Generated: ${TASK_FILE}"
 
 # Update database with markdown_path (if dashboard is running)
-RESPONSE=$(curl -s -X POST "http://localhost:31415/api/project/${PROJECT}/task/${TASK_ID}/update-markdown" \
+RESPONSE=$(curl -s -X POST "${DASHBOARD_API}/project/${PROJECT}/task/${TASK_ID}/update-markdown" \
 	-H "Content-Type: application/json" \
 	-d "{\"markdown_path\": \"${TASK_FILE}\"}" 2>&1)
 
@@ -145,4 +149,4 @@ fi
 
 echo ""
 echo "📝 Task markdown file created at: ${TASK_FILE}"
-echo "📊 View in dashboard: http://localhost:31415?project=${PROJECT}&task=${TASK_ID}"
+echo "📊 View in dashboard: ${DASHBOARD_URL}?project=${PROJECT}&task=${TASK_ID}"

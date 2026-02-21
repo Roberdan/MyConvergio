@@ -3,6 +3,9 @@
 set -euo pipefail
 . scripts/lib/dashboard-delegation.sh
 
+# Configuration
+DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:31415}"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -1322,7 +1325,7 @@ render_dashboard() {
 		echo ""
 	fi
 
-	echo -e "${GRAY}Dashboard: ${CYAN}http://localhost:31415${NC} ${GRAY}│ Usa ${WHITE}piani -h${GRAY} per opzioni${NC}"
+	echo -e "${GRAY}Dashboard: ${CYAN}${DASHBOARD_URL}${NC} ${GRAY}│ Usa ${WHITE}piani -h${GRAY} per opzioni${NC}"
 	echo ""
 }
 

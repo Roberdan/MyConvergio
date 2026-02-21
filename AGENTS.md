@@ -27,7 +27,7 @@ CSS Modules or BEM | `rem` (type), `px` (borders) | Mobile-first | Max 3 nesting
 
 1. **NEVER guess DB schema, file paths, or API signatures** — read the source first (`plan-db-schema.md`, `script --help`, `PRAGMA table_info`)
 2. **NEVER invent URLs, emails, or domains** — ASK user if unknown
-3. **NEVER hardcode secrets/URLs in code** — use env vars with `${VAR:-}` pattern
+3. **NEVER hardcode secrets/URLs/endpoints in code** — use `${VAR:-default}` pattern (see `.env.example`)
 4. **Guessing = hallucination = VIOLATION**
 
 ## Quality Gates - Thor Validation

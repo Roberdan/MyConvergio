@@ -19,7 +19,7 @@
 5. **Proof required**: "done" needs evidence. User approves closure.
 6. **Max 250 lines/file**: Check before writing. Split if exceeds. _Why: agents lose context in long files, merge conflicts multiply, and review becomes unreliable._
 7. **Compaction preservation**: When rewriting/compacting ANY file, NEVER remove workflow-critical content. See `rules/compaction-preservation.md`.
-8. **Anti-hallucination**: NEVER guess DB schema, file paths, or API signatures — read the source first (`plan-db-schema.md`, `script --help`, `PRAGMA table_info`). NEVER invent URLs, emails, or domains — ASK user if unknown. NEVER hardcode secrets/URLs in code — use env vars with `${VAR:-}` pattern. Guessing = hallucination = VIOLATION.
+8. **Anti-hallucination**: NEVER guess DB schema, file paths, or API signatures — read the source first (`plan-db-schema.md`, `script --help`, `PRAGMA table_info`). NEVER invent URLs, emails, or domains — ASK user if unknown. NEVER hardcode secrets/URLs/endpoints in code — use `${VAR:-default}` pattern (see `.env.example`). Guessing = hallucination = VIOLATION.
 
 ## Workflow (MANDATORY)
 

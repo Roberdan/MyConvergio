@@ -1,19 +1,38 @@
 #!/bin/bash
-# RED tests for env-vault-guard.sh
+# Test: env-vault-guard.sh syntax, patterns, line count
 set -euo pipefail
 
-fail() { echo "FAIL: $1"; exit 1; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET="${SCRIPT_DIR}/hooks/env-vault-guard.sh"
+
+fail() {
+	echo "FAIL: $1"
+	exit 1
+}
 
 # Test 1: Syntax check
-bash -n /Users/roberdan/.claude-convergio-orchestrator/hooks/env-vault-guard.sh || fail "Syntax check failed"
+bash -n "$TARGET" || fail "Syntax check failed"
+echo "PASS: bash -n"
 
 # Test 2: Secret pattern grep
-if grep 'API_KEY\|SECRET\|PASSWORD' /Users/roberdan/.claude-convergio-orchestrator/hooks/env-vault-guard.sh; then echo "Secret pattern found"; else fail "Secret pattern not found"; fi
+if grep -q 'API_KEY\|SECRET\|PASSWORD' "$TARGET"; then
+	echo "PASS: Secret pattern found"
+else
+	fail "Secret pattern not found"
+fi
 
 # Test 3: gitignore check
-if grep 'gitignore' /Users/roberdan/.claude-convergio-orchestrator/hooks/env-vault-guard.sh; then echo "gitignore check found"; else fail "gitignore check not found"; fi
+if grep -q 'gitignore' "$TARGET"; then
+	echo "PASS: gitignore check found"
+else
+	fail "gitignore check not found"
+fi
 
 # Test 4: Line count
-if [ $(wc -l < /Users/roberdan/.claude-convergio-orchestrator/hooks/env-vault-guard.sh) -lt 80 ]; then echo "Line count OK"; else fail "Line count not OK"; fi
+if [ "$(wc -l <"$TARGET")" -lt 80 ]; then
+	echo "PASS: Line count OK"
+else
+	fail "Line count exceeds 80"
+fi
 
-echo "All GREEN tests passed."
+echo "All tests passed."

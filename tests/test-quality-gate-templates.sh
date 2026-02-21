@@ -1,25 +1,41 @@
 #!/bin/bash
-# RED tests for quality-gate-templates.sh
+# Test: quality-gate-templates.sh syntax, functions, line count
 set -euo pipefail
 
-fail() { echo "FAIL: $1"; exit 1; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET="${SCRIPT_DIR}/scripts/lib/quality-gate-templates.sh"
+failures=0
 
-# Test: bash -n scripts/lib/quality-gate-templates.sh
-if bash -n scripts/lib/quality-gate-templates.sh 2>/dev/null; then
-  fail "bash -n should fail (file does not exist or is empty)"
+# Test 1: File exists
+if [ ! -f "$TARGET" ]; then
+	echo "FAIL: $TARGET does not exist"
+	exit 1
+fi
+echo "PASS: file exists"
+
+# Test 2: Bash syntax check
+if bash -n "$TARGET" 2>/dev/null; then
+	echo "PASS: bash -n"
+else
+	echo "FAIL: bash -n failed"
+	failures=$((failures + 1))
 fi
 
-# Test: grep 'gate_pre_deploy\|gate_env_var\|gate_security' scripts/lib/quality-gate-templates.sh
-if grep 'gate_pre_deploy\|gate_env_var\|gate_security' scripts/lib/quality-gate-templates.sh 2>/dev/null; then
-  fail "grep should fail (functions not implemented)"
+# Test 3: Must contain gate functions
+if grep -q 'gate_pre_deploy\|gate_env_var\|gate_security' "$TARGET"; then
+	echo "PASS: gate functions found"
+else
+	echo "FAIL: gate functions not found"
+	failures=$((failures + 1))
 fi
 
-# Test: wc -l < 250
-if [ -f scripts/lib/quality-gate-templates.sh ]; then
-  lines=$(wc -l < scripts/lib/quality-gate-templates.sh)
-  if [ "$lines" -ge 250 ]; then
-    fail "File should not exist or be under 250 lines (currently $lines)"
-  fi
+# Test 4: Line count < 250
+lines=$(wc -l <"$TARGET")
+if [ "$lines" -lt 250 ]; then
+	echo "PASS: $lines lines (<250)"
+else
+	echo "FAIL: $lines lines (>=250)"
+	failures=$((failures + 1))
 fi
 
-echo "RED: All tests failed as expected."
+exit $failures

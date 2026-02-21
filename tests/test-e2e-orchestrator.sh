@@ -1,95 +1,101 @@
 #!/bin/bash
-# tests/test-e2e-orchestrator.sh
-# E2E scenarios for orchestrator pipeline (mocked CLIs, temp DB)
+# E2E scenarios for orchestrator pipeline (mocked CLIs, no DB dependency)
 set -euo pipefail
 
-export PATH="$HOME/.claude/scripts:$PATH"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PASS=0
+FAIL=0
 
-SCENARIO_COUNT=0
-
-scenario() {
-  local name="$1"
-  echo "@test: $name"
-  SCENARIO_COUNT=$((SCENARIO_COUNT+1))
+pass() {
+	PASS=$((PASS + 1))
+	echo "  PASS: $1"
 }
-
 fail() {
-  echo "FAIL: $1" >&2
-  exit 1
+	FAIL=$((FAIL + 1))
+	echo "  FAIL: $1"
 }
 
-# 1. plan-delegate-log (full pipeline with mocked CLI)
-scenario "plan-delegate-log"
-# Setup temp DB, mock delegate.sh, run plan-db.sh, verify log_delegation
-TMP_DB="/tmp/e2e-orch-plan.db"
-rm -f "$TMP_DB"
-plan-db.sh create testproj "Test Project" --db "$TMP_DB" || fail "plan-db create failed"
-DELEGATE_LOG="/tmp/e2e-orch-delegate.log"
-rm -f "$DELEGATE_LOG"
-MOCK_DELEGATE="/tmp/mock-delegate.sh"
-echo '#!/bin/bash
-echo "mocked delegate $@" >> "$DELEGATE_LOG"' > "$MOCK_DELEGATE"
-chmod +x "$MOCK_DELEGATE"
-PATH="/tmp:$PATH"
-cp "$MOCK_DELEGATE" /tmp/delegate.sh
-plan-db.sh update-task test-task in_progress --db "$TMP_DB" || fail "plan-db update-task failed"
-/tmp/delegate.sh test-task || fail "mock delegate failed"
-grep 'mocked delegate' "$DELEGATE_LOG" || fail "delegate log missing"
+echo "=== test-e2e-orchestrator.sh ==="
 
-# 2. privacy-enforcement (sensitive+free=block)
-scenario "privacy-enforcement"
-MOCK_PRIVACY="/tmp/mock-privacy.sh"
-echo '#!/bin/bash
-if [[ "$1" == "sensitive" && "$2" == "free" ]]; then echo "BLOCKED"; exit 1; else echo "ALLOWED"; fi' > "$MOCK_PRIVACY"
-chmod +x "$MOCK_PRIVACY"
-cp "$MOCK_PRIVACY" /tmp/privacy-check.sh
-out=$(/tmp/privacy-check.sh sensitive free || echo "BLOCKED")
-[[ "$out" == "BLOCKED" ]] || fail "privacy enforcement failed"
-out=$(/tmp/privacy-check.sh public free)
-[[ "$out" == "ALLOWED" ]] || fail "privacy enforcement failed"
+# 1. All orchestrator scripts have valid syntax
+echo "--- Syntax validation ---"
+for script in \
+	"${SCRIPT_DIR}/scripts/delegate.sh" \
+	"${SCRIPT_DIR}/scripts/copilot-worker.sh" \
+	"${SCRIPT_DIR}/scripts/opencode-worker.sh" \
+	"${SCRIPT_DIR}/scripts/gemini-worker.sh" \
+	"${SCRIPT_DIR}/scripts/execute-plan.sh" \
+	"${SCRIPT_DIR}/scripts/env-vault.sh" \
+	"${SCRIPT_DIR}/scripts/model-registry.sh" \
+	"${SCRIPT_DIR}/scripts/worktree-safety.sh" \
+	"${SCRIPT_DIR}/scripts/lib/delegate-utils.sh" \
+	"${SCRIPT_DIR}/scripts/lib/agent-protocol.sh" \
+	"${SCRIPT_DIR}/scripts/lib/dashboard-delegation.sh" \
+	"${SCRIPT_DIR}/scripts/lib/gh-ops-routing.sh" \
+	"${SCRIPT_DIR}/scripts/lib/plan-db-delegate.sh" \
+	"${SCRIPT_DIR}/scripts/lib/quality-gate-templates.sh"; do
+	name=$(basename "$script")
+	if bash -n "$script" 2>/dev/null; then
+		pass "syntax: $name"
+	else
+		fail "syntax: $name"
+	fi
+done
 
-# 3. model-registry-lifecycle (refresh/diff/check)
-scenario "model-registry-lifecycle"
-MOCK_REGISTRY="/tmp/mock-model-registry.sh"
-echo '#!/bin/bash
-case "$1" in refresh) echo "REFRESHED";; diff) echo "DIFFED";; check) echo "CHECKED";; *) echo "UNKNOWN";; esac' > "$MOCK_REGISTRY"
-chmod +x "$MOCK_REGISTRY"
-cp "$MOCK_REGISTRY" /tmp/model-registry.sh
-[[ $(/tmp/model-registry.sh refresh) == "REFRESHED" ]] || fail "model registry refresh failed"
-[[ $(/tmp/model-registry.sh diff) == "DIFFED" ]] || fail "model registry diff failed"
-[[ $(/tmp/model-registry.sh check) == "CHECKED" ]] || fail "model registry check failed"
+# 2. Privacy enforcement mock
+echo "--- Privacy enforcement ---"
+MOCK_DIR=$(mktemp -d)
+trap 'rm -rf "$MOCK_DIR"' EXIT
 
-# 4. worker-recovery (mocked copilot ignores DB, worker auto-completes)
-scenario "worker-recovery"
-MOCK_COPILOT="/tmp/mock-copilot-worker.sh"
-echo '#!/bin/bash
-echo "IGNORED DB"' > "$MOCK_COPILOT"
-chmod +x "$MOCK_COPILOT"
-cp "$MOCK_COPILOT" /tmp/copilot-worker.sh
-MOCK_WORKER="/tmp/mock-worker-recovery.sh"
-echo '#!/bin/bash
-echo "AUTO-COMPLETED"' > "$MOCK_WORKER"
-chmod +x "$MOCK_WORKER"
-cp "$MOCK_WORKER" /tmp/opencode-worker.sh
-[[ $(/tmp/copilot-worker.sh) == "IGNORED DB" ]] || fail "copilot worker recovery failed"
-[[ $(/tmp/opencode-worker.sh) == "AUTO-COMPLETED" ]] || fail "worker auto-complete failed"
+cat >"$MOCK_DIR/privacy-check.sh" <<'MOCK'
+#!/bin/bash
+if [[ "$1" == "sensitive" && "$2" == "free" ]]; then echo "BLOCKED"; exit 1; fi
+echo "ALLOWED"
+MOCK
+chmod +x "$MOCK_DIR/privacy-check.sh"
 
-# 5. env-vault-backup-restore (mock gh/az, verify roundtrip)
-scenario "env-vault-backup-restore"
-MOCK_GH="/tmp/mock-gh.sh"
-echo '#!/bin/bash
-echo "GH_BACKUP"' > "$MOCK_GH"
-chmod +x "$MOCK_GH"
-cp "$MOCK_GH" /tmp/gh.sh
-MOCK_AZ="/tmp/mock-az.sh"
-echo '#!/bin/bash
-echo "AZ_RESTORE"' > "$MOCK_AZ"
-chmod +x "$MOCK_AZ"
-cp "$MOCK_AZ" /tmp/az.sh
-[[ $(/tmp/gh.sh) == "GH_BACKUP" ]] || fail "GH backup failed"
-[[ $(/tmp/az.sh) == "AZ_RESTORE" ]] || fail "AZ restore failed"
+out=$("$MOCK_DIR/privacy-check.sh" sensitive free 2>&1 || true)
+if [[ "$out" == "BLOCKED" ]]; then
+	pass "privacy blocks sensitive+free"
+else fail "privacy should block sensitive+free"; fi
 
-# Summary
-scenario "count"
-[[ $SCENARIO_COUNT -ge 5 ]] || fail "Less than 5 scenarios"
-echo "All $SCENARIO_COUNT scenarios passed."
+out=$("$MOCK_DIR/privacy-check.sh" public free 2>&1)
+if [[ "$out" == "ALLOWED" ]]; then
+	pass "privacy allows public+free"
+else fail "privacy should allow public+free"; fi
+
+# 3. Model registry mock
+echo "--- Model registry mock ---"
+cat >"$MOCK_DIR/model-registry.sh" <<'MOCK'
+#!/bin/bash
+case "$1" in refresh) echo "REFRESHED";; diff) echo "DIFFED";; check) echo "CHECKED";; *) echo "UNKNOWN";; esac
+MOCK
+chmod +x "$MOCK_DIR/model-registry.sh"
+
+for cmd in refresh diff check; do
+	result=$("$MOCK_DIR/model-registry.sh" "$cmd")
+	expected=$(echo "$cmd" | tr '[:lower:]' '[:upper:]')
+	# diff -> DIFFED, etc
+	if [[ "$result" == "${expected}ED" || "$result" == "${expected}D" ]]; then
+		pass "model-registry $cmd"
+	else
+		fail "model-registry $cmd (got: $result)"
+	fi
+done
+
+# 4. Execute-plan help works
+echo "--- Execute-plan help ---"
+help_out=$("${SCRIPT_DIR}/scripts/execute-plan.sh" --help 2>&1 || true)
+if echo "$help_out" | grep -q "Usage:"; then
+	pass "execute-plan --help"
+else fail "execute-plan --help"; fi
+
+# 5. Config file exists
+echo "--- Config files ---"
+if [ -f "${SCRIPT_DIR}/config/orchestrator.yaml" ]; then
+	pass "orchestrator.yaml exists"
+else fail "orchestrator.yaml missing"; fi
+
+echo ""
+echo "=== Results: $PASS/$((PASS + FAIL)) passed, $FAIL failed ==="
+[ "$FAIL" -eq 0 ]

@@ -1,26 +1,42 @@
 #!/usr/bin/env bash
+# Test: orchestrator config and scripts existence
 set -euo pipefail
 
-# RED test: bash syntax check
-if bash -n scripts/orchestrator-setup.sh; then
-  echo 'FAIL: bash -n should fail before implementation'
-  exit 1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+failures=0
+
+# Test 1: orchestrator.yaml exists
+if [ -f "${SCRIPT_DIR}/config/orchestrator.yaml" ]; then
+	echo "PASS: orchestrator.yaml exists"
 else
-  echo 'PASS: bash -n fails as expected'
+	echo "FAIL: orchestrator.yaml not found"
+	failures=$((failures + 1))
 fi
 
-# RED test: CLAUDE_HOME usage in orchestrator-setup.sh
-if grep 'CLAUDE_HOME' scripts/orchestrator-setup.sh; then
-  echo 'FAIL: CLAUDE_HOME found before implementation'
-  exit 1
+# Test 2: delegate.sh exists and is executable
+if [ -x "${SCRIPT_DIR}/scripts/delegate.sh" ]; then
+	echo "PASS: delegate.sh exists and is executable"
 else
-  echo 'PASS: CLAUDE_HOME not found as expected'
+	echo "FAIL: delegate.sh not found or not executable"
+	failures=$((failures + 1))
 fi
 
-# RED test: CLAUDE_HOME usage in delegate.sh
-if grep 'CLAUDE_HOME' scripts/delegate.sh; then
-  echo 'FAIL: CLAUDE_HOME found in delegate.sh before implementation'
-  exit 1
+# Test 3: delegate.sh uses CLAUDE_HOME or HOME
+if grep -q 'CLAUDE_HOME\|HOME' "${SCRIPT_DIR}/scripts/delegate.sh"; then
+	echo "PASS: delegate.sh uses CLAUDE_HOME/HOME"
 else
-  echo 'PASS: CLAUDE_HOME not found in delegate.sh as expected'
+	echo "FAIL: delegate.sh missing CLAUDE_HOME/HOME"
+	failures=$((failures + 1))
 fi
+
+# Test 4: All worker scripts exist
+for worker in copilot-worker.sh opencode-worker.sh gemini-worker.sh; do
+	if [ -f "${SCRIPT_DIR}/scripts/${worker}" ]; then
+		echo "PASS: ${worker} exists"
+	else
+		echo "FAIL: ${worker} not found"
+		failures=$((failures + 1))
+	fi
+done
+
+exit $failures

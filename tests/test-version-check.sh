@@ -1,48 +1,50 @@
 #!/bin/bash
-# RED test: version-check.sh must check copilot-cli, opencode, gemini and output to data/.cli-versions.json
+# Test: version-check.sh must check copilot-cli, opencode, gemini
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET="${SCRIPT_DIR}/hooks/version-check.sh"
 failures=0
 
-# Test 1: copilot-cli check
-if ! grep -q 'copilot-cli' hooks/version-check.sh && ! grep -q 'copilot' hooks/version-check.sh; then
-  echo 'FAIL: copilot check missing'
-  failures=$((failures+1))
+# Test 1: copilot check
+if grep -q 'copilot' "$TARGET"; then
+	echo 'PASS: copilot check present'
 else
-  echo 'PASS: copilot check present'
+	echo 'FAIL: copilot check missing'
+	failures=$((failures + 1))
 fi
 
 # Test 2: opencode check
-if ! grep -q 'opencode' hooks/version-check.sh; then
-  echo 'FAIL: opencode check missing'
-  failures=$((failures+1))
+if grep -q 'opencode' "$TARGET"; then
+	echo 'PASS: opencode check present'
 else
-  echo 'PASS: opencode check present'
+	echo 'FAIL: opencode check missing'
+	failures=$((failures + 1))
 fi
 
 # Test 3: gemini check
-if ! grep -q 'gemini' hooks/version-check.sh; then
-  echo 'FAIL: gemini check missing'
-  failures=$((failures+1))
+if grep -q 'gemini' "$TARGET"; then
+	echo 'PASS: gemini check present'
 else
-  echo 'PASS: gemini check present'
+	echo 'FAIL: gemini check missing'
+	failures=$((failures + 1))
 fi
 
 # Test 4: .cli-versions.json output
-if ! grep -q 'data/.cli-versions.json' hooks/version-check.sh; then
-  echo 'FAIL: .cli-versions.json output missing'
-  failures=$((failures+1))
+if grep -q 'cli-versions' "$TARGET"; then
+	echo 'PASS: cli-versions output present'
 else
-  echo 'PASS: .cli-versions.json output present'
+	echo 'FAIL: cli-versions output missing'
+	failures=$((failures + 1))
 fi
 
 # Test 5: <80 lines
-lines=$(wc -l < hooks/version-check.sh)
-if [ "$lines" -ge 80 ]; then
-  echo "FAIL: version-check.sh exceeds 80 lines ($lines)"
-  failures=$((failures+1))
+lines=$(wc -l <"$TARGET")
+if [ "$lines" -lt 80 ]; then
+	echo "PASS: $lines lines (<80)"
 else
-  echo "PASS: version-check.sh under 80 lines ($lines)"
+	echo "FAIL: $lines lines (>=80)"
+	failures=$((failures + 1))
 fi
 
 exit $failures

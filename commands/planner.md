@@ -1,6 +1,6 @@
 ---
 name: planner
-version: "2.0.0"
+version: "2.1.0"
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 -->
@@ -45,9 +45,11 @@ PROJECT_ID=$(echo "$CONTEXT" | jq -r '.project_id')
 
 Returns: project_id, project_name, path, branch, active_plans, worktrees, has_adr, has_changelog, prompt_files. Auto-registers. All ops INSIDE worktree.
 
-### 1.5 Read Existing Docs (MANDATORY)
+### 1.5 Read Existing Docs + Failed Approaches (MANDATORY)
 
 NO Explore. Direct Glob/Grep (2 calls): `Glob("docs/adr/*.md")`, `Grep(pattern="kw1|kw2", path="docs/adr/", output_mode="files_with_matches")`. Read matched ADRs. Check CHANGELOG.md last 20 lines. Cite ADRs in `ref`. Conflict = ASK.
+
+**Failed Approaches Check** (HVE Core pattern): `plan-db.sh get-failures $PROJECT_ID`. If prior failures exist for this project, list them and ensure the new plan DOES NOT repeat the same approach. Reference failures in task `do` field: "Previous attempt X failed because Y — use Z instead."
 
 ### 1.6 Technical Clarification (MANDATORY)
 
@@ -73,6 +75,35 @@ HARDENING_STATUS=$(echo "$HARDENING" | jq -r '.status')
 spec.json: `{user_request, requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
 
 **Rules**: `do`=ONE action. `files`=explicit paths. `verify`=machine-checkable. `ref`=F-xx ID. Missing `verify`=broken. **Per-wave docs**: TX-doc (CHANGELOG + plan-{id}-notes.md). **Final wave** "WF-Closure": TF-01 (notes->ADRs), TF-02 (CHANGELOG), TF-03 (ESLint), TF-tests (test consolidation), TF-pr (PR+CI). Cite ADRs in `do`.
+
+### 2.1 Schema Validation (MANDATORY)
+
+Validate spec.json before import. Source: [HVE Core](https://github.com/microsoft/hve-core) schema-driven validation pattern.
+
+```bash
+python3 -c "
+import json, sys
+try:
+    from jsonschema import validate, ValidationError
+    schema = json.load(open('$HOME/.claude/config/plan-spec-schema.json'))
+    spec = json.load(open('/path/to/spec.json'))
+    validate(spec, schema)
+    print('PASS: spec.json valid')
+except ValidationError as e:
+    print(f'FAIL: {e.message}'); sys.exit(1)
+except ImportError:
+    # Fallback: basic structural check without jsonschema
+    spec = json.load(open('/path/to/spec.json'))
+    for field in ['user_request', 'requirements', 'waves']:
+        assert field in spec, f'Missing: {field}'
+    for w in spec['waves']:
+        for t in w['tasks']:
+            assert t.get('verify'), f'Task {t[\"id\"]} missing verify'
+    print('PASS: spec.json structurally valid (no jsonschema)')
+"
+```
+
+**BLOCK if validation fails.** Fix spec errors before proceeding. Common failures: missing `verify` array, invalid task ID pattern, effort outside 1-3 range.
 
 ### 2.5 Copilot-First Delegation (DEFAULT)
 
@@ -148,6 +179,25 @@ NEVER skip. NEVER trust executor. Thor reads files. Per-task MANDATORY. Per-wave
 ### 9. Knowledge Codification
 
 See @planner-modules/knowledge-codification.md. LEARNINGS LOG -> ADRs -> ESLint -> Thor validates.
+
+## 10. Failed Approaches Tracking {#failed-approaches}
+
+Source: [HVE Core](https://github.com/microsoft/hve-core) Phase 5 Discover pattern.
+
+When a task fails max retries (executor marks `blocked`), the executor MUST log the failure:
+
+```bash
+plan-db.sh log-failure $PLAN_ID $TASK_ID "approach description" "failure reason"
+```
+
+Planner reads failures during step 1.5: `plan-db.sh get-failures $PROJECT_ID`. If the same approach was tried before and failed, planner MUST use a different strategy. Failures are project-scoped and persist across plans.
+
+| Field       | Content                                           |
+| ----------- | ------------------------------------------------- |
+| `task_id`   | Task that failed (e.g., T2-03)                    |
+| `approach`  | What was attempted (e.g., "sed replace in-place") |
+| `reason`    | Why it failed (e.g., "BSD sed incompatible")      |
+| `timestamp` | Auto-set by plan-db.sh                            |
 
 ## Rule 8: Minimize Human Intervention {#rule-8}
 

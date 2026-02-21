@@ -1,7 +1,7 @@
-## <!-- v2.1.0 -->
+## <!-- v2.2.0 -->
 
 name: execute
-version: "2.1.0"
+version: "2.2.0"
 
 ---
 
@@ -76,7 +76,15 @@ PATH: export PATH="$HOME/.claude/scripts:$PATH"`,
 });
 ```
 
-**Post-exec (both engines)**: `verify-task-update.sh ${task.db_id} done` | Retry max 2x → mark `blocked`, ASK USER
+**Post-exec (both engines)**: `verify-task-update.sh ${task.db_id} done` | Retry max 2x → **log failure** → mark `blocked`, ASK USER
+
+**Failed Approaches Logging** (HVE Core pattern): Before marking a task `blocked`, log what was tried and why it failed:
+
+```bash
+plan-db.sh log-failure $PLAN_ID ${task.task_id} "approach description" "failure reason"
+```
+
+Before retrying a failed task, check prior failures: `plan-db.sh get-failures $PROJECT_ID --task-pattern ${task.task_id}`. If same approach failed before, use a different strategy.
 
 ### P4a: Per-Task Thor
 

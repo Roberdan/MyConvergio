@@ -14,6 +14,16 @@ Plan proposed | Work claimed complete | PR suggested | Scope changed
 
 Per-task: `plan-db.sh validate-task {task_id} {plan_id}` after each task (Gate 1-4, 8, 9) | Per-wave: `plan-db.sh validate-wave {wave_db_id}` after all tasks validated (all 9 gates + build) | Gate 9: Constitution (CLAUDE.md, coding-standards) + ADR compliance. ADR-Smart for doc tasks | All must PASS. Progress only counts Thor-validated tasks.
 
+## Anti-Bypass Rule (NON-NEGOTIABLE)
+
+**NEVER execute plan tasks by editing files directly.** EVERY task in an active plan MUST go through `Task(subagent_type='task-executor')`. No exceptions for "simple" tasks, config changes, or documentation. The task-executor has built-in Thor (Phase 4.9) — bypassing it = bypassing Thor = VIOLATION.
+
+**Prohibited pattern**: Read file → Edit file → mark task done in DB → skip Thor. This is exactly what manual execution does.
+
+**Required pattern**: For EACH task: `plan-db.sh update-task $ID in_progress` → `Task(subagent_type='task-executor', ...)` → task-executor runs Thor internally → `plan-db.sh validate-task` → next task.
+
+**If you catch yourself editing files while a plan is active**: STOP. Route through task-executor. If task-executor is overkill for 1-line change, the task was wrongly sized — split or absorb it.
+
 ## Git & PR
 
 Branch: feature/, fix/, chore/ | Conventional commits | Lint+typecheck+test before commit | All threads resolved | Build passes | ZERO debt (no TODO, FIXME, @ts-ignore)

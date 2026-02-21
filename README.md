@@ -1,6 +1,6 @@
 <div align="center">
 
-# MyConvergio - Claude Code Plugin
+# MyConvergio - Your night agents at work.
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 

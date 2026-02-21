@@ -90,7 +90,7 @@ cat <<PROMPT
 export PATH="\$HOME/.claude/scripts:\$PATH"
 cd "$WT" && pwd
 worktree-guard.sh "$WT"
-plan-db.sh update-task $TASK_ID in_progress "Started by Copilot"
+plan-db-safe.sh update-task $TASK_ID in_progress "Started by Copilot"
 \`\`\`
 
 ## Task
@@ -115,9 +115,23 @@ $TC
 ## Completion
 When done, include structured output_data for downstream tasks:
 \`\`\`bash
-plan-db.sh update-task $TASK_ID done "Summary of what was done" --tokens 0 --output-data '{"summary":"what was done","artifacts":["file1.ts"]}'
+plan-db-safe.sh update-task $TASK_ID done "Summary of what was done" --tokens 0 --output-data '{"summary":"what was done","artifacts":["file1.ts"]}'
 \`\`\`
 The output_data JSON should include: summary (string), artifacts (files created/modified), and any data needed by subsequent tasks.
+
+## Structured Output Format
+All agent output must be wrapped using the agent-protocol.sh envelope:
+
+```bash
+build_task_envelope <output_data_json>
+```
+Refer to scripts/lib/agent-protocol.sh for envelope details and usage.
+
+## Worktree Safety
+Run worktree-safety audit to detect stale/abandoned worktrees before modifying shared files:
+\`\`\`bash
+"$WT/../scripts/worktree-safety.sh" audit
+\`\`\`
 
 ## Coding Standards
 - Max 250 lines per file. Split if exceeds.

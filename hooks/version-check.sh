@@ -1,28 +1,35 @@
 #!/bin/bash
-# Version Check Hook - Detects Claude Code updates
-# Runs in Setup hook. Compares current version against last known.
-# If different, notifies user to run @sentinel-ecosystem-guardian.
-# Version: 1.1.0
+# Version Check Hook - Detects Claude Code, copilot-cli, opencode, gemini updates
+# Stores versions in data/.cli-versions.json and .claude-code-version for backward compat
+# Version: 2.0.0
 set -euo pipefail
 
 VERSION_FILE="$HOME/.claude/data/.claude-code-version"
-CURRENT_VERSION=$(claude --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+VERSIONS_JSON="$HOME/.claude/data/.cli-versions.json"
 
-[[ "$CURRENT_VERSION" == "unknown" ]] && exit 0
+# Get versions
+CLAUDE_VERSION=$(claude --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+COPILOT_VERSION=$(copilot --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+COPILOTCLI_VERSION=$(copilot-cli --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+OPENCODE_VERSION=$(opencode --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+GEMINI_VERSION=$(gemini --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
 
-# First run: store version and exit
+# Store JSON
+mkdir -p "$(dirname "$VERSIONS_JSON")"
+echo "{\n  \"claude\": \"$CLAUDE_VERSION\",\n  \"copilot\": \"$COPILOT_VERSION\",\n  \"copilot-cli\": \"$COPILOTCLI_VERSION\",\n  \"opencode\": \"$OPENCODE_VERSION\",\n  \"gemini\": \"$GEMINI_VERSION\"\n}" > "$VERSIONS_JSON"
+
+# Backward compat: .claude-code-version
+[[ "$CLAUDE_VERSION" == "unknown" ]] && exit 0
 if [[ ! -f "$VERSION_FILE" ]]; then
-	mkdir -p "$(dirname "$VERSION_FILE")"
-	echo "$CURRENT_VERSION" >"$VERSION_FILE"
-	exit 0
+  mkdir -p "$(dirname "$VERSION_FILE")"
+  echo "$CLAUDE_VERSION" > "$VERSION_FILE"
+  exit 0
 fi
-
 LAST_VERSION=$(cat "$VERSION_FILE" 2>/dev/null || echo "unknown")
-
-if [[ "$CURRENT_VERSION" != "$LAST_VERSION" ]]; then
-	echo "$CURRENT_VERSION" >"$VERSION_FILE"
-	cat <<EOF
-{"notification": "Claude Code updated: $LAST_VERSION -> $CURRENT_VERSION. Run @sentinel-ecosystem-guardian for ecosystem alignment.", "severity": "info"}
+if [[ "$CLAUDE_VERSION" != "$LAST_VERSION" ]]; then
+  echo "$CLAUDE_VERSION" > "$VERSION_FILE"
+  cat <<EOF
+{"notification": "Claude Code updated: $LAST_VERSION -> $CLAUDE_VERSION. Run @sentinel-ecosystem-guardian for ecosystem alignment.", "severity": "info"}
 EOF
 fi
 

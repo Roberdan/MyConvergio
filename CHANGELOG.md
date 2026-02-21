@@ -137,6 +137,18 @@ Major release combining LLM instruction optimization (40-60% token reduction tar
 
 ---
 
+## [v7.0.0] - 21 Feb 2026 — Convergio Orchestrator v1 (ADR-0010)
+
+Major release: Convergio Orchestrator v1
+
+- Added: All new scripts (delegate.sh, copilot-worker.sh, opencode-worker.sh, gemini-worker.sh, agent-protocol.sh, delegate-utils.sh, gh-ops-routing.sh, worktree-safety.sh)
+- Added: New configs (orchestrator.yaml, models-registry.json)
+- Added: DB changes (output_data, executor_agent, precondition columns, SQL triggers, plan-db-safe.sh)
+- Added: Hooks (thor-commit-guard.sh, worktree pre-check, delegation logging)
+- Reference: ADR-0010 — Convergio Orchestrator Architecture
+
+---
+
 ## [v5.1] - 12 Feb 2026 — CLAUDE.md Restructuring (ADR 0007)
 
 - Changed: CLAUDE.md slimmed from 197 to 115 lines (42% reduction)

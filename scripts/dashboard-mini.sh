@@ -1,6 +1,7 @@
 #!/bin/bash
 # Version: 1.4.0
 set -euo pipefail
+. scripts/lib/dashboard-delegation.sh
 
 # Colors
 RED='\033[0;31m'

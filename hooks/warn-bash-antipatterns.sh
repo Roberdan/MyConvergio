@@ -23,6 +23,14 @@ check_pattern() {
 	return 1
 }
 
+# zsh safety: != inside double-quoted sqlite3/SQL -> use <> or NOT IN
+if echo "$COMMAND" | grep -qE 'sqlite3.*"[^"]*!=.*"' 2>/dev/null; then
+	echo "BLOCKED: '!=' inside double-quoted sqlite3 command will break in zsh (! expansion)."
+	echo "Fix: Use SQL '<>' operator or 'NOT IN (...)' instead of '!='."
+	echo "Example: status <> 'done' OR status NOT IN ('done')"
+	exit 2
+fi
+
 # File search patterns -> Glob
 check_pattern "^find " "Glob" && exit 0
 check_pattern " find " "Glob" && exit 0

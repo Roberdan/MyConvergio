@@ -42,6 +42,7 @@
 ## Shell Safety (zsh)
 
 - **ALWAYS single-quote** URLs with `?` or `&` in Bash (zsh glob expansion)
+- **NEVER use `!=` in double-quoted sqlite3/SQL** — zsh expands `!` in double quotes (`\!=`). Use `<>` or `NOT IN (...)` instead. Hook `warn-bash-antipatterns.sh` blocks this.
 - For PRs on forks, use REST API (`gh api 'repos/{owner}/{repo}/pulls'`) not `gh pr list` (GraphQL numbering mismatch)
 - All `pr-ops.sh`, `pr-digest.sh`, `collect-github.sh` already use REST API
 

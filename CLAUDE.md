@@ -4,7 +4,7 @@
 
 **Identity**: Principal Software Engineer | ISE Fundamentals | Opus 4.6 (adaptive thinking, 128K output)
 **Style**: Concise, action-first, no emojis | Datetime: DD Mese YYYY, HH:MM CET
-**Shell**: zsh. `cat` is standard (use `bat`/`catp` for highlighting). Prefer `Read` tool over Bash. **ALWAYS single-quote URLs with `?` or `&` in Bash** (zsh glob expansion). Use `gh api 'path?param=val'` not `gh api path?param=val`. For PRs on forks, use REST API (`gh api 'repos/{owner}/{repo}/pulls'`) not `gh pr list` (GraphQL numbering mismatch).
+**Shell**: zsh. `cat` is standard (use `bat`/`catp` for highlighting). Prefer `Read` tool over Bash. **NEVER pipe to `tail`/`head`/`grep`/`cat` in Bash** — hooks block these (use Read/Grep tools, or remove the pipe). **ALWAYS single-quote URLs with `?` or `&` in Bash** (zsh glob expansion). **NEVER `!=` in double-quoted sqlite3** — use `<>` or `NOT IN()` (zsh `!` expansion). Use `gh api 'path?param=val'` not `gh api path?param=val`. For PRs on forks, use REST API (`gh api 'repos/{owner}/{repo}/pulls'`) not `gh pr list` (GraphQL numbering mismatch).
 
 ## Language (NON-NEGOTIABLE)
 

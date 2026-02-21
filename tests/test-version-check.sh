@@ -2,49 +2,24 @@
 # Test: version-check.sh must check copilot-cli, opencode, gemini
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="${SCRIPT_DIR}/hooks/version-check.sh"
-failures=0
+source "$(dirname "${BASH_SOURCE[0]}")/lib/test-helpers.sh"
+
+REPO_ROOT="$(get_repo_root)"
+TARGET="${REPO_ROOT}/hooks/version-check.sh"
 
 # Test 1: copilot check
-if grep -q 'copilot' "$TARGET"; then
-	echo 'PASS: copilot check present'
-else
-	echo 'FAIL: copilot check missing'
-	failures=$((failures + 1))
-fi
+assert_grep 'copilot' "$TARGET" "copilot check present"
 
 # Test 2: opencode check
-if grep -q 'opencode' "$TARGET"; then
-	echo 'PASS: opencode check present'
-else
-	echo 'FAIL: opencode check missing'
-	failures=$((failures + 1))
-fi
+assert_grep 'opencode' "$TARGET" "opencode check present"
 
 # Test 3: gemini check
-if grep -q 'gemini' "$TARGET"; then
-	echo 'PASS: gemini check present'
-else
-	echo 'FAIL: gemini check missing'
-	failures=$((failures + 1))
-fi
+assert_grep 'gemini' "$TARGET" "gemini check present"
 
 # Test 4: .cli-versions.json output
-if grep -q 'cli-versions' "$TARGET"; then
-	echo 'PASS: cli-versions output present'
-else
-	echo 'FAIL: cli-versions output missing'
-	failures=$((failures + 1))
-fi
+assert_grep 'cli-versions' "$TARGET" "cli-versions output present"
 
 # Test 5: <80 lines
-lines=$(wc -l <"$TARGET")
-if [ "$lines" -lt 80 ]; then
-	echo "PASS: $lines lines (<80)"
-else
-	echo "FAIL: $lines lines (>=80)"
-	failures=$((failures + 1))
-fi
+assert_line_count "$TARGET" 79 "line count"
 
-exit $failures
+exit_with_summary "version-check.sh"

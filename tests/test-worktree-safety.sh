@@ -2,79 +2,35 @@
 # Test: worktree-safety.sh syntax, functions, subcommands, line count
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="${SCRIPT_DIR}/scripts/worktree-safety.sh"
-PASS=0
-FAIL=0
+source "$(dirname "${BASH_SOURCE[0]}")/lib/test-helpers.sh"
 
-pass() {
-	PASS=$((PASS + 1))
-	echo "  PASS: $1"
-}
-fail() {
-	FAIL=$((FAIL + 1))
-	echo "  FAIL: $1"
-}
+REPO_ROOT="$(get_repo_root)"
+TARGET="${REPO_ROOT}/scripts/worktree-safety.sh"
 
 echo "=== test-worktree-safety.sh ==="
 
 # T1: File exists and is executable
-if [ -x "$TARGET" ]; then
-	pass "file exists and is executable"
-else
-	fail "file not found or not executable"
-fi
+assert_executable "$TARGET" "file exists and is executable"
 
 # T2: Bash syntax check
-if bash -n "$TARGET" 2>/dev/null; then
-	pass "bash -n"
-else
-	fail "bash -n failed"
-fi
+assert_bash_syntax "$TARGET" "bash -n"
 
 # T3: Contains pre-check subcommand
-if grep -q 'pre-check' "$TARGET"; then
-	pass "pre-check subcommand"
-else
-	fail "pre-check subcommand missing"
-fi
+assert_grep 'pre-check' "$TARGET" "pre-check subcommand"
 
 # T4: Contains notify-merge subcommand
-if grep -q 'notify-merge' "$TARGET"; then
-	pass "notify-merge subcommand"
-else
-	fail "notify-merge subcommand missing"
-fi
+assert_grep 'notify-merge' "$TARGET" "notify-merge subcommand"
 
 # T5: Contains recover subcommand
-if grep -q 'recover' "$TARGET"; then
-	pass "recover subcommand"
-else
-	fail "recover subcommand missing"
-fi
+assert_grep 'recover' "$TARGET" "recover subcommand"
 
 # T6: Contains audit subcommand
-if grep -q 'audit' "$TARGET"; then
-	pass "audit subcommand"
-else
-	fail "audit subcommand missing"
-fi
+assert_grep 'audit' "$TARGET" "audit subcommand"
 
 # T7: Uses git commands
-if grep -q 'git ' "$TARGET"; then
-	pass "uses git commands"
-else
-	fail "no git commands found"
-fi
+assert_grep 'git ' "$TARGET" "uses git commands"
 
 # T8: Line count < 250
-lines=$(wc -l <"$TARGET")
-if [ "$lines" -lt 250 ]; then
-	pass "$lines lines (<250)"
-else
-	fail "$lines lines (>=250)"
-fi
+assert_line_count "$TARGET" 249 "line count"
 
-echo ""
-echo "=== Results: $PASS/$((PASS + FAIL)) passed, $FAIL failed ==="
-[ "$FAIL" -eq 0 ]
+exit_with_summary "worktree-safety.sh"

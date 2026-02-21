@@ -24,6 +24,7 @@
 
 `/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task → Thor per-wave → closure (all F-xx verified) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
 
+@AGENTS.md
 @reference/operational/plan-scripts.md
 @reference/operational/digest-scripts.md
 @reference/operational/worktree-discipline.md

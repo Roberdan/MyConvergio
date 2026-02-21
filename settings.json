@@ -54,6 +54,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.claude/hooks/secret-scanner.sh",
+            "timeout": 15
+          },
+          {
+            "type": "command",
             "command": "~/.claude/scripts/env-vault-guard.sh",
             "timeout": 15
           }

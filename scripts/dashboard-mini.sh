@@ -250,7 +250,7 @@ while [[ $# -gt 0 ]]; do
 		echo "  - Overview: conteggi totali (todo/doing/done)"
 		echo "  - Piani Attivi: in esecuzione con progress e PR"
 		echo "  - In Pipeline: piani creati ma non ancora lanciati"
-		echo "  - Completamenti: ultima settimana"
+		echo "  - Completamenti: ultime 24 ore"
 		echo ""
 		echo "Comportamento default:"
 		echo "  - Auto-refresh ogni 5 minuti (300 secondi)"
@@ -1096,18 +1096,18 @@ render_dashboard() {
 		fi
 	fi
 
-	# Piani completati nell'ultima settimana
+	# Piani completati nelle ultime 24 ore
 	local completed_week_count
-	completed_week_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-7 days')")
-	echo -e "${BOLD}${WHITE}✅ Completati ultima settimana ($completed_week_count)${NC}"
+	completed_week_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day')")
+	echo -e "${BOLD}${WHITE}✅ Completati ultime 24h ($completed_week_count)${NC}"
 	if [ "$completed_week_count" -eq 0 ]; then
-		echo -e "${GRAY}└─${NC} Nessun piano completato nell'ultima settimana"
+		echo -e "${GRAY}└─${NC} Nessun piano completato nelle ultime 24 ore"
 	fi
 	if [ "$EXPAND_COMPLETED" -eq 0 ] && [ "$completed_week_count" -gt 0 ]; then
 		echo -e "${GRAY}│  ${NC}${GRAY}Usa ${WHITE}piani -e${GRAY} per vedere dettagli task${NC}"
 	fi
 
-	sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')), COALESCE(lines_added, 0), COALESCE(lines_removed, 0) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-7 days') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project pdescription lines_added lines_removed; do
+	sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')), COALESCE(lines_added, 0), COALESCE(lines_removed, 0) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project pdescription lines_added lines_removed; do
 		[ -z "$plan_id" ] && continue
 		# Use completed_at or updated_at for display
 		display_date="${completed:-${updated:-$created}}"

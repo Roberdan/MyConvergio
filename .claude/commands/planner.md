@@ -11,19 +11,19 @@ Plan and execute with parallel Claude instances.
 
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
-| #   | Rule                                                                                                                                                              |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Task Executor MANDATORY**: Use `Task(subagent_type='task-executor')` for EVERY task                                                                             |
-| 2   | **F-xx Requirements**: Extract ALL. Nothing done until ALL verified [x]                                                                                           |
-| 3   | **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"                                                                                                 |
-| 4   | **Thor Enforcement**: Task done = per-task Thor passed. Wave done = per-wave Thor + build passed. Gate 9 MANDATORY.                                               |
-| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path                                                                                              |
-| 6   | **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See @planner-modules/knowledge-codification.md                                                |
-| 7   | **NO SILENT EXCLUSIONS**: NEVER exclude/defer ANY F-xx without EXPLICIT user approval via AskUserQuestion. Silently dropping = VIOLATION.                         |
-| 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8). |
-| 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                           |
-| 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                     |
-| 11  | **TEST CONSOLIDATION**: Final wave MUST include `TF-tests` task BEFORE `TF-pr`. See [Test Consolidation](#test-consolidation).                                    |
+| #   | Rule                                                                                                                                                                                                                                                           |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Task Executor MANDATORY**: Use `Task(subagent_type='task-executor')` for EVERY task. NEVER edit files directly while a plan is active. Direct edit = Thor bypass = VIOLATION. No exceptions for config/docs/trivial changes. See CLAUDE.md Anti-Bypass rule. |
+| 2   | **F-xx Requirements**: Extract ALL. Nothing done until ALL verified [x]                                                                                                                                                                                        |
+| 3   | **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"                                                                                                                                                                                              |
+| 4   | **Thor Enforcement**: Task done = per-task Thor passed. Wave done = per-wave Thor + build passed. Gate 9 MANDATORY.                                                                                                                                            |
+| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path                                                                                                                                                                                           |
+| 6   | **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See @planner-modules/knowledge-codification.md                                                                                                                                             |
+| 7   | **NO SILENT EXCLUSIONS**: NEVER exclude/defer ANY F-xx without EXPLICIT user approval via AskUserQuestion. Silently dropping = VIOLATION.                                                                                                                      |
+| 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8).                                                                                              |
+| 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                                                                                                                        |
+| 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                                                                                                                  |
+| 11  | **TEST CONSOLIDATION**: Final wave MUST include `TF-tests` task BEFORE `TF-pr`. See [Test Consolidation](#test-consolidation).                                                                                                                                 |
 
 ## Module References
 

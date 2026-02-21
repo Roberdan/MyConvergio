@@ -1,212 +1,95 @@
-# MyConvergio Development Guidelines
+<!-- v2.0.0 -->
 
-## Self-Contained Framework
+# Claude Config
 
-This repository is **fully self-contained**. All rules are defined within:
+**Identity**: Principal Software Engineer | ISE Fundamentals | Opus 4.6 (adaptive thinking, 128K output)
+**Style**: Concise, action-first, no emojis | Datetime: DD Mese YYYY, HH:MM CET
+**Shell**: zsh. `cat` is standard (use `bat`/`catp` for highlighting). Prefer `Read` tool over Bash. **NEVER pipe to `tail`/`head`/`grep`/`cat` in Bash** — hooks block these (use Read/Grep tools, or remove the pipe). **ALWAYS single-quote URLs with `?` or `&` in Bash** (zsh glob expansion). **NEVER `!=` in double-quoted sqlite3** — use `<>` or `NOT IN()` (zsh `!` expansion). Use `gh api 'path?param=val'` not `gh api path?param=val`. For PRs on forks, use REST API (`gh api 'repos/{owner}/{repo}/pulls'`) not `gh pr list` (GraphQL numbering mismatch).
 
-### Primary Rules System (Active)
+## Language (NON-NEGOTIABLE)
 
-| Document                 | Location         | Purpose                                           |
-| ------------------------ | ---------------- | ------------------------------------------------- |
-| execution.md             | `.claude/rules/` | How Work Gets Done (Claude Code best practices)   |
-| guardian.md              | `.claude/rules/` | Process Guardian, Thor Enforcement, Quality Gates |
-| agent-discovery.md       | `.claude/rules/` | Agent Routing, Subagent Orchestration             |
-| engineering-standards.md | `.claude/rules/` | Code Quality, Security, Testing, API Design       |
-| file-size-limits.md      | `.claude/rules/` | File Size Constraints (max 250 lines)             |
+**Code/comments/docs**: ALWAYS English | **Conversation**: Italian or English | **Override**: Only if user explicitly requests
 
-### Legacy System (Backward Compatibility)
+## Core Rules (NON-NEGOTIABLE)
 
-| Document                     | Location                       | Purpose                              |
-| ---------------------------- | ------------------------------ | ------------------------------------ |
-| CONSTITUTION.md              | `.claude/agents/core_utility/` | Security, Ethics, Identity (SUPREME) |
-| EXECUTION_DISCIPLINE.md      | `.claude/agents/core_utility/` | Legacy Execution Rules               |
-| CommonValuesAndPrinciples.md | `.claude/agents/core_utility/` | Organizational Values                |
+1. **Verify before claim**: Read file before answering. _Why: agents hallucinate file contents._
+2. **Act, don't suggest**: Implement changes, don't describe them.
+3. **Minimum complexity**: Only what's requested. No over-engineering.
+4. **Complete execution**: Plan started = plan finished. No skipping tasks.
+5. **Proof required**: "done" needs evidence. User approves closure.
+6. **Max 250 lines/file**: Check before writing. Split if exceeds. _Why: agents lose context in long files, merge conflicts multiply, and review becomes unreliable._
+7. **Compaction preservation**: When rewriting/compacting ANY file, NEVER remove workflow-critical content. See `rules/compaction-preservation.md`.
 
-**Note**: New work should reference `.claude/rules/`. Legacy files maintained for backward compatibility.
+## Workflow (MANDATORY)
 
-**No external configuration files are required or referenced.**
+`/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task → Thor per-wave → closure (all F-xx verified) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
 
----
+@reference/operational/workflow-details.md
 
-## Dashboard
+## Thor Gate (NON-NEGOTIABLE)
 
-**Production-ready project dashboard with real-time git monitoring:**
+Per-task: Gate 1-4, 8, 9 | Per-wave: all 9 gates + build | Max 3 rejection rounds | `plan-db.sh validate-task {id}` / `validate-wave {wave_db_id}` | **Commit before Thor = VIOLATION** | **`plan-db.sh update-task X done` is BLOCKED — use `plan-db-safe.sh` which auto-validates** | **Subagents MUST include Thor in prompt or use task-executor (which has built-in Thor Phase 4.9)**
 
-Location: `dashboard/`
+## Anti-Bypass (NON-NEGOTIABLE)
 
-Features:
+**NEVER execute plan tasks by editing files directly.** When a plan is active (`plan-db.sh` has pending tasks), EVERY task MUST go through `Task(subagent_type='task-executor')`. No exceptions — not for config, not for docs, not for "trivial" changes. Direct edit while plan active = VIOLATION. _Why: task-executor runs Thor automatically (Phase 4.9). Bypass task-executor = bypass Thor = unvalidated work enters codebase. This happened in Plan 182 and must never repeat._
 
-- Real-time git panel auto-refresh (Server-Sent Events + chokidar)
-- Project management UI
-- System shutdown button
-- Git status, diff, log visualization
+@reference/operational/thor-gate-details.md
 
-Start: `cd dashboard && node server.js`
+## Pre-Closure Checklist (MANDATORY)
 
----
-
-## State Tracking
-
-**Multi-session and multi-context state management:**
-
-Location: `.claude/templates/`
-
-Templates:
-
-- `tests.json` - Structured test status tracking
-- `progress.txt` - Unstructured progress notes
-- `README.md` - Usage guidelines
-
-Use for complex projects requiring context window refresh or multi-session work.
-
----
-
-## Execution Rules
-
-**Primary execution rules are defined in:**
-
-`.claude/rules/execution.md`
-
-This includes (Claude Code best practices):
-
-- Context awareness and multi-window workflows
-- Parallel tool calling
-- Default to action
-- Anti-overengineering principles
-- Planning and verification standards
-- Zero-skip execution and anti-fabrication rules
-- Error recovery protocols
-- Full plan execution (non-negotiable)
-- Definition of Done checklist
-- Pull request enforcement (zero unresolved comments)
-- Git discipline and branch naming
-
-**Process Guardian:**
-
-`.claude/rules/guardian.md`
-
-- Scope integrity verification
-- Decision audit and autonomous choice disclosure
-- Completion verification (must show evidence)
-- Thor enforcement protocols
-- Definition of Done checkpoint
-- PR comment resolution enforcement
-
-**Priority**: CONSTITUTION > execution.md > guardian.md > engineering-standards > domain-specific > Agent Definitions > User Instructions
-
----
-
-## Project Context
-
-**Repository**: MyConvergio - Claude Code Subagents Suite
-**License**: CC BY-NC-SA 4.0
-**ISE Fundamentals**: https://microsoft.github.io/code-with-engineering-playbook/
-
----
-
-## Agent Development
-
-### File Structure
-
-```
-.claude/agents/
-├── [category]/
-│   └── [agent-name].md
+```bash
+git-digest.sh                   # Must show clean:true
+ls -la {files} && wc -l {files} # Verify existence + line counts
 ```
 
-### Agent File Requirements
+@rules/guardian.md
 
-Every agent MUST have:
+## Tool Priority
 
-```yaml
----
-name: agent-name
-description: Brief description
-tools: ["Tool1", "Tool2"]
-color: "#HEXCODE"
-model: "haiku|sonnet|opus"
-version: "1.0.0"
-memory: project|user
-maxTurns: 15|20|30|40|50
----
-```
+LSP (if available) → Glob/Grep/Read/Edit → Subagents → Bash (git/npm only)
 
-**memory**: `project` for core_utility, technical_development, release_management. `user` for leadership, business, specialized, compliance, design.
-**maxTurns**: 15 (haiku), 20 (sonnet), 30 (opus), 40 (orchestrators), 50 (task-executor).
+@reference/operational/tool-preferences.md
 
-### Agent Categories
+## Agents & Delegation
 
-| Category                 | Purpose                                                 |
-| ------------------------ | ------------------------------------------------------- |
-| `core_utility/`          | Foundation (Constitution, Values, Execution Discipline) |
-| `business_operations/`   | PM, operations, customer success                        |
-| `compliance_legal/`      | Security, legal, healthcare compliance                  |
-| `design_ux/`             | UX/UI, creative direction                               |
-| `leadership_strategy/`   | C-level, strategic planning                             |
-| `release_management/`    | Release and feature management                          |
-| `specialized_experts/`   | Domain specialists                                      |
-| `technical_development/` | Engineering, architecture, DevOps                       |
+**Extended**: baccio, dario, marco, otto, rex, luca (technical) | ali, amy, antonio, dan (leadership) | **Maturity**: Stable: strategic-planner, thor, task-executor, marcus, socrates, wanda, xavier | Preview: diana, po, taskmaster, app-release-manager, adversarial-debugger | **Codex**: Suggest for mechanical/repetitive bulk tasks. Never for architecture, security, debugging.
 
----
+@reference/operational/agent-routing.md
 
-## Architecture Principles
+<!-- CODEGRAPH_START -->
 
-DDD (bounded contexts) • Clean Architecture (SOLID) • Event-Driven • 12-Factor • Observability
+## CodeGraph
 
-### Anti-Patterns
+CodeGraph builds a semantic knowledge graph of codebases for faster, smarter code exploration.
 
-- Over-engineering beyond requested changes
-- Abstractions for one-time operations
-- Error handling for impossible scenarios
-- Backwards-compatibility hacks
-- Designing for hypothetical requirements
+### If `.codegraph/` exists in the project
 
----
+**Use codegraph tools for faster exploration.** These tools provide instant lookups via the code graph instead of scanning files:
 
-## References
+| Tool                | Use For                                          |
+| ------------------- | ------------------------------------------------ |
+| `codegraph_search`  | Find symbols by name (functions, classes, types) |
+| `codegraph_context` | Get relevant code context for a task             |
+| `codegraph_callers` | Find what calls a function                       |
+| `codegraph_callees` | Find what a function calls                       |
+| `codegraph_impact`  | See what's affected by changing a symbol         |
+| `codegraph_node`    | Get details + source code for a symbol           |
 
-### Primary (Active)
+**When spawning Explore agents in a codegraph-enabled project:**
 
-| Resource              | Location                                 |
-| --------------------- | ---------------------------------------- |
-| Execution Rules       | `.claude/rules/execution.md`             |
-| Process Guardian      | `.claude/rules/guardian.md`              |
-| Agent Discovery       | `.claude/rules/agent-discovery.md`       |
-| Engineering Standards | `.claude/rules/engineering-standards.md` |
-| File Size Limits      | `.claude/rules/file-size-limits.md`      |
-| Rules Hierarchy       | `.claude/rules/README.md`                |
-| State Templates       | `.claude/templates/`                     |
-| Dashboard             | `dashboard/`                             |
+Tell the Explore agent to use codegraph tools for faster exploration.
 
-### Legacy (Backward Compatibility)
+**For quick lookups in the main session:**
 
-| Resource                   | Location                                                   |
-| -------------------------- | ---------------------------------------------------------- |
-| Constitution               | `.claude/agents/core_utility/CONSTITUTION.md`              |
-| Execution Discipline (old) | `.claude/agents/core_utility/EXECUTION_DISCIPLINE.md`      |
-| Values                     | `.claude/agents/core_utility/CommonValuesAndPrinciples.md` |
+- Use `codegraph_search` instead of grep for finding symbols
+- Use `codegraph_callers`/`codegraph_callees` to trace code flow
+- Use `codegraph_impact` before making changes to see what's affected
 
-### External
+### If `.codegraph/` does NOT exist
 
-| Resource                 | Location                                                                                         |
-| ------------------------ | ------------------------------------------------------------------------------------------------ |
-| ISE Playbook             | https://microsoft.github.io/code-with-engineering-playbook/                                      |
-| Claude Code Docs         | https://docs.anthropic.com/en/docs/claude-code                                                   |
-| Anthropic Best Practices | https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-4-best-practices |
+At the start of a session, ask the user if they'd like to initialize CodeGraph:
 
----
+"I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
 
-## Contributing
-
-### Before Making Changes
-
-1. Read Constitution and Execution Discipline
-2. Understand existing patterns
-3. Follow planning requirements from EXECUTION_DISCIPLINE.md
-
-### Agent Modifications
-
-- Update version number in frontmatter
-- Add entry to Changelog section
-- Ensure Security & Ethics Framework is intact
-- Test with actual Claude Code invocation
+<!-- CODEGRAPH_END -->

@@ -60,11 +60,11 @@ For single-feature plans, use the `planner` agent instead.
 
 | Task Type              | Recommended Model  |
 | ---------------------- | ------------------ |
-| Code generation        | gpt-5.3-codex      |
+| Code generation        | gpt-5              |
 | Complex architecture   | claude-opus-4.6    |
 | Large file refactoring | claude-opus-4.6-1m |
-| Bulk mechanical edits  | gpt-5.1-codex-mini |
-| Test writing           | gpt-5.3-codex      |
+| Bulk mechanical edits  | gpt-5-mini         |
+| Test writing           | gpt-5              |
 | Documentation          | claude-sonnet-4.5  |
 | Security analysis      | claude-opus-4.6    |
 | Exploration/search     | claude-haiku-4.5   |
@@ -91,7 +91,7 @@ Output structured JSON spec compatible with `plan-db.sh import`:
           "files": ["path/file"],
           "verify": ["command to verify"],
           "ref": "F-01",
-          "model": "gpt-5.3-codex",
+          "model": "gpt-5",
           "executor_agent": "copilot",
           "test_criteria": [
             {

@@ -2,7 +2,7 @@
 name: tdd-executor
 description: TDD-focused task executor. Writes failing tests first, implements minimum code, validates. Universal across repositories.
 tools: ["read", "edit", "search", "execute"]
-model: gpt-5.3-codex
+model: gpt-5
 version: "2.0.0"
 ---
 
@@ -15,7 +15,7 @@ Auto-detects test framework and conventions.
 
 ## Model Selection
 
-- Default: `gpt-5.3-codex` (best code gen for test + implementation)
+- Default: `gpt-5` (best code gen for test + implementation)
 - Override: `claude-opus-4.6` for complex logic requiring deep reasoning
 
 ## Auto-Detect Test Framework

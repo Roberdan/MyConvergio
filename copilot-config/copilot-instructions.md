@@ -14,15 +14,15 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 | ------------------------------ | -------------------- | -------- |
 | **Requirements extraction**    | `claude-opus-4.6`    | premium  |
 | **Strategic planning**         | `claude-opus-4.6-1m` | premium  |
-| **Code generation / TDD**      | `gpt-5.3-codex`      | standard |
+| **Code generation / TDD**      | `gpt-5`              | standard |
 | **Quality validation (Thor)**  | `claude-opus-4.6`    | premium  |
 | **Code review / security**     | `claude-opus-4.6`    | premium  |
 | **Compliance (full codebase)** | `claude-opus-4.6-1m` | premium  |
 | **Documentation writing**      | `claude-sonnet-4.5`  | standard |
 | **Codebase exploration**       | `claude-haiku-4.5`   | fast     |
-| **Quick fixes / bulk edits**   | `gpt-5.1-codex-mini` | fast     |
+| **Quick fixes / bulk edits**   | `gpt-5-mini`         | fast     |
 | **Build / test execution**     | `claude-haiku-4.5`   | fast     |
-| **Complex refactoring**        | `gpt-5.3-codex`      | standard |
+| **Complex refactoring**        | `gpt-5`              | standard |
 | **Architecture analysis**      | `claude-opus-4.6-1m` | premium  |
 
 ### When to Use 1M Context (`claude-opus-4.6-1m`)
@@ -32,7 +32,7 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 - Architecture review of full project
 - Migration planning needing full dependency graph
 
-### When to Use Codex (`gpt-5.3-codex`)
+### When to Use GPT-5 (`gpt-5`)
 
 - Writing new code (functions, classes, modules)
 - TDD cycles (test writing + implementation)
@@ -52,11 +52,11 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 | --------------------- | ------------------------- | -------------------- |
 | `@prompt`             | Extract F-xx requirements | `claude-opus-4.6`    |
 | `@planner`            | Wave/task decomposition   | `claude-opus-4.6-1m` |
-| `@execute`            | TDD task execution        | `gpt-5.3-codex`      |
+| `@execute`            | TDD task execution        | `gpt-5`              |
 | `@validate`           | Thor quality gates        | `claude-opus-4.6`    |
 | `@strategic-planner`  | Multi-phase initiatives   | `claude-opus-4.6-1m` |
 | `@code-reviewer`      | Security-focused review   | `claude-opus-4.6`    |
-| `@tdd-executor`       | Standalone TDD cycle      | `gpt-5.3-codex`      |
+| `@tdd-executor`       | Standalone TDD cycle      | `gpt-5`              |
 | `@compliance-checker` | Regulatory validation     | `claude-opus-4.6-1m` |
 
 ## Anti-Bypass Protection (CRITICAL)

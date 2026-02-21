@@ -1,0 +1,493 @@
+{
+  "numStartups": 122,
+  "installMethod": "native",
+  "autoUpdates": false,
+  "hasSeenTasksHint": true,
+  "customApiKeyResponses": {
+    "approved": [],
+    "rejected": [
+      "UJbV_nOBqog-z8LBygAA"
+    ]
+  },
+  "tipsHistory": {
+    "new-user-warmup": 9,
+    "plan-mode-for-complex-tasks": 17,
+    "terminal-setup": 113,
+    "memory-command": 122,
+    "shift-enter-setup": 73,
+    "theme-command": 103,
+    "enter-to-steer-in-relatime": 103,
+    "todo-list": 103,
+    "ide-upsell-external-terminal": 121,
+    "install-github-app": 117,
+    "install-slack-app": 117,
+    "drag-and-drop-images": 117,
+    "paste-images-mac": 117,
+    "double-esc-code-restore": 117,
+    "continue": 117,
+    "shift-tab": 117,
+    "image-paste": 103,
+    "desktop-app": 122,
+    "web-app": 108,
+    "mobile-app": 108,
+    "guest-passes": 120,
+    "custom-agents": 111,
+    "agent-flag": 111,
+    "permissions": 121,
+    "rename-conversation": 118,
+    "custom-commands": 118,
+    "git-worktrees": 117,
+    "frontend-design-plugin": 119
+  },
+  "promptQueueUseCount": 1384,
+  "userID": "6d22b19a936509594a7195c184939eaa6376a065611155575f0f428db736bb97",
+  "lastReleaseNotesSeen": "2.1.49",
+  "projects": {
+    "/Users/roberdan/.claude": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "hasCompletedProjectOnboarding": true,
+      "lastCost": 5.8029953,
+      "lastAPIDuration": 1146616,
+      "lastAPIDurationWithoutRetries": 1146524,
+      "lastToolDuration": 1400074,
+      "lastDuration": 2023899,
+      "lastLinesAdded": 195,
+      "lastLinesRemoved": 13,
+      "lastTotalInputTokens": 168998,
+      "lastTotalOutputTokens": 66288,
+      "lastTotalCacheCreationInputTokens": 601542,
+      "lastTotalCacheReadInputTokens": 6923592,
+      "lastTotalWebSearchRequests": 0,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 150591,
+          "outputTokens": 35859,
+          "cacheReadInputTokens": 3327048,
+          "cacheCreationInputTokens": 254053,
+          "webSearchRequests": 0,
+          "costUSD": 0.9801570499999995
+        },
+        "claude-opus-4-6": {
+          "inputTokens": 18407,
+          "outputTokens": 30429,
+          "cacheReadInputTokens": 3596544,
+          "cacheCreationInputTokens": 347489,
+          "webSearchRequests": 0,
+          "costUSD": 4.82283825
+        }
+      },
+      "lastSessionId": "2ebf9798-b42e-4b4d-b3d1-f61cbb40420d",
+      "lastSessionMetrics": {
+        "frame_duration_ms_count": 20828,
+        "frame_duration_ms_min": 0.11362500000177533,
+        "frame_duration_ms_max": 120.88487499998882,
+        "frame_duration_ms_avg": 0.9495294953425654,
+        "frame_duration_ms_p50": 0.6936669999558944,
+        "frame_duration_ms_p95": 1.6287705499911675,
+        "frame_duration_ms_p99": 5.56848343001795
+      },
+      "exampleFiles": [
+        "dashboard.html",
+        "planner.md",
+        "views-kanban.js",
+        "render.js",
+        "task-executor.md"
+      ],
+      "exampleFilesGeneratedAt": 1771085385436,
+      "lastFpsAverage": 10.29,
+      "lastFpsLow1Pct": 121.58
+    },
+    "/Users/roberdan/GitHub/MirrorBuddy": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "hasCompletedProjectOnboarding": true,
+      "lastCost": 13.233900750000005,
+      "lastAPIDuration": 1164930,
+      "lastAPIDurationWithoutRetries": 1164801,
+      "lastToolDuration": 7077835,
+      "lastDuration": 45988427,
+      "lastLinesAdded": 39,
+      "lastLinesRemoved": 10,
+      "lastTotalInputTokens": 214241,
+      "lastTotalOutputTokens": 40313,
+      "lastTotalCacheCreationInputTokens": 743119,
+      "lastTotalCacheReadInputTokens": 15051132,
+      "lastTotalWebSearchRequests": 0,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 210601,
+          "outputTokens": 4897,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 14969,
+          "webSearchRequests": 0,
+          "costUSD": 0.2537972500000001
+        },
+        "claude-opus-4-6": {
+          "inputTokens": 3640,
+          "outputTokens": 35416,
+          "cacheReadInputTokens": 15051132,
+          "cacheCreationInputTokens": 728150,
+          "webSearchRequests": 0,
+          "costUSD": 12.980103499999998
+        }
+      },
+      "lastSessionId": "77b3e9b0-e232-43cc-b0e5-5117bc884a38",
+      "lastSessionMetrics": {
+        "frame_duration_ms_count": 176159,
+        "frame_duration_ms_min": 0.19008400000166148,
+        "frame_duration_ms_max": 54.134416999993846,
+        "frame_duration_ms_avg": 1.575030134679943,
+        "frame_duration_ms_p50": 1.3304580003023148,
+        "frame_duration_ms_p95": 1.7467125995550303,
+        "frame_duration_ms_p99": 21.82481431995518
+      },
+      "exampleFiles": [
+        "db.ts",
+        "proxy.ts",
+        "accessibility.spec.ts",
+        "en.json",
+        "ci.yml"
+      ],
+      "exampleFilesGeneratedAt": 1771085320096,
+      "lastFpsAverage": 3.83,
+      "lastFpsLow1Pct": 64.41,
+      "disabledMcpServers": [
+        "grafana"
+      ]
+    },
+    "/Users/roberdan/GitHub": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "lastCost": 0,
+      "lastAPIDuration": 0,
+      "lastAPIDurationWithoutRetries": 0,
+      "lastToolDuration": 0,
+      "lastDuration": 9357,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 0,
+      "lastTotalOutputTokens": 0,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastTotalWebSearchRequests": 0,
+      "lastModelUsage": {},
+      "lastSessionId": "b6367de5-12fa-41f0-85df-45f2810f2fbd",
+      "lastSessionMetrics": {
+        "frame_duration_ms_count": 60,
+        "frame_duration_ms_min": 0.16204100000004473,
+        "frame_duration_ms_max": 5.54549999999972,
+        "frame_duration_ms_avg": 1.316881150000069,
+        "frame_duration_ms_p50": 0.8504790000001776,
+        "frame_duration_ms_p95": 3.690285099999693,
+        "frame_duration_ms_p99": 4.6443983099997865
+      },
+      "lastFpsAverage": 5.01,
+      "lastFpsLow1Pct": 180.33
+    },
+    "/Users/roberdan/GitHub/VirtualBPM": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "gantt.py",
+        "resource_analyzer.py",
+        "app.py",
+        "processors.py",
+        "gantt.js"
+      ],
+      "exampleFilesGeneratedAt": 1771103560740,
+      "hasCompletedProjectOnboarding": true,
+      "lastCost": 0.5025392500000001,
+      "lastAPIDuration": 130729,
+      "lastAPIDurationWithoutRetries": 130719,
+      "lastToolDuration": 70369,
+      "lastDuration": 187109,
+      "lastLinesAdded": 12,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 3273,
+      "lastTotalOutputTokens": 2535,
+      "lastTotalCacheCreationInputTokens": 45247,
+      "lastTotalCacheReadInputTokens": 294987,
+      "lastTotalWebSearchRequests": 0,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 1372,
+          "outputTokens": 100,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.001872
+        },
+        "claude-opus-4-6": {
+          "inputTokens": 1901,
+          "outputTokens": 2435,
+          "cacheReadInputTokens": 294987,
+          "cacheCreationInputTokens": 45247,
+          "webSearchRequests": 0,
+          "costUSD": 0.50066725
+        }
+      },
+      "lastSessionId": "51a02a2d-a6e1-4d5b-9ca3-2c36fbc4f78e",
+      "lastSessionMetrics": {
+        "frame_duration_ms_count": 2433,
+        "frame_duration_ms_min": 0.2747910000034608,
+        "frame_duration_ms_max": 6.9415830000070855,
+        "frame_duration_ms_avg": 0.9508562157833714,
+        "frame_duration_ms_p50": 0.8199375000112923,
+        "frame_duration_ms_p95": 1.7900706500025985,
+        "frame_duration_ms_p99": 3.070608429997082,
+        "hook_duration_ms_count": 9,
+        "hook_duration_ms_min": 0,
+        "hook_duration_ms_max": 157,
+        "hook_duration_ms_avg": 86.66666666666667,
+        "hook_duration_ms_p50": 112,
+        "hook_duration_ms_p95": 149,
+        "hook_duration_ms_p99": 155.4,
+        "pre_tool_hook_duration_ms_count": 8,
+        "pre_tool_hook_duration_ms_min": 18,
+        "pre_tool_hook_duration_ms_max": 216,
+        "pre_tool_hook_duration_ms_avg": 86.875,
+        "pre_tool_hook_duration_ms_p50": 54,
+        "pre_tool_hook_duration_ms_p95": 192.54999999999995,
+        "pre_tool_hook_duration_ms_p99": 211.30999999999997
+      },
+      "disabledMcpServers": [
+        "task-master-ai"
+      ],
+      "lastFpsAverage": 13.03,
+      "lastFpsLow1Pct": 277.51
+    },
+    "/Users/roberdan/GitHub/MyConvergio": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "routes-plans.js",
+        "myconvergio.js",
+        "server.js",
+        "bug-list.js",
+        "dashboard.html"
+      ],
+      "exampleFilesGeneratedAt": 1771157426026,
+      "hasCompletedProjectOnboarding": true,
+      "lastCost": 0.909327,
+      "lastAPIDuration": 104309,
+      "lastAPIDurationWithoutRetries": 104290,
+      "lastToolDuration": 3817,
+      "lastDuration": 273092,
+      "lastLinesAdded": 7,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 11654,
+      "lastTotalOutputTokens": 3433,
+      "lastTotalCacheCreationInputTokens": 63778,
+      "lastTotalCacheReadInputTokens": 840359,
+      "lastTotalWebSearchRequests": 0,
+      "lastFpsAverage": 7.86,
+      "lastFpsLow1Pct": 205.63,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 11530,
+          "outputTokens": 372,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.013390000000000003
+        },
+        "claude-opus-4-6": {
+          "inputTokens": 124,
+          "outputTokens": 3061,
+          "cacheReadInputTokens": 840359,
+          "cacheCreationInputTokens": 63778,
+          "webSearchRequests": 0,
+          "costUSD": 0.895937
+        }
+      },
+      "lastSessionId": "839ec7e3-706f-4f82-b187-d98653835419",
+      "lastSessionMetrics": {
+        "frame_duration_ms_count": 2146,
+        "frame_duration_ms_min": 0.1693329999998241,
+        "frame_duration_ms_max": 11.555249999975786,
+        "frame_duration_ms_avg": 0.7381982138863963,
+        "frame_duration_ms_p50": 0.5409794999977748,
+        "frame_duration_ms_p95": 1.3076669499958347,
+        "frame_duration_ms_p99": 4.779362180020252
+      }
+    },
+    "/Users/roberdan/Library/Application Support/ClaudeBar/Probe": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "lastCost": 0,
+      "lastAPIDuration": 0,
+      "lastAPIDurationWithoutRetries": 0,
+      "lastToolDuration": 0,
+      "lastDuration": 30316,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 0,
+      "lastTotalOutputTokens": 0,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastTotalWebSearchRequests": 0,
+      "lastFpsAverage": 0.27,
+      "lastFpsLow1Pct": 7.84,
+      "lastModelUsage": {},
+      "lastSessionId": "dc6c1605-86b5-428d-86f4-6ec8a1a391d2",
+      "lastSessionMetrics": {
+        "frame_duration_ms_count": 8,
+        "frame_duration_ms_min": 0.28379199999994853,
+        "frame_duration_ms_max": 127.61187499999994,
+        "frame_duration_ms_avg": 18.184307624999818,
+        "frame_duration_ms_p50": 3.0178959999999506,
+        "frame_duration_ms_p95": 84.18119189999963,
+        "frame_duration_ms_p99": 118.92573837999986
+      }
+    }
+  },
+  "clientDataCache": {
+    "data": {},
+    "timestamp": 1771674519338
+  },
+  "mcpServers": {
+    "codegraph": {
+      "type": "stdio",
+      "command": "codegraph",
+      "args": [
+        "serve",
+        "--mcp"
+      ]
+    }
+  },
+  "firstStartTime": "2026-02-14T16:08:07.841Z",
+  "opusProMigrationComplete": true,
+  "cachedChromeExtensionInstalled": false,
+  "hasShownOpus46Notice": {
+    "01646c20-6261-4197-94d0-0214cd72a92a": true
+  },
+  "claudeCodeFirstTokenDate": "2025-04-09T11:42:09.909484Z",
+  "hasCompletedOnboarding": true,
+  "lastOnboardingVersion": "2.1.42",
+  "githubRepoPaths": {
+    "fightthestroke/mirrorbuddy": [
+      "/Users/roberdan/GitHub/MirrorBuddy"
+    ],
+    "roberdan_microsoft/virtualbpm": [
+      "/Users/roberdan/GitHub/VirtualBPM",
+      "/Users/roberdan/GitHub/VirtualBPM/config"
+    ],
+    "roberdan/myconvergio": [
+      "/Users/roberdan/GitHub/MyConvergio"
+    ]
+  },
+  "effortCalloutDismissed": true,
+  "officialMarketplaceAutoInstallAttempted": true,
+  "officialMarketplaceAutoInstalled": true,
+  "s1mAccessCache": {
+    "01646c20-6261-4197-94d0-0214cd72a92a": {
+      "hasAccess": false,
+      "hasAccessNotAsDefault": false,
+      "timestamp": 1771400014322
+    }
+  },
+  "penguinModeOrgEnabled": true,
+  "passesEligibilityCache": {
+    "01646c20-6261-4197-94d0-0214cd72a92a": {
+      "eligible": true,
+      "referral_code_details": {
+        "code": "p4bPQ0WsNw",
+        "campaign": "claude_code_guest_pass_a47c",
+        "referral_link": "https://claude.ai/referral/p4bPQ0WsNw"
+      },
+      "referrer_reward": {
+        "amount_minor_units": 1000,
+        "currency": "EUR"
+      },
+      "remaining_passes": 3,
+      "timestamp": 1771673294225
+    }
+  },
+  "groveConfigCache": {
+    "9198a425-696a-4efe-80ae-cb3920f2db84": {
+      "grove_enabled": true,
+      "timestamp": 1771618098819
+    }
+  },
+  "passesUpsellSeenCount": 4,
+  "hasVisitedPasses": false,
+  "passesLastSeenRemaining": 3,
+  "skillUsage": {
+    "prompt": {
+      "usageCount": 4,
+      "lastUsedAt": 1771539786947
+    },
+    "planner": {
+      "usageCount": 13,
+      "lastUsedAt": 1771540410330
+    },
+    "execute": {
+      "usageCount": 6,
+      "lastUsedAt": 1771512444976
+    },
+    "virtual-bpm-manager": {
+      "usageCount": 1,
+      "lastUsedAt": 1771339020338
+    }
+  },
+  "autoUpdatesProtectedForNative": true,
+  "lastPlanModeUse": 1771535514105,
+  "showSpinnerTree": false,
+  "sonnet1m45MigrationComplete": true,
+  "cachedExtraUsageDisabledReason": "org_level_disabled_until",
+  "oauthAccount": {
+    "accountUuid": "9198a425-696a-4efe-80ae-cb3920f2db84",
+    "emailAddress": "roberdan@fightthestroke.org",
+    "organizationUuid": "01646c20-6261-4197-94d0-0214cd72a92a",
+    "hasExtraUsageEnabled": true,
+    "billingType": "stripe_subscription",
+    "accountCreatedAt": "2024-10-27T15:43:38.943165Z",
+    "subscriptionCreatedAt": "2025-03-20T07:17:40.884258Z",
+    "displayName": "Roberdan"
+  }
+}

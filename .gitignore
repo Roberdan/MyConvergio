@@ -68,6 +68,7 @@ teams/
 
 # Backup files
 *.backup
+backups/
 
 # Test results and reports
 playwright-report/

@@ -5,6 +5,16 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.1.0] - 2026-02-21
+
+### Added
+
+- **Planner Rule 11 — TF-tests**: Mandatory test consolidation task in every plan's final wave, before TF-pr. Deduplicates tests, extracts shared setup, enforces portable paths (SCRIPT_DIR), categorizes by type (unit/integration/e2e), removes broken leftovers. Prevents test debt accumulation across plans.
+- **All slash commands tracked**: `/prompt`, `/planner`, `/execute`, `/research`, `/release`, `/prepare` plus planner-modules (model-strategy, parallelization-modes, knowledge-codification) and execute-modules (error-handling) — previously gitignored, now shipped with npm package
+- **.claude/commands/ in gitignore allowlist**: Commands directory now tracked alongside agents, scripts, config
+
+---
+
 ## [6.0.0] - 2026-02-21
 
 ### Added

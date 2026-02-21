@@ -1,5 +1,5 @@
 {
-  "numStartups": 122,
+  "numStartups": 124,
   "installMethod": "native",
   "autoUpdates": false,
   "hasSeenTasksHint": true,
@@ -12,12 +12,12 @@
   "tipsHistory": {
     "new-user-warmup": 9,
     "plan-mode-for-complex-tasks": 17,
-    "terminal-setup": 113,
+    "terminal-setup": 123,
     "memory-command": 122,
-    "shift-enter-setup": 73,
-    "theme-command": 103,
-    "enter-to-steer-in-relatime": 103,
-    "todo-list": 103,
+    "shift-enter-setup": 123,
+    "theme-command": 123,
+    "enter-to-steer-in-relatime": 123,
+    "todo-list": 123,
     "ide-upsell-external-terminal": 121,
     "install-github-app": 117,
     "install-slack-app": 117,
@@ -26,11 +26,11 @@
     "double-esc-code-restore": 117,
     "continue": 117,
     "shift-tab": 117,
-    "image-paste": 103,
+    "image-paste": 123,
     "desktop-app": 122,
-    "web-app": 108,
-    "mobile-app": 108,
-    "guest-passes": 120,
+    "web-app": 123,
+    "mobile-app": 123,
+    "guest-passes": 123,
     "custom-agents": 111,
     "agent-flag": 111,
     "permissions": 121,
@@ -39,7 +39,7 @@
     "git-worktrees": 117,
     "frontend-design-plugin": 119
   },
-  "promptQueueUseCount": 1384,
+  "promptQueueUseCount": 1434,
   "userID": "6d22b19a936509594a7195c184939eaa6376a065611155575f0f428db736bb97",
   "lastReleaseNotesSeen": "2.1.49",
   "projects": {
@@ -54,45 +54,28 @@
       "hasClaudeMdExternalIncludesApproved": false,
       "hasClaudeMdExternalIncludesWarningShown": false,
       "hasCompletedProjectOnboarding": true,
-      "lastCost": 5.8029953,
-      "lastAPIDuration": 1146616,
-      "lastAPIDurationWithoutRetries": 1146524,
-      "lastToolDuration": 1400074,
-      "lastDuration": 2023899,
-      "lastLinesAdded": 195,
-      "lastLinesRemoved": 13,
-      "lastTotalInputTokens": 168998,
-      "lastTotalOutputTokens": 66288,
-      "lastTotalCacheCreationInputTokens": 601542,
-      "lastTotalCacheReadInputTokens": 6923592,
+      "lastCost": 0,
+      "lastAPIDuration": 0,
+      "lastAPIDurationWithoutRetries": 0,
+      "lastToolDuration": 0,
+      "lastDuration": 3381,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 0,
+      "lastTotalOutputTokens": 0,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
       "lastTotalWebSearchRequests": 0,
-      "lastModelUsage": {
-        "claude-haiku-4-5-20251001": {
-          "inputTokens": 150591,
-          "outputTokens": 35859,
-          "cacheReadInputTokens": 3327048,
-          "cacheCreationInputTokens": 254053,
-          "webSearchRequests": 0,
-          "costUSD": 0.9801570499999995
-        },
-        "claude-opus-4-6": {
-          "inputTokens": 18407,
-          "outputTokens": 30429,
-          "cacheReadInputTokens": 3596544,
-          "cacheCreationInputTokens": 347489,
-          "webSearchRequests": 0,
-          "costUSD": 4.82283825
-        }
-      },
-      "lastSessionId": "2ebf9798-b42e-4b4d-b3d1-f61cbb40420d",
+      "lastModelUsage": {},
+      "lastSessionId": "363fb912-7570-43b3-ae40-0129a22509f1",
       "lastSessionMetrics": {
-        "frame_duration_ms_count": 20828,
-        "frame_duration_ms_min": 0.11362500000177533,
-        "frame_duration_ms_max": 120.88487499998882,
-        "frame_duration_ms_avg": 0.9495294953425654,
-        "frame_duration_ms_p50": 0.6936669999558944,
-        "frame_duration_ms_p95": 1.6287705499911675,
-        "frame_duration_ms_p99": 5.56848343001795
+        "frame_duration_ms_count": 24,
+        "frame_duration_ms_min": 0.2811250000000314,
+        "frame_duration_ms_max": 2.7676250000000664,
+        "frame_duration_ms_avg": 1.1298142083333456,
+        "frame_duration_ms_p50": 0.9251874999999927,
+        "frame_duration_ms_p95": 2.094206249999797,
+        "frame_duration_ms_p99": 2.6180387500000015
       },
       "exampleFiles": [
         "dashboard.html",
@@ -102,8 +85,8 @@
         "task-executor.md"
       ],
       "exampleFilesGeneratedAt": 1771085385436,
-      "lastFpsAverage": 10.29,
-      "lastFpsLow1Pct": 121.58
+      "lastFpsAverage": 7.72,
+      "lastFpsLow1Pct": 361.32
     },
     "/Users/roberdan/GitHub/MirrorBuddy": {
       "allowedTools": [],
@@ -388,7 +371,7 @@
   },
   "clientDataCache": {
     "data": {},
-    "timestamp": 1771674519338
+    "timestamp": 1771678000643
   },
   "mcpServers": {
     "codegraph": {
@@ -463,8 +446,8 @@
       "lastUsedAt": 1771539786947
     },
     "planner": {
-      "usageCount": 13,
-      "lastUsedAt": 1771540410330
+      "usageCount": 14,
+      "lastUsedAt": 1771674553387
     },
     "execute": {
       "usageCount": 6,

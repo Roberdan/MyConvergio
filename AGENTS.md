@@ -23,6 +23,13 @@ CSS Modules or BEM | `rem` (type), `px` (borders) | Mobile-first | Max 3 nesting
 ### General
 2-space indent | English only | Max 250 lines/file (Thor enforced) | Conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
 
+## Anti-Hallucination Rules
+
+1. **NEVER guess DB schema, file paths, or API signatures** — read the source first (`plan-db-schema.md`, `script --help`, `PRAGMA table_info`)
+2. **NEVER invent URLs, emails, or domains** — ASK user if unknown
+3. **NEVER hardcode secrets/URLs in code** — use env vars with `${VAR:-}` pattern
+4. **Guessing = hallucination = VIOLATION**
+
 ## Quality Gates - Thor Validation
 
 **Per-task** (gates 1-4, 8, 9): DB integrity, F-xx coverage, file size <250, test criteria, no debt (TODO/FIXME/@ts-ignore), git clean

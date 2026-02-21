@@ -50,8 +50,8 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 		"$SCRIPT_DIR/file-lock.sh" release-task "$TASK_ID" 2>/dev/null || true
 	fi
 
-	# --- DELEGATE: mark task done ---
-	"$SCRIPT_DIR/plan-db.sh" "$@"
+	# --- DELEGATE: mark task done (bypass guard — we ARE the safe wrapper) ---
+	PLAN_DB_SAFE_CALLER=1 "$SCRIPT_DIR/plan-db.sh" "$@"
 
 	# --- POST-DONE: auto-validate task (prevents 0% progress bug) ---
 	if [[ -n "$plan_id" ]]; then

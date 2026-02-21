@@ -51,7 +51,16 @@ create) cmd_create "${2:?project_id required}" "${3:?name required}" "${@:4}" ;;
 start) cmd_start "${2:?plan_id required}" "${3:-}" ;;
 add-wave) cmd_add_wave "${2:?plan_id required}" "${3:?wave_id required}" "${4:?name required}" "${@:5}" ;;
 add-task) cmd_add_task "${2:?wave_id required}" "${3:?task_id required}" "${4:?title required}" "${@:5}" ;;
-update-task) cmd_update_task "${2:?task_id required}" "${3:?status required}" "${@:4}" ;;
+update-task)
+	# GUARD: block direct 'done' — must use plan-db-safe.sh for auto-validation
+	if [[ "${3:-}" == "done" && "${PLAN_DB_SAFE_CALLER:-}" != "1" ]]; then
+		echo "ERROR: Use plan-db-safe.sh (not plan-db.sh) to mark tasks done." >&2
+		echo "       plan-db-safe.sh auto-validates with Thor. Direct done = skipped Thor." >&2
+		echo "       Override: PLAN_DB_SAFE_CALLER=1 plan-db.sh update-task $2 done ..." >&2
+		exit 1
+	fi
+	cmd_update_task "${2:?task_id required}" "${3:?status required}" "${@:4}"
+	;;
 update-wave) cmd_update_wave "${2:?wave_id required}" "${3:?status required}" ;;
 complete) cmd_complete "${2:?plan_id required}" "${3:-}" ;;
 get-worktree) cmd_get_worktree "${2:?plan_id required}" ;;

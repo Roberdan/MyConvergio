@@ -1,7 +1,8 @@
 #!/bin/bash
 # file-lock.sh - File-level locking for concurrent agent work
 # Backend: SQLite (dashboard.db). Commands: acquire|release|release-task|check|heartbeat|list|cleanup
-# Version: 1.1.0
+# Session commands: acquire-session|release-session (non-plan workflow)
+# Version: 2.0.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -178,79 +179,37 @@ cmd_heartbeat() {
 	echo '{"heartbeat":"updated"}'
 }
 
-cmd_list() {
-	local filter=""
-	while [[ $# -gt 0 ]]; do
-		case "$1" in
-		--plan-id)
-			filter="AND plan_id=$2"
-			shift 2
-			;;
-		--task-id)
-			filter="AND task_id='$(sql_escape "$2")'"
-			shift 2
-			;;
-		*) shift ;;
-		esac
-	done
-	db_query "
-		SELECT json_group_array(json_object(
-			'file', file_path, 'task_id', task_id, 'agent', agent_name,
-			'pid', pid, 'host', host,
-			'age_sec', (strftime('%s','now') - strftime('%s', acquired_at)),
-			'heartbeat_age', (strftime('%s','now') - strftime('%s', heartbeat_at))
-		)) FROM file_locks WHERE 1=1 $filter;
-	"
-}
-
-cmd_cleanup() {
-	local max_age="$STALE_MAX_AGE_SEC" dry_run=0
-	while [[ $# -gt 0 ]]; do
-		case "$1" in
-		--max-age)
-			max_age=$(($2 * 60))
-			shift 2
-			;;
-		--dry-run)
-			dry_run=1
-			shift
-			;;
-		*) shift ;;
-		esac
-	done
-
-	if [[ $dry_run -eq 1 ]]; then
-		db_query "
-			SELECT json_group_array(json_object('file', file_path, 'task_id', task_id,
-				'age_sec', (strftime('%s','now') - strftime('%s', acquired_at))))
-			FROM file_locks
-			WHERE (strftime('%s','now') - strftime('%s', heartbeat_at)) > $STALE_HEARTBEAT_SEC;
-		"
-	else
-		local deleted
-		deleted=$(db_query "
-			DELETE FROM file_locks
-			WHERE (strftime('%s','now') - strftime('%s', heartbeat_at)) > $max_age;
-			SELECT changes();
-		")
-		jq -n --argjson n "$deleted" '{"cleaned":$n}'
-	fi
-}
+# list and cleanup are in file-lock-utils.sh (split for 250-line limit)
 
 # Dispatch
 case "${1:-help}" in
 acquire) cmd_acquire "${2:?file required}" "${3:?task_id required}" "${@:4}" ;;
+acquire-session)
+	source "$SCRIPT_DIR/file-lock-session.sh"
+	cmd_acquire_session "${2:?file required}" "${3:?session_id required}" "${4:-session-agent}" "${5:-5}"
+	;;
 release) cmd_release "${2:?file required}" "${3:-}" ;;
 release-task) cmd_release_task "${2:?task_id required}" ;;
+release-session)
+	source "$SCRIPT_DIR/file-lock-session.sh"
+	cmd_release_session "${2:?session_id required}"
+	;;
 check) cmd_check "${2:?file required}" ;;
 heartbeat) cmd_heartbeat "${2:?file required}" "${3:-}" ;;
-list) cmd_list "${@:2}" ;;
-cleanup) cmd_cleanup "${@:2}" ;;
+list)
+	source "$SCRIPT_DIR/file-lock-utils.sh"
+	cmd_list "${@:2}"
+	;;
+cleanup)
+	source "$SCRIPT_DIR/file-lock-utils.sh"
+	cmd_cleanup "${@:2}"
+	;;
 *)
 	echo "Usage: file-lock.sh <command> [args]"
 	echo "  acquire <file> <task_id> [--agent N] [--plan-id N] [--timeout N]"
+	echo "  acquire-session <file> <session_id> [agent] [timeout_sec]"
 	echo "  release <file> [task_id]"
-	echo "  release-task <task_id>"
+	echo "  release-task <task_id>  |  release-session <session_id>"
 	echo "  check <file>  |  heartbeat <file> [task_id]"
 	echo "  list [--plan-id N] [--task-id ID]  |  cleanup [--max-age MIN]"
 	;;

@@ -138,11 +138,11 @@ function hasExistingContent() {
 }
 
 function getInstallProfile() {
-  const profile = process.env.MYCONVERGIO_PROFILE || "minimal";
+  const profile = process.env.MYCONVERGIO_PROFILE || "standard";
   const validProfiles = ["minimal", "standard", "full", "lean"];
   if (!validProfiles.includes(profile)) {
-    log(colors.yellow, `Unknown profile "${profile}", using "minimal"`);
-    return "minimal";
+    log(colors.yellow, `Unknown profile "${profile}", using "standard"`);
+    return "standard";
   }
   return profile;
 }
@@ -289,6 +289,10 @@ function main() {
       !f.includes("CommonValues"),
   ).length;
   log(colors.green, `  ✓ Installed ${agentCount} agents`);
+log(colors.blue, `\nPost-install summary:`);
+log(colors.green, `  Agents installed: ${agentCount}`);
+log(colors.green, `  Profile used: ${profile}`);
+log(colors.yellow, `  To get full profile: MYCONVERGIO_PROFILE=full npm install -g myconvergio`);
 
   // Install rules
   copyRecursive(srcRules, path.join(CLAUDE_HOME, "rules"), installedFiles);

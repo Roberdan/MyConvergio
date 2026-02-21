@@ -21,7 +21,9 @@ cmd_import() {
 	plan_name=$(sqlite3 "$DB_FILE" "SELECT name FROM plans WHERE id=$plan_id;")
 	local plan_dir="${HOME}/.claude/plans/${project_id}"
 	mkdir -p "$plan_dir"
-	cp "$spec_file" "$plan_dir/${plan_name}-spec.json"
+	if [[ "$spec_file" != "$plan_dir/${plan_name}-spec.json" ]]; then
+		cp "$spec_file" "$plan_dir/${plan_name}-spec.json"
+	fi
 
 	# Auto-set plan description from spec if not already set
 	local existing_desc
@@ -51,7 +53,13 @@ cmd_import() {
 				type: (.type // "feature"),
 				model: (.model // "sonnet"),
 				effort: (.effort // 1),
-				executor_agent: (.executor_agent // (if (.codex // false) then "codex" else "claude" end)),
+				executor_agent: (.executor_agent // (
+  if (.model // "") | test("^gpt-") then "copilot"
+  elif (.model // "") | test("^gemini") then "gemini"
+  elif (.model // "") == "manual" then "manual"
+  elif (.codex // false) then "codex"
+  else "claude" end
+)),
 				has_do: has("do"),
 				files: (.files // [] | join(", ")),
 				ref: (.ref // ""),
@@ -129,6 +137,12 @@ cmd_import() {
 		done
 	done
 
+	# Link source_file in plans table if not set
+	local current_source
+	current_source=$(sqlite3 "$DB_FILE" "SELECT source_file FROM plans WHERE id=$plan_id;")
+	if [[ -z "$current_source" || "$current_source" == "" ]]; then
+		sqlite3 "$DB_FILE" "UPDATE plans SET source_file = '$(sql_escape "$spec_file")' WHERE id=$plan_id;"
+	fi
 	log_info "Imported $wave_count waves, $total_tasks tasks"
 }
 

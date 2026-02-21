@@ -1,0 +1,192 @@
+# Convergio Orchestrator Configuration
+# Version: 1.0.0
+# Supports: macOS, Linux, Windows (paths via $CLAUDE_HOME)
+# Do NOT hardcode user-specific paths — use $CLAUDE_HOME throughout.
+
+# ---------------------------------------------------------------------------
+# PROVIDERS
+# ---------------------------------------------------------------------------
+providers:
+  claude:
+    cli_path: '$CLAUDE_HOME/scripts/claude-run.sh'
+    auth_check: 'claude --version'
+    privacy_level: public          # data sent to Anthropic cloud
+    cost_tier: premium
+    models:
+      - id: claude-opus-4-6
+        multiplier: 1.0
+        privacy_safe: false        # not safe for sensitive data (cloud)
+      - id: claude-sonnet-4-6
+        multiplier: 0.6
+        privacy_safe: false
+      - id: claude-haiku-4
+        multiplier: 0.1
+        privacy_safe: false
+
+  copilot:
+    cli_path: '$CLAUDE_HOME/scripts/copilot-run.sh'
+    auth_check: 'gh auth status'
+    privacy_level: public          # data sent to GitHub/Azure
+    cost_tier: zero                # included in GitHub Copilot subscription
+    models:
+      - id: gpt-5
+        multiplier: 1.0
+        privacy_safe: false
+      - id: gpt-4.1
+        multiplier: 0
+        privacy_safe: false
+      - id: gpt-5-mini
+        multiplier: 0
+        privacy_safe: false
+      - id: o3
+        multiplier: 1.0
+        privacy_safe: false
+      - id: claude-sonnet-4-6
+        multiplier: 1.0
+        privacy_safe: false
+
+  opencode:
+    cli_path: '$CLAUDE_HOME/scripts/opencode-run.sh'
+    auth_check: 'opencode --version'
+    privacy_level: local           # runs fully on-device via Ollama or local endpoint
+    cost_tier: free
+    models:
+      - id: qwen3-30b
+        multiplier: 0
+        privacy_safe: true         # local model — safe for sensitive data
+      - id: deepseek-coder-v2
+        multiplier: 0
+        privacy_safe: true
+      - id: codestral-latest
+        multiplier: 0
+        privacy_safe: true
+      - id: llama3.3-70b
+        multiplier: 0
+        privacy_safe: true
+
+  gemini:
+    cli_path: '$CLAUDE_HOME/scripts/gemini-run.sh'
+    auth_check: 'gemini --version'
+    privacy_level: public          # data sent to Google cloud
+    cost_tier: premium
+    models:
+      - id: gemini-2.5-pro
+        multiplier: 1.0
+        privacy_safe: false
+      - id: gemini-2.5-flash
+        multiplier: 0.3
+        privacy_safe: false
+      - id: gemini-2.0-flash
+        multiplier: 0.1
+        privacy_safe: false
+
+# ---------------------------------------------------------------------------
+# ROUTING RULES
+# ---------------------------------------------------------------------------
+routing:
+  # Priority tiers (P0 = highest, P3 = lowest)
+  by_priority:
+    P0:
+      description: 'Critical / production incident'
+      preferred_providers: [claude, gemini]
+      fallback_providers: [copilot]
+      max_cost_tier: premium
+    P1:
+      description: 'Feature work / sprint tasks'
+      preferred_providers: [copilot, claude]
+      fallback_providers: [gemini]
+      max_cost_tier: premium
+    P2:
+      description: 'Routine / backlog tasks'
+      preferred_providers: [copilot, gemini]
+      fallback_providers: [opencode]
+      max_cost_tier: zero
+    P3:
+      description: 'Bulk / background jobs'
+      preferred_providers: [opencode, copilot]
+      fallback_providers: []
+      max_cost_tier: free
+
+  # Task-type routing
+  by_type:
+    coding:
+      preferred_providers: [copilot, claude]
+      default_model: claude-sonnet-4-6
+    research:
+      preferred_providers: [gemini, claude]
+      default_model: gemini-2.5-pro
+    review:
+      preferred_providers: [claude, copilot]
+      default_model: claude-opus-4-6
+    test:
+      preferred_providers: [copilot, opencode]
+      default_model: gpt-5-mini
+    bulk:
+      preferred_providers: [opencode, copilot]
+      default_model: qwen3-30b
+    pr-ops:
+      preferred_providers: [copilot, claude]
+      default_model: gpt-5-mini
+
+  # Privacy-aware routing
+  by_privacy:
+    public:
+      allowed_providers: [claude, copilot, gemini, opencode]
+    internal:
+      allowed_providers: [copilot, opencode]
+      note: 'Avoid sending internal business data to non-enterprise clouds'
+    sensitive:
+      allowed_providers: [opencode]
+      note: 'Only local/on-prem providers for PII or confidential data'
+
+# ---------------------------------------------------------------------------
+# PROJECTS
+# ---------------------------------------------------------------------------
+projects:
+  # Add your projects here. Examples:
+  # my-sensitive-app:
+  #   privacy: sensitive
+  #   allowed_providers: [opencode]
+  #   default_model: qwen3-30b
+  #   description: 'App with PII — only local models'
+  #
+  # my-public-app:
+  #   privacy: public
+  #   allowed_providers: [claude, copilot, gemini, opencode]
+  #   default_model: claude-sonnet-4-6
+  #   description: 'Public project — all providers allowed'
+  example-project:
+    privacy: public
+    allowed_providers: [claude, copilot, gemini, opencode]
+    default_model: claude-sonnet-4-6
+    description: 'Example project — customize for your needs'
+
+# ---------------------------------------------------------------------------
+# BUDGET
+# ---------------------------------------------------------------------------
+budget:
+  max_premium_per_day: 10.00      # USD — hard cap on premium API calls per day
+  fallback_chain:
+    - claude                       # 1st choice premium
+    - copilot                      # 2nd: zero-cost (subscription)
+    - gemini                       # 3rd: metered premium
+    - opencode                     # last resort: free / local
+  alert_threshold_pct: 80         # send alert when 80% of daily budget consumed
+  enforce_budget: true            # block calls once cap is reached
+
+# ---------------------------------------------------------------------------
+# VAULT (per-project secrets / Key Vault references)
+# ---------------------------------------------------------------------------
+vault:
+  # Add per-project vault references here. Examples:
+  # my-project:
+  #   keyvault_name: 'kv-my-project-prod'
+  #   gh_repo: 'MyOrg/my-project'
+  #   env_files:
+  #     - '$CLAUDE_HOME/projects/my-project/.env.local'
+  #     - '$CLAUDE_HOME/projects/my-project/.env.secrets'
+  example-project:
+    keyvault_name: 'kv-example-prod'
+    gh_repo: 'YourOrg/your-project'
+    env_files:
+      - '$CLAUDE_HOME/projects/example/.env.local'

@@ -32,9 +32,9 @@ BLOCKLIST=(
 
 # Personal path patterns to detect (not actual secrets, but shouldn't be hardcoded)
 PERSONAL_PATTERNS=(
-	"/Users/roberdan"
-	"/home/roberdan"
-	"danieleroberti"
+	"$HOME"
+	"/home/$USER"
+	# Add your personal email or username patterns here
 )
 
 usage() {

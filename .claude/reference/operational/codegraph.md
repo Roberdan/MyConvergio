@@ -4,6 +4,8 @@
 
 CodeGraph builds semantic knowledge graph for faster code exploration.
 
+**NEVER add `codegraph` CLI hooks to settings.json.** There is NO `codegraph` binary installed. CodeGraph runs ONLY as MCP server (via mcp.json + npx). Do NOT add `codegraph mark-dirty`, `codegraph sync-if-dirty`, or any `codegraph` CLI command anywhere in hooks, scripts, or settings.
+
 ## If `.codegraph/` exists in the project
 
 **Use codegraph tools for faster exploration.** These tools provide instant lookups via the code graph instead of scanning files:
@@ -29,6 +31,4 @@ Tell the Explore agent to use codegraph tools for faster exploration.
 
 ## If `.codegraph/` does NOT exist
 
-At the start of a session, ask the user if they'd like to initialize CodeGraph:
-
-"I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
+Skip codegraph. Use Glob/Grep/Read instead. Do NOT suggest running `codegraph init` — there is no CLI binary.

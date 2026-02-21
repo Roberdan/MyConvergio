@@ -3,7 +3,7 @@
 # Usage: copilot-task-prompt.sh <db_task_id>
 # Output: prompt string to stdout (pipe to copilot -p)
 
-# Version: 1.1.0
+# Version: 2.0.0
 set -euo pipefail
 
 TASK_ID="${1:-}"
@@ -47,6 +47,20 @@ PLAN_ID=$(echo "$TASK_JSON" | jq -r '.plan_id')
 # Expand worktree path
 WT="${WT_RAW/#\~/$HOME}"
 
+# Fetch completed tasks with output_data from same plan (inter-task context)
+PRIOR_OUTPUTS=$(sqlite3 "$DB_FILE" "
+	SELECT group_concat(
+		t.task_id || ': ' || COALESCE(t.output_data, ''),
+		char(10)
+	) FROM tasks t
+	JOIN waves w ON t.wave_id_fk = w.id
+	WHERE t.plan_id = $PLAN_ID
+	  AND t.status = 'done'
+	  AND t.output_data IS NOT NULL
+	  AND t.output_data <> ''
+	ORDER BY w.position, t.task_id;
+")
+
 # Detect test framework
 FW="unknown"
 if [[ -f "$WT/package.json" ]]; then
@@ -76,7 +90,7 @@ cat <<PROMPT
 export PATH="\$HOME/.claude/scripts:\$PATH"
 cd "$WT" && pwd
 worktree-guard.sh "$WT"
-plan-db.sh update-task $TASK_ID in_progress "Started by Copilot"
+plan-db-safe.sh update-task $TASK_ID in_progress "Started by Copilot"
 \`\`\`
 
 ## Task
@@ -85,6 +99,9 @@ plan-db.sh update-task $TASK_ID in_progress "Started by Copilot"
 **Do**: $TITLE
 
 $DESC
+
+## Prior Task Outputs
+$(if [[ -n "$PRIOR_OUTPUTS" ]]; then echo "$PRIOR_OUTPUTS"; else echo "No prior task outputs available."; fi)
 
 ## Test Criteria
 $TC
@@ -96,8 +113,24 @@ $TC
 4. Refactor if needed
 
 ## Completion
+When done, include structured output_data for downstream tasks:
 \`\`\`bash
-plan-db.sh update-task $TASK_ID done "Summary of what was done" --tokens 0
+plan-db-safe.sh update-task $TASK_ID done "Summary of what was done" --tokens 0 --output-data '{"summary":"what was done","artifacts":["file1.ts"]}'
+\`\`\`
+The output_data JSON should include: summary (string), artifacts (files created/modified), and any data needed by subsequent tasks.
+
+## Structured Output Format
+All agent output must be wrapped using the agent-protocol.sh envelope:
+
+```bash
+build_task_envelope <output_data_json>
+```
+Refer to scripts/lib/agent-protocol.sh for envelope details and usage.
+
+## Worktree Safety
+Run worktree-safety audit to detect stale/abandoned worktrees before modifying shared files:
+\`\`\`bash
+"$WT/../scripts/worktree-safety.sh" audit
 \`\`\`
 
 ## Coding Standards

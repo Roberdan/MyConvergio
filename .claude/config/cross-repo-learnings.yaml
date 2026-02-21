@@ -1,0 +1,48 @@
+# cross-repo-learnings.yaml
+# Codified patterns from 400-commit analysis
+problems:
+  - name: Missing set -euo pipefail
+    description: Bash scripts missing strict mode
+    detection_script: scripts/detect-missing-strict-mode.sh
+    prevention_rule: All bash scripts must start with set -euo pipefail
+  - name: Unquoted variable expansions
+    description: Unquoted $VAR expansions in shell scripts
+    detection_script: scripts/detect-unquoted-vars.sh
+    prevention_rule: Always quote variable expansions in shell scripts
+  - name: Direct main/master branch edits
+    description: Direct commits or edits to main/master branch
+    detection_script: scripts/detect-main-branch-edits.sh
+    prevention_rule: All work must use worktree, never main/master
+  - name: Missing RED/GREEN tests
+    description: No failing test before implementation
+    detection_script: scripts/detect-missing-red-green.sh
+    prevention_rule: 'TDD workflow: write failing test first'
+  - name: Overlong files (>250 lines)
+    description: Files exceeding 250 lines
+    detection_script: scripts/detect-overlong-files.sh
+    prevention_rule: Split files if >250 lines
+  - name: TODO/FIXME/@ts-ignore in new code
+    description: Forbidden markers in new code
+    detection_script: scripts/detect-forbidden-markers.sh
+    prevention_rule: No TODO, FIXME, @ts-ignore in new code
+  - name: Uncommitted changes before closure
+    description: Task marked done with uncommitted changes
+    detection_script: scripts/detect-uncommitted-changes.sh
+    prevention_rule: All changes must be committed before marking done
+quality_gates:
+  - name: Strict Bash mode
+    trigger: pre-task
+    script: scripts/detect-missing-strict-mode.sh
+    applies_to: '*.sh'
+  - name: TDD enforcement
+    trigger: pre-task
+    script: scripts/detect-missing-red-green.sh
+    applies_to: 'tests/*.sh'
+  - name: Forbidden markers
+    trigger: pre-commit
+    script: scripts/detect-forbidden-markers.sh
+    applies_to: '**/*.{js,ts,sh}'
+  - name: Overlong file check
+    trigger: pre-commit
+    script: scripts/detect-overlong-files.sh
+    applies_to: '**/*.{js,ts,sh}'

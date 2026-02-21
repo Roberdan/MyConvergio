@@ -150,6 +150,15 @@ stale-check.sh check "{db_task_id}"
 # Only proceed to Phase 5 if stale=false.
 ```
 
+### Phase 4.9: Thor Self-Validation (MANDATORY)
+
+```bash
+# Thor gate — NEVER skip, even if spawned outside /execute
+plan-db.sh validate-task {db_task_id} {plan_id}
+```
+
+**If Thor REJECTS**: Fix the issue and re-run. Max 3 rounds. Do NOT proceed to Phase 5 without PASS.
+
 ### Phase 5: Complete
 
 ```bash

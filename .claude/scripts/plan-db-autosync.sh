@@ -107,6 +107,7 @@ _daemon() {
 	local last_heartbeat=0
 	local pending_sync=0
 	local last_change=0
+	local consecutive_failures=0
 
 	while true; do
 		local now
@@ -177,11 +178,16 @@ _run_incremental_sync() {
 	fi
 
 	log "Starting incremental sync..."
-	if "$SYNC_SCRIPT" incremental 2>/dev/null; then
+	if "$SYNC_SCRIPT" incremental 2>>"$LOG_FILE"; then
 		date '+%Y-%m-%d %H:%M:%S' >"$LAST_SYNC_FILE"
 		log "Sync completed"
+		consecutive_failures=0
 	else
-		log "Sync failed"
+		consecutive_failures=$((consecutive_failures + 1))
+		log "Sync failed (consecutive: $consecutive_failures)"
+		if ((consecutive_failures >= 10)); then
+			log "WARNING: $consecutive_failures consecutive sync failures"
+		fi
 	fi
 
 	# Config sync: check if ~/.claude repo needs push

@@ -22,10 +22,11 @@ resolve_pr() {
 		echo "$pr"
 		return
 	fi
+	# Use REST API instead of gh pr list (GraphQL has numbering issues on forks)
 	local branch
 	branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-	[[ -n "$branch" ]] && pr=$(gh pr list --head "$branch" --json number --jq '.[0].number' 2>/dev/null || echo "")
-	[[ -z "$pr" ]] && pr=$(gh pr list --state open --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
+	[[ -n "$branch" ]] && pr=$(gh api 'repos/{owner}/{repo}/pulls?state=open' --jq ".[] | select(.head.ref == \"$branch\") | .number" 2>/dev/null | head -1)
+	[[ -z "$pr" ]] && pr=$(gh api 'repos/{owner}/{repo}/pulls?state=open&per_page=1' --jq '.[0].number' 2>/dev/null || echo "")
 	[[ -z "$pr" ]] && {
 		echo "ERROR: No PR found" >&2
 		exit 1
@@ -33,11 +34,29 @@ resolve_pr() {
 	echo "$pr"
 }
 
-_OWNER="" _REPO=""
+_OWNER="" _REPO="" _SLUG=""
 get_owner_repo() {
 	[[ -n "$_OWNER" ]] && return
-	_OWNER=$(gh repo view --json owner --jq '.owner.login')
-	_REPO=$(gh repo view --json name --jq '.name')
+	# Resolve from origin remote (not upstream) to handle forks correctly
+	local remote_url
+	remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+	if [[ "$remote_url" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
+		_OWNER="${BASH_REMATCH[1]}"
+		_REPO="${BASH_REMATCH[2]}"
+	else
+		_OWNER=$(gh repo view --json owner --jq '.owner.login')
+		_REPO=$(gh repo view --json name --jq '.name')
+	fi
+	_SLUG="${_OWNER}/${_REPO}"
+}
+
+# REST API helper: resolves to fork (origin), not upstream
+# Usage: gh_api "pulls/101" --jq '.number'
+gh_api() {
+	get_owner_repo
+	local path="$1"
+	shift
+	gh api "repos/${_SLUG}/${path}" "$@"
 }
 
 # GraphQL: fetch review thread nodes (id + isResolved)
@@ -78,7 +97,7 @@ cmd_reply() {
 		exit 1
 	fi
 	local result
-	result=$(gh api "repos/{owner}/{repo}/pulls/${pr}/comments" \
+	result=$(gh_api "pulls/${pr}/comments" \
 		-F body="$msg" -F "in_reply_to=$comment_id" \
 		--jq '{id: .id, author: .user.login, created: .created_at}' 2>&1) || {
 		echo "ERROR: Reply failed: $result" >&2
@@ -126,29 +145,32 @@ cmd_resolve() {
 cmd_ready() {
 	local pr
 	pr=$(resolve_pr "${1:-}")
+	# Use REST API for base metadata (GraphQL has numbering issues on forks)
 	local meta
-	meta=$(gh pr view "$pr" \
-		--json state,reviewDecision,mergeable,mergeStateStatus,statusCheckRollup 2>/dev/null)
+	meta=$(gh_api "pulls/${pr}" \
+		--jq '{state: (.state | ascii_upcase), mergeable: (if .mergeable then "MERGEABLE" elif .mergeable == false then "CONFLICTING" else "UNKNOWN" end), mergeStateStatus: (.mergeable_state // "UNKNOWN" | ascii_upcase)}' 2>/dev/null || echo "{}")
 	local state
 	state=$(echo "$meta" | jq -r '.state')
+	# reviewDecision via reviews endpoint
 	local decision
-	decision=$(echo "$meta" | jq -r '.reviewDecision // "PENDING"')
+	decision=$(gh_api "pulls/${pr}/reviews" \
+		--jq '[.[] | .state] | if any(. == "CHANGES_REQUESTED") then "CHANGES_REQUESTED" elif any(. == "APPROVED") then "APPROVED" else "PENDING" end' 2>/dev/null || echo "PENDING")
 	local mergeable
 	mergeable=$(echo "$meta" | jq -r '.mergeable // "UNKNOWN"')
 	local merge_status
 	merge_status=$(echo "$meta" | jq -r '.mergeStateStatus // "UNKNOWN"')
 
-	# CI: CheckRun has .conclusion, StatusContext has .state
-	local ci_pass
-	ci_pass=$(echo "$meta" | jq '[.statusCheckRollup[]? | select(
-		.conclusion == "SUCCESS" or .conclusion == "SKIPPED" or .conclusion == "NEUTRAL"
-		or .state == "SUCCESS")] | length')
-	local ci_fail
-	ci_fail=$(echo "$meta" | jq '[.statusCheckRollup[]? | select(
-		.conclusion == "FAILURE" or .state == "FAILURE")] | length')
-	local ci_pending
-	ci_pending=$(echo "$meta" | jq '[.statusCheckRollup[]? | select(
-		(.status != null and .status != "COMPLETED") or (.state == "PENDING"))] | length')
+	# CI status via check-runs and statuses endpoints
+	local sha
+	sha=$(gh_api "pulls/${pr}" --jq '.head.sha' 2>/dev/null || echo "")
+	local ci_pass=0 ci_fail=0 ci_pending=0
+	if [[ -n "$sha" ]]; then
+		local check_data
+		check_data=$(gh_api "commits/${sha}/check-runs" --jq '.check_runs' 2>/dev/null || echo "[]")
+		ci_pass=$(echo "$check_data" | jq '[.[] | select(.conclusion == "success" or .conclusion == "skipped" or .conclusion == "neutral")] | length')
+		ci_fail=$(echo "$check_data" | jq '[.[] | select(.conclusion == "failure")] | length')
+		ci_pending=$(echo "$check_data" | jq '[.[] | select(.status != "completed")] | length')
+	fi
 
 	# Unresolved threads via GraphQL
 	local threads_json
@@ -215,7 +237,7 @@ cmd_ci() {
 	local pr
 	pr=$(resolve_pr "${1:-}")
 	local branch
-	branch=$(gh pr view "$pr" --json headRefName --jq '.headRefName' 2>/dev/null || echo "")
+	branch=$(gh_api "pulls/${pr}" --jq '.head.ref' 2>/dev/null || echo "")
 	[[ -z "$branch" ]] && {
 		echo "ERROR: Cannot get branch for PR #$pr"
 		exit 1

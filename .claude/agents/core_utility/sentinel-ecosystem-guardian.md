@@ -57,14 +57,14 @@ Extract: new settings fields, new frontmatter fields, new hook events, deprecate
 
 Read `~/.claude/settings.json` and check against latest schema:
 
-| Check               | How                                  |
-| ------------------- | ------------------------------------ |
-| Schema URL current  | `$schema` field matches latest       |
-| New env vars        | Compare against documented variables |
-| Hook events         | All supported events configured      |
-| New settings fields | Any new top-level fields available   |
-| Plugin updates      | Check for new official plugins       |
-| MCP config          | Verify mcp.json against latest spec  |
+| Check               | How                                                                                    |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| Schema URL current  | `$schema` field matches latest                                                         |
+| New env vars        | Compare against documented variables                                                   |
+| Hook events         | All supported events configured. NEVER add `codegraph` CLI hooks (MCP-only, no binary) |
+| New settings fields | Any new top-level fields available                                                     |
+| Plugin updates      | Check for new official plugins                                                         |
+| MCP config          | Verify mcp.json against latest spec                                                    |
 
 ### Phase 3: Agent Audit
 

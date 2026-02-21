@@ -8,6 +8,28 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/digest-cache.sh"
 
+# Resolve owner/repo from origin remote (handles forks correctly)
+_OWNER="" _REPO="" _SLUG=""
+_get_slug() {
+	[[ -n "$_SLUG" ]] && return
+	local remote_url
+	remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+	if [[ "$remote_url" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
+		_OWNER="${BASH_REMATCH[1]}"
+		_REPO="${BASH_REMATCH[2]}"
+	else
+		_OWNER=$(gh repo view --json owner --jq '.owner.login')
+		_REPO=$(gh repo view --json name --jq '.name')
+	fi
+	_SLUG="${_OWNER}/${_REPO}"
+}
+gh_api() {
+	_get_slug
+	local path="$1"
+	shift
+	gh api "repos/${_SLUG}/${path}" "$@"
+}
+
 CACHE_TTL=30
 NO_CACHE=0
 PR_NUM="${1:-}"
@@ -19,16 +41,17 @@ PR_NUM="${1:-}"
 [[ "${2:-}" == "--no-cache" ]] && NO_CACHE=1
 
 # Resolve PR number from current branch if not provided
+# Use REST API instead of gh pr list (GraphQL has numbering issues on forks)
 if [[ -z "$PR_NUM" ]]; then
 	BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 	if [[ -n "$BRANCH" ]]; then
-		PR_NUM=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+		PR_NUM=$(gh_api 'pulls?state=open' --jq ".[] | select(.head.ref == \"$BRANCH\") | .number" 2>/dev/null | head -1)
 	fi
 fi
 
 # Fallback: most recent open PR
 if [[ -z "$PR_NUM" ]]; then
-	PR_NUM=$(gh pr list --state open --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
+	PR_NUM=$(gh_api 'pulls?state=open&per_page=1' --jq '.[0].number' 2>/dev/null || echo "")
 fi
 
 if [[ -z "$PR_NUM" ]]; then
@@ -45,24 +68,27 @@ fi
 # Bot authors to filter out
 BOT_FILTER='vercel[bot]|github-actions[bot]|dependabot[bot]|codecov[bot]|netlify[bot]|renovate[bot]|sonarcloud[bot]|codefactor-io[bot]|codeclimate[bot]|mergify[bot]'
 
-# Fetch PR metadata (compact)
-PR_META=$(gh pr view "$PR_NUM" \
-	--json number,title,state,reviewDecision,additions,deletions,changedFiles \
+# Fetch PR metadata via REST API (GraphQL has numbering issues on forks)
+PR_META=$(gh_api "pulls/${PR_NUM}" \
+	--jq '{number, title, state: (.state | ascii_upcase), additions, deletions, changedFiles: .changed_files}' \
 	2>/dev/null || echo "{}")
 
 PR_STATE=$(echo "$PR_META" | jq -r '.state // "UNKNOWN"')
-PR_DECISION=$(echo "$PR_META" | jq -r '.reviewDecision // "PENDING"')
+# reviewDecision requires GraphQL; approximate from reviews endpoint
+PR_DECISION=$(gh_api "pulls/${PR_NUM}/reviews" \
+	--jq '[.[] | .state] | if any(. == "CHANGES_REQUESTED") then "CHANGES_REQUESTED" elif any(. == "APPROVED") then "APPROVED" else "PENDING" end' \
+	2>/dev/null || echo "PENDING")
 
 # Fetch review comments (inline code comments)
-REVIEW_COMMENTS=$(gh api "repos/{owner}/{repo}/pulls/${PR_NUM}/comments" \
+REVIEW_COMMENTS=$(gh_api "pulls/${PR_NUM}/comments" \
 	--paginate --jq '.' 2>/dev/null || echo "[]")
 
 # Fetch issue comments (general PR comments, not inline)
-ISSUE_COMMENTS=$(gh api "repos/{owner}/{repo}/issues/${PR_NUM}/comments" \
+ISSUE_COMMENTS=$(gh_api "issues/${PR_NUM}/comments" \
 	--paginate --jq '.' 2>/dev/null || echo "[]")
 
 # Fetch reviews (approve/request changes with body)
-REVIEWS=$(gh api "repos/{owner}/{repo}/pulls/${PR_NUM}/reviews" \
+REVIEWS=$(gh_api "pulls/${PR_NUM}/reviews" \
 	--paginate --jq '.' 2>/dev/null || echo "[]")
 
 # Process review comments: filter bots, extract compact data

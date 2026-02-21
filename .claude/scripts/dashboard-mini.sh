@@ -1,6 +1,7 @@
 #!/bin/bash
-# Version: 1.2.0
+# Version: 1.4.0
 set -euo pipefail
+. scripts/lib/dashboard-delegation.sh
 
 # Colors
 RED='\033[0;31m'
@@ -102,6 +103,15 @@ _get_remote_git() {
 	local proj="$1" field="$2"
 	[ ! -f "$REMOTE_GIT_CACHE" ] && echo "" && return
 	jq -r ".[\"$proj\"].$field // empty" "$REMOTE_GIT_CACHE" 2>/dev/null
+}
+
+# Get GitHub owner/repo from project directory
+_get_owner_repo() {
+	local dir="$1"
+	local url
+	url=$(git -C "$dir" remote get-url origin 2>/dev/null || true)
+	[ -z "$url" ] && return
+	echo "$url" | sed -E 's|.*github\.com[:/]||; s|\.git$||'
 }
 
 # Resolve remote project directory (case-insensitive)
@@ -250,7 +260,7 @@ while [[ $# -gt 0 ]]; do
 		echo "  - Overview: conteggi totali (todo/doing/done)"
 		echo "  - Piani Attivi: in esecuzione con progress e PR"
 		echo "  - In Pipeline: piani creati ma non ancora lanciati"
-		echo "  - Completamenti: ultimi 3 + ultime 24h"
+		echo "  - Completamenti: ultime 24 ore"
 		echo ""
 		echo "Comportamento default:"
 		echo "  - Auto-refresh ogni 5 minuti (300 secondi)"
@@ -346,6 +356,20 @@ truncate_desc() {
 	fi
 }
 
+# Format line count (K for thousands)
+format_lines() {
+	local lines=${1:-0}
+	if [ "$lines" -lt 1000 ]; then
+		echo "$lines"
+	elif [ "$lines" -lt 10000 ]; then
+		local whole=$((lines / 1000))
+		local frac=$(((lines % 1000) / 100))
+		echo "${whole}.${frac}K"
+	else
+		echo "$((lines / 1000))K"
+	fi
+}
+
 # Weighted progress using effort_level (1/2/3) and Thor validation gate.
 # A task counts as "done" ONLY if validated by Thor (validated_at IS NOT NULL).
 # Returns "done_weight|total_weight"
@@ -379,7 +403,7 @@ render_bar() {
 render_dashboard() {
 	# Single plan mode
 	if [ -n "$PLAN_ID" ]; then
-		plan_info=$(sqlite3 "$DB" "SELECT id, name, status, project_id, source_file, created_at, started_at, completed_at, validated_at, validated_by, worktree_path, parallel_mode FROM plans WHERE id = $PLAN_ID")
+		plan_info=$(sqlite3 "$DB" "SELECT id, name, status, project_id, source_file, created_at, started_at, completed_at, validated_at, validated_by, worktree_path, parallel_mode, COALESCE(human_summary, ''), REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), ''), markdown_path, COALESCE(lines_added, 0), COALESCE(lines_removed, 0) FROM plans WHERE id = $PLAN_ID")
 		if [ -z "$plan_info" ]; then
 			echo -e "${RED}Piano #$PLAN_ID non trovato${NC}"
 			return 1
@@ -397,6 +421,11 @@ render_dashboard() {
 		pvalidator=$(echo "$plan_info" | cut -d'|' -f10)
 		pworktree=$(echo "$plan_info" | cut -d'|' -f11)
 		pparallel=$(echo "$plan_info" | cut -d'|' -f12)
+		phuman_summary=$(echo "$plan_info" | cut -d'|' -f13)
+		pdescription=$(echo "$plan_info" | cut -d'|' -f14)
+		pmarkdown=$(echo "$plan_info" | cut -d'|' -f15)
+		plines_added=$(echo "$plan_info" | cut -d'|' -f16)
+		plines_removed=$(echo "$plan_info" | cut -d'|' -f17)
 
 		# Status icon
 		case $pstatus in
@@ -405,49 +434,127 @@ render_dashboard() {
 		*) status_display="${BLUE}TODO${NC}" ;;
 		esac
 
-		echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════╗${NC}"
-		echo -e "${BOLD}${CYAN}║${NC}  ${BOLD}${WHITE}Piano #$pid: $pname${NC}"
-		echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════╝${NC}"
-		echo ""
-
-		# Info
-		echo -e "${BOLD}${WHITE}Info${NC}"
-		echo -e "${GRAY}├─${NC} Status: $status_display"
-		echo -e "${GRAY}├─${NC} Project: ${BLUE}$pproject${NC}"
-		[ -n "$psource" ] && echo -e "${GRAY}├─${NC} Source: ${CYAN}$psource${NC}"
-		echo -e "${GRAY}├─${NC} Created: ${GRAY}$pcreated${NC}"
-		[ -n "$pstarted" ] && echo -e "${GRAY}├─${NC} Started: ${GRAY}$pstarted${NC}"
-		[ -n "$pcompleted" ] && echo -e "${GRAY}├─${NC} Completed: ${GRAY}$pcompleted${NC}"
-		if [ -n "$pvalidated" ]; then
-			echo -e "${GRAY}├─${NC} Thor: ${GREEN}✓ $pvalidator${NC} ${GRAY}($pvalidated)${NC}"
-		fi
-		[ -n "$pworktree" ] && echo -e "${GRAY}├─${NC} Worktree: ${CYAN}$pworktree${NC}"
-		[ -n "$pparallel" ] && echo -e "${GRAY}├─${NC} Mode: ${GRAY}$pparallel${NC}"
-
-		# Elapsed time
-		if [ -n "$pcompleted" ] && [ -n "$pstarted" ]; then
-			start_ts=$(date_to_epoch "$pstarted")
-			end_ts=$(date_to_epoch "$pcompleted")
-			elapsed_time=$(format_elapsed $((end_ts - start_ts)))
-			echo -e "${GRAY}├─${NC} Duration: ${CYAN}$elapsed_time${NC}"
-		elif [ -n "$pstarted" ]; then
-			start_ts=$(date_to_epoch "$pstarted")
-			elapsed_time=$(format_elapsed $(($(date +%s) - start_ts)))
-			echo -e "${GRAY}├─${NC} Running: ${YELLOW}$elapsed_time${NC}"
-		fi
-
-		# Tokens
-		total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
-		tokens_formatted=$(format_tokens $total_tokens)
-		echo -e "${GRAY}└─${NC} Tokens: ${CYAN}$tokens_formatted${NC} ${GRAY}(progetto)${NC}"
-		echo ""
-
-		# Progress: dual view (executor done vs Thor validated)
+		# Pre-compute metrics for summary header
 		local task_total task_done task_validated
 		task_total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
 		task_done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
 		task_validated=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND validated_at IS NOT NULL AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
+		local wave_total wave_done
+		wave_total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
+		wave_done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND tasks_done = tasks_total AND tasks_total > 0")
 
+		# Elapsed time
+		local elapsed_time=""
+		if [ -n "$pcompleted" ] && [ -n "$pstarted" ]; then
+			local start_ts end_ts
+			start_ts=$(date_to_epoch "$pstarted")
+			end_ts=$(date_to_epoch "$pcompleted")
+			elapsed_time=$(format_elapsed $((end_ts - start_ts)))
+		elif [ -n "$pstarted" ]; then
+			local start_ts
+			start_ts=$(date_to_epoch "$pstarted")
+			elapsed_time=$(format_elapsed $(($(date +%s) - start_ts)))
+		fi
+
+		# ─── HEADER ───
+		echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════╗${NC}"
+		echo -e "${BOLD}${CYAN}║${NC}  ${BOLD}${WHITE}Piano #$pid: $pname${NC}  $status_display"
+		echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════╝${NC}"
+		echo ""
+
+		# ─── DESCRIPTION (full, not truncated) ───
+		local desc_to_show="${phuman_summary:-$pdescription}"
+		if [ -n "$desc_to_show" ]; then
+			echo -e "${BOLD}${WHITE}Scopo${NC}"
+			# Word-wrap at ~80 chars
+			echo "$desc_to_show" | fold -s -w 80 | while IFS= read -r line; do
+				echo -e "${GRAY}│${NC}  ${WHITE}$line${NC}"
+			done
+			echo ""
+		fi
+
+		# ─── AT-A-GLANCE METRICS ───
+		echo -e "${BOLD}${WHITE}Metriche${NC}"
+		echo -e "${GRAY}├─${NC} Status: $status_display  ${GRAY}│${NC}  Project: ${BLUE}$pproject${NC}"
+
+		# Tasks + waves
+		local task_line="${BOLD}${GREEN}${task_done}${NC}/${BOLD}${WHITE}${task_total}${NC} ${GRAY}task${NC}"
+		[ "$task_validated" -lt "$task_done" ] && task_line+="  ${GRAY}(${NC}${GREEN}${task_validated}${NC} ${GRAY}Thor-validated)${NC}"
+		echo -e "${GRAY}├─${NC} $task_line  ${GRAY}│${NC}  ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC} ${GRAY}waves${NC}"
+
+		# Duration + git lines
+		local metrics_line=""
+		if [ -n "$elapsed_time" ]; then
+			if [ -n "$pcompleted" ]; then
+				metrics_line="Duration: ${BOLD}${YELLOW}${elapsed_time}${NC}"
+			else
+				metrics_line="Running: ${BOLD}${YELLOW}${elapsed_time}${NC}"
+			fi
+		fi
+		if [ "${plines_added:-0}" -gt 0 ] || [ "${plines_removed:-0}" -gt 0 ]; then
+			[ -n "$metrics_line" ] && metrics_line+="  ${GRAY}│${NC}  "
+			metrics_line+="${GREEN}+$(format_lines ${plines_added:-0})${NC} ${RED}-$(format_lines ${plines_removed:-0})${NC} ${GRAY}lines${NC}"
+		fi
+		[ -n "$metrics_line" ] && echo -e "${GRAY}├─${NC} $metrics_line"
+
+		# Tokens
+		local total_tokens tokens_formatted
+		total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
+		tokens_formatted=$(format_tokens $total_tokens)
+		echo -e "${GRAY}├─${NC} Tokens: ${CYAN}$tokens_formatted${NC} ${GRAY}(progetto)${NC}"
+
+		# Thor validation
+		if [ -n "$pvalidated" ]; then
+			echo -e "${GRAY}├─${NC} Thor: ${GREEN}✓ $pvalidator${NC} ${GRAY}($pvalidated)${NC}"
+		fi
+		echo -e "${GRAY}└─${NC} Created: ${GRAY}$pcreated${NC}$([ -n "$pstarted" ] && echo -e "  ${GRAY}│${NC}  Started: ${GRAY}$pstarted${NC}")$([ -n "$pcompleted" ] && echo -e "  ${GRAY}│${NC}  Completed: ${GRAY}$pcompleted${NC}")"
+		echo ""
+
+		# ─── FILES & ADRs ───
+		local has_refs=0
+		if [ -n "$pmarkdown" ] || [ -n "$psource" ]; then
+			has_refs=1
+		fi
+		# Scan plan markdown for ADR references
+		local adr_list=""
+		local pmarkdown_expanded="$pmarkdown"
+		[ -n "$pmarkdown_expanded" ] && pmarkdown_expanded=$(echo "$pmarkdown_expanded" | sed "s|^~|$HOME|")
+		if [ -n "$pmarkdown_expanded" ] && [ -f "$pmarkdown_expanded" ]; then
+			adr_list=$(grep -oE '(docs/adr/|ADR )([A-Za-z0-9_-]+)' "$pmarkdown_expanded" 2>/dev/null | sed 's/docs\/adr\///; s/ADR //' | sort -u | head -10 || true)
+		fi
+		[ -n "$adr_list" ] && has_refs=1
+
+		if [ "$has_refs" -eq 1 ]; then
+			echo -e "${BOLD}${WHITE}Riferimenti${NC}"
+			[ -n "$pmarkdown" ] && echo -e "${GRAY}├─${NC} Piano: ${CYAN}$pmarkdown${NC}"
+			[ -n "$psource" ] && echo -e "${GRAY}├─${NC} Source: ${CYAN}$psource${NC}"
+			[ -n "$pworktree" ] && echo -e "${GRAY}├─${NC} Worktree: ${CYAN}$pworktree${NC}"
+			[ -n "$pparallel" ] && echo -e "${GRAY}├─${NC} Mode: ${GRAY}$pparallel${NC}"
+			if [ -n "$adr_list" ]; then
+				echo -e "${GRAY}├─${NC} ${BOLD}${WHITE}ADR referenziate:${NC}"
+				echo "$adr_list" | while IFS= read -r adr; do
+					[ -z "$adr" ] && continue
+					# Try to find the ADR file in the project
+					local adr_file=""
+					if [ -n "$pproject" ]; then
+						local proj_dir
+						proj_dir=$(find ~/GitHub -maxdepth 1 -iname "$pproject" -type d 2>/dev/null | head -1)
+						if [ -n "$proj_dir" ]; then
+							adr_file=$(find "$proj_dir/docs/adr" -iname "${adr}*" -type f 2>/dev/null | head -1)
+						fi
+					fi
+					if [ -n "$adr_file" ]; then
+						echo -e "${GRAY}│  ├─${NC} ${CYAN}$adr${NC} ${GRAY}→ $adr_file${NC}"
+					else
+						echo -e "${GRAY}│  ├─${NC} ${CYAN}$adr${NC}"
+					fi
+				done
+			fi
+			echo -e "${GRAY}└─${NC}"
+			echo ""
+		fi
+
+		# ─── PROGRESS BAR ───
 		# Weighted progress (Thor-gated)
 		local wp_data wp_done wp_total task_progress
 		wp_data=$(calc_weighted_progress "plan_id = $pid")
@@ -461,9 +568,7 @@ render_dashboard() {
 		local bar
 		bar=$(render_bar "$task_progress" 30)
 
-		local wave_total wave_done wave_progress
-		wave_total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
-		wave_done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND tasks_done = tasks_total AND tasks_total > 0")
+		local wave_progress
 		if [ "$wave_total" -gt 0 ]; then
 			wave_progress=$((wave_done * 100 / wave_total))
 		else
@@ -846,8 +951,9 @@ render_dashboard() {
 		if [ -n "$pproject" ] && command -v gh &>/dev/null; then
 			project_dir="$HOME/GitHub/$pproject"
 			if [ -d "$project_dir" ]; then
-				pr_data=$(gh pr list --repo "$(git -C "$project_dir" remote get-url origin 2>/dev/null)" --state open --json number,title,url,headRefName,statusCheckRollup,comments,reviewDecision,isDraft,mergeable 2>/dev/null)
-				if [ -n "$pr_data" ] && [ "$pr_data" != "[]" ]; then
+				# REST API instead of gh pr list (GraphQL has numbering issues on forks)
+				pr_data=$(gh api 'repos/{owner}/{repo}/pulls?state=open' --jq '[.[] | {number, title, url: .html_url, headRefName: .head.ref, statusCheckRollup: null, comments: .comments, reviewDecision: null, isDraft: .draft, mergeable: .mergeable}]' 2>/dev/null || true)
+				if [ -n "$pr_data" ] && echo "$pr_data" | jq -e 'type == "array" and length > 0' &>/dev/null; then
 					# Normalize plan name for matching: lowercase, extract keywords
 					plan_normalized=$(echo "$pname" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | sed 's/plan-[0-9]*-//g')
 
@@ -976,7 +1082,7 @@ render_dashboard() {
 
 			echo -e "${GRAY}├─${NC} ${BLUE}◯${NC} ${YELLOW}[#$pid]${NC} ${project_display}${WHITE}$short_name${NC} ${GRAY}(creato: ${age_info}${GRAY})${NC}"
 			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$(truncate_desc "$pdescription")${NC}"
-			echo -e "${GRAY}│  └─${NC} ${GRAY}${wave_count} waves, ${task_count} tasks${NC}"
+			echo -e "${GRAY}│  └─${NC} ${GRAY}${wave_count} waves,${NC} ${BOLD}${WHITE}${task_count} tasks${NC}"
 		done
 
 		echo -e "${GRAY}└─${NC}"
@@ -1000,13 +1106,18 @@ render_dashboard() {
 		fi
 	fi
 
-	# Ultimi 3 piani completati
-	echo -e "${BOLD}${WHITE}✅ Recenti Completamenti${NC}"
-	if [ "$EXPAND_COMPLETED" -eq 0 ]; then
+	# Piani completati nelle ultime 24 ore
+	local completed_week_count
+	completed_week_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day')")
+	echo -e "${BOLD}${WHITE}✅ Completati ultime 24h ($completed_week_count)${NC}"
+	if [ "$completed_week_count" -eq 0 ]; then
+		echo -e "${GRAY}└─${NC} Nessun piano completato nelle ultime 24 ore"
+	fi
+	if [ "$EXPAND_COMPLETED" -eq 0 ] && [ "$completed_week_count" -gt 0 ]; then
 		echo -e "${GRAY}│  ${NC}${GRAY}Usa ${WHITE}piani -e${GRAY} per vedere dettagli task${NC}"
 	fi
 
-	sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')) FROM plans WHERE status = 'done' ORDER BY COALESCE(completed_at, updated_at, created_at) DESC LIMIT 3" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project pdescription; do
+	sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')), COALESCE(lines_added, 0), COALESCE(lines_removed, 0), COALESCE(worktree_path, '') FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project pdescription lines_added lines_removed worktree_path; do
 		[ -z "$plan_id" ] && continue
 		# Use completed_at or updated_at for display
 		display_date="${completed:-${updated:-$created}}"
@@ -1041,26 +1152,142 @@ render_dashboard() {
 			thor_status="${GRAY}⊘ No Thor${NC}"
 		fi
 
-		# Count completed tasks
-		task_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
+		# Count tasks (done/total)
+		task_done_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
+		task_total_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
 
 		# Project display for completed plans
 		done_project_display=""
 		[ -n "$done_project" ] && done_project_display="${BLUE}[$done_project]${NC} "
 
+		# Git stats display
+		local git_stats_display=""
+		if [ "${lines_added:-0}" -gt 0 ] || [ "${lines_removed:-0}" -gt 0 ]; then
+			git_stats_display=" ${GRAY}│${NC} ${GREEN}+$(format_lines ${lines_added:-0})${NC} ${RED}-$(format_lines ${lines_removed:-0})${NC}"
+		fi
+
+		# PR detection for completed plan
+		local pr_display="" pr_merged=0 pr_ci_display="" pr_num=""
+		if [ -n "$done_project" ] && command -v gh &>/dev/null; then
+			local project_dir="$HOME/GitHub/$done_project"
+			if [ -d "$project_dir" ]; then
+				local owner_repo
+				owner_repo=$(_get_owner_repo "$project_dir")
+				if [ -n "$owner_repo" ]; then
+					local pr_data
+					pr_data=$(gh api "repos/$owner_repo/pulls?state=all&per_page=20&sort=updated&direction=desc" \
+						--jq '[.[] | {number, title, url: .html_url, headRefName: .head.ref, state, merged_at, head_sha: .head.sha}]' \
+						2>/dev/null || true)
+					if [ -n "$pr_data" ] && echo "$pr_data" | jq -e 'type == "array" and length > 0' &>/dev/null; then
+						local plan_normalized
+						plan_normalized=$(echo "$name" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | sed 's/plan-[0-9]*-//g')
+						while read -r pr; do
+							[ -z "$pr" ] && continue
+							local pr_branch pr_title_lower
+							pr_branch=$(echo "$pr" | jq -r '.headRefName' | tr '[:upper:]' '[:lower:]')
+							pr_title_lower=$(echo "$pr" | jq -r '.title' | tr '[:upper:]' '[:lower:]')
+							local match=0
+							for keyword in $(echo "$plan_normalized" | tr '-' '\n' | grep -v -E '^(the|and|for|with|complete|plan)$' | head -3); do
+								[ ${#keyword} -lt 3 ] && continue
+								if [[ "$pr_branch" == *"$keyword"* ]] || [[ "$pr_title_lower" == *"$keyword"* ]]; then
+									match=1
+									break
+								fi
+							done
+							if [ "$match" -eq 1 ]; then
+								pr_num=$(echo "$pr" | jq -r '.number')
+								local pr_url_val pr_merged_at pr_state pr_head_sha
+								pr_url_val=$(echo "$pr" | jq -r '.url')
+								pr_merged_at=$(echo "$pr" | jq -r '.merged_at // empty')
+								pr_state=$(echo "$pr" | jq -r '.state')
+								pr_head_sha=$(echo "$pr" | jq -r '.head_sha')
+								# CI status from commit status
+								if [ -n "$pr_head_sha" ] && [ "$pr_head_sha" != "null" ]; then
+									local ci_state
+									ci_state=$(gh api "repos/$owner_repo/commits/$pr_head_sha/status" --jq '.state' 2>/dev/null || echo "unknown")
+									case "$ci_state" in
+									success) pr_ci_display="${GREEN}CI:✓${NC}" ;;
+									failure) pr_ci_display="${RED}CI:✗${NC}" ;;
+									pending) pr_ci_display="${YELLOW}CI:◯${NC}" ;;
+									*) pr_ci_display="${GRAY}CI:--${NC}" ;;
+									esac
+								fi
+								if [ -n "$pr_merged_at" ]; then
+									pr_merged=1
+									pr_display="${GREEN}PR #${pr_num} merged${NC}"
+								elif [ "$pr_state" = "open" ]; then
+									pr_display="${YELLOW}PR #${pr_num} open${NC}"
+								else
+									pr_display="${RED}PR #${pr_num} closed${NC}"
+								fi
+								break
+							fi
+						done < <(echo "$pr_data" | jq -c '.[]' 2>/dev/null)
+					fi
+				fi
+			fi
+		fi
+
+		# Worktree check
+		local worktree_exists=0 worktree_display=""
+		if [ -n "$worktree_path" ]; then
+			local wt_expanded
+			wt_expanded=$(echo "$worktree_path" | sed "s|^~|$HOME|")
+			if [ -d "$wt_expanded" ]; then
+				worktree_exists=1
+				worktree_display="${RED}WT: esiste${NC}"
+			else
+				worktree_display="${GREEN}WT: pulito${NC}"
+			fi
+		fi
+
+		# Plan conclusion assessment
+		local truly_done=1
+		if [ -n "$pr_num" ] && [ "$pr_merged" -eq 0 ]; then
+			truly_done=0
+		fi
+		if [ "$worktree_exists" -eq 1 ]; then
+			truly_done=0
+		fi
+		local plan_icon="${GREEN}✓${NC}"
+		[ "$truly_done" -eq 0 ] && plan_icon="${YELLOW}⚠${NC}"
+
+		# Build closure status line
+		local closure_line=""
+		if [ -n "$pr_display" ]; then
+			closure_line+="$pr_display"
+			[ -n "$pr_ci_display" ] && closure_line+=" $pr_ci_display"
+		fi
+		if [ -n "$worktree_display" ]; then
+			[ -n "$closure_line" ] && closure_line+=" ${GRAY}│${NC} "
+			closure_line+="$worktree_display"
+		fi
+
 		# Compact view: single line with count
 		if [ "$EXPAND_COMPLETED" -eq 0 ]; then
-			echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${done_project_display}${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
+			echo -e "${GRAY}├─${NC} $plan_icon ${YELLOW}[#$plan_id]${NC} ${done_project_display}${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
 			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$(truncate_desc "$pdescription")${NC}"
-			echo -e "${GRAY}│  └─${NC} ${GRAY}${task_count} task │${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
+			if [ -n "$closure_line" ]; then
+				echo -e "${GRAY}│  ├─${NC} ${BOLD}${GREEN}${task_done_count}${NC}/${BOLD}${WHITE}${task_total_count}${NC} ${GRAY}task${NC} ${GRAY}│${NC} ${BOLD}${YELLOW}${elapsed_time}${NC}${git_stats_display} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
+				echo -e "${GRAY}│  └─${NC} $closure_line"
+			else
+				echo -e "${GRAY}│  └─${NC} ${BOLD}${GREEN}${task_done_count}${NC}/${BOLD}${WHITE}${task_total_count}${NC} ${GRAY}task${NC} ${GRAY}│${NC} ${BOLD}${YELLOW}${elapsed_time}${NC}${git_stats_display} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
+			fi
 		else
 			# Expanded view: with task list
-			echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${done_project_display}${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
+			echo -e "${GRAY}├─${NC} $plan_icon ${YELLOW}[#$plan_id]${NC} ${done_project_display}${WHITE}$short_name${NC} ${GRAY}($date)${NC} $thor_status"
 			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$(truncate_desc "$pdescription")${NC}"
-			echo -e "${GRAY}│  ├─${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
+			echo -e "${GRAY}│  ├─${NC} ${BOLD}${GREEN}${task_done_count}${NC}/${BOLD}${WHITE}${task_total_count}${NC} ${GRAY}task${NC} ${GRAY}│${NC} ${BOLD}${YELLOW}${elapsed_time}${NC}${git_stats_display} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
 
-			if [ "$task_count" -gt 0 ]; then
-				echo -e "${GRAY}│  └─${NC} ${GRAY}$task_count task completati:${NC}"
+			local has_closure=0
+			[ -n "$closure_line" ] && has_closure=1
+
+			if [ "$task_done_count" -gt 0 ]; then
+				if [ "$has_closure" -eq 1 ]; then
+					echo -e "${GRAY}│  ├─${NC} ${GRAY}Task completati:${NC}"
+				else
+					echo -e "${GRAY}│  └─${NC} ${GRAY}Task completati:${NC}"
+				fi
 				# Show all completed tasks (limit to first 10 for readability)
 				sqlite3 "$DB" "SELECT task_id, REPLACE(REPLACE(title, char(10), ' '), char(13), '') FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id) ORDER BY task_id LIMIT 10" | while IFS='|' read -r tid title; do
 					short_title=$(echo "$title" | cut -c1-55)
@@ -1071,10 +1298,13 @@ render_dashboard() {
 				done
 
 				# Show count if more than 10
-				if [ "$task_count" -gt 10 ]; then
-					remaining=$((task_count - 10))
+				if [ "$task_done_count" -gt 10 ]; then
+					remaining=$((task_done_count - 10))
 					echo -e "${GRAY}│     ${NC}${GRAY}... e altri $remaining task${NC}"
 				fi
+			fi
+			if [ "$has_closure" -eq 1 ]; then
+				echo -e "${GRAY}│  └─${NC} $closure_line"
 			fi
 			echo ""
 		fi
@@ -1082,63 +1312,6 @@ render_dashboard() {
 	echo -e "${GRAY}└─${NC}"
 
 	echo ""
-
-	# Piani completati nelle ultime 24 ore
-	echo -e "${BOLD}${WHITE}🎉 Completati ultime 24h${NC}"
-	completed_24h=$(sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC")
-
-	if [ -z "$completed_24h" ]; then
-		echo -e "${GRAY}└─${NC} Nessun piano completato nelle ultime 24 ore"
-	else
-		echo "$completed_24h" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created h24_project pdescription; do
-			[ -z "$plan_id" ] && continue
-			# Use completed_at or updated_at for display
-			display_date="${completed:-${updated:-$created}}"
-			date=$(echo "$display_date" | cut -d' ' -f1)
-			time=$(echo "$display_date" | cut -d' ' -f2 | cut -d':' -f1-2)
-			short_name=$(echo "$name" | cut -c1-45)
-			if [ ${#name} -gt 45 ]; then
-				short_name="${short_name}..."
-			fi
-
-			# Elapsed time (total execution time)
-			if [ -n "$completed" ] && [ -n "$started" ]; then
-				start_ts=$(date_to_epoch "$started")
-				end_ts=$(date_to_epoch "$completed")
-				elapsed_seconds=$((end_ts - start_ts))
-			elif [ -n "$completed" ] && [ -n "$created" ]; then
-				start_ts=$(date_to_epoch "$created")
-				end_ts=$(date_to_epoch "$completed")
-				elapsed_seconds=$((end_ts - start_ts))
-			else
-				elapsed_seconds=0
-			fi
-			elapsed_time=$(format_elapsed $elapsed_seconds)
-
-			# Token usage (usa project_id perché plan_id è sempre NULL nel DB)
-			total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$h24_project'")
-			tokens_formatted=$(format_tokens $total_tokens)
-
-			# Thor validation status
-			if [ -n "$validated_at" ] && [ -n "$validated_by" ]; then
-				thor_status="${GREEN}✓ Thor${NC}"
-			else
-				thor_status="${GRAY}⊘ No Thor${NC}"
-			fi
-
-			# Count completed tasks
-			task_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
-
-			# Project display for 24h completed
-			h24_project_display=""
-			[ -n "$h24_project" ] && h24_project_display="${BLUE}[$h24_project]${NC} "
-
-			echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} ${YELLOW}[#$plan_id]${NC} ${h24_project_display}${WHITE}$short_name${NC} ${GRAY}($time)${NC} $thor_status"
-			[ -n "$pdescription" ] && echo -e "${GRAY}│  ${NC}${GRAY}$(truncate_desc "$pdescription")${NC}"
-			echo -e "${GRAY}│  └─${NC} ${GRAY}${task_count} task │${NC} Time: ${CYAN}${elapsed_time}${NC} ${GRAY}│${NC} Tokens: ${CYAN}${tokens_formatted}${NC} ${GRAY}(progetto)${NC}"
-		done
-		echo -e "${GRAY}└─${NC}"
-	fi
 
 	# Warn about active/pipeline plans missing descriptions
 	local missing_desc

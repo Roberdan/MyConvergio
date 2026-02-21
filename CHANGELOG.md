@@ -5,6 +5,74 @@ All notable changes to MyConvergio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.0] - 2026-02-21
+
+### Added
+
+- **Convergio Orchestrator v1**: Multi-provider intelligent delegation engine
+  - `delegate.sh` (v1.0.0): Central dispatcher routing tasks to Claude, Copilot CLI, OpenCode (local/Ollama), Gemini
+  - `execute-plan.sh` (v1.0.0): Unified plan executor with per-task engine routing from DB
+  - `copilot-worker.sh` (v2.0.0): Enhanced Copilot CLI worker with `--allow-all`, `--add-dir`, model selection
+  - `opencode-worker.sh` (v1.0.0): Local model worker via Ollama/OpenCode CLI
+  - `gemini-worker.sh` (v1.0.0): Google Gemini CLI worker
+  - `model-registry.sh` (v1.0.0): Refresh/list/diff/check model registry from orchestrator.yaml
+  - `env-vault.sh` (v1.0.0): Per-project secrets management with Key Vault integration
+  - `worktree-safety.sh` (v1.0.0): Pre-flight worktree isolation checks
+  - `hardening-check.sh` (v1.0.0): Personal data scanner for public repo safety
+  - `orchestrator-test.sh` (v1.0.0): Orchestrator component validation suite
+
+- **Orchestrator Libraries** (`.claude/scripts/lib/`):
+  - `delegate-utils.sh` (v1.0.0): Provider health checks, budget enforcement, routing logic
+  - `agent-protocol.sh` (v1.0.0): Inter-agent communication protocol
+  - `gh-ops-routing.sh` (v1.0.0): GitHub operations routing (PR, issues, CI)
+  - `quality-gate-templates.sh` (v1.0.0): Reusable Thor quality gate templates
+  - `plan-db-delegate.sh` (v1.0.0): Plan DB extensions for delegation tracking
+  - `dashboard-delegation.sh` (v1.0.0): Dashboard extensions for delegation metrics
+
+- **Configuration** (`.claude/config/`):
+  - `orchestrator.yaml`: 4 providers, routing rules (priority/type/privacy), budget caps, vault references
+  - `cross-repo-learnings.yaml`: Codified patterns from 400-commit analysis (7 problems, 4 quality gates)
+
+- **Hooks** (`.claude/hooks/`):
+  - `model-registry-refresh.sh`: Auto-refresh model registry when stale (>14d background, >7d info)
+
+- **Documentation**:
+  - `gemini-setup.md`: Gemini CLI setup guide
+  - README: Comprehensive Convergio Orchestrator section with Mermaid architecture diagram
+  - README: "How MyConvergio Differs from Market Solutions" competitive analysis (12 dimensions)
+
+- **25 test files** with 0 failures: Pure bash, SCRIPT_DIR portable, no bats dependency
+  - Orchestrator tests: delegate, agent-protocol, model-registry, env-vault, worktree-safety, e2e, setup
+  - Infrastructure tests: execute-plan, gh-ops, quality-gates, version-check, postinstall, install-config
+
+- **New agents**: `pr-comment-resolver.md` for automated PR thread resolution
+- **New skill**: `hardening/SKILL.md` for repo hardening audits
+- **New scripts**: `pr-threads.sh`, `cleanup-empty-dbs.sh`, `file-lock-session.sh`, `file-lock-utils.sh`, `migrate-v6-session-locks.sh`, `migrate-v7-orchestrator.sh`
+
+### Changed
+
+- **task-executor.md** (v2.2.0 → v2.3.0): Per-task engine routing support (`executor_agent` field)
+- **copilot-worker.sh** (v1.0.0 → v2.0.0): Model selection, `--add-dir` for worktree, improved error handling
+- **dashboard-mini.sh**: Delegation metrics, PR/CI/merge status, worktree check
+- **plan-db.sh**: Delegation tracking columns (`executor_agent`, `model`, `delegation_status`)
+- **plan-db-safe.sh**: Auto-validate cascade with delegation awareness
+- **orchestrate.sh**: Multi-provider dispatch integration
+- **collect-github.sh**, **pr-digest.sh**, **pr-ops.sh**: Enhanced GitHub operations
+- **diana-performance-dashboard.md**, **sentinel-ecosystem-guardian.md**: Updated for orchestrator awareness
+- **coding-standards.md**: Bicep IaC standards, async/await rules, SQL bind parameters
+- **tool-preferences.md**: Script Discovery section, CI/build command optimization table
+- **concurrency-control.md**, **execution-optimization.md**: Orchestrator integration docs
+- **install-config.json**: Added orchestrator scripts to installation manifest
+- **postinstall.js**: Copies config/, docs/, hooks/ directories
+
+### Security
+
+- **Sanitized orchestrator.yaml**: Template examples only, no real project names or keyvault references
+- **model-registry.sh**: Fixed hardcoded path (`/Users/roberdan/...` → `${CLAUDE_HOME:-$HOME/.claude}/...`)
+- **hardening-check.sh**: Automated scan for personal data, API keys, hardcoded paths in public files
+
+---
+
 ## [5.1.1] - 2026-02-15
 
 ### Added

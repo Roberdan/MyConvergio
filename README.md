@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v5.1.1** | 65 Specialized Agents | Copilot CLI Support | Sync Agent | CLI Dashboard
+**v6.0.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,39 +15,36 @@
 
 ---
 
-## What's New in v5.0.0
+## What's New in v6.0.0
 
-**Copilot CLI support, ecosystem sync agent, public repo cleanup.**
+**Convergio Orchestrator: multi-provider intelligent delegation across Claude, Copilot CLI, OpenCode (local), and Gemini.**
 
-### GitHub Copilot CLI Support
+### Convergio Orchestrator
 
-- **9 Copilot agents** shipped in `copilot-agents/` — same quality, Copilot format
-- Workflow agents: `@prompt`, `@planner`, `@execute`, `@validate`, `@tdd-executor`
-- Utility agents: `@code-reviewer`, `@compliance-checker`, `@strategic-planner`, `@ecosystem-sync`
-- Works with any project — universal, not project-specific
+- **`delegate.sh`** — Central dispatcher routing tasks to the optimal provider based on priority, privacy, cost, and task type
+- **4 provider workers**: `copilot-worker.sh`, `opencode-worker.sh`, `gemini-worker.sh`, Claude (native)
+- **`orchestrator.yaml`** config — Providers, routing rules, budget caps, vault references
+- **Privacy-aware routing** — Sensitive data never leaves local models (OpenCode/Ollama)
+- **Budget enforcement** — Daily caps, fallback chains, alert thresholds
+- **Per-task model assignment** — Planner assigns `executor_agent` + `model` per task in DB
+- **14 new orchestrator scripts** + libs for delegation, agent protocol, quality gates
 
-### Ecosystem Sync Agent
+### Supporting Infrastructure
 
-- **`ecosystem-sync`** agent (dual format: Claude Code + Copilot CLI)
-- On-demand sync from upstream config → MyConvergio with sanitization
-- Blocklist enforcement, personal path detection, dry-run mode
-- Script: `sync-to-myconvergio.sh --dry-run | --category agents|scripts|copilot|all`
+- **`model-registry.sh`** — Refresh/list/diff/check model registry from orchestrator.yaml
+- **`env-vault.sh`** — Per-project secrets management with Key Vault integration
+- **`worktree-safety.sh`** — Pre-flight checks for worktree isolation
+- **`hardening-check.sh`** — Personal data scanner for public repo safety
+- **`execute-plan.sh`** — Unified plan executor with per-task engine routing
+- **`cross-repo-learnings.yaml`** — Codified patterns from 400-commit analysis (7 problems, 4 quality gates)
+- **25 tests** — Full test suite with 0 failures (pure bash, SCRIPT_DIR portable)
 
-### Public Repo Cleanup
+### Previous Highlights
 
-- Removed 7 internal development docs from root
-- Removed 6 internal/duplicate docs from `docs/`
-- Sanitized personal path references
-- Consolidated documentation for public consumption
-
-### Previous Highlights (v4.8.0)
-
-- 5 new agents (60 → 65): sentinel, research-report-generator, task-executor-tdd, thor-validation-gates, app-release-manager-execution
-- SQL injection fix + script hardening (89 scripts)
-- 11 agents updated, 7 reference docs, 10 commands, 7 skills
-- Agent Teams support, Tasks API, memory/maxTurns (v4.7.0)
-- Strategic planner modules, worktree scripts, dashboard (v4.5.0)
-- Multi-terminal support (Kitty, tmux, Zed, Warp, iTerm2)
+- Copilot CLI support with 9 agents (v5.0.0)
+- Ecosystem sync agent with blocklist/sanitization (v5.0.0)
+- 65 specialized agents, 89+ scripts, CLI dashboard (v4.8.0)
+- Agent Teams, Tasks API, multi-terminal support (v4.7.0)
 
 ---
 
@@ -131,45 +128,69 @@ Available Copilot agents: `@code-reviewer`, `@compliance-checker`, `@execute`, `
 
 ```mermaid
 graph TB
-    subgraph USER["👤 You"]
+    subgraph USER["You"]
         REQ[Requirements]
     end
 
-    subgraph PLATFORMS["Dual Platform Support"]
-        CC["☁️ Claude Code<br/><i>Full orchestration, parallel workers</i>"]
-        COP["🤖 Copilot CLI<br/><i>Sequential TDD, same quality</i>"]
+    subgraph PIPELINE["Structured Delivery Pipeline"]
+        direction LR
+        P["Prompt<br/>Extract F-xx"]
+        PL["Plan<br/>Waves & Tasks"]
+        EX["Execute<br/>TDD Cycle"]
+        TH["Thor<br/>Quality Gate"]
     end
 
-    subgraph WORKFLOW["Structured Delivery Pipeline"]
-        direction LR
-        P["📋 Prompt<br/>Extract F-xx"]
-        PL["📐 Plan<br/>Waves & Tasks"]
-        EX["⚡ Execute<br/>TDD Cycle"]
-        TH["🛡️ Thor<br/>Quality Gate"]
+    subgraph ORCHESTRATOR["Convergio Orchestrator (delegate.sh)"]
+        direction TB
+        ROUTE{"Route by<br/>Priority / Privacy<br/>Cost / Task Type"}
+        subgraph PROVIDERS["4 Providers"]
+            direction LR
+            CL["Claude<br/><i>Premium, review/critical</i>"]
+            CO["Copilot CLI<br/><i>Subscription, coding/PR-ops</i>"]
+            OC["OpenCode<br/><i>Local/Ollama, sensitive data</i>"]
+            GE["Gemini<br/><i>Premium, research</i>"]
+        end
+        ROUTE --> CL & CO & OC & GE
     end
 
     subgraph AGENTS["65 Specialized Agents"]
         direction TB
-        L["7 Leadership<br/><i>ali, satya, dan...</i>"]
-        T["9 Technical<br/><i>baccio, rex, dario...</i>"]
-        C["11 Core<br/><i>thor, planner, marcus...</i>"]
-        B["11 Business<br/><i>amy, davide, oliver...</i>"]
-        O["27 More<br/><i>compliance, design,<br/>research, release...</i>"]
+        L["7 Leadership"]
+        T["9 Technical"]
+        C["11 Core Utility"]
+        B["11 Business"]
+        O["27 More"]
     end
 
-    subgraph INFRA["89 Scripts + Hooks + CLI Dashboard"]
-        S["Digest Scripts<br/><i>Compact JSON, cached</i>"]
-        H["Hook System<br/><i>Pre/Post tool guards</i>"]
-        D["SQLite + CLI Dashboard<br/><i>Plans, tokens, waves</i>"]
+    subgraph INFRA["Infrastructure"]
+        DB["SQLite DB<br/><i>Plans, tasks, tokens</i>"]
+        HOOKS["12 Hooks<br/><i>Pre/Post guards</i>"]
+        SCRIPTS["100+ Scripts<br/><i>Digest, DB, worktree</i>"]
+        BUDGET["Budget Engine<br/><i>Daily caps, fallback chain</i>"]
     end
 
-    REQ --> CC & COP
-    CC & COP --> P --> PL --> EX --> TH
-    TH -->|PASS| D
+    REQ --> P --> PL --> EX
+    EX --> ORCHESTRATOR
+    ORCHESTRATOR --> TH
+    TH -->|PASS| DB
     TH -->|FAIL max 3x| EX
-    WORKFLOW --> AGENTS
+    ORCHESTRATOR --> AGENTS
     AGENTS --> INFRA
+    BUDGET -.->|enforces| ROUTE
 ```
+
+### Core Concept: Multi-Provider Intelligent Delegation
+
+Unlike single-vendor frameworks, MyConvergio's **Convergio Orchestrator** routes each task to the optimal provider:
+
+| Routing Dimension | How It Works                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------- |
+| **Priority**      | P0 critical → Claude/Gemini; P2 backlog → Copilot; P3 bulk → OpenCode (local)         |
+| **Task Type**     | Coding → Copilot/Claude; Research → Gemini; Review → Claude Opus; Tests → Copilot     |
+| **Privacy**       | Public → any provider; Internal → Copilot/OpenCode; Sensitive → OpenCode only (local) |
+| **Budget**        | Daily cap enforced; automatic fallback chain: Claude → Copilot → Gemini → OpenCode    |
+
+The planner assigns `executor_agent` + `model` per task in the DB. The executor reads this and routes accordingly — no runtime decision needed.
 
 ---
 
@@ -214,6 +235,68 @@ dashboard-mini.sh --help       # All options
 ```
 
 **Requirements**: `bash` + `sqlite3` (preinstalled on macOS/Linux). On Windows, use WSL2.
+
+---
+
+## Convergio Orchestrator
+
+The Convergio Orchestrator is the core innovation of v6.0.0. It enables **intelligent multi-provider task delegation** — each task in your execution plan is routed to the best AI provider based on four dimensions.
+
+### How Delegation Works
+
+1. **Planner assigns per-task routing**: When `/planner` creates the execution plan, each task gets `executor_agent` (which provider) and `model` (which model) stored in SQLite
+2. **Executor reads routing from DB**: `/execute` reads the task's routing and dispatches accordingly
+3. **delegate.sh orchestrates**: Health-checks the provider, enforces budget, dispatches to the appropriate worker script
+4. **Workers execute independently**: Each worker (`copilot-worker.sh`, `opencode-worker.sh`, `gemini-worker.sh`, or Claude native) runs the task with provider-specific CLI flags
+5. **Thor validates independently**: Quality gates run after every task regardless of provider
+
+### Routing Dimensions
+
+| Dimension            | Rules                                                                                                    | Example                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **Priority (P0-P3)** | P0 critical → Claude/Gemini; P1 sprint → Copilot/Claude; P2 backlog → Copilot/Gemini; P3 bulk → OpenCode | Production bug fix → Claude Opus   |
+| **Task Type**        | Coding → Copilot; Research → Gemini; Code review → Claude; Tests → Copilot; Bulk → OpenCode              | API research → Gemini 2.5 Pro      |
+| **Privacy**          | Public → all providers; Internal → Copilot/OpenCode; Sensitive (PII) → OpenCode only                     | Healthcare data → local Ollama     |
+| **Budget**           | $10/day cap; fallback chain: Claude → Copilot → Gemini → OpenCode; alert at 80%                          | Cap hit → auto-fallback to Copilot |
+
+### Configuration (`orchestrator.yaml`)
+
+```yaml
+providers:
+  claude: # Premium, cloud (Anthropic)
+  copilot: # Included in GitHub Copilot subscription
+  opencode: # Free, local (Ollama)
+  gemini: # Premium, cloud (Google)
+
+routing:
+  by_priority: { P0: [claude, gemini], P1: [copilot, claude], ... }
+  by_type: { coding: copilot, research: gemini, review: claude, ... }
+  by_privacy: { sensitive: [opencode], internal: [copilot, opencode], ... }
+
+budget:
+  max_premium_per_day: 10.00
+  fallback_chain: [claude, copilot, gemini, opencode]
+  enforce_budget: true
+```
+
+### Provider Workers
+
+| Worker               | CLI                      | Use Case                   | Cost                             |
+| -------------------- | ------------------------ | -------------------------- | -------------------------------- |
+| `copilot-worker.sh`  | `gh copilot-chat`        | Coding, tests, PR-ops      | Included in Copilot subscription |
+| `opencode-worker.sh` | `opencode` / Ollama      | Sensitive data, bulk tasks | Free (local)                     |
+| `gemini-worker.sh`   | `gemini` CLI             | Research, analysis         | Metered                          |
+| Claude (native)      | `task-executor` subagent | Reviews, critical tasks    | Premium                          |
+
+### Quality Gates (Same for All Providers)
+
+Every task, regardless of which provider executed it, goes through the same Thor validation:
+
+- **Per-task**: Gates 1-4 (compliance, quality, standards, repo) + 8 (TDD) + 9 (constitution)
+- **Per-wave**: All 9 gates + full build verification
+- **Max 3 rejection rounds** before escalation to user
+
+This ensures consistent quality whether code was written by Claude, Copilot, Gemini, or a local model.
 
 ---
 
@@ -368,19 +451,20 @@ MyConvergio/
 ├── .claude/
 │   ├── CLAUDE.md             # Main config
 │   ├── agents/               # 65 agents (8 categories)
+│   ├── config/               # orchestrator.yaml, cross-repo-learnings.yaml
+│   ├── docs/                 # gemini-setup.md, ADRs
+│   ├── hooks/                # model-registry-refresh.sh
 │   ├── rules/                # Execution rules
-│   ├── scripts/              # 89 digest + utility scripts
+│   ├── scripts/              # 100+ scripts (digest, orchestrator, DB, worktree)
+│   │   └── lib/              # Shared libs (delegate-utils, agent-protocol, etc.)
 │   ├── reference/            # 11 on-demand operational docs
-│   ├── skills/               # 10 reusable workflows
+│   ├── skills/               # 10 reusable workflows + hardening
 │   └── templates/            # State tracking templates
 ├── copilot-agents/           # 9 Copilot CLI agents
 ├── hooks/                    # 12 enforcement hooks + lib/
-│   ├── prefer-ci-summary.sh
-│   ├── enforce-line-limit.sh
-│   ├── worktree-guard.sh
-│   └── lib/common.sh
 ├── commands/                 # 3 slash commands
 ├── scripts/                  # Install/backup/test scripts
+├── tests/                    # 25 test files (0 failures)
 └── bin/myconvergio.js        # CLI entry point
 ```
 
@@ -525,49 +609,108 @@ flowchart LR
     SEC --> DB[(SQLite<br/>dashboard.db)]
 ```
 
-### Script Categories
+### Convergio Orchestrator Architecture
 
 ```mermaid
-mindmap
-  root((89 Scripts))
-    Digest Scripts
-      git-digest.sh
-      build-digest.sh
-      test-digest.sh
-      ci-digest.sh
-      npm-digest.sh
-      error-digest.sh
-      diff-digest.sh
-      +7 more
-    Plan DB
-      plan-db.sh (core)
-      lib/plan-db-core.sh
-      lib/plan-db-crud.sh
-      lib/plan-db-display.sh
-      lib/plan-db-validate.sh
-      lib/plan-db-cluster.sh
-      lib/plan-db-conflicts.sh
-      lib/plan-db-drift.sh
-      lib/plan-db-import.sh
-      lib/plan-db-remote.sh
-    Orchestration
-      orchestrate.sh
-      claude-parallel.sh
-      claude-monitor.sh
-      tmux-parallel.sh
-      tmux-monitor.sh
-    Worktree
-      worktree-create.sh
-      worktree-check.sh
-      worktree-guard.sh
-      worktree-cleanup.sh
-      worktree-merge-check.sh
-    Utilities
-      context-audit.sh
-      cleanup-cache.sh
-      memory-save.sh
-      file-lock.sh
-      stale-check.sh
+flowchart TB
+    subgraph PLANNER["Planner (plan-db.sh)"]
+        ASSIGN["Per-task assignment:<br/>executor_agent + model"]
+    end
+
+    subgraph EXECUTOR["execute-plan.sh"]
+        READ_DB["Read task from DB"]
+        ROUTE{"Route by<br/>executor_agent"}
+    end
+
+    subgraph DELEGATE["delegate.sh"]
+        HEALTH["Health check provider"]
+        BUDGET["Budget check<br/>(daily cap)"]
+        DISPATCH["Dispatch to worker"]
+    end
+
+    subgraph WORKERS["Provider Workers"]
+        CW["copilot-worker.sh<br/>gh copilot-chat -p"]
+        OW["opencode-worker.sh<br/>ollama / opencode CLI"]
+        GW["gemini-worker.sh<br/>gemini CLI"]
+        CLAUDE_NATIVE["Claude native<br/>task-executor subagent"]
+    end
+
+    subgraph CONFIG["orchestrator.yaml"]
+        PROVIDERS["4 providers<br/>models + multipliers"]
+        ROUTING["Routing rules<br/>priority / type / privacy"]
+        BUDGETS["Budget: $10/day cap<br/>fallback chain"]
+        VAULT["Vault: per-project<br/>secrets / Key Vault"]
+    end
+
+    subgraph VALIDATION["Thor Quality Gate"]
+        THOR_T["Per-task: Gates 1-4, 8-9"]
+        THOR_W["Per-wave: All 9 gates + build"]
+    end
+
+    PLANNER --> EXECUTOR
+    READ_DB --> ROUTE
+    ROUTE -->|copilot| DELEGATE
+    ROUTE -->|claude| CLAUDE_NATIVE
+    DELEGATE --> HEALTH --> BUDGET --> DISPATCH
+    DISPATCH --> CW & OW & GW
+    CONFIG -.->|configures| DELEGATE
+    CW & OW & GW & CLAUDE_NATIVE --> VALIDATION
+    THOR_T -->|PASS| THOR_W
+    THOR_W -->|PASS| PLANNER
+```
+
+### Script Architecture (100+ Scripts)
+
+```mermaid
+flowchart LR
+    subgraph ORCH["Orchestrator (14)"]
+        D[delegate.sh]
+        EP[execute-plan.sh]
+        CW2[copilot-worker.sh]
+        OW2[opencode-worker.sh]
+        GW2[gemini-worker.sh]
+        MR[model-registry.sh]
+        EV[env-vault.sh]
+        WS[worktree-safety.sh]
+        HC[hardening-check.sh]
+    end
+
+    subgraph LIBS["Shared Libraries (11)"]
+        DU[delegate-utils.sh]
+        AP[agent-protocol.sh]
+        GH[gh-ops-routing.sh]
+        QG[quality-gate-templates.sh]
+        PDD[plan-db-delegate.sh]
+        DD[dashboard-delegation.sh]
+        PDC[plan-db-core.sh]
+        PDCR[plan-db-crud.sh]
+        PDV[plan-db-validate.sh]
+    end
+
+    subgraph DIGEST["Digest Scripts (14)"]
+        GD[git-digest]
+        BD[build-digest]
+        TD[test-digest]
+        CD[ci-digest]
+        MORE["+ 10 more"]
+    end
+
+    subgraph PLANDB["Plan DB"]
+        PDB[plan-db.sh]
+        PDBS[plan-db-safe.sh]
+    end
+
+    subgraph INFRA["Infrastructure"]
+        DASH[dashboard-mini.sh]
+        FL[file-lock.sh]
+        PR[pr-ops.sh]
+        WT[worktree-create.sh]
+    end
+
+    D --> DU & AP
+    EP --> D & PDB
+    PDB --> PDC & PDCR & PDV
+    DASH --> PDB
 ```
 
 ### Model Tiering
@@ -721,6 +864,64 @@ _Read the full [Agentic Manifesto](./AgenticManifesto.md)_
 
 ---
 
+## How MyConvergio Differs from Market Solutions
+
+The agentic AI space is crowded with frameworks (Microsoft Agent Framework, AutoGen, CrewAI, LangGraph, OpenAI Agents SDK). MyConvergio takes a fundamentally different approach.
+
+### Comparison Matrix
+
+| Dimension             | Microsoft Agent Framework / AutoGen    | CrewAI / LangGraph         | MyConvergio                                                        |
+| --------------------- | -------------------------------------- | -------------------------- | ------------------------------------------------------------------ |
+| **Runtime**           | Python/.NET SDK, cloud deployment      | Python SDK, server process | CLI-native (bash + sqlite3), zero server                           |
+| **LLM Lock-in**       | Azure OpenAI / single provider         | Single provider per agent  | Multi-provider routing: Claude, Copilot, OpenCode (local), Gemini  |
+| **Cost Model**        | Pay-per-token, no budget controls      | Pay-per-token              | Budget caps, multi-tier fallback chain, per-task cost tracking     |
+| **Privacy**           | Cloud-only (data leaves your machine)  | Cloud-only                 | Privacy-aware: sensitive data routes to local models only          |
+| **Quality Assurance** | Agents self-report success             | Agents self-report success | Independent Thor validation (9 gates, reads files directly)        |
+| **State Management**  | Redis/Pinecone/cloud DB                | In-memory or cloud DB      | SQLite file, portable, inspectable, no dependencies                |
+| **Git Safety**        | No git awareness                       | No git awareness           | Worktree isolation per plan, branch protection hooks               |
+| **Execution**         | API calls via SDK                      | API calls via SDK          | Real CLI tools (claude, copilot, opencode, gemini)                 |
+| **Agent Count**       | Generic agent templates                | Role-based templates       | 65 domain-specialized agents with personas                         |
+| **Workflow**          | Freeform or graph-based                | Role-based or graph-based  | Structured pipeline: Prompt > Plan > Execute (TDD) > Thor > Verify |
+| **Setup**             | pip install + cloud config             | pip install + API keys     | `git clone` or `npm install -g`, works immediately                 |
+| **Target User**       | Platform engineers building agent apps | Python developers          | Software engineers using AI coding assistants daily                |
+
+### Key Architectural Differences
+
+**1. Multi-Provider Intelligence (vs Single-Vendor Lock-in)**
+
+MyConvergio routes tasks to the best provider based on priority, privacy, cost, and task type. A P0 critical bug goes to Claude Opus; a bulk refactoring goes to Copilot; sensitive data stays on local OpenCode models. No other framework offers this routing intelligence.
+
+**2. Independent Quality Validation (vs Self-Reporting)**
+
+In every other framework, agents report their own success. MyConvergio's Thor agent validates independently: reads files, runs tests, checks 9 quality gates. An agent claiming "tests pass" means nothing until Thor confirms it. This is the single biggest reliability differentiator.
+
+**3. CLI-Native, Zero Infrastructure**
+
+No Python runtime, no Docker, no cloud accounts, no servers. Just `bash` + `sqlite3` (preinstalled on macOS/Linux). The entire orchestration layer runs in your terminal alongside your existing coding workflow. Market frameworks require deploying infrastructure before writing a single line of code.
+
+**4. Cost Awareness as First-Class Citizen**
+
+Daily budget caps, automatic fallback chains (Claude > Copilot > Gemini > OpenCode), per-task token tracking, cost-per-wave reporting. Other frameworks treat cost as an afterthought; MyConvergio treats it as an architectural constraint.
+
+**5. Git Worktree Isolation**
+
+Every execution plan runs in an isolated git worktree. No risk of corrupting your main branch. Concurrent plans work on separate branches simultaneously. No other agentic framework provides git-level execution isolation.
+
+### When to Use What
+
+| Scenario                                                 | Best Choice                          |
+| -------------------------------------------------------- | ------------------------------------ |
+| Building a multi-agent SaaS product                      | Microsoft Agent Framework, LangGraph |
+| Research prototype with agent dialogue                   | AutoGen, CrewAI                      |
+| Content generation with role-based teams                 | CrewAI                               |
+| **Daily software engineering with AI coding assistants** | **MyConvergio**                      |
+| **Multi-provider cost optimization**                     | **MyConvergio**                      |
+| **Privacy-sensitive codebases**                          | **MyConvergio**                      |
+
+MyConvergio is not competing with agent frameworks. It is a **practitioner's toolkit** for engineers who use AI coding assistants every day and need structure, quality gates, cost control, and multi-provider flexibility.
+
+---
+
 ## Migration from npm Package
 
 If upgrading from v2.x (npm package):
@@ -764,6 +965,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v5.0.0** | February 2026 | Claude Code Plugin + Copilot CLI
+**v6.0.0** | February 2026 | Multi-Provider Orchestrator + Claude Code + Copilot CLI
 
 </div>

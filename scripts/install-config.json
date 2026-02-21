@@ -17,7 +17,9 @@
         "technical_development",
         "core_utility",
         "release_management",
-        "leadership_strategy"
+        "leadership_strategy",
+        "lib",
+        "hooks"
       ],
       "agents": [
         "baccio-tech-architect",
@@ -39,7 +41,13 @@
         "marcello-pm",
         "oliver-pm",
         "steve-executive-communication-strategist",
-        "socrates-first-principles-reasoning"
+        "socrates-first-principles-reasoning",
+        "delegate.sh",
+        "env-vault.sh",
+        "model-registry.sh",
+        "worktree-safety.sh",
+        "orchestrator-test.sh",
+        "orchestrator-setup.sh"
       ]
     },
     "full": {

@@ -30,12 +30,12 @@ curl -s -X POST http://127.0.0.1:31415/api/tokens \
 
 ## Model Escalation Strategy
 
-| Agent Type                 | Default          | Escalation Rule                          |
-| -------------------------- | ---------------- | ---------------------------------------- |
-| Task Executor              | gpt-5.3-codex    | → opus if cross-cutting or architectural |
-| Coordinator (Standard)     | sonnet           | → opus if >3 concurrent tasks            |
-| Coordinator (Max Parallel) | **opus**         | Required for unlimited parallelization   |
-| Validator (Thor)           | opus             | No escalation                            |
+| Agent Type                 | Default       | Escalation Rule                          |
+| -------------------------- | ------------- | ---------------------------------------- |
+| Task Executor              | gpt-5.3-codex | → opus if cross-cutting or architectural |
+| Coordinator (Standard)     | sonnet        | → opus if >3 concurrent tasks            |
+| Coordinator (Max Parallel) | **opus**      | Required for unlimited parallelization   |
+| Validator (Thor)           | opus          | No escalation                            |
 
 ## Parallelization Modes (User Choice)
 
@@ -53,3 +53,30 @@ curl -s -X POST http://127.0.0.1:31415/api/tokens \
 - Use case: Urgent deadlines, large plans (10+ tasks)
 
 **Selection**: Planner asks user after plan approval, before execution starts.
+
+## Coordinator Post-Task Protocol (MANDATORY)
+
+After each task-executor completes, the coordinator MUST:
+
+1. **Verify DB update**: `sqlite3 ~/.claude/data/dashboard.db "SELECT status FROM tasks WHERE id={db_task_id};"` — if not `done`, run `plan-db.sh update-task {db_task_id} done "notes"`
+2. **Thor per-task**: `plan-db.sh validate-task {db_task_id} {plan_id}`
+3. **If Thor FAILS**: fix issue, re-validate (max 3 rounds)
+
+After ALL tasks in a wave are Thor-validated:
+
+4. **Thor per-wave**: `plan-db.sh validate-wave {wave_db_id}`
+5. **Commit per-wave**: In the plan worktree, `git add -A && git commit -m "feat(plan-{plan_id}): W{wave} — {wave_name}"`
+6. **Proceed to next wave**: Only after commit succeeds
+
+**Why**: Task executors (especially non-task-executor agents) may not update plan-db or run Thor. The coordinator is the single source of truth for plan progress. Commit per-wave (not per-task) because Thor wave validation is the quality gate.
+
+## Agent Type for Task Execution
+
+**ALWAYS use `task-executor` subagent_type** when launching task agents. It has:
+
+- plan-db.sh integration (auto-updates status)
+- TDD workflow (RED → GREEN → REFACTOR)
+- Worktree guard (prevents work on main)
+- File locking (prevents conflicts)
+
+**NEVER use `general-purpose`** for plan task execution. It lacks plan-db awareness and will not update task status.

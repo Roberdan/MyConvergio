@@ -5,14 +5,16 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LIB_DIR="$SCRIPT_DIR/scripts/lib"
 
 # Use the main dashboard DB for testing (safer than creating test DB)
 export DB_FILE="${HOME}/.claude/data/dashboard.db"
-export PLAN_DB_HOST="test-host-$(date +%s)"
-
-source "$SCRIPT_DIR/lib/plan-db-core.sh"
-source "$SCRIPT_DIR/lib/plan-db-crud.sh"
-source "$SCRIPT_DIR/lib/plan-db-cluster.sh"
+TEST_HOST="test-host-$(date +%s)"
+source "$LIB_DIR/plan-db-core.sh"
+source "$LIB_DIR/plan-db-crud.sh"
+source "$LIB_DIR/plan-db-cluster.sh"
+# Re-export after core.sh clobbers PLAN_DB_HOST
+export PLAN_DB_HOST="$TEST_HOST"
 
 # Clean up any previous test plans
 sqlite3 "$DB_FILE" "DELETE FROM plans WHERE project_id = 'test-project-claim' AND name LIKE 'Test Plan Claim%';" 2>/dev/null || true

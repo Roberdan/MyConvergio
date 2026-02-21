@@ -2,6 +2,8 @@
 # Unit test for worktree check in cmd_complete
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 echo "Unit Test: Worktree Check Logic"
 echo "================================"
 echo ""
@@ -12,44 +14,26 @@ WORKTREE_OUTPUT=$(worktree-merge-check.sh 2>&1)
 echo "$WORKTREE_OUTPUT"
 echo ""
 
-# Parse the status for plan/130
-echo "2. Parsing status for plan/130-distributedexecution:"
-STATUS=$(echo "$WORKTREE_OUTPUT" | grep "plan/130" | awk -F'|' '{print $3}' | xargs || echo "NOT_FOUND")
-echo "  Status: $STATUS"
-echo ""
-
-# Check if status contains blocking keywords
-echo "3. Checking for blocking conditions:"
-if [[ "$STATUS" =~ DIRTY|BEHIND|CONFLICT ]]; then
-	echo "  ✓ Status contains blocking condition: $STATUS"
-	echo "  → cmd_complete should BLOCK completion"
+# Verify the grep pattern works in plan-db-crud.sh
+echo "2. Testing grep pattern in code:"
+if grep -q 'worktree not ready for merge' "$SCRIPT_DIR/scripts/lib/plan-db-crud.sh"; then
+	echo "  PASS: Found worktree check code in cmd_complete"
 else
-	echo "  Status does not contain blocking condition: $STATUS"
-	echo "  → cmd_complete should ALLOW completion"
-fi
-echo ""
-
-# Verify the grep pattern works
-echo "4. Testing grep pattern in code:"
-cd /Users/roberdan/.claude-plan-130
-if grep -q 'worktree not ready for merge' scripts/lib/plan-db-crud.sh; then
-	echo "  ✓ Found worktree check code in cmd_complete"
-else
-	echo "  ✗ Worktree check code not found"
+	echo "  FAIL: Worktree check code not found"
 	exit 1
 fi
 
-if grep -q 'DIRTY|BEHIND|CONFLICT' scripts/lib/plan-db-crud.sh; then
-	echo "  ✓ Found status pattern check"
+if grep -q 'DIRTY|BEHIND|CONFLICT' "$SCRIPT_DIR/scripts/lib/plan-db-crud.sh"; then
+	echo "  PASS: Found status pattern check"
 else
-	echo "  ✗ Status pattern check not found"
+	echo "  FAIL: Status pattern check not found"
 	exit 1
 fi
 
-if grep -q '\-\-force' scripts/lib/plan-db-crud.sh; then
-	echo "  ✓ Found --force flag support"
+if grep -q '\-\-force' "$SCRIPT_DIR/scripts/lib/plan-db-crud.sh"; then
+	echo "  PASS: Found --force flag support"
 else
-	echo "  ✗ Force flag support not found"
+	echo "  FAIL: Force flag support not found"
 	exit 1
 fi
 

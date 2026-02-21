@@ -26,6 +26,7 @@
 
 @AGENTS.md
 @reference/operational/plan-scripts.md
+@reference/operational/plan-db-schema.md
 @reference/operational/digest-scripts.md
 @reference/operational/worktree-discipline.md
 @reference/operational/concurrency-control.md

@@ -77,7 +77,7 @@ plan-db.sh validate-wave {wave_db_id}   # Wave validation
 
 **Location**: `$HOME/.claude/data/dashboard.db` (SQLite, WAL mode)
 
-**Access**: ALWAYS use `plan-db.sh` CLI, NEVER direct SQL
+**Access**: Use `plan-db.sh` CLI for ALL database operations. NEVER use raw sqlite3 unless you have read `reference/operational/plan-db-schema.md` first.
 
 **Why CLI-only**: Complex FK relationships (`wave_id_fk` numeric FK, not `wave_id` string). Direct SQL = schema violations.
 

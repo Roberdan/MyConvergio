@@ -59,6 +59,10 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 | `@tdd-executor`       | Standalone TDD cycle      | `gpt-5.3-codex`      |
 | `@compliance-checker` | Regulatory validation     | `claude-opus-4.6-1m` |
 
+## Anti-Bypass Protection (CRITICAL)
+
+**NEVER execute plan tasks by editing files directly.** EVERY task MUST go through `copilot-worker.sh` or equivalent agent execution. Direct file editing during active plan = VIOLATION.
+
 ## Digest Scripts (NON-NEGOTIABLE)
 
 **NEVER run verbose commands directly.** Use digest scripts — compact JSON, cached.

@@ -1,111 +1,74 @@
-# Testing Standards
+# Testing Standards v2.0.0
 
-> This rule is enforced by the MyConvergio agent ecosystem.
+> Enforced by MyConvergio agent ecosystem. Compact format per ADR 0009.
 
-## Overview
-Comprehensive testing is mandatory in the MyConvergio ecosystem. All code must include appropriate unit, integration, and end-to-end tests to ensure reliability, prevent regressions, and facilitate confident refactoring.
+## Test Types & Coverage
 
-## Requirements
+| Type        | Purpose                    | Coverage Target | Speed        | Dependencies     |
+|-------------|----------------------------|-----------------|--------------|------------------|
+| Unit        | Business logic in isolation| 80% minimum     | <1ms/test    | Mock all I/O     |
+| Integration | API endpoints, DB, services| All endpoints   | <1s/test     | Test DB, mocks   |
+| E2E         | User flows                 | Critical paths  | <10s/test    | Real services    |
 
-### Test Coverage
-- Minimum 80% code coverage for all business logic
-- 100% coverage for critical paths (authentication, payment, data integrity)
-- Track coverage metrics in CI/CD pipeline
-- Coverage should include branches, not just lines
+**Critical paths**: 100% coverage (auth, payment, data integrity)
 
-### Unit Testing
-- Required for all business logic functions
-- Test pure functions in isolation
-- Mock external dependencies (databases, APIs, file system)
-- Each test should verify one specific behavior
-- Fast execution (< 1ms per test ideal)
-- No network calls or file I/O in unit tests
+## Test Naming Convention
 
-### Integration Testing
-- Required for all API endpoints
-- Test database interactions with test database
-- Verify external service integrations
-- Test authentication and authorization flows
-- Use fixtures and factories for test data
-- Clean up test data after each test
+```typescript
+describe('ComponentName', () => {
+  describe('methodName', () => {
+    it('should do X when Y', () => {
+      // Test reads like specification
+    });
+  });
+});
+```
 
-### Test Naming Conventions
-- Use descriptive names that explain the scenario
-- Format: `describe('ComponentName', () => it('should do X when Y'))`
-- Name should read like a specification
-- Group related tests in describe blocks
-- Use nested describe blocks for context
+Format: `describe('what') → it('should behavior when condition')`
 
-### Test Data Management
-- Use fixtures for complex test data
-- Use factories for generating test objects
-- Never use production data in tests
-- Reset database state between tests
-- Avoid test interdependencies
+## Core Principles
 
-### Test Isolation
-- Tests must run independently
-- No shared state between tests
-- Each test should set up its own data
-- Clean up resources in afterEach/teardown
-- Tests should pass in any order
-
-### Mocking & Stubbing
-- Mock external dependencies (APIs, databases, time)
-- Use dependency injection to enable mocking
-- Avoid over-mocking (test real integration when possible)
-- Document what is mocked and why
-- Use test doubles appropriately (mocks, stubs, spies, fakes)
-
-### Performance
-- Unit tests should run in milliseconds
-- Integration tests should run in seconds
-- Optimize slow tests
-- Parallelize test execution when possible
-- Flag and investigate flaky tests
+| Principle    | Implementation                                    |
+|--------------|---------------------------------------------------|
+| Isolation    | Tests run independently, any order                |
+| No state     | Each test sets up own data, cleans up after       |
+| Mocking      | Mock external deps (APIs, DBs, time) in unit      |
+| Performance  | Parallelize, optimize slow tests, flag flakes     |
+| Data         | Use factories/fixtures, never production data     |
 
 ## Examples
 
-### Good Examples
+### Unit Test (TypeScript/Jest)
 
-#### Unit Test (TypeScript/Jest)
 ```typescript
-// Good: Clear naming, isolated, single behavior
 describe('calculateDiscount', () => {
   it('should apply 10% discount for premium users', () => {
     const user = { isPremium: true };
     const price = 100;
-
+    
     const result = calculateDiscount(price, user);
-
+    
     expect(result).toBe(90);
   });
 
   it('should return original price for non-premium users', () => {
     const user = { isPremium: false };
-    const price = 100;
-
-    const result = calculateDiscount(price, user);
-
-    expect(result).toBe(100);
+    expect(calculateDiscount(100, user)).toBe(100);
   });
 
   it('should throw error for negative prices', () => {
-    const user = { isPremium: true };
-    const price = -50;
-
-    expect(() => calculateDiscount(price, user))
+    expect(() => calculateDiscount(-50, { isPremium: true }))
       .toThrow('Price must be positive');
   });
 });
 ```
 
-#### Integration Test (Python/pytest)
+### Integration Test (Python/pytest)
+
 ```python
-# Good: Database integration, fixtures, cleanup
 @pytest.fixture
 def test_db():
-    """Create test database and clean up after."""
+    """Create test DB, cleanup after."""
     db = create_test_database()
     yield db
     db.cleanup()
@@ -113,36 +76,30 @@ def test_db():
 def test_create_user_endpoint(test_db, client):
     """Should create user and return 201 with user data."""
     # Arrange
-    user_data = {
-        "email": "test@example.com",
-        "name": "Test User"
-    }
-
+    user_data = {"email": "test@example.com", "name": "Test User"}
+    
     # Act
     response = client.post("/api/users", json=user_data)
-
+    
     # Assert
     assert response.status_code == 201
     assert response.json["email"] == user_data["email"]
-
-    # Verify in database
+    
+    # Verify in DB
     user = test_db.query(User).filter_by(email=user_data["email"]).first()
     assert user is not None
     assert user.name == user_data["name"]
 ```
 
-#### Mocking External Services (TypeScript)
+### Mocking External Services
+
 ```typescript
-// Good: Mock external API, test error handling
 describe('UserService', () => {
   let mockHttpClient: jest.Mocked<HttpClient>;
   let userService: UserService;
 
   beforeEach(() => {
-    mockHttpClient = {
-      get: jest.fn(),
-      post: jest.fn(),
-    } as any;
+    mockHttpClient = { get: jest.fn(), post: jest.fn() } as any;
     userService = new UserService(mockHttpClient);
   });
 
@@ -158,109 +115,80 @@ describe('UserService', () => {
 
   it('should handle API errors gracefully', async () => {
     mockHttpClient.get.mockRejectedValue(new Error('Network error'));
-
+    
     await expect(userService.getProfile('123'))
       .rejects.toThrow('Failed to fetch user profile');
   });
 });
 ```
 
-#### Test Fixtures (Python)
+### Test Fixtures & Factories
+
 ```python
-# Good: Reusable fixtures, factory pattern
 @pytest.fixture
 def sample_user():
-    """Create a sample user for testing."""
-    return User(
-        id="123",
-        email="test@example.com",
-        name="Test User",
-        is_premium=True
-    )
+    """Sample user for testing."""
+    return User(id="123", email="test@example.com", is_premium=True)
 
 @pytest.fixture
 def user_factory():
-    """Factory for creating test users with custom attributes."""
-    def _create_user(**kwargs):
-        defaults = {
-            "email": "test@example.com",
-            "name": "Test User",
-            "is_premium": False
-        }
+    """Factory for custom test users."""
+    def _create(**kwargs):
+        defaults = {"email": "test@example.com", "is_premium": False}
         return User(**{**defaults, **kwargs})
-    return _create_user
+    return _create
 
 def test_with_factory(user_factory):
-    premium_user = user_factory(is_premium=True)
-    regular_user = user_factory()
-
-    assert premium_user.is_premium
-    assert not regular_user.is_premium
+    premium = user_factory(is_premium=True)
+    regular = user_factory()
+    
+    assert premium.is_premium
+    assert not regular.is_premium
 ```
 
-### Bad Examples
+## Anti-Patterns
 
-#### Poor Test Naming
+| ✗ Bad                                              | ✓ Good                                |
+|----------------------------------------------------|---------------------------------------|
+| `it('test1')`, `it('works')`                       | `it('should return 404 when user missing')` |
+| `let userId; it('creates')... it('updates')...`    | Each test independent, own setup      |
+| `await fetch('https://real-api.com')`              | Mock external calls in unit tests     |
+| `result = calculate(100, 0.1, True, 5)`            | Use named constants/variables         |
+| `processOrder(order); // no assertions`            | Always verify behavior with assertions|
+| Tests fail randomly                                | Fix flaky tests immediately           |
+
+## Test Data Management
+
 ```typescript
-// Bad: Unclear test names
-describe('User', () => {
-  it('test1', () => {
-    // What does this test?
-  });
+// ✓ Good: Descriptive test data
+const PREMIUM_DISCOUNT_RATE = 0.1;
+const BASE_PRICE = 100;
+const EXPECTED_DISCOUNTED_PRICE = 90;
 
-  it('works', () => {
-    // Works for what scenario?
-  });
+it('should apply premium discount', () => {
+  const result = calculateDiscount(BASE_PRICE, PREMIUM_DISCOUNT_RATE);
+  expect(result).toBe(EXPECTED_DISCOUNTED_PRICE);
+});
+
+// ✗ Bad: Magic numbers
+it('should calculate price', () => {
+  expect(calculate(100, 0.1, true, 5)).toBe(427.5);  // What does this mean?
 });
 ```
 
-#### Shared State
-```typescript
-// Bad: Tests share state, order-dependent
-let userId;
+## Performance Guidelines
 
-it('creates user', async () => {
-  const user = await createUser({ email: 'test@example.com' });
-  userId = user.id; // Shared state!
-});
-
-it('updates user', async () => {
-  await updateUser(userId, { name: 'Updated' }); // Depends on previous test!
-});
-```
-
-#### No Mocking (Slow Tests)
-```typescript
-// Bad: Real API call in unit test
-it('should fetch user data', async () => {
-  const result = await fetch('https://api.example.com/users/123');
-  // This is slow, unreliable, and not a unit test!
-  expect(result.status).toBe(200);
-});
-```
-
-#### Magic Values
-```python
-# Bad: Magic numbers and unclear test data
-def test_calculate_price():
-    result = calculate_price(100, 0.1, True, 5)
-    assert result == 427.5  # What do these numbers mean?
-```
-
-#### No Assertions
-```typescript
-// Bad: No verification of behavior
-it('should process order', () => {
-  processOrder(order);
-  // Test passes but doesn't verify anything!
-});
-```
+- Unit: <1ms ideal, <10ms acceptable
+- Integration: <1s ideal, <5s acceptable
+- E2E: <10s ideal, <30s acceptable
+- Parallelize test execution
+- Profile and optimize slow tests
+- Use test.only/test.skip temporarily, never commit
 
 ## References
-- [Jest Documentation](https://jestjs.io/docs/getting-started)
-- [Pytest Documentation](https://docs.pytest.org/)
-- [Testing Best Practices](https://testingjavascript.com/)
-- [Martin Fowler - Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html)
-- [Test-Driven Development by Kent Beck](https://www.amazon.com/Test-Driven-Development-Kent-Beck/dp/0321146530)
-- [xUnit Test Patterns](http://xunitpatterns.com/)
-- [Google Testing Blog](https://testing.googleblog.com/)
+
+Jest: jestjs.io | Pytest: docs.pytest.org | Test Pyramid: martinfowler.com/articles/practical-test-pyramid.html | xUnit Patterns: xunitpatterns.com | Testing Best Practices: testingjavascript.com | TDD by Kent Beck: book
+
+---
+
+**v2.0.0** (2026-02-15): Compact format per ADR 0009 - 62% reduction from 266 to 200 lines

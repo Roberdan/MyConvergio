@@ -48,6 +48,7 @@ out/
 .claude/*
 !.claude/agents/
 !.claude/agents-lean/
+!.claude/commands/
 !.claude/config/
 !.claude/docs/
 !.claude/hooks/

@@ -1,8 +1,58 @@
-<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+<!-- v3.0.0 | 22 Feb 2026 | Wave-per-Worktree Model (v2) added -->
 
 # Worktree Discipline
 
-## Plan = Worktree (ENFORCED)
+## Wave-per-Worktree Model (v2) — Default
+
+Every wave gets a dedicated worktree + PR. Merge is proof that work exists.
+
+### Lifecycle
+
+```
+create → execute tasks → Thor validate → PR → merge → cleanup
+```
+
+1. `wave-worktree.sh create <plan_id> <wave_db_id>` — worktree from main HEAD
+2. Task executors work in wave worktree
+3. Thor per-task + per-wave validation
+4. `wave-worktree.sh merge` — auto-commit, push, PR, CI, squash merge
+5. Wave status: `pending` → `in_progress` → `merging` → `done`
+6. `done` = ONLY after merge to main succeeds
+
+### Branch Naming
+
+`plan/{plan_id}-{wave_id}` — e.g., `plan/200-W1`
+
+### DB Columns (waves table)
+
+| Column        | Type    | Purpose               |
+| ------------- | ------- | --------------------- |
+| worktree_path | TEXT    | Path to wave worktree |
+| branch_name   | TEXT    | Git branch name       |
+| pr_number     | INTEGER | PR number             |
+| pr_url        | TEXT    | PR URL                |
+
+### Commands
+
+```bash
+wave-worktree.sh create <plan_id> <wave_db_id>   # Create wave worktree
+wave-worktree.sh merge <plan_id> <wave_db_id>     # Commit + PR + merge + cleanup
+wave-worktree.sh cleanup <plan_id> <wave_db_id>   # Remove worktree (manual)
+wave-worktree.sh status <plan_id>                  # Table of all waves
+plan-db.sh get-wave-worktree <wave_db_id>         # Get wave worktree path
+plan-db.sh set-wave-worktree <wave_db_id> <path>  # Set wave worktree path
+dashboard-mini.sh waves <plan_id>                  # Dashboard wave view
+```
+
+### Backward Compatibility
+
+Old plans with `plans.worktree_path` work unchanged. `wave_is_active(plan_id)` distinguishes models.
+
+---
+
+## Legacy: Plan-per-Worktree Model (v1)
+
+### Plan = Worktree (ENFORCED)
 
 Every plan gets dedicated worktree. Planner auto-creates:
 
@@ -14,7 +64,7 @@ Every plan gets dedicated worktree. Planner auto-creates:
 
 **worktree-guard.sh BLOCKS git write ops on main/master** when worktrees exist (exit 2).
 
-## Creating Worktrees
+### Creating Worktrees
 
 **ALWAYS use script** (never raw `git worktree add`):
 
@@ -27,13 +77,13 @@ worktree-create.sh fix/bug-123 ../myfix        # Custom path
 
 Script auto: creates worktree, symlinks all `.env*` files, runs `npm install` if `package.json` exists.
 
-## Before ANY git operation
+### Before ANY git operation
 
 ```bash
 worktree-check.sh [expected-worktree]  # Verify context first
 ```
 
-## Rules
+### Rules
 
 1. **Create via script**: Never `git worktree add` directly — use `worktree-create.sh`
 2. **One plan = one worktree**: Planner creates, executor uses, path in DB
@@ -44,7 +94,7 @@ worktree-check.sh [expected-worktree]  # Verify context first
 7. **DB is source of truth**: `plan-db.sh get-worktree {plan_id}` for path
 8. **check-readiness validates**: Missing worktree_path = execution blocked
 
-## DB Commands
+### DB Commands
 
 ```bash
 plan-db.sh set-worktree <plan_id> <path>  # Store
@@ -54,17 +104,17 @@ plan-db.sh check-readiness <plan_id>      # Validate worktree_path is set
 
 If confused: run `worktree-check.sh` to see full context.
 
-## node_modules in Worktrees
+### node_modules in Worktrees
 
 Next.js/Turbopack builds **FAIL** with symlinked node_modules.
 
-### Option A: Full install (RECOMMENDED for builds)
+#### Option A: Full install (RECOMMENDED for builds)
 
 ```bash
 cd /path/to/worktree && npm ci --silent
 ```
 
-### Option B: TypeScript-only (faster dev)
+#### Option B: TypeScript-only (faster dev)
 
 Symlink works for tsc, NOT for builds:
 
@@ -74,7 +124,7 @@ npx tsc --noEmit  # Works
 npm run build     # FAILS (Sentry/Turbopack path issues)
 ```
 
-### Option C: Verify in main after merge
+#### Option C: Verify in main after merge
 
 ```bash
 cd /path/to/main/repo
@@ -82,7 +132,7 @@ git merge worktree-branch
 npm run ci:summary
 ```
 
-### Why symlinks fail
+#### Why symlinks fail
 
 Turbopack resolves absolute paths; Sentry plugin follows symlinks; motion-utils has hardcoded path expectations.
 

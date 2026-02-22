@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# code-pattern-checks.sh - Check functions for code-pattern-check.sh
-# Each outputs JSON: {"check":"name","severity":"P1|P2","pass":bool,"findings":[]}
-# Requires CODE_FILES array set by caller.
-# Version: 1.0.0
+# Requires CODE_FILES array. Each function outputs JSON: {check, severity, pass, findings[]}
+# Version: 1.1.0
 
 check_unguarded_json_parse() {
 	local findings
@@ -215,6 +213,38 @@ check_missing_error_boundary() {
 	local pass=true
 	[[ $(echo "$arr" | jq 'length') -gt 0 ]] && pass=false
 	jq -n --arg check "missing_error_boundary" --arg sev "P2" \
+		--argjson pass "$pass" --argjson findings "$arr" \
+		'{check:$check, severity:$sev, pass:$pass, findings:$findings}'
+}
+
+check_comment_density() {
+	local findings=""
+	for f in "${CODE_FILES[@]}"; do
+		local total comment_lines pct
+		total=$(awk 'END{print NR}' "$f" 2>/dev/null || echo 0)
+		[[ "$total" -lt 10 ]] && continue
+		if [[ "$f" =~ \.(sh|bash)$ ]]; then
+			comment_lines=$(grep -cE '^\s*#[^!]' "$f" 2>/dev/null || echo 0)
+		elif [[ "$f" =~ \.(ts|tsx|js|jsx|mjs|cjs)$ ]]; then
+			comment_lines=$(grep -cE '^\s*(//|/\*|\*)' "$f" 2>/dev/null || echo 0)
+		elif [[ "$f" =~ \.py$ ]]; then
+			comment_lines=$(grep -cE '^\s*#' "$f" 2>/dev/null || echo 0)
+		else
+			continue
+		fi
+		pct=$((comment_lines * 100 / total))
+		if [[ "$pct" -gt 20 ]]; then
+			findings="${findings}$(jq -n --arg f "$f" --arg pct "${pct}%" \
+				--arg b "Comment density ${pct}% (${comment_lines}/${total} lines) — target <5%" \
+				'{file:$f, line:null, body:$b}')
+"
+		fi
+	done
+	local arr
+	arr=$(echo "$findings" | jq -s '.' 2>/dev/null || echo '[]')
+	local pass=true
+	[[ $(echo "$arr" | jq 'length') -gt 0 ]] && pass=false
+	jq -n --arg check "comment_density" --arg sev "P3" \
 		--argjson pass "$pass" --argjson findings "$arr" \
 		'{check:$check, severity:$sev, pass:$pass, findings:$findings}'
 }

@@ -8,6 +8,14 @@
 
 **TS/JS**: ESLint+Prettier, semicolons, single quotes, max 100 chars, const>let, async/await | Named imports, no default export (unless framework) | `interface` > `type` | Props interface above component | Colocated `.test.ts`, AAA | **Python**: Black 88 chars, Google docstrings, type hints public APIs, pytest+fixtures | **Bash**: `set -euo pipefail` | Quote vars | `local` in functions | `trap cleanup EXIT` | **CSS**: CSS Modules or BEM | `rem` for type, `px` for borders | Mobile-first | Max 3 nesting | **Config**: 2-space indent | Schema refs where supported
 
+## Comments (Token-Aware)
+
+Code is the documentation. Every comment line costs ~8 tokens per read, multiplied by every agent that reads it.
+
+**ALLOWED**: version/shebang headers, `set -euo pipefail` explanation, non-obvious logic (WHY not WHAT), workaround reasons, regex explanations, safety annotations
+**FORBIDDEN**: restating what the next line does (`# Get slug` above `_get_slug()`), section dividers (`# ===`, `# ---`), parameter descriptions for self-documenting names, `# Check if...` before an obvious `if`/`grep`
+**Target**: <5% comment lines in new files (excluding shebang/version header)
+
 ## Quality
 
 **Testing**: 80% business logic, 100% critical paths, isolated, one behavior/test, no shared state | **API**: REST, plural nouns, /api/v1/, OpenAPI docs, paginate all lists, rate limiting | **Security**: Parameterized queries, CSP headers, env vars for secrets, TLS 1.2+, RBAC | Bicep outputs: no secrets (connection strings, keys) — store in Key Vault, output resource IDs only | SQL: bind parameters (`:param`) always, never f-strings — even for integers | IaC resource names: include environment suffix or `uniqueString()` to avoid collisions | **A11y**: 4.5:1 contrast, keyboard nav, screen readers, text alternatives, 200% resize | **Terms**: blocklist/allowlist, gender-neutral, primary/replica

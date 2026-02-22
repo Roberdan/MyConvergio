@@ -1,9 +1,9 @@
 #!/bin/bash
 # Worktree Cleanup - Auto-remove merged worktrees
-# Usage: worktree-cleanup.sh [--plan <plan_id>] [--branch <branch>] [--all-merged] [--dry-run]
+# Usage: worktree-cleanup.sh [--plan <plan_id>] [--wave <wave_db_id>] [--branch <branch>] [--all-merged] [--dry-run]
 # Called automatically by plan-db.sh complete, or manually after merge.
 
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,12 +18,18 @@ NC='\033[0m'
 DRY_RUN=0
 MODE=""
 TARGET=""
+WAVE_DB_ID=""
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--plan)
 		MODE="plan"
 		TARGET="$2"
+		shift 2
+		;;
+	--wave)
+		MODE="wave"
+		WAVE_DB_ID="${2:?wave_db_id required}"
 		shift 2
 		;;
 	--branch)
@@ -40,14 +46,14 @@ while [[ $# -gt 0 ]]; do
 		shift
 		;;
 	*)
-		echo -e "${RED}Usage: worktree-cleanup.sh [--plan <id>] [--branch <branch>] [--all-merged] [--dry-run]${NC}"
+		echo -e "${RED}Usage: worktree-cleanup.sh [--plan <id>] [--wave <wave_db_id>] [--branch <branch>] [--all-merged] [--dry-run]${NC}"
 		exit 1
 		;;
 	esac
 done
 
 [[ -z "$MODE" ]] && {
-	echo -e "${RED}Specify --plan <id>, --branch <branch>, or --all-merged${NC}"
+	echo -e "${RED}Specify --plan <id>, --wave <wave_db_id>, --branch <branch>, or --all-merged${NC}"
 	exit 1
 }
 
@@ -124,6 +130,46 @@ cleanup_worktree() {
 	return 0
 }
 
+cleanup_wave() {
+	local wave_db_id="$1"
+	local dry_run="${2:-0}"
+
+	local wave_info
+	wave_info=$(sqlite3 -separator '|' "$DB_FILE" \
+		"SELECT w.worktree_path, w.branch_name, w.plan_id
+         FROM waves w WHERE w.id = $wave_db_id;" 2>/dev/null)
+
+	if [[ -z "$wave_info" ]]; then
+		echo "Wave $wave_db_id not found"
+		return 1
+	fi
+
+	local wt_path branch plan_id
+	IFS='|' read -r wt_path branch plan_id <<<"$wave_info"
+
+	if [[ -z "$wt_path" ]]; then
+		echo "Wave $wave_db_id has no worktree"
+		return 0
+	fi
+
+	# Expand ~ to $HOME
+	wt_path="${wt_path/#\~/$HOME}"
+
+	if [[ "$dry_run" -eq 1 ]]; then
+		echo "DRY-RUN: Would clean up wave $wave_db_id worktree: $wt_path (branch: $branch)"
+		return 0
+	fi
+
+	# Delegate to existing cleanup_worktree function
+	if [[ -d "$wt_path" ]]; then
+		cleanup_worktree "$wt_path" "$branch"
+	fi
+
+	# Clear wave DB fields
+	sqlite3 "$DB_FILE" "UPDATE waves SET worktree_path = NULL, branch_name = NULL WHERE id = $wave_db_id;"
+	echo "Cleaned up wave $wave_db_id worktree"
+}
+
 case "$MODE" in
 plan)
 	echo -e "${BLUE}=== CLEANUP WORKTREE FOR PLAN $TARGET ===${NC}"
@@ -142,6 +188,21 @@ plan)
 	fi
 
 	cleanup_worktree "$WT_PATH" "$BRANCH"
+
+	# Also clean up wave-level worktrees for this plan
+	wave_ids=$(sqlite3 "$DB_FILE" \
+		"SELECT id FROM waves WHERE plan_id = $TARGET AND worktree_path IS NOT NULL AND worktree_path <> '';" 2>/dev/null || true)
+	if [[ -n "$wave_ids" ]]; then
+		while IFS= read -r wid; do
+			[[ -z "$wid" ]] && continue
+			cleanup_wave "$wid" "$DRY_RUN"
+		done <<<"$wave_ids"
+	fi
+	;;
+
+wave)
+	echo -e "${BLUE}=== CLEANUP WORKTREE FOR WAVE $WAVE_DB_ID ===${NC}"
+	cleanup_wave "$WAVE_DB_ID" "$DRY_RUN"
 	;;
 
 branch)

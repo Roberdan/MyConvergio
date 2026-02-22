@@ -17,6 +17,8 @@ logs/
 .env.*
 secrets/
 credentials/
+*.pem
+*.key
 
 # OS files
 .DS_Store

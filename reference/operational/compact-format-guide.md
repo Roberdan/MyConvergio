@@ -24,17 +24,22 @@
 
 ## Step-by-Step Conversion
 
-### 1. Measure Baseline
+### 1. Measure Baseline & Re-Measure
 
 ```bash
-# Claude Code
+# Baseline
 /optimize-instructions --scan-only
 
 # Manual (requires tiktoken)
 python3 -c "import tiktoken; enc=tiktoken.get_encoding('cl100k_base'); print(len(enc.encode(open('.github/copilot-instructions.md').read())))"
+
+# Re-measure after conversion
+/optimize-instructions --report
 ```
 
-### 2. Identify Auto-Loaded vs On-Demand Files
+Target: 40-60% token reduction for auto-loaded files.
+
+### 2. Auto-Loaded vs On-Demand
 
 | Auto-loaded (optimize FIRST)         | On-demand (lower priority)       |
 | ------------------------------------ | -------------------------------- |
@@ -43,8 +48,6 @@ python3 -c "import tiktoken; enc=tiktoken.get_encoding('cl100k_base'); print(len
 | rules/\*.md                          | agents/\*\*/\*.md (body only)    |
 | .claude/agents/\*.md (frontmatter)   | commands/planner-modules/\*.md   |
 | .github/instructions/\*.md (Copilot) | .github/agents/\*\*/\*.md (body) |
-
-### 3. Convert Auto-Loaded Files
 
 **Before** (prose-heavy):
 
@@ -63,7 +66,7 @@ When you want to check the status of GitHub Actions, you should avoid using the 
 | `gh pr view --comments`    | `service-digest.sh pr` |
 ```
 
-### 4. Apply Compact Rules
+### 3. Apply Compact Rules
 
 - [ ] Convert "why" prose to `> **Why**: {reason}` blockquotes
 - [ ] Table-ify all mappings/comparisons
@@ -71,24 +74,6 @@ When you want to check the status of GitHub Actions, you should avoid using the 
 - [ ] Remove adjectives/adverbs ("complex", "important", "very")
 - [ ] Use `|` for inline options: `git status|log|diff`
 - [ ] Bullets for lists, never full sentences
-
-### 5. Re-Measure and Compare
-
-```bash
-/optimize-instructions --report
-```
-
-Target: 40-60% token reduction for auto-loaded files.
-
-### 6. Smoke Test
-
-```bash
-# Claude Code
-cat ~/.claude/CLAUDE.md > /dev/null && echo "PASS"
-
-# Copilot CLI
-gh copilot --help > /dev/null && echo "PASS"
-```
 
 ## Conversion Checklist
 
@@ -112,14 +97,3 @@ gh copilot --help > /dev/null && echo "PASS"
 | Global config    | CLAUDE.md                           | copilot-instructions.md + AGENTS.md | Keep synced                                   |
 | Hooks            | hooks.json (preToolUse/postToolUse) | hooks.json (same events!)           | Same format                                   |
 | Memory           | Automatic memories                  | Copilot Memory                      | Both persist context                          |
-
-## Model-Agnostic Principles
-
-**Why compact format works with ANY LLM**:
-
-1. **Trained on markdown**: All major LLMs (GPT, Claude, Gemini) trained on markdown syntax
-2. **Pattern recognition**: Tables/bullets are structural, not symbolic — easier to parse
-3. **Token efficiency**: Markdown uses fewer tokens than prose (no articles/conjunctions)
-4. **Attention span**: Shorter instructions = higher retention in LLM attention window
-
-**NOT model-specific**: Avoid custom syntax. Standard markdown only.

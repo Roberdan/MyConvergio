@@ -36,6 +36,11 @@
             "type": "command",
             "command": "~/.claude/hooks/warn-bash-antipatterns.sh",
             "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/prefer-ci-summary.sh",
+            "timeout": 5
           }
         ]
       },

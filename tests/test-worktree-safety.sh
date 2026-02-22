@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test: worktree-safety.sh syntax, functions, subcommands, line count
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib/test-helpers.sh"
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 # RED test: settings.json must reference model-registry-refresh.sh and env-vault-guard.sh
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 fail=0
 if ! grep -q 'model-registry-refresh' ./settings.json; then

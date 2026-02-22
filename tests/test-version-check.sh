@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test: version-check.sh must check copilot-cli, opencode, gemini
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib/test-helpers.sh"
 

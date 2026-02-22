@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Test: worktree-safety.sh integration in delegate.sh and copilot-task-prompt.sh (T2-07)
 set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DELEGATE="${ROOT_DIR}/scripts/delegate.sh"

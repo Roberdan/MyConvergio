@@ -111,7 +111,8 @@ check_package_json_scripts() {
 
 check_ci_workflow_exists() {
 	local pass=true arr='[]'
-	if ! ls "$PROJECT_ROOT/.github/workflows/"*.{yml,yaml} >/dev/null 2>&1; then
+	if ! compgen -G "$PROJECT_ROOT/.github/workflows/*.yml" >/dev/null &&
+		! compgen -G "$PROJECT_ROOT/.github/workflows/*.yaml" >/dev/null; then
 		pass=false
 		arr="[$(_pa_finding "" "No CI workflow found in .github/workflows/")]"
 	fi
@@ -199,4 +200,25 @@ check_token_aware_doc_verbosity() {
 	local pass=true
 	[[ $(echo "$arr" | jq 'length') -gt 0 ]] && pass=false
 	_pa_json token_aware_doc_verbosity P3 "$pass" "$arr"
+}
+
+run_project_audit_checks() {
+	PROJECT_ROOT="${1:-.}"
+	local _no_cache="${2:-0}"
+	: "$_no_cache"
+	local checks='[]' result
+	local check_fns=(
+		check_claude_md_exists check_claude_md_structure check_claude_md_line_count check_agents_md_exists
+		check_gitignore_completeness check_gitignore_secrets check_package_json_scripts check_ci_workflow_exists
+		check_a11y_config check_token_aware_comment_density check_token_aware_doc_verbosity
+	)
+	for fn in "${check_fns[@]}"; do
+		result="$($fn)"
+		checks="$(jq -c --argjson item "$result" '. + [$item]' <<<"$checks")"
+	done
+	echo "$checks"
+}
+
+project_audit_checks_json() {
+	run_project_audit_checks "$@"
 }

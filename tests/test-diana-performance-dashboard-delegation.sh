@@ -1,4 +1,6 @@
 #!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Diana Performance Dashboard Delegation Intelligence Test
 
 grep -i 'delegation' agents/core_utility/diana-performance-dashboard.md || exit 1

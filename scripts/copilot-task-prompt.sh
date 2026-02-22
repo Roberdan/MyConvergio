@@ -122,9 +122,9 @@ The output_data JSON should include: summary (string), artifacts (files created/
 ## Structured Output Format
 All agent output must be wrapped using the agent-protocol.sh envelope:
 
-```bash
+\`\`\`bash
 build_task_envelope <output_data_json>
-```
+\`\`\`
 Refer to scripts/lib/agent-protocol.sh for envelope details and usage.
 
 ## Worktree Safety

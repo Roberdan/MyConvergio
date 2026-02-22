@@ -272,12 +272,12 @@ Derived from analysis of ~34 real Copilot code review comments across production
 
 ### Primary Rules (Active)
 
-| Document                                                             | Purpose                                                                      | Priority |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------- |
-| [CONSTITUTION.md](./agents/CONSTITUTION.md)                          | Security, Ethics, Identity                                                   | SUPREME  |
-| [execution.md](./.claude/rules/execution.md)                         | How Work Gets Done (context awareness, parallel calls, anti-overengineering) | 2nd      |
-| [guardian.md](./.claude/rules/guardian.md)                           | Thor enforcement, PR comment resolution, completion verification             | 3rd      |
-| [engineering-standards.md](./.claude/rules/engineering-standards.md) | Code quality, security, testing, API design                                  | 4th      |
+| Document                                                                 | Purpose                                             | Priority |
+| ------------------------------------------------------------------------ | --------------------------------------------------- | -------- |
+| [CONSTITUTION.md](./agents/CONSTITUTION.md)                              | Security, Ethics, Identity                          | SUPREME  |
+| [guardian.md](./.claude/rules/guardian.md)                               | Thor enforcement, PR rules, completion verification | 2nd      |
+| [coding-standards.md](./.claude/rules/coding-standards.md)               | Code style, security, testing, API design           | 3rd      |
+| [compaction-preservation.md](./.claude/rules/compaction-preservation.md) | Workflow-critical content preservation rules        | 4th      |
 
 This repository is **fully self-contained**. No external configuration files required.
 

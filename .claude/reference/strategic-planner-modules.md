@@ -411,7 +411,7 @@ cat /tmp/thor-queue/responses/${REQUEST_ID}.json
 
 - Thor Tab: Thor-QA
 - Queue Dir: /tmp/thor-queue/
-- Protocol: .claude/protocols/thor-validation-protocol.md
+- Protocol: .claude/protocols/thor-protocol.md
 
 ### Worker Reminder
 

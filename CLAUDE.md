@@ -37,24 +37,7 @@ MyConvergio/
 └── VERSION                  # System version tracking
 ```
 
-## Agent Categories
-
-| Category              | Count | Key Agents                                                                            |
-| --------------------- | ----- | ------------------------------------------------------------------------------------- |
-| leadership_strategy   | 7     | ali (orchestrator), antonio, satya, dan                                               |
-| technical_development | 9     | baccio, rex, dario, otto, marco, paolo, luca, adversarial-debugger, task-executor-tdd |
-| business_operations   | 11    | amy, anna, davide, marcello, oliver                                                   |
-| core_utility          | 11    | thor, strategic-planner, marcus, guardian, sentinel, thor-validation-gates            |
-| release_management    | 3     | app-release-manager, feature-release-manager, app-release-manager-execution           |
-| compliance_legal      | 5     | elena, dr-enzo, sophia                                                                |
-| specialized_experts   | 14    | domik, behice, fiona, angela, ethan, evan, michael, research-report-generator         |
-| design_ux             | 3     | creative-director, ux-designer, design-thinking                                       |
-
-## Model Tiering
-
-- **opus** (2): Complex orchestration (ali, satya)
-- **sonnet** (24): Strategic specialists (architects, security, compliance)
-- **haiku** (37): Workers, quick tasks, operational agents
+**Agent Categories & Model Tiering**: See [AGENTS.md](./AGENTS.md)
 
 ## Quick Start
 
@@ -72,6 +55,14 @@ npm install -g myconvergio                           # Via npm (minimal default)
 - Security Framework section mandatory in all agents
 - Semantic Versioning (SemVer 2.0.0) for system and agents
 - Conventional commits, lint+typecheck+test before commit
+
+## Build / Test / Lint
+
+```bash
+make test                   # Run agent tests
+make lint                   # Lint YAML frontmatter
+make validate               # Validate Constitution compliance
+```
 
 ## Detailed Documentation
 

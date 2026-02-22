@@ -2,23 +2,21 @@
 
 Compact rules loaded on every Claude session. Optimized for minimal token usage.
 
-## Files (209 total lines)
+## Files
 
-| File                     | Lines | Purpose                            |
-| ------------------------ | ----- | ---------------------------------- |
-| execution.md             | 42    | Planning, verification, PR rules   |
-| guardian.md              | 40    | Thor enforcement, closure protocol |
-| agent-discovery.md       | 21    | Agent routing                      |
-| engineering-standards.md | 35    | Code style, security, testing      |
-| file-size-limits.md      | 24    | Max 250 lines per file             |
+| File                       | Purpose                            |
+| -------------------------- | ---------------------------------- |
+| guardian.md                | Thor enforcement, closure protocol |
+| coding-standards.md        | Code style, security, testing      |
+| compaction-preservation.md | Workflow-critical content rules    |
+| security-requirements.md   | OWASP security checklist           |
 
 ## Detailed Versions
 
-Full reference versions in `~/.claude/reference/detailed/` (not auto-loaded - outside rules/):
+Full reference versions in `~/.claude/reference/detailed/` (not auto-loaded):
 
-- execution.md, guardian.md, agent-discovery.md - Full protocols with examples
 - api-development.md, security-requirements.md, testing-standards.md
-- code-style.md, documentation-standards.md, ethical-guidelines.md
+- documentation-standards.md, ethical-guidelines.md
 
 ## Usage
 

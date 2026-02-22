@@ -1,6 +1,6 @@
 # MyConvergio Agents
 
-**v6.2.0** | 65 Claude Code Agents + 9 Copilot CLI Agents | Multi-Provider Orchestrator
+**v8.0.0** | 65 Claude Code Agents + 9 Copilot CLI Agents | Multi-Provider Orchestrator
 
 > _"Intent is human, momentum is agent"_ — [The Agentic Manifesto](./AgenticManifesto.md)
 
@@ -9,6 +9,7 @@
 MyConvergio is an enterprise AI agent suite providing specialized assistance across strategy, development, compliance, operations, and orchestration. It supports both **Claude Code** (65 agents) and **GitHub Copilot CLI** (9 agents), enabling cross-tool agent discovery and unified workflows.
 
 **Key Features**:
+
 - 65 specialized Claude agents across 8 categories
 - 9 Copilot CLI agents for GitHub Copilot users
 - Multi-provider orchestration (Claude, Copilot CLI, OpenCode, Gemini)
@@ -41,17 +42,17 @@ MyConvergio is an enterprise AI agent suite providing specialized assistance acr
 
 MyConvergio ships **9 Copilot CLI agents** in `copilot-agents/` for GitHub Copilot users:
 
-| Agent                | Purpose                                        |
-| -------------------- | ---------------------------------------------- |
-| @code-reviewer       | Code review with security + quality checks     |
-| @compliance-checker  | Verify compliance requirements                 |
-| @ecosystem-sync      | Cross-repo synchronization with sanitization   |
-| @execute             | Task executor with Thor validation             |
-| @planner             | Multi-wave strategic planning                  |
-| @prompt              | Extract feature requests into plan templates   |
-| @strategic-planner   | High-level roadmap and architecture            |
-| @tdd-executor        | TDD-enforced task execution                    |
-| @validate            | Wave/task validation with quality gates        |
+| Agent               | Purpose                                      |
+| ------------------- | -------------------------------------------- |
+| @code-reviewer      | Code review with security + quality checks   |
+| @compliance-checker | Verify compliance requirements               |
+| @ecosystem-sync     | Cross-repo synchronization with sanitization |
+| @execute            | Task executor with Thor validation           |
+| @planner            | Multi-wave strategic planning                |
+| @prompt             | Extract feature requests into plan templates |
+| @strategic-planner  | High-level roadmap and architecture          |
+| @tdd-executor       | TDD-enforced task execution                  |
+| @validate           | Wave/task validation with quality gates      |
 
 ## Installation
 
@@ -89,6 +90,7 @@ make install-tier TIER=standard VARIANT=lean        # 20 agents
 ```
 
 **Installation Tiers**:
+
 - **minimal**: 9 agents (thor, strategic-planner, guardian, task-executor, etc.)
 - **standard**: 20 agents (adds architects, core specialists)
 - **full**: All 65 agents
@@ -128,48 +130,8 @@ gh copilot @execute "Implement authentication with NextAuth"
 gh copilot @code-reviewer "Review PR #123 for security issues"
 ```
 
-## Coding Standards
-
-MyConvergio follows **ISE (Inclusive Software Engineering)** fundamentals:
-
-### Style
-
-- **TypeScript/JavaScript**: ESLint + Prettier, semicolons, single quotes, max 100 chars
-- **Python**: Black (88 chars), Google docstrings, type hints on public APIs
-- **Bash**: `set -euo pipefail`, quote all variables, `local` in functions
-- **CSS**: CSS Modules or BEM, `rem` for typography, `px` for borders, mobile-first
-
-### Quality Requirements
-
-- **Testing**: 80% coverage on business logic, 100% on critical paths
-- **Security**: Parameterized queries, CSP headers, env vars for secrets, TLS 1.2+
-- **API**: REST, plural nouns, `/api/v1/`, OpenAPI docs, pagination, rate limiting
-- **Accessibility**: 4.5:1 contrast, keyboard navigation, screen reader support
-- **Max File Length**: 250 lines per file (enforced by hooks)
-
-### Anti-Patterns
-
-- No `TODO`, `FIXME`, or debug statements in committed code
-- No `@ts-ignore` or `any` abuse in TypeScript
-- No secrets/credentials in code (use env vars + Key Vault)
-- No empty catch blocks
-- No SQL injection vulnerabilities (always use parameterized queries)
-
-## Quality Gates (Thor Validation System)
-
-Every task goes through **9 validation gates** before marking complete:
-
-1. **Task Compliance**: All requirements from plan addressed
-2. **Code Quality**: Tests pass, lint clean, build succeeds, 80%+ coverage
-3. **Engineering Fundamentals**: Security, error handling, input validation
-4. **Repository Compliance**: CLAUDE.md guidelines, patterns, conventions
-5. **Documentation**: README, API docs, JSDoc/docstrings updated
-6. **Git Hygiene**: Correct branch, conventional commits, no secrets
-7. **Performance**: `perf-check.sh` passes, no N+1 queries, lazy loading
-8. **TDD Verification**: Tests written BEFORE implementation
-9. **Acceptance**: Stakeholder approval, user-facing validation
-
-**Enforcement**: Use `plan-db-safe.sh update-task X done` which auto-validates, or invoke `@thor` manually.
+**Coding Standards**: See `.claude/rules/coding-standards.md`
+**Quality Gates**: See `.claude/agents/core_utility/thor-validation-gates.md` (9 gates, enforced via `plan-db-safe.sh`)
 
 ## Development Commands
 
@@ -234,8 +196,8 @@ MyConvergio/
 
 ## Version
 
-**Current**: v6.2.0  
-**Release Notes**: See `CHANGELOG.md`  
+**Current**: v8.0.0
+**Release Notes**: See `CHANGELOG.md`
 **Versioning**: SemVer 2.0.0 (system + individual agents)
 
 ---

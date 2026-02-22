@@ -90,6 +90,10 @@ coverage/
 agents/research_report/Reports/
 agents/research_report/output/
 
+# Certificates and private keys
+*.pem
+*.key
+
 # Personal notes (add your own patterns)
 NOTES.md
 TODO.md

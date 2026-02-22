@@ -73,19 +73,21 @@
   },
   "rules": {
     "consolidated": {
-      "description": "Single engineering-standards.md file (3.6KB, 93% smaller)",
-      "files": ["engineering-standards.md"],
-      "source": "~/.claude/rules/engineering-standards.md"
+      "description": "Compact coding-standards.md + guardian.md (minimal token usage)",
+      "files": [
+        "coding-standards.md",
+        "guardian.md",
+        "compaction-preservation.md"
+      ],
+      "source": "~/.claude/rules/"
     },
     "detailed": {
-      "description": "Separate files with verbose examples (52KB)",
+      "description": "All rules including security requirements",
       "files": [
-        "api-development.md",
-        "code-style.md",
-        "documentation-standards.md",
-        "ethical-guidelines.md",
-        "security-requirements.md",
-        "testing-standards.md"
+        "coding-standards.md",
+        "guardian.md",
+        "compaction-preservation.md",
+        "security-requirements.md"
       ]
     },
     "none": {

@@ -24,6 +24,9 @@ deploy)
 sentry)
 	"$SCRIPT_DIR/sentry-digest.sh" "$@"
 	;;
+copilot)
+	"$SCRIPT_DIR/copilot-review-digest.sh" "$@"
+	;;
 all)
 	# Run all three in parallel, combine results
 	TMPDIR_ALL=$(mktemp -d)
@@ -37,17 +40,21 @@ all)
 	PID_DEPLOY=$!
 	"$SCRIPT_DIR/sentry-digest.sh" list "$@" >"$TMPDIR_ALL/sentry.json" 2>"$TMPDIR_ALL/sentry.err" &
 	PID_SENTRY=$!
+	"$SCRIPT_DIR/copilot-review-digest.sh" "$@" >"$TMPDIR_ALL/copilot.json" 2>"$TMPDIR_ALL/copilot.err" &
+	PID_COPILOT=$!
 
 	wait "$PID_CI" 2>/dev/null || true
 	wait "$PID_PR" 2>/dev/null || true
 	wait "$PID_DEPLOY" 2>/dev/null || true
 	wait "$PID_SENTRY" 2>/dev/null || true
+	wait "$PID_COPILOT" 2>/dev/null || true
 
 	# Combine into single JSON (include stderr as error field if sub-script produced no JSON)
 	CI_JSON=$(cat "$TMPDIR_ALL/ci.json" 2>/dev/null || echo '{}')
 	PR_JSON=$(cat "$TMPDIR_ALL/pr.json" 2>/dev/null || echo '{}')
 	DEPLOY_JSON=$(cat "$TMPDIR_ALL/deploy.json" 2>/dev/null || echo '{}')
 	SENTRY_JSON=$(cat "$TMPDIR_ALL/sentry.json" 2>/dev/null || echo '{}')
+	COPILOT_JSON=$(cat "$TMPDIR_ALL/copilot.json" 2>/dev/null || echo '{}')
 
 	# If a sub-script failed and produced no valid JSON, include stderr
 	if ! echo "$CI_JSON" | jq empty 2>/dev/null && [[ -s "$TMPDIR_ALL/ci.err" ]]; then
@@ -66,13 +73,18 @@ all)
 		SENTRY_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/sentry.err" | tr '\n' ' ' | cut -c1-200)" \
 			'{"status":"script_error","msg":$msg}')
 	fi
+	if ! echo "$COPILOT_JSON" | jq empty 2>/dev/null && [[ -s "$TMPDIR_ALL/copilot.err" ]]; then
+		COPILOT_JSON=$(jq -n --arg msg "$(head -3 "$TMPDIR_ALL/copilot.err" | tr '\n' ' ' | cut -c1-200)" \
+			'{"status":"script_error","msg":$msg}')
+	fi
 
 	jq -n \
 		--argjson ci "$CI_JSON" \
 		--argjson pr "$PR_JSON" \
 		--argjson deploy "$DEPLOY_JSON" \
 		--argjson sentry "$SENTRY_JSON" \
-		'{ci:$ci,pr:$pr,deploy:$deploy,sentry:$sentry}'
+		--argjson copilot "$COPILOT_JSON" \
+		'{ci:$ci,pr:$pr,deploy:$deploy,sentry:$sentry,copilot:$copilot}'
 	;;
 flush)
 	digest_cache_flush
@@ -89,7 +101,8 @@ Commands:
   pr [pr-number]            PR reviews + unresolved comments (JSON)
   deploy [deployment-url]   Vercel deployment status (JSON)
   sentry [list|resolve id]  Sentry unresolved issues (JSON)
-  all                       All four in parallel, combined JSON
+  copilot [pr-number]       Copilot bot review comments digest (JSON)
+  all                       All five in parallel, combined JSON
   flush                     Clear all cached digests
 
 Options:

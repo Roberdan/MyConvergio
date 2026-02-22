@@ -36,6 +36,18 @@ version: "3.0.0"
 - File/folder conventions respected (colocation, barrel exports)
 - **Note**: Gate 4 = codebase patterns. Gate 9 = constitution (CLAUDE.md, ADRs, 250-line limit).
 
+### Gate 4b: Automated Pattern Checks
+
+Run `code-pattern-check.sh` on changed files to catch mechanical issues (null safety, error handling, scalability, security, naming):
+
+```bash
+~/.claude/scripts/code-pattern-check.sh --files {changed_files} --json
+```
+
+- **P1 finding = REJECT**: unguarded JSON.parse, unguarded method calls, React.lazy without default export
+- **P2 finding = WARN**: load-all + paginate, duplicate names, unused params, insecure file writes, missing error boundaries (reviewer discretion)
+- Reference: `~/.claude/reference/copilot-patterns.md` for pattern details
+
 ## Gate 5: Documentation
 
 - README updated if behavior changed, API docs if endpoints changed

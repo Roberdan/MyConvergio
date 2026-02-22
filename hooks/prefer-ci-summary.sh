@@ -18,7 +18,7 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 BASE_CMD=$(echo "$COMMAND" | sed 's/|.*//' | sed 's/.*&&//' | sed 's/.*;//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
 
 # === ALWAYS ALLOW: our optimized scripts ===
-echo "$COMMAND" | grep -qE "digest\.sh|service-digest|pr-ops\.sh" && exit 0
+echo "$COMMAND" | grep -qE "digest\.sh|service-digest|pr-ops\.sh|code-pattern-check\.sh" && exit 0
 # ci-summary WITH explicit flag → allow immediately
 echo "$COMMAND" | grep -qE "ci-summary\.sh --(quick|full|all|lint|types|build|unit|i18n|e2e|a11y)" && exit 0
 # Release/deploy scripts (no ^ anchor: may be after cd &&)

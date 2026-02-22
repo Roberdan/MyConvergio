@@ -1,10 +1,26 @@
 #!/bin/bash
 # hardening-check.sh — Quick repo hardening audit (JSON output)
-# v1.0.0 | Used by planner to decide if Wave 0 hardening is needed
-# Usage: hardening-check.sh [--project-root <path>]
+# v1.1.0 | Used by planner and project-audit.sh
+# Usage: hardening-check.sh [<path>] or hardening-check.sh --project-root <path>
 set -euo pipefail
 
-PROJECT_ROOT="${1:-.}"
+PROJECT_ROOT="."
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--project-root)
+		PROJECT_ROOT="$2"
+		shift 2
+		;;
+	-*)
+		echo "Usage: hardening-check.sh [<path>] [--project-root <path>]" >&2
+		exit 1
+		;;
+	*)
+		PROJECT_ROOT="$1"
+		shift
+		;;
+	esac
+done
 cd "$PROJECT_ROOT"
 
 PASSED=0

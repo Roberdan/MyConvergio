@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v6.2.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
+**v7.1.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -108,16 +108,16 @@ Available: `@code-reviewer`, `@compliance-checker`, `@execute`, `@planner`, `@pr
 
 MyConvergio ships with **65 specialized agents** across 8 categories:
 
-| Category               | Count | Examples                                                     |
-| ---------------------- | ----- | ------------------------------------------------------------ |
-| Leadership & Strategy  | 7     | `ali-chief-of-staff`, `satya-board`, `domik-mckinsey`        |
-| Technical Development  | 9     | `baccio-architect`, `rex-reviewer`, `dario-debugger`         |
-| Core Utility           | 11    | `strategic-planner`, `thor-qa-guardian`, `marcus-memory`     |
-| Business Operations    | 11    | `davide-project-manager`, `oliver-pm`, `anna-exec-assistant` |
-| Compliance & Legal     | 5     | `elena-legal-compliance`, `luca-security`, `dr-enzo-hipaa`   |
-| Design & UX            | 3     | `jony-creative-director`, `sara-ux-ui`, `stefano-designthink`|
-| Specialized Experts    | 14    | `fiona-market-analyst`, `omri-data-scientist`, `sam-startup` |
-| Release Management     | 3     | `app-release-manager`, `feature-release-manager`             |
+| Category              | Count | Examples                                                      |
+| --------------------- | ----- | ------------------------------------------------------------- |
+| Leadership & Strategy | 7     | `ali-chief-of-staff`, `satya-board`, `domik-mckinsey`         |
+| Technical Development | 9     | `baccio-architect`, `rex-reviewer`, `dario-debugger`          |
+| Core Utility          | 11    | `strategic-planner`, `thor-qa-guardian`, `marcus-memory`      |
+| Business Operations   | 11    | `davide-project-manager`, `oliver-pm`, `anna-exec-assistant`  |
+| Compliance & Legal    | 5     | `elena-legal-compliance`, `luca-security`, `dr-enzo-hipaa`    |
+| Design & UX           | 3     | `jony-creative-director`, `sara-ux-ui`, `stefano-designthink` |
+| Specialized Experts   | 14    | `fiona-market-analyst`, `omri-data-scientist`, `sam-startup`  |
+| Release Management    | 3     | `app-release-manager`, `feature-release-manager`              |
 
 **Cost Optimization**: 54% run on fast, low-cost Haiku. Premium Opus models reserved for critical tasks.
 
@@ -129,12 +129,12 @@ MyConvergio ships with **65 specialized agents** across 8 categories:
 
 Multi-provider intelligent delegation based on **4 dimensions**:
 
-| Dimension   | How It Works                                                                          |
-| ----------- | ------------------------------------------------------------------------------------- |
-| **Priority**| P0 critical → Claude/Gemini; P2 backlog → Copilot; P3 bulk → OpenCode (local)         |
-| **Task Type**| Coding → Copilot/Claude; Research → Gemini; Review → Claude Opus; Tests → Copilot    |
-| **Privacy** | Public → any provider; Internal → Copilot/OpenCode; Sensitive → OpenCode only (local)|
-| **Budget**  | Daily cap enforced; fallback chain: Claude → Copilot → Gemini → OpenCode            |
+| Dimension     | How It Works                                                                          |
+| ------------- | ------------------------------------------------------------------------------------- |
+| **Priority**  | P0 critical → Claude/Gemini; P2 backlog → Copilot; P3 bulk → OpenCode (local)         |
+| **Task Type** | Coding → Copilot/Claude; Research → Gemini; Review → Claude Opus; Tests → Copilot     |
+| **Privacy**   | Public → any provider; Internal → Copilot/OpenCode; Sensitive → OpenCode only (local) |
+| **Budget**    | Daily cap enforced; fallback chain: Claude → Copilot → Gemini → OpenCode              |
 
 ### Provider Workers
 
@@ -219,17 +219,51 @@ Reads the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). N
 
 Reusable workflows you can reference:
 
-| Skill                 | Use Case                                                       |
-| --------------------- | -------------------------------------------------------------- |
-| `structured-research` | Hypothesis-driven research with confidence calibration         |
-| `code-review`         | Systematic code review process                                 |
-| `debugging`           | Root cause analysis methodology                                |
-| `architecture`        | System design patterns                                         |
-| `security-audit`      | Security assessment framework                                  |
-| `performance`         | Performance optimization                                       |
-| `strategic-analysis`  | McKinsey-style analysis                                        |
-| `release-management`  | Release engineering                                            |
-| `orchestration`       | Multi-agent coordination                                       |
+| Skill                 | Use Case                                                 |
+| --------------------- | -------------------------------------------------------- |
+| `structured-research` | Hypothesis-driven research with confidence calibration   |
+| `code-review`         | Systematic code review process                           |
+| `debugging`           | Root cause analysis methodology                          |
+| `architecture`        | System design patterns                                   |
+| `security-audit`      | Security assessment framework                            |
+| `performance`         | Performance optimization                                 |
+| `optimize-project`    | Token-aware project audits and optimization suggestions             |
+| `strategic-analysis`  | McKinsey-style analysis                                  |
+| `release-management`  | Release engineering                                      |
+| `orchestration`       | Multi-agent coordination                                 |
+| `review-pr`           | Pre-PR review targeting Copilot patterns (3-layer stack) |
+
+---
+
+## Token-Aware Writing
+
+In an agent-first ecosystem, the primary consumer of code, comments, commits, and PRs is an LLM — not a human. Every token has a cost in money and latency, multiplied by every agent that reads it.
+
+**Principle**: text exists only if it changes agent behavior. Everything else is overhead.
+
+| Artifact         | Traditional                                 | Token-Aware                                     |
+| ---------------- | ------------------------------------------- | ----------------------------------------------- |
+| Code comments    | Explain what code does                      | Only WHY, never WHAT. Target <5% comment lines. |
+| Commit messages  | "This commit introduces a comprehensive..." | Conventional commit, 1 subject line.            |
+| PR descriptions  | Prose restating the diff                    | `## Summary` (2-3 bullets) + `## Test plan`.    |
+| Review comments  | "Perhaps you might consider..."             | Direct: issue + fix. No hedging.                |
+| Section dividers | `# === SECTION ===`                         | None. Structure provides navigation.            |
+
+### Enforcement Stack
+
+1. **Convention**: `coding-standards.md` Token-Aware Writing section (loaded by all agents, both Claude Code and Copilot CLI)
+2. **Automated check**: `code-pattern-check.sh` check #9 (`comment_density`) flags P3 when file exceeds 20% comment lines
+3. **Thor Gate 4b**: runs `code-pattern-check.sh` during per-task validation — P1 findings reject, P2 warn
+
+### 3-Layer Pre-PR Quality Stack
+
+```
+Layer 3: /review-pr skill (AI cross-file analysis)       catches semantic issues
+Layer 2: code-pattern-check.sh (9 grep checks, Gate 4b)  catches mechanical patterns
+Layer 1: copilot-review-digest.sh (feedback loop)         digests what slipped through
+```
+
+Derived from analysis of ~34 real Copilot code review comments across production PRs. Covers 9 categories: contract mismatch, null safety, error handling, scalability, security, logic errors, architecture drift, test quality, naming conflicts.
 
 ---
 
@@ -237,12 +271,12 @@ Reusable workflows you can reference:
 
 ### Primary Rules (Active)
 
-| Document                                                             | Purpose                                                                              | Priority |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------- |
-| [CONSTITUTION.md](./agents/CONSTITUTION.md)                          | Security, Ethics, Identity                                                           | SUPREME  |
-| [execution.md](./.claude/rules/execution.md)                         | How Work Gets Done (context awareness, parallel calls, anti-overengineering)         | 2nd      |
-| [guardian.md](./.claude/rules/guardian.md)                           | Thor enforcement, PR comment resolution, completion verification                     | 3rd      |
-| [engineering-standards.md](./.claude/rules/engineering-standards.md) | Code quality, security, testing, API design                                          | 4th      |
+| Document                                                             | Purpose                                                                      | Priority |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------- |
+| [CONSTITUTION.md](./agents/CONSTITUTION.md)                          | Security, Ethics, Identity                                                   | SUPREME  |
+| [execution.md](./.claude/rules/execution.md)                         | How Work Gets Done (context awareness, parallel calls, anti-overengineering) | 2nd      |
+| [guardian.md](./.claude/rules/guardian.md)                           | Thor enforcement, PR comment resolution, completion verification             | 3rd      |
+| [engineering-standards.md](./.claude/rules/engineering-standards.md) | Code quality, security, testing, API design                                  | 4th      |
 
 This repository is **fully self-contained**. No external configuration files required.
 
@@ -290,16 +324,17 @@ _Read the full [Agentic Manifesto](./AgenticManifesto.md)_
 
 ## Market Differentiation
 
-| Dimension             | Microsoft Agent / AutoGen / CrewAI     | MyConvergio                                                        |
-| --------------------- | -------------------------------------- | ------------------------------------------------------------------ |
-| **Runtime**           | Python SDK, cloud deployment           | CLI-native (bash + sqlite3), zero server                           |
-| **LLM Lock-in**       | Single provider per agent              | Multi-provider routing: Claude, Copilot, OpenCode (local), Gemini  |
-| **Cost Model**        | Pay-per-token, no budget controls      | Budget caps, multi-tier fallback chain, per-task cost tracking     |
-| **Privacy**           | Cloud-only (data leaves your machine)  | Privacy-aware: sensitive data routes to local models only          |
-| **Quality Assurance** | Agents self-report success             | Independent Thor validation (9 gates, reads files directly)        |
-| **State Management**  | Redis/Pinecone/cloud DB                | SQLite file, portable, inspectable, no dependencies                |
-| **Git Safety**        | No git awareness                       | Worktree isolation per plan, branch protection hooks               |
-| **Setup**             | pip install + cloud config             | `git clone` or `npm install -g`, works immediately                 |
+| Dimension             | Microsoft Agent / AutoGen / CrewAI    | MyConvergio                                                       |
+| --------------------- | ------------------------------------- | ----------------------------------------------------------------- |
+| **Runtime**           | Python SDK, cloud deployment          | CLI-native (bash + sqlite3), zero server                          |
+| **LLM Lock-in**       | Single provider per agent             | Multi-provider routing: Claude, Copilot, OpenCode (local), Gemini |
+| **Cost Model**        | Pay-per-token, no budget controls     | Budget caps, multi-tier fallback chain, per-task cost tracking    |
+| **Privacy**           | Cloud-only (data leaves your machine) | Privacy-aware: sensitive data routes to local models only         |
+| **Quality Assurance** | Agents self-report success            | Independent Thor validation (9 gates, reads files directly)       |
+| **State Management**  | Redis/Pinecone/cloud DB               | SQLite file, portable, inspectable, no dependencies               |
+| **Git Safety**        | No git awareness                      | Worktree isolation per plan, branch protection hooks              |
+| **Setup**             | pip install + cloud config            | `git clone` or `npm install -g`, works immediately                |
+| **Token Efficiency**  | No token awareness                    | Token-Aware Writing: <5% comments, compact commits/PRs, enforced  |
 
 **MyConvergio is not competing with agent frameworks.** It's a **practitioner's toolkit** for engineers who use AI coding assistants daily and need structure, quality gates, cost control, and multi-provider flexibility.
 
@@ -342,6 +377,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v6.2.0** | February 2026 | Multi-Provider Orchestrator + Claude Code + Copilot CLI
+**v7.1.0** | February 2026 | Multi-Provider Orchestrator + Claude Code + Copilot CLI
 
 </div>

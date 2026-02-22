@@ -1,10 +1,11 @@
 #!/bin/bash
 # Version: 1.4.0
 set -euo pipefail
-. scripts/lib/dashboard-delegation.sh
-
 # Source all dashboard modules
 DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
+
+# Source delegation module (using BASH_SOURCE-relative path)
+. "$(dirname "${BASH_SOURCE[0]}")/lib/dashboard-delegation.sh"
 . "$DASHBOARD_LIB/dashboard-config.sh"
 . "$DASHBOARD_LIB/dashboard-sync.sh"
 . "$DASHBOARD_LIB/dashboard-db.sh"
@@ -24,118 +25,118 @@ REFRESH_INTERVAL=300
 EXPAND_COMPLETED=0
 
 while [[ $# -gt 0 ]]; do
-case $1 in
--v | --verbose)
-VERBOSE=1
-shift
-;;
--p | --plan)
-PLAN_ID="$2"
-shift 2
-;;
--b | --blocked)
-SHOW_BLOCKED=1
-shift
-;;
--r | --refresh)
-REFRESH_INTERVAL="$2"
-shift 2
-;;
--n | --no-refresh)
-REFRESH_INTERVAL=0
-shift
-;;
--e | --expand)
-EXPAND_COMPLETED=1
-shift
-;;
--h | --help)
-echo "Usage: piani [OPTIONS]"
-echo "Options:"
-echo "  -v, --verbose        Mostra dettagli extra (wave names, task priorities)"
-echo "  -p, --plan ID        Mostra solo piano specifico"
-echo "  -b, --blocked        Mostra task bloccati"
-echo "  -e, --expand         Espandi dettagli task completati (default: compressi)"
-echo "  -r, --refresh SEC    Auto-refresh ogni SEC secondi (default: 300)"
-echo "  -n, --no-refresh     Disabilita auto-refresh (vista singola)"
-echo "  -h, --help           Mostra questo help"
-echo ""
-echo "Sezioni mostrate:"
-echo "  - Overview: conteggi totali (todo/doing/done)"
-echo "  - Piani Attivi: in esecuzione con progress e PR"
-echo "  - In Pipeline: piani creati ma non ancora lanciati"
-echo "  - Completamenti: ultime 24 ore"
-echo ""
-echo "Comportamento default:"
-echo "  - Auto-refresh ogni 5 minuti (300 secondi)"
-echo "  - Task completati compressi (solo conteggio)"
-echo "  - Premi R per refresh, Q per uscire, P per push Linux, L per git Linux"
-echo ""
-echo "Esempi:"
-echo "  piani                 # Dashboard compatta con auto-refresh"
-echo "  piani -e              # Con dettagli task completati espansi"
-echo "  piani -n              # Vista singola, no refresh"
-echo "  piani -v              # Verbose + auto-refresh"
-echo "  piani -p 62           # Solo Piano #62 + auto-refresh"
-echo "  piani -r 60           # Auto-refresh ogni minuto"
-echo "  piani -v -e -r 120    # Tutto espanso, refresh ogni 2 minuti"
-exit 0
-;;
-*)
-echo "Unknown option: $1"
-exit 1
-;;
-esac
+	case $1 in
+	-v | --verbose)
+		VERBOSE=1
+		shift
+		;;
+	-p | --plan)
+		PLAN_ID="$2"
+		shift 2
+		;;
+	-b | --blocked)
+		SHOW_BLOCKED=1
+		shift
+		;;
+	-r | --refresh)
+		REFRESH_INTERVAL="$2"
+		shift 2
+		;;
+	-n | --no-refresh)
+		REFRESH_INTERVAL=0
+		shift
+		;;
+	-e | --expand)
+		EXPAND_COMPLETED=1
+		shift
+		;;
+	-h | --help)
+		echo "Usage: piani [OPTIONS]"
+		echo "Options:"
+		echo "  -v, --verbose        Mostra dettagli extra (wave names, task priorities)"
+		echo "  -p, --plan ID        Mostra solo piano specifico"
+		echo "  -b, --blocked        Mostra task bloccati"
+		echo "  -e, --expand         Espandi dettagli task completati (default: compressi)"
+		echo "  -r, --refresh SEC    Auto-refresh ogni SEC secondi (default: 300)"
+		echo "  -n, --no-refresh     Disabilita auto-refresh (vista singola)"
+		echo "  -h, --help           Mostra questo help"
+		echo ""
+		echo "Sezioni mostrate:"
+		echo "  - Overview: conteggi totali (todo/doing/done)"
+		echo "  - Piani Attivi: in esecuzione con progress e PR"
+		echo "  - In Pipeline: piani creati ma non ancora lanciati"
+		echo "  - Completamenti: ultime 24 ore"
+		echo ""
+		echo "Comportamento default:"
+		echo "  - Auto-refresh ogni 5 minuti (300 secondi)"
+		echo "  - Task completati compressi (solo conteggio)"
+		echo "  - Premi R per refresh, Q per uscire, P per push Linux, L per git Linux"
+		echo ""
+		echo "Esempi:"
+		echo "  piani                 # Dashboard compatta con auto-refresh"
+		echo "  piani -e              # Con dettagli task completati espansi"
+		echo "  piani -n              # Vista singola, no refresh"
+		echo "  piani -v              # Verbose + auto-refresh"
+		echo "  piani -p 62           # Solo Piano #62 + auto-refresh"
+		echo "  piani -r 60           # Auto-refresh ogni minuto"
+		echo "  piani -v -e -r 120    # Tutto espanso, refresh ogni 2 minuti"
+		exit 0
+		;;
+	*)
+		echo "Unknown option: $1"
+		exit 1
+		;;
+	esac
 done
 
 # Validate PLAN_ID is numeric (prevent SQL injection)
 if [ -n "$PLAN_ID" ] && ! [[ "$PLAN_ID" =~ ^[0-9]+$ ]]; then
-echo "Error: plan ID must be numeric" >&2
-exit 1
+	echo "Error: plan ID must be numeric" >&2
+	exit 1
 fi
 
 # Single plan detail mode: always expand tasks
 if [ -n "$PLAN_ID" ]; then
-EXPAND_COMPLETED=1
+	EXPAND_COMPLETED=1
 fi
 
 # Refresh mode
 if [ "$REFRESH_INTERVAL" -gt 0 ]; then
-trap 'echo -e "\n${YELLOW}Dashboard terminata.${NC}"; exit 0' INT
-clear
-while true; do
-quick_sync
-render_dashboard
-now=$(date "+%H:%M:%S")
-echo -e "${GRAY}Ultimo aggiornamento: ${WHITE}$now${NC} ${GRAY}│ Prossimo refresh tra ${REFRESH_INTERVAL}s${NC}"
-printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci, ${WHITE}P${GRAY}=push, ${WHITE}L${GRAY}=linux git)${NC}    " "$REFRESH_INTERVAL"
-key=""
-read -t "$REFRESH_INTERVAL" -n 1 key 2>/dev/null || true
-case "$key" in
-q | Q)
-echo -e "\n${YELLOW}Dashboard terminata.${NC}"
-exit 0
-;;
-p | P)
-echo ""
-_handle_remote_action "push"
-echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
-read -n 1 -s
-;;
-l | L)
-echo ""
-_handle_remote_action "status"
-echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
-read -n 1 -s
-;;
-"") ;;
-*)
-printf "\r${CYAN}Refresh forzato...%50s${NC}\r" " "
-;;
-esac
-clear
-done
+	trap 'echo -e "\n${YELLOW}Dashboard terminata.${NC}"; exit 0' INT
+	clear
+	while true; do
+		quick_sync
+		render_dashboard
+		now=$(date "+%H:%M:%S")
+		echo -e "${GRAY}Ultimo aggiornamento: ${WHITE}$now${NC} ${GRAY}│ Prossimo refresh tra ${REFRESH_INTERVAL}s${NC}"
+		printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci, ${WHITE}P${GRAY}=push, ${WHITE}L${GRAY}=linux git)${NC}    " "$REFRESH_INTERVAL"
+		key=""
+		read -t "$REFRESH_INTERVAL" -n 1 key 2>/dev/null || true
+		case "$key" in
+		q | Q)
+			echo -e "\n${YELLOW}Dashboard terminata.${NC}"
+			exit 0
+			;;
+		p | P)
+			echo ""
+			_handle_remote_action "push"
+			echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+			read -n 1 -s
+			;;
+		l | L)
+			echo ""
+			_handle_remote_action "status"
+			echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+			read -n 1 -s
+			;;
+		"") ;;
+		*)
+			printf "\r${CYAN}Refresh forzato...%50s${NC}\r" " "
+			;;
+		esac
+		clear
+	done
 else
-quick_sync
-render_dashboard
+	quick_sync
+	render_dashboard
 fi

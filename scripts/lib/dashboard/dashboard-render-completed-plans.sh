@@ -3,6 +3,8 @@
 # Version: 1.4.0
 
 _render_completed_plans() {
+	local completed_week_count
+	completed_week_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day')")
 	echo -e "${BOLD}${WHITE}✅ Completati ultime 24h ($completed_week_count)${NC}"
 	if [ "$completed_week_count" -eq 0 ]; then
 		echo -e "${GRAY}└─${NC} Nessun piano completato nelle ultime 24 ore"

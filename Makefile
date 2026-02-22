@@ -4,7 +4,7 @@
 # Version: 2.0.0
 # =============================================================================
 
-.PHONY: install install-local upgrade test clean update check-sync sync-agents version help lint validate
+.PHONY: install install-local upgrade test clean update check-sync version help lint validate
 .PHONY: install-tier install-categories install-agents generate-lean list-tiers list-categories copilot-agents
 
 # Directories
@@ -264,6 +264,3 @@ check-sync:
 	@curl -s "https://api.github.com/repos/Roberdan/convergio-cli/commits?path=src/agents/definitions&per_page=1" 2>/dev/null | \
 		grep -E '"sha"|"message"|"date"' | head -6 || echo "Could not fetch (check network)"
 
-sync-agents:
-	@echo "$(BLUE)Syncing agents from .claude/agents/ to agents/...$(NC)"
-	@./scripts/sync-root-agents.sh

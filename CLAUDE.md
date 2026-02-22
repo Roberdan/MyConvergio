@@ -15,7 +15,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-MyConvergio is a collection of 65 specialized Claude Code subagents for enterprise software management, strategic leadership, and technical excellence. Distributed via npm (`npm install -g myconvergio`) or git clone + `make install`. Optimized for Claude Opus 4.6 (adaptive thinking, 128K output).
+MyConvergio is a collection of 65 specialized Claude Code subagents for enterprise software management, strategic leadership, and technical excellence. Distributed via `curl | bash` or `git clone` + `make install`. Zero dependencies (bash + make). Optimized for Claude Opus 4.6 (adaptive thinking, 128K output).
 
 **Core Design**: Single agent context isolation, no direct inter-agent communication, manual orchestration via Task tool.
 
@@ -42,10 +42,10 @@ MyConvergio/
 ## Quick Start
 
 ```bash
+curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
 make install                                        # Full install (~600KB)
 make install-tier TIER=minimal VARIANT=lean          # 5 core agents (~50KB)
-make install-tier TIER=standard VARIANT=lean         # 20 agents (~200KB)
-npm install -g myconvergio                           # Via npm (minimal default)
+myconvergio upgrade                                 # Update to latest
 ```
 
 ## Conventions

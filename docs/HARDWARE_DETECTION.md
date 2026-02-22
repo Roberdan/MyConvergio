@@ -53,19 +53,15 @@ Then adjust these values based on your hardware:
 ### 4-8GB RAM
 
 ```bash
-# Minimal install + consolidated rules
-MYCONVERGIO_PROFILE=minimal npm install -g myconvergio
-cp .claude/rules/coding-standards.md .claude/rules/guardian.md ~/.claude/rules/
+myconvergio install --minimal
 ```
 
-**Expected context usage**: ~50KB (8 agents + consolidated rules)
+**Expected context usage**: ~50KB (9 agents + consolidated rules)
 
 ### 8-16GB RAM
 
 ```bash
-# Standard install + consolidated rules
-MYCONVERGIO_PROFILE=standard npm install -g myconvergio
-cp .claude/rules/coding-standards.md .claude/rules/guardian.md ~/.claude/rules/
+myconvergio install --standard
 ```
 
 **Expected context usage**: ~200KB (20 agents + consolidated rules)
@@ -73,21 +69,18 @@ cp .claude/rules/coding-standards.md .claude/rules/guardian.md ~/.claude/rules/
 ### 16-32GB RAM
 
 ```bash
-# Full install + detailed rules
-MYCONVERGIO_PROFILE=full npm install -g myconvergio
-# Uses detailed rules by default (6 files)
+myconvergio install --full
 ```
 
-**Expected context usage**: ~800KB (57 agents + detailed rules)
+**Expected context usage**: ~800KB (65 agents + detailed rules)
 
 ### 32GB+ RAM (Power Users)
 
 ```bash
-# Lean install for maximum agents with minimal overhead
-MYCONVERGIO_PROFILE=lean npm install -g myconvergio
+myconvergio install --lean
 ```
 
-**Expected context usage**: ~400KB (57 agents, stripped frameworks)
+**Expected context usage**: ~400KB (65 agents, stripped frameworks)
 
 ## Real-World Examples
 
@@ -104,7 +97,7 @@ MYCONVERGIO_PROFILE=lean npm install -g myconvergio
 }
 ```
 
-Installation: `MYCONVERGIO_PROFILE=standard npm install -g myconvergio`
+Installation: `myconvergio install --standard`
 
 ### Workstation (M3 Max, 36GB)
 
@@ -119,7 +112,7 @@ Installation: `MYCONVERGIO_PROFILE=standard npm install -g myconvergio`
 }
 ```
 
-Installation: `MYCONVERGIO_PROFILE=full npm install -g myconvergio`
+Installation: `myconvergio install --full`
 
 ### Budget Laptop (Intel i5, 8GB)
 
@@ -134,7 +127,7 @@ Installation: `MYCONVERGIO_PROFILE=full npm install -g myconvergio`
 }
 ```
 
-Installation: `MYCONVERGIO_PROFILE=minimal npm install -g myconvergio`
+Installation: `myconvergio install --minimal`
 
 ## Monitoring Performance
 
@@ -145,10 +138,10 @@ Check your Claude Code performance:
 cat ~/.claude/settings.json
 
 # Check installed agent count
-myconvergio agents | tail -1
+myconvergio agents
 
-# Check memory usage during Claude Code session
-top -pid $(pgrep -f claude)
+# Check hardware recommendations
+myconvergio settings
 ```
 
 ## Troubleshooting
@@ -156,7 +149,7 @@ top -pid $(pgrep -f claude)
 ### "Out of Memory" Errors
 
 1. Reduce `NODE_OPTIONS` max-old-space-size
-2. Switch to minimal profile: `myconvergio install --minimal`
+2. Switch to minimal profile: `myconvergio install --minimal` or `make install-tier TIER=minimal`
 3. Use consolidated rules instead of detailed
 
 ### Slow Performance

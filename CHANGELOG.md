@@ -1,5 +1,68 @@
 # Changelog
 
+## [9.0.0] - 2026-02-22
+
+### BREAKING CHANGES
+
+- **npm distribution removed**: `npm install -g myconvergio` no longer works
+- **Node.js no longer required**: all tooling is now pure bash + make
+- **Root `agents/` directory removed**: single source of truth is `.claude/agents/`
+- **`MYCONVERGIO_PROFILE` env var removed**: use `myconvergio install --minimal|--standard|--full|--lean` instead
+
+### Migration from npm (v8.x or earlier)
+
+```bash
+# 1. Uninstall npm package
+npm uninstall -g myconvergio
+
+# 2. Install via curl (clones to ~/.myconvergio, installs CLI)
+curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
+
+# 3. Add CLI to PATH (if not already)
+export PATH="$HOME/.local/bin:$PATH"  # add to ~/.zshrc or ~/.bashrc
+
+# 4. Verify
+myconvergio version
+myconvergio agents
+```
+
+Your `~/.claude/` content is preserved. The new installer creates a backup automatically if it detects existing content.
+
+**Command mapping (npm → bash CLI)**:
+
+| Before (npm)                                    | After (bash)                         |
+| ----------------------------------------------- | ------------------------------------ |
+| `npm install -g myconvergio`                    | `curl ... \| bash` or `make install` |
+| `MYCONVERGIO_PROFILE=minimal npm install -g ..` | `myconvergio install --minimal`      |
+| `myconvergio install --full`                    | `myconvergio install --full`         |
+| `myconvergio agents`                            | `myconvergio agents`                 |
+| `myconvergio backup`                            | `myconvergio backup`                 |
+| `myconvergio restore <dir>`                     | `myconvergio restore <dir>`          |
+| `myconvergio settings`                          | `myconvergio settings`               |
+| `myconvergio upgrade`                           | `myconvergio upgrade`                |
+
+### Added
+
+- `install.sh`: universal curl installer (`curl -sSL .../install.sh | bash`)
+- `scripts/myconvergio.sh`: pure bash CLI with all commands (install, upgrade, backup, restore, agents, settings, version)
+
+### Removed
+
+- `package.json`, `package-lock.json`, `.npmignore`
+- `bin/myconvergio.js` (955-line Node.js CLI)
+- `scripts/postinstall.js` (441-line npm postinstall hook)
+- `scripts/backup-manager.js`, `conflict-resolver.js`, `generate-lean-agents.js`, `git-manager.js`, `postinstall-interactive.js`
+- `scripts/sync-root-agents.sh` and Makefile `sync-agents` target
+- Root `agents/` directory (65 duplicated agent files)
+
+### Changed
+
+- README: installation via curl one-liner, git clone + make, or plugin-dir
+- All documentation: npm references replaced with `myconvergio` CLI or `make` commands
+- `.gitignore`: removed `node_modules/`, `.npm`, npm log patterns
+
+---
+
 ## [8.0.0] - 2026-02-22
 
 ### Added

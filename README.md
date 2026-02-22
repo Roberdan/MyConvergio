@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v8.0.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
+**v9.0.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,16 +15,17 @@
 
 ---
 
-## What's New in v8.0.0
+## What's New in v9.0.0
 
-**Wave-per-Worktree: every plan wave gets its own git worktree and PR. Merge = proof that work exists.**
+**Zero-dependency distribution: no npm, no Node.js. Pure bash + make.**
 
-- **`wave-worktree.sh`** — Full lifecycle: create, merge, cleanup, status per wave
-- **PR as merge gate** — Wave marked "done" ONLY after successful merge to main
-- **`merging` status** — New wave state between "in_progress" and "done"
-- **Dashboard visibility** — `dashboard-mini.sh waves <plan_id>` shows worktree/branch/PR/clean status
-- **Backward compatible** — Old plans with plan-level worktrees continue to work
-- **25 tests** — Full suite with 0 failures (pure bash, SCRIPT_DIR portable)
+- **`install.sh`** — Universal curl installer: `curl -sSL .../install.sh | bash`
+- **`myconvergio` CLI** — Pure bash replacement: install, upgrade, backup, restore, agents, settings
+- **Removed npm** — No more `package.json`, `node_modules`, or Node.js dependency
+- **Removed root `agents/` mirror** — Single source of truth: `.claude/agents/`
+- **Easy upgrades** — `myconvergio upgrade` pulls latest and reinstalls
+
+> **Migrating from npm?** See [CHANGELOG.md](./CHANGELOG.md#migration-from-npm-v8x-or-earlier) for step-by-step migration guide.
 
 ---
 
@@ -32,34 +33,28 @@
 
 ### Installation
 
-#### Option A: Clone & Use (Recommended)
+#### Option A: One-Line Install (Recommended)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
+```
+
+Clones to `~/.myconvergio/`, installs agents to `~/.claude/`, adds `myconvergio` CLI to `~/.local/bin/`.
+
+#### Option B: Clone & Make
+
+```bash
+git clone https://github.com/roberdan/MyConvergio.git
+cd MyConvergio
+make install          # Install to ~/.claude/
+```
+
+#### Option C: Clone & Plugin (no copy)
 
 ```bash
 git clone https://github.com/roberdan/MyConvergio.git
 cd MyConvergio
 claude --plugin-dir .
-```
-
-#### Option B: Global npm Install
-
-```bash
-# Full install (all 65 agents)
-npm install -g myconvergio
-
-# Or choose a profile for lower context usage:
-MYCONVERGIO_PROFILE=minimal npm install -g myconvergio  # 9 agents, ~50KB
-MYCONVERGIO_PROFILE=lean npm install -g myconvergio     # 65 agents, ~600KB
-```
-
-Copies agents to `~/.claude/agents/`. See [Context Optimization Guide](./docs/CONTEXT_OPTIMIZATION.md) for details.
-
-#### Option C: Makefile-Based (Advanced)
-
-```bash
-cd MyConvergio
-make install          # Install to ~/.claude/
-make install-copilot  # Install Copilot CLI agents
-make test             # Run test suite (25 tests, 0 failures)
 ```
 
 #### Option D: GitHub Copilot CLI
@@ -274,7 +269,7 @@ Derived from analysis of ~34 real Copilot code review comments across production
 
 | Document                                                                 | Purpose                                             | Priority |
 | ------------------------------------------------------------------------ | --------------------------------------------------- | -------- |
-| [CONSTITUTION.md](./agents/CONSTITUTION.md)                              | Security, Ethics, Identity                          | SUPREME  |
+| [CONSTITUTION.md](./.claude/agents/core_utility/CONSTITUTION.md)         | Security, Ethics, Identity                          | SUPREME  |
 | [guardian.md](./.claude/rules/guardian.md)                               | Thor enforcement, PR rules, completion verification | 2nd      |
 | [coding-standards.md](./.claude/rules/coding-standards.md)               | Code style, security, testing, API design           | 3rd      |
 | [compaction-preservation.md](./.claude/rules/compaction-preservation.md) | Workflow-critical content preservation rules        | 4th      |
@@ -285,7 +280,7 @@ This repository is **fully self-contained**. No external configuration files req
 
 ## Security Framework
 
-All agents implement the [MyConvergio Constitution](./agents/CONSTITUTION.md):
+All agents implement the [MyConvergio Constitution](./.claude/agents/core_utility/CONSTITUTION.md):
 
 | Article | Protection                                                  |
 | ------- | ----------------------------------------------------------- |
@@ -334,7 +329,7 @@ _Read the full [Agentic Manifesto](./AgenticManifesto.md)_
 | **Quality Assurance** | Agents self-report success            | Independent Thor validation (9 gates, reads files directly)       |
 | **State Management**  | Redis/Pinecone/cloud DB               | SQLite file, portable, inspectable, no dependencies               |
 | **Git Safety**        | No git awareness                      | Worktree isolation per plan, branch protection hooks              |
-| **Setup**             | pip install + cloud config            | `git clone` or `npm install -g`, works immediately                |
+| **Setup**             | pip install + cloud config            | `curl \| bash` or `git clone && make install`, zero dependencies  |
 | **Token Efficiency**  | No token awareness                    | Token-Aware Writing: <5% comments, compact commits/PRs, enforced  |
 
 **MyConvergio is not competing with agent frameworks.** It's a **practitioner's toolkit** for engineers who use AI coding assistants daily and need structure, quality gates, cost control, and multi-provider flexibility.
@@ -378,6 +373,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v7.1.0** | February 2026 | Multi-Provider Orchestrator + Claude Code + Copilot CLI
+**v9.0.0** | February 2026 | Zero-Dependency Distribution + Claude Code + Copilot CLI
 
 </div>

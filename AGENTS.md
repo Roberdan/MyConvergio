@@ -1,6 +1,6 @@
 # MyConvergio Agents
 
-**v8.0.0** | 65 Claude Code Agents + 9 Copilot CLI Agents | Multi-Provider Orchestrator
+**v9.0.0** | 65 Claude Code Agents + 9 Copilot CLI Agents | Multi-Provider Orchestrator
 
 > _"Intent is human, momentum is agent"_ — [The Agentic Manifesto](./AgenticManifesto.md)
 
@@ -66,27 +66,21 @@ cd MyConvergio
 claude --plugin-dir .
 ```
 
-#### Option 2: Global Install (Full)
+#### Option 2: Curl Install (Full)
 
 ```bash
-npm install -g myconvergio
+curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
 ```
 
-Copies all 65 agents to `~/.claude/agents/`.
+Clones to `~/.myconvergio/`, copies all 65 agents to `~/.claude/agents/`, installs `myconvergio` CLI.
 
 #### Option 3: Modular Install
 
 ```bash
-# Minimal (9 core agents, ~50KB)
-MYCONVERGIO_PROFILE=minimal npm install -g myconvergio
-
-# Lean (65 agents, ~600KB, 50% smaller)
-MYCONVERGIO_PROFILE=lean npm install -g myconvergio
-
-# Via Makefile (from repo)
-make install                                        # Full install
-make install-tier TIER=minimal VARIANT=lean         # 9 core agents
-make install-tier TIER=standard VARIANT=lean        # 20 agents
+myconvergio install --minimal                       # 9 core agents (~50KB)
+myconvergio install --standard                      # 20 agents (~200KB)
+myconvergio install --lean                          # 65 agents, 50% smaller
+make install-tier TIER=minimal VARIANT=lean         # Same via Makefile
 ```
 
 **Installation Tiers**:

@@ -32,8 +32,7 @@ sync-to-myconvergio.sh --category agents|scripts|skills|rules|copilot
 ## Blocklist (NEVER sync)
 
 - `mirrorbuddy-hardening-checks.md` — project-specific
-- `agents/research_report/Reports/` — personal output
-- `agents/strategic-planner.md` (root) — duplicate
+- `.claude/agents/research_report/Reports/` — personal output
 - Personal sync/dashboard scripts
 
 ## Sanitization Rules
@@ -45,14 +44,14 @@ sync-to-myconvergio.sh --category agents|scripts|skills|rules|copilot
 
 ## Sync Scope
 
-| Source | Target |
-|--------|--------|
-| `~/.claude/agents/` | `.claude/agents/` |
-| `~/.claude/scripts/` | `.claude/scripts/` |
-| `~/.claude/skills/` | `.claude/skills/` |
-| `~/.claude/rules/` | `.claude/rules/` |
-| `~/.claude/copilot-agents/` | `copilot-agents/` |
-| `~/.claude/reference/` | `.claude/reference/` |
+| Source                      | Target               |
+| --------------------------- | -------------------- |
+| `~/.claude/agents/`         | `.claude/agents/`    |
+| `~/.claude/scripts/`        | `.claude/scripts/`   |
+| `~/.claude/skills/`         | `.claude/skills/`    |
+| `~/.claude/rules/`          | `.claude/rules/`     |
+| `~/.claude/copilot-agents/` | `copilot-agents/`    |
+| `~/.claude/reference/`      | `.claude/reference/` |
 
 ## Post-Sync
 

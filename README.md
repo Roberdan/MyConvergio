@@ -37,6 +37,36 @@ graph TB
 
 **Token Optimization**: 65% reduction (209 lines vs 600+ original). See ADR-0007.
 
+## Token-Aware Writing
+
+In an agent-first ecosystem, the primary reader of every artifact is an LLM, not a human. Every token has a cost in money and latency, multiplied by every agent that reads it. This drives a radical policy: **if an agent can derive information from code or context, don't write it down.**
+
+### Principle
+
+Text exists only if it changes agent behavior. Everything else is overhead.
+
+### What This Means in Practice
+
+| Artifact         | Traditional                                                 | Token-Aware                                                                            |
+| ---------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Code comments    | Explain what code does                                      | Only explain WHY when non-obvious. Code is self-documenting. Target <5% comment lines. |
+| Commit messages  | Verbose prose ("This commit introduces a comprehensive...") | Conventional commit, 1 subject line. Body only when subject is insufficient.           |
+| PR descriptions  | Restate what the diff shows                                 | `## Summary` (2-3 bullets) + `## Test plan`. Diff is the documentation.                |
+| Review comments  | Soften feedback ("Perhaps you might consider...")           | Direct: state issue + fix. No hedging.                                                 |
+| Section dividers | `# === SECTION ===` separators                              | None. Function names and structure provide navigation.                                 |
+| Parameter docs   | `# param: the user ID`                                      | Self-documenting names (`userId`). Comment only if semantics are non-obvious.          |
+
+### Enforcement
+
+- **Convention**: `coding-standards.md` Token-Aware Writing section (loaded by all agents)
+- **Automated**: `code-pattern-check.sh` check #9 (`comment_density`) flags P3 when >20%
+- **Thor Gate 4b**: runs `code-pattern-check.sh` during per-task validation
+- **Scope**: applies to both Claude Code and Copilot CLI (via `copilot-instructions.md`)
+
+### Measured Impact
+
+Analysis of 159 shell scripts in this repo: 2,162 comment lines (10%), of which ~552 are redundant (restating what code does). Eliminating redundant comments saves ~4,400 tokens per full repo read.
+
 ## Workflow Flow
 
 ```mermaid

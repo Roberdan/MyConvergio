@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test: ADR 0009 exists and meets format requirements
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ADR_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/docs/adr/0009-compact-markdown-format.md"
 PASS=0

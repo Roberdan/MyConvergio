@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # test-agent-validation.sh
 # Validates ALL agent .md files have valid YAML frontmatter, version header, and are ≤250 lines

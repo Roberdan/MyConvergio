@@ -1,6 +1,7 @@
 #!/bin/bash
 # RED test: plan-db.sh delegation-report should fail before implementation
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 fail_count=0
 

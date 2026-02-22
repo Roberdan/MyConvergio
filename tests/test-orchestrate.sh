@@ -1,6 +1,7 @@
 #!/bin/bash
 # RED test for orchestrate.sh --use-delegate flag
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 fail() {
 	echo "FAIL: $1"

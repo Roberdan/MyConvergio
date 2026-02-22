@@ -1,3 +1,5 @@
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Test: Status Accepted in ADR 0010
 
 ## Should contain 'Status: Accepted'

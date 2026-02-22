@@ -1,25 +1,64 @@
 # Changelog
 
-All notable changes to MyConvergio will be documented in this file.
+## [7.1.0] - 2026-02-22
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### Added
+
+- Token-Aware Writing policy: text exists only if it changes agent behavior
+- `comment_density` check (#9) in code-pattern-check.sh (P3 when >20%)
+- Token-Aware Writing sections in both READMEs + coding-standards + copilot-instructions
+- "Token Efficiency" row in Market Differentiation table
+- `/optimize-project` skill adds token-aware project audits, savings reports, and automated cleanup suggestions
+
+### Changed
+
+- `coding-standards.md`: Token-Aware Writing (code comments, commits, PRs, docs, ADRs, changelogs)
+- `copilot-instructions.md`: Token-Aware Writing + digest mappings
+- CHANGELOG compacted per token-aware rules (803→~150 lines)
+
+---
+
+## [7.0.0] - 2026-02-22
+
+### Added
+
+- Global config sync: v8.0.0 ecosystem optimization (anti-hallucination, token reduction, Copilot parity)
+- `copilot-config/copilot-instructions.md` synced from global
+
+### Changed
+
+- README: v7.1.0, Token-Aware Writing section, 3-Layer Quality Stack docs
+- All agents, scripts, hooks aligned with upstream v8.0.0
+
+---
+
+## [6.3.0] - 2026-02-22
+
+### Added
+
+- 3-Layer Pre-PR Quality Stack: `code-pattern-check.sh` (9 checks), `copilot-review-digest.sh`, `/review-pr` skill, `copilot-patterns.md`
+- Thor Gate 4b: automated pattern checks (P1=REJECT, P2=WARN)
+
+### Changed
+
+- `service-digest.sh`: `copilot` subcommand + parallel in `all`
+- `thor-validation-gates.md` v3.0.0, `thor-quality-assurance-guardian.md` v5.1.0: Gate 4b
+- `prefer-ci-summary.sh` v1.2.0, `digest-scripts.md`, `tool-preferences.md`: new mappings
+
+---
 
 ## [6.2.0] - 2026-02-21
 
 ### Added
 
-- **Thor Gate 3: Credential Scanning** (ISE Playbook): Explicit grep patterns for AWS keys (AKIA/ASIA), API keys (sk-), GitHub tokens (ghp\_/gho\_/ghs\_/ghr\_), hardcoded passwords, connection strings, and private keys. REJECT on match. Source: [ISE Engineering Fundamentals — Security](https://microsoft.github.io/code-with-engineering-playbook/security/)
-- **Failed Approaches Tracking** (HVE Core): Executor logs `{task_id, approach, reason}` via `plan-db.sh log-failure` on max retries. Planner reads prior failures via `plan-db.sh get-failures` and avoids repeating same approach. Project-scoped, persists across plans.
-- **`plan-spec-schema.json`** (HVE Core): JSON Schema for spec.json validation before plan import. Enforces required fields, F-xx ID patterns, verify arrays, effort 1-3 range, task type enum. Blocks malformed plans before they consume tokens.
-- **Planner step 2.1 Schema Validation**: Mandatory validation of spec.json against schema between spec generation and import. Falls back to structural check if `jsonschema` not installed.
-- **Engineering Foundations section in README**: Documents alignment with ISE Engineering Playbook and HVE Core. Includes 17-row alignment table, 4 adopted HVE patterns, and "Where MyConvergio Goes Beyond Both" section.
+- Thor Gate 3: credential scanning (AWS keys, API keys, GH tokens, passwords, private keys)
+- Failed Approaches Tracking: `plan-db.sh log-failure`/`get-failures`
+- `plan-spec-schema.json`: JSON Schema for spec.json validation
+- Engineering Foundations section in README (ISE + HVE alignment)
 
 ### Changed
 
-- Thor agent `v5.0.0` → `v5.1.0`: Gate 3 expanded with credential scanning sub-check
-- Planner command `v2.0.0` → `v2.1.0`: Failed approaches check in step 1.5, schema validation in step 2.1, section 10 (Failed Approaches Tracking)
-- Executor command `v2.1.0` → `v2.2.0`: Failed approaches logging on max retries before marking blocked
+- Thor v5.0.0→v5.1.0, Planner v2.0.0→v2.1.0, Executor v2.1.0→v2.2.0
 
 ---
 
@@ -27,9 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Planner Rule 11 — TF-tests**: Mandatory test consolidation task in every plan's final wave, before TF-pr. Deduplicates tests, extracts shared setup, enforces portable paths (SCRIPT_DIR), categorizes by type (unit/integration/e2e), removes broken leftovers. Prevents test debt accumulation across plans.
-- **All slash commands tracked**: `/prompt`, `/planner`, `/execute`, `/research`, `/release`, `/prepare` plus planner-modules (model-strategy, parallelization-modes, knowledge-codification) and execute-modules (error-handling) — previously gitignored, now shipped with npm package
-- **.claude/commands/ in gitignore allowlist**: Commands directory now tracked alongside agents, scripts, config
+- Planner Rule 11 — TF-tests: mandatory test consolidation in final wave
+- All slash commands tracked (prompt, planner, execute, research, release, prepare + modules)
 
 ---
 
@@ -37,87 +75,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Convergio Orchestrator v1**: Multi-provider intelligent delegation engine
-  - `delegate.sh` (v1.0.0): Central dispatcher routing tasks to Claude, Copilot CLI, OpenCode (local/Ollama), Gemini
-  - `execute-plan.sh` (v1.0.0): Unified plan executor with per-task engine routing from DB
-  - `copilot-worker.sh` (v2.0.0): Enhanced Copilot CLI worker with `--allow-all`, `--add-dir`, model selection
-  - `opencode-worker.sh` (v1.0.0): Local model worker via Ollama/OpenCode CLI
-  - `gemini-worker.sh` (v1.0.0): Google Gemini CLI worker
-  - `model-registry.sh` (v1.0.0): Refresh/list/diff/check model registry from orchestrator.yaml
-  - `env-vault.sh` (v1.0.0): Per-project secrets management with Key Vault integration
-  - `worktree-safety.sh` (v1.0.0): Pre-flight worktree isolation checks
-  - `hardening-check.sh` (v1.0.0): Personal data scanner for public repo safety
-  - `orchestrator-test.sh` (v1.0.0): Orchestrator component validation suite
-
-- **Orchestrator Libraries** (`.claude/scripts/lib/`):
-  - `delegate-utils.sh` (v1.0.0): Provider health checks, budget enforcement, routing logic
-  - `agent-protocol.sh` (v1.0.0): Inter-agent communication protocol
-  - `gh-ops-routing.sh` (v1.0.0): GitHub operations routing (PR, issues, CI)
-  - `quality-gate-templates.sh` (v1.0.0): Reusable Thor quality gate templates
-  - `plan-db-delegate.sh` (v1.0.0): Plan DB extensions for delegation tracking
-  - `dashboard-delegation.sh` (v1.0.0): Dashboard extensions for delegation metrics
-
-- **Configuration** (`.claude/config/`):
-  - `orchestrator.yaml`: 4 providers, routing rules (priority/type/privacy), budget caps, vault references, learnings section (codified patterns from 400-commit analysis: 7 problems, 4 quality gates)
-
-- **Hooks** (`.claude/hooks/`):
-  - `model-registry-refresh.sh`: Auto-refresh model registry when stale (>14d background, >7d info)
-
-- **Documentation**:
-  - `gemini-setup.md`: Gemini CLI setup guide
-  - README: Comprehensive Convergio Orchestrator section with Mermaid architecture diagram
-  - README: "How MyConvergio Differs from Market Solutions" competitive analysis (12 dimensions)
-
-- **25 test files** with 0 failures: Pure bash, SCRIPT_DIR portable, no bats dependency
-  - Orchestrator tests: delegate, agent-protocol, model-registry, env-vault, worktree-safety, e2e, setup
-  - Infrastructure tests: execute-plan, gh-ops, quality-gates, version-check, postinstall, install-config
-
-- **New agents**: `pr-comment-resolver.md` for automated PR thread resolution
-- **New skill**: `hardening/SKILL.md` for repo hardening audits
-- **New scripts**: `pr-threads.sh`, `cleanup-empty-dbs.sh`, `file-lock-session.sh`, `file-lock-utils.sh`, `migrate-v6-session-locks.sh`, `migrate-v7-orchestrator.sh`
+- Convergio Orchestrator v1: delegate.sh, copilot/opencode/gemini workers, model-registry.sh, env-vault.sh
+- Orchestrator libs: delegate-utils.sh, agent-protocol.sh, gh-ops-routing.sh, quality-gate-templates.sh
+- orchestrator.yaml: 4 providers, routing rules, budget caps
+- 25 test files (0 failures), pr-comment-resolver agent, hardening skill
+- Session file locking: file-lock-session.sh, migrate-v6/v7 scripts
 
 ### Changed
 
-- **task-executor.md** (v2.2.0 → v2.3.0): Per-task engine routing support (`executor_agent` field)
-- **copilot-worker.sh** (v1.0.0 → v2.0.0): Model selection, `--add-dir` for worktree, improved error handling
-- **dashboard-mini.sh**: Delegation metrics, PR/CI/merge status, worktree check
-- **plan-db.sh**: Delegation tracking columns (`executor_agent`, `model`, `delegation_status`)
-- **plan-db-safe.sh**: Auto-validate cascade with delegation awareness
-- **orchestrate.sh**: Multi-provider dispatch integration
-- **collect-github.sh**, **pr-digest.sh**, **pr-ops.sh**: Enhanced GitHub operations
-- **diana-performance-dashboard.md**, **sentinel-ecosystem-guardian.md**: Updated for orchestrator awareness
-- **coding-standards.md**: Bicep IaC standards, async/await rules, SQL bind parameters
-- **tool-preferences.md**: Script Discovery section, CI/build command optimization table
-- **concurrency-control.md**, **execution-optimization.md**: Orchestrator integration docs
-- **install-config.json**: Added orchestrator scripts to installation manifest
-- **postinstall.js**: Copies config/, docs/, hooks/ directories
+- task-executor v2.2.0→v2.3.0: per-task engine routing
+- copilot-worker.sh v1.0.0→v2.0.0: model selection, --add-dir
+- coding-standards.md: Bicep IaC, async/await, SQL bind parameters
 
 ### Security
 
-- **Sanitized orchestrator.yaml**: Template examples only, no real project names or keyvault references
-- **model-registry.sh**: Fixed hardcoded path (`/Users/roberdan/...` → `${CLAUDE_HOME:-$HOME/.claude}/...`)
-- **hardening-check.sh**: Automated scan for personal data, API keys, hardcoded paths in public files
+- Sanitized orchestrator.yaml (no real project names/keyvault refs)
+- Fixed hardcoded paths in model-registry.sh
+- hardening-check.sh: automated personal data/API key scanning
 
 ---
 
 ## [5.1.1] - 2026-02-15
 
-### Added
-
-- **dashboard-mini.sh**: `human_summary` column support for cleaner plan descriptions
-- **dashboard-mini.sh**: `truncate_desc()` function to strip agentic metadata (worktree paths, workflow blocks, agent instructions) and humanize display
-
 ### Fixed
 
-- **dashboard-mini.sh**: Multiline parsing bugs in task/wave descriptions (replaced `char(10)` and `char(13)` in SQLite queries)
-- **plan-db-crud.sh**: Defensive status validation with helpful error messages (prevents agent hallucinated commands)
-- **plan-db-core.sh**: Improved validation error handling
-- **sync-to-myconvergio.sh**: `.DS_Store` files in subdirectories now correctly filtered
-
-### Changed
-
-- **planner-rules.md**: Updated to reflect defensive validation patterns
-- **plan-scripts.md**: Documentation alignment with validation improvements
+- dashboard-mini.sh: human_summary support, multiline parsing, truncate_desc()
+- plan-db-crud.sh: defensive status validation
+- sync-to-myconvergio.sh: .DS_Store subdirectory filtering
 
 ---
 
@@ -125,38 +109,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **pr-ops.sh** (v1.0.0): PR write/action operations (reply, resolve, merge, status) with readiness checks. Complements pr-digest.sh (read-only)
-- **script-versions.sh** (v1.1.0): Auto-generated index of all scripts with versions, categories, and staleness detection. Supports `--json`, `--stale`, `--category <name>`. Portable path resolution (npm global, `~/.claude`, local clone)
-- **plan-db-safe.sh** (v3.0.0): Auto-validate cascade after marking tasks done — prevents 0% dashboard progress bug. Validates task, wave completion, and plan closure automatically
-- **session-recovery.sh**: Session recovery with uncommitted change detection
-- **research-report-generator agent** + templates: Morgan Stanley-style LaTeX report generation with config and compile scripts
-- **ecosystem-sync agent**: On-demand sync from upstream config with sanitization and blocklist (Claude Code format)
-- **compaction-preservation.md**: Rules for preserving workflow-critical content during file compaction
-- **11 new reference docs**: agent-routing, workflow-details, thor-gate-details, compact-format-guide, agent-discovery, api-development, code-style, documentation-standards, ethical-guidelines, execution, guardian, security-requirements, testing-standards, MIGRATION-GUIDE, MASTER_STATUS
-- **Thor git hooks**: `thor-commit-guard.sh`, `thor-git-hook.sh` for pre-commit validation
-- **PLANNER-QUICKREF.md**, **PLAN-DB-FIXES.md**, **HOWTO-disable-mcp.md**: Operational documentation
+- pr-ops.sh v1.0.0: PR write operations (reply, resolve, merge, status)
+- script-versions.sh v1.1.0: script index with versions, categories, staleness
+- plan-db-safe.sh v3.0.0: auto-validate cascade (fixes 0% dashboard progress)
+- session-recovery.sh, research-report-generator agent, ecosystem-sync agent
+- compaction-preservation.md, 11 reference docs, Thor git hooks
 
 ### Changed
 
-- **task-executor.md** (v2.1.0 → v2.2.0): CRITICAL — always use `plan-db-safe.sh` for `done` status (auto-validates)
-- **prefer-ci-summary.sh** (v1.1.0 → v1.2.0): Block `gh pr merge` (use `pr-ops.sh merge`), block verbose `gh pr view` (use `pr-ops.sh status`), hint for `pr-ops.sh reply`
-- **copilot execute.agent.md**: Updated to use `plan-db-safe.sh` for done status
-- **copilot-instructions.md**: Consolidated `plan-db-safe.sh` as single command for done, table formatting cleanup
-- **plan-db-validate.sh**: Major expansion with stricter validation logic
-- **dashboard-mini.sh**: Auto-expand tasks in single plan view, troubleshooting section
-- **tool-preferences.md**: Added pr-ops.sh mappings, Script Discovery section
-- **agent-routing.md**: Added `script-versions.sh` to repo knowledge
-- **planner-rules.md**, **plan-scripts.md**, **PLANNER-ARCHITECTURE.md**, **README.md**: All references updated to use `plan-db-safe.sh` for done
-- **thor-quality-assurance-guardian.md**, **thor-validation-gates.md**: Compacted format
-- **CommonValuesAndPrinciples.md**, **EXECUTION_DISCIPLINE.md**: Updated
-- **coding-standards.md**, **guardian.md**: Rule refinements
-- Multiple reference/operational docs: concurrency-control, copilot-alignment, digest-scripts, execution-optimization, external-services, memory-protocol, worktree-discipline — aligned with upstream
-
-### Fixed
-
-- **0% dashboard progress bug**: `plan-db-safe.sh` now auto-validates task/wave/plan after marking done
-- **Personal path sanitization**: Replaced hardcoded `/Users/roberdan` with `~/.claude` in AGENT-ROUTING.md, MIGRATION-GUIDE.md, plan-db-crud.sh
-- **sync-to-myconvergio.sh**: `.DS_Store` files in subdirectories now filtered correctly
+- task-executor v2.1.0→v2.2.0: always use plan-db-safe.sh for done
+- prefer-ci-summary.sh v1.1.0→v1.2.0: block gh pr merge/view
+- All plan-scripts/planner refs updated to plan-db-safe.sh
 
 ---
 
@@ -164,26 +127,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **GitHub Copilot CLI support**: 9 agents in `copilot-agents/` directory
-  - Workflow: `@prompt`, `@planner`, `@execute`, `@validate`, `@tdd-executor`
-  - Utility: `@code-reviewer`, `@compliance-checker`, `@strategic-planner`, `@ecosystem-sync`
-- **ecosystem-sync agent** (v1.0.0, release_management): On-demand sync from upstream config to MyConvergio with sanitization, blocklist, dry-run mode. Dual format (Claude Code + Copilot CLI)
-- **sync-to-myconvergio.sh**: Replacement sync script with category filtering, personal path detection, and blocklist enforcement
+- GitHub Copilot CLI: 9 agents (prompt, planner, execute, validate, tdd-executor, code-reviewer, compliance-checker, strategic-planner, ecosystem-sync)
+- sync-to-myconvergio.sh with category filtering and blocklist
 
 ### Removed
 
-- **Web dashboard** (`dashboard/` directory): Replaced by CLI mini-dashboard (`dashboard-mini.sh`). The web version had an unfixed path traversal vulnerability and required Node.js + browser. The CLI dashboard is zero-dependency (bash + sqlite3), cross-platform (macOS, Linux, WSL2), and reads the same SQLite database. Web dashboard remains in git history (v4.8.0) for reference.
-- 7 internal development docs from root: EXECUTOR_TRACKING, IMPLEMENTATION_PLAN, IMPLEMENTATION_STATUS, TEST_PLAN, RELEASE_NOTES_3.6.0, dashboard-audit-report, dashboard-complete-audit
-- 6 internal/duplicate docs from `docs/`: progress tracking, optimization plans, audit baselines, duplicate context-optimization
-- Stray `~` directory artifact
-
-### Changed
-
-- **README**: Added Copilot CLI section, hero Mermaid diagram, CLI dashboard docs, Windows/WSL2 note
-- **copilot-alignment.md**: Updated with upstream sync flow documentation
-- **.npmignore**: Include `copilot-agents/` in npm package
-- **CHANGELOG**: Sanitized personal path references
-- **plan-db-crud.sh**: Replaced personal path examples with generic `/Users/user/`
+- Web dashboard (replaced by CLI dashboard-mini.sh, zero-dependency bash+sqlite3)
+- 13 internal development docs
 
 ---
 
@@ -191,35 +141,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **5 new agents** (60 → 65 total):
-  - `sentinel-ecosystem-guardian` (v1.0.0, core_utility): Ecosystem evolution manager for auditing and updating Claude Code configuration
-  - `research-report-generator` (v1.3.0, specialized_experts): Morgan Stanley-style professional research report generator with LaTeX output
-  - `task-executor-tdd` (v1.0.0, technical_development): TDD workflow module for task-executor (RED→GREEN→REFACTOR)
-  - `thor-validation-gates` (v1.0.0, core_utility): Validation gates module for Thor quality system
-  - `app-release-manager-execution` (v3.2.0, release_management): Execution phases (3-5) for app-release-manager
-- **6 new lib scripts**: `colors.sh`, `plan-db-cluster.sh`, `plan-db-conflicts.sh`, `plan-db-drift.sh`, `plan-db-import.sh`, `plan-db-remote.sh`
-- **4 new reference docs**: `plan-scripts.md`, `digest-scripts.md`, `concurrency-control.md`, `copilot-alignment.md`
+- 5 agents (60→65): sentinel-ecosystem-guardian, research-report-generator, task-executor-tdd, thor-validation-gates, app-release-manager-execution
+- 6 lib scripts, 4 reference docs
 
 ### Changed
 
-- **Global config sync**: Full alignment with upstream configuration (105 issues fixed in prior audit)
-- **11 agents updated**: thor (v3.4.0), task-executor (v2.1.0), marcus (v1.1.0), adversarial-debugger (v1.1.0), socrates (v1.1.0), wanda (v2.1.0), xavier (v2.1.0), diana (v1.1.0), po (v1.1.0), taskmaster (v1.1.0), app-release-manager (v3.3.0)
-- **strategic-planner** (v3.0.0): Major update with wave-based task decomposition and parallel execution
-- **78 scripts + 11 lib scripts synced** from global config (all with version headers, `set -euo pipefail`)
-- **12 hooks synced** with SQL injection fixes (`sql_escape()` function), reliability improvements
-- **7 reference docs updated**: codegraph, continuous-optimization, execution-optimization, external-services, memory-protocol, tool-preferences, worktree-discipline
-- **10 commands updated**: execute, planner (2.2K→9.4K), prepare, prompt, release, research + 4 modules
-- **7 skills updated**: architecture, code-review, debugging, documentation, orchestration, performance, security-audit
-- **high-spec.json**: Added `statusLine`, `effortLevel`, context-audit Setup hook
-
-### Removed
-
-- **10 deprecated scripts**: `plan-db-fixed-functions.sh`, `plan-db-helpers.sh`, `plan-db-plan.sh`, `plan-db-safe.sh`, `plan-db-sync.sh`, `plan-db-task.sh`, `plan-db-validate.sh` (root), `plan-db-wave.sh`, `PLAN-DB-FIXES.md`, `PLANNER-QUICKREF.md`
+- Global config sync (105 issues fixed), 11 agents updated
+- strategic-planner v3.0.0: wave-based decomposition + parallel execution
+- 78 scripts + 11 libs synced, 12 hooks with SQL injection fixes
 
 ### Security
 
-- **SQL injection fix**: All hooks using SQLite now use `sql_escape()` to sanitize inputs (was vulnerable to injection via filenames/tool names)
-- **Script hardening**: All 89 scripts now use `set -euo pipefail`, `trap cleanup EXIT`, quoted variables
+- All hooks use sql_escape() for SQLite inputs
+- All 89 scripts: set -euo pipefail, trap, quoted vars
 
 ---
 
@@ -227,7 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **selective-install.sh**: Removed `local` keyword from 7 occurrences outside functions (fixes `make install-tier`, closes #1)
+- selective-install.sh: removed `local` outside functions (closes #1)
 
 ---
 
@@ -235,22 +169,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Agent Teams support**: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env var in all settings templates
-- **TeammateIdle/TaskCompleted hooks**: Track team events in token dashboard (all settings tiers)
-- **Setup hook**: Auto-detect Claude Code version changes via version-check.sh (high-spec)
-- **memory field**: Added to all 60 invocable agents (user/project scope based on category)
-- **maxTurns field**: Added to all 60 invocable agents (15-50 based on role complexity)
+- Agent Teams: CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS env var
+- TeammateIdle/TaskCompleted hooks, Setup hook (version-check.sh)
+- memory + maxTurns fields on all 60 agents
 
 ### Changed
 
-- **TodoWrite → Tasks API**: Migrated strategic-planner, ali-chief-of-staff, anna-executive-assistant to TaskCreate/TaskList/TaskGet/TaskUpdate
-- **EXECUTION_DISCIPLINE.md**: Updated TodoWrite reference to TaskCreate
-- **track-tokens.sh**: Added teammate-idle and task-completed event handling
-- **Settings templates**: Added AGENT_TEAMS env var
-
-### Fixed
-
-- Agent frontmatter alignment with Claude Code v2.1.42 schema (memory, maxTurns fields)
+- TodoWrite→Tasks API migration (strategic-planner, ali, anna)
 
 ---
 
@@ -258,17 +183,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **adversarial-debugger agent** (v1.0.0): Spawns 3 parallel Explore subagents with competing hypotheses for complex bug diagnosis. Read-only, evidence-based, adversarial pattern inspired by Agent Teams.
-- **plan-db-safe.sh**: Wrapper around plan-db.sh with pre-checks (file existence, lint, untracked tests) before allowing update-task done transitions.
+- adversarial-debugger agent v1.0.0: 3 parallel Explore subagents
+- plan-db-safe.sh wrapper with pre-checks
 
 ### Changed
 
-- **Settings templates**: Removed deprecated `MAX_THINKING_TOKENS` from all tiers (Opus 4.6 uses adaptive thinking). Doubled `CLAUDE_CODE_MAX_OUTPUT_TOKENS` across all tiers (high: 128K, mid: 64K, low: 32K) to leverage Opus 4.6 128K output support.
-- **CLAUDE.md**: Updated agent count (59), added Opus 4.6 optimization note, added adversarial-debugger to technical_development category.
-
-### Removed
-
-- `MAX_THINKING_TOKENS` env var from all settings templates (deprecated on Opus 4.6, replaced by adaptive thinking with effort levels).
+- Settings: removed MAX_THINKING_TOKENS (Opus 4.6 adaptive), doubled output tokens
 
 ---
 
@@ -276,503 +196,183 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Hooks System**: 10 enforcement hooks + lib for token optimization (~21k tokens saved/session)
-  - `prefer-ci-summary.sh`: Blocks verbose CLI commands, enforces digest scripts
-  - `enforce-line-limit.sh`: PostToolUse guard for 250-line file limit
-  - `worktree-guard.sh`: Prevents destructive git operations on main
-  - `warn-bash-antipatterns.sh`: Flags cat/grep/find when Read/Grep/Glob preferred
-  - `auto-format.sh`: Auto-runs prettier/eslint on edited files
-  - `inject-agent-context.sh`: Loads project context for subagent launches
-  - `preserve-context.sh`: Saves context before compaction
-  - `session-end-tokens.sh`: Logs token usage on session end
-  - `track-tokens.sh`: Tracks cumulative token usage
-  - `lib/common.sh`: Shared utilities for all hooks
-- **Digest Scripts**: 14 token-optimized CLI wrappers replacing verbose commands
-  - git-digest, build-digest, test-digest, npm-digest, audit-digest, ci-digest,
-    diff-digest, error-digest, merge-digest, migration-digest, pr-digest,
-    service-digest, deploy-digest, ci-check
-- **Reference Documentation**: 7 on-demand docs in `.claude/reference/operational/`
-  - tool-preferences, execution-optimization, memory-protocol, continuous-optimization,
-    worktree-discipline, external-services, codegraph
-- **Settings Templates**: Hardware-specific hooks configuration
-  - `high-spec.json`: Full 11 hooks (PreToolUse, PostToolUse, SubagentStart, PreCompact, Stop)
-  - `mid-spec.json`: 7 hooks (no sqlite3-dependent Stop hook)
-  - `low-spec.json`: 3 essential hooks (worktree-guard, prefer-ci-summary, enforce-line-limit)
-- **Rules**: Added `coding-standards.md` matching global Claude config
+- Hooks system: 10 enforcement hooks + lib (~21k tokens/session saved)
+- Digest scripts: 14 token-optimized CLI wrappers
+- Reference docs: 7 on-demand in .claude/reference/operational/
+- Settings templates: high/mid/low-spec.json
+- coding-standards.md rule
 
 ### Changed
 
-- **CLAUDE.md (root)**: Compacted from 653 to 82 lines (87% reduction)
-- **guardian.md**: Replaced with compact 29-line version matching global config
-- **Makefile**: Updated install/clean/version targets for hooks, reference, scripts
-- **bin/myconvergio.js**: Install/backup/uninstall now handles hooks + reference directories
-- **scripts/postinstall.js**: npm postinstall now copies hooks + reference + chmod +x
-- **package.json**: Added hooks/ and .claude/reference/ to files array, version 4.5.0
-- **.claude/CLAUDE.md**: Fixed model reference ("Claude Code"), line limit (250)
+- CLAUDE.md 653→82 lines (-87%)
+- All 16 oversized agents trimmed to max 250 lines (-3308 lines)
+- 6 oversized skills trimmed (-804 lines)
 
-### Improved
-
-- **Token Optimization**: Hooks + digest scripts save ~21k tokens per session
-- **Install System**: Full coverage of all components (agents, rules, skills, hooks, reference, scripts)
-- **Global Config Alignment**: Rules, hooks, and settings now match author's optimized ~/.claude/
-- **Agent Compaction**: All 16 oversized agents trimmed to max 250 lines (total -3308 lines)
-  - Heavy agents split into compact core + `.claude/reference/` docs
-  - 4 new reference docs: task-executor-workflow, app-release-checklist, ali-orchestration-protocol, strategic-planner-modules
-- **Skill Compaction**: All 6 oversized skills trimmed to max 250 lines (-804 lines)
-- **Removed**: `thor-quality-assurance-guardian.lean.md` (was larger than full version)
-- **Fixed**: `commands/status.md` — agent count (57→58), version (3.0.0→4.5.0)
-- **Fixed**: "Claude 4.5" outdated references → generic model-agnostic text
+---
 
 ## [4.4.0] - 2026-01-27
 
 ### Added
 
-- **Context Isolation**: Added `context_isolation: true` to key agents for token optimization
-  - task-executor, thor-quality-assurance-guardian, strategic-planner
-- **Skills Frontmatter**: All 9 skills now have YAML frontmatter with:
-  - `context: fork` for isolated execution
-  - `allowed-tools` for security boundaries
-  - `user-invocable: true` for slash command access
-
-### Changed
-
-- **task-executor** (v1.5.0): Added TDD workflow, disallowedTools, context isolation
-- **thor-quality-assurance-guardian** (v3.3.0): Fixed tools (removed invalid LS, added Bash+Task), context isolation
-- **strategic-planner** (v2.0.0): Updated to opus model, context isolation
+- Context isolation on task-executor, thor, strategic-planner (50-70% token reduction)
+- Skills YAML frontmatter: context fork, allowed-tools, user-invocable
 
 ### Fixed
 
-- **plugin.json**: Version aligned with package.json (was 3.0.0, now 4.4.0)
-- **Invalid "LS" tool**: Replaced in 5 agents (diana, marcus, socrates, ava, baccio)
-- **Invalid custom tools**: Cleaned anna-executive-assistant, ali-chief-of-staff, guardian-ai-security-validator
-- **Missing fields**: Added tools/color to app-release-manager, feature-release-manager
-- **Malformed frontmatter**: Fixed feature-release-manager YAML structure
+- plugin.json version aligned, invalid LS tool in 5 agents, malformed frontmatter
 
-### Improved
-
-- **Token Optimization**: Context isolation reduces token usage by 50-70% per subagent call
-- **Claude Code 2.1.20 Alignment**: All configurations aligned with latest Claude Code features
+---
 
 ## [4.3.0] - 2026-01-18
 
 ### Added
 
-- **Strategic Planner Modules**: Extracted reusable modules from strategic-planner.md
-  - `strategic-planner-templates.md`: Plan document templates and formats
-  - `strategic-planner-thor.md`: Thor validation gate integration
-  - `strategic-planner-git.md`: Git worktree workflow for parallel execution
-- **Worktree Scripts**: New shell scripts for worktree management
-  - `worktree-create.sh`: Creates worktree with automatic .env symlinks
-  - `worktree-check.sh`: Shows current git context with worktree verification
+- Strategic planner modules: templates, thor integration, git worktree workflow
+- worktree-create.sh, worktree-check.sh
 
-### Changed
-
-- **guardian.md**: Updated rules with performance gates and zero technical debt enforcement
-- **Dashboard Kanban**: Enhanced with git state snapshot, validation badges, and confidence indicators
-
-### Improved
-
-- **Git State Tracking**: Plans now capture `git_clean_at_closure` status
-- **Kanban UX**: Better visual indicators for validation status (Verified/Unverified/Inconsistent)
+---
 
 ## [4.2.0] - 2026-01-10
 
-### Added
-
-- **Enhanced Route Handling**: Server now passes `url` parameter to route handlers for query string access
-- **Token Aggregation**: Plan tokens now aggregate from both `token_usage` table and `tasks.tokens` field
-
 ### Changed
 
-- **Dashboard Sync**: Full synchronization of dashboard components from development environment
-  - Updated server.js with improved route handling
-  - Updated routes-plans-core.js with token aggregation and computed wave dates
-  - Updated routes-notifications.js with proper JSON body parsing
-  - Updated 9 JS modules (charts, gantt-core/render/view, github-data, toast, unified-waves, views-core/secondary)
-  - Updated 12 CSS files (gantt-\*, bug-tracker, main)
+- Dashboard sync: server.js route handling, token aggregation, wave dates, notification API
+- Portability: removed project-specific references
 
-### Fixed
-
-- **Token Display**: Token statistics now correctly aggregate from all sources
-- **Wave Dates**: Wave started_at and completed_at now computed from tasks when null
-- **Notification API**: Fixed JSON body parsing for POST requests
-- **Portability**: Removed all project-specific references (replaced with generic examples)
-  - Updated EXECUTOR_TRACKING.md with generic project names
-  - Updated IMPLEMENTATION_STATUS.md with generic examples
-  - Updated docs/projects.md with template content
-  - Updated strategic-planner.md examples
-  - Fixed dashboard default labels
-
-## [3.8.0] - 2026-01-03
-
-### Added
-
-- **EXECUTION_DISCIPLINE.md**: New foundational document defining execution standards
-  - Location: `.claude/agents/core_utility/EXECUTION_DISCIPLINE.md`
-  - 10 articles covering planning, verification, error recovery, parallel execution, quality gates, git discipline
-  - Second in priority after CONSTITUTION.md
-  - Single source of truth for all execution rules
-
-- **Example CLAUDE.md Configuration**: Template for users integrating MyConvergio
-  - Location: `docs/examples/CLAUDE.md`
-  - Portable template showing agent invocation and framework reference
-
-### Changed
-
-- **Self-Contained Repository**: Repository now fully self-contained and publishable
-  - Removed all external configuration dependencies
-  - Removed all hardcoded author-specific paths (e.g. `/Users/NAME/` → generic paths)
-  - No SmartClaude.md or external file references
-
-- **.claude/CLAUDE.md**: Refactored using Reference Model
-  - Reduced from 257 lines to 119 lines (54% reduction)
-  - Removed duplicated execution rules (now in EXECUTION_DISCIPLINE.md)
-  - Retains only: project context, agent development, architecture, references
-
-- **Root CLAUDE.md**: Added self-contained framework declaration
-
-### Improved
-
-- **Context Efficiency**: ~4,000 tokens saved per session by eliminating duplication
-- **Document Hierarchy**: Clear priority order established
-  - CONSTITUTION > EXECUTION_DISCIPLINE > Values > Agent Definitions > User Instructions
-
-### Fixed
-
-- Removed 27+ hardcoded `/Users/NAME/` paths across 10 files
-- Fixed all test documentation paths to use relative/generic paths
+---
 
 ## [4.1.0] - 2026-01-07
 
 ### Added
 
-- **Dashboard Overhaul**: Modular UI with Gantt timeline, kanban views, markdown viewer, conversation viewer, and bug tracking
-- **Dashboard API Tests**: Comprehensive API test suites and reports
-- **Plan-DB Utilities**: New migration helpers, validators, and quick reference docs
-- **Task Executor Agent**: Added `task-executor.md` to `.claude/agents/technical_development/`
-- **Workflow Guide**: New `docs/workflow.md` covering Prompt → Planner → Execution → Thor → Dashboard
+- Dashboard overhaul: Gantt, kanban, markdown/conversation viewers, bug tracking
+- task-executor agent, workflow guide
+
+---
+
+## [3.8.0] - 2026-01-03
+
+### Added
+
+- EXECUTION_DISCIPLINE.md: 10 articles, second priority after CONSTITUTION
 
 ### Changed
 
-- **Global Config Sync**: Updated rules, commands, scripts, and agents to match latest global config
-- **Documentation Refresh**: Dashboard and orchestration docs updated for new capabilities
-- **Portability**: Removed author-specific paths from public docs and routing rules
+- Self-contained repo: removed external deps, hardcoded paths
+- CLAUDE.md 257→119 lines (-54%)
 
-### Fixed
-
-- **Constitution Compliance**: Added missing articles for CI validation
+---
 
 ## [3.7.0] - 2026-01-02
 
 ### Added
 
-- **Context Optimization System**: Three-tier installation profiles with hardware-aware configuration
-  - **Minimal Profile** (8 agents, ~50KB): Core development agents for low-memory systems (8GB RAM)
-  - **Standard Profile** (20 agents, ~200KB): Balanced coverage for mid-tier systems (16GB RAM) - now default
-  - **Full Profile** (57 agents, ~600KB): Complete ecosystem for high-end systems (32GB+ RAM)
-  - **Lean Agent Variants**: Stripped versions with ~50% context reduction, preserving full functionality
-  - **Consolidated Rules**: Single `engineering-standards.md` (3.6KB, 93% smaller than detailed rules)
+- 3-tier install profiles: minimal (8 agents/50KB), standard (20/200KB), full (57/600KB)
+- Settings templates: low/mid/high-spec.json
+- Lean agent variants (~50% context reduction)
+- CONTEXT_OPTIMIZATION.md guide
 
-- **Enhanced CLI Commands**: `myconvergio install` now supports installation profiles
-  - `--minimal` flag: Install 8 core agents (~50KB context)
-  - `--standard` flag: Install 20 essential agents (~200KB context)
-  - `--full` flag: Install all 57 agents (~600KB context)
-  - `--lean` flag: Use lean agent variants for any profile (~50% context reduction)
+---
 
-- **Hardware-Specific Settings Templates**: Pre-configured settings for three hardware tiers
-  - `docs/templates/settings-low.json`: 8GB RAM, 4 cores (MacBook Air, entry laptops)
-  - `docs/templates/settings-mid.json`: 16GB RAM, 8 cores (M1/M2 MacBook Pro, standard workstations)
-  - `docs/templates/settings-high.json`: 32GB+ RAM, 12+ cores (M3 Max, high-end workstations)
-
-- **Comprehensive Documentation**:
-  - `docs/CONTEXT_OPTIMIZATION.md`: Complete guide to context optimization strategies
-    - Performance impact analysis
-    - Hardware-specific recommendations
-    - Context budget table with token estimates
-    - Installation examples for common scenarios
-    - Troubleshooting guide for performance issues
-  - Updated README with new installation workflow and profile selection
-
-- **npm Postinstall Enhancement**: `MYCONVERGIO_PROFILE` environment variable support
-  - `MYCONVERGIO_PROFILE=minimal npm install -g myconvergio`: Install minimal profile
-  - `MYCONVERGIO_PROFILE=standard npm install -g myconvergio`: Install standard profile (default)
-  - `MYCONVERGIO_PROFILE=full npm install -g myconvergio`: Install full profile
-
-- **Lean Agent Variants**:
-  - `thor-quality-assurance-guardian.lean.md`: 50% smaller, full functionality
-  - `dario-debugger.lean.md`: Optimized debugging agent
-  - Auto-generation script: `scripts/generate-lean-variants.sh --all`
-
-### Changed
-
-- **Default Installation Profile**: Changed from `full` to `standard` for npm postinstall
-  - Reduces initial context from ~600KB to ~200KB
-  - Users can opt-in to full profile with `MYCONVERGIO_PROFILE=full`
-  - Provides better out-of-box experience for most users
-
-- **CLI Help Text**: Enhanced with profile descriptions and context size estimates
-
-- **bin/myconvergio.js**: Refactored `install()` function to support profile-based installation
-  - Added `getAgentsForProfile()` helper
-  - Added `copyAgentsByProfile()` for selective agent copying
-  - Interactive mode if no profile specified
-
-- **package.json**: Updated files array to include `docs/` directory
-
-### Improved
-
-- **Installation Performance**: Standard profile installs 70% fewer files than previous default (full)
-- **Memory Usage**: Lean variants reduce Claude Code memory footprint by ~40-50%
-- **Response Time**: Smaller context improves Claude response latency
-- **Hardware Compatibility**: Now optimized for systems with 8GB-64GB RAM
-
-### Performance Metrics
-
-- **Minimal Profile (Lean)**: ~29KB context (~14K tokens), <1s load time, 400MB memory
-- **Standard Profile (Lean)**: ~104KB context (~52K tokens), ~1s load time, 600MB memory
-- **Full Profile (Full)**: ~604KB context (~302K tokens), 3-5s load time, 1.2GB memory
-
-## [3.6.0] - 2025-12-31 15:01 CET
+## [3.6.0] - 2025-12-31
 
 ### Added
 
-- **Universal Multi-Terminal Orchestration**: Expanded beyond Kitty to support all terminals
-  - `orchestrate.sh`: Universal entry point with automatic terminal detection
-  - `detect-terminal.sh`: Smart terminal type detection (kitty/tmux/plain)
-  - **tmux Support**: Full tmux-based orchestration for Zed, Warp, iTerm, and any terminal
-    - `tmux-parallel.sh`: Launch N parallel Claude instances in tmux windows
-    - `tmux-monitor.sh`: Monitor tmux workers with live status updates
-    - `tmux-send-all.sh`: Broadcast messages to all workers simultaneously
-  - **Terminal Detection Matrix**:
-    - Kitty → Uses native `kitty @ send-text` remote control
-    - Zed/Warp/iTerm → Uses tmux session orchestration
-    - tmux (already running) → Uses existing tmux session
-    - Plain terminal → Prompts to install tmux
+- Universal orchestration: orchestrate.sh, detect-terminal.sh, tmux support
+- Works from any terminal (Kitty/Zed/Warp/iTerm/VS Code)
 
-### Changed
-
-- **scripts/orchestration/README.md**: Complete rewrite for multi-terminal support
-  - Quick Start section with auto-detection workflow
-  - Terminal support comparison table (Kitty vs tmux vs plain)
-  - Separate setup instructions for Kitty users vs Other terminal users
-  - tmux navigation guide (Ctrl+B shortcuts)
-  - Zed editor integration examples with keymap/tasks.json
-  - Updated troubleshooting for both Kitty and tmux scenarios
-
-### Improved
-
-- **Orchestration Accessibility**: No longer requires Kitty terminal
-  - Works from ANY terminal (Zed, Warp, iTerm, VS Code integrated terminal, etc.)
-  - Automatically falls back to tmux if Kitty not detected
-  - Maintains backward compatibility with existing Kitty-based workflows
-  - Enables parallel Claude orchestration for all users regardless of terminal choice
+---
 
 ## [3.5.0] - 2025-12-30
 
 ### Added
 
-- **Thor Quality Assurance System**: Complete validation gatekeeper for multi-Claude orchestration
-  - `thor-quality-assurance-guardian` v2.0.0: Brutal quality gatekeeper with full tool access
-  - Queue-based validation service at `/tmp/thor-queue/`
-  - Dual-channel communication: file-based (persistent) + Kitty (real-time)
-  - 7 validation gates: Task Compliance, Code Quality, Engineering Fundamentals, Repository Compliance, Documentation, Git Hygiene, Brutal Challenge
-  - 10 mandatory challenge questions asked to every worker
-  - Specialist delegation: Thor can invoke Baccio (architecture), Luca (security), Otto (performance), Rex (code review)
-  - Response types: APPROVED, REJECTED, CHALLENGED, ESCALATED
-  - Retry management with escalation to Roberto after 3 failures
-  - Validates orchestrators too (Planner, Ali) - no one exempt
+- Thor QA System v2.0.0: 7 validation gates, queue-based service, specialist delegation
+- Thor protocol v1.0.1, worker instructions v1.0.0
+- thor-queue-setup.sh, thor-worker-submit.sh, thor-monitor.sh
 
-- **Thor Validation Protocol** v1.0.1: Complete communication specification
-  - Request/response JSON formats
-  - Worker submission flow with evidence gathering
-  - Audit logging in JSONL format
-
-- **Thor Worker Instructions** v1.0.0: Mandatory rules for all Claude workers
-  - Step-by-step validation flow
-  - "You are NOT done until Thor says you are done" enforcement
-  - Common mistakes that get rejected
-
-- **Scripts for Thor System**:
-  - `scripts/thor-queue-setup.sh`: Initialize validation queue directories
-  - `scripts/thor-worker-submit.sh`: Submit validation requests with auto-evidence gathering
-  - `scripts/thor-monitor.sh`: Monitor queue status and recent validations
-
-### Changed
-
-- **strategic-planner** v1.6.0 → v1.6.1: Added mandatory THOR VALIDATION GATE section
-  - All workers must get Thor approval before claiming task complete
-  - Thor launch instructions for Kitty tab
-  - Worker validation flow with bash examples
-  - Fixed heredoc quoting bug preventing variable expansion
-- **.gitignore**: Added `.claude/protocols/` to tracked directories
-
-### Fixed
-
-- Heredoc variable expansion bugs in planner and protocol documentation
-- JSON escaping for git output in thor-worker-submit.sh (newlines/quotes)
-- Architecture diagram role labels (Claude-1 is Planner, not Claude-4)
-- Missing Return key press in Kitty notifications
+---
 
 ## [3.4.0] - 2025-12-30
 
 ### Added
 
-- **strategic-planner**: Mandatory GIT WORKFLOW section
-  - Git worktree workflow for parallel development on independent tasks
-  - PR workflow enforcement: feature branches → PR → review → merge
-  - Branch naming conventions (feature/, fix/, hotfix/)
-  - Never merge directly to main/master rule
+- strategic-planner: mandatory GIT WORKFLOW section (worktrees, PRs, branch naming)
 
-### Changed
-
-- strategic-planner: v1.4.0 (added GIT WORKFLOW requirements)
+---
 
 ## [3.3.0] - 2025-12-30
 
 ### Added
 
-- **strategic-planner v1.4.0**: Full Inter-Claude Communication Protocol
-  - Bidirectional messaging: Coordinator ↔ Worker, Worker ↔ Worker communication
-  - Worker → Coordinator status reports for progress updates
-  - Worker → Worker direct synchronization for dependency coordination
-  - Broadcast notifications (one-to-all) for urgent alerts and gate unlocks
-  - Gate unlock notification patterns for phase synchronization
-  - Help request patterns for worker collaboration
-  - Message format convention: `[SENDER]: [EMOJI] [CONTENT]`
-  - Emoji reference table for quick message parsing (✅ ✓ 🟢 🔴 🚨 ❓ 📊 ⏳)
-  - Six documented communication scenarios with code examples
+- strategic-planner v1.4.0: bidirectional messaging, broadcasts, gate unlock notifications
 
-### Changed
-
-- strategic-planner: v1.3.3 → v1.4.0 (expanded communication protocol)
+---
 
 ## [3.2.0] - 2025-12-29
 
 ### Added
 
-- **strategic-planner v1.3.3**: Critical improvements for execution quality and compliance
-  - Mandatory WAVE FINAL with 6 documentation tasks (README, CHANGELOG, Tests, Docs, PR Description, ADRs)
-  - Documentation Rules in NON-NEGOTIABLE section ensuring all deliverables are properly documented
-  - ISE Engineering Fundamentals requirement with Microsoft playbook link (https://microsoft.github.io/code-with-engineering-playbook/)
+- Mandatory WAVE FINAL (6 doc tasks), ISE Engineering Fundamentals requirement
 
 ### Fixed
 
-- **strategic-planner v1.3.3**: Kitty send-text commands now include `\r` for auto-execution
-  - Previously commands were sent but not executed, requiring manual Enter key press
-  - Now all worker commands execute automatically when sent via `kitty @ send-text`
+- Kitty send-text: added `\r` for auto-execution
 
-### Changed
-
-- strategic-planner: v1.3.0 → v1.3.3 (execution quality and documentation enforcement)
+---
 
 ## [3.1.0] - 2025-12-29
 
 ### Added
 
-- **strategic-planner v1.3.0**: Complete multi-Claude orchestration framework
-  - Phase Gates synchronization system for coordinating parallel workers
-  - Polling protocol for Claude instance progress tracking
-  - Coordinator responsibilities and delegation rules
-  - NON-NEGOTIABLE RULES for execution discipline
-  - CLAUDE ROLES STRUCTURE defining Worker/Coordinator behaviors
-  - EXECUTION TRACKER with GitHub Issue linkage (#xxx syntax)
-  - TIME STATISTICS dashboard for wave/phase duration tracking
-  - Clean Markdown dashboard format without code fences
-  - Enhanced parallel execution patterns for complex projects
+- strategic-planner v1.3.0: phase gates, polling protocol, execution tracker, time stats
 
-### Changed
-
-- strategic-planner: v1.1.0 → v1.3.0 (major orchestration framework update)
+---
 
 ## [2.2.0] - 2025-12-28
 
 ### Added
 
-- **Multi-Claude Parallel Orchestration**: Execute complex plans with up to 4 parallel Claude instances via Kitty terminal
-- `scripts/orchestration/` directory with orchestration tooling:
-  - `claude-parallel.sh` - Launch N parallel Claude workers in Kitty tabs
-  - `claude-monitor.sh` - Real-time monitoring of worker progress
-  - `kitty-check.sh` - Verify Kitty terminal configuration
-  - `README.md` - Complete setup and usage documentation
-- `.claude/skills/orchestration/SKILL.md` - Orchestration skill documentation
-- strategic-planner agent: Kitty parallel orchestration support (v1.1.0)
-  - Wave-based execution with parallel agent assignments
-  - Automatic worker launching and monitoring
-  - File overlap prevention to avoid git conflicts
+- Multi-Claude parallel orchestration via Kitty (up to 4 workers)
+- scripts/orchestration/ tooling
 
-### Changed
-
-- strategic-planner: v0.1.0 → v1.1.0 (parallel orchestration capability)
+---
 
 ## [2.1.2] - 2025-12-28
 
-### Added
-
-- `myconvergio agents` command to list all installed agents with versions and model tiers
-
 ### Fixed
 
-- Repository URL case sensitivity for npm OIDC trusted publishing (Roberdan vs roberdan)
-- Postinstall now always creates backup if existing content found (not just if manifest exists)
-- Postinstall output now visible during npm install (uses stderr)
-- Consistent backup behavior between postinstall.js and CLI
+- npm OIDC URL case sensitivity, postinstall backup/output
+
+---
 
 ## [2.1.0] - 2025-12-28
 
 ### Added
 
-- **npm distribution**: `npm install -g myconvergio` (cross-platform: macOS, Linux, Windows)
-- `myconvergio` CLI with install, uninstall, version commands
-- ADR-011: Modular Execution Plans and Enhanced Security Framework
-- Modular Execution Plan Structure for large projects (15+ tasks) in taskmaster and davide agents
-- Mandatory test requirements per phase in execution plans
-- Security & Anti-Manipulation framework in CommonValuesAndPrinciples (prompt injection protection, ethical boundaries, inclusive language)
+- npm distribution: `npm install -g myconvergio`
+- ADR-011: Modular Execution Plans + Security Framework
 
-### Changed
-
-- taskmaster-strategic-task-decomposition-master: v1.0.2 → v1.0.3
-- davide-project-manager: v1.0.2 → v1.0.3
-- CommonValuesAndPrinciples: Added ~90 lines of security guidelines
-- Makefile: Now installs agents, rules, AND skills (was agents-only)
-- Makefile: Added `make upgrade` command for existing users
-- README: Complete rewrite of installation section with npm as primary method
+---
 
 ## [2.0.1] - 2025-12-15
 
 ### Fixed
 
-- Excluded `MICROSOFT_VALUES.md` from YAML frontmatter validation in test scripts and Makefile lint command
-- Documentation files (CONSTITUTION.md, CommonValuesAndPrinciples.md, SECURITY_FRAMEWORK_TEMPLATE.md, MICROSOFT_VALUES.md) are now properly excluded from agent validation
+- YAML frontmatter validation excludes documentation files
+
+---
 
 ## [2.0.0] - 2025-12-15
 
 ### Added
 
-- Complete README rewrite with accurate agent architecture documentation
-- 57 specialized Claude Code subagents across 8 categories
-- Git worktree workflow documentation for parallel agent development
-- Agent versioning system with semantic versioning support
-- Comprehensive rules system (code-style, security, testing, documentation, API, ethics)
-- Skills system extracted from specialist agent expertise
-- Activity logging framework for agent accountability
-- Security framework template for all agents
-- Model tiering (opus/sonnet/haiku) for cost optimization
+- 57 agents across 8 categories, versioning system, rules, skills, activity logging
 
-### Changed
-
-- Clarified that agents operate in isolated contexts without direct inter-agent communication
-- Updated coordination flow documentation to reflect manual orchestration pattern
-- Reorganized agent categories into logical groupings
-
-### Fixed
-
-- Corrected README to reflect actual agent architecture (context isolation, manual orchestration)
+---
 
 ## [1.0.0] - 2025-12-14
 
 ### Added
 
-- Initial release of MyConvergio agent ecosystem
-- Core agent framework with CONSTITUTION.md
-- Basic agent deployment via Makefile
-- Test suite for agent validation
+- Initial release: agent framework, CONSTITUTION.md, Makefile deployment, test suite

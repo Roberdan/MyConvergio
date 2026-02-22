@@ -212,9 +212,27 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 						"$wave_gates_passed" "$wave_gates_failed" "executor-auto" "$wave_validation_duration" "$wave_confidence" 2>/dev/null || true
 				fi
 
+				# Wave-per-worktree: trigger merge if wave model is active
+				if [[ "$wave_validation_result" == "pass" && -x "$SCRIPT_DIR/wave-worktree.sh" ]]; then
+					# Check if this plan uses wave-level worktrees
+					local wave_wt
+					wave_wt=$(sqlite3 "$DB_FILE" \
+						"SELECT worktree_path FROM waves WHERE id = $wave_db_id AND worktree_path IS NOT NULL AND worktree_path <> '';" 2>/dev/null || echo "")
+					if [[ -n "$wave_wt" ]]; then
+						echo "[plan-db-safe] Wave $wave_id: wave-worktree merge..." >&2
+						if "$SCRIPT_DIR/wave-worktree.sh" merge "$plan_id" "$wave_db_id" 2>&1; then
+							echo "[plan-db-safe] Wave $wave_id merged successfully" >&2
+						else
+							echo "WARN: Wave $wave_id merge failed — wave stays in 'merging' state" >&2
+							# Stop cascade: don't check plan completion if merge failed
+							exit 0
+						fi
+					fi
+				fi
+
 				# Check if ALL waves in plan are done
 				waves_not_done=$(sqlite3 "$DB_FILE" \
-					"SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND status <> 'done';" 2>/dev/null || echo "1")
+					"SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND status NOT IN ('done');" 2>/dev/null || echo "1")
 				if [[ "$waves_not_done" -eq 0 ]]; then
 					echo "[plan-db-safe] All waves complete — syncing + completing plan $plan_id..." >&2
 					"$SCRIPT_DIR/plan-db.sh" sync "$plan_id" 2>/dev/null || true

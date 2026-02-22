@@ -548,10 +548,15 @@ cmd_check_readiness() {
 		echo -e "${RED}  FAIL: source_file not set${NC}"
 		errors=$((errors + 1))
 	else echo -e "${GREEN}  OK: source_file${NC}"; fi
-	if [[ -z "$wt" ]]; then
-		echo -e "${RED}  FAIL: worktree_path not set (run /planner to create worktree)${NC}"
+	local wave_wt_count=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM waves WHERE plan_id=$plan_id AND worktree_path IS NOT NULL AND worktree_path <> '';" 2>/dev/null || echo "0")
+	if [[ -z "$wt" && "$wave_wt_count" -eq 0 ]]; then
+		echo -e "${RED}  FAIL: No worktree set (plan-level or wave-level). Use wave-worktree.sh create or --auto-worktree${NC}"
 		errors=$((errors + 1))
-	else echo -e "${GREEN}  OK: worktree_path ($wt)${NC}"; fi
+	elif [[ -n "$wt" ]]; then
+		echo -e "${GREEN}  OK: plan worktree_path ($wt)${NC}"
+	else
+		echo -e "${GREEN}  OK: wave-level worktrees ($wave_wt_count waves with worktree)${NC}"
+	fi
 	local no_desc=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE plan_id=$plan_id AND status='pending' AND (description IS NULL OR description='');")
 	local no_tc=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE plan_id=$plan_id AND status='pending' AND (test_criteria IS NULL OR test_criteria='');")
 	if [[ "$no_desc" -gt 0 ]]; then
@@ -583,7 +588,7 @@ cmd_sync() {
     "
 	sqlite3 "$DB_FILE" "
         UPDATE waves SET status = 'done', completed_at = COALESCE(completed_at, datetime('now'))
-        WHERE plan_id = $plan_id AND tasks_done = tasks_total AND tasks_total > 0 AND status != 'done';
+        WHERE plan_id = $plan_id AND tasks_done = tasks_total AND tasks_total > 0 AND status NOT IN ('done', 'merging');
     "
 	sqlite3 "$DB_FILE" "
         UPDATE plans SET

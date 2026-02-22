@@ -19,15 +19,12 @@
 5. **Proof required**: "done" needs evidence. User approves closure.
 6. **Max 250 lines/file**: Check before writing. Split if exceeds. _Why: agents lose context in long files, merge conflicts multiply, and review becomes unreliable._
 7. **Compaction preservation**: When rewriting/compacting ANY file, NEVER remove workflow-critical content. See `rules/compaction-preservation.md`.
-8. **Anti-hallucination**: NEVER guess DB schema, file paths, or API signatures — read the source first (`plan-db-schema.md`, `script --help`, `PRAGMA table_info`). NEVER invent URLs, emails, or domains — ASK user if unknown. NEVER hardcode secrets/URLs/endpoints in code — use `${VAR:-default}` pattern (see `.env.example`). Guessing = hallucination = VIOLATION.
 
 ## Workflow (MANDATORY)
 
 `/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task → Thor per-wave → closure (all F-xx verified) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
 
-@AGENTS.md
 @reference/operational/plan-scripts.md
-@reference/operational/plan-db-schema.md
 @reference/operational/digest-scripts.md
 @reference/operational/worktree-discipline.md
 @reference/operational/concurrency-control.md
@@ -61,4 +58,37 @@ LSP (if available) → Glob/Grep/Read/Edit → Subagents → Bash (git/npm only)
 **Extended**: baccio, dario, marco, otto, rex, luca (technical) | ali, amy, antonio, dan (leadership) | **Maturity**: Stable: strategic-planner, thor, task-executor, marcus, socrates, wanda, xavier | Preview: diana, po, taskmaster, app-release-manager, adversarial-debugger | **Codex**: Suggest for mechanical/repetitive bulk tasks. Never for architecture, security, debugging.
 
 @reference/operational/agent-routing.md
-@reference/operational/codegraph.md
+
+<!-- CODEGRAPH_START -->
+## CodeGraph
+
+CodeGraph builds a semantic knowledge graph of codebases for faster, smarter code exploration.
+
+### If `.codegraph/` exists in the project
+
+**Use codegraph tools for faster exploration.** These tools provide instant lookups via the code graph instead of scanning files:
+
+| Tool | Use For |
+|------|---------|
+| `codegraph_search` | Find symbols by name (functions, classes, types) |
+| `codegraph_context` | Get relevant code context for a task |
+| `codegraph_callers` | Find what calls a function |
+| `codegraph_callees` | Find what a function calls |
+| `codegraph_impact` | See what's affected by changing a symbol |
+| `codegraph_node` | Get details + source code for a symbol |
+
+**When spawning Explore agents in a codegraph-enabled project:**
+
+Tell the Explore agent to use codegraph tools for faster exploration.
+
+**For quick lookups in the main session:**
+- Use `codegraph_search` instead of grep for finding symbols
+- Use `codegraph_callers`/`codegraph_callees` to trace code flow
+- Use `codegraph_impact` before making changes to see what's affected
+
+### If `.codegraph/` does NOT exist
+
+At the start of a session, ask the user if they'd like to initialize CodeGraph:
+
+"I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
+<!-- CODEGRAPH_END -->

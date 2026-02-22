@@ -21,6 +21,7 @@
 | Navigate to definition | LSP go-to-definition            | Grep for class/function |
 | Find all usages        | LSP find-references             | Grep for symbol         |
 | Explore codebase       | `Task(subagent_type='Explore')` | Multiple grep/glob      |
+| Run project audit      | `project-audit.sh --project-root $(pwd)` | Manual audit scripts |
 
 ## Parallel Execution
 

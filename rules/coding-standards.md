@@ -10,26 +10,27 @@
 
 ## Token-Aware Writing (ALL text agents produce)
 
-Every token costs money and latency. Applies to code comments, commit messages, PR descriptions, review comments, agent output. Both Claude Code and Copilot CLI.
+Every token costs money and latency. Applies to ALL agent-produced text: code, comments, commits, PRs, reviews, documentation, ADRs, changelogs, agent .md files. Both Claude Code and Copilot CLI. **Exception**: README files remain human-friendly (prose allowed).
 
 ### Code Comments
 
-**ALLOWED**: version/shebang headers, non-obvious logic (WHY not WHAT), workaround reasons, regex explanations, safety annotations
-**FORBIDDEN**: restating what the next line does, section dividers (`# ===`, `# ---`), parameter descriptions for self-documenting names
-**Target**: <5% comment lines in new files. Enforced by `code-pattern-check.sh` (P3 >20%)
+**ALLOWED**: version/shebang, non-obvious logic (WHY not WHAT), workaround reasons, safety annotations
+**FORBIDDEN**: restating code, section dividers (`# ===`), parameter docs for self-documenting names
+**Target**: <5% comment lines. Enforced: `code-pattern-check.sh` P3 >20%
 
-### Commit Messages
+### Commits & PRs
 
-Conventional commit, 1 subject line + optional body. No filler prose ("This commit...", "In this change..."). Body only when subject is insufficient.
-**Good**: `feat: add null safety check to user API` | **Bad**: `feat: This commit adds a comprehensive null safety check to ensure that the user API properly handles null values`
+Commits: conventional, 1 subject line, body only when subject insufficient. No filler ("This commit...").
+PRs: `## Summary` (2-3 bullets) + `## Test plan`. Diff is the documentation.
+Reviews: direct + actionable. Issue + fix. No softening.
 
-### PR Descriptions
+### Documentation, ADRs, CHANGELOGs, Agent .md
 
-Structured markdown: `## Summary` (2-3 bullet points max) + `## Test plan`. No prose restating what the diff shows. Diff is the documentation.
-
-### Review Comments
-
-Direct and actionable. State the issue + the fix. No softening ("Perhaps consider...", "It might be worth..."). Code suggestion > prose explanation.
+Same principle: only text that changes agent behavior. Tables > prose. Commands > descriptions. No introductory paragraphs that restate the title. No "This document describes..." preamble.
+**CHANGELOG**: `## [version] - date` then `### Added|Changed|Fixed` with 1-line entries. No sub-bullets explaining what the entry means.
+**ADR**: Context/Decision/Consequences, each 1-3 sentences. No background essays.
+**Agent .md**: frontmatter + rules + commands. No motivational prose.
+**Exception**: README.md files are human-facing — prose, examples, and explanations are appropriate.
 
 ## Quality
 

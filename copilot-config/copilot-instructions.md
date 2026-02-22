@@ -87,12 +87,13 @@ export PATH="$HOME/.claude/scripts:$PATH"
 
 ## Token-Aware Writing (MANDATORY)
 
-Every token costs money. Applies to code comments, commit messages, PR descriptions, review comments.
+Every token costs money. Applies to ALL agent output: code, commits, PRs, reviews, docs, ADRs, changelogs, agent .md. **Exception**: README stays human-friendly.
 
-- **Code comments**: <5% of lines. Only WHY, never WHAT. No section dividers.
-- **Commit messages**: Conventional commit, 1 subject line. Body only when subject insufficient.
-- **PR descriptions**: `## Summary` (2-3 bullets) + `## Test plan`. No prose restating the diff.
-- **Review comments**: Direct + actionable. State issue + fix. No softening phrases.
+- **Code comments**: <5% lines. Only WHY, never WHAT.
+- **Commits**: conventional, 1 subject line. No filler.
+- **PRs**: `## Summary` (2-3 bullets) + `## Test plan`.
+- **Reviews**: issue + fix. No softening.
+- **Docs/ADRs/CHANGELOGs**: tables > prose, commands > descriptions. No preambles.
 
 ## Plan DB Commands
 

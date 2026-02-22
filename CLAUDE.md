@@ -45,6 +45,10 @@ git-digest.sh                   # Must show clean:true
 ls -la {files} && wc -l {files} # Verify existence + line counts
 ```
 
+## Build / Test / Lint
+
+Config repo — no build step. Validate: `project-audit.sh --project-root $(pwd)`. Hooks enforce lint rules automatically.
+
 @rules/guardian.md
 
 ## Tool Priority

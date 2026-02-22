@@ -82,6 +82,17 @@ export PATH="$HOME/.claude/scripts:$PATH"
 | `git diff main...feat`     | `diff-digest.sh main feat`   |
 | `git status` / `git log`   | `git-digest.sh [--full]`     |
 | `npx prisma migrate`       | `migration-digest.sh status` |
+| Copilot bot PR comments    | `copilot-review-digest.sh`   |
+| Pattern check (pre-PR)     | `code-pattern-check.sh`      |
+
+## Token-Aware Writing (MANDATORY)
+
+Every token costs money. Applies to code comments, commit messages, PR descriptions, review comments.
+
+- **Code comments**: <5% of lines. Only WHY, never WHAT. No section dividers.
+- **Commit messages**: Conventional commit, 1 subject line. Body only when subject insufficient.
+- **PR descriptions**: `## Summary` (2-3 bullets) + `## Test plan`. No prose restating the diff.
+- **Review comments**: Direct + actionable. State issue + fix. No softening phrases.
 
 ## Plan DB Commands
 

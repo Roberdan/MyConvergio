@@ -8,13 +8,28 @@
 
 **TS/JS**: ESLint+Prettier, semicolons, single quotes, max 100 chars, const>let, async/await | Named imports, no default export (unless framework) | `interface` > `type` | Props interface above component | Colocated `.test.ts`, AAA | **Python**: Black 88 chars, Google docstrings, type hints public APIs, pytest+fixtures | **Bash**: `set -euo pipefail` | Quote vars | `local` in functions | `trap cleanup EXIT` | **CSS**: CSS Modules or BEM | `rem` for type, `px` for borders | Mobile-first | Max 3 nesting | **Config**: 2-space indent | Schema refs where supported
 
-## Comments (Token-Aware)
+## Token-Aware Writing (ALL text agents produce)
 
-Code is the documentation. Every comment line costs ~8 tokens per read, multiplied by every agent that reads it.
+Every token costs money and latency. Applies to code comments, commit messages, PR descriptions, review comments, agent output. Both Claude Code and Copilot CLI.
 
-**ALLOWED**: version/shebang headers, `set -euo pipefail` explanation, non-obvious logic (WHY not WHAT), workaround reasons, regex explanations, safety annotations
-**FORBIDDEN**: restating what the next line does (`# Get slug` above `_get_slug()`), section dividers (`# ===`, `# ---`), parameter descriptions for self-documenting names, `# Check if...` before an obvious `if`/`grep`
-**Target**: <5% comment lines in new files (excluding shebang/version header)
+### Code Comments
+
+**ALLOWED**: version/shebang headers, non-obvious logic (WHY not WHAT), workaround reasons, regex explanations, safety annotations
+**FORBIDDEN**: restating what the next line does, section dividers (`# ===`, `# ---`), parameter descriptions for self-documenting names
+**Target**: <5% comment lines in new files. Enforced by `code-pattern-check.sh` (P3 >20%)
+
+### Commit Messages
+
+Conventional commit, 1 subject line + optional body. No filler prose ("This commit...", "In this change..."). Body only when subject is insufficient.
+**Good**: `feat: add null safety check to user API` | **Bad**: `feat: This commit adds a comprehensive null safety check to ensure that the user API properly handles null values`
+
+### PR Descriptions
+
+Structured markdown: `## Summary` (2-3 bullet points max) + `## Test plan`. No prose restating what the diff shows. Diff is the documentation.
+
+### Review Comments
+
+Direct and actionable. State the issue + the fix. No softening ("Perhaps consider...", "It might be worth..."). Code suggestion > prose explanation.
 
 ## Quality
 

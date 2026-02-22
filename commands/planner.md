@@ -17,7 +17,7 @@ Plan and execute with parallel Claude instances.
 | 2   | **F-xx Requirements**: Extract ALL. Nothing done until ALL verified [x]                                                                                           |
 | 3   | **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"                                                                                                 |
 | 4   | **Thor Enforcement**: Task done = per-task Thor passed. Wave done = per-wave Thor + build passed. Gate 9 MANDATORY.                                               |
-| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path                                                                                              |
+| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path. Wave-level worktrees are the default; plan-level is deprecated.                             |
 | 6   | **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See @planner-modules/knowledge-codification.md                                                |
 | 7   | **NO SILENT EXCLUSIONS**: NEVER exclude/defer ANY F-xx without EXPLICIT user approval via AskUserQuestion. Silently dropping = VIOLATION.                         |
 | 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8). |
@@ -128,8 +128,9 @@ If risk != "none", AskUserQuestion: Merge | Sequence | Parallel | Abort. If risk
 
 ```bash
 PROMPT_FILE=".copilot-tracking/prompt-{NNN}.json"
-PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" --source-file "$PROMPT_FILE" --auto-worktree \
+PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" --source-file "$PROMPT_FILE" \
   --human-summary "2-3 righe in italiano che spiegano COSA fa il piano per un umano. Mostrato in dashboard.")
+# Note: --auto-worktree is deprecated; use wave-level worktrees instead
 plan-db.sh import $PLAN_ID /path/to/spec.json
 WORKTREE_PATH=$(plan-db.sh get-worktree $PLAN_ID)
 cd "$WORKTREE_PATH"
@@ -175,6 +176,17 @@ Use `/execute {plan_id}`. Manual: `await Task({subagent_type: "task-executor", m
 **8b. Per-Wave**: `Task(subagent_type="thor", model="sonnet", prompt="THOR PER-WAVE\nPlan:{plan_id}|Wave:{wave_id}(db:{db_id})\nWORKTREE:{path}|FRAMEWORK:{framework}\nTasks:[list]|Verify:[all]\nALL 9 gates. lint,typecheck,build,tests. F-xx cross-task. Read files.")` -> `plan-db.sh validate-wave {wave_db_id}`
 
 NEVER skip. NEVER trust executor. Thor reads files. Per-task MANDATORY. Per-wave AFTER all per-task. Progress=Thor-validated only. Gate 9=ADR-Smart for docs.
+
+### 8c. Wave Merge (automatic)
+
+After Thor per-wave validation, `plan-db-safe.sh` auto-triggers:
+
+1. `wave-worktree.sh merge` → commit + push + PR + CI + merge
+2. Wave status: `in_progress` → `merging` → `done`
+3. Next wave creates fresh worktree from updated main
+
+Manual: `wave-worktree.sh merge <plan_id> <wave_db_id>`
+Status: `wave-worktree.sh status <plan_id>`
 
 ### 9. Knowledge Codification
 

@@ -65,7 +65,7 @@ After each task-executor completes, the coordinator MUST:
 After ALL tasks in a wave are Thor-validated:
 
 4. **Thor per-wave**: `plan-db.sh validate-wave {wave_db_id}`
-5. **Commit per-wave**: In the plan worktree, `git add -A && git commit -m "feat(plan-{plan_id}): W{wave} — {wave_name}"`
+5. **Wave merge**: `wave-worktree.sh merge {plan_id} {wave_db_id}` → auto-commit + push + PR + CI + squash merge to main. Replaces manual per-wave commit.
 6. **Proceed to next wave**: Only after commit succeeds
 
 **Why**: Task executors (especially non-task-executor agents) may not update plan-db or run Thor. The coordinator is the single source of truth for plan progress. Commit per-wave (not per-task) because Thor wave validation is the quality gate.

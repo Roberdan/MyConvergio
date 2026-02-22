@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version: 1.4.0
+# Version: 1.5.0
 set -euo pipefail
 # Source all dashboard modules
 DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
@@ -16,6 +16,55 @@ DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
 . "$DASHBOARD_LIB/dashboard-render-pipeline-plans.sh"
 . "$DASHBOARD_LIB/dashboard-render-completed-plans.sh"
 . "$DASHBOARD_LIB/dashboard-render-overview.sh"
+
+cmd_waves() {
+	local plan_id="$1"
+	local DB_FILE="$HOME/.claude/data/dashboard.db"
+
+	echo "=== Wave Worktrees — Plan $plan_id ==="
+	echo ""
+
+	local rows
+	rows=$(sqlite3 -separator '|' "$DB_FILE" \
+		"SELECT w.wave_id, w.name, w.status, w.tasks_done||'/'||w.tasks_total,
+                COALESCE(w.branch_name, '-'), COALESCE(CAST(w.pr_number AS TEXT), '-'),
+                COALESCE(w.worktree_path, '-')
+         FROM waves w WHERE w.plan_id = $plan_id ORDER BY w.position;" 2>/dev/null)
+
+	if [[ -z "$rows" ]]; then
+		echo "No waves found for plan $plan_id"
+		return 0
+	fi
+
+	printf "%-6s %-12s %-6s %-24s %-5s %-30s %s\n" \
+		"Wave" "Status" "Tasks" "Branch" "PR" "Worktree" "Clean"
+	printf "%-6s %-12s %-6s %-24s %-5s %-30s %s\n" \
+		"------" "------------" "------" "------------------------" "-----" "------------------------------" "-----"
+
+	while IFS='|' read -r wid name status tasks branch pr wt_path; do
+		local clean="-"
+		if [[ "$wt_path" != "-" ]]; then
+			local expanded="${wt_path/#\~/$HOME}"
+			if [[ -d "$expanded" ]]; then
+				local dirty
+				dirty=$(git -C "$expanded" status --porcelain 2>/dev/null | head -1 || true)
+				[[ -z "$dirty" ]] && clean="Clean" || clean="Dirty"
+			else
+				clean="Gone"
+			fi
+		fi
+		printf "%-6s %-12s %-6s %-24s %-5s %-30s %s\n" \
+			"$wid" "$status" "$tasks" "$branch" "$pr" "$wt_path" "$clean"
+	done <<<"$rows"
+}
+
+# Subcommand dispatch (must come before flag parsing)
+case "${1:-}" in
+waves)
+	cmd_waves "${2:?plan_id required}"
+	exit 0
+	;;
+esac
 
 # Parse arguments
 VERBOSE=0
@@ -52,6 +101,11 @@ while [[ $# -gt 0 ]]; do
 		;;
 	-h | --help)
 		echo "Usage: piani [OPTIONS]"
+		echo "       piani waves <plan_id>"
+		echo ""
+		echo "Subcommands:"
+		echo "  waves <plan_id>      Show wave worktree status for a plan"
+		echo ""
 		echo "Options:"
 		echo "  -v, --verbose        Mostra dettagli extra (wave names, task priorities)"
 		echo "  -p, --plan ID        Mostra solo piano specifico"

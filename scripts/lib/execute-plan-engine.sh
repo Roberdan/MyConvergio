@@ -42,10 +42,12 @@ run_task() {
 	local task_db_id="$1"
 	local task_code="$2"
 
-	# Get worktree for this task's plan
+	# Resolve worktree: wave-level first (new model), fallback plan-level (old model)
 	local worktree
-	worktree=$(db_query "$DB_FILE" "SELECT COALESCE(p.worktree_path,'')
-		FROM tasks t JOIN plans p ON t.plan_id=p.id
+	worktree=$(db_query "$DB_FILE" "SELECT COALESCE(w.worktree_path, p.worktree_path, '')
+		FROM tasks t
+		JOIN plans p ON t.plan_id = p.id
+		LEFT JOIN waves w ON t.wave_id_fk = w.id
 		WHERE t.id=$task_db_id;")
 	worktree="${worktree/#\~/$HOME}"
 
@@ -209,6 +211,18 @@ execute_plan_waves() {
 		echo ""
 		log "=== Wave: $wave_code - $wave_name (status: $wave_status) ==="
 
+		# Wave-per-worktree: create worktree for this wave if not exists
+		if [[ -x "${SCRIPT_DIR}/wave-worktree.sh" && "$wave_status" != "done" ]]; then
+			local wave_wt
+			wave_wt=$(db_query "$DB_FILE" "SELECT COALESCE(worktree_path,'') FROM waves WHERE id=$wave_db_id;")
+			if [[ -z "$wave_wt" ]]; then
+				step "Creating wave worktree for $wave_code"
+				"${SCRIPT_DIR}/wave-worktree.sh" create "$PLAN_ID" "$wave_db_id" 2>&1 || {
+					warn "Failed to create wave worktree for $wave_code — using plan worktree"
+				}
+			fi
+		fi
+
 		# Skip already-completed waves (unless --from forces re-entry)
 		if [[ "$wave_status" == "done" && -z "$FROM_TASK" ]]; then
 			success "Wave $wave_code already done — skipping"
@@ -291,6 +305,18 @@ execute_plan_waves() {
 				warn "Wave $wave_code failed Thor validation — stopping execution"
 				error "Fix wave issues before continuing. Resume with: execute-plan.sh $PLAN_ID --from <first-failed-task>"
 				break
+			fi
+
+			# Wave-per-worktree: merge via PR after successful Thor validation
+			if [[ -x "${SCRIPT_DIR}/wave-worktree.sh" ]]; then
+				local wave_wt_check
+				wave_wt_check=$(db_query "$DB_FILE" "SELECT COALESCE(worktree_path,'') FROM waves WHERE id=$wave_db_id;")
+				if [[ -n "$wave_wt_check" ]]; then
+					step "Wave $wave_code: merging via PR..."
+					"${SCRIPT_DIR}/wave-worktree.sh" merge "$PLAN_ID" "$wave_db_id" 2>&1 || {
+						warn "Wave $wave_code merge failed — manual intervention needed"
+					}
+				fi
 			fi
 		elif [[ "$wave_failed" -gt 0 ]]; then
 			warn "Wave $wave_code had $wave_failed failed task(s) — skipping wave Thor validation"

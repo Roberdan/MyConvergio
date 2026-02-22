@@ -1,5 +1,32 @@
 # Changelog
 
+## [v8.2.0] - 22 Feb 2026
+
+### Added
+
+- Wave-per-Worktree model: every wave gets dedicated worktree + PR + merge gate
+- `wave-worktree.sh`: lifecycle management (create/merge/cleanup/status)
+- `wave-worktree-core.sh`: shared library (wave_branch_name, wave_set_db, wave_get_db, wave_is_active)
+- `migrate-v8-wave-worktree.sh`: DB schema migration (worktree_path, branch_name, pr_number, pr_url on waves + 'merging' status)
+- `dashboard-mini.sh waves <plan_id>`: wave worktree visibility
+- `test-wave-worktree.sh`: 18 integration tests
+- Wave status: `pending` → `in_progress` → `merging` → `done` (done = merged to main)
+
+### Changed
+
+- `plan-db-safe.sh`: auto-triggers wave merge after Thor validation
+- `execute-plan-engine.sh`: resolves worktree from wave DB first (fallback plan DB), creates wave worktree before tasks
+- `plan-db-crud.sh`: cmd_complete blocks on merging waves, --auto-worktree deprecated, --wave-worktrees flag
+- `plan-db-validate.sh`: check_readiness accepts wave-level worktrees, sync preserves merging status
+- `plan-db.sh`: dispatch get-wave-worktree/set-wave-worktree
+- `worktree-cleanup.sh`: --wave flag, --plan iterates wave worktrees
+- `planner.md`: Rule 5 wave-level default, section 8c Wave Merge
+- `execution-optimization.md`: step 5 wave-worktree.sh merge replaces manual commit
+- `worktree-discipline.md`: v2 Wave-per-Worktree model, v1 as Legacy
+- `task-executor.md`: Phase 0 wave DB worktree resolution note
+
+---
+
 ## [v8.1.0] - 22 Feb 2026
 
 ### Added

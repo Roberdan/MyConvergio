@@ -56,6 +56,8 @@ worktree-guard.sh "{absolute_worktree_path}"
 
 **NEVER work on main/master.** If `worktree-guard.sh` prints `WORKTREE_VIOLATION`, mark task as `blocked` and return.
 
+> **Worktree path resolution** (handled by coordinator, not this agent): `{absolute_worktree_path}` is pre-resolved before being injected into this prompt. The coordinator checks `waves.worktree_path` first (wave-specific), falling back to `plans.worktree_path`. No action needed here — the path is always absolute and ready to use.
+
 ### Phase 0.5: File Locking + Snapshot (MANDATORY)
 
 ```bash

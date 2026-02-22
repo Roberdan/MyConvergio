@@ -8,6 +8,7 @@
 - Thor Gate 4b: automated pattern checks during per-task validation (P1=REJECT, P2=WARN)
 - Token-Aware Writing policy: <5% comments, compact commits/PRs, tables>prose for docs/ADRs/changelogs
 - `comment_density` check (#9) in code-pattern-check.sh (P3 when >20%)
+- `/optimize-project` skill for project audits, token-efficient recommendations, and automated optimization actions
 
 ### Changed
 

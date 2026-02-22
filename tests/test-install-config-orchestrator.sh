@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test: install-config.json references orchestrator scripts
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 MYCONVERGIO="${MYCONVERGIO_HOME:-$HOME/GitHub/MyConvergio}"
 TARGET="${MYCONVERGIO}/scripts/install-config.json"

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # test-helpers.sh: Common test utilities and assertions
 # Usage: source "$(dirname "${BASH_SOURCE[0]}")/lib/test-helpers.sh"
 

@@ -2,6 +2,7 @@
 # Test T6-04: Verify ADR updates
 
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 WORKTREE="/Users/roberdan/.claude-plan-189"
 ADR_DIR="$WORKTREE/docs/adr"

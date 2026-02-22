@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # RED test: orchestrator-test.sh must check bats-core, run all tests/test-*.sh, report total/pass/fail, output TAP, exit 1 if any fail
 

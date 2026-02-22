@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test: postinstall.js uses 'standard' as default profile
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 MYCONVERGIO="${MYCONVERGIO_HOME:-$HOME/GitHub/MyConvergio}"
 TARGET="${MYCONVERGIO}/scripts/postinstall.js"

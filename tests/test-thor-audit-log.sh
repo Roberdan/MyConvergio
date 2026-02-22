@@ -5,6 +5,7 @@
 # - plan-db-safe.sh contains "thor-audit"
 
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 WORKTREE="/Users/roberdan/.claude-plan-189"
 ERRORS=0

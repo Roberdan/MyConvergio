@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # test-plan-db-schema.sh - Verify plan-db-schema.md matches actual DB schema
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 WORKTREE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DB_PATH="$HOME/.claude/data/dashboard.db"

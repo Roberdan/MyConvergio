@@ -90,10 +90,12 @@ execute_copilot() {
 	
 	start_ts="$(date +%s)"
 	copilot_stdout_file="$(mktemp)"
-	trap "rm -f '$copilot_stdout_file'" RETURN
 	
+	# Pipe copilot output to tee: file + stderr (visible to user)
+	# Only metadata echo goes to stdout (captured by caller)
 	timeout "$TIMEOUT" copilot --allow-all --no-ask-user --add-dir "$WT" \
-		--model "$MODEL" -p "$PROMPT" > >(tee "$copilot_stdout_file") || exit_code=$?
+		--model "$MODEL" -p "$PROMPT" 2>&1 | tee "$copilot_stdout_file" >&2 || true
+	exit_code="${PIPESTATUS[0]}"
 	
 	echo "$exit_code|$copilot_stdout_file|$(( $(date +%s) - start_ts ))"
 }

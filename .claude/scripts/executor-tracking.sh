@@ -5,7 +5,8 @@
 
 # Configuration
 # Version: 1.1.0
-export DASHBOARD_API="http://localhost:31415/api"
+export DASHBOARD_API="${DASHBOARD_API:-http://localhost:31415/api}"
+export DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:31415}"
 export EXECUTOR_PROJECT="" EXECUTOR_TASK_ID="" EXECUTOR_SESSION_ID="" HEARTBEAT_PID=""
 
 # Colors
@@ -132,7 +133,7 @@ executor_status() {
 	echo -e "  Task: ${GREEN}${EXECUTOR_TASK_ID:-Not set}${NC}"
 	echo -e "  Session: ${GREEN}${EXECUTOR_SESSION_ID:-Not set}${NC}"
 	echo -e "  Heartbeat: ${GREEN}${HEARTBEAT_PID:-Not running}${NC}"
-	[ -n "$EXECUTOR_PROJECT" ] && echo -e "  Dashboard: ${BLUE}http://localhost:31415?project=${EXECUTOR_PROJECT}&task=${EXECUTOR_TASK_ID}${NC}"
+	[ -n "$EXECUTOR_PROJECT" ] && echo -e "  Dashboard: ${BLUE}${DASHBOARD_URL}?project=${EXECUTOR_PROJECT}&task=${EXECUTOR_TASK_ID}${NC}"
 }
 
 # Help
@@ -149,7 +150,7 @@ EXECUTOR TRACKING - Usage:
   executor_status                   # Check status
   executor_complete success         # Complete (or: failed)
 
-Dashboard: http://localhost:31415
+Dashboard: ${DASHBOARD_URL:-http://localhost:31415}
 EOF
 }
 

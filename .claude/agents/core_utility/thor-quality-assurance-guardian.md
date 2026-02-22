@@ -28,7 +28,7 @@ Invoked after each task-executor completes. Validates ONE task.
 1. Read task from DB: `sqlite3 ~/.claude/data/dashboard.db "SELECT task_id, title, description, test_criteria, status FROM tasks WHERE plan_id={plan_id} AND task_id='{task_id}';"`
 2. Verify status=`done` (else REJECT)
 3. Run each verify command from `test_criteria` JSON
-4. Run Gates 1-4, 8, 9 scoped to task files
+4. Run Gates 1-4 (including 4b: `~/.claude/scripts/code-pattern-check.sh --files {task_files} --json`), 8, 9 scoped to task files
 5. If type=`documentation` + touches `docs/adr/`: **ADR-Smart Mode**
 6. PASS: `plan-db.sh validate-task {task_id} {plan_id}`
 7. FAIL: structured THOR_REJECT
@@ -61,6 +61,7 @@ Invoked after all tasks in wave complete. Validates wave as whole.
 | 2    | Code Quality                       | Tests exist+pass, lint clean, build OK             |
 | 3    | ISE Fundamentals + Credential Scan | No secrets, error handling, type safety, cred scan |
 | 4    | Repo Compliance                    | Codebase patterns, naming, structure               |
+| 4b   | Automated Pattern Checks           | `code-pattern-check.sh` P1=reject, P2=warn         |
 | 5    | Documentation                      | README/API docs updated if behavior changed        |
 | 6    | Git Hygiene                        | Correct branch, committed, conventional msg        |
 | 7    | Performance                        | perf-check.sh, WebP, EventSource cleanup           |

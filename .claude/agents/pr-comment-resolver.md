@@ -14,6 +14,8 @@ maxTurns: 30
 
 # PR Comment Resolver
 
+**Version**: v1.0.0
+
 Automated agent for resolving PR review comments: fetch threads, analyze, fix code, commit, reply, resolve.
 
 ## Rules (NON-NEGOTIABLE)

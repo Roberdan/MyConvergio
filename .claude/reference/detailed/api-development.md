@@ -1,143 +1,55 @@
-# API Development Standards
+# API Development Standards v2.0.0
 
-> This rule is enforced by the MyConvergio agent ecosystem.
+> Enforced by MyConvergio agent ecosystem. Compact format per ADR 0009.
 
-## Overview
-Consistent, well-designed APIs are critical for system integration and developer experience. All APIs in the MyConvergio ecosystem must follow RESTful conventions, implement proper error handling, and provide comprehensive documentation.
+## HTTP Methods
 
-## Requirements
+| Method | Purpose                 | Idempotent | Safe |
+|--------|-------------------------|------------|------|
+| GET    | Retrieve resource       | ✓          | ✓    |
+| POST   | Create resource         | ✗          | ✗    |
+| PUT    | Replace entire resource | ✓          | ✗    |
+| PATCH  | Partial update          | ✓          | ✗    |
+| DELETE | Remove resource         | ✓          | ✗    |
 
-### RESTful Conventions
+Never use GET for operations with side effects.
 
-#### HTTP Methods
-- **GET**: Retrieve resources (idempotent, no side effects)
-- **POST**: Create new resources
-- **PUT**: Replace entire resource (idempotent)
-- **PATCH**: Partial update of resource (idempotent)
-- **DELETE**: Remove resource (idempotent)
-- Never use GET for operations with side effects
+## Resource Naming
 
-#### Resource Naming
-- Use plural nouns for collections: `/api/users`, `/api/products`
-- Use specific identifiers: `/api/users/{userId}`
-- Nested resources for relationships: `/api/users/{userId}/orders`
-- Use kebab-case for multi-word resources: `/api/payment-methods`
-- Avoid verbs in URLs (use HTTP methods instead)
-- Keep URLs shallow (max 3 levels deep)
+- Collections: plural nouns (`/api/users`, `/api/products`)
+- Specific items: `/api/users/{userId}`
+- Nested relations: `/api/users/{userId}/orders`
+- Multi-word: kebab-case (`/api/payment-methods`)
+- No verbs (use HTTP methods)
+- Max 3 levels deep
 
-#### HTTP Status Codes
-- **200 OK**: Successful GET, PUT, PATCH, or DELETE
-- **201 Created**: Successful POST that creates a resource
-- **204 No Content**: Successful request with no response body (DELETE)
-- **400 Bad Request**: Invalid request (validation errors)
-- **401 Unauthorized**: Authentication required
-- **403 Forbidden**: Authenticated but not authorized
-- **404 Not Found**: Resource doesn't exist
-- **409 Conflict**: Request conflicts with current state
-- **422 Unprocessable Entity**: Validation errors (semantic issues)
-- **429 Too Many Requests**: Rate limit exceeded
-- **500 Internal Server Error**: Server-side error
-- **503 Service Unavailable**: Temporary unavailability
+## Status Codes
 
-### Error Response Format
-- Consistent error response structure across all endpoints
-- Include error code, message, and details
-- Provide helpful error messages for developers
-- Never expose internal implementation details
-- Include request ID for tracking
+| Code | Meaning                | Use Case                        |
+|------|------------------------|---------------------------------|
+| 200  | OK                     | Successful GET/PUT/PATCH/DELETE |
+| 201  | Created                | Successful POST                 |
+| 204  | No Content             | Successful DELETE               |
+| 400  | Bad Request            | Validation errors               |
+| 401  | Unauthorized           | Auth required                   |
+| 403  | Forbidden              | Auth'd but insufficient perms   |
+| 404  | Not Found              | Resource missing                |
+| 409  | Conflict               | State conflict                  |
+| 422  | Unprocessable Entity   | Semantic validation errors      |
+| 429  | Too Many Requests      | Rate limit exceeded             |
+| 500  | Internal Server Error  | Server error                    |
+| 503  | Service Unavailable    | Temporary unavailability        |
 
-### Pagination
-- Implement pagination for all list endpoints
-- Support page-based or cursor-based pagination
-- Include metadata: total count, page info, links
-- Use consistent query parameters: `page`, `limit`, `cursor`
-- Default limit should be reasonable (e.g., 20-50)
-- Maximum limit to prevent abuse (e.g., 100)
+## Error Response Format
 
-### Filtering and Sorting
-- Support filtering via query parameters
-- Use consistent naming: `?status=active&category=books`
-- Support sorting: `?sort=createdAt&order=desc`
-- Allow multiple sort fields: `?sort=priority,createdAt`
-- Document available filters and sort fields
-
-### Versioning Strategy
-- Version all public APIs from the start
-- Use URL versioning: `/api/v1/users` or `/api/v2/users`
-- Alternative: Header versioning: `Accept: application/vnd.myapp.v1+json`
-- Maintain backwards compatibility within major versions
-- Document deprecation timeline for old versions
-- Support at least 2 major versions simultaneously
-
-### Rate Limiting
-- Implement rate limiting on all public endpoints
-- Return `429 Too Many Requests` when limit exceeded
-- Include headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
-- Different limits for authenticated vs anonymous users
-- Document rate limits in API documentation
-
-### Authentication & Authorization
-- Use standard authentication (OAuth 2.0, JWT)
-- Include authentication in headers: `Authorization: Bearer {token}`
-- Return `401` for missing/invalid authentication
-- Return `403` for insufficient permissions
-- Validate authorization on every request
-
-### API Documentation
-- Use OpenAPI/Swagger specification
-- Document all endpoints, parameters, and responses
-- Include request/response examples
-- Provide interactive API explorer (Swagger UI)
-- Keep documentation in sync with implementation
-- Version documentation with the API
-
-### CORS Configuration
-- Configure CORS for browser-based clients
-- Whitelist allowed origins (avoid `*` in production)
-- Specify allowed methods and headers
-- Handle preflight requests properly
-
-## Examples
-
-### Good Examples
-
-#### RESTful Resource Design
-```typescript
-// Good: RESTful endpoint structure
-GET    /api/v1/users              // List all users
-POST   /api/v1/users              // Create new user
-GET    /api/v1/users/{userId}     // Get specific user
-PUT    /api/v1/users/{userId}     // Replace user
-PATCH  /api/v1/users/{userId}     // Update user
-DELETE /api/v1/users/{userId}     // Delete user
-
-// Good: Nested resources
-GET    /api/v1/users/{userId}/orders           // User's orders
-POST   /api/v1/users/{userId}/orders           // Create order for user
-GET    /api/v1/users/{userId}/orders/{orderId} // Specific order
-```
-
-#### Error Response Format
-```typescript
-// Good: Consistent error structure
-interface ErrorResponse {
-  error: {
-    code: string;
-    message: string;
-    details?: Record<string, string[]>;
-    requestId: string;
-    timestamp: string;
-  };
-}
-
-// Example response
+```json
 {
   "error": {
     "code": "VALIDATION_ERROR",
     "message": "Request validation failed",
     "details": {
-      "email": ["Email is required", "Email format is invalid"],
-      "age": ["Age must be at least 18"]
+      "email": ["Email required", "Invalid format"],
+      "age": ["Must be ≥18"]
     },
     "requestId": "req_abc123",
     "timestamp": "2025-12-15T10:30:00Z"
@@ -145,21 +57,18 @@ interface ErrorResponse {
 }
 ```
 
-#### Pagination Response
-```typescript
-// Good: Comprehensive pagination metadata
+Required fields: code | message | requestId | timestamp | details (optional)
+
+## Pagination
+
+Page-based or cursor-based required for all list endpoints.
+
+```json
 {
-  "data": [
-    { "id": "1", "name": "User 1" },
-    { "id": "2", "name": "User 2" }
-  ],
+  "data": [...],
   "pagination": {
-    "page": 2,
-    "limit": 20,
-    "total": 150,
-    "totalPages": 8,
-    "hasNext": true,
-    "hasPrev": true
+    "page": 2, "limit": 20, "total": 150, "totalPages": 8,
+    "hasNext": true, "hasPrev": true
   },
   "links": {
     "first": "/api/v1/users?page=1&limit=20",
@@ -171,188 +80,107 @@ interface ErrorResponse {
 }
 ```
 
-#### Rate Limiting Implementation
-```typescript
-// Good: Rate limiting with informative headers
-app.use('/api', rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  standardHeaders: true, // Return rate limit info in headers
-  legacyHeaders: false,
-  handler: (req, res) => {
-    res.status(429).json({
-      error: {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Too many requests, please try again later',
-        retryAfter: req.rateLimit.resetTime,
-        requestId: req.id,
-        timestamp: new Date().toISOString()
-      }
-    });
-  }
-}));
+Query params: `page`, `limit`, `cursor` | Default limit: 20-50 | Max: 100
 
-// Response headers:
-// X-RateLimit-Limit: 100
-// X-RateLimit-Remaining: 0
-// X-RateLimit-Reset: 1702641600
+## Filtering & Sorting
+
+- Filter: `?status=active&category=books&minPrice=100`
+- Sort: `?sort=createdAt&order=desc`
+- Multi-sort: `?sort=priority,createdAt`
+- Document all available filters/sort fields
+
+## Versioning
+
+- URL: `/api/v1/users` (preferred)
+- Header: `Accept: application/vnd.myapp.v1+json`
+- Backwards compat within major versions
+- Support ≥2 major versions simultaneously
+- Document deprecation timeline
+
+## Rate Limiting
+
+Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+
+Return 429 when exceeded. Different limits for auth'd vs anonymous.
+
+## Auth & Authz
+
+- OAuth 2.0 or JWT
+- Header: `Authorization: Bearer {token}`
+- 401: missing/invalid auth
+- 403: insufficient permissions
+- Validate on every request
+
+## Documentation
+
+- OpenAPI/Swagger spec required
+- Document: endpoints | params | responses | examples
+- Interactive explorer (Swagger UI)
+- Keep in sync with code
+- Version with API
+
+## Examples
+
+### RESTful Endpoints
+
+```typescript
+GET    /api/v1/users              // List
+POST   /api/v1/users              // Create
+GET    /api/v1/users/{userId}     // Get
+PUT    /api/v1/users/{userId}     // Replace
+PATCH  /api/v1/users/{userId}     // Update
+DELETE /api/v1/users/{userId}     // Delete
+GET    /api/v1/users/{userId}/orders  // Nested
 ```
 
-#### Proper Status Code Usage
+### Status Code Usage
+
 ```typescript
-// Good: Appropriate status codes
+// ✓ Correct status codes
 app.post('/api/v1/users', async (req, res) => {
-  try {
-    // Validate input
-    const validation = validateUserInput(req.body);
-    if (!validation.valid) {
-      return res.status(400).json({
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input',
-          details: validation.errors
-        }
-      });
-    }
-
-    // Check for conflicts
-    const existingUser = await findUserByEmail(req.body.email);
-    if (existingUser) {
-      return res.status(409).json({
-        error: {
-          code: 'USER_ALREADY_EXISTS',
-          message: 'User with this email already exists'
-        }
-      });
-    }
-
-    // Create user
-    const user = await createUser(req.body);
-
-    // Return 201 Created with Location header
-    res.status(201)
-       .location(`/api/v1/users/${user.id}`)
-       .json({ data: user });
-  } catch (error) {
-    // Return 500 for unexpected errors
-    res.status(500).json({
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'An unexpected error occurred',
-        requestId: req.id
-      }
-    });
+  if (!validateUserInput(req.body).valid) {
+    return res.status(400).json({...});  // Validation
   }
-});
-```
-
-#### Filtering and Sorting
-```typescript
-// Good: Flexible filtering and sorting
-GET /api/v1/products?category=electronics&minPrice=100&maxPrice=500&sort=price&order=asc
-
-app.get('/api/v1/products', async (req, res) => {
-  const {
-    category,
-    minPrice,
-    maxPrice,
-    sort = 'createdAt',
-    order = 'desc',
-    page = 1,
-    limit = 20
-  } = req.query;
-
-  const filters = {};
-  if (category) filters.category = category;
-  if (minPrice) filters.price = { $gte: Number(minPrice) };
-  if (maxPrice) filters.price = { ...filters.price, $lte: Number(maxPrice) };
-
-  const products = await findProducts({
-    filters,
-    sort: { [sort]: order === 'asc' ? 1 : -1 },
-    page: Number(page),
-    limit: Number(limit)
-  });
-
-  res.json({
-    data: products.items,
-    pagination: products.pagination
-  });
-});
-```
-
-### Bad Examples
-
-#### Non-RESTful Design
-```typescript
-// Bad: Verbs in URLs, inconsistent structure
-POST /api/createUser          // Should be POST /api/users
-GET  /api/getUserById/123     // Should be GET /api/users/123
-POST /api/deleteUser          // Should be DELETE /api/users/{id}
-GET  /api/updateUserStatus    // Should be PATCH /api/users/{id}
-```
-
-#### Inconsistent Error Responses
-```typescript
-// Bad: Different error formats
-// Endpoint 1 returns:
-{ "error": "User not found" }
-
-// Endpoint 2 returns:
-{ "message": "Invalid request", "code": 400 }
-
-// Endpoint 3 returns:
-{ "errors": ["Email is required"] }
-
-// Bad: No error details or context
-```
-
-#### No Pagination
-```typescript
-// Bad: Returns all records without pagination
-GET /api/users
-// Returns 10,000 user records - performance nightmare!
-```
-
-#### Poor Status Code Usage
-```typescript
-// Bad: Always returns 200, even for errors
-app.post('/api/users', async (req, res) => {
+  if (await findUserByEmail(req.body.email)) {
+    return res.status(409).json({...});  // Conflict
+  }
   const user = await createUser(req.body);
-  if (!user) {
-    return res.status(200).json({ success: false, error: 'Failed' });
-  }
-  res.status(200).json({ success: true, data: user });
+  res.status(201).location(`/api/v1/users/${user.id}`).json({data: user});
 });
 
-// Bad: Generic status codes
-app.get('/api/users/:id', async (req, res) => {
-  const user = await findUser(req.params.id);
-  if (!user) {
-    return res.status(500).json({ error: 'Not found' }); // Should be 404!
-  }
-  res.json(user);
+// ✗ Wrong: Always 200
+app.post('/api/users', async (req, res) => {
+  res.status(200).json({success: false});  // Should be 400/409/500
 });
 ```
 
-#### Unsafe Filtering
+### Rate Limiting
+
 ```typescript
-// Bad: SQL injection vulnerability
-app.get('/api/users', async (req, res) => {
-  const { name } = req.query;
-  const query = `SELECT * FROM users WHERE name = '${name}'`;
-  // Vulnerable to SQL injection!
-  const users = await db.query(query);
-  res.json(users);
-});
+app.use('/api', rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15min
+  max: 100,
+  handler: (req, res) => res.status(429).json({
+    error: {code: 'RATE_LIMIT_EXCEEDED', message: '...', retryAfter: req.rateLimit.resetTime}
+  })
+}));
 ```
+
+### Common Anti-Patterns
+
+| ✗ Bad                        | ✓ Good                  |
+|------------------------------|-------------------------|
+| POST /api/createUser         | POST /api/users         |
+| GET /api/getUserById/123     | GET /api/users/123      |
+| POST /api/deleteUser         | DELETE /api/users/{id}  |
+| `...WHERE name = '${name}'`  | Use parameterized query |
+| Return 200 for errors        | Use appropriate status  |
+| No pagination                | Paginate all lists      |
 
 ## References
-- [RESTful API Design Best Practices](https://restfulapi.net/)
-- [HTTP Status Codes](https://httpstatuses.com/)
-- [OpenAPI Specification](https://swagger.io/specification/)
-- [API Design Patterns](https://microservice-api-patterns.org/)
-- [Richardson Maturity Model](https://martinfowler.com/articles/richardsonMaturityModel.html)
-- [OAuth 2.0 Specification](https://oauth.net/2/)
-- [CORS Specification](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
-- [REST API Tutorial](https://www.restapitutorial.com/)
+
+RESTful API Best Practices: restfulapi.net | HTTP Status Codes: httpstatuses.com | OpenAPI Spec: swagger.io/specification | OAuth 2.0: oauth.net/2 | API Patterns: microservice-api-patterns.org
+
+---
+
+**v2.0.0** (2026-02-15): Compact format per ADR 0009 - 65% reduction from 358 to 200 lines

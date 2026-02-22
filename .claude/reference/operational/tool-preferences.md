@@ -21,6 +21,7 @@
 | Navigate to definition | LSP go-to-definition            | Grep for class/function |
 | Find all usages        | LSP find-references             | Grep for symbol         |
 | Explore codebase       | `Task(subagent_type='Explore')` | Multiple grep/glob      |
+| Run project audit      | `project-audit.sh --project-root $(pwd)` | Manual audit scripts |
 
 ## Parallel Execution
 
@@ -64,6 +65,8 @@
 | `gh pr view` (verbose)   | `pr-ops.sh status <pr>`           |
 | `gh api .../comments -f` | `pr-ops.sh reply <pr> <id> "msg"` |
 | `gh pr merge`            | `pr-ops.sh merge <pr>`            |
+| Pattern check (pre-PR)   | `code-pattern-check.sh --json`    |
+| Copilot review digest    | `copilot-review-digest.sh <pr>`   |
 
 Hook `prefer-ci-summary.sh` enforces this automatically.
 

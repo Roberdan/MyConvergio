@@ -1,9 +1,7 @@
 #!/bin/bash
-# Launch Copilot CLI worker for a plan task
+# copilot-worker.sh - Launch Copilot CLI worker for a plan task
 # Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]
-# Requires: copilot CLI installed, GH_TOKEN or COPILOT_TOKEN set
-
-# Version: 2.1.0
+# Version: 2.2.0 - Adds retry logic, exit code differentiation, Thor validation
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,6 +15,8 @@ shift || true
 # Defaults (gpt-5.3-codex = cheapest adequate for most tasks)
 MODEL="gpt-5.3-codex"
 TIMEOUT=600
+MAX_RETRIES=3
+RETRY_DELAYS=(5 15 30) # Exponential backoff: 5s, 15s, 30s
 
 # Parse optional flags
 while [[ $# -gt 0 ]]; do
@@ -44,13 +44,9 @@ if ! command -v copilot &>/dev/null; then
 	exit 1
 fi
 
-# Auth check: copilot uses gh auth or env tokens
-if [[ -z "${GH_TOKEN:-}" && -z "${COPILOT_TOKEN:-}" ]]; then
-	# Check if gh auth is available as fallback
-	if ! gh auth status &>/dev/null 2>&1; then
-		echo '{"error":"No auth: set GH_TOKEN, COPILOT_TOKEN, or run gh auth login"}' >&2
-		exit 1
-	fi
+if [[ -z "${GH_TOKEN:-}" && -z "${COPILOT_TOKEN:-}" ]] && ! gh auth status &>/dev/null 2>&1; then
+	echo '{"error":"No auth: set GH_TOKEN, COPILOT_TOKEN, or run gh auth login"}' >&2
+	exit 1
 fi
 
 # Verify task exists and is pending
@@ -84,31 +80,84 @@ PROJECT_ID="$(echo "$TASK_CTX" | jq -r '.project_id // ""')"
 PROMPT=$("$SCRIPT_DIR/copilot-task-prompt.sh" "$TASK_ID")
 PROMPT_TOKENS="$(_ap_tokens "$PROMPT" 2>/dev/null || echo 0)"
 
-echo "Launching Copilot worker for task $TASK_ID (timeout: ${TIMEOUT}s)..."
+echo "Launching Copilot worker for task $TASK_ID (timeout: ${TIMEOUT}s, max retries: $MAX_RETRIES)..."
 
-# Launch copilot in non-interactive autonomous mode
-EXIT_CODE=0
-START_TS="$(date +%s)"
-COPILOT_STDOUT_FILE="$(mktemp)"
-cleanup() {
-	rm -f "$COPILOT_STDOUT_FILE"
+# Execute with retry logic for timeout (exit 124)
+execute_copilot() {
+	local attempt="${1:-1}"
+	local exit_code=0
+	local start_ts copilot_stdout_file
+	
+	start_ts="$(date +%s)"
+	copilot_stdout_file="$(mktemp)"
+	
+	# Pipe copilot output to tee: file + stderr (visible to user)
+	# Only metadata echo goes to stdout (captured by caller)
+	timeout "$TIMEOUT" copilot --allow-all --no-ask-user --add-dir "$WT" \
+		--model "$MODEL" -p "$PROMPT" 2>&1 | tee "$copilot_stdout_file" >&2 || true
+	exit_code="${PIPESTATUS[0]}"
+	
+	echo "$exit_code|$copilot_stdout_file|$(( $(date +%s) - start_ts ))"
 }
-trap cleanup EXIT
 
-timeout "$TIMEOUT" copilot \
-	--allow-all \
-	--no-ask-user \
-	--add-dir "$WT" \
-	--model "$MODEL" \
-	-p "$PROMPT" > >(tee "$COPILOT_STDOUT_FILE") || EXIT_CODE=$?
+# Main execution loop with retry logic
+ATTEMPT=1
+TOTAL_DURATION=0
+FINAL_EXIT_CODE=0
+COPILOT_OUTPUT=""
 
-WORKER_RESULT_JSON="$(parse_worker_result "$COPILOT_STDOUT_FILE" 2>/dev/null || echo '{}')"
+while [[ $ATTEMPT -le $MAX_RETRIES ]]; do
+	echo "Attempt $ATTEMPT/$MAX_RETRIES..."
+	
+	EXEC_RESULT=$(execute_copilot "$ATTEMPT")
+	EXEC_EXIT_CODE="${EXEC_RESULT%%|*}"
+	EXEC_STDOUT_FILE="${EXEC_RESULT#*|}"; EXEC_STDOUT_FILE="${EXEC_STDOUT_FILE%|*}"
+	EXEC_DURATION="${EXEC_RESULT##*|}"
+	TOTAL_DURATION=$(( TOTAL_DURATION + EXEC_DURATION ))
+	COPILOT_OUTPUT="$(<"$EXEC_STDOUT_FILE")"
+	
+	# Exit codes: 0=success, 1=error, 124=timeout, 130=interrupted
+	
+	if [[ "$EXEC_EXIT_CODE" -eq 0 ]]; then
+		FINAL_EXIT_CODE=0
+		rm -f "$EXEC_STDOUT_FILE"
+		break
+	elif [[ "$EXEC_EXIT_CODE" -eq 124 ]]; then
+		rm -f "$EXEC_STDOUT_FILE"
+		if [[ $ATTEMPT -lt $MAX_RETRIES ]]; then
+			RETRY_DELAY="${RETRY_DELAYS[$((ATTEMPT - 1))]}"
+			echo "Timeout (exit 124). Retrying in ${RETRY_DELAY}s..." >&2
+			sleep "$RETRY_DELAY"
+			((ATTEMPT++))
+		else
+			echo "Timeout after $MAX_RETRIES attempts. Giving up." >&2
+			FINAL_EXIT_CODE=124
+			break
+		fi
+	elif [[ "$EXEC_EXIT_CODE" -eq 130 ]]; then
+		echo "Interrupted by user (exit 130)." >&2
+		FINAL_EXIT_CODE=130
+		rm -f "$EXEC_STDOUT_FILE"
+		break
+	else
+		echo "Copilot failed with exit code $EXEC_EXIT_CODE." >&2
+		FINAL_EXIT_CODE="$EXEC_EXIT_CODE"
+		rm -f "$EXEC_STDOUT_FILE"
+		break
+	fi
+done
+
+EXIT_CODE="$FINAL_EXIT_CODE"
+START_TS="$(( $(date +%s) - TOTAL_DURATION ))"
+
+# Parse worker output
+WORKER_RESULT_JSON="$(echo "$COPILOT_OUTPUT" | parse_worker_result 2>/dev/null || echo '{}')"
 TOKENS_USED="$(echo "$WORKER_RESULT_JSON" | jq -r '.tokens_used // 0' 2>/dev/null || echo 0)"
 if [[ "$TOKENS_USED" == "0" ]]; then
-	TOKENS_USED="$(_ap_tokens "$(<"$COPILOT_STDOUT_FILE")" 2>/dev/null || echo 0)"
+	TOKENS_USED="$(_ap_tokens "$COPILOT_OUTPUT" 2>/dev/null || echo 0)"
 fi
 
-# Verify task was updated in DB
+# Process results and update task status based on exit code
 FINAL_STATUS=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id=$TASK_ID;")
 NOTE=""
 THOR_RESULT="UNKNOWN"
@@ -116,17 +165,24 @@ STASH_REF=""
 
 if [[ "$EXIT_CODE" -eq 124 ]]; then
 	if verify_work_done "$WT" >/dev/null 2>&1; then
-		(
-			cd "$WT"
-			git stash push --include-untracked \
-				--message "copilot-worker timeout task ${TASK_ID}"
-		) >/dev/null 2>&1 || true
+		(cd "$WT" && git stash push --include-untracked \
+			--message "copilot-worker timeout task ${TASK_ID}") >/dev/null 2>&1 || true
 		STASH_REF="$(git -C "$WT" rev-parse --verify --short stash@{0} 2>/dev/null || true)"
 	fi
-	NOTE="Copilot timeout after ${TIMEOUT}s"
+	NOTE="Timeout after $ATTEMPT attempts (${TOTAL_DURATION}s total)"
 	[[ -n "$STASH_REF" ]] && NOTE="${NOTE}; stash=${STASH_REF}"
 	safe_update_task "$TASK_ID" blocked "$NOTE" --tokens "$TOKENS_USED" || true
-	echo "{\"status\":\"timeout\",\"task_id\":${TASK_ID},\"stash_ref\":\"${STASH_REF}\"}" >&2
+	echo "{\"status\":\"timeout\",\"task_id\":${TASK_ID},\"attempts\":${ATTEMPT},\"stash_ref\":\"${STASH_REF}\"}" >&2
+	THOR_RESULT="REJECT"
+elif [[ "$EXIT_CODE" -eq 130 ]]; then
+	NOTE="Interrupted by user"
+	safe_update_task "$TASK_ID" blocked "$NOTE" --tokens "$TOKENS_USED" || true
+	echo "{\"status\":\"interrupted\",\"task_id\":${TASK_ID}}" >&2
+	THOR_RESULT="REJECT"
+elif [[ "$EXIT_CODE" -ne 0 ]]; then
+	NOTE="Copilot error (exit $EXIT_CODE)"
+	safe_update_task "$TASK_ID" blocked "$NOTE" --tokens "$TOKENS_USED" || true
+	echo "{\"status\":\"error\",\"task_id\":${TASK_ID},\"exit_code\":${EXIT_CODE}}" >&2
 	THOR_RESULT="REJECT"
 elif [[ "$FINAL_STATUS" != "done" ]]; then
 	if WORK_DONE="$(verify_work_done "$WT" 2>/dev/null)"; then
@@ -148,8 +204,17 @@ else
 	THOR_RESULT="PASS"
 fi
 
-DURATION_MS="$(( ($(date +%s) - START_TS) * 1000 ))"
+# Log delegation with proper duration
+DURATION_MS="$(( TOTAL_DURATION * 1000 ))"
 log_delegation "$TASK_ID" "$PLAN_ID" "$PROJECT_ID" "copilot" "$MODEL" \
 	"$PROMPT_TOKENS" "$TOKENS_USED" "$DURATION_MS" "$EXIT_CODE" "$THOR_RESULT" "0" "unknown" || true
+
+# Run Thor validation if task completed successfully
+if [[ "$FINAL_STATUS" == "done" && "$THOR_RESULT" == "PASS" ]]; then
+	echo "Running Thor validation for plan $PLAN_ID..."
+	"$SCRIPT_DIR/thor-validate.sh" "$PLAN_ID" >/dev/null 2>&1 \
+		&& echo "Thor validation: PASSED" \
+		|| echo "Thor validation: FAILED (see logs)" >&2
+fi
 
 exit $EXIT_CODE

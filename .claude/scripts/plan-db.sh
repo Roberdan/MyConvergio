@@ -47,9 +47,9 @@ init_db
 
 # Dispatch
 case "${1:-help}" in
-  delegation-report) cmd_delegation_report "${@:2}" ;;
-  delegation-log) cmd_delegation_log "${@:2}" ;;
-  delegation-cost) cmd_delegation_cost "${@:2}" ;;
+delegation-report) cmd_delegation_report "${@:2}" ;;
+delegation-log) cmd_delegation_log "${@:2}" ;;
+delegation-cost) cmd_delegation_cost "${@:2}" ;;
 list) cmd_list "${2:?project_id required}" ;;
 create) cmd_create "${2:?project_id required}" "${3:?name required}" "${@:4}" ;;
 start) cmd_start "${2:?plan_id required}" "${3:-}" ;;
@@ -69,6 +69,8 @@ update-wave) cmd_update_wave "${2:?wave_id required}" "${3:?status required}" ;;
 complete) cmd_complete "${2:?plan_id required}" "${3:-}" ;;
 get-worktree) cmd_get_worktree "${2:?plan_id required}" ;;
 set-worktree) cmd_set_worktree "${2:?plan_id required}" "${3:?path required}" ;;
+get-wave-worktree) cmd_get_wave_worktree "${2:?wave_db_id required}" ;;
+set-wave-worktree) cmd_set_wave_worktree "${2:?wave_db_id required}" "${3:?path required}" ;;
 validate) cmd_validate "${2:?plan_id required}" "${3:-thor}" ;;
 validate-task)
 	shift 1
@@ -126,6 +128,8 @@ merge-queue) "$SCRIPT_DIR/merge-queue.sh" "${@:2}" ;;
 	echo "  complete <plan_id>             Mark done"
 	echo "  get-worktree <plan_id>         Get worktree path for plan"
 	echo "  set-worktree <plan_id> <path>  Set worktree path for plan"
+	echo "  get-wave-worktree <wave_db_id>   Get worktree path for wave"
+	echo "  set-wave-worktree <wave_db_id> <path>  Set worktree path for wave"
 	echo ""
 	echo "Validation:"
 	echo "  check-readiness <plan_id>      BLOCKS if metadata missing (run before /execute)"

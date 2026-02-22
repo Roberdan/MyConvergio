@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v7.1.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
+**v8.0.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,14 +15,15 @@
 
 ---
 
-## What's New in v6.0.0
+## What's New in v8.0.0
 
-**Convergio Orchestrator: multi-provider intelligent delegation across Claude, Copilot CLI, OpenCode (local), and Gemini.**
+**Wave-per-Worktree: every plan wave gets its own git worktree and PR. Merge = proof that work exists.**
 
-- **`delegate.sh`** — Routes tasks to optimal provider (priority, privacy, cost, task type)
-- **4 provider workers**: `copilot-worker.sh`, `opencode-worker.sh`, `gemini-worker.sh`, Claude (native)
-- **Privacy-aware routing** — Sensitive data never leaves local models (OpenCode/Ollama)
-- **Budget enforcement** — Daily caps, fallback chains, alert thresholds
+- **`wave-worktree.sh`** — Full lifecycle: create, merge, cleanup, status per wave
+- **PR as merge gate** — Wave marked "done" ONLY after successful merge to main
+- **`merging` status** — New wave state between "in_progress" and "done"
+- **Dashboard visibility** — `dashboard-mini.sh waves <plan_id>` shows worktree/branch/PR/clean status
+- **Backward compatible** — Old plans with plan-level worktrees continue to work
 - **25 tests** — Full suite with 0 failures (pure bash, SCRIPT_DIR portable)
 
 ---
@@ -227,7 +228,7 @@ Reusable workflows you can reference:
 | `architecture`        | System design patterns                                   |
 | `security-audit`      | Security assessment framework                            |
 | `performance`         | Performance optimization                                 |
-| `optimize-project`    | Token-aware project audits and optimization suggestions             |
+| `optimize-project`    | Token-aware project audits and optimization suggestions  |
 | `strategic-analysis`  | McKinsey-style analysis                                  |
 | `release-management`  | Release engineering                                      |
 | `orchestration`       | Multi-agent coordination                                 |

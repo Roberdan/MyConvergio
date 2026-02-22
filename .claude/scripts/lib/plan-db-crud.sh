@@ -45,6 +45,11 @@ cmd_create() {
 			;;
 		--auto-worktree)
 			auto_worktree=1
+			log_warn "--auto-worktree is deprecated. Use wave-level worktrees (default in new plans). Plan-level worktree created for backward compatibility."
+			shift
+			;;
+		--wave-worktrees)
+			# New default: wave-level worktrees (no-op flag, documenting intent)
 			shift
 			;;
 		--description)
@@ -466,9 +471,9 @@ cmd_update_wave() {
 	local status="$2"
 
 	case "$status" in
-	pending | in_progress | done | blocked) ;;
+	pending | in_progress | done | blocked | merging) ;;
 	*)
-		log_error "Invalid wave status: '$status'. Valid: pending | in_progress | done | blocked"
+		log_error "Invalid wave status: '$status'. Valid: pending | in_progress | done | blocked | merging"
 		exit 1
 		;;
 	esac
@@ -496,6 +501,18 @@ cmd_complete() {
 	fi
 	if [[ "$tasks_done" -lt "$tasks_total" ]]; then
 		log_error "Cannot complete plan $plan_id: $tasks_done/$tasks_total tasks done"
+		return 1
+	fi
+	# Check for waves stuck in 'merging' — block completion until all merged
+	local waves_merging
+	waves_merging=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND status = 'merging';")
+	if [[ "$waves_merging" -gt 0 ]]; then
+		local merging_list
+		merging_list=$(sqlite3 "$DB_FILE" "SELECT wave_id || ' (' || name || ')' FROM waves WHERE plan_id = $plan_id AND status = 'merging';")
+		log_error "Cannot complete plan $plan_id: $waves_merging wave(s) still merging"
+		echo "  Waves in merging state:" >&2
+		echo "$merging_list" | sed 's/^/    /' >&2
+		echo "  Wait for PR merge to complete or run: wave-worktree.sh merge $plan_id <wave_db_id>" >&2
 		return 1
 	fi
 	if [[ -z "$validated_at" ]]; then
@@ -603,6 +620,30 @@ cmd_set_worktree() {
 	local safe_path="$(sql_escape "$normalized")"
 	sqlite3 "$DB_FILE" "UPDATE plans SET worktree_path = '$safe_path' WHERE id = $plan_id;"
 	log_info "Set worktree for plan $plan_id: $normalized"
+}
+
+# Get wave worktree path (expanded to $HOME)
+# Usage: get-wave-worktree <wave_db_id>
+cmd_get_wave_worktree() {
+	local wave_db_id="$1"
+	local wt_path
+	wt_path=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM waves WHERE id = $wave_db_id;")
+	if [[ -z "$wt_path" ]]; then
+		log_error "No worktree_path set for wave $wave_db_id"
+		exit 1
+	fi
+	echo "$(_expand_path "$wt_path")"
+}
+
+# Set wave worktree path (normalized to ~)
+# Usage: set-wave-worktree <wave_db_id> <path>
+cmd_set_wave_worktree() {
+	local wave_db_id="$1"
+	local wt_path="$2"
+	local normalized="$(_normalize_path "$wt_path")"
+	local safe_path="$(sql_escape "$normalized")"
+	sqlite3 "$DB_FILE" "UPDATE waves SET worktree_path = '$safe_path' WHERE id = $wave_db_id;"
+	log_info "Set wave worktree for wave $wave_db_id: $normalized"
 }
 
 # Show execution host for plans

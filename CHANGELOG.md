@@ -1,5 +1,35 @@
 # Changelog
 
+## [8.0.0] - 2026-02-22
+
+### Added
+
+- Wave-per-Worktree model: each wave gets dedicated worktree + PR, merge = proof of work
+- `wave-worktree.sh`: lifecycle script (create/merge/cleanup/status)
+- `wave-worktree-core.sh`: shared library (branch naming, DB ops, stash management)
+- `migrate-v8-wave-worktree.sh`: DB migration (4 columns, `merging` status, trigger)
+- `execute-plan-engine.sh`: extracted plan execution engine with wave worktree integration
+- Dashboard modules: 10 modular rendering scripts (overview, active/completed/pipeline plans, waves, PRs)
+- `project-audit.sh` + `lib/project-audit-checks.sh`: project health auditing
+- `thor-audit-log.sh`: Thor validation audit trail
+- `pr-ops-api.sh`: PR operations REST API library
+- `lib/common.sh`: shared utilities library
+
+### Changed
+
+- `plan-db-safe.sh`: auto-triggers wave merge after Thor validation
+- `plan-db-crud.sh`: wave worktree CRUD, `cmd_complete` blocks on `merging` waves
+- `plan-db-validate.sh`: accepts `merging` status, wave-level worktree checks
+- `plan-db.sh`: new dispatch entries (get/set-wave-worktree)
+- `dashboard-mini.sh`: `waves` subcommand with worktree/branch/PR visibility
+- `worktree-cleanup.sh`: `--wave` flag for wave-level cleanup
+- `worktree-discipline.md`: v2 Wave-per-Worktree model documentation
+- `execution-optimization.md`: PR-based merge replaces manual commits
+- `task-executor.md`: Phase 0 wave DB resolution
+- `sync-to-myconvergio.sh`: expanded blocklist (personal scripts)
+
+---
+
 ## [7.1.0] - 2026-02-22
 
 ### Added

@@ -20,6 +20,8 @@
 | merge/rebase conflicts     | `merge-digest.sh`             |
 | stack traces               | `cmd 2>&1 \| error-digest.sh` |
 | `git status` / `git log`   | `git-digest.sh [--full]`      |
+| Copilot bot PR comments    | `copilot-review-digest.sh`    |
+| Manual audit scripts such as hardening-check + linters | `project-audit.sh --project-root $(pwd)` |
 
 ## Options
 

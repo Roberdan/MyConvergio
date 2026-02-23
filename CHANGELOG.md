@@ -1,5 +1,22 @@
 # Changelog
 
+## [v8.3.0] - 23 Feb 2026
+
+### Changed
+
+- `CLAUDE.md`: replace inline CodeGraph block with `@reference/operational/codegraph.md` (fixes init contradiction), slim Thor Gate section, add Build/Test/Lint section (95→66 lines)
+- `tool-preferences.md`: remove duplicate Priority Order section (84→76 lines)
+- `agent-routing.md`: remove duplicate Extended Agents/Maturity/Codex sections (52→34 lines)
+- `compact-format-guide.md`: remove Model-Agnostic/Smoke Test sections (125→99 lines)
+- `copilot-alignment.md`: translate Italian to English, merge Rigour Gap + Known Limitations (110→69 lines)
+- `memory-protocol.md`: compress Cleanup/Resume/Helper sections (89→70 lines)
+- `dashboard/js/utils.js`: strip trivial JSDoc, keep security docs (233→184 lines)
+- `dashboard/js/error-boundary.js`: strip trivial JSDoc, keep module comments (289→256 lines)
+- `dashboard/js/wave-pagination.js`: strip trivial JSDoc, keep performance rationale (266→225 lines)
+- `.gitignore`: add `*.pem`, `*.key` patterns
+
+---
+
 ## [v8.2.0] - 22 Feb 2026
 
 ### Added

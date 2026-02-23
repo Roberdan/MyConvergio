@@ -2,26 +2,20 @@
 
 # Memory Protocol
 
-Structured cross-session continuity via persistent memory files.
+Structured cross-session continuity via persistent memory files. See format template below.
 
 ## Save Path Convention
 
-```
-~/.claude/memory/{project-name}/{YYYY-MM-DD}-{short-description}.md
-```
-
-Example: `~/.claude/memory/mirrorbuddy/2026-01-29-auth-refactor.md`
+`~/.claude/memory/{project-name}/{YYYY-MM-DD}-{short-description}.md` — e.g., `~/.claude/memory/my-project/2026-01-29-auth-refactor.md`
 
 ## When to Save
 
-- Before ending complex multi-session task
-- After significant architectural decisions
-- When context lost on restart
-- Before switching project/branch
+- Before ending complex multi-session task | After significant architectural decisions
+- When context lost on restart | Before switching project/branch
 
 ## Memory File Format
 
-```markdown
+```
 # Memory: {Short Description}
 
 Project: {project-name} | Date: {YYYY-MM-DD HH:MM CET} | Session: {session-id}
@@ -38,21 +32,16 @@ Project: {project-name} | Date: {YYYY-MM-DD HH:MM CET} | Session: {session-id}
 
 ## Modified Files
 
-| File            | Change                | Status    |
-| --------------- | --------------------- | --------- |
-| path/to/file.ts | Added auth middleware | committed |
+| File | Change | Status |
+| --- | --- | --- |
+| path/to/file.ts | Added middleware | committed |
 
-## Decisions Made
+## Decisions & Failed Approaches
 
-| Decision | Rationale           | Alternatives Rejected          |
-| -------- | ------------------- | ------------------------------ |
-| Used JWT | Stateless, scalable | Session cookies (server state) |
-
-## Failed Approaches
-
-| Approach       | Why Failed         | Lesson                    |
-| -------------- | ------------------ | ------------------------- |
-| Redis sessions | Overkill for scale | Start simple, scale later |
+| Type | Item | Rationale | Rejected |
+| --- | --- | --- | --- |
+| Decision | JWT | Stateless, scalable | Session cookies |
+| Failed | Redis | Overkill | Start simple, scale later |
 
 ## Next Steps (Priority Order)
 
@@ -70,20 +59,12 @@ Project: {project-name} | Date: {YYYY-MM-DD HH:MM CET} | Session: {session-id}
 
 ## Resume Protocol
 
-1. Check `~/.claude/memory/{project-name}/` for recent files
-2. Read most recent memory file
-3. Summarize: "Resuming from {date}. Last session: {summary}. Next steps: {list}"
-4. Ask user: "Continue from where we left off?"
+Check `~/.claude/memory/{project-name}/` for recent files. Read, summarize, ask user to continue.
 
 ## Helper Script
 
-```bash
-~/.claude/scripts/memory-save.sh {project} "short description"
-# Creates file with correct path and template
-```
+`~/.claude/scripts/memory-save.sh {project} "short description"` — creates file with template.
 
 ## Cleanup
 
-- Memory files older than 90 days: archive to `~/.claude/memory/.archive/`
-- Completed tasks with no pending follow-ups: safe to archive
-- Never delete — archive preserves organizational learning
+Archive files >90 days to `~/.claude/memory/.archive/`. Never delete.

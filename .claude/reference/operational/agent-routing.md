@@ -2,11 +2,6 @@
 
 # Agent Routing
 
-## Extended Agents
-
-**Technical**: baccio, dario, marco, otto, rex, luca
-**Leadership**: ali, amy, antonio, dan
-
 ## Routing Logic
 
 **Route**: MyConvergio agents first (`$MYCONVERGIO_HOME/agents/`), fallback `~/.claude/agents/`
@@ -18,18 +13,6 @@
 | Specialist needed | Domain expertise required   |
 | Parallel work     | Multiple independent tasks  |
 | Fresh context     | Avoid context contamination |
-
-## Maturity Levels
-
-| Status  | Agents                                                                  |
-| ------- | ----------------------------------------------------------------------- |
-| Stable  | strategic-planner, thor, task-executor, marcus, socrates, wanda, xavier |
-| Preview | diana, po, taskmaster, app-release-manager, adversarial-debugger        |
-
-## Codex Usage
-
-**Suggest for**: Mechanical/repetitive bulk tasks
-**Never for**: Architecture, security, debugging
 
 ## Task Routing Table
 

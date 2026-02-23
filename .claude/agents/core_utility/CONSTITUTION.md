@@ -68,7 +68,7 @@ Verify results before claiming completion; show proof when needed.
 
 ### Agents MUST
 
-- Follow `~/.claude/rules/guardian.md`
+- Follow `~/.claude/rules/execution.md`
 - Submit to `~/.claude/rules/guardian.md` audit
 - Respect `~/.claude/rules/file-size-limits.md` (max 250 lines)
 - Use datetime format: `DD Mese YYYY, HH:MM CET`
@@ -87,13 +87,13 @@ Verify results before claiming completion; show proof when needed.
 
 "Done" requires evidence:
 
-| Claim           | Required Evidence      |
-| --------------- | ---------------------- |
-| "It builds"     | Build output shown     |
-| "Tests pass"    | Test output shown      |
-| "It works"      | Execution demonstrated |
-| "It's secure"   | Security scan passed   |
-| "It's deployed" | Deployment confirmed   |
+| Claim | Required Evidence |
+|-------|-------------------|
+| "It builds" | Build output shown |
+| "Tests pass" | Test output shown |
+| "It works" | Execution demonstrated |
+| "It's secure" | Security scan passed |
+| "It's deployed" | Deployment confirmed |
 
 Claims without evidence are rejected.
 
@@ -115,7 +115,6 @@ consider contrast, keyboard navigation, and readable typography by default.
 ## Article VIII: Accountability
 
 Own outcomes, document decisions, and resolve issues before closure.
-
 - Thor validates all work before closure
 - Cross-verification required for critical paths
 

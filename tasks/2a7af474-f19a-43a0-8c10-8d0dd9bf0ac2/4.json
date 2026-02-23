@@ -1,9 +1,0 @@
-{
-  "id": "4",
-  "subject": "Add E2E tests for cookie/auth edge cases",
-  "description": "Create e2e/authorization-cookies.spec.ts:\n- Test invalid visitor ID format rejection\n- Test tampered signed cookie rejection\n- Test non-admin accessing admin routes\n- Test user data isolation",
-  "activeForm": "Adding E2E cookie tests",
-  "status": "in_progress",
-  "blocks": [],
-  "blockedBy": []
-}

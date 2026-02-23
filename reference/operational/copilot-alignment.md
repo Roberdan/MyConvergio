@@ -17,7 +17,7 @@ GitHub Copilot CLI as Claude Code alternative reference.
 ```
 ~/.copilot/: config.json, copilot-instructions.md, hooks.json, mcp-config.json
   hooks/: enforce-standards.sh, worktree-guard.sh, enforce-line-limit.sh, session-tokens.sh
-MirrorBuddy/.github/: copilot-instructions.md (246 lines), agents/, instructions/
+{project}/.github/: copilot-instructions.md, agents/, instructions/
 ```
 
 ## Workflow Mapping

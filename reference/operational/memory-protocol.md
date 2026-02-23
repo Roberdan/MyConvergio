@@ -6,7 +6,7 @@ Structured cross-session continuity via persistent memory files. See format temp
 
 ## Save Path Convention
 
-`~/.claude/memory/{project-name}/{YYYY-MM-DD}-{short-description}.md` — e.g., `~/.claude/memory/mirrorbuddy/2026-01-29-auth-refactor.md`
+`~/.claude/memory/{project-name}/{YYYY-MM-DD}-{short-description}.md` — e.g., `~/.claude/memory/my-project/2026-01-29-auth-refactor.md`
 
 ## When to Save
 

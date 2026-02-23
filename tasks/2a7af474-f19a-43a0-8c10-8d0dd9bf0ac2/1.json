@@ -1,9 +1,0 @@
-{
-  "id": "1",
-  "subject": "Fix cookie consistency issues causing 401/403/500",
-  "description": "Fix critical cookie handling inconsistencies:\n1. Visitor ID validated in proxy but NOT in API routes\n2. Signed cookies not always verified with verifyCookieValue()\n3. Duplicate SIMULATED_TIER_COOKIE constant\n4. validateAuth() not consistently used across routes",
-  "activeForm": "Fixing cookie consistency issues",
-  "status": "completed",
-  "blocks": [],
-  "blockedBy": []
-}

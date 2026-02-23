@@ -1,5 +1,17 @@
 # Changelog
 
+## [9.1.0] - 2026-02-23
+
+### Changed
+
+- `agent-routing.md`: remove duplicate Extended Agents/Maturity/Codex sections (52→34 lines)
+- `compact-format-guide.md`: remove Model-Agnostic/Smoke Test sections (125→99 lines)
+- `copilot-alignment.md`: translate Italian to English, merge Rigour Gap + Known Limitations (110→69 lines)
+- `memory-protocol.md`: compress Cleanup/Resume/Helper sections (89→70 lines)
+- `tool-preferences.md`: remove duplicate Priority Order section (84→76 lines)
+
+---
+
 ## [9.0.0] - 2026-02-22
 
 ### BREAKING CHANGES

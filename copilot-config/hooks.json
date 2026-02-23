@@ -28,6 +28,11 @@
     "sessionEnd": [
       {
         "type": "command",
+        "bash": "~/.copilot/hooks/session-task-recovery.sh",
+        "timeoutSec": 30
+      },
+      {
+        "type": "command",
         "bash": "~/.copilot/hooks/session-tokens.sh",
         "timeoutSec": 15
       },

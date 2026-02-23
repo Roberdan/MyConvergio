@@ -79,11 +79,16 @@ fi
 cat <<PROMPT
 # Task Execution: $TID ($TITLE)
 
-## CRITICAL RULES
-1. Work ONLY in: $WT
-2. NEVER checkout or work on main/master branch
-3. Run \`worktree-guard.sh "$WT"\` FIRST. If it fails, STOP.
-4. Follow TDD: write tests FIRST, then implement
+## !! MANDATORY COMPLETION — READ THIS FIRST !!
+
+**You MUST run this command when your work is done. This is NON-NEGOTIABLE.**
+**If you skip this, the plan dashboard will show 0% progress.**
+
+\`\`\`bash
+plan-db-safe.sh update-task $TASK_ID done "Summary of what was done" --tokens 0 --output-data '{"summary":"what was done","artifacts":["file1.ts"]}'
+\`\`\`
+
+Use \`plan-db-safe.sh\` (NOT \`plan-db.sh\`). \`plan-db.sh\` will REJECT done status.
 
 ## Setup
 \`\`\`bash
@@ -93,15 +98,20 @@ worktree-guard.sh "$WT"
 plan-db-safe.sh update-task $TASK_ID in_progress "Started by Copilot"
 \`\`\`
 
+## Rules
+1. Work ONLY in: $WT — NEVER checkout main/master
+2. If \`worktree-guard.sh\` fails, STOP immediately
+3. TDD: tests FIRST, then implement
+
 ## Task
-**Wave**: $WAVE | **Task**: $TID | **Framework**: $FW
+**Wave**: $WAVE | **Task**: $TID | **Framework**: $FW | **Plan**: $PLAN_ID
 
 **Do**: $TITLE
 
 $DESC
 
 ## Prior Task Outputs
-$(if [[ -n "$PRIOR_OUTPUTS" ]]; then echo "$PRIOR_OUTPUTS"; else echo "No prior task outputs available."; fi)
+$(if [[ -n "$PRIOR_OUTPUTS" ]]; then echo "$PRIOR_OUTPUTS"; else echo "None."; fi)
 
 ## Test Criteria
 $TC
@@ -112,30 +122,21 @@ $TC
 3. Implement minimum code to make tests PASS (GREEN)
 4. Refactor if needed
 
-## Completion
-When done, include structured output_data for downstream tasks:
-\`\`\`bash
-plan-db-safe.sh update-task $TASK_ID done "Summary of what was done" --tokens 0 --output-data '{"summary":"what was done","artifacts":["file1.ts"]}'
-\`\`\`
-The output_data JSON should include: summary (string), artifacts (files created/modified), and any data needed by subsequent tasks.
-
-## Structured Output Format
-All agent output must be wrapped using the agent-protocol.sh envelope:
-
-\`\`\`bash
-build_task_envelope <output_data_json>
-\`\`\`
-Refer to scripts/lib/agent-protocol.sh for envelope details and usage.
-
-## Worktree Safety
-Run worktree-safety audit to detect stale/abandoned worktrees before modifying shared files:
-\`\`\`bash
-"$WT/../scripts/worktree-safety.sh" audit
-\`\`\`
-
 ## Coding Standards
 - Max 250 lines per file. Split if exceeds.
 - No TODO, FIXME, @ts-ignore in new code
 - English for all code and comments
-- Conventional commits if committing
+
+## !! FINAL STEP — DO NOT SKIP !!
+
+Run this BEFORE you finish. If you already ran it above, verify with:
+\`\`\`bash
+sqlite3 ~/.claude/data/dashboard.db "SELECT status FROM tasks WHERE id=$TASK_ID;"
+# Must show: done
+\`\`\`
+
+If NOT done, run:
+\`\`\`bash
+plan-db-safe.sh update-task $TASK_ID done "Summary" --tokens 0
+\`\`\`
 PROMPT

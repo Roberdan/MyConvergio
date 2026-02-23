@@ -59,6 +59,55 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 | `@tdd-executor`       | Standalone TDD cycle      | `gpt-5`              |
 | `@compliance-checker` | Regulatory validation     | `claude-opus-4.6-1m` |
 
+## `/execute` — Plan Execution Workflow (MANDATORY)
+
+When the user says `/execute {plan_id}` or `@execute {plan_id}`:
+
+**NEVER execute tasks by editing files directly.** EVERY task MUST go through `copilot-worker.sh`.
+
+### Step-by-step
+
+```bash
+export PATH="$HOME/.claude/scripts:$PATH"
+PLAN_ID={plan_id}
+
+# 1. Initialize
+CTX=$(plan-db.sh get-context $PLAN_ID)
+# Extract WORKTREE_PATH, FRAMEWORK, pending tasks from CTX
+
+# 2. Start plan if not already doing
+plan-db.sh start $PLAN_ID
+
+# 3. For EACH pending task — delegate to copilot-worker.sh
+copilot-worker.sh ${task_db_id} --model gpt-5.3-codex --timeout 600
+
+# 4. After each task: verify DB was updated
+verify-task-update.sh ${task_db_id} done
+# If FAILED: force recovery
+plan-db-safe.sh update-task ${task_db_id} done "Auto-recovered by executor"
+
+# 5. After all tasks in a wave: Thor validation
+plan-db.sh validate-wave ${wave_db_id}
+
+# 6. After all waves: complete plan
+plan-db.sh sync $PLAN_ID
+plan-db.sh complete $PLAN_ID
+```
+
+**KEY**: `copilot-worker.sh` handles task prompt generation, DB updates, retries, and auto-completion detection. NEVER bypass it by running tasks inline.
+
+### If copilot-worker.sh is unavailable
+
+Fall back to manual task execution but **ALWAYS call plan-db-safe.sh** (not plan-db.sh) for done status:
+
+```bash
+# Mark started
+plan-db-safe.sh update-task ${task_db_id} in_progress "Started"
+# ... do the work ...
+# Mark done — MUST use plan-db-safe.sh (plan-db.sh BLOCKS done status)
+plan-db-safe.sh update-task ${task_db_id} done "Summary" --tokens 0
+```
+
 ## Anti-Bypass Protection (CRITICAL)
 
 **NEVER execute plan tasks by editing files directly.** EVERY task MUST go through `copilot-worker.sh` or equivalent agent execution. Direct file editing during active plan = VIOLATION.

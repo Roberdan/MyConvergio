@@ -1,5 +1,23 @@
 # Changelog
 
+## [9.2.0] - 2026-02-23
+
+### Added
+
+- 6 design skills: `/design-systems`, `/brand-identity`, `/ui-design`, `/design-quality`, `/creative-strategy`, `/presentation-builder`
+- Design System Architect (Apple HIG) + Figma auto-layout specifications
+- Brand Identity System (Pentagram-level) + executive presentation design
+- UI/UX screen design (Apple HIG) + design-to-code translation
+- Design critique (Nielsen heuristics) + accessibility audit (WCAG 2.2 AA)
+- Marketing asset factory (47+ assets) + design trend research
+- Animated presentation builder (React/Tailwind, HLS video, liquid glass)
+
+### Changed
+
+- `jony-creative-director.md` v2.0.0: modular skill architecture, tools enabled, routing table
+
+---
+
 ## [9.1.0] - 2026-02-23
 
 ### Changed

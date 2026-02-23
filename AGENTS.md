@@ -1,6 +1,6 @@
 # MyConvergio Agents
 
-**v9.0.0** | 65 Claude Code Agents + 9 Copilot CLI Agents | Multi-Provider Orchestrator
+**v9.2.0** | 65 Claude Code Agents + 9 Copilot CLI Agents | Multi-Provider Orchestrator
 
 > _"Intent is human, momentum is agent"_ — [The Agentic Manifesto](./AgenticManifesto.md)
 
@@ -28,7 +28,7 @@ MyConvergio is an enterprise AI agent suite providing specialized assistance acr
 | release_management    | 3     | app-release-manager, feature-release-manager, app-release-manager-execution           |
 | compliance_legal      | 5     | elena, dr-enzo, sophia                                                                |
 | specialized_experts   | 14    | domik, behice, fiona, angela, ethan, evan, michael, research-report-generator         |
-| design_ux             | 3     | creative-director, ux-designer, design-thinking                                       |
+| design_ux             | 3     | creative-director (5 skills), ux-designer, design-thinking                            |
 
 **Total**: 63 operational agents + 2 constitutional documents (CONSTITUTION.md, CommonValuesAndPrinciples.md)
 
@@ -190,7 +190,7 @@ MyConvergio/
 
 ## Version
 
-**Current**: v8.0.0
+**Current**: v9.2.0
 **Release Notes**: See `CHANGELOG.md`
 **Versioning**: SemVer 2.0.0 (system + individual agents)
 

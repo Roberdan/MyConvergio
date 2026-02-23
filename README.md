@@ -4,7 +4,7 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v9.0.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
+**v9.2.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Copilot CLI | CLI Dashboard
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -15,17 +15,18 @@
 
 ---
 
-## What's New in v9.0.0
+## What's New in v9.2.0
 
-**Zero-dependency distribution: no npm, no Node.js. Pure bash + make.**
+**Jony Creative Director gets 5 modular design skills covering 10 professional design workflows.**
 
-- **`install.sh`** — Universal curl installer: `curl -sSL .../install.sh | bash`
-- **`myconvergio` CLI** — Pure bash replacement: install, upgrade, backup, restore, agents, settings
-- **Removed npm** — No more `package.json`, `node_modules`, or Node.js dependency
-- **Removed root `agents/` mirror** — Single source of truth: `.claude/agents/`
-- **Easy upgrades** — `myconvergio upgrade` pulls latest and reinstalls
+- **`/design-systems`** — Design system creation (Apple HIG) + Figma auto-layout specs
+- **`/brand-identity`** — Brand identity system (Pentagram-level) + executive presentations
+- **`/ui-design`** — UI/UX screen design (Apple HIG) + design-to-code translation
+- **`/design-quality`** — Design critique (Nielsen heuristics) + accessibility audit (WCAG 2.2 AA)
+- **`/creative-strategy`** — Marketing asset factory (47+ assets) + design trend research
+- **`/presentation-builder`** — Animated React slide decks with HLS video backgrounds
 
-> **Migrating from npm?** See [CHANGELOG.md](./CHANGELOG.md#migration-from-npm-v8x-or-earlier) for step-by-step migration guide.
+> **v9.0.0 migration**: See [CHANGELOG.md](./CHANGELOG.md#migration-from-npm-v8x-or-earlier) for npm to bash migration guide.
 
 ---
 
@@ -215,19 +216,25 @@ Reads the same SQLite database as Claude Code (`~/.claude/data/dashboard.db`). N
 
 Reusable workflows you can reference:
 
-| Skill                 | Use Case                                                 |
-| --------------------- | -------------------------------------------------------- |
-| `structured-research` | Hypothesis-driven research with confidence calibration   |
-| `code-review`         | Systematic code review process                           |
-| `debugging`           | Root cause analysis methodology                          |
-| `architecture`        | System design patterns                                   |
-| `security-audit`      | Security assessment framework                            |
-| `performance`         | Performance optimization                                 |
-| `optimize-project`    | Token-aware project audits and optimization suggestions  |
-| `strategic-analysis`  | McKinsey-style analysis                                  |
-| `release-management`  | Release engineering                                      |
-| `orchestration`       | Multi-agent coordination                                 |
-| `review-pr`           | Pre-PR review targeting Copilot patterns (3-layer stack) |
+| Skill                  | Use Case                                                 |
+| ---------------------- | -------------------------------------------------------- |
+| `structured-research`  | Hypothesis-driven research with confidence calibration   |
+| `code-review`          | Systematic code review process                           |
+| `debugging`            | Root cause analysis methodology                          |
+| `architecture`         | System design patterns                                   |
+| `security-audit`       | Security assessment framework                            |
+| `performance`          | Performance optimization                                 |
+| `optimize-project`     | Token-aware project audits and optimization suggestions  |
+| `strategic-analysis`   | McKinsey-style analysis                                  |
+| `release-management`   | Release engineering                                      |
+| `orchestration`        | Multi-agent coordination                                 |
+| `review-pr`            | Pre-PR review targeting Copilot patterns (3-layer stack) |
+| `design-systems`       | Design system creation (Apple HIG) + Figma specs         |
+| `brand-identity`       | Brand identity + executive presentation design           |
+| `ui-design`            | UI/UX screen design + design-to-code translation         |
+| `design-quality`       | Design critique + accessibility audit (WCAG 2.2 AA)      |
+| `creative-strategy`    | Marketing assets + design trend research                 |
+| `presentation-builder` | Animated React slide decks with HLS video + liquid glass |
 
 ---
 
@@ -373,6 +380,6 @@ For questions about commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v9.0.0** | February 2026 | Zero-Dependency Distribution + Claude Code + Copilot CLI
+**v9.2.0** | February 2026 | Design Skills + Claude Code + Copilot CLI
 
 </div>

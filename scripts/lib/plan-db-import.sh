@@ -61,6 +61,7 @@ cmd_import() {
   else "claude" end
 )),
 				has_do: has("do"),
+				summary: (.summary // ""),
 				files: (.files // [] | join(", ")),
 				ref: (.ref // ""),
 				verify: (.verify // []),
@@ -105,8 +106,9 @@ cmd_import() {
 			t_effort=$(echo "$spec_data" | jq -r "$t_base.effort")
 			t_executor_agent=$(echo "$spec_data" | jq -r "$t_base.executor_agent")
 
-			local has_do
+			local has_do t_summary
 			has_do=$(echo "$spec_data" | jq -r "$t_base.has_do")
+			t_summary=$(echo "$spec_data" | jq -r "$t_base.summary")
 			if [[ "$has_do" == "true" ]]; then
 				local t_files t_ref
 				t_files=$(echo "$spec_data" | jq -r "$t_base.files")
@@ -114,6 +116,10 @@ cmd_import() {
 				t_desc="$t_title"
 				[[ -n "$t_files" ]] && t_desc="$t_desc | Files: $t_files"
 				[[ -n "$t_ref" ]] && t_desc="$t_desc | Ref: $t_ref"
+				# If summary provided, use it as title and full 'do' as description
+				if [[ -n "$t_summary" ]]; then
+					t_title="$t_summary"
+				fi
 				t_criteria=$(echo "$spec_data" | jq -c "$t_base.verify")
 			else
 				t_desc=$(echo "$spec_data" | jq -r "$t_base.description")

@@ -79,6 +79,7 @@
                 },
                 "model": { "type": "string" },
                 "effort": { "type": "integer", "minimum": 1, "maximum": 3 },
+                "summary": { "type": "string", "maxLength": 80 },
                 "executor_agent": {
                   "type": "string",
                   "enum": ["copilot", "claude"]

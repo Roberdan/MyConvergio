@@ -1,5 +1,20 @@
 # Changelog
 
+## [v8.4.0] - 24 Feb 2026
+
+### Added — Plan Intelligence System (F-07)
+
+- **3 agents**: `plan-reviewer` (5 quality gates), `plan-business-advisor` (5 structured assessments), `plan-post-mortem` (8 checks, 9 categories)
+- **5 DB tables**: `plan_reviews`, `plan_business_assessments`, `plan_actuals`, `plan_learnings`, `plan_token_estimates`
+- **3 DB views**: `v_plan_health`, `v_token_accuracy`, `v_plan_roi`
+- **9 API endpoints**: review, business-assessment, learnings, token-estimates, actuals, learnings/search, roi-trend, token-accuracy, notify-actionable
+- `plan-db-intelligence.sh`: 9 `cmd_` functions sourced by `plan-db.sh` (dispatch + help section)
+- `token-estimator.sh`: estimate (effort→token mapping via historical data) + reconcile (flags >100% variance as learnings)
+- `planner.md` v2.2.0: steps 3.1 (plan-reviewer gate), 3.2 (business-advisor assessment), 5.5 (post-mortem + token reconciliation)
+- Plan spec `summary` field support in schema + import with backward compat
+
+---
+
 ## [v8.3.0] - 23 Feb 2026
 
 ### Changed

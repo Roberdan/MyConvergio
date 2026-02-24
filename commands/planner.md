@@ -1,6 +1,6 @@
 ---
 name: planner
-version: "2.1.0"
+version: "2.2.0"
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 -->
@@ -50,6 +50,19 @@ Returns: project_id, project_name, path, branch, active_plans, worktrees, has_ad
 NO Explore. Direct Glob/Grep (2 calls): `Glob("docs/adr/*.md")`, `Grep(pattern="kw1|kw2", path="docs/adr/", output_mode="files_with_matches")`. Read matched ADRs. Check CHANGELOG.md last 20 lines. Cite ADRs in `ref`. Conflict = ASK.
 
 **Failed Approaches Check** (HVE Core pattern): `plan-db.sh get-failures $PROJECT_ID`. If prior failures exist for this project, list them and ensure the new plan DOES NOT repeat the same approach. Reference failures in task `do` field: "Previous attempt X failed because Y — use Z instead."
+
+**Plan Intelligence Queries** (parallel, all optional — skip on DB error):
+
+```bash
+# Actionable learnings from past plans
+LEARNINGS=$(plan-db.sh get-actionable-learnings $PROJECT_ID)
+# Calibrated token estimates from historical actuals
+CALIBRATED=$(plan-db.sh calibrate-estimates $PROJECT_ID)
+# Recurring patterns: same category+title in 3+ plans = codify as reusable
+PATTERNS=$(plan-db.sh get-actionable-learnings $PROJECT_ID | jq '[.[] | select(.occurrences >= 3)]')
+```
+
+Apply learnings: adjust effort estimates using `CALIBRATED` data, cite recurring patterns in task `do` fields ("Per learning L-xx: use approach Y"), flag anti-patterns from `LEARNINGS` with severity=high.
 
 ### 1.6 Technical Clarification (MANDATORY)
 
@@ -138,13 +151,62 @@ cd "$WORKTREE_PATH"
 
 **`--human-summary` MANDATORY**: Riassunto leggibile del piano (NO path, NO istruzioni agente, NO workflow). Max 200 chars. Esempio: "Rinomina deployment Azure OpenAI da gpt-4o-realtime a gpt-realtime in tutti i file di configurazione e secrets"
 
+### 3.1 Plan Intelligence Review (PARALLEL)
+
+**Skip if plan has <3 tasks** (overhead > value).
+
+Launch plan-reviewer + plan-business-advisor in parallel. Both receive spec file path and plan_id.
+
+**Claude Code:**
+```
+# Launch BOTH in parallel
+review_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json")
+biz_result = await Task(subagent_type="plan-business-advisor", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json")
+```
+
+**Copilot CLI:**
+```bash
+# Two @agent invocations (parallel)
+@plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json
+@plan-business-advisor PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json
+```
+
+Store results:
+```bash
+plan-db.sh add-review $PLAN_ID "$REVIEW_JSON"
+plan-db.sh add-assessment $PLAN_ID "$ASSESSMENT_JSON"
+```
+
+### 3.2 Present Intelligence Summary
+
+Display alongside plan summary:
+
+| Metric                    | Source              | Action if Red           |
+| ------------------------- | ------------------- | ----------------------- |
+| `fxx_coverage_score`      | plan-reviewer       | Fix gaps before approve |
+| `completeness_score`      | plan-reviewer       | Add missing verify/refs |
+| `traditional_effort_days` | plan-business-advisor | Inform user of baseline |
+| `roi_projection`          | plan-business-advisor | Flag if ROI < 2x        |
+
+Format: "📊 **Review**: coverage={score}%, completeness={score}% | **Business**: {days}d traditional, ROI {x}x"
+
 ### 4. User Approval (MANDATORY STOP)
 
-Present F-xx + Codex proposals. "si"/"yes" -> Proceed.
+Present F-xx + Codex proposals + review verdict + business assessment. "si"/"yes" -> Proceed. If review flagged critical gaps, list them explicitly before approval gate.
 
 ### 5. Parallelization Mode
 
 See @planner-modules/parallelization-modes.md. AskUserQuestion: Standard (3) vs Max (unlimited, Opus).
+
+### 5.5 Pre-Execution Token Estimates
+
+Before execution starts, populate token estimates for all tasks:
+
+```bash
+token-estimator.sh estimate $PLAN_ID /path/to/spec.json
+```
+
+Writes per-task estimates to `plan_token_estimates` table. Used by post-mortem for variance analysis.
 
 ### 6. Start
 
@@ -192,7 +254,24 @@ Status: `wave-worktree.sh status <plan_id>`
 
 See @planner-modules/knowledge-codification.md. LEARNINGS LOG -> ADRs -> ESLint -> Thor validates.
 
-## 10. Failed Approaches Tracking {#failed-approaches}
+## 10. Completion + Post-Mortem {#completion}
+
+After `plan-db.sh complete $PLAN_ID`:
+
+```bash
+# 1. Reconcile token actuals vs estimates
+token-estimator.sh reconcile $PLAN_ID
+
+# 2. Trigger post-mortem agent (populates plan_learnings + plan_actuals)
+# Claude Code:
+await Task(subagent_type="plan-post-mortem", prompt="PLAN_ID=$PLAN_ID")
+# Copilot CLI:
+@plan-post-mortem PLAN_ID=$PLAN_ID
+```
+
+Post-mortem auto-writes: `plan_learnings` (what went well/badly, reusable patterns), `plan_actuals` (real tokens, durations, retry counts). Data feeds Step 1.5 intelligence queries for future plans.
+
+## 10.1 Failed Approaches Tracking {#failed-approaches}
 
 Task fails max retries → executor logs: `plan-db.sh log-failure $PLAN_ID $TASK_ID "approach" "reason"`. Planner reads at step 1.5: `plan-db.sh get-failures $PROJECT_ID`. Same approach failed before = MUST use different strategy. Failures are project-scoped, persist across plans.
 

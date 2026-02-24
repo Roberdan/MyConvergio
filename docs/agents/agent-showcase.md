@@ -150,4 +150,6 @@ security posture, test coverage, and deployment risk
 
 ---
 
-[← Agent Portfolio](./agent-portfolio.md) · [Use Cases](../use-cases.md) · [Comparison →](./comparison.md)
+---
+
+[README](../../README.md) | [Getting Started](../getting-started.md) | [Concepts](../concepts.md) | [Workflow](../workflow.md) | [Use Cases](../use-cases.md) | [Infrastructure](../infrastructure.md) | [Comparison](comparison.md)

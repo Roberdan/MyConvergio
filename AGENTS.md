@@ -1,6 +1,6 @@
 # MyConvergio Agents
 
-**v9.2.0** | 65 Claude Code Agents + 9 Copilot CLI Agents | Multi-Provider Orchestrator
+**v9.3.0** | 65 Claude Code Agents + 9 Copilot CLI Agents | Multi-Provider Orchestrator
 
 > _"Intent is human, momentum is agent"_ — [The Agentic Manifesto](./AgenticManifesto.md)
 
@@ -190,9 +190,14 @@ MyConvergio/
 
 ## Version
 
-**Current**: v9.2.0
+**Current**: v9.3.0
 **Release Notes**: See `CHANGELOG.md`
 **Versioning**: SemVer 2.0.0 (system + individual agents)
+
+## Agent Deep-Dives
+
+- [Agent Showcase](./docs/agents/agent-showcase.md) — Deep dive into 5 hero agents (Thor, Strategic Planner, Task Executor, Baccio, Ali)
+- [Market Comparison](./docs/agents/comparison.md) — MyConvergio vs Squad, AutoGen, CrewAI, LangGraph, OpenAI Agents SDK
 
 ---
 

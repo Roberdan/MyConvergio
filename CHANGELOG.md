@@ -1,5 +1,26 @@
 # Changelog
 
+## [9.3.0] - 2026-02-24
+
+### Added
+- docs/getting-started.md — end-to-end tutorial from install to completed plan
+- docs/concepts.md — glossary with Thor gates, enforcement policies, token optimization
+- docs/use-cases.md — 5 solopreneur workflow scenarios with mermaid diagrams
+- docs/infrastructure.md — scripts ecosystem, hooks, SQLite DB, concurrency control
+- docs/agents/agent-showcase.md — deep dive into 5 hero agents with examples
+- CI Batch Fix policy (NON-NEGOTIABLE) in execute.agent, task-executor, guardian, pr-comment-resolver
+- Zero Technical Debt policy (NON-NEGOTIABLE) across all agent configs
+- Copilot --yolo mode replacing --allow-all for full autonomous delegation
+
+### Changed
+- README.md — full rewrite with narrative structure and mermaid diagrams
+- docs/workflow.md — complete rewrite from 5-line stub to full pipeline guide
+- docs/agents/comparison.md — deep analysis vs Squad, AutoGen, CrewAI, LangGraph, OpenAI Agents SDK
+- AGENTS.md — cross-links to showcase and comparison docs
+- copilot-worker.sh, orchestrate.sh, worker-launch.sh — --yolo flag
+
+---
+
 ## [9.2.0] - 2026-02-23
 
 ### Added

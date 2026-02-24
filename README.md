@@ -303,16 +303,15 @@ _Read the full [Agentic Manifesto](./AgenticManifesto.md)_
 
 ## Documentation Hub
 
-| Document                                            | Description                                       |
-| --------------------------------------------------- | ------------------------------------------------- |
-| [Getting Started](./docs/getting-started.md)        | Install to completed plan in 10 minutes           |
-| [Core Concepts](./docs/concepts.md)                 | Agents, waves, Thor 9 gates, enforcement policies |
-| [Workflow Guide](./docs/workflow.md)                 | Prompt → Plan → Execute → Verify → Ship pipeline  |
-| [Agent Portfolio](./docs/agents/agent-portfolio.md)  | All 65 agents with categories and model tiers     |
-| [Architecture](./docs/agents/architecture.md)        | System diagrams and infrastructure                |
-| [Comparison](./docs/agents/comparison.md)            | Market analysis vs Squad, AutoGen, CrewAI         |
-| [Agentic Manifesto](./AgenticManifesto.md)           | Philosophical foundation                          |
-| [CHANGELOG](./CHANGELOG.md)                          | Version history                                   |
+| Document                                                | Description                                                    |
+| ------------------------------------------------------- | -------------------------------------------------------------- |
+| [Getting Started](./docs/getting-started.md)            | End-to-end tutorial from install to completed plan             |
+| [Core Concepts](./docs/concepts.md)                     | Glossary with Thor gates, enforcement policies, token optimization |
+| [Workflow Guide](./docs/workflow.md)                     | Full Prompt → Plan → Execute → Verify → Ship pipeline guide   |
+| [Agent Showcase](./docs/agents/agent-showcase.md)       | Deep dive into 5 hero agents with examples                    |
+| [Use Cases](./docs/use-cases.md)                        | 5 solopreneur workflow scenarios with mermaid diagrams         |
+| [Infrastructure](./docs/infrastructure.md)              | Scripts ecosystem, hooks, SQLite DB, concurrency control       |
+| [Comparison](./docs/agents/comparison.md)               | Market analysis vs Squad, AutoGen, CrewAI, LangGraph           |
 
 ---
 

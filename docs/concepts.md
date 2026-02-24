@@ -154,4 +154,6 @@ Routing based on: **Priority** (P0→Claude) · **Privacy** (sensitive→local) 
 
 ---
 
-[← README](../README.md) · [Getting Started](./getting-started.md) · [Workflow →](./workflow.md)
+---
+
+[README](../README.md) | [Getting Started](getting-started.md) | [Concepts](concepts.md) | [Workflow](workflow.md) | [Use Cases](use-cases.md) | [Infrastructure](infrastructure.md) | [Comparison](agents/comparison.md)

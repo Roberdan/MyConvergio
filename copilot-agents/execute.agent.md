@@ -179,6 +179,24 @@ Tasks from `CTX.pending_tasks` JSON:
 | wave_id       | which wave                   |
 | model         | which AI model (see routing) |
 
+## CI Batch Fix (NON-NEGOTIABLE)
+
+**ALWAYS wait for the FULL CI run to complete before pushing fixes.** Never fix-push-repeat per error.
+
+1. Push code, wait for CI to finish ALL checks (lint + typecheck + tests + build)
+2. Collect ALL failures from the CI run
+3. Fix ALL issues in a single commit
+4. Push once, wait for full CI again
+5. Repeat until CI is green (max 3 rounds)
+
+**Exception**: Security scan hard-fail — fix immediately, don't wait for other checks.
+
+**VIOLATION**: Pushing after fixing only 1 error while CI has more failures = REJECTED.
+
+## Zero Technical Debt (NON-NEGOTIABLE)
+
+Resolve ALL issues found during execution, not just high-priority ones. Prioritize by severity, but NEVER defer lower-priority items to "later". Every CI error, lint warning, type error, and test failure MUST be resolved before marking a task or wave as done. Accumulated debt = VIOLATION.
+
 ## Coding Standards
 
 - Max 250 lines per file

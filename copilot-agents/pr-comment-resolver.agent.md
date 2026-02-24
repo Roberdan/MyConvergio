@@ -65,7 +65,7 @@ For each fix:
 - For CHANGELOG/markdown: escape underscores in env var names (`\_`)
 - For ADR references: verify the cited file exists with `ls docs/adr/`
 
-### Phase 3: Commit
+### Phase 3: Commit + CI Batch Fix (NON-NEGOTIABLE)
 
 ```bash
 # Format first (black/ruff for Python, prettier for TS/JS)
@@ -83,6 +83,11 @@ Co-Authored-By: Roberto D'Angelo <roberdan@microsoft.com>"
 
 # Push to the PR branch
 git push
+
+# MANDATORY: Wait for FULL CI to complete before pushing more fixes
+# Collect ALL failures. Fix ALL in one commit. Push once.
+# Never fix-push-repeat per error. Max 3 rounds.
+# VIOLATION: Pushing after fixing 1 error while CI has more failures.
 ```
 
 ### Phase 4: Reply + Resolve
@@ -119,6 +124,10 @@ After all phases, print a summary table:
 Commit: abc1234
 Pushed to: branch-name
 ```
+
+## Zero Technical Debt (NON-NEGOTIABLE)
+
+Resolve ALL review comments, not just critical ones. Prioritize by severity but NEVER defer lower-priority items to "later". Every comment MUST be addressed (fix, reply, or wontfix with rationale). Leaving unresolved threads = VIOLATION.
 
 ## Error Handling
 

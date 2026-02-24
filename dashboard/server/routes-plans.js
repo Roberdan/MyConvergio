@@ -5,12 +5,14 @@ const routesCore = require('./routes-plans-core');
 const routesActions = require('./routes-plans-actions');
 const routesMarkdown = require('./routes-plans-markdown');
 const routesArchive = require('./routes-plans-archive');
+const routesIntelligence = require('./routes-plans-intelligence');
 
 const routes = {
   ...routesCore,
   ...routesActions,
   ...routesMarkdown,
-  ...routesArchive
+  ...routesArchive,
+  ...routesIntelligence
 };
 
 module.exports = routes;

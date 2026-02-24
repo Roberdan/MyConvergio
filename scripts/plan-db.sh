@@ -38,6 +38,7 @@ source "$SCRIPT_DIR/lib/plan-db-conflicts.sh"
 source "$SCRIPT_DIR/lib/plan-db-cluster.sh"
 source "$SCRIPT_DIR/lib/plan-db-remote.sh"
 source "$SCRIPT_DIR/lib/plan-db-delegate.sh"
+source "$SCRIPT_DIR/lib/plan-db-intelligence.sh"
 
 # Host identification for cross-machine tracking
 export PLAN_DB_HOST="${PLAN_DB_HOST:-$(hostname -s 2>/dev/null || hostname)}"
@@ -108,6 +109,16 @@ lock) "$SCRIPT_DIR/file-lock.sh" "${@:2}" ;;
 stale-check) "$SCRIPT_DIR/stale-check.sh" "${@:2}" ;;
 wave-overlap) "$SCRIPT_DIR/wave-overlap.sh" "${@:2}" ;;
 merge-queue) "$SCRIPT_DIR/merge-queue.sh" "${@:2}" ;;
+# Intelligence subcommands
+add-learning) cmd_add_learning "${2:?plan_id required}" "${3:?category required}" "${4:?severity required}" "${5:?title required}" "${@:6}" ;;
+get-learnings) cmd_get_learnings "${2:?plan_id required}" "${@:3}" ;;
+get-actionable-learnings) cmd_get_actionable_learnings "${2:-}" ;;
+add-review) cmd_add_review "${2:?plan_id required}" "${3:?reviewer required}" "${4:?verdict required}" "${@:5}" ;;
+add-assessment) cmd_add_assessment "${2:?plan_id required}" "${@:3}" ;;
+add-actuals) cmd_add_actuals "${2:?plan_id required}" "${@:3}" ;;
+estimate-tokens) cmd_estimate_tokens "${2:?plan_id required}" "${3:?scope required}" "${4:?scope_id required}" "${5:?est_tokens required}" "${@:6}" ;;
+update-token-actuals) cmd_update_token_actuals "${2:?estimate_id required}" "${3:?actual_tokens required}" "${@:4}" ;;
+calibrate-estimates) cmd_calibrate_estimates "${2:-}" ;;
 *)
 	echo "[ERROR] Unknown command: '${1:-}'" >&2
 	echo "" >&2
@@ -171,6 +182,17 @@ merge-queue) "$SCRIPT_DIR/merge-queue.sh" "${@:2}" ;;
 	echo "  stale-check snapshot|check|diff|cleanup  Stale context detection"
 	echo "  wave-overlap check-wave|check-plan|check-spec  Intra-wave overlap"
 	echo "  merge-queue enqueue|process|status|cancel  Sequential merge queue"
+	echo ""
+	echo "Intelligence:"
+	echo "  add-learning <plan> <cat> <sev> <title> [--detail text] [--task-id id] [--actionable]"
+	echo "  get-learnings <plan> [--category cat] [--severity sev] [--actionable]"
+	echo "  get-actionable-learnings [plan]         Pending actionable items"
+	echo "  add-review <plan> <reviewer> <verdict> [--fxx-score N] [--completeness N]"
+	echo "  add-assessment <plan> [--effort-days N] [--complexity 1-5] [--value 1-10] [--roi N]"
+	echo "  add-actuals <plan> [--tokens N] [--cost N] [--ai-minutes N] [--total-tasks N]"
+	echo "  estimate-tokens <plan> <scope> <scope_id> <tokens> [--cost N] [--model name]"
+	echo "  update-token-actuals <est_id> <actual_tokens> [--cost N]"
+	echo "  calibrate-estimates [model]              Accuracy stats by model"
 	echo ""
 	echo "Task statuses: pending | in_progress | done | blocked | skipped"
 	echo "Plan statuses: todo | doing | done | archived"

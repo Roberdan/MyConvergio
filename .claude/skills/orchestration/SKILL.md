@@ -41,7 +41,7 @@ Parallel execution of plans using Claude and/or Copilot CLI workers in Kitty ter
 # Claude-only (default):
 orchestrate.sh <plan> 4
 
-# Copilot-only (all workers use copilot --allow-all):
+# Copilot-only (all workers use copilot --yolo):
 orchestrate.sh <plan> 4 --engine copilot
 
 # Mixed (Claude for complex, Copilot for codex:true tasks):
@@ -98,13 +98,13 @@ Plans for parallel execution must include:
 3. **VERIFY LAST** - lint/typecheck/build at end
 4. **GIT COORDINATION** - One commit at a time
 5. **WORKTREE MANDATORY** - Every worker runs `worktree-guard.sh` first. NEVER on main.
-6. **COPILOT: --allow-all** - Always use `copilot --allow-all` to avoid confirmation prompts
+6. **COPILOT: --yolo** - Always use `copilot --yolo` for full autonomy (no confirmation prompts)
 
 ## Copilot CLI Flags Reference
 
 | Flag               | Purpose                                         |
 | ------------------ | ----------------------------------------------- |
-| `--allow-all`      | Auto-approve all tools (REQUIRED)               |
+| `--yolo`           | Full autonomy, no confirmations (REQUIRED)      |
 | `--add-dir <path>` | Trust worktree directory                        |
 | `--model <model>`  | Select model (claude-sonnet-4-5, gpt-4.1, etc.) |
 | `-p "prompt"`      | Non-interactive mode (for scripted execution)   |

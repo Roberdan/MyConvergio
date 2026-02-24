@@ -88,7 +88,7 @@ launch_worker() {
 	log "Launching $name..."
 	if [[ "$USE_DELEGATE" == "1" ]]; then
 		kitty @ launch --type=tab --title="$name" --cwd="$DIR" --keep-focus zsh -ic "./scripts/delegate.sh '$task' # --use-delegate flag enabled"
-# When --use-delegate is enabled, each worker tab runs 'delegate.sh $TASK_ID' instead of hardcoded CLI.
+		# When --use-delegate is enabled, each worker tab runs 'delegate.sh $TASK_ID' instead of hardcoded CLI.
 	else
 		kitty @ launch --type=tab --title="$name" --cwd="$DIR" --keep-focus zsh -ic "$CLAUDE_CMD"
 		sleep 3
@@ -157,12 +157,12 @@ monitor_workers() {
 	done
 }
 
-# Copilot worker (non-interactive with --allow-all)
+# Copilot worker (yolo mode — full autonomy, no confirmations)
 launch_copilot_worker() {
 	local name="$1" task="$2" model="${3:-claude-opus-4-6}"
 	log "Launching Copilot: $name..."
 	kitty @ launch --type=tab --title="$name" --cwd="$DIR" --keep-focus \
-		zsh -ic "copilot --allow-all --add-dir '$DIR' --model $model -p '$(echo "$task" | sed "s/'/'\\\\''/g")'"
+		zsh -ic "copilot --yolo --add-dir '$DIR' --model $model -p '$(echo "$task" | sed "s/'/'\\\\''/g")'"
 	success "$name launched"
 }
 

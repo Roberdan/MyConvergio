@@ -54,13 +54,13 @@ claude)
 	;;
 
 copilot)
-	# Copilot runs in non-interactive mode with --allow-all
+	# Copilot runs in yolo mode (full autonomy, no confirmations)
 	MODEL_FLAG=""
 	[[ -n "$MODEL" ]] && MODEL_FLAG="--model $MODEL"
 
 	kitty @ launch --type=tab --title="$TAB_NAME" --cwd="$CWD" \
 		--keep-focus zsh -ic \
-		"copilot --allow-all --add-dir '$CWD' $MODEL_FLAG -p '$(echo "$PROMPT" | sed "s/'/'\\\\''/g")'"
+		"copilot --yolo --add-dir '$CWD' $MODEL_FLAG -p '$(echo "$PROMPT" | sed "s/'/'\\\\''/g")'"
 	;;
 
 *)

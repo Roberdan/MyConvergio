@@ -30,13 +30,13 @@ MyConvergio is an enterprise AI agent suite providing specialized assistance acr
 | specialized_experts   | 14    | domik, behice, fiona, angela, ethan, evan, michael, research-report-generator         |
 | design_ux             | 3     | creative-director (5 skills), ux-designer, design-thinking                            |
 
-**Total**: 63 operational agents + 2 constitutional documents (CONSTITUTION.md, CommonValuesAndPrinciples.md)
+**Total**: 65 agents (including 2 constitutional documents: CONSTITUTION.md, CommonValuesAndPrinciples.md)
 
 ### Model Tiering
 
-- **opus** (2): Complex orchestration (ali, satya)
+- **opus** (6): Complex orchestration, critical decisions
 - **sonnet** (24): Strategic specialists (architects, security, compliance)
-- **haiku** (37): Workers, quick tasks, operational agents
+- **haiku** (35): Workers, quick tasks, operational agents
 
 ## Copilot CLI Agents
 

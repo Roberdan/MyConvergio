@@ -120,4 +120,4 @@ pie title Agent Distribution by Model Tier
 
 ---
 
-For invocation patterns and workflows, see [../workflow.md](../workflow.md).
+[README](../../README.md) | [Getting Started](../getting-started.md) | [Concepts](../concepts.md) | [Workflow](../workflow.md) | [Use Cases](../use-cases.md) | [Infrastructure](../infrastructure.md) | [Comparison](comparison.md)

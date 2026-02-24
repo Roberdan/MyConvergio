@@ -119,18 +119,18 @@ cp copilot-agents/*.agent.md ~/.copilot/agents/
 
 ## Key Features
 
-| #  | Feature                     | Description                                                       | Docs                                |
-| -- | --------------------------- | ----------------------------------------------------------------- | ----------------------------------- |
-| 1  | 65 Specialized Agents       | Domain experts with personas, not generic templates               | [Agent Portfolio](./docs/agents/agent-portfolio.md) |
-| 2  | Thor 9-Gate Validation      | Independent QA — reads files, never trusts agent self-reports     | [Concepts](./docs/concepts.md)      |
-| 3  | Multi-Provider Routing      | Claude + Copilot + Gemini + OpenCode with priority/privacy/budget | [Concepts](./docs/concepts.md)      |
-| 4  | TDD Enforcement             | RED → GREEN → REFACTOR cycle required for every task              | [Workflow](./docs/workflow.md)      |
-| 5  | Worktree Isolation          | Each plan runs in its own git worktree — no branch conflicts      | [Concepts](./docs/concepts.md)      |
-| 6  | SQLite State Management     | Portable, inspectable DB — no cloud dependencies                  | [Concepts](./docs/concepts.md)      |
-| 7  | CI Batch Fix                | Wait full CI → fix ALL → push once. Max 3 rounds                 | [Workflow](./docs/workflow.md)      |
-| 8  | Zero Technical Debt         | Every issue resolved, nothing deferred                            | [Workflow](./docs/workflow.md)      |
-| 9  | Copilot `--yolo` Mode       | Full autonomous delegation via `copilot-worker.sh --yolo`         | [Getting Started](./docs/getting-started.md) |
-| 10 | Token-Aware Writing         | <5% comments, compact commits/PRs, enforced by hooks + Thor      | [Concepts](./docs/concepts.md)      |
+| #   | Feature                 | Description                                                       | Docs                                                |
+| --- | ----------------------- | ----------------------------------------------------------------- | --------------------------------------------------- |
+| 1   | 65 Specialized Agents   | Domain experts with personas, not generic templates               | [Agent Portfolio](./docs/agents/agent-portfolio.md) |
+| 2   | Thor 9-Gate Validation  | Independent QA — reads files, never trusts agent self-reports     | [Concepts](./docs/concepts.md)                      |
+| 3   | Multi-Provider Routing  | Claude + Copilot + Gemini + OpenCode with priority/privacy/budget | [Concepts](./docs/concepts.md)                      |
+| 4   | TDD Enforcement         | RED → GREEN → REFACTOR cycle required for every task              | [Workflow](./docs/workflow.md)                      |
+| 5   | Worktree Isolation      | Each plan runs in its own git worktree — no branch conflicts      | [Concepts](./docs/concepts.md)                      |
+| 6   | SQLite State Management | Portable, inspectable DB — no cloud dependencies                  | [Concepts](./docs/concepts.md)                      |
+| 7   | CI Batch Fix            | Wait full CI → fix ALL → push once. Max 3 rounds                  | [Workflow](./docs/workflow.md)                      |
+| 8   | Zero Technical Debt     | Every issue resolved, nothing deferred                            | [Workflow](./docs/workflow.md)                      |
+| 9   | Copilot `--yolo` Mode   | Full autonomous delegation via `copilot-worker.sh --yolo`         | [Getting Started](./docs/getting-started.md)        |
+| 10  | Token-Aware Writing     | <5% comments, compact commits/PRs, enforced by hooks + Thor       | [Concepts](./docs/concepts.md)                      |
 
 ---
 
@@ -138,18 +138,18 @@ cp copilot-agents/*.agent.md ~/.copilot/agents/
 
 **65 specialized agents** across 8 categories:
 
-| Category              | Count | Key Agents                                                        |
-| --------------------- | ----- | ----------------------------------------------------------------- |
-| Leadership & Strategy | 7     | `ali-chief-of-staff`, `satya-board`, `domik-mckinsey`             |
-| Technical Development | 9     | `baccio-architect`, `rex-reviewer`, `dario-debugger`              |
-| Core Utility          | 11    | `strategic-planner`, `thor-qa-guardian`, `marcus-memory`          |
-| Business Operations   | 11    | `davide-project-manager`, `oliver-pm`, `anna-exec-assistant`      |
-| Compliance & Legal    | 5     | `elena-legal-compliance`, `luca-security`, `dr-enzo-hipaa`        |
-| Design & UX           | 3     | `jony-creative-director` (5 skills), `sara-ux-ui`                |
-| Specialized Experts   | 14    | `fiona-market-analyst`, `omri-data-scientist`, `sam-startup`      |
-| Release Management    | 3     | `app-release-manager`, `feature-release-manager`                  |
+| Category              | Count | Key Agents                                                   |
+| --------------------- | ----- | ------------------------------------------------------------ |
+| Leadership & Strategy | 7     | `ali-chief-of-staff`, `satya-board`, `domik-mckinsey`        |
+| Technical Development | 9     | `baccio-architect`, `rex-reviewer`, `dario-debugger`         |
+| Core Utility          | 11    | `strategic-planner`, `thor-qa-guardian`, `marcus-memory`     |
+| Business Operations   | 11    | `davide-project-manager`, `oliver-pm`, `anna-exec-assistant` |
+| Compliance & Legal    | 5     | `elena-legal-compliance`, `luca-security`, `dr-enzo-hipaa`   |
+| Design & UX           | 3     | `jony-creative-director` (5 skills), `sara-ux-ui`            |
+| Specialized Experts   | 14    | `fiona-market-analyst`, `omri-data-scientist`, `sam-startup` |
+| Release Management    | 3     | `app-release-manager`, `feature-release-manager`             |
 
-**Model tiering**: 54% Haiku (fast/cheap) · 37% Sonnet (specialists) · 3% Opus (critical orchestration)
+**Model tiering**: 54% Haiku (fast/cheap) · 37% Sonnet (specialists) · 9% Opus (critical orchestration)
 
 📖 [Full Agent Portfolio →](./docs/agents/agent-portfolio.md)
 
@@ -170,24 +170,24 @@ graph TD
     THOR -->|FAIL| EXEC
 ```
 
-| Provider   | Worker               | Use Case                | Cost           |
-| ---------- | -------------------- | ----------------------- | -------------- |
-| Copilot    | `copilot-worker.sh`  | Coding, tests, PR-ops   | Subscription   |
-| OpenCode   | `opencode-worker.sh` | Sensitive data, bulk     | Free (local)   |
-| Gemini     | `gemini-worker.sh`   | Research, analysis       | Metered        |
-| Claude     | `task-executor`      | Reviews, critical tasks  | Premium        |
+| Provider | Worker               | Use Case                | Cost         |
+| -------- | -------------------- | ----------------------- | ------------ |
+| Copilot  | `copilot-worker.sh`  | Coding, tests, PR-ops   | Subscription |
+| OpenCode | `opencode-worker.sh` | Sensitive data, bulk    | Free (local) |
+| Gemini   | `gemini-worker.sh`   | Research, analysis      | Metered      |
+| Claude   | `task-executor`      | Reviews, critical tasks | Premium      |
 
 ---
 
 ## Workflow: Prompt → Plan → Execute → Verify → Ship
 
-| Step | Command     | What Happens                                        |
-| ---- | ----------- | --------------------------------------------------- |
-| 1    | `/prompt`   | Extract F-xx traceable requirements from user input  |
-| 2    | `/planner`  | Generate multi-wave plan with tasks in SQLite DB     |
-| 3    | `/execute`  | TDD cycle + CI batch fix + zero-debt enforcement     |
-| 4    | Thor        | Independent 9-gate validation per task and per wave  |
-| 5    | Ship        | `wave-worktree.sh` merge → PR → CI → squash merge   |
+| Step | Command    | What Happens                                        |
+| ---- | ---------- | --------------------------------------------------- |
+| 1    | `/prompt`  | Extract F-xx traceable requirements from user input |
+| 2    | `/planner` | Generate multi-wave plan with tasks in SQLite DB    |
+| 3    | `/execute` | TDD cycle + CI batch fix + zero-debt enforcement    |
+| 4    | Thor       | Independent 9-gate validation per task and per wave |
+| 5    | Ship       | `wave-worktree.sh` merge → PR → CI → squash merge   |
 
 📖 [Full Workflow Guide →](./docs/workflow.md)
 
@@ -214,15 +214,15 @@ All agents implement the [MyConvergio Constitution](./.claude/agents/core_utilit
 
 MyConvergio is not an agent framework — it's a **practitioner's toolkit** for engineers who use AI coding assistants daily and need structure, quality gates, cost control, and multi-provider flexibility.
 
-| Dimension           | Agent Frameworks (AutoGen, CrewAI)       | MyConvergio                                      |
-| ------------------- | ---------------------------------------- | ------------------------------------------------ |
-| Runtime             | Python SDK, cloud deployment              | CLI-native (bash + sqlite3), zero server         |
-| LLM Lock-in         | Single provider per agent                | 4 providers with intelligent routing             |
-| Quality Assurance   | Agents self-report success               | Thor 9-gate independent validation               |
-| CI Discipline       | None                                     | CI batch fix (wait → fix all → push once)        |
-| Debt Policy         | None                                     | Zero technical debt enforcement                  |
-| Autonomous Mode     | None                                     | `--yolo` full autonomy for Copilot workers       |
-| Setup               | pip install + cloud config               | `curl \| bash`, zero dependencies                |
+| Dimension         | Agent Frameworks (AutoGen, CrewAI) | MyConvergio                                |
+| ----------------- | ---------------------------------- | ------------------------------------------ |
+| Runtime           | Python SDK, cloud deployment       | CLI-native (bash + sqlite3), zero server   |
+| LLM Lock-in       | Single provider per agent          | 4 providers with intelligent routing       |
+| Quality Assurance | Agents self-report success         | Thor 9-gate independent validation         |
+| CI Discipline     | None                               | CI batch fix (wait → fix all → push once)  |
+| Debt Policy       | None                               | Zero technical debt enforcement            |
+| Autonomous Mode   | None                               | `--yolo` full autonomy for Copilot workers |
+| Setup             | pip install + cloud config         | `curl \| bash`, zero dependencies          |
 
 📖 [Detailed Comparison →](./docs/agents/comparison.md)
 
@@ -277,12 +277,12 @@ Every token costs money and latency, multiplied by every agent that reads it.
 
 **Principle**: Text exists only if it changes agent behavior. Everything else is overhead.
 
-| Artifact         | Token-Aware Approach                                    |
-| ---------------- | ------------------------------------------------------- |
-| Code comments    | Only WHY, never WHAT. Target <5% comment lines          |
-| Commit messages  | Conventional commit, 1 subject line                     |
-| PR descriptions  | `## Summary` (2-3 bullets) + `## Test plan`             |
-| Review comments  | Direct: issue + fix. No hedging                         |
+| Artifact        | Token-Aware Approach                           |
+| --------------- | ---------------------------------------------- |
+| Code comments   | Only WHY, never WHAT. Target <5% comment lines |
+| Commit messages | Conventional commit, 1 subject line            |
+| PR descriptions | `## Summary` (2-3 bullets) + `## Test plan`    |
+| Review comments | Direct: issue + fix. No hedging                |
 
 **Enforcement**: `code-pattern-check.sh` check #9 flags >20% comment density. Thor Gate 4b validates.
 
@@ -303,15 +303,15 @@ _Read the full [Agentic Manifesto](./AgenticManifesto.md)_
 
 ## Documentation Hub
 
-| Document                                                | Description                                                    |
-| ------------------------------------------------------- | -------------------------------------------------------------- |
-| [Getting Started](./docs/getting-started.md)            | End-to-end tutorial from install to completed plan             |
-| [Core Concepts](./docs/concepts.md)                     | Glossary with Thor gates, enforcement policies, token optimization |
-| [Workflow Guide](./docs/workflow.md)                     | Full Prompt → Plan → Execute → Verify → Ship pipeline guide   |
-| [Agent Showcase](./docs/agents/agent-showcase.md)       | Deep dive into 5 hero agents with examples                    |
-| [Use Cases](./docs/use-cases.md)                        | 5 solopreneur workflow scenarios with mermaid diagrams         |
-| [Infrastructure](./docs/infrastructure.md)              | Scripts ecosystem, hooks, SQLite DB, concurrency control       |
-| [Comparison](./docs/agents/comparison.md)               | Market analysis vs Squad, AutoGen, CrewAI, LangGraph           |
+| Document                                          | Description                                                        |
+| ------------------------------------------------- | ------------------------------------------------------------------ |
+| [Getting Started](./docs/getting-started.md)      | End-to-end tutorial from install to completed plan                 |
+| [Core Concepts](./docs/concepts.md)               | Glossary with Thor gates, enforcement policies, token optimization |
+| [Workflow Guide](./docs/workflow.md)              | Full Prompt → Plan → Execute → Verify → Ship pipeline guide        |
+| [Agent Showcase](./docs/agents/agent-showcase.md) | Deep dive into 5 hero agents with examples                         |
+| [Use Cases](./docs/use-cases.md)                  | 5 solopreneur workflow scenarios with mermaid diagrams             |
+| [Infrastructure](./docs/infrastructure.md)        | Scripts ecosystem, hooks, SQLite DB, concurrency control           |
+| [Comparison](./docs/agents/comparison.md)         | Market analysis vs Squad, AutoGen, CrewAI, LangGraph               |
 
 ---
 

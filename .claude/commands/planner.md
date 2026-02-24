@@ -176,6 +176,9 @@ Use `/execute {plan_id}`. Manual: `await Task({subagent_type: "task-executor", m
 
 NEVER skip. NEVER trust executor. Thor reads files. Per-task MANDATORY. Per-wave AFTER all per-task. Progress=Thor-validated only. Gate 9=ADR-Smart for docs.
 
+**8c. Cross-Review (Gate 10)**: `cross-review.sh {plan_id} {wave_db_id} --provider copilot`
+Fresh session reviews ALL wave deliverables. Antagonistic prompt. Cross-provider preferred. CRITICAL issues = wave blocked. Fix + re-review (max 2 rounds). Report: `~/.claude/data/cross-reviews/`.
+
 ### 9. Knowledge Codification
 
 See @planner-modules/knowledge-codification.md. LEARNINGS LOG -> ADRs -> ESLint -> Thor validates.

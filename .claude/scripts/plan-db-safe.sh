@@ -212,6 +212,13 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 						"$wave_gates_passed" "$wave_gates_failed" "executor-auto" "$wave_validation_duration" "$wave_confidence" 2>/dev/null || true
 				fi
 
+				# Gate 10: Cross-Review (independent verification)
+				if [[ "$wave_validation_result" == "pass" && -x "$SCRIPT_DIR/cross-review.sh" ]]; then
+					echo "[plan-db-safe] Gate 10: Cross-Review for wave $wave_id..." >&2
+					"$SCRIPT_DIR/cross-review.sh" "$plan_id" "$wave_db_id" --provider copilot 2>&1 ||
+						echo "WARN: Gate 10 found issues — check ~/.claude/data/cross-reviews/" >&2
+				fi
+
 				# Wave-per-worktree: trigger merge if wave model is active
 				if [[ "$wave_validation_result" == "pass" && -x "$SCRIPT_DIR/wave-worktree.sh" ]]; then
 					# Check if this plan uses wave-level worktrees

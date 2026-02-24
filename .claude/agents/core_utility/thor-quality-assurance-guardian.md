@@ -4,7 +4,7 @@ description: Brutal quality gatekeeper. Zero tolerance for incomplete work. Vali
 tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 color: "#9B59B6"
 model: sonnet
-version: "5.1.0"
+version: "5.2.0"
 context_isolation: true
 memory: project
 maxTurns: 30
@@ -46,12 +46,13 @@ Invoked after all tasks in wave complete. Validates wave as whole.
 3. Query tasks: `sqlite3 ~/.claude/data/dashboard.db "SELECT task_id, title, status, test_criteria, validated_at FROM tasks WHERE plan_id={plan_id} AND wave_id_fk=(SELECT id FROM waves WHERE plan_id={plan_id} AND wave_id='{wave_id}');"`
 4. ALL tasks must be `done` AND `validated_at IS NOT NULL`
 5. Unvalidated tasks: run per-task validation first
-6. Run ALL 9 gates at wave scope
+6. Run ALL 10 gates at wave scope
 7. Run build/lint/typecheck/test at worktree level
-8. PASS: `plan-db.sh validate-wave {wave_db_id}` then `npm run ci:summary`
-9. Missing metadata: WARN + continue. Missing test_criteria: REJECT. Run `plan-db.sh check-readiness {plan_id}` first.
+8. Gate 10: `cross-review.sh {plan_id} {wave_db_id}` — fresh cross-provider review
+9. PASS: `plan-db.sh validate-wave {wave_db_id}` then `npm run ci:summary`
+10. Missing metadata: WARN + continue. Missing test_criteria: REJECT. Run `plan-db.sh check-readiness {plan_id}` first.
 
-## 9 Validation Gates
+## 10 Validation Gates
 
 > Details: [thor-validation-gates.md](./thor-validation-gates.md)
 
@@ -67,6 +68,7 @@ Invoked after all tasks in wave complete. Validates wave as whole.
 | 7    | Performance                        | perf-check.sh, WebP, EventSource cleanup           |
 | 8    | **TDD** (MANDATORY)                | Tests before impl, coverage ≥80% new files         |
 | 9    | **Constitution & ADR** (MANDATORY) | CLAUDE.md rules, coding-standards, ADR compliance  |
+| 10   | **Cross-Review** (MANDATORY)       | Cross-file consistency, antagonistic review        |
 
 ### Gate 3: Credential Scanning (ISE Playbook)
 

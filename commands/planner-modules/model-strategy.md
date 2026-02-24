@@ -150,7 +150,7 @@ When `executor_agent: "claude"`, pick model by complexity:
 ## Context Isolation
 
 - **task-executor** (Claude): FRESH session per task. No parent context.
-- **copilot-worker.sh**: FRESH session per task. `--no-ask-user` for autonomous mode.
+- **copilot-worker.sh**: FRESH session per task. `--yolo` for full autonomous mode.
 - **thor**: FRESH session per validation. Skeptical, reads everything.
 
 ## DB Registration

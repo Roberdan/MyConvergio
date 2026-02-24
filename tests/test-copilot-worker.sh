@@ -4,7 +4,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKER="${SCRIPT_DIR}/../scripts/copilot-worker.sh"
-PASS=0; FAIL=0
+PASS=0
+FAIL=0
 
 # Test helper
 test_pattern() {
@@ -26,7 +27,10 @@ test_count() {
 	fi
 }
 
-[[ ! -f "$WORKER" ]] && { echo "ERROR: copilot-worker.sh not found"; exit 1; }
+[[ ! -f "$WORKER" ]] && {
+	echo "ERROR: copilot-worker.sh not found"
+	exit 1
+}
 
 echo "Testing copilot-worker.sh..."
 echo "===================================="
@@ -78,7 +82,7 @@ test_pattern "log_delegation" "log_delegation used"
 # Test 5: Execution Function
 test_pattern "execute_copilot" "execute_copilot function"
 test_pattern "timeout.*TIMEOUT.*copilot" "Timeout wraps copilot"
-test_pattern "copilot --allow-all --no-ask-user" "Non-interactive flags"
+test_pattern "copilot --yolo" "Yolo mode flag"
 test_pattern "add-dir.*WT" "Worktree dir passed"
 test_pattern "model.*MODEL" "Model passed"
 test_pattern " -p.*PROMPT" "Prompt passed"

@@ -87,17 +87,17 @@ execute_copilot() {
 	local attempt="${1:-1}"
 	local exit_code=0
 	local start_ts copilot_stdout_file
-	
+
 	start_ts="$(date +%s)"
 	copilot_stdout_file="$(mktemp)"
-	
+
 	# Pipe copilot output to tee: file + stderr (visible to user)
 	# Only metadata echo goes to stdout (captured by caller)
-	timeout "$TIMEOUT" copilot --allow-all --no-ask-user --add-dir "$WT" \
+	timeout "$TIMEOUT" copilot --yolo --add-dir "$WT" \
 		--model "$MODEL" -p "$PROMPT" 2>&1 | tee "$copilot_stdout_file" >&2 || true
 	exit_code="${PIPESTATUS[0]}"
-	
-	echo "$exit_code|$copilot_stdout_file|$(( $(date +%s) - start_ts ))"
+
+	echo "$exit_code|$copilot_stdout_file|$(($(date +%s) - start_ts))"
 }
 
 # Main execution loop with retry logic
@@ -108,16 +108,17 @@ COPILOT_OUTPUT=""
 
 while [[ $ATTEMPT -le $MAX_RETRIES ]]; do
 	echo "Attempt $ATTEMPT/$MAX_RETRIES..."
-	
+
 	EXEC_RESULT=$(execute_copilot "$ATTEMPT")
 	EXEC_EXIT_CODE="${EXEC_RESULT%%|*}"
-	EXEC_STDOUT_FILE="${EXEC_RESULT#*|}"; EXEC_STDOUT_FILE="${EXEC_STDOUT_FILE%|*}"
+	EXEC_STDOUT_FILE="${EXEC_RESULT#*|}"
+	EXEC_STDOUT_FILE="${EXEC_STDOUT_FILE%|*}"
 	EXEC_DURATION="${EXEC_RESULT##*|}"
-	TOTAL_DURATION=$(( TOTAL_DURATION + EXEC_DURATION ))
+	TOTAL_DURATION=$((TOTAL_DURATION + EXEC_DURATION))
 	COPILOT_OUTPUT="$(<"$EXEC_STDOUT_FILE")"
-	
+
 	# Exit codes: 0=success, 1=error, 124=timeout, 130=interrupted
-	
+
 	if [[ "$EXEC_EXIT_CODE" -eq 0 ]]; then
 		FINAL_EXIT_CODE=0
 		rm -f "$EXEC_STDOUT_FILE"
@@ -148,7 +149,7 @@ while [[ $ATTEMPT -le $MAX_RETRIES ]]; do
 done
 
 EXIT_CODE="$FINAL_EXIT_CODE"
-START_TS="$(( $(date +%s) - TOTAL_DURATION ))"
+START_TS="$(($(date +%s) - TOTAL_DURATION))"
 
 # Parse worker output
 WORKER_RESULT_JSON="$(echo "$COPILOT_OUTPUT" | parse_worker_result 2>/dev/null || echo '{}')"
@@ -205,16 +206,16 @@ else
 fi
 
 # Log delegation with proper duration
-DURATION_MS="$(( TOTAL_DURATION * 1000 ))"
+DURATION_MS="$((TOTAL_DURATION * 1000))"
 log_delegation "$TASK_ID" "$PLAN_ID" "$PROJECT_ID" "copilot" "$MODEL" \
 	"$PROMPT_TOKENS" "$TOKENS_USED" "$DURATION_MS" "$EXIT_CODE" "$THOR_RESULT" "0" "unknown" || true
 
 # Run Thor validation if task completed successfully
 if [[ "$FINAL_STATUS" == "done" && "$THOR_RESULT" == "PASS" ]]; then
 	echo "Running Thor validation for plan $PLAN_ID..."
-	"$SCRIPT_DIR/thor-validate.sh" "$PLAN_ID" >/dev/null 2>&1 \
-		&& echo "Thor validation: PASSED" \
-		|| echo "Thor validation: FAILED (see logs)" >&2
+	"$SCRIPT_DIR/thor-validate.sh" "$PLAN_ID" >/dev/null 2>&1 &&
+		echo "Thor validation: PASSED" ||
+		echo "Thor validation: FAILED (see logs)" >&2
 fi
 
 exit $EXIT_CODE

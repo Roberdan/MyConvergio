@@ -113,7 +113,7 @@ except ImportError:
 
 **Never delegate to Copilot**: architecture decisions, security-sensitive, investigative debugging, cross-system integration where failure cascades.
 
-**Exec**: `copilot-worker.sh <id> --model <model> --timeout 600`. Requires: `copilot --allow-all`, `GH_TOKEN`.
+**Exec**: `copilot-worker.sh <id> --model <model> --timeout 600`. Requires: `copilot --yolo`, `GH_TOKEN`.
 
 ### 2.7 Cross-Plan Conflict Check (MANDATORY)
 

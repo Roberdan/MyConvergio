@@ -94,7 +94,7 @@ plan-db.sh sync $PLAN_ID
 plan-db.sh complete $PLAN_ID
 ```
 
-**KEY**: `copilot-worker.sh` handles task prompt generation, DB updates, retries, and auto-completion detection. NEVER bypass it by running tasks inline.
+**KEY**: `copilot-worker.sh` handles task prompt generation, DB updates, retries, and auto-completion detection. Always runs in `--yolo` mode for full autonomy. NEVER bypass it by running tasks inline.
 
 ### If copilot-worker.sh is unavailable
 

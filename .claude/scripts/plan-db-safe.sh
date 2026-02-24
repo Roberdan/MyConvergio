@@ -19,68 +19,9 @@ COMMAND="${1:-}"
 TASK_ID="${2:-}"
 STATUS="${3:-}"
 
-# ============================================================================
-# CIRCUIT BREAKER: Track consecutive rejections, auto-block after threshold
-# ============================================================================
-circuit_breaker_track_rejection() {
-	local task_db_id="$1"
-	local plan_id="${2:-}"
-
-	mkdir -p "$REJECTION_COUNTER_DIR"
-	local counter_file="$REJECTION_COUNTER_DIR/task-${task_db_id}.count"
-
-	# Increment counter
-	local count=1
-	if [[ -f "$counter_file" ]]; then
-		count=$(cat "$counter_file")
-		count=$((count + 1))
-	fi
-	echo "$count" >"$counter_file"
-
-	# Check threshold
-	if [[ $count -ge $MAX_REJECTIONS ]]; then
-		# Auto-block task
-		local task_id_text
-		task_id_text=$(sqlite3 "$DB_FILE" "SELECT task_id FROM tasks WHERE id = $task_db_id;" 2>/dev/null || echo "unknown")
-
-		echo "CIRCUIT BREAKER: Task $task_id_text rejected $count times - AUTO-BLOCKING" >&2
-
-		# Set task to blocked
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = 'blocked', notes = 'AUTO-BLOCKED: $count consecutive Thor rejections (circuit breaker)' WHERE id = $task_db_id;"
-
-		# Log to thor-audit.jsonl
-		local timestamp
-		timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-		local wave_id
-		wave_id=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM waves w JOIN tasks t ON t.wave_id_fk = w.id WHERE t.id = $task_db_id;" 2>/dev/null || echo "unknown")
-
-		local audit_entry="{\"timestamp\":\"$timestamp\",\"event\":\"circuit_breaker_triggered\",\"task_db_id\":$task_db_id,\"task_id\":\"$task_id_text\",\"plan_id\":${plan_id:-null},\"wave_id\":\"$wave_id\",\"consecutive_rejections\":$count,\"max_rejections\":$MAX_REJECTIONS,\"action\":\"auto_blocked\"}"
-
-		# Atomic append
-		mkdir -p "$DATA_DIR"
-		if command -v flock >/dev/null 2>&1; then
-			(
-				flock -x 200
-				echo "$audit_entry" >>"$AUDIT_LOG"
-			) 200>"$AUDIT_LOG.lock"
-		else
-			echo "$audit_entry" >>"$AUDIT_LOG"
-		fi
-
-		# Clean up counter
-		rm -f "$counter_file"
-
-		return 1
-	fi
-
-	return 0
-}
-
-circuit_breaker_reset() {
-	local task_db_id="$1"
-	local counter_file="$REJECTION_COUNTER_DIR/task-${task_db_id}.count"
-	rm -f "$counter_file"
-}
+# Source circuit breaker functions
+# shellcheck source=lib/circuit-breaker.sh
+source "$SCRIPT_DIR/lib/circuit-breaker.sh"
 
 # ============================================================================
 # HOOK: update-task <id> done — pre-checks + post-validation

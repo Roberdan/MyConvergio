@@ -158,7 +158,7 @@ After ALL tasks in wave are Thor-validated (Step 6 passed for each):
 WAVE_DB_ID=$(sqlite3 ~/.claude/data/dashboard.db \
   "SELECT w.id FROM waves w WHERE w.plan_id = $PLAN_ID AND w.wave_id = '{wave_id}';")
 
-# Thor per-wave validation - ALL 9 gates
+# Thor per-wave validation - ALL 10 gates
 plan-db.sh validate-wave $WAVE_DB_ID
 # If REJECTED: fix, re-validate. Max 3 rounds.
 ```

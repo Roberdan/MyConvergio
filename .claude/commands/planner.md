@@ -172,7 +172,7 @@ Use `/execute {plan_id}`. Manual: `await Task({subagent_type: "task-executor", m
 
 **8a. Per-Task**: `Task(subagent_type="thor", model="sonnet", prompt="THOR PER-TASK\nPlan:{plan_id}|Task:{task_id}|Wave:{wave_id}\nWORKTREE:{path}\ndo:{desc}|type:{type}|verify:{criteria}|ref:{F-xx}|files:{files}\nRun verify. Gate 1-4,8,9. Read files.")` -> `plan-db.sh validate-task {task_id} {plan_id}`
 
-**8b. Per-Wave**: `Task(subagent_type="thor", model="sonnet", prompt="THOR PER-WAVE\nPlan:{plan_id}|Wave:{wave_id}(db:{db_id})\nWORKTREE:{path}|FRAMEWORK:{framework}\nTasks:[list]|Verify:[all]\nALL 9 gates. lint,typecheck,build,tests. F-xx cross-task. Read files.")` -> `plan-db.sh validate-wave {wave_db_id}`
+**8b. Per-Wave**: `Task(subagent_type="thor", model="sonnet", prompt="THOR PER-WAVE\nPlan:{plan_id}|Wave:{wave_id}(db:{db_id})\nWORKTREE:{path}|FRAMEWORK:{framework}\nTasks:[list]|Verify:[all]\nALL 10 gates. lint,typecheck,build,tests. F-xx cross-task. Read files.")` -> `plan-db.sh validate-wave {wave_db_id}`
 
 NEVER skip. NEVER trust executor. Thor reads files. Per-task MANDATORY. Per-wave AFTER all per-task. Progress=Thor-validated only. Gate 9=ADR-Smart for docs.
 

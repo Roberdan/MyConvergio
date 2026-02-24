@@ -31,7 +31,7 @@ MyConvergio is a **practitioner's toolkit** — not an SDK for building agent ap
 | --------------------- | ----------------------------------- | --------------- | ------------------ | ---------------- | ---------------- | ----------------- |
 | **Runtime**           | bash + sqlite3, zero deps           | Node.js 22+     | Python SDK         | Python SDK       | Python SDK       | Python SDK        |
 | **LLM Providers**     | 4+ (Claude, Copilot, Gemini, local) | Copilot only    | Azure OpenAI       | Single per agent | Single per chain | OpenAI only       |
-| **Quality Assurance** | Thor 9 gates, independent           | Self-report     | Self-report        | Self-report      | Self-report      | Self-report       |
+| **Quality Assurance** | Thor 10 gates, independent          | Self-report     | Self-report        | Self-report      | Self-report      | Self-report       |
 | **State Management**  | SQLite (portable)                   | Git markdown    | Redis/memory       | Memory/cloud DB  | Checkpointers    | In-memory         |
 | **Git Safety**        | Worktree isolation per plan         | None            | None               | None             | None             | None              |
 | **TDD Enforcement**   | Mandatory RED→GREEN cycle           | None            | None               | None             | None             | None              |
@@ -53,20 +53,20 @@ graph LR
     style M fill:#e3f2fd
 ```
 
-| Dimension             | Squad                                   | MyConvergio                                      |
-| --------------------- | --------------------------------------- | ------------------------------------------------ |
-| Agent model           | 5 generic roles (coder, reviewer, etc.) | 65 domain specialists with personas              |
-| Provider support      | Copilot only                            | Claude, Copilot, Gemini, OpenCode (local)        |
-| Quality validation    | Agents self-report success              | Thor 9 gates — independent, reads files directly |
-| State management      | Git markdown files                      | SQLite DB — queryable, portable, inspectable     |
-| Dependencies          | Node.js 22+ required                    | Zero deps (bash + sqlite3)                       |
-| CI discipline         | None                                    | CI batch fix: wait full CI, fix ALL, push once   |
-| Technical debt policy | None                                    | Zero-debt: resolve ALL issues, never defer       |
-| Autonomous execution  | No flag equivalent                      | `--yolo` mode — Thor validates independently     |
-| TDD enforcement       | None                                    | Mandatory RED→GREEN per task                     |
-| Git safety            | No worktree isolation                   | Worktree per plan, branch protection hooks       |
-| Cost tracking         | Subscription-only                       | Per-task token tracking + budget caps            |
-| Maturity              | ~320 stars, experimental                | v9.3.0, 115+ scripts, 12 hooks, production       |
+| Dimension             | Squad                                   | MyConvergio                                       |
+| --------------------- | --------------------------------------- | ------------------------------------------------- |
+| Agent model           | 5 generic roles (coder, reviewer, etc.) | 65 domain specialists with personas               |
+| Provider support      | Copilot only                            | Claude, Copilot, Gemini, OpenCode (local)         |
+| Quality validation    | Agents self-report success              | Thor 10 gates — independent, reads files directly |
+| State management      | Git markdown files                      | SQLite DB — queryable, portable, inspectable      |
+| Dependencies          | Node.js 22+ required                    | Zero deps (bash + sqlite3)                        |
+| CI discipline         | None                                    | CI batch fix: wait full CI, fix ALL, push once    |
+| Technical debt policy | None                                    | Zero-debt: resolve ALL issues, never defer        |
+| Autonomous execution  | No flag equivalent                      | `--yolo` mode — Thor validates independently      |
+| TDD enforcement       | None                                    | Mandatory RED→GREEN per task                      |
+| Git safety            | No worktree isolation                   | Worktree per plan, branch protection hooks        |
+| Cost tracking         | Subscription-only                       | Per-task token tracking + budget caps             |
+| Maturity              | ~320 stars, experimental                | v9.3.0, 115+ scripts, 12 hooks, production        |
 
 ---
 
@@ -104,7 +104,7 @@ graph LR
 | ---------------------------- | ------------------------------------------------- | ------------ |
 | Definition of Ready          | `/prompt` F-xx extraction                         | Aligned      |
 | Definition of Done (feature) | Thor per-task validation (Gates 1-4, 8, 9)        | **Enhanced** |
-| Definition of Done (sprint)  | Thor per-wave validation (all 9 gates + build)    | **Enhanced** |
+| Definition of Done (sprint)  | Thor per-wave validation (all 10 gates + build)   | **Enhanced** |
 | PR reviewer checklist        | Thor Gates 2 + 3 + 8 (automated, zero bottleneck) | **Enhanced** |
 | TDD (Red-Green-Refactor)     | Thor Gate 8 (MANDATORY per-task, not just CI)     | **Enhanced** |
 | Credential scanning          | Thor Gate 3 (AWS/API/GitHub/password patterns)    | Aligned      |

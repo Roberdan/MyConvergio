@@ -32,7 +32,7 @@
 
 ## Thor Gate (NON-NEGOTIABLE)
 
-Per-task: Gate 1-4, 8, 9 | Per-wave: all 9 gates + build | Max 3 rejection rounds | `plan-db.sh validate-task {id}` / `validate-wave {wave_db_id}` | **Commit before Thor = VIOLATION** | **`plan-db.sh update-task X done` is BLOCKED — use `plan-db-safe.sh` which auto-validates** | **Subagents MUST include Thor in prompt or use task-executor (which has built-in Thor Phase 4.9)**
+Per-task: Gate 1-4, 8, 9 | Per-wave: all 10 gates + build | Max 3 rejection rounds | `plan-db.sh validate-task {id}` / `validate-wave {wave_db_id}` | **Commit before Thor = VIOLATION** | **`plan-db.sh update-task X done` is BLOCKED — use `plan-db-safe.sh` which auto-validates** | **Subagents MUST include Thor in prompt or use task-executor (which has built-in Thor Phase 4.9)**
 
 ## Anti-Bypass (NON-NEGOTIABLE)
 

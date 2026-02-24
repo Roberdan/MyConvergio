@@ -3,7 +3,7 @@
 # Follows Semantic Versioning 2.0.0 (https://semver.org/)
 
 # System Version
-SYSTEM_VERSION=9.3.0
+SYSTEM_VERSION=9.4.0
 
 # Framework Documents
 # These are foundational documents that govern all agents
@@ -32,7 +32,7 @@ strategic-planner=3.0.0 2026-02-15T00:00:00Z
 strategic-planner-templates=1.0.0 2026-01-18T00:00:00Z
 strategic-planner-thor=1.0.0 2026-01-18T00:00:00Z
 strategic-planner-git=1.0.0 2026-01-18T00:00:00Z
-thor-quality-assurance-guardian=3.4.0 2026-02-15T00:00:00Z
+thor-quality-assurance-guardian=5.2.0 2026-02-24T00:00:00Z
 task-executor=2.1.0 2026-02-15T00:00:00Z
 taskmaster-strategic-task-decomposition-master=1.0.3 2025-12-28T13:14:06Z
 davide-project-manager=1.0.3 2025-12-28T13:14:06Z
@@ -47,6 +47,6 @@ taskmaster-strategic-task-decomposition=1.1.0 2026-02-15T00:00:00Z
 sentinel-ecosystem-guardian=1.0.0 2026-02-15T00:00:00Z
 research-report-generator=1.3.0 2026-02-15T00:00:00Z
 task-executor-tdd=1.0.0 2026-02-15T00:00:00Z
-thor-validation-gates=1.0.0 2026-02-15T00:00:00Z
+thor-validation-gates=3.1.0 2026-02-24T00:00:00Z
 app-release-manager-execution=3.2.0 2026-02-15T00:00:00Z
 jony-creative-director=2.0.0 2026-02-23T00:00:00Z

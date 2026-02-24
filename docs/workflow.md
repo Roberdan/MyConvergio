@@ -25,12 +25,12 @@ Transform user intent into traceable F-xx requirements.
 
 **What happens**:
 
-| Action                | Output                                      |
-| --------------------- | ------------------------------------------- |
-| Parse user intent     | Identify features, constraints, edge cases   |
-| Generate F-xx list    | F-01 through F-xx with acceptance criteria   |
-| Confirm scope         | User approves/edits before planning          |
-| Save                  | `.copilot-tracking/{name}-prompt.md`         |
+| Action             | Output                                     |
+| ------------------ | ------------------------------------------ |
+| Parse user intent  | Identify features, constraints, edge cases |
+| Generate F-xx list | F-01 through F-xx with acceptance criteria |
+| Confirm scope      | User approves/edits before planning        |
+| Save               | `.copilot-tracking/{name}-prompt.md`       |
 
 ---
 
@@ -44,14 +44,14 @@ Generate multi-wave plan with tasks mapped to F-xx requirements.
 
 **What happens**:
 
-| Action              | Output                                        |
-| ------------------- | --------------------------------------------- |
-| Decompose into waves | Wave 1: Infrastructure, Wave 2: UI, etc.     |
-| Create tasks        | T1-01, T1-02... with F-xx mapping             |
-| Generate spec.json  | Machine-readable plan specification            |
-| Store in SQLite     | `plan-db.sh create` → dashboard.db             |
-| Create worktree     | `git worktree add plan/{id}-W1`                |
-| **User approval**   | Review plan before execution begins            |
+| Action               | Output                                   |
+| -------------------- | ---------------------------------------- |
+| Decompose into waves | Wave 1: Infrastructure, Wave 2: UI, etc. |
+| Create tasks         | T1-01, T1-02... with F-xx mapping        |
+| Generate spec.json   | Machine-readable plan specification      |
+| Store in SQLite      | `plan-db.sh create` → dashboard.db       |
+| Create worktree      | `git worktree add plan/{id}-W1`          |
+| **User approval**    | Review plan before execution begins      |
 
 ---
 
@@ -73,9 +73,9 @@ graph TD
 
 | Phase    | What Happens                                      |
 | -------- | ------------------------------------------------- |
-| RED      | Write test that fails — proves requirement exists  |
-| GREEN    | Write minimum code to make test pass               |
-| REFACTOR | Clean up while keeping tests green                 |
+| RED      | Write test that fails — proves requirement exists |
+| GREEN    | Write minimum code to make test pass              |
+| REFACTOR | Clean up while keeping tests green                |
 
 ### Copilot `--yolo` Mode
 
@@ -143,7 +143,7 @@ sequenceDiagram
     TH->>DB: Record result
     Note over EX,TH: On FAIL: executor fixes + resubmits (max 3x)
     EX->>TH: Wave W1 complete
-    TH->>TH: All 9 gates (wave-level)
+    TH->>TH: All 10 gates (wave-level)
     TH-->>EX: Wave PASS ✓
 ```
 
@@ -161,13 +161,13 @@ wave-worktree.sh merge {plan_id} W1
 
 **What happens**:
 
-| Action         | Detail                                        |
-| -------------- | --------------------------------------------- |
-| Auto-commit    | Squash commits with conventional message       |
-| Push           | Push to remote branch                          |
-| Create PR      | `gh pr create` with summary + test plan        |
-| Wait for CI    | CI batch fix policy applies here too           |
-| Squash merge   | Clean single commit on main                    |
+| Action       | Detail                                   |
+| ------------ | ---------------------------------------- |
+| Auto-commit  | Squash commits with conventional message |
+| Push         | Push to remote branch                    |
+| Create PR    | `gh pr create` with summary + test plan  |
+| Wait for CI  | CI batch fix policy applies here too     |
+| Squash merge | Clean single commit on main              |
 
 ---
 

@@ -1,8 +1,33 @@
 # Changelog
 
+## [9.4.0] - 2026-02-24
+
+### Added
+
+- Thor Gate 10: Cross-Review — independent antagonistic review per-wave before merge
+- `cross-review.sh` v1.0.0: launches cross-provider review of all wave deliverables
+- `lib/circuit-breaker.sh` v1.0.0: extracted from plan-db-safe.sh for 250-line compliance
+- First Principle doctrine in execution-optimization.md: "Minimize Errors, Maximize Correctness"
+
+### Changed
+
+- Thor gates 9 → 10 across all 16+ config/doc files (cross-file consistency)
+- `thor-validation-gates.md` v3.0.0 → v3.1.0: Gate 10 definition
+- `thor-quality-assurance-guardian.md` v5.1.0 → v5.2.0: Gate 10 in per-wave flow
+- `plan-db-safe.sh` v3.0.0 → v3.1.0: Gate 10 auto-trigger + circuit breaker extraction (261 → 202 lines)
+- `planner.md`: section 8c for Gate 10 invocation
+- `execution-optimization.md` v2.0.0 → v2.1.0: First Principle + Gate 10 in post-task protocol
+- `guardian.md`: Gate 10 reference
+- `copilot-agents/validate.agent.md`: Gate 10 in table
+- `copilot-agents/execute.agent.md`: 10 gates reference
+- `docs/concepts.md`: Gate 10 in mermaid diagram + gate table
+
+---
+
 ## [9.3.0] - 2026-02-24
 
 ### Added
+
 - docs/getting-started.md — end-to-end tutorial from install to completed plan
 - docs/concepts.md — glossary with Thor gates, enforcement policies, token optimization
 - docs/use-cases.md — 5 solopreneur workflow scenarios with mermaid diagrams
@@ -13,6 +38,7 @@
 - Copilot --yolo mode replacing --allow-all for full autonomous delegation
 
 ### Changed
+
 - README.md — full rewrite with narrative structure and mermaid diagrams
 - docs/workflow.md — complete rewrite from 5-line stub to full pipeline guide
 - docs/agents/comparison.md — deep analysis vs Squad, AutoGen, CrewAI, LangGraph, OpenAI Agents SDK

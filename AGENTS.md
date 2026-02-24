@@ -125,7 +125,7 @@ gh copilot @code-reviewer "Review PR #123 for security issues"
 ```
 
 **Coding Standards**: See `.claude/rules/coding-standards.md`
-**Quality Gates**: See `.claude/agents/core_utility/thor-validation-gates.md` (9 gates, enforced via `plan-db-safe.sh`)
+**Quality Gates**: See `.claude/agents/core_utility/thor-validation-gates.md` (10 gates, enforced via `plan-db-safe.sh`)
 
 ## Development Commands
 

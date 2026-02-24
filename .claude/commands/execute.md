@@ -96,7 +96,7 @@ PASS → `plan-db.sh validate-task ${task_id} ${PLAN_ID}` | REJECT → fix → r
 
 When `wave_done == wave_tasks_total` AND all tasks have `validated_at`:
 
-`Task(subagent_type="thor-quality-assurance-guardian", model="sonnet", max_turns=20, prompt="THOR PER-WAVE VALIDATION | Plan: ${PLAN_ID} | Wave: ${wave_id} (db_id: ${wave_db_id}) | WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK} | Tasks in wave: [list task_ids + titles from CTX] | Verify criteria: [list test_criteria for each task] | Run ALL 9 gates. Run: ci-summary.sh --full. Check F-xx cross-task. Read files directly.")`
+`Task(subagent_type="thor-quality-assurance-guardian", model="sonnet", max_turns=20, prompt="THOR PER-WAVE VALIDATION | Plan: ${PLAN_ID} | Wave: ${wave_id} (db_id: ${wave_db_id}) | WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK} | Tasks in wave: [list task_ids + titles from CTX] | Verify criteria: [list test_criteria for each task] | Run ALL 10 gates. Run: ci-summary.sh --full. Check F-xx cross-task. Read files directly.")`
 
 PASS → `plan-db.sh validate-wave ${wave_db_id}` → next wave | REJECT → fix → re-validate (max 3 rounds)
 

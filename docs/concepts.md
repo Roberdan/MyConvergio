@@ -7,7 +7,7 @@ graph TD
     A[65 Agents] -->|organized in| W[Waves]
     W -->|contain| T[Tasks]
     T -->|follow| TDD[TDD Cycle]
-    T -->|validated by| TH[Thor 9 Gates]
+    T -->|validated by| TH[Thor 10 Gates]
     TH -->|results in| DB[(SQLite DB)]
     DB -->|displayed by| D[Dashboard]
     P[/prompt] -->|extracts| F[F-xx Requirements]
@@ -18,21 +18,21 @@ graph TD
 
 ## Core Concepts
 
-| Concept          | Definition                                                                          |
-| ---------------- | ----------------------------------------------------------------------------------- |
-| **Agent**        | Specialized AI assistant with persona, domain expertise, and model tier (65 total)  |
-| **Wave**         | Execution phase grouping related tasks — Wave 1 runs before Wave 2                  |
-| **Task**         | Atomic work unit with TDD cycle, F-xx traceability, and Thor validation             |
-| **F-xx**         | Traceable requirement extracted by `/prompt` (e.g., F-01, F-02)                     |
-| **Plan**         | Multi-wave execution plan stored in SQLite, created by `/planner`                   |
-| **Worktree**     | Isolated git worktree per plan — no branch conflicts                                |
-| **Thor**         | Independent QA guardian — validates by reading files, never trusts self-reports      |
-| **Provider**     | LLM backend: Claude, Copilot, Gemini, OpenCode (local)                              |
-| **Digest Script**| Compact JSON output wrapper replacing verbose CLI commands                           |
+| Concept           | Definition                                                                         |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| **Agent**         | Specialized AI assistant with persona, domain expertise, and model tier (65 total) |
+| **Wave**          | Execution phase grouping related tasks — Wave 1 runs before Wave 2                 |
+| **Task**          | Atomic work unit with TDD cycle, F-xx traceability, and Thor validation            |
+| **F-xx**          | Traceable requirement extracted by `/prompt` (e.g., F-01, F-02)                    |
+| **Plan**          | Multi-wave execution plan stored in SQLite, created by `/planner`                  |
+| **Worktree**      | Isolated git worktree per plan — no branch conflicts                               |
+| **Thor**          | Independent QA guardian — validates by reading files, never trusts self-reports    |
+| **Provider**      | LLM backend: Claude, Copilot, Gemini, OpenCode (local)                             |
+| **Digest Script** | Compact JSON output wrapper replacing verbose CLI commands                         |
 
 ---
 
-## Thor Quality System — 9 Gates
+## Thor Quality System — 10 Gates
 
 Thor validates every task and every wave independently. It reads files directly — never trusts agent self-reports.
 
@@ -46,21 +46,23 @@ graph LR
     G6 --> G7[Gate 7<br/>Performance]
     G7 --> G8[Gate 8<br/>TDD]
     G8 --> G9[Gate 9<br/>Constitution]
-    G9 -->|ALL PASS| V[✓ VERIFIED]
-    G9 -->|ANY FAIL| R[✗ REJECT]
+    G9 --> G10[Gate 10<br/>Cross-Review]
+    G10 -->|ALL PASS| V[✓ VERIFIED]
+    G10 -->|ANY FAIL| R[✗ REJECT]
 ```
 
-| Gate | Name                  | What It Checks                                                    |
-| ---- | --------------------- | ----------------------------------------------------------------- |
-| 1    | F-xx Compliance       | All referenced F-xx requirements satisfied with evidence          |
-| 2    | Code Quality          | Lint clean, type-safe, no warnings                                |
-| 3    | Credential Scanning   | No secrets, API keys, or tokens in source                         |
+| Gate | Name                  | What It Checks                                                   |
+| ---- | --------------------- | ---------------------------------------------------------------- |
+| 1    | F-xx Compliance       | All referenced F-xx requirements satisfied with evidence         |
+| 2    | Code Quality          | Lint clean, type-safe, no warnings                               |
+| 3    | Credential Scanning   | No secrets, API keys, or tokens in source                        |
 | 4    | Repo Standards        | `code-pattern-check.sh` — 9 pattern checks, 250-line limit       |
-| 5    | Documentation Updated | Relevant docs updated for changes made                            |
-| 6    | Git Hygiene           | Clean commits, conventional format, no merge conflicts            |
-| 7    | Performance           | No regressions, bundle size checked                               |
-| 8    | TDD                   | RED → GREEN → REFACTOR cycle with evidence                        |
-| 9    | Constitution & ADR    | Compliant with CONSTITUTION.md and Architecture Decision Records  |
+| 5    | Documentation Updated | Relevant docs updated for changes made                           |
+| 6    | Git Hygiene           | Clean commits, conventional format, no merge conflicts           |
+| 7    | Performance           | No regressions, bundle size checked                              |
+| 8    | TDD                   | RED → GREEN → REFACTOR cycle with evidence                       |
+| 9    | Constitution & ADR    | Compliant with CONSTITUTION.md and Architecture Decision Records |
+| 10   | Cross-Review          | Cross-file consistency, independent antagonistic review per-wave |
 
 **Rejection**: Any gate failure → task rejected → executor must fix and resubmit (max 3 rounds).
 
@@ -100,12 +102,12 @@ Each plan runs in a dedicated git worktree (`plan/{id}-W{n}`). No branch polluti
 
 All state in a single portable file: `~/.claude/data/dashboard.db`
 
-| Table    | Purpose                                    |
-| -------- | ------------------------------------------ |
-| plans    | Plan metadata, status, timestamps          |
-| waves    | Wave groupings within plans                |
-| tasks    | Task status, F-xx mapping, token costs     |
-| tokens   | Per-task API token consumption             |
+| Table  | Purpose                                |
+| ------ | -------------------------------------- |
+| plans  | Plan metadata, status, timestamps      |
+| waves  | Wave groupings within plans            |
+| tasks  | Task status, F-xx mapping, token costs |
+| tokens | Per-task API token consumption         |
 
 Queryable with standard `sqlite3`. No cloud dependencies.
 
@@ -132,23 +134,23 @@ graph LR
     S --> R[Reduced Token Cost]
 ```
 
-| Technique          | Mechanism                                        |
-| ------------------ | ------------------------------------------------ |
-| Digest Scripts     | 14 scripts replacing verbose CLI (git, npm, CI)  |
-| Token-Aware Writing| <5% comment density, compact commits/PRs         |
-| 250-line Limit     | Per-file limit enforced by hooks                 |
-| Hooks              | Auto-block verbose patterns before they ship     |
+| Technique           | Mechanism                                       |
+| ------------------- | ----------------------------------------------- |
+| Digest Scripts      | 14 scripts replacing verbose CLI (git, npm, CI) |
+| Token-Aware Writing | <5% comment density, compact commits/PRs        |
+| 250-line Limit      | Per-file limit enforced by hooks                |
+| Hooks               | Auto-block verbose patterns before they ship    |
 
 ---
 
 ## Multi-Provider Routing
 
-| Provider  | Worker               | Best For                 | Cost         |
-| --------- | -------------------- | ------------------------ | ------------ |
-| Claude    | `task-executor`      | Reviews, critical tasks  | Premium      |
-| Copilot   | `copilot-worker.sh`  | Coding, tests, PRs       | Subscription |
-| Gemini    | `gemini-worker.sh`   | Research, analysis       | Metered      |
-| OpenCode  | `opencode-worker.sh` | Sensitive data, bulk     | Free (local) |
+| Provider | Worker               | Best For                | Cost         |
+| -------- | -------------------- | ----------------------- | ------------ |
+| Claude   | `task-executor`      | Reviews, critical tasks | Premium      |
+| Copilot  | `copilot-worker.sh`  | Coding, tests, PRs      | Subscription |
+| Gemini   | `gemini-worker.sh`   | Research, analysis      | Metered      |
+| OpenCode | `opencode-worker.sh` | Sensitive data, bulk    | Free (local) |
 
 Routing based on: **Priority** (P0→Claude) · **Privacy** (sensitive→local) · **Budget** (cap→fallback) · **Type** (code→Copilot)
 

@@ -53,7 +53,7 @@ budget:
 Every task, regardless of which provider executed it, goes through the same Thor validation:
 
 - **Per-task**: Gates 1-4 (compliance, quality, standards, repo) + 8 (TDD) + 9 (constitution)
-- **Per-wave**: All 9 gates + full build verification
+- **Per-wave**: All 10 gates + full build verification
 - **Max 3 rejection rounds** before escalation to user
 
 This ensures consistent quality whether code was written by Claude, Copilot, Gemini, or a local model.
@@ -93,7 +93,7 @@ flowchart TB
 
     subgraph VALIDATION["Thor Quality Gate"]
         THOR_T["Per-task: Gates 1-4, 8-9"]
-        THOR_W["Per-wave: All 9 gates + build"]
+        THOR_W["Per-wave: All 10 gates + build"]
     end
 
     PLANNER --> EXECUTOR

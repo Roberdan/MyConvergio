@@ -215,7 +215,6 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 				# Wave-per-worktree: trigger merge if wave model is active
 				if [[ "$wave_validation_result" == "pass" && -x "$SCRIPT_DIR/wave-worktree.sh" ]]; then
 					# Check if this plan uses wave-level worktrees
-					local wave_wt
 					wave_wt=$(sqlite3 "$DB_FILE" \
 						"SELECT worktree_path FROM waves WHERE id = $wave_db_id AND worktree_path IS NOT NULL AND worktree_path <> '';" 2>/dev/null || echo "")
 					if [[ -n "$wave_wt" ]]; then

@@ -3,7 +3,7 @@ name: execute
 description: Execute plan tasks with TDD workflow, drift detection, and worktree enforcement.
 tools: ["read", "edit", "search", "execute"]
 model: gpt-5
-version: "2.0.0"
+version: "3.0.0"
 handoffs:
   - label: Validate Wave
     agent: validate
@@ -11,7 +11,7 @@ handoffs:
     send: false
 ---
 
-<!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 - 35% token reduction -->
+<!-- v3.0.0 (2026-02-24): Add Thor per-task, F-xx verification, proof of modification, exit checklist -->
 
 # Plan Executor
 
@@ -34,12 +34,14 @@ Works with ANY repository - auto-detects project context.
 
 ## Critical Rules
 
-| Rule | Requirement                                               |
-| ---- | --------------------------------------------------------- |
-| 1    | NEVER work on main/master - run worktree-guard.sh FIRST   |
-| 2    | NEVER skip drift check - always run before first task     |
-| 3    | TDD mandatory - tests BEFORE implementation               |
-| 4    | One task at a time - mark in_progress, execute, mark done |
+| Rule | Requirement                                                           |
+| ---- | --------------------------------------------------------------------- |
+| 1    | NEVER work on main/master - run worktree-guard.sh FIRST               |
+| 2    | NEVER skip drift check - always run before first task                 |
+| 3    | TDD mandatory - tests BEFORE implementation                           |
+| 4    | One task at a time - mark in_progress, execute, mark done             |
+| 5    | **NEVER skip Thor** - run `validate-task` after EVERY task completion |
+| 6    | NEVER mark done without proof - git-digest.sh + F-xx verification     |
 
 ## Workflow
 
@@ -86,19 +88,56 @@ worktree-guard.sh "$WORKTREE_PATH"
 
 For each task in `CTX.pending_tasks`:
 
+**Step 1: Mark started**
+
 ```bash
-# 1. Mark started
 plan-db.sh update-task {db_task_id} in_progress "Started"
+```
 
-# 2. TDD: Write failing tests (RED) based on test_criteria
+**Step 2: TDD (RED)** - Write failing tests based on `test_criteria`. Run tests, confirm RED.
 
-# 3. Implement (GREEN) - minimum code to pass tests
+**Step 3: Implement (GREEN)** - Minimum code to pass tests. Run tests after each change.
 
-# 4. Verify
+**Step 4: F-xx Verification (MANDATORY)**
+
+```markdown
+## F-xx VERIFICATION
+
+| F-xx | Requirement | Status   | Evidence       |
+| ---- | ----------- | -------- | -------------- |
+| F-01 | [req]       | [x] PASS | [how verified] |
+
+VERDICT: PASS
+```
+
+**Step 5: Proof of Modification (MANDATORY)**
+
+```bash
 git-digest.sh --full 2>/dev/null || git --no-pager status
+```
 
-# 5. Complete
+If no files modified: report "BLOCKED: No file modifications detected".
+
+**Step 6: Thor Per-Task Validation (MANDATORY - NEVER SKIP)**
+
+```bash
+plan-db.sh validate-task {db_task_id} $PLAN_ID
+# If REJECTED: fix issues, re-run validate-task. Max 3 rounds.
+# Do NOT proceed to Step 7 without Thor PASS.
+```
+
+**Step 7: Complete (ONLY after Thor PASS)**
+
+```bash
 plan-db-safe.sh update-task {db_task_id} done "Summary"
+```
+
+**Step 8: Exit Checklist**
+
+```bash
+sqlite3 ~/.claude/data/dashboard.db \
+  "SELECT task_id, status FROM tasks WHERE id={db_task_id};"
+# Must show: done. If NOT done, run plan-db-safe.sh NOW.
 ```
 
 ### Phase 3.5: Output Data (Inter-Wave Communication)
@@ -110,11 +149,21 @@ plan-db-safe.sh update-task {db_task_id} done "Summary" \
 
 Use when task produces data consumed by later waves.
 
-### Phase 4: Wave Completion
+### Phase 4: Wave Completion (Thor Per-Wave - MANDATORY)
+
+After ALL tasks in wave are Thor-validated (Step 6 passed for each):
 
 ```bash
-plan-db.sh validate $PLAN_ID
+# Get wave DB ID
+WAVE_DB_ID=$(sqlite3 ~/.claude/data/dashboard.db \
+  "SELECT w.id FROM waves w WHERE w.plan_id = $PLAN_ID AND w.wave_id = '{wave_id}';")
+
+# Thor per-wave validation - ALL 9 gates
+plan-db.sh validate-wave $WAVE_DB_ID
+# If REJECTED: fix, re-validate. Max 3 rounds.
 ```
+
+**NEVER proceed to next wave without per-wave Thor PASS.**
 
 ## Task Format
 
@@ -139,5 +188,6 @@ Tasks from `CTX.pending_tasks` JSON:
 
 ## Changelog
 
+- **3.0.0** (2026-02-24): Add Thor per-task (Step 6), F-xx verification (Step 4), proof of modification (Step 5), exit checklist (Step 8), per-wave Thor (Phase 4). Aligned with Claude task-executor.md phases.
 - **2.0.0** (2026-02-15): Compact format per ADR 0009 - 35% token reduction
 - **1.0.0** (Previous version): Initial version

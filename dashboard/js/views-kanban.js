@@ -170,7 +170,7 @@ function renderKanban(kanban) {
   updateSystemStatus(kanban);
 
   // Render kanban columns
-  ['todo', 'doing', 'done'].forEach(status => {
+  ['todo', 'doing', 'done', 'cancelled'].forEach(status => {
     const container = document.getElementById(`kanban${status.charAt(0).toUpperCase() + status.slice(1)}`);
     const countEl = document.getElementById(`kanban${status.charAt(0).toUpperCase() + status.slice(1)}Count`);
 

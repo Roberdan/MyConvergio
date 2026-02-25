@@ -147,6 +147,17 @@
 .cc-column-dot.todo { background: var(--text-muted); }
 .cc-column-dot.doing { background: var(--orange); animation: pulse 2s infinite; }
 .cc-column-dot.done { background: var(--green); }
+.cc-column-dot.cancelled { background: var(--red); opacity: 0.6; }
+
+/* Cancelled cards styling */
+.cc-kanban-column[data-status="cancelled"] .cc-card {
+  opacity: 0.6;
+  border-left-color: var(--red);
+}
+.cc-kanban-column[data-status="cancelled"] .cc-card .cc-card-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
 
 .cc-column-count {
   font-size: 12px;
@@ -597,3 +608,23 @@
 .mark-done-btn.confirm.warn:hover {
   background: #ea580c;
 }
+
+/* Execution Tree */
+.exec-tree { font-family: monospace; font-size: 13px; line-height: 1.6; }
+.exec-tree-plan { font-size: 14px; margin-bottom: 4px; }
+.exec-tree-wave { margin-left: 16px; margin-top: 4px; }
+.exec-tree-task { margin-left: 32px; }
+.exec-tree-icon { margin-right: 4px; }
+.exec-tree-status { color: var(--text-muted); font-size: 11px; }
+.exec-tree-progress { color: var(--text-muted); font-size: 11px; }
+.exec-tree-connector { color: var(--text-muted); }
+.exec-tree-reason { margin-left: 24px; color: var(--red); font-size: 11px; font-style: italic; }
+.exec-tree-reason.skip { color: var(--orange); }
+.status-done .exec-tree-icon { color: var(--green); }
+.status-cancelled .exec-tree-icon { color: var(--red); }
+.status-cancelled { opacity: 0.7; }
+.status-skipped .exec-tree-icon { color: var(--orange); }
+.status-progress .exec-tree-icon { color: var(--orange); }
+.status-blocked .exec-tree-icon { color: var(--red); }
+.status-pending .exec-tree-icon { color: var(--text-muted); }
+.status-merging .exec-tree-icon { color: var(--blue); }

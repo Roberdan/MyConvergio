@@ -114,20 +114,19 @@ cmd_validate_wave() {
 	local wave_id plan_id tasks_done tasks_total
 	IFS='|' read -r wave_id plan_id tasks_done tasks_total <<<"$wave_info"
 
-	# Check all tasks in wave are done
-	local not_done
-	not_done=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status <> 'done';")
-	if [[ "$not_done" -gt 0 ]]; then
-		log_error "Wave $wave_id has $not_done tasks not yet done — cannot validate"
+	# Check all tasks in wave are resolved (done, cancelled, or skipped)
+	local not_resolved
+	not_resolved=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status NOT IN ('done', 'cancelled', 'skipped');")
+	if [[ "$not_resolved" -gt 0 ]]; then
+		log_error "Wave $wave_id has $not_resolved unresolved tasks — cannot validate"
 		return 1
 	fi
 
-	# Check if all done tasks have been validated by Thor
+	# Check if all done tasks have been validated by Thor (skip cancelled/skipped)
 	local not_validated
 	not_validated=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'done' AND validated_at IS NULL;")
 	if [[ "$not_validated" -gt 0 ]]; then
 		log_error "Wave $wave_id has $not_validated done tasks NOT validated by Thor — run per-task validation first"
-		# List the unvalidated tasks
 		sqlite3 "$DB_FILE" "SELECT task_id, title FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'done' AND validated_at IS NULL;" | while IFS='|' read -r tid title; do
 			echo "  - $tid: $title"
 		done
@@ -187,12 +186,12 @@ cmd_validate() {
 		echo -e "${GREEN}  OK${NC}"
 	fi
 
-	# Check 3: Incomplete tasks in done waves
+	# Check 3: Incomplete tasks in done waves (exclude cancelled/skipped)
 	echo -e "${YELLOW}[3/7] Incomplete in done waves...${NC}"
 	local incomplete=$(sqlite3 "$DB_FILE" "
         SELECT w.wave_id, t.task_id, t.status FROM tasks t
         JOIN waves w ON t.wave_id_fk = w.id
-        WHERE w.plan_id = $plan_id AND w.status = 'done' AND t.status != 'done';
+        WHERE w.plan_id = $plan_id AND w.status = 'done' AND t.status NOT IN ('done', 'cancelled', 'skipped');
     ")
 	if [ -n "$incomplete" ]; then
 		echo -e "${RED}  ERROR: Incomplete tasks in done waves${NC}"
@@ -586,9 +585,13 @@ cmd_sync() {
             tasks_total = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id)
         WHERE plan_id = $plan_id;
     "
+	# Auto-complete waves where all tasks are resolved (done + cancelled + skipped)
 	sqlite3 "$DB_FILE" "
         UPDATE waves SET status = 'done', completed_at = COALESCE(completed_at, datetime('now'))
-        WHERE plan_id = $plan_id AND tasks_done = tasks_total AND tasks_total > 0 AND status NOT IN ('done', 'merging');
+        WHERE plan_id = $plan_id
+        AND tasks_total > 0
+        AND status NOT IN ('done', 'merging', 'cancelled')
+        AND (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id AND tasks.status NOT IN ('done', 'cancelled', 'skipped')) = 0;
     "
 	sqlite3 "$DB_FILE" "
         UPDATE plans SET

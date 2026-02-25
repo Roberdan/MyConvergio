@@ -307,6 +307,17 @@
               </div>
               <div class="cc-column-cards" id="kanbanDone"></div>
             </div>
+            <!-- Cancelled Column -->
+            <div class="cc-kanban-column" data-status="cancelled">
+              <div class="cc-column-header">
+                <div class="cc-column-title">
+                  <span class="cc-column-dot cancelled"></span>
+                  <span>CANCELLED</span>
+                </div>
+                <span class="cc-column-count" id="kanbanCancelledCount">0</span>
+              </div>
+              <div class="cc-column-cards" id="kanbanCancelled"></div>
+            </div>
             <!-- Trash Column -->
             <div class="cc-kanban-column trash-column" data-status="trash">
               <div class="cc-column-header">
@@ -680,6 +691,7 @@
   <script src="js/views-load-kanban.js"></script>
   <script src="js/views-load-waves.js"></script>
   <script src="js/views-kanban.js"></script>
+  <script src="js/views-execution-tree.js"></script>
   <script src="js/views-secondary.js"></script>
   <script src="js/unified-waves.js"></script>
   <script src="js/wave-menu.js"></script>

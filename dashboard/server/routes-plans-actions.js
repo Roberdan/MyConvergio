@@ -22,7 +22,7 @@ const routes = {
     const taskId = parseInt(params.id, 10);
     if (isNaN(taskId)) return { error: 'Invalid task ID' };
     const { status, notes } = data;
-    const validStatuses = ['pending', 'in_progress', 'done', 'blocked', 'skipped'];
+    const validStatuses = ['pending', 'in_progress', 'done', 'blocked', 'skipped', 'cancelled'];
     if (!validStatuses.includes(status)) return { error: 'Invalid status' };
     // Sanitize notes for shell - escape single quotes and remove dangerous chars
     const safeNotes = (notes || '').replace(/'/g, "'\\''").replace(/[;&|`$]/g, '');
@@ -37,7 +37,7 @@ const routes = {
     const data = JSON.parse(body);
     const waveId = parseInt(params.id, 10);
     if (isNaN(waveId)) return { error: 'Invalid wave ID' };
-    const validStatuses = ['pending', 'in_progress', 'done', 'blocked'];
+    const validStatuses = ['pending', 'in_progress', 'done', 'blocked', 'cancelled'];
     if (!validStatuses.includes(data.status)) return { error: 'Invalid status' };
     execSync(`${CLAUDE_HOME}/scripts/plan-db.sh update-wave ${waveId} ${data.status}`, {
       encoding: 'utf-8'
@@ -51,7 +51,7 @@ const routes = {
     const planId = parseInt(params.id, 10);
     if (isNaN(planId)) return { error: 'Invalid plan ID' };
     const { status } = data;
-    const validStatuses = ['todo', 'doing', 'done'];
+    const validStatuses = ['todo', 'doing', 'done', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` };
     }
@@ -83,6 +83,8 @@ const routes = {
       // Snapshot git state at closure
       const gitClean = getProjectGitClean(plan.project_id);
       gitCleanUpdate = `, git_clean_at_closure = ${gitClean ? 1 : 0}`;
+    } else if (status === 'cancelled') {
+      timestampUpdate = ", cancelled_at = datetime('now')";
     } else if (status === 'todo') {
       timestampUpdate = ", started_at = NULL, completed_at = NULL";
       gitCleanUpdate = ", git_clean_at_closure = NULL";
@@ -102,6 +104,43 @@ const routes = {
       encoding: 'utf-8'
     });
     return { success: true, plan_id: planId, validated_by: validatedBy };
+  },
+
+  // Cancel plan (cascades to tasks/waves)
+  'POST /api/plan/:id/cancel': (params, req, res, body) => {
+    const data = JSON.parse(body);
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
+    const reason = (data.reason || 'Cancelled via dashboard').replace(/'/g, "'\\''").replace(/[;&|`$]/g, '');
+    try {
+      execSync(`${CLAUDE_HOME}/scripts/plan-db.sh cancel ${planId} '${reason}'`, { encoding: 'utf-8' });
+      return { success: true, plan_id: planId, status: 'cancelled' };
+    } catch (e) {
+      return { success: false, error: e.message || 'Cancel failed' };
+    }
+  },
+
+  // Get execution tree for a plan
+  'GET /api/plan/:id/execution-tree': (params) => {
+    const planId = parseInt(params.id, 10);
+    if (isNaN(planId)) return { error: 'Invalid plan ID' };
+    const plan = query(`SELECT id, name, status, cancelled_reason FROM plans WHERE id = ${planId}`)[0];
+    if (!plan) return { error: 'Plan not found' };
+    const waves = query(`
+      SELECT id, wave_id, name, status, tasks_done, tasks_total, cancelled_reason
+      FROM waves WHERE plan_id = ${planId} ORDER BY position
+    `);
+    const tasks = query(`
+      SELECT id, task_id, title, status, cancelled_reason, notes, wave_id_fk
+      FROM tasks WHERE plan_id = ${planId} ORDER BY id
+    `);
+    return {
+      plan: { id: plan.id, name: plan.name, status: plan.status, cancelled_reason: plan.cancelled_reason },
+      waves: waves.map(w => ({
+        ...w,
+        tasks: tasks.filter(t => t.wave_id_fk === w.id)
+      }))
+    };
   },
 
   // Record token usage (called by agents/hooks)

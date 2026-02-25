@@ -115,6 +115,13 @@ function renderRiskAlerts() {
 
   if (planId) {
     const status = data?.meta?.status || 'todo';
+    // Skip risk alerts for cancelled plans
+    if (status === 'cancelled') {
+      if (alerts.length === 0) {
+        listEl.innerHTML = '<div class="risk-empty">No alerts</div>';
+        return;
+      }
+    }
     const tasksDone = data?.meta?.tasks_done || 0;
     const tasksTotal = data?.meta?.tasks_total || 0;
     const validatedAt = data?.meta?.validated_at;
@@ -138,6 +145,7 @@ function renderRiskAlerts() {
   } else if (Array.isArray(data?.waves)) {
     data.waves.forEach(w => {
       const status = w.status || 'todo';
+      if (status === 'cancelled') return; // Skip cancelled waves
       const done = w.done || 0;
       const total = w.total || 0;
       const validatedAt = w.validated_at;

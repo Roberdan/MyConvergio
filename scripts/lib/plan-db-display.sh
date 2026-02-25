@@ -212,3 +212,76 @@ cmd_status() {
         LIMIT 5;
     "
 }
+
+# Execution tree: show plan as a tree with colored status icons
+# Usage: execution-tree <plan_id>
+cmd_execution_tree() {
+	local plan_id="$1"
+
+	local plan_name plan_status
+	IFS='|' read -r plan_name plan_status < <(sqlite3 "$DB_FILE" "SELECT name, status FROM plans WHERE id = $plan_id;")
+	if [[ -z "$plan_name" ]]; then
+		log_error "Plan $plan_id not found"
+		return 1
+	fi
+
+	local status_icon
+	_status_icon() {
+		case "$1" in
+		done) echo -e "${GREEN}✓${NC}" ;;
+		cancelled) echo -e "${RED}✗${NC}" ;;
+		skipped) echo -e "${YELLOW}⊘${NC}" ;;
+		in_progress) echo -e "${YELLOW}▶${NC}" ;;
+		blocked) echo -e "${RED}⊘${NC}" ;;
+		pending) echo -e "○" ;;
+		merging) echo -e "${BLUE}⇄${NC}" ;;
+		doing) echo -e "${YELLOW}▶${NC}" ;;
+		todo) echo -e "○" ;;
+		*) echo -e "?" ;;
+		esac
+	}
+
+	echo -e "$(_status_icon "$plan_status") ${BLUE}Plan #$plan_id${NC}: $plan_name [$plan_status]"
+
+	# Get cancelled reason for plan if cancelled
+	if [[ "$plan_status" == "cancelled" ]]; then
+		local plan_reason
+		plan_reason=$(sqlite3 "$DB_FILE" "SELECT cancelled_reason FROM plans WHERE id = $plan_id;")
+		[[ -n "$plan_reason" ]] && echo -e "  ${RED}reason: $plan_reason${NC}"
+	fi
+
+	# Iterate waves
+	sqlite3 -separator '|' "$DB_FILE" "
+		SELECT id, wave_id, name, status, tasks_done, tasks_total, cancelled_reason
+		FROM waves WHERE plan_id = $plan_id ORDER BY position;
+	" | while IFS='|' read -r wave_db_id wave_id wave_name wave_status w_done w_total w_reason; do
+		[[ -z "$wave_db_id" ]] && continue
+		echo -e "  ├─ $(_status_icon "$wave_status") ${YELLOW}$wave_id${NC}: $wave_name [$wave_status] ($w_done/$w_total)"
+		[[ "$wave_status" == "cancelled" && -n "$w_reason" ]] && echo -e "  │  ${RED}reason: $w_reason${NC}"
+
+		# Iterate tasks in this wave
+		local task_count=0
+		local total_tasks
+		total_tasks=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id;")
+
+		sqlite3 -separator '|' "$DB_FILE" "
+			SELECT task_id, title, status, cancelled_reason, notes
+			FROM tasks WHERE wave_id_fk = $wave_db_id ORDER BY id;
+		" | while IFS='|' read -r task_id title t_status t_reason t_notes; do
+			[[ -z "$task_id" ]] && continue
+			task_count=$((task_count + 1))
+			local connector="├─"
+			[[ $task_count -eq $total_tasks ]] && connector="└─"
+			echo -e "  │  $connector $(_status_icon "$t_status") $task_id: $(_truncate "$title" 50) [$t_status]"
+			if [[ "$t_status" == "cancelled" && -n "$t_reason" ]]; then
+				local prefix="│  │"
+				[[ $task_count -eq $total_tasks ]] && prefix="│   "
+				echo -e "  $prefix  ${RED}reason: $t_reason${NC}"
+			elif [[ "$t_status" == "skipped" && -n "$t_notes" ]]; then
+				local prefix="│  │"
+				[[ $task_count -eq $total_tasks ]] && prefix="│   "
+				echo -e "  $prefix  ${YELLOW}reason: $t_notes${NC}"
+			fi
+		done
+	done
+}

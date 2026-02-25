@@ -423,9 +423,9 @@ cmd_update_task() {
 	fi
 
 	case "$status" in
-	pending | in_progress | done | blocked | skipped) ;;
+	pending | in_progress | done | blocked | skipped | cancelled) ;;
 	*)
-		log_error "Invalid task status: '$status'. Valid: pending | in_progress | done | blocked | skipped"
+		log_error "Invalid task status: '$status'. Valid: pending | in_progress | done | blocked | skipped | cancelled"
 		exit 1
 		;;
 	esac
@@ -455,6 +455,8 @@ cmd_update_task() {
 			sqlite3 "$DB_FILE" "UPDATE waves SET status = 'done', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now') WHERE id = $wave_fk;"
 			log_info "Wave $wave_id_text completed!"
 		}
+	elif [[ "$status" == "cancelled" ]]; then
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', cancelled_at = datetime('now'), cancelled_reason = '$notes_escaped', executor_host = '$PLAN_DB_HOST'$tokens_sql$output_sql WHERE id = $task_id;"
 	else
 		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
 	fi
@@ -471,9 +473,9 @@ cmd_update_wave() {
 	local status="$2"
 
 	case "$status" in
-	pending | in_progress | done | blocked | merging) ;;
+	pending | in_progress | done | blocked | merging | cancelled) ;;
 	*)
-		log_error "Invalid wave status: '$status'. Valid: pending | in_progress | done | blocked | merging"
+		log_error "Invalid wave status: '$status'. Valid: pending | in_progress | done | blocked | merging | cancelled"
 		exit 1
 		;;
 	esac
@@ -482,6 +484,8 @@ cmd_update_wave() {
 		sqlite3 "$DB_FILE" "UPDATE waves SET status = '$status', started_at = datetime('now') WHERE id = $wave_id;"
 	elif [[ "$status" == "done" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE waves SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now') WHERE id = $wave_id;"
+	elif [[ "$status" == "cancelled" ]]; then
+		sqlite3 "$DB_FILE" "UPDATE waves SET status = '$status', cancelled_at = datetime('now') WHERE id = $wave_id;"
 	else
 		sqlite3 "$DB_FILE" "UPDATE waves SET status = '$status' WHERE id = $wave_id;"
 	fi
@@ -499,10 +503,16 @@ cmd_complete() {
 		log_error "Cannot complete plan $plan_id: no tasks"
 		return 1
 	fi
-	if [[ "$tasks_done" -lt "$tasks_total" ]]; then
-		log_error "Cannot complete plan $plan_id: $tasks_done/$tasks_total tasks done"
+
+	# Count resolved tasks: done + cancelled + skipped
+	local resolved
+	resolved=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $plan_id AND t.status IN ('done', 'cancelled', 'skipped');")
+	if [[ "$resolved" -lt "$tasks_total" ]]; then
+		local unresolved=$((tasks_total - resolved))
+		log_error "Cannot complete plan $plan_id: $unresolved tasks still unresolved ($resolved/$tasks_total resolved)"
 		return 1
 	fi
+
 	# Check for waves stuck in 'merging' — block completion until all merged
 	local waves_merging
 	waves_merging=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND status = 'merging';")
@@ -715,4 +725,117 @@ cmd_where() {
 			done <<<"$active"
 		fi
 	fi
+}
+
+# Cancel a plan (cascades to pending/in_progress tasks and waves)
+# Usage: cancel <plan_id> [reason]
+cmd_cancel() {
+	local plan_id="$1"
+	local reason="${2:-Cancelled by user}"
+	local safe_reason="$(sql_escape "$reason")"
+
+	local current_status
+	current_status=$(sqlite3 "$DB_FILE" "SELECT status FROM plans WHERE id = $plan_id;")
+	if [[ -z "$current_status" ]]; then
+		log_error "Plan $plan_id not found"
+		return 1
+	fi
+	if [[ "$current_status" == "done" || "$current_status" == "cancelled" ]]; then
+		log_error "Plan $plan_id is already '$current_status' — cannot cancel"
+		return 1
+	fi
+
+	sqlite3 "$DB_FILE" <<SQL
+BEGIN TRANSACTION;
+-- Cancel pending/in_progress/blocked tasks
+UPDATE tasks SET
+    status = 'cancelled',
+    cancelled_at = datetime('now'),
+    cancelled_reason = '$safe_reason'
+WHERE plan_id = $plan_id AND status IN ('pending', 'in_progress', 'blocked');
+-- Cancel pending/in_progress/blocked waves
+UPDATE waves SET
+    status = 'cancelled',
+    cancelled_at = datetime('now'),
+    cancelled_reason = '$safe_reason'
+WHERE plan_id = $plan_id AND status IN ('pending', 'in_progress', 'blocked');
+-- Cancel plan
+UPDATE plans SET
+    status = 'cancelled',
+    cancelled_at = datetime('now'),
+    cancelled_reason = '$safe_reason'
+WHERE id = $plan_id;
+COMMIT;
+SQL
+
+	local cancelled_tasks cancelled_waves
+	cancelled_tasks=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE plan_id = $plan_id AND status = 'cancelled';")
+	cancelled_waves=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND status = 'cancelled';")
+	log_info "Cancelled plan $plan_id: $cancelled_tasks tasks, $cancelled_waves waves ($reason)"
+}
+
+# Cancel a single wave (cascades to its pending/in_progress tasks)
+# Usage: cancel-wave <wave_db_id> [reason]
+cmd_cancel_wave() {
+	local wave_db_id="$1"
+	local reason="${2:-Cancelled by user}"
+	local safe_reason="$(sql_escape "$reason")"
+
+	local wave_status wave_id
+	IFS='|' read -r wave_status wave_id < <(sqlite3 "$DB_FILE" "SELECT status, wave_id FROM waves WHERE id = $wave_db_id;")
+	if [[ -z "$wave_status" ]]; then
+		log_error "Wave $wave_db_id not found"
+		return 1
+	fi
+	if [[ "$wave_status" == "done" || "$wave_status" == "cancelled" ]]; then
+		log_error "Wave $wave_id is already '$wave_status' — cannot cancel"
+		return 1
+	fi
+
+	sqlite3 "$DB_FILE" <<SQL
+BEGIN TRANSACTION;
+UPDATE tasks SET
+    status = 'cancelled',
+    cancelled_at = datetime('now'),
+    cancelled_reason = '$safe_reason'
+WHERE wave_id_fk = $wave_db_id AND status IN ('pending', 'in_progress', 'blocked');
+UPDATE waves SET
+    status = 'cancelled',
+    cancelled_at = datetime('now'),
+    cancelled_reason = '$safe_reason'
+WHERE id = $wave_db_id;
+COMMIT;
+SQL
+
+	local cancelled_tasks
+	cancelled_tasks=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'cancelled';")
+	log_info "Cancelled wave $wave_id (db:$wave_db_id): $cancelled_tasks tasks ($reason)"
+}
+
+# Cancel a single task
+# Usage: cancel-task <task_db_id> [reason]
+cmd_cancel_task() {
+	local task_db_id="$1"
+	local reason="${2:-Cancelled by user}"
+	local safe_reason="$(sql_escape "$reason")"
+
+	local task_status task_id
+	IFS='|' read -r task_status task_id < <(sqlite3 "$DB_FILE" "SELECT status, task_id FROM tasks WHERE id = $task_db_id;")
+	if [[ -z "$task_status" ]]; then
+		log_error "Task $task_db_id not found"
+		return 1
+	fi
+	if [[ "$task_status" == "done" || "$task_status" == "cancelled" ]]; then
+		log_error "Task $task_id is already '$task_status' — cannot cancel"
+		return 1
+	fi
+
+	sqlite3 "$DB_FILE" "
+		UPDATE tasks SET
+		    status = 'cancelled',
+		    cancelled_at = datetime('now'),
+		    cancelled_reason = '$safe_reason'
+		WHERE id = $task_db_id;
+	"
+	log_info "Cancelled task $task_id (db:$task_db_id): $reason"
 }

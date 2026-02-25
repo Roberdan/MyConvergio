@@ -1,7 +1,7 @@
 // Views - Kanban Data Loading
 // Loads kanban board data from API
 async function loadKanban() {
-  const kanban = { todo: [], doing: [], done: [] };
+  const kanban = { todo: [], doing: [], done: [], cancelled: [] };
   let totalTokens = 0;
   let totalCost = 0;
   const projectIds = new Set();
@@ -53,7 +53,8 @@ async function loadKanban() {
       const gitDirty = isDone && plan.git_clean_at_closure !== null
         ? plan.git_clean_at_closure === 0
         : (projectGit.totalChanges || 0) > 0;
-      kanban[status].push({
+      const bucket = kanban[status] ? status : 'todo';
+      kanban[bucket].push({
         project: plan.project_name,
         projectId: plan.project_id,
         planId: plan.plan_id,
@@ -91,7 +92,7 @@ async function loadKanban() {
     }
   }
   document.getElementById('kanbanTotalProjects').textContent = projectIds.size;
-  document.getElementById('kanbanTotalPlans').textContent = kanban.todo.length + kanban.doing.length + kanban.done.length;
+  document.getElementById('kanbanTotalPlans').textContent = kanban.todo.length + kanban.doing.length + kanban.done.length + kanban.cancelled.length;
   document.getElementById('kanbanActivePlans').textContent = kanban.doing.length;
   document.getElementById('kanbanCompletedPlans').textContent = kanban.done.length;
   document.getElementById('kanbanTotalTokens').textContent = totalTokens ? totalTokens.toLocaleString() : '0';

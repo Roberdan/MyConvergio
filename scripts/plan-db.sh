@@ -68,6 +68,9 @@ update-task)
 	;;
 update-wave) cmd_update_wave "${2:?wave_id required}" "${3:?status required}" ;;
 complete) cmd_complete "${2:?plan_id required}" "${3:-}" ;;
+cancel) cmd_cancel "${2:?plan_id required}" "${3:-}" ;;
+cancel-wave) cmd_cancel_wave "${2:?wave_db_id required}" "${3:-}" ;;
+cancel-task) cmd_cancel_task "${2:?task_db_id required}" "${3:-}" ;;
 get-worktree) cmd_get_worktree "${2:?plan_id required}" ;;
 set-worktree) cmd_set_worktree "${2:?plan_id required}" "${3:?path required}" ;;
 get-wave-worktree) cmd_get_wave_worktree "${2:?wave_db_id required}" ;;
@@ -82,6 +85,7 @@ validate-fxx) cmd_validate_fxx "${2:?plan_id required}" ;;
 kanban) cmd_kanban ;;
 kanban-json) cmd_kanban_json ;;
 json) cmd_json "${2:?plan_id required}" ;;
+execution-tree) cmd_execution_tree "${2:?plan_id required}" ;;
 status) cmd_status "${2:-}" ;;
 check-readiness) cmd_check_readiness "${2:?plan_id required}" ;;
 evaluate-wave) cmd_evaluate_wave "${2:?wave_db_id required}" ;;
@@ -137,6 +141,9 @@ calibrate-estimates) cmd_calibrate_estimates "${2:-}" ;;
 	echo "  update-desc <plan_id> <desc>   Set plan description (agent-facing)"
 	echo "  update-summary <plan_id> <txt> Set human-readable summary (shown in dashboard)"
 	echo "  complete <plan_id>             Mark done"
+	echo "  cancel <plan_id> [reason]      Cancel plan (cascades to tasks/waves)"
+	echo "  cancel-wave <wave_db_id> [reason]  Cancel wave (cascades to tasks)"
+	echo "  cancel-task <task_db_id> [reason]   Cancel single task"
 	echo "  get-worktree <plan_id>         Get worktree path for plan"
 	echo "  set-worktree <plan_id> <path>  Set worktree path for plan"
 	echo "  get-wave-worktree <wave_db_id>   Get worktree path for wave"
@@ -176,6 +183,7 @@ calibrate-estimates) cmd_calibrate_estimates "${2:-}" ;;
 	echo "  status [project_id]            Quick status"
 	echo "  json <plan_id>                 Plan as JSON"
 	echo "  kanban-json                    Kanban as JSON"
+	echo "  execution-tree <plan_id>       Show execution tree with statuses"
 	echo ""
 	echo "Concurrency:"
 	echo "  lock acquire|release|check|list|cleanup  File-level locking"
@@ -194,8 +202,8 @@ calibrate-estimates) cmd_calibrate_estimates "${2:-}" ;;
 	echo "  update-token-actuals <est_id> <actual_tokens> [--cost N]"
 	echo "  calibrate-estimates [model]              Accuracy stats by model"
 	echo ""
-	echo "Task statuses: pending | in_progress | done | blocked | skipped"
-	echo "Plan statuses: todo | doing | done | archived"
+	echo "Task statuses: pending | in_progress | done | blocked | skipped | cancelled"
+	echo "Plan statuses: todo | doing | done | cancelled"
 	exit 1
 	;;
 esac

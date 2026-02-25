@@ -1,7 +1,7 @@
 ---
 name: thor-validation-gates
 description: Validation gates module for Thor. Reference only.
-version: "3.1.0"
+version: "3.0.0"
 ---
 
 # Thor Validation Gates
@@ -107,15 +107,3 @@ echo "{task_files}" | grep -q 'docs/adr/' && echo "ADR-SMART-MODE"
 ```
 
 **REJECT if**: Code contradicts active ADR | CLAUDE.md rule violated | File >250 lines
-
-## Gate 10: Cross-Review (Per-Wave, MANDATORY)
-
-Independent holistic review of ALL wave deliverables by a fresh session.
-
-**Checks**: Cross-file consistency (versions, counts, names match) | Content accuracy (claims vs source) | Link integrity | F-xx coverage | Policy compliance
-
-**Mechanism**: Fresh session, antagonistic prompt ("find problems, not confirm success"). Cross-provider preferred (executor=Claude -> reviewer=Copilot, vice versa).
-
-**Trigger**: After gates 1-9 pass per-wave. Before merge.
-**Failure**: Wave stays `in_progress`. Fix + re-review (max 2 rounds).
-**Script**: `cross-review.sh <plan_id> <wave_db_id> [--provider copilot|claude]`

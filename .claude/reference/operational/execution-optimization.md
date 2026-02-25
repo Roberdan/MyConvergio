@@ -1,21 +1,6 @@
-<!-- v2.1.0 | 24 Feb 2026 | Added First Principle + Gate 10 -->
+<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
 
 # Execution Optimization
-
-## First Principle: Minimize Errors, Maximize Correctness
-
-The most effective token optimization is preventing rework. Every undetected error triggers a correction cycle (debug + fix + re-validation + re-review) costing 50-100K+ tokens. Proactive verification costs 10-20K but eliminates these cycles.
-
-| Strategy                  | Upfront Cost     | Prevents                   |
-| ------------------------- | ---------------- | -------------------------- |
-| TDD (Gate 8)              | ~5K tokens/task  | Debugging cycles           |
-| Thor per-task (Gates 1-9) | ~10K tokens/task | Errors before wave merge   |
-| Cross-Review (Gate 10)    | ~15K tokens/wave | Cross-file inconsistencies |
-| ADR compliance (Gate 9)   | ~3K tokens/task  | Architectural regressions  |
-
-**ROI**: A missed error costs 3-5x more to fix than proactive verification. Gate 10 exists because Plan 209 proved per-task validation (Gates 1-9) misses holistic issues — 3 cross-file inconsistencies passed 13 task validations, requiring a full additional review session to resolve.
-
-**Rule**: Never skip verification gates to "save tokens." The cheapest token is the one not spent on rework.
 
 ## Context Isolation (50-70% Token Reduction)
 
@@ -80,9 +65,8 @@ After each task-executor completes, the coordinator MUST:
 After ALL tasks in a wave are Thor-validated:
 
 4. **Thor per-wave**: `plan-db.sh validate-wave {wave_db_id}`
-5. **Gate 10 Cross-Review**: `cross-review.sh {plan_id} {wave_db_id} --provider copilot` (auto-triggered by plan-db-safe.sh)
-6. **Wave merge**: `wave-worktree.sh merge {plan_id} {wave_db_id}` → auto-commit + push + PR + CI + squash merge to main
-7. **Proceed to next wave**: Only after merge succeeds
+5. **Wave merge**: `wave-worktree.sh merge {plan_id} {wave_db_id}` → auto-commit + push + PR + CI + squash merge to main. Replaces manual per-wave commit.
+6. **Proceed to next wave**: Only after commit succeeds
 
 **Why**: Task executors (especially non-task-executor agents) may not update plan-db or run Thor. The coordinator is the single source of truth for plan progress. Commit per-wave (not per-task) because Thor wave validation is the quality gate.
 

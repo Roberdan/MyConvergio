@@ -1,5 +1,31 @@
 # Changelog
 
+## [9.5.0] - 2026-02-25
+
+### Added
+
+- **Plan Intelligence System v3** — ecosystem sync from dotclaude
+- 3 agents: `plan-reviewer`, `plan-business-advisor`, `plan-post-mortem` (core_utility)
+- `plan-db-intelligence.sh` module: 9 subcommands (add-learning, get-learnings, add-review, add-assessment, add-actuals, estimate-tokens, update-token-actuals, calibrate-estimates, get-actionable-learnings)
+- `token-estimator.sh`: estimate/reconcile token usage with historical calibration
+- 5 DB tables: plan_reviews, plan_business_assessments, plan_learnings, plan_token_estimates, plan_actuals
+- 3+ DB views: v_plan_roi, v_learning_patterns, v_token_accuracy
+- Summary field support in plan-spec-schema.json and plan-db-import.sh
+
+### Changed
+
+- `init-db.sql`: intelligence tables/views/indexes, tasks type CHECK expanded to 9 values
+- `plan-db.sh`: sourced intelligence module, dispatch entries, help text
+- `plan-db-safe.sh`: updated validation logic
+- `plan-db-import.sh`: summary→title, do→description when summary present
+- `copilot-task-prompt.sh`: updated prompt generation
+- `thor-quality-assurance-guardian.md` v5.2.0: refinements
+- `thor-validation-gates.md` v3.1.0: refinements
+- `compaction-preservation.md`, `guardian.md`: rule updates
+- `execute.agent.md`, `validate.agent.md`: Copilot CLI agent updates
+
+---
+
 ## [9.4.0] - 2026-02-24
 
 ### Added

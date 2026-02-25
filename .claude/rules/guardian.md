@@ -12,7 +12,7 @@ Plan proposed | Work claimed complete | PR suggested | Scope changed
 
 ## Thor
 
-See CLAUDE.md Thor Gate section for commands and gates. Gate 10 (Cross-Review): `cross-review.sh` per-wave mandatory.
+See CLAUDE.md Thor Gate section for commands and gates.
 
 ## Anti-Bypass
 

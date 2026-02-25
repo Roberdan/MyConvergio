@@ -3,7 +3,7 @@
 # Follows Semantic Versioning 2.0.0 (https://semver.org/)
 
 # System Version
-SYSTEM_VERSION=9.4.0
+SYSTEM_VERSION=9.5.0
 
 # Framework Documents
 # These are foundational documents that govern all agents
@@ -50,3 +50,8 @@ task-executor-tdd=1.0.0 2026-02-15T00:00:00Z
 thor-validation-gates=3.1.0 2026-02-24T00:00:00Z
 app-release-manager-execution=3.2.0 2026-02-15T00:00:00Z
 jony-creative-director=2.0.0 2026-02-23T00:00:00Z
+
+# Plan Intelligence Agents (v9.5.0)
+plan-reviewer=1.1.0 2026-02-25T00:00:00Z
+plan-business-advisor=1.0.0 2026-02-25T00:00:00Z
+plan-post-mortem=1.0.0 2026-02-25T00:00:00Z

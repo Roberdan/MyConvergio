@@ -27,7 +27,7 @@ GitHub Copilot CLI as Claude Code alternative reference.
 | `/prompt`              | `@prompt "desc"` | Same F-xx extraction     |
 | `/planner`             | `@planner`       | Same spec.json + plan-db |
 | `/execute {id}`        | `@execute`       | Same TDD, one at a time  |
-| Thor subagent          | `@validate`      | Same 10 gates            |
+| Thor subagent          | `@validate`      | Same 9 gates             |
 | `Task` tool (parallel) | N/A              | No parallel spawning     |
 | preCompact hook        | N/A              | Auto-compact at 95%      |
 

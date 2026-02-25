@@ -11,13 +11,17 @@
 - **NEVER invent column names**. Schema: see `PLANNER-ARCHITECTURE.md`
 - **NEVER invent subcommands**. Use ONLY the commands listed below. Run `plan-db.sh` with no args to see help.
 
+## Mandatory Plan Creation (NON-NEGOTIABLE)
+
+NEVER create plans without `/planner` skill (Claude: `Skill(skill="planner")`, Copilot: `@planner`). EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
+
 ## Valid Statuses (NEVER invent values)
 
-| Entity | Valid statuses                                                 |
-| ------ | -------------------------------------------------------------- |
-| Task   | `pending` \| `in_progress` \| `done` \| `blocked` \| `skipped` |
-| Plan   | `todo` \| `doing` \| `done` \| `archived`                      |
-| Wave   | `pending` \| `in_progress` \| `done` \| `blocked`              |
+| Entity | Valid statuses                                                                |
+| ------ | ----------------------------------------------------------------------------- |
+| Task   | `pending` \| `in_progress` \| `done` \| `blocked` \| `skipped` \| `cancelled` |
+| Plan   | `todo` \| `doing` \| `done` \| `archived` \| `cancelled`                      |
+| Wave   | `pending` \| `in_progress` \| `done` \| `blocked` \| `merging` \| `cancelled` |
 
 ## Plan Management
 
@@ -33,6 +37,10 @@ plan-db.sh wave-overlap check-spec spec.json    # Intra-wave overlap detection
 plan-db.sh validate-task {task_id} {plan}  # Per-task Thor validation
 plan-db.sh validate-wave {wave_db_id}     # Per-wave Thor validation
 plan-db.sh validate {id}                  # Bulk Thor validation (all done tasks)
+plan-db.sh cancel {plan_id} "reason"      # Cancel plan (cascade → waves → tasks)
+plan-db.sh cancel-wave {wave_db_id} "reason"  # Cancel wave (cascade → tasks)
+plan-db.sh cancel-task {task_db_id} "reason"  # Cancel single task
+plan-db.sh execution-tree {plan_id}       # Colored tree view with reasons
 ```
 
 ## Troubleshooting: `complete` Fails (N/M tasks done)
@@ -40,7 +48,7 @@ plan-db.sh validate {id}                  # Bulk Thor validation (all done tasks
 ```bash
 # DB path: ~/.claude/data/dashboard.db
 # Step 1: Find incomplete tasks (ALWAYS use plan_id column, NOT wave joins)
-sqlite3 ~/.claude/data/dashboard.db "SELECT id, task_id, title, status FROM tasks WHERE plan_id = {PLAN_ID} AND status NOT IN ('done', 'validated', 'skipped');"
+sqlite3 ~/.claude/data/dashboard.db "SELECT id, task_id, title, status FROM tasks WHERE plan_id = {PLAN_ID} AND status NOT IN ('done', 'validated', 'skipped', 'cancelled');"
 # Step 2: Update each task
 plan-db-safe.sh update-task {TASK_DB_ID} done "Reason"
 # Step 3: Complete

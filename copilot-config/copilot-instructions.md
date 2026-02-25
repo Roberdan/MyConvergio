@@ -110,7 +110,20 @@ plan-db-safe.sh update-task ${task_db_id} done "Summary" --tokens 0
 
 ## Anti-Bypass Protection (CRITICAL)
 
-**NEVER execute plan tasks by editing files directly.** EVERY task MUST go through `copilot-worker.sh` or equivalent agent execution. Direct file editing during active plan = VIOLATION.
+**Plan creation**: NEVER create plans inline. ALWAYS use `@planner`. Manual plan text = no DB registration = Thor/execute/tracking all break. _Why: Plan 225._
+
+**Task execution**: NEVER edit files directly during active plan. EVERY task through `copilot-worker.sh`. Direct edit = VIOLATION. _Why: Plan 182._
+
+**Enforcement**: No `plan_id` in DB = `@execute` BLOCKED. `plan-db.sh check-readiness` validates.
+
+### Mandatory Routing
+
+| Trigger                    | Copilot CLI     | NOT                       |
+| -------------------------- | --------------- | ------------------------- |
+| Multi-step work (3+ tasks) | `@planner`      | Inline plan text          |
+| Execute plan tasks         | `@execute {id}` | Direct file editing       |
+| Thor validation            | `@validate`     | Self-declaring done       |
+| Single isolated fix        | Direct edit     | Creating unnecessary plan |
 
 ## Digest Scripts (NON-NEGOTIABLE)
 

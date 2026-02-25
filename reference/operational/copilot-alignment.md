@@ -20,6 +20,17 @@ GitHub Copilot CLI as Claude Code alternative reference.
 {project}/.github/: copilot-instructions.md, agents/, instructions/
 ```
 
+## Mandatory Routing (NON-NEGOTIABLE)
+
+| Trigger                    | Claude Code                           | Copilot CLI     | NOT                        |
+| -------------------------- | ------------------------------------- | --------------- | -------------------------- |
+| Multi-step work (3+ tasks) | `Skill(skill="planner")`              | `@planner`      | EnterPlanMode, manual text |
+| Execute plan tasks         | `Skill(skill="execute", args="{id}")` | `@execute {id}` | Direct file editing        |
+| Thor validation            | `Task(subagent_type="thor")`          | `@validate`     | Self-declaring done        |
+| Single isolated fix        | Direct edit                           | Direct edit     | Creating unnecessary plan  |
+
+EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
+
 ## Workflow Mapping
 
 | Claude Code            | Copilot CLI      | Notes                    |

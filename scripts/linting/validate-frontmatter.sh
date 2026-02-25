@@ -135,7 +135,10 @@ for mapping in config['mappings']:
             if start_line is not None:
                 print(f"{filepath}:{start_line}: ERROR: Invalid YAML frontmatter", file=sys.stderr)
                 exit_code = 1
-            # No frontmatter found - skip silently
+            # No frontmatter found - fail if schema has required fields
+            if schema.get("required"):
+                print(f"{filepath}: ERROR: No frontmatter found but schema requires {schema['required']}", file=sys.stderr)
+                exit_code = 1
             continue
         
         try:

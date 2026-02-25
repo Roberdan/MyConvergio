@@ -94,7 +94,8 @@ for file in "${files[@]}"; do
   frontmatter=$(awk '/^---$/{if(++count==2) exit; if(count==1) next} count==1' "$file")
   
   # Check if frontmatter has closing ---
-  closing_line=$(awk '/^---$/{line=NR; count++} END{if(count>=2) print line; else print 0}' "$file")
+  closing_line=$(awk '/^---$/{count++; if(count==2){print NR; exit}}' "$file")
+  closing_line=${closing_line:-0}
   if [[ "$closing_line" -eq 0 ]]; then
     echo "⊘ $file - Malformed frontmatter, no closing '---' (skipped)"
     ((skipped++))

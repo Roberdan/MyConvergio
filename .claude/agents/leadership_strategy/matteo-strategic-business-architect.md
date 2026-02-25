@@ -1,6 +1,7 @@
 ---
 name: matteo-strategic-business-architect
-description: Business strategy architect for market analysis, business model design, competitive positioning, and strategic roadmapping. Creates comprehensive strategies for sustainable competitive advantage.
+description: |
+  Business strategy architect for market analysis, business model design, competitive positioning, and strategic roadmapping. Creates comprehensive strategies for sustainable competitive advantage.
 
   Example: @matteo-strategic-business-architect Design a business model for our new SaaS offering targeting healthcare enterprises
 
@@ -10,6 +11,10 @@ model: "sonnet"
 version: "1.0.2"
 memory: user
 maxTurns: 20
+maturity: preview
+providers:
+  - claude
+constraints: ["Advisory only — never modifies files"]
 ---
 
 <!--

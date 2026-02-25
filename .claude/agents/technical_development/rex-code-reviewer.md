@@ -1,6 +1,7 @@
 ---
 name: rex-code-reviewer
-description: Code review specialist for design patterns, quality assessment, and best practices enforcement. Ensures code maintainability, performance, and security through rigorous review.
+description: |
+  Code review specialist for design patterns, quality assessment, and best practices enforcement. Ensures code maintainability, performance, and security through rigorous review.
 
   Example: @rex-code-reviewer Review this authentication module for security and design pattern compliance
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: project
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 <!--

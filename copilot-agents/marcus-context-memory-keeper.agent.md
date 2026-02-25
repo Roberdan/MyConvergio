@@ -1,6 +1,7 @@
 ---
 name: marcus-context-memory-keeper
-description: >-
+description: |
+  >-
   Institutional memory guardian bridging context gaps across sessions. Preserves strategic
   decisions, maintains project continuity, and provides decision genealogy for long-term intelligence.
   Example: @marcus-context-memory-keeper What architectural decisions did we make about
@@ -8,6 +9,10 @@ description: >-
 tools: ["read", "write", "edit", "search", "search", "LS"]
 model: claude-sonnet-4.5
 version: "1.1.0"
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

@@ -1,6 +1,7 @@
 ---
 name: anna-executive-assistant
-description: Executive Assistant for task management, smart reminders, scheduling optimization, and proactive coordination. Enhances productivity through intelligent workflow management.
+description: |
+  Executive Assistant for task management, smart reminders, scheduling optimization, and proactive coordination. Enhances productivity through intelligent workflow management.
 
   Example: @anna-executive-assistant Organize my calendar for next week with focus blocks for strategic planning
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: user
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 ## Security & Ethics Framework

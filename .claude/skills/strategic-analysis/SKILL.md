@@ -1,4 +1,6 @@
 ---
+name: "Strategic Analysis"
+version: "1.0.0"
 context: fork
 allowed-tools: ["Read", "Glob", "Grep", "WebSearch", "WebFetch"]
 user-invocable: true

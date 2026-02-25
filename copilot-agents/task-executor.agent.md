@@ -6,6 +6,10 @@ disallowedTools: ["WebSearch", "WebFetch"]
 model: claude-sonnet-4.5
 version: "2.1.0"
 context_isolation: true
+maturity: stable
+providers:
+  - claude
+constraints: ["Operates within assigned task scope"]
 ---
 
 # Task Executor
@@ -52,6 +56,8 @@ worktree-guard.sh "{absolute_worktree_path}"
 ```
 
 **NEVER work on main/master.** If `worktree-guard.sh` prints `WORKTREE_VIOLATION`, mark task as `blocked` and return.
+
+> **Worktree path resolution** (handled by coordinator, not this agent): `{absolute_worktree_path}` is pre-resolved before being injected into this prompt. The coordinator checks `waves.worktree_path` first (wave-specific), falling back to `plans.worktree_path`. No action needed here — the path is always absolute and ready to use.
 
 ### Phase 0.5: File Locking + Snapshot (MANDATORY)
 
@@ -102,6 +108,18 @@ Make failing tests PASS:
 ```
 
 Use `--quick` (lint+types only) during task execution. Full build/tests run at Thor wave validation.
+
+### CI Batch Fix (NON-NEGOTIABLE)
+
+**ALWAYS wait for the FULL CI run to complete before pushing fixes.** Never fix-push-repeat per error.
+
+1. Push code, wait for CI to finish ALL checks (lint + typecheck + tests + build)
+2. Collect ALL failures from the CI run
+3. Fix ALL issues in a single commit
+4. Push once, wait for full CI again
+5. Repeat until CI is green (max 3 rounds)
+
+**VIOLATION**: Pushing after fixing only 1 error while CI has more failures = REJECTED.
 
 ### Phase 4: Verify (F-xx GATE)
 
@@ -218,6 +236,10 @@ Using `plan-db.sh` directly for `done` = dashboard shows 0% progress.
 2. Return immediately — let the executor retry or ask user
 3. **NEVER loop** on retries. Same approach fails twice → mark blocked.
 
+## Zero Technical Debt (NON-NEGOTIABLE)
+
+Resolve ALL issues found during execution, not just high-priority. Prioritize by severity but NEVER defer lower-priority items. Every CI error, lint warning, type error, test failure MUST be resolved before marking done. Accumulated debt = VIOLATION.
+
 ## Anti-Patterns
 
 - Don't query DB for task details (PRE-LOADED in prompt)
@@ -227,6 +249,7 @@ Using `plan-db.sh` directly for `done` = dashboard shows 0% progress.
 - Don't claim completion without proof (git-digest.sh --full)
 - Don't use raw git diff/status/log — use git-digest.sh or diff-digest.sh
 - Don't retry same failing approach more than twice
+- Don't defer lower-priority issues to "later" — resolve ALL now
 
 ## EXIT CHECKLIST (MANDATORY)
 

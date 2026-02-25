@@ -1,6 +1,7 @@
 ---
 name: socrates-first-principles-reasoning
-description: >-
+description: |
+  >-
   First principles reasoning master using Socratic methodology to deconstruct problems,
   challenge assumptions, and rebuild breakthrough solutions from fundamental truths.
   Example: @socrates-first-principles-reasoning Help me think through whether we should
@@ -8,6 +9,10 @@ description: >-
 tools: ["read", "write", "edit", "search", "search", "LS", "WebSearch", "WebFetch"]
 model: claude-sonnet-4.5
 version: "1.1.0"
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

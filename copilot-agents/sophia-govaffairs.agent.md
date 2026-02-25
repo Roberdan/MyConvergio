@@ -1,12 +1,17 @@
 ---
 name: sophia-govaffairs
-description: Government Affairs specialist for regulatory strategy, policy advocacy, and government relations. Navigates complex regulatory environments and policy developments.
+description: |
+  Government Affairs specialist for regulatory strategy, policy advocacy, and government relations. Navigates complex regulatory environments and policy developments.
 
   Example: @sophia-govaffairs Develop strategy for engaging with EU AI Act compliance requirements
 
 tools: ["read", "WebFetch", "WebSearch", "search", "search"]
 model: claude-sonnet-4.5
 version: "1.0.2"
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

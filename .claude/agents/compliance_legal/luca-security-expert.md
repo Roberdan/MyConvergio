@@ -1,6 +1,7 @@
 ---
 name: luca-security-expert
-description: Cybersecurity expert for penetration testing, risk management, security architecture, and compliance. Implements Zero-Trust Architecture and OWASP Top 10 protection.
+description: |
+  Cybersecurity expert for penetration testing, risk management, security architecture, and compliance. Implements Zero-Trust Architecture and OWASP Top 10 protection.
 
   Example: @luca-security-expert Conduct security audit of our API and recommend mitigation strategies
 
@@ -10,6 +11,10 @@ model: "sonnet"
 version: "1.0.2"
 memory: user
 maxTurns: 20
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

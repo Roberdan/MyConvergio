@@ -1,6 +1,7 @@
 ---
 name: otto-performance-optimizer
-description: Performance optimization specialist for profiling, bottleneck analysis, and system tuning. Optimizes applications for speed, resource efficiency, and scalability.
+description: |
+  Performance optimization specialist for profiling, bottleneck analysis, and system tuning. Optimizes applications for speed, resource efficiency, and scalability.
 
   Example: @otto-performance-optimizer Analyze and optimize our database queries causing slow page loads
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: project
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 <!--

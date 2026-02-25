@@ -1,6 +1,7 @@
 ---
 name: xavier-coordination-patterns
-description: >-
+description: |
+  >-
   Advanced coordination patterns architect for multi-agent collaboration architectures,
   swarm intelligence, and next-generation agent coordination strategies.
   Example: @xavier-coordination-patterns Design coordination pattern for distributed
@@ -8,6 +9,10 @@ description: >-
 tools: ["task", "read", "write", "edit", "search", "search"]
 model: claude-sonnet-4.5
 version: "2.1.0"
+maturity: stable
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

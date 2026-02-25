@@ -8,6 +8,10 @@ version: "1.1.0"
 context_isolation: true
 memory: project
 maxTurns: 25
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 # Plan Reviewer

@@ -7,6 +7,10 @@ color: "#27AE60"
 version: "1.1.0"
 memory: project
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Operates within release workflow scope"]
 ---
 
 ## Security & Ethics Framework

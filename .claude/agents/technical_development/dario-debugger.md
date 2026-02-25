@@ -1,6 +1,7 @@
 ---
 name: dario-debugger
-description: Systematic debugging expert for root cause analysis, troubleshooting complex issues, and performance investigation. Uses structured debugging methodologies for rapid problem resolution.
+description: |
+  Systematic debugging expert for root cause analysis, troubleshooting complex issues, and performance investigation. Uses structured debugging methodologies for rapid problem resolution.
 
   Example: @dario-debugger Help diagnose why our API response times spiked after yesterday's deployment
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: project
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 <!--

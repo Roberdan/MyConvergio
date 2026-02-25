@@ -1,6 +1,9 @@
 ---
 name: execution-discipline
 description: Execution rules and workflow discipline for MyConvergio agents
+maturity: experimental
+providers: claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 # MyConvergio Execution Discipline v1.0

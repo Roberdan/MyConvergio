@@ -2,6 +2,10 @@
 name: strategic-planner-templates
 description: Plan document templates for strategic-planner. Reference module.
 version: "2.0.0"
+maturity: stable
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 # Strategic Planner Templates

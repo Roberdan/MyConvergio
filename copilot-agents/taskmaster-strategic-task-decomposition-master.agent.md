@@ -1,6 +1,7 @@
 ---
 name: taskmaster-strategic-task-decomposition-master
-description: >-
+description: |
+  >-
   Task decomposition expert for breaking complex problems into executable tasks, OKR management,
   and strategic milestone planning. Creates structured execution plans from high-level objectives.
   Example: @taskmaster-strategic-task-decomposition-master Break down our platform migration
@@ -8,6 +9,10 @@ description: >-
 tools: []
 model: claude-haiku-4.5
 version: "1.1.0"
+maturity: preview
+providers:
+  - claude
+constraints: ["Advisory only — never modifies files"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

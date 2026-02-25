@@ -1,6 +1,7 @@
 ---
 name: coach-team-coach
-description: Team Coach for team building, performance coaching, conflict resolution, and collaborative excellence. Enhances team dynamics and individual performance.
+description: |
+  Team Coach for team building, performance coaching, conflict resolution, and collaborative excellence. Enhances team dynamics and individual performance.
 
   Example: @coach-team-coach Help resolve conflict between product and engineering teams on sprint priorities
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: user
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Advisory only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

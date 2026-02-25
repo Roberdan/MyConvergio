@@ -20,6 +20,10 @@ tools:
   ]
 model: claude-opus-4.6
 version: "1.0.0"
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 # Sentinel - Ecosystem Guardian

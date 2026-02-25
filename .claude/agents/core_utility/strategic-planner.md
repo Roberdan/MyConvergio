@@ -8,6 +8,10 @@ version: "3.0.0"
 context_isolation: true
 memory: project
 maxTurns: 40
+maturity: stable
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 ## Security & Ethics Framework

@@ -22,6 +22,10 @@ model: opus
 version: "1.0.0"
 memory: user
 maxTurns: 50
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 # Sentinel - Ecosystem Guardian

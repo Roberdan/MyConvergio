@@ -1,6 +1,7 @@
 ---
 name: po-prompt-optimizer
-description: >-
+description: |
+  >-
   Prompt engineering expert for AI prompt optimization, LLM interaction design, and maximizing
   AI system effectiveness. Enhances agent prompts for better performance.
   Example: @po-prompt-optimizer Optimize this agent prompt to improve response quality and token efficiency
@@ -10,6 +11,10 @@ model: haiku
 version: "1.1.0"
 memory: user
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Advisory only — never modifies files"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

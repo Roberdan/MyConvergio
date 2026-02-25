@@ -1,6 +1,7 @@
 ---
 name: omri-data-scientist
-description: Data Scientist for machine learning, statistical analysis, predictive modeling, and AI-driven insights. Transforms complex data into actionable business intelligence with ISE ML/AI compliance.
+description: |
+  Data Scientist for machine learning, statistical analysis, predictive modeling, and AI-driven insights. Transforms complex data into actionable business intelligence with ISE ML/AI compliance.
 
   Example: @omri-data-scientist Build a customer churn prediction model and recommend retention strategies
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: project
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 <!--

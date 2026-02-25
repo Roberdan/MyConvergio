@@ -3,9 +3,13 @@ name: thor-quality-assurance-guardian
 description: Brutal quality gatekeeper. Zero tolerance for incomplete work. Validates ALL work before closure.
 tools: ["read", "search", "search", "execute", "task"]
 model: claude-sonnet-4.5
-version: "5.2.0"
+version: "5.1.0"
 context_isolation: true
 skills: ["code-review"]
+maturity: stable
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 # Thor - Quality Gatekeeper
@@ -25,7 +29,7 @@ Invoked after each task-executor completes. Validates ONE task.
 1. Read task from DB: `sqlite3 ~/.claude/data/dashboard.db "SELECT task_id, title, description, test_criteria, status FROM tasks WHERE plan_id={plan_id} AND task_id='{task_id}';"`
 2. Verify status=`done` (else REJECT)
 3. Run each verify command from `test_criteria` JSON
-4. Run Gates 1-4, 8, 9 scoped to task files
+4. Run Gates 1-4 (including 4b: `~/.claude/scripts/code-pattern-check.sh --files {task_files} --json`), 8, 9 scoped to task files
 5. If type=`documentation` + touches `docs/adr/`: **ADR-Smart Mode**
 6. PASS: `plan-db.sh validate-task {task_id} {plan_id}`
 7. FAIL: structured THOR_REJECT
@@ -43,13 +47,12 @@ Invoked after all tasks in wave complete. Validates wave as whole.
 3. Query tasks: `sqlite3 ~/.claude/data/dashboard.db "SELECT task_id, title, status, test_criteria, validated_at FROM tasks WHERE plan_id={plan_id} AND wave_id_fk=(SELECT id FROM waves WHERE plan_id={plan_id} AND wave_id='{wave_id}');"`
 4. ALL tasks must be `done` AND `validated_at IS NOT NULL`
 5. Unvalidated tasks: run per-task validation first
-6. Run ALL 10 gates at wave scope
+6. Run ALL 9 gates at wave scope
 7. Run build/lint/typecheck/test at worktree level
-8. Gate 10: `cross-review.sh {plan_id} {wave_db_id}` — fresh cross-provider review
-9. PASS: `plan-db.sh validate-wave {wave_db_id}` then `npm run ci:summary`
-10. Missing metadata: WARN + continue. Missing test_criteria: REJECT. Run `plan-db.sh check-readiness {plan_id}` first.
+8. PASS: `plan-db.sh validate-wave {wave_db_id}` then `npm run ci:summary`
+9. Missing metadata: WARN + continue. Missing test_criteria: REJECT. Run `plan-db.sh check-readiness {plan_id}` first.
 
-## 10 Validation Gates
+## 9 Validation Gates
 
 > Details: [thor-validation-gates.md](./thor-validation-gates.md)
 
@@ -59,12 +62,12 @@ Invoked after all tasks in wave complete. Validates wave as whole.
 | 2    | Code Quality                       | Tests exist+pass, lint clean, build OK             |
 | 3    | ISE Fundamentals + Credential Scan | No secrets, error handling, type safety, cred scan |
 | 4    | Repo Compliance                    | Codebase patterns, naming, structure               |
+| 4b   | Automated Pattern Checks           | `code-pattern-check.sh` P1=reject, P2=warn         |
 | 5    | Documentation                      | README/API docs updated if behavior changed        |
 | 6    | Git Hygiene                        | Correct branch, committed, conventional msg        |
 | 7    | Performance                        | perf-check.sh, WebP, EventSource cleanup           |
 | 8    | **TDD** (MANDATORY)                | Tests before impl, coverage ≥80% new files         |
 | 9    | **Constitution & ADR** (MANDATORY) | CLAUDE.md rules, coding-standards, ADR compliance  |
-| 10   | **Cross-Review** (MANDATORY)       | Cross-file consistency, antagonistic review        |
 
 ### Gate 3: Credential Scanning (ISE Playbook)
 

@@ -41,6 +41,11 @@
             "type": "command",
             "command": "~/.claude/hooks/prefer-ci-summary.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/warn-infra-plan-drift.sh",
+            "timeout": 5
           }
         ]
       },
@@ -98,16 +103,6 @@
             "type": "command",
             "command": "~/.claude/hooks/verify-before-claim.sh",
             "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "codegraph mark-dirty",
-            "async": true
           }
         ]
       }
@@ -179,15 +174,6 @@
             "type": "command",
             "command": "~/.claude/hooks/session-file-unlock.sh",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "codegraph sync-if-dirty"
           }
         ]
       }

@@ -32,7 +32,9 @@ NEVER execute without plan_id | NEVER skip tasks/Thor | WORKTREE ISOLATION — p
 
 ### P1: Initialize
 
-`export PATH="$HOME/.claude/scripts:$PATH" && PLAN_ID={plan_id}` → `CTX=$(plan-db.sh get-context $PLAN_ID)` → Extract: `WORKTREE_PATH`, `FRAMEWORK`, `PLAN_STATUS` → `cd "$WORKTREE_PATH"` → `[[ "$PLAN_STATUS" != "doing" ]] && plan-db.sh start $PLAN_ID` → `plan-db.sh check-readiness $PLAN_ID`
+`export PATH="$HOME/.claude/scripts:$PATH" && PLAN_ID={plan_id}` → `CTX=$(plan-db.sh get-context $PLAN_ID)` → Extract: `WORKTREE_PATH`, `FRAMEWORK`, `PLAN_STATUS`, `CONSTRAINTS` → `cd "$WORKTREE_PATH"` → `[[ "$PLAN_STATUS" != "doing" ]] && plan-db.sh start $PLAN_ID` → `plan-db.sh check-readiness $PLAN_ID`
+
+**Extract constraints** (ADR-054): `CONSTRAINTS=$(echo "$CTX" | jq -r '.constraints // [] | .[] | "C-" + .id + ": " + .text' )`. If non-empty, EVERY task prompt MUST include constraints block.
 
 ### P1.5: Drift Check
 
@@ -67,6 +69,7 @@ await Task({
   description: `Execute ${task.task_id}`,
   prompt: `TASK ${task.task_id} | Wave: ${task.wave_id} | db_id: ${task.db_id}
 WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK}
+CONSTRAINTS (MUST NOT VIOLATE): ${CONSTRAINTS || "none"}
 Do: ${task.title}
 ${task.description}
 Verify: ${task.test_criteria}

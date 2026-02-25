@@ -24,6 +24,7 @@ Plan and execute with parallel Claude instances.
 | 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                           |
 | 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                     |
 | 11  | **TEST CONSOLIDATION**: Final wave MUST include `TF-tests` task BEFORE `TF-pr`. See [Test Consolidation](#test-consolidation).                                    |
+| 12  | **INFRA TASK DISCIPLINE (ADR-054)**: Infrastructure tasks (Azure CLI, Bicep, cloud ops) follow SAME plan-db discipline as code. Interactive `az` commands MUST update plan-db before/after. Batch updates at session end = VIOLATION. Hook `warn-infra-plan-drift.sh` enforces. |
 
 ## Module References
 
@@ -64,9 +65,23 @@ PATTERNS=$(plan-db.sh get-actionable-learnings $PROJECT_ID | jq '[.[] | select(.
 
 Apply learnings: adjust effort estimates using `CALIBRATED` data, cite recurring patterns in task `do` fields ("Per learning L-xx: use approach Y"), flag anti-patterns from `LEARNINGS` with severity=high.
 
-### 1.6 Technical Clarification (MANDATORY)
+### 1.6 Constraint Extraction (MANDATORY — ADR-054)
 
-After reading, STOP. AskUserQuestion: 1. **Approach**: "Per F-xx propongo [A]. Alternative: [B, C]. Preferenze?" 2. **Files**: "File coinvolti: [list]. Altri?" 3. **Constraints**: "Breaking changes ok? Nuove dipendenze? Vincoli?" If GUESSING -> ASK.
+Extract ALL constraints from user brief BEFORE generating tasks. Constraints are hard limits that NO task may violate.
+
+**Common constraint categories**: `permission` (no admin needed), `security` (no secrets in code), `cost` (budget limits), `compliance` (GDPR, single-tenant), `technical` (Python version, no breaking changes), `process` (no downtime, rollback required).
+
+**Extraction rules**:
+1. Read user brief for words: "never", "must not", "no", "without requiring", "only", "always", "non-negotiable"
+2. Each constraint gets `C-xx` ID, clear text, type, and machine-checkable `verify` where possible
+3. AskUserQuestion: "Ho estratto questi vincoli: [list]. Ne mancano? Ce ne sono altri impliciti?"
+4. BLOCK if constraints empty — every plan has at least one (e.g., "no breaking changes")
+
+**Validation gate**: After spec generation, verify EVERY task against EVERY constraint. If task violates a constraint → remove task or redesign. Present conflict table to user.
+
+### 1.7 Technical Clarification (MANDATORY)
+
+After reading, STOP. AskUserQuestion: 1. **Approach**: "Per F-xx propongo [A]. Alternative: [B, C]. Preferenze?" 2. **Files**: "File coinvolti: [list]. Altri?" 3. **Constraints**: "Confermo vincoli C-xx. Breaking changes ok? Nuove dipendenze?" If GUESSING -> ASK.
 
 ### 1.7 Repo Hardening Gate (FIRST PLAN ONLY)
 
@@ -85,7 +100,9 @@ HARDENING_STATUS=$(echo "$HARDENING" | jq -r '.status')
 
 **EXCLUSION GATE**: Compare ALL F-xx vs tasks. If ANY NOT covered: 1. List uncovered. 2. AskUserQuestion: "Requisiti non coperti: [list]. Per ciascuno: includerli, deferirli, o escluderli?" 3. BLOCK. NEVER silently skip with "scope.out", "backlog", "needs external resource".
 
-spec.json: `{user_request, requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
+spec.json: `{user_request, constraints:[{id,text,type,verify}], requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
+
+**CONSTRAINT VALIDATION GATE (ADR-054)**: After generating tasks, cross-check EVERY task against EVERY constraint. Present matrix: `| Task | C-01 | C-02 | ... |`. Any cell = VIOLATES → redesign task or BLOCK. Example: if C-01 = "No admin permissions required" and T2-01 = "Configure EasyAuth (requires admin consent)" → VIOLATION → remove or redesign T2-01.
 
 **Rules**: `do`=ONE action. `files`=explicit paths. `verify`=machine-checkable. `ref`=F-xx ID. Missing `verify`=broken. **Per-wave docs**: TX-doc (CHANGELOG + plan-{id}-notes.md). **Final wave** "WF-Closure": TF-01 (notes->ADRs), TF-02 (CHANGELOG), TF-03 (ESLint), TF-tests (test consolidation), TF-pr (PR+CI). Cite ADRs in `do`.
 

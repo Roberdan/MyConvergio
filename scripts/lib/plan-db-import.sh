@@ -25,6 +25,16 @@ cmd_import() {
 		cp "$spec_file" "$plan_dir/${plan_name}-spec.json"
 	fi
 
+	# Store constraints from spec (ADR-054: constraints are first-class citizens)
+	local constraints_json
+	constraints_json=$(jq -c '.constraints // []' "$spec_file" 2>/dev/null)
+	if [[ "$constraints_json" != "[]" ]]; then
+		sqlite3 "$DB_FILE" "UPDATE plans SET constraints_json = '$(sql_escape "$constraints_json")' WHERE id=$plan_id;"
+		local constraint_count
+		constraint_count=$(echo "$constraints_json" | jq 'length')
+		log_info "Stored $constraint_count constraints for plan #$plan_id"
+	fi
+
 	# Auto-set plan description from spec if not already set
 	local existing_desc
 	existing_desc=$(sqlite3 "$DB_FILE" "SELECT description FROM plans WHERE id=$plan_id;")
@@ -206,6 +216,15 @@ cmd_render() {
 		fi
 		echo ""
 
+		echo "## CONSTRAINTS (NON-NEGOTIABLE)"
+		echo "| ID | Constraint | Type | Verify |"
+		echo "|----|-----------|------|--------|"
+		if [[ -n "$spec_file" ]]; then
+			jq -r '.constraints // [] | .[] | "| \(.id) | \(.text) | \(.type) | \(.verify // "manual") |"' \
+				"$spec_file" 2>/dev/null || true
+		fi
+		echo ""
+
 		echo "## FUNCTIONAL REQUIREMENTS"
 		echo "| ID | Requirement | Wave | Verified |"
 		echo "|----|-------------|------|----------|"
@@ -307,6 +326,10 @@ cmd_get_context() {
 		WHERE t.plan_id = $plan_id AND t.status = 'done' AND t.output_data IS NOT NULL AND t.output_data != ''
 		ORDER BY w.position, t.task_id;")
 
+	# Load constraints (ADR-054)
+	local constraints_json
+	constraints_json=$(sqlite3 "$DB_FILE" "SELECT COALESCE(constraints_json, '[]') FROM plans WHERE id=$plan_id;")
+
 	# Detect test framework from worktree
 	local framework="unknown"
 	if [[ -d "$wt_expanded" && -f "$wt_expanded/package.json" ]]; then
@@ -331,12 +354,14 @@ cmd_get_context() {
 		--arg md "$md_expanded" \
 		--argjson tasks "$tasks_json" \
 		--argjson completed_output "$completed_output_json" \
+		--argjson constraints "$constraints_json" \
 		--arg fw "$framework" \
 		'. + {
 			worktree_path: $wt,
 			markdown_path: $md,
 			pending_tasks: $tasks,
 			completed_tasks_output: $completed_output,
+			constraints: $constraints,
 			framework: $fw
 		}'
 }

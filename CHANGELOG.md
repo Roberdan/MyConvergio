@@ -1,5 +1,14 @@
 # Changelog
 
+## [v8.5.0] - 25 Feb 2026
+
+### Changed
+
+- `planner.agent.md` v2.1.0: DB GATE rule (Rule 6) — mandatory plan-db verification before user approval
+- `planner.agent.md`: added Schema Validation step 3.1 and F-xx Exclusion Gate step 3.2
+
+---
+
 ## [v8.4.0] - 24 Feb 2026
 
 ### Added — Plan Intelligence System (F-07)

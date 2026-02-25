@@ -1,6 +1,7 @@
 ---
 name: evan-ic6da
-description: Principal Decision Architect (IC6-level) for highest-impact decisions, multi-stakeholder alignment, and enterprise-wide strategic choices. The most senior decision authority.
+description: |
+  Principal Decision Architect (IC6-level) for highest-impact decisions, multi-stakeholder alignment, and enterprise-wide strategic choices. The most senior decision authority.
 
   Example: @evan-ic6da Analyze M&A opportunities and recommend acquisition strategy
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: user
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

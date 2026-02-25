@@ -26,27 +26,27 @@
 
 ---
 
-## [9.4.0] - 2026-02-24
+## [9.4.0] - 2026-02-25
 
 ### Added
 
-- Thor Gate 10: Cross-Review — independent antagonistic review per-wave before merge
-- `cross-review.sh` v1.0.0: launches cross-provider review of all wave deliverables
-- `lib/circuit-breaker.sh` v1.0.0: extracted from plan-db-safe.sh for 250-line compliance
-- First Principle doctrine in execution-optimization.md: "Minimize Errors, Maximize Correctness"
+- **JSON Schema Validation** — plan-spec-schema.json v2.0.0 with field constraints, required properties, type definitions (ADR-012)
+- **Maturity Lifecycle** — 5-phase status progression: draft → review → approved → active → archived (ADR-012)
+- **Constraint Enforcement** — plan-db.sh validates schema before commit (required fields, type checking, enum validation)
+- **Handoff Protocol** — structured wave-to-wave metadata, error handling, rollback on validation failure (ADR-012)
+- **Enhanced Memory Agent** — `memory-supervisor.sh` v1.0.0: cross-session learning, pattern detection, knowledge aggregation
+- **Structured Tracking** — plan_metadata table: maturity, constraints, handoffs, validation logs, schema version audit trail
 
 ### Changed
 
-- Thor gates 9 → 10 across all 16+ config/doc files (cross-file consistency)
-- `thor-validation-gates.md` v3.0.0 → v3.1.0: Gate 10 definition
-- `thor-quality-assurance-guardian.md` v5.1.0 → v5.2.0: Gate 10 in per-wave flow
-- `plan-db-safe.sh` v3.0.0 → v3.1.0: Gate 10 auto-trigger + circuit breaker extraction (261 → 202 lines)
-- `planner.md`: section 8c for Gate 10 invocation
-- `execution-optimization.md` v2.0.0 → v2.1.0: First Principle + Gate 10 in post-task protocol
-- `guardian.md`: Gate 10 reference
-- `copilot-agents/validate.agent.md`: Gate 10 in table
-- `copilot-agents/execute.agent.md`: 10 gates reference
-- `docs/concepts.md`: Gate 10 in mermaid diagram + gate table
+- `Makefile` lint targets refactored: `lint` now validates JSON schemas before linting code
+- `generate-copilot-agents` propagates schema version to all agent configs (agents inherit plan_spec_version)
+- `plan-db.sh` v3.2.0 → v3.3.0: schema validation on import/create, maturity state machine enforcement
+- `plan-db-import.sh`: schema validation with detailed error messages per ADR-012
+- `init-db.sql`: plan_metadata table with maturity, constraints_json, handoff_log columns
+- `thor-validation-gates.md` v3.1.0 → v3.2.0: Gate 8 (schema compliance) expanded
+- `copilot-agents/execute.agent.md`: maturity → active transition pre-wave
+- `docs/concepts.md`: maturity lifecycle diagram + constraint examples
 
 ---
 

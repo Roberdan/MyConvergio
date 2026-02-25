@@ -9,9 +9,16 @@ tools:
   - Bash
   - Glob
   - Grep
+version: "1.0.0"
+maturity: experimental
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 # PR Comment Resolver
+
+**Version**: v1.0.0
 
 Automated agent for resolving PR review comments: fetch threads, analyze, fix code, commit, reply, resolve.
 

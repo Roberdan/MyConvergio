@@ -137,6 +137,20 @@ cd "$WORKTREE_PATH"
 
 **`--human-summary` MANDATORY**: Riassunto leggibile del piano (NO path, NO istruzioni agente, NO workflow). Max 200 chars. Esempio: "Rinomina deployment Azure OpenAI da gpt-4o-realtime a gpt-realtime in tutti i file di configurazione e secrets"
 
+### 3.1 Post-Import Verification (MANDATORY — BLOCK if fails)
+
+```bash
+PLAN_JSON=$(plan-db.sh json $PLAN_ID 2>/dev/null)
+TASKS_TOTAL=$(echo "$PLAN_JSON" | jq -r '.tasks_total')
+if [ -z "$TASKS_TOTAL" ] || [ "$TASKS_TOTAL" -eq 0 ]; then
+  echo "BLOCK: Plan $PLAN_ID not in DB or has 0 tasks. Re-run Step 3."
+  exit 1
+fi
+echo "PASS: Plan $PLAN_ID in DB with $TASKS_TOTAL tasks"
+```
+
+**NEVER proceed to Step 4 without this check passing.**
+
 ### 4. User Approval (MANDATORY STOP)
 
 Present F-xx + Codex proposals. "si"/"yes" -> Proceed.

@@ -1,12 +1,17 @@
 ---
 name: baccio-tech-architect
-description: Elite Technology Architect for system design, scalable architecture, microservices, cloud infrastructure, and tech stack optimization. Expert in DDD, Clean Architecture, and ISE patterns.
+description: |
+  Elite Technology Architect for system design, scalable architecture, microservices, cloud infrastructure, and tech stack optimization. Expert in DDD, Clean Architecture, and ISE patterns.
 
   Example: @baccio-tech-architect Design microservices architecture for healthcare platform with HIPAA compliance
 
 tools: ["read", "write", "edit", "execute", "search", "search", "WebFetch", "WebSearch"]
 model: claude-sonnet-4.5
 version: "1.0.2"
+maturity: preview
+providers:
+  - claude
+constraints: ["Creates design documents and diagrams"]
 ---
 
 <!--

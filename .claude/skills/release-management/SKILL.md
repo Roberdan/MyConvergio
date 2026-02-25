@@ -1,4 +1,6 @@
 ---
+name: "Release Management"
+version: "1.0.0"
 context: fork
 allowed-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit"]
 user-invocable: true

@@ -3,7 +3,12 @@ name: planner
 description: Create execution plans with waves/tasks from F-xx requirements. Uses plan-db.sh as single source of truth.
 tools: ["read", "edit", "search", "execute"]
 model: claude-opus-4.6-1m
-version: "2.0.0"
+version: "2.1.0"
+maturity: stable
+providers:
+  - copilot
+constraints:
+  - "Creates plans only — never implements"
 handoffs:
   - label: Execute Plan
     agent: execute
@@ -45,6 +50,7 @@ Works with ANY repository - auto-detects project context.
 | 3    | Worktree Isolation - EVERY task includes worktree path, NEVER on main                                |
 | 4    | TDD Mandatory - Every task has test_criteria                                                         |
 | 5    | NO SILENT EXCLUSIONS - NEVER exclude/defer F-xx without user approval. Silently dropping = VIOLATION |
+| 6    | DB GATE - NEVER proceed to User Approval without verifying plan exists in plan-db (Step 4.1). Skipping = plan lost |
 
 ## Workflow
 
@@ -105,6 +111,34 @@ Write `spec.json`:
 - `executor_agent`: copilot (default) | claude | codex | manual
 - `precondition`: array blocking wave until conditions met
 
+### 3.1 Schema Validation (MANDATORY)
+
+```bash
+python3 -c "
+from jsonschema import validate
+import json, sys
+schema = json.load(open('$HOME/.claude/config/plan-spec-schema.json'))
+spec = json.load(open('/path/to/spec.json'))
+validate(spec, schema)
+print('PASS: spec.json valid')
+" || { echo "BLOCK: spec.json validation failed. Fix errors before proceeding."; exit 1; }
+```
+
+### 3.2 F-xx Exclusion Gate (MANDATORY)
+
+Compare ALL F-xx requirements vs tasks. If ANY F-xx is NOT covered by at least one task `ref`:
+1. List uncovered F-xx
+2. Ask user: include, defer, or exclude each one
+3. **BLOCK** — NEVER silently skip
+
+### 3.3 Cross-Plan Conflict Check
+
+```bash
+CONFLICT_REPORT=$(plan-db.sh conflict-check-spec $PROJECT_ID /path/to/spec.json 2>/dev/null)
+RISK=$(echo "$CONFLICT_REPORT" | jq -r '.overall_risk' 2>/dev/null)
+# If risk != "none": ask user — Merge | Sequence | Abort
+```
+
 ### 4. Create Plan + Import
 
 ```bash
@@ -114,6 +148,20 @@ PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" --source-file "$PROMPT_FILE
 plan-db.sh import $PLAN_ID /path/to/spec.json
 WORKTREE_PATH=$(plan-db.sh get-worktree $PLAN_ID)
 ```
+
+### 4.1 Post-Import Verification (MANDATORY — BLOCK if fails)
+
+```bash
+PLAN_JSON=$(plan-db.sh json $PLAN_ID 2>/dev/null)
+TASKS_TOTAL=$(echo "$PLAN_JSON" | jq -r '.tasks_total')
+if [ -z "$TASKS_TOTAL" ] || [ "$TASKS_TOTAL" -eq 0 ]; then
+  echo "BLOCK: Plan $PLAN_ID not in DB or has 0 tasks. Re-run Step 4."
+  exit 1
+fi
+echo "PASS: Plan $PLAN_ID in DB with $TASKS_TOTAL tasks"
+```
+
+**NEVER proceed to Step 5 without this check passing.**
 
 ### 5. User Approval (MANDATORY STOP)
 

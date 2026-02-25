@@ -1,6 +1,7 @@
 ---
 name: wiz-investor-venture-capital
-description: Venture Capital investor (Andreessen Horowitz style) for investment strategy, portfolio management, and startup evaluation. Provides investor perspective on business strategy.
+description: |
+  Venture Capital investor (Andreessen Horowitz style) for investment strategy, portfolio management, and startup evaluation. Provides investor perspective on business strategy.
 
   Example: @wiz-investor-venture-capital Evaluate our unit economics and advise on Series A valuation
 
@@ -10,6 +11,10 @@ model: haiku
 version: "1.0.2"
 memory: user
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Advisory only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

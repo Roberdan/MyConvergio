@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Copilot Agent Frontmatter Schema",
+  "description": "JSON schema for GitHub Copilot agent .md file frontmatter validation",
+  "type": "object",
+  "required": ["name", "description", "version"],
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Agent name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Agent description"
+    },
+    "version": {
+      "type": "string",
+      "description": "Agent version (e.g., 1.0.0)"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier (accepts any model string like claude-sonnet-4.5, gpt-5, etc.)"
+    },
+    "tools": {
+      "type": "array",
+      "description": "List of allowed tools",
+      "items": {
+        "type": "string"
+      }
+    },
+    "disallowedTools": {
+      "type": "array",
+      "description": "List of disallowed tools",
+      "items": {
+        "type": "string"
+      }
+    },
+    "context_isolation": {
+      "type": "boolean",
+      "description": "Whether agent runs in isolated context"
+    },
+    "skills": {
+      "type": "array",
+      "description": "Agent skills",
+      "items": {
+        "type": "string"
+      }
+    },
+    "maturity": {
+      "type": "string",
+      "enum": ["experimental", "preview", "stable", "deprecated"],
+      "description": "Agent maturity level"
+    },
+    "constraints": {
+      "type": "array",
+      "description": "Agent constraints",
+      "items": {
+        "type": "string"
+      }
+    },
+    "providers": {
+      "type": "array",
+      "description": "Compatible AI providers",
+      "items": {
+        "type": "string"
+      }
+    },
+    "handoffs": {
+      "type": "array",
+      "description": "Agent handoff configurations (Copilot format)",
+      "items": {
+        "type": "object",
+        "required": ["label", "agent"],
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Handoff label"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Target agent name"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Prompt to send to target agent"
+          },
+          "send": {
+            "type": "boolean",
+            "description": "Whether to send context automatically"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

@@ -19,16 +19,16 @@ MyConvergio is an enterprise AI agent suite providing specialized assistance acr
 
 ## Agent Categories (Claude Code)
 
-| Category              | Count | Key Agents                                                                            |
-| --------------------- | ----- | ------------------------------------------------------------------------------------- |
-| leadership_strategy   | 7     | ali (orchestrator), antonio, satya, dan                                               |
-| technical_development | 9     | baccio, rex, dario, otto, marco, paolo, luca, adversarial-debugger, task-executor-tdd |
-| business_operations   | 11    | amy, anna, davide, marcello, oliver                                                   |
-| core_utility          | 11    | thor, strategic-planner, marcus, guardian, sentinel, thor-validation-gates            |
-| release_management    | 3     | app-release-manager, feature-release-manager, app-release-manager-execution           |
-| compliance_legal      | 5     | elena, dr-enzo, sophia                                                                |
-| specialized_experts   | 14    | domik, behice, fiona, angela, ethan, evan, michael, research-report-generator         |
-| design_ux             | 3     | creative-director (5 skills), ux-designer, design-thinking                            |
+| Category              | Count | Key Agents                                                                            | Providers                      |
+| --------------------- | ----- | ------------------------------------------------------------------------------------- | ------------------------------ |
+| leadership_strategy   | 7     | ali (orchestrator), antonio, satya, dan                                               | Claude (opus), Gemini          |
+| technical_development | 9     | baccio, rex, dario, otto, marco, paolo, luca, adversarial-debugger, task-executor-tdd | Claude (sonnet), Copilot --yolo |
+| business_operations   | 11    | amy, anna, davide, marcello, oliver                                                   | Claude (sonnet)                |
+| core_utility          | 11    | thor, strategic-planner, marcus, guardian, sentinel, thor-validation-gates            | Claude (opus)                  |
+| release_management    | 3     | app-release-manager, feature-release-manager, app-release-manager-execution           | Claude (opus)                  |
+| compliance_legal      | 5     | elena, dr-enzo, sophia                                                                | Claude (opus), OpenCode        |
+| specialized_experts   | 14    | domik, behice, fiona, angela, ethan, evan, michael, research-report-generator         | Claude (sonnet), Gemini        |
+| design_ux             | 3     | creative-director (5 skills), ux-designer, design-thinking                            | Claude (sonnet)                |
 
 **Total**: 65 agents (including 2 constitutional documents: CONSTITUTION.md, CommonValuesAndPrinciples.md)
 
@@ -37,6 +37,54 @@ MyConvergio is an enterprise AI agent suite providing specialized assistance acr
 - **opus** (6): Complex orchestration, critical decisions
 - **sonnet** (24): Strategic specialists (architects, security, compliance)
 - **haiku** (35): Workers, quick tasks, operational agents
+
+### Agent Metadata
+
+Each agent carries metadata describing its operational characteristics, constraints, and integration requirements.
+
+**Maturity Lifecycle**:
+- **alpha**: Experimental, unstable API, breaking changes possible
+- **beta**: Stable API, feature-complete but under validation
+- **stable**: Production-ready, backward-compatible releases
+- **legacy**: Deprecated, no longer maintained (use recommended replacement)
+
+**Constraints**:
+- **context_limit**: Maximum input tokens (e.g., "16K" for Claude Haiku)
+- **execution_timeout**: Max wall-clock seconds before cancellation
+- **rate_limits**: Requests per minute (user + global)
+- **cost_tier**: Operating cost category (free, cheap, premium)
+
+**Handoffs**:
+- **escalation_to**: Agent to invoke if current agent hits limits
+- **dependencies**: Other agents that must run first
+- **compatible_with**: List of agents safe to chain after this one
+
+**Providers Field**:
+Agents declare their supported AI providers as a prioritized list. Multi-provider routing (see README.md Multi-Provider Routing) uses this field to:
+- Select optimal provider by cost, latency, or capability
+- Enable fallback chains if primary provider unavailable or over budget
+- Enforce constraints (e.g., sensitive data → OpenCode local only)
+- Route tasks based on provider specialization (e.g., coding → Copilot --yolo)
+
+Format: `providers: [{ name: "claude", model: "opus", priority: 1 }, { name: "gemini", priority: 2 }]`
+
+**Example Agent Metadata**:
+```yaml
+name: thor-qa-guardian
+maturity: stable
+constraints:
+  context_limit: 200K
+  execution_timeout: 600
+  cost_tier: premium
+providers:
+  - name: claude
+    model: opus
+    priority: 1
+  - name: copilot
+    priority: 2
+escalation_to: ali-orchestrator
+compatible_with: [execute, planner, strategic-planner]
+```
 
 ## Copilot CLI Agents
 

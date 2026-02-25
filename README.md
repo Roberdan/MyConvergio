@@ -170,12 +170,14 @@ graph TD
     THOR -->|FAIL| EXEC
 ```
 
-| Provider | Worker               | Use Case                | Cost         |
-| -------- | -------------------- | ----------------------- | ------------ |
-| Copilot  | `copilot-worker.sh`  | Coding, tests, PR-ops   | Subscription |
-| OpenCode | `opencode-worker.sh` | Sensitive data, bulk    | Free (local) |
-| Gemini   | `gemini-worker.sh`   | Research, analysis      | Metered      |
-| Claude   | `task-executor`      | Reviews, critical tasks | Premium      |
+| Provider | Worker               | Use Case                | Cost         | Agents Using |
+| -------- | -------------------- | ----------------------- | ------------ | ------------ |
+| Copilot  | `copilot-worker.sh`  | Coding, tests, PR-ops   | Subscription | technical_development (9) |
+| OpenCode | `opencode-worker.sh` | Sensitive data, bulk    | Free (local) | compliance_legal (5) |
+| Gemini   | `gemini-worker.sh`   | Research, analysis      | Metered      | leadership_strategy (7), specialized_experts (14) |
+| Claude   | `task-executor`      | Reviews, critical tasks | Premium      | All categories via escalation |
+
+**Provider Selection**: Each agent declares its `providers` field (see AGENTS.md Agent Metadata). Router follows priority order, enables intelligent fallback, and respects constraints (cost, privacy, capability).
 
 ---
 

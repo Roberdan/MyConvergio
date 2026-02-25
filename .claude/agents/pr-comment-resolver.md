@@ -10,6 +10,11 @@ tools:
   - Glob
   - Grep
 maxTurns: 30
+version: "1.0.0"
+maturity: experimental
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 # PR Comment Resolver

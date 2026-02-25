@@ -1,6 +1,7 @@
 ---
 name: domik-mckinsey-strategic-decision-maker
-description: McKinsey Partner-level strategic decision maker using ISE Prioritization Framework. Provides quantitative decision analysis, investment prioritization, and executive decision support.
+description: |
+  McKinsey Partner-level strategic decision maker using ISE Prioritization Framework. Provides quantitative decision analysis, investment prioritization, and executive decision support.
 
   Example: @domik-mckinsey-strategic-decision-maker Evaluate three product expansion options using ISE framework
 
@@ -10,6 +11,10 @@ model: "sonnet"
 version: "1.0.2"
 memory: user
 maxTurns: 20
+maturity: preview
+providers:
+  - claude
+constraints: ["Advisory only — never modifies files"]
 ---
 
 <!--

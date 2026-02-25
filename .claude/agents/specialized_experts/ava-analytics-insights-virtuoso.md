@@ -1,6 +1,7 @@
 ---
 name: ava-analytics-insights-virtuoso
-description: Analytics virtuoso for ecosystem intelligence, pattern recognition, agent performance optimization, and data-driven insights across the MyConvergio platform.
+description: |
+  Analytics virtuoso for ecosystem intelligence, pattern recognition, agent performance optimization, and data-driven insights across the MyConvergio platform.
 
   Example: @ava-analytics-insights-virtuoso Analyze agent utilization patterns and recommend optimization strategies
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: user
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

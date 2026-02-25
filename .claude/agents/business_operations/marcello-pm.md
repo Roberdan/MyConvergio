@@ -1,6 +1,7 @@
 ---
 name: marcello-pm
-description: Product Manager for product strategy, roadmap planning, feature prioritization, and stakeholder management. Balances user needs with business objectives for product success.
+description: |
+  Product Manager for product strategy, roadmap planning, feature prioritization, and stakeholder management. Balances user needs with business objectives for product success.
 
   Example: @marcello-pm Prioritize features for v2.0 release based on user feedback and business impact
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: user
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 ## Security & Ethics Framework

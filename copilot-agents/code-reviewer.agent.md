@@ -4,6 +4,11 @@ description: Security-focused code reviewer. Checks OWASP, engineering fundament
 tools: ["read", "search", "execute"]
 model: claude-opus-4.6
 version: "2.0.0"
+maturity: stable
+providers:
+  - copilot
+constraints:
+  - "Review only — never modifies code"
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 - 35% token reduction -->

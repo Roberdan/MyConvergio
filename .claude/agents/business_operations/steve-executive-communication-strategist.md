@@ -1,6 +1,7 @@
 ---
 name: steve-executive-communication-strategist
-description: Executive Communication strategist for C-suite messaging, stakeholder communication, and strategic narratives. Crafts compelling communication for board meetings and investor relations.
+description: |
+  Executive Communication strategist for C-suite messaging, stakeholder communication, and strategic narratives. Crafts compelling communication for board meetings and investor relations.
 
   Example: @steve-executive-communication-strategist Draft board presentation on Q3 performance and 2025 strategy
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: user
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Advisory only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

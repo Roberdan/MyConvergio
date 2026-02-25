@@ -1,6 +1,7 @@
 ---
 name: jony-creative-director
-description: Creative Director for design systems, brand identity, UI/UX, marketing creative, and design quality. Routes to specialized design skills.
+description: |
+  Creative Director for design systems, brand identity, UI/UX, marketing creative, and design quality. Routes to specialized design skills.
 
   Example: @jony-creative-director Design brand identity for our new AI-powered productivity platform
 
@@ -17,6 +18,10 @@ model: "sonnet"
 version: "2.0.0"
 memory: user
 maxTurns: 30
+maturity: stable
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

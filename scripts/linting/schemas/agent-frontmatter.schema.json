@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Agent Frontmatter Schema",
+  "description": "JSON schema for Claude Code agent .md file frontmatter validation",
+  "type": "object",
+  "required": ["name", "description", "version"],
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Agent name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Agent description"
+    },
+    "version": {
+      "type": "string",
+      "description": "Agent version (e.g., 1.0.0)"
+    },
+    "tools": {
+      "type": "array",
+      "description": "List of allowed tools",
+      "items": {
+        "type": "string"
+      }
+    },
+    "disallowedTools": {
+      "type": "array",
+      "description": "List of disallowed tools",
+      "items": {
+        "type": "string"
+      }
+    },
+    "color": {
+      "type": "string",
+      "description": "UI color for the agent"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier (accepts any model string)"
+    },
+    "memory": {
+      "type": "string",
+      "description": "Memory configuration"
+    },
+    "maxTurns": {
+      "type": "number",
+      "description": "Maximum conversation turns"
+    },
+    "context_isolation": {
+      "type": "boolean",
+      "description": "Whether agent runs in isolated context"
+    },
+    "skills": {
+      "type": "array",
+      "description": "Agent skills",
+      "items": {
+        "type": "string"
+      }
+    },
+    "maturity": {
+      "type": "string",
+      "enum": ["experimental", "preview", "stable", "deprecated"],
+      "description": "Agent maturity level"
+    },
+    "constraints": {
+      "type": "array",
+      "description": "Agent constraints",
+      "items": {
+        "type": "string"
+      }
+    },
+    "providers": {
+      "type": "array",
+      "description": "Compatible AI providers",
+      "items": {
+        "type": "string",
+        "enum": ["claude", "copilot", "opencode", "gemini"]
+      }
+    },
+    "handoffs": {
+      "type": "array",
+      "description": "Agent handoff configurations",
+      "items": {
+        "type": "object",
+        "required": ["label", "agent"],
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Handoff label"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Target agent name"
+          },
+          "context": {
+            "type": "string",
+            "description": "Context to pass to target agent"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

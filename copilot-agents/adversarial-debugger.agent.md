@@ -7,6 +7,10 @@ model: claude-sonnet-4.5
 version: "1.1.0"
 context_isolation: true
 skills: ["debugging"]
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 # Adversarial Debugger

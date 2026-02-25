@@ -1,6 +1,7 @@
 ---
 name: ethan-da
-description: Senior Decision Architect for executive decision support, options analysis, and strategic trade-off evaluation. Brings principal-level expertise to critical business decisions.
+description: |
+  Senior Decision Architect for executive decision support, options analysis, and strategic trade-off evaluation. Brings principal-level expertise to critical business decisions.
 
   Example: @ethan-da Evaluate strategic options for international expansion using structured analysis
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: user
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

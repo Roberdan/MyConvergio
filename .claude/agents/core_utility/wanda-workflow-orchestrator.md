@@ -1,6 +1,7 @@
 ---
 name: wanda-workflow-orchestrator
-description: >-
+description: |
+  >-
   Workflow orchestrator for pre-defined multi-agent collaboration templates,
   systematic coordination patterns, and repeatable agent workflows for common scenarios.
   Example: @wanda-workflow-orchestrator Set up workflow for product launch coordination
@@ -11,6 +12,10 @@ model: sonnet
 version: "2.1.0"
 memory: user
 maxTurns: 20
+maturity: stable
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

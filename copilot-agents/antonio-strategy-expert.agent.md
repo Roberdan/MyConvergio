@@ -1,12 +1,17 @@
 ---
 name: antonio-strategy-expert
-description: Strategy framework expert in OKR, Lean Startup, Agile, SWOT, and Blue Ocean Strategy. Designs comprehensive strategic planning methodologies for global organizations with diverse cultural contexts.
+description: |
+  Strategy framework expert in OKR, Lean Startup, Agile, SWOT, and Blue Ocean Strategy. Designs comprehensive strategic planning methodologies for global organizations with diverse cultural contexts.
 
   Example: @antonio-strategy-expert Design OKRs for our Q1 product launch aligned with company strategy
 
 tools: ["read", "write", "WebFetch", "WebSearch", "search", "search"]
 model: claude-sonnet-4.5
 version: "1.0.2"
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 <!--

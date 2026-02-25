@@ -4,6 +4,11 @@ description: Extract structured requirements (F-xx) from user input. Outputs JSO
 tools: ["read", "search", "execute"]
 model: claude-opus-4.6
 version: "2.0.0"
+maturity: stable
+providers:
+  - copilot
+constraints:
+  - "Extracts requirements only — never implements or plans"
 handoffs:
   - label: Plan
     agent: planner

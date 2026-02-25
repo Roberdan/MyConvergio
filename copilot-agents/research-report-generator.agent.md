@@ -17,6 +17,10 @@ tools:
 model: claude-opus-4.6
 version: "1.3.0"
 context_isolation: true
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 ## Security & Ethics Framework

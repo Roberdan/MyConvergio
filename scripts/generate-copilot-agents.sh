@@ -76,6 +76,7 @@ convert_frontmatter() {
   local content=""
   local after_frontmatter=false
   local line_num=0
+  local in_handoffs=false
   
   while IFS= read -r -u 3 line; do
     line_num=$((line_num + 1))
@@ -96,6 +97,37 @@ convert_frontmatter() {
       if [[ $line =~ ^[[:space:]]*$ ]]; then
         # Empty line in frontmatter - preserve
         frontmatter+="$line"$'\n'
+        in_handoffs=false
+      elif [[ $line =~ ^handoffs: ]]; then
+        # Start of handoffs block
+        in_handoffs=true
+        frontmatter+="$line"$'\n'
+      elif [[ $in_handoffs == true ]] && [[ $line =~ ^[[:space:]]+ ]]; then
+        # Inside handoffs block - convert context: to prompt:
+        local converted_line="${line//context:/prompt:}"
+        frontmatter+="$converted_line"$'\n'
+      elif [[ $line =~ ^[^[:space:]] ]]; then
+        # Non-indented line - exit handoffs block
+        in_handoffs=false
+        
+        if [[ $line =~ ^tools: ]]; then
+          # Normalize tool names
+          local normalized_tools
+          normalized_tools=$(normalize_tools "$line")
+          frontmatter+="$normalized_tools"$'\n'
+        elif [[ $line =~ ^model:[[:space:]]*(.+)$ ]]; then
+          # Map model name
+          local model_value="${BASH_REMATCH[1]}"
+          local mapped_model
+          mapped_model=$(map_model_name "$model_value")
+          frontmatter+="model: $mapped_model"$'\n'
+        elif [[ $line =~ ^(color|memory|maxTurns): ]]; then
+          # Skip Claude-specific fields
+          :
+        else
+          # Keep other fields as-is
+          frontmatter+="$line"$'\n'
+        fi
       elif [[ $line =~ ^tools: ]]; then
         # Normalize tool names
         local normalized_tools

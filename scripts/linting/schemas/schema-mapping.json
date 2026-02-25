@@ -1,0 +1,34 @@
+{
+  "mappings": [
+    {
+      "pattern": ".claude/agents/**/*.md",
+      "schema": "agent-frontmatter.schema.json",
+      "exclude": [
+        "CONSTITUTION.md",
+        "EXECUTION_DISCIPLINE.md",
+        "CommonValuesAndPrinciples.md",
+        "MICROSOFT_VALUES.md",
+        "SECURITY_FRAMEWORK_TEMPLATE.md"
+      ]
+    },
+    {
+      "pattern": "copilot-agents/**/*.agent.md",
+      "schema": "copilot-agent-frontmatter.schema.json",
+      "exclude": [
+        "EXECUTION_DISCIPLINE.agent.md"
+      ]
+    },
+    {
+      "pattern": ".claude/skills/**/SKILL.md",
+      "schema": "skill-frontmatter.schema.json",
+      "exclude": []
+    },
+    {
+      "pattern": ".claude/rules/**/*.md",
+      "schema": "rule-frontmatter.schema.json",
+      "exclude": [
+        "README.md"
+      ]
+    }
+  ]
+}

@@ -4,6 +4,10 @@ description: Feature completion workflow - analyze GitHub issues, verify impleme
 tools: ["read", "search", "search", "execute", "write", "edit"]
 model: claude-haiku-4.5
 version: "1.1.0"
+maturity: preview
+providers:
+  - claude
+constraints: ["Operates within release workflow scope"]
 ---
 
 ## Security & Ethics Framework

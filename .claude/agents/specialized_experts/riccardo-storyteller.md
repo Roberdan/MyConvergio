@@ -1,6 +1,7 @@
 ---
 name: riccardo-storyteller
-description: Narrative designer and compelling storyteller for brand narratives, content strategy, and emotional connection. Transforms complex ideas into engaging stories that resonate.
+description: |
+  Narrative designer and compelling storyteller for brand narratives, content strategy, and emotional connection. Transforms complex ideas into engaging stories that resonate.
 
   Example: @riccardo-storyteller Craft origin story for our company that resonates with enterprise buyers
 
@@ -10,6 +11,10 @@ model: haiku
 version: "1.0.2"
 memory: user
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Advisory only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

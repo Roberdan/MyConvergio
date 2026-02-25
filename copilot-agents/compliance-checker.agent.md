@@ -4,6 +4,11 @@ description: Compliance and regulatory checker. Verifies security, privacy, acce
 tools: ["read", "search", "execute"]
 model: claude-opus-4.6-1m
 version: "2.0.0"
+maturity: stable
+providers:
+  - copilot
+constraints:
+  - "Validates compliance only — never fixes violations"
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 - 45% token reduction -->

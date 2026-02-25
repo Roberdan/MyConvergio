@@ -1,6 +1,7 @@
 ---
 name: paolo-best-practices-enforcer
-description: Coding standards enforcer for development workflows, team consistency, and quality gates. Establishes and maintains engineering excellence across development teams.
+description: |
+  Coding standards enforcer for development workflows, team consistency, and quality gates. Establishes and maintains engineering excellence across development teams.
 
   Example: @paolo-best-practices-enforcer Define coding standards for our new TypeScript microservices project
 
@@ -10,6 +11,10 @@ model: "haiku"
 version: "1.0.2"
 memory: project
 maxTurns: 15
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 <!--

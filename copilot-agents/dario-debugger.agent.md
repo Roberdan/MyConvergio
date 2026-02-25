@@ -12,6 +12,10 @@ maturity: preview
 providers:
   - claude
 constraints: ["Read-only — never modifies files"]
+handoffs:
+  - label: "Fix bugs"
+    agent: "task-executor"
+    prompt: "Fix identified bugs and issues"
 ---
 
 <!--

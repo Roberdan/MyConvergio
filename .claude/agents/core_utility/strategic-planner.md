@@ -12,6 +12,13 @@ maturity: stable
 providers:
   - claude
 constraints: ["Modifies files within assigned domain"]
+handoffs:
+  - label: "Execute plan"
+    agent: "execute"
+    context: "Execute the strategic plan"
+  - label: "Review architecture"
+    agent: "architecture-reviewer"
+    context: "Review architectural decisions"
 ---
 
 ## Security & Ethics Framework

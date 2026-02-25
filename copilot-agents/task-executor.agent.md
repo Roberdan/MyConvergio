@@ -10,6 +10,10 @@ maturity: stable
 providers:
   - claude
 constraints: ["Operates within assigned task scope"]
+handoffs:
+  - label: "Validate task"
+    agent: "thor-quality-assurance-guardian"
+    prompt: "Validate completed task"
 ---
 
 # Task Executor

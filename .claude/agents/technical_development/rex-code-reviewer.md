@@ -15,6 +15,10 @@ maturity: preview
 providers:
   - claude
 constraints: ["Read-only — never modifies files"]
+handoffs:
+  - label: "Fix issues"
+    agent: "task-executor"
+    context: "Fix code review issues"
 ---
 
 <!--

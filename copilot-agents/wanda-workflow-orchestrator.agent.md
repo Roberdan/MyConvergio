@@ -13,6 +13,10 @@ maturity: stable
 providers:
   - claude
 constraints: ["Modifies files within assigned domain"]
+handoffs:
+  - label: "Execute workflow"
+    agent: "task-executor"
+    prompt: "Execute workflow tasks"
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

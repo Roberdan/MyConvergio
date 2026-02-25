@@ -16,6 +16,10 @@ maturity: preview
 providers:
   - claude
 constraints: ["Advisory only — never modifies files"]
+handoffs:
+  - label: "Execute tasks"
+    agent: "task-executor"
+    context: "Execute decomposed tasks"
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

@@ -12,6 +12,10 @@ maturity: preview
 providers:
   - claude
 constraints: ["Read-only — never modifies files"]
+handoffs:
+  - label: "Revise plan"
+    agent: "strategic-planner"
+    context: "Revise plan based on review"
 ---
 
 # Plan Reviewer

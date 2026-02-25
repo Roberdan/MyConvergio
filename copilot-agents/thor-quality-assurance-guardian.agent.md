@@ -10,6 +10,10 @@ maturity: stable
 providers:
   - claude
 constraints: ["Read-only — never modifies files"]
+handoffs:
+  - label: "Fix failures"
+    agent: "task-executor"
+    prompt: "Fix Thor validation failures"
 ---
 
 # Thor - Quality Gatekeeper

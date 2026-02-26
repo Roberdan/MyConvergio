@@ -1,0 +1,53 @@
+name: Auto Version
+
+on:
+  push:
+    branches: [master, main]
+    paths-ignore:
+      - 'VERSION'
+      - 'CHANGELOG.md'
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'chore: bump to')"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run auto-version
+        id: bump
+        run: |
+          chmod +x .claude/scripts/auto-version.sh
+          OUTPUT=$(.claude/scripts/auto-version.sh --repo . 2>&1) || true
+          echo "$OUTPUT"
+
+          if echo "$OUTPUT" | grep -q "Nothing to do\|Skipping bump"; then
+            echo "bumped=false" >> $GITHUB_OUTPUT
+          elif echo "$OUTPUT" | grep -q "Updated:"; then
+            NEW_VERSION=$(grep '^SYSTEM_VERSION=' VERSION | cut -d'=' -f2)
+            echo "bumped=true" >> $GITHUB_OUTPUT
+            echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "bumped=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and tag
+        if: steps.bump.outputs.bumped == 'true'
+        run: |
+          git add VERSION CHANGELOG.md
+          git commit -m "chore: bump to v${{ steps.bump.outputs.version }} [skip ci]"
+          git tag "v${{ steps.bump.outputs.version }}"
+          git push origin HEAD --tags

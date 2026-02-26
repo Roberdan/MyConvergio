@@ -592,6 +592,14 @@ cmd_complete() {
 	if [[ -x "$SCRIPT_DIR/worktree-cleanup.sh" ]]; then
 		"$SCRIPT_DIR/worktree-cleanup.sh" --plan "$plan_id" 2>&1 || true
 	fi
+
+	# Final safety net: prune stale worktree metadata from .git
+	local project_path
+	project_path=$(sqlite3 "$DB_FILE" "SELECT p2.path FROM plans p JOIN projects p2 ON p.project_id=p2.id WHERE p.id=$plan_id;" 2>/dev/null | sed "s|^~|${HOME}|" || true)
+	if [[ -n "$project_path" && -d "$project_path/.git" ]]; then
+		git -C "$project_path" worktree prune 2>/dev/null || true
+		git -C "$project_path" fetch --prune 2>/dev/null || true
+	fi
 }
 
 # Calculate git lines added/removed for a completed plan

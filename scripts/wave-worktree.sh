@@ -160,26 +160,16 @@ cmd_merge() {
 	pr_number=$(basename "$pr_url")
 	db_query "UPDATE waves SET pr_number=${pr_number:-0}, pr_url='$(sql_escape "$pr_url")' WHERE id=${wave_db_id};" 2>/dev/null || true
 
-	# 7. Wait for CI
+	# 7. Wait for CI + check merge readiness (CI, reviews, threads, mergeable)
 	gh pr checks "$pr_number" --watch --timeout 600 2>&1 || true
-	local ci_status
-	ci_status=$(gh pr checks "$pr_number" 2>/dev/null | grep -c "fail" || true)
-	if [[ "${ci_status:-0}" -gt 0 ]]; then
-		log_error "CI failed for PR $pr_url"
-		db_query "UPDATE waves SET status='merging' WHERE id=${wave_db_id};" 2>/dev/null || true
-		exit 1
-	fi
 
-	# 8. Check PR review comments (BLOCKING)
-	# pr-ops.sh ready checks: CI, review decision, unresolved threads, mergeable state
+	# 8. Readiness gate (BLOCKING) — single call checks CI + review + unresolved threads
 	if [[ -x "$SCRIPT_DIR/pr-ops.sh" ]]; then
 		local ready_output blockers
 		ready_output=$("$SCRIPT_DIR/pr-ops.sh" ready "$pr_number" 2>&1 || true)
 		blockers=$(echo "$ready_output" | grep -c "BLOCKER:" || true)
 		if [[ "$blockers" -gt 0 ]]; then
-			local unresolved_threads
-			unresolved_threads=$(echo "$ready_output" | grep -i "unresolved thread" || true)
-			if [[ -n "$unresolved_threads" ]]; then
+			if echo "$ready_output" | grep -qi "unresolved thread"; then
 				log_error "PR #$pr_number has unresolved review comments. Resolve before merge."
 				log_error "Run: pr-comment-resolver agent or pr-threads.sh $pr_number to inspect"
 				log_error "Then retry: wave-worktree.sh merge $plan_id $wave_db_id"
@@ -187,6 +177,15 @@ cmd_merge() {
 				log_error "PR #$pr_number not ready to merge:"
 				echo "$ready_output" | grep "BLOCKER:" >&2
 			fi
+			db_query "UPDATE waves SET status='merging' WHERE id=${wave_db_id};" 2>/dev/null || true
+			exit 1
+		fi
+	else
+		# Fallback: basic CI check without pr-ops.sh
+		local ci_status
+		ci_status=$(gh pr checks "$pr_number" 2>/dev/null | grep -c "fail" || true)
+		if [[ "${ci_status:-0}" -gt 0 ]]; then
+			log_error "CI failed for PR $pr_url"
 			db_query "UPDATE waves SET status='merging' WHERE id=${wave_db_id};" 2>/dev/null || true
 			exit 1
 		fi

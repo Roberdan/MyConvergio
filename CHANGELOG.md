@@ -1,5 +1,26 @@
 # Changelog
 
+## [9.7.0] - 2026-02-26
+
+### Added
+
+- **Cancellation Support** — `cancelled` status for plans, tasks, waves with cascade logic
+- Migration v9: `cancelled_at`, `cancelled_reason` columns + CHECK constraint rebuild
+- Cancel commands: `cancel`, `cancel-wave`, `cancel-task` with reason tracking
+- Execution tree: `execution-tree` CLI command with colored status icons and cancel/skip reasons
+- Completion logic: counts resolved = done + cancelled + skipped (not just done)
+
+### Changed
+
+- `plan-db.sh` v3.3.0 → v3.4.0: cancel/execution-tree dispatch, updated help + status docs
+- `plan-db-safe.sh`: wave completion skips cancelled/skipped tasks
+- `plan-db-crud.sh`: cancel functions, cancelled status in update-task/update-wave
+- `plan-db-validate.sh`: wave validation + sync skip cancelled/skipped tasks
+- `plan-db-display.sh`: execution tree rendering function
+- `plan-scripts.md`: updated valid statuses table, added cancellation section
+
+---
+
 ## [9.5.0] - 2026-02-25
 
 ### Added

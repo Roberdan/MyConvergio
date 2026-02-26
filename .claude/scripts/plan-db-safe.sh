@@ -176,7 +176,7 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 			"SELECT wave_id_fk FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
 		if [[ -n "$wave_db_id" ]]; then
 			not_done=$(sqlite3 "$DB_FILE" \
-				"SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status <> 'done';" 2>/dev/null || echo "1")
+				"SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status NOT IN ('done', 'cancelled', 'skipped');" 2>/dev/null || echo "1")
 			not_validated=$(sqlite3 "$DB_FILE" \
 				"SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'done' AND validated_at IS NULL;" 2>/dev/null || echo "1")
 
@@ -229,9 +229,9 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 					fi
 				fi
 
-				# Check if ALL waves in plan are done
+				# Check if ALL waves in plan are done (skip cancelled)
 				waves_not_done=$(sqlite3 "$DB_FILE" \
-					"SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND status NOT IN ('done');" 2>/dev/null || echo "1")
+					"SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND status NOT IN ('done', 'cancelled');" 2>/dev/null || echo "1")
 				if [[ "$waves_not_done" -eq 0 ]]; then
 					echo "[plan-db-safe] All waves complete — syncing + completing plan $plan_id..." >&2
 					"$SCRIPT_DIR/plan-db.sh" sync "$plan_id" 2>/dev/null || true

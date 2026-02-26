@@ -13,11 +13,20 @@
 
 ## Valid Statuses (NEVER invent values)
 
-| Entity | Valid statuses                                                 |
-| ------ | -------------------------------------------------------------- |
-| Task   | `pending` \| `in_progress` \| `done` \| `blocked` \| `skipped` |
-| Plan   | `todo` \| `doing` \| `done` \| `archived`                      |
-| Wave   | `pending` \| `in_progress` \| `done` \| `blocked`              |
+| Entity | Valid statuses                                                                |
+| ------ | ---------------------------------------------------------------------------- |
+| Task   | `pending` \| `in_progress` \| `done` \| `blocked` \| `skipped` \| `cancelled` |
+| Plan   | `todo` \| `doing` \| `done` \| `cancelled`                                    |
+| Wave   | `pending` \| `in_progress` \| `done` \| `blocked` \| `merging` \| `cancelled` |
+
+## Cancellation
+
+```bash
+plan-db.sh cancel {plan_id} "reason"           # Cancel plan (cascade → waves → tasks)
+plan-db.sh cancel-wave {wave_db_id} "reason"   # Cancel wave (cascade → tasks)
+plan-db.sh cancel-task {task_db_id} "reason"    # Cancel single task
+plan-db.sh execution-tree {plan_id}            # Colored tree view with reasons
+```
 
 ## Plan Management
 
@@ -40,7 +49,7 @@ plan-db.sh validate {id}                  # Bulk Thor validation (all done tasks
 ```bash
 # DB path: ~/.claude/data/dashboard.db
 # Step 1: Find incomplete tasks (ALWAYS use plan_id column, NOT wave joins)
-sqlite3 ~/.claude/data/dashboard.db "SELECT id, task_id, title, status FROM tasks WHERE plan_id = {PLAN_ID} AND status NOT IN ('done', 'validated', 'skipped');"
+sqlite3 ~/.claude/data/dashboard.db "SELECT id, task_id, title, status FROM tasks WHERE plan_id = {PLAN_ID} AND status NOT IN ('done', 'validated', 'skipped', 'cancelled');"
 # Step 2: Update each task
 plan-db-safe.sh update-task {TASK_DB_ID} done "Reason"
 # Step 3: Complete

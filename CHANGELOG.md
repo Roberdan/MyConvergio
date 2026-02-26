@@ -1,5 +1,16 @@
 # Changelog
 
+## [9.12.0] - 2026-02-26
+
+### Added
+
+- **PR Post-Push Protocol**: NON-NEGOTIABLE 5-step workflow in guardian.md — CI green, review comments, resolve threads, readiness check, merge
+- **wave-worktree.sh v1.1.0**: step 8 upgraded from best-effort to BLOCKING gate via `pr-ops.sh ready`; exits with actionable error on unresolved PR comments
+- **Coordinator protocol**: step 6 invokes `pr-comment-resolver` agent when merge blocked by unresolved threads (max 3 rounds)
+- **strategic-planner-git v2.1.0**: Pre-Merge section with mandatory CI + review comments check before merge
+
+---
+
 ## [9.11.0] - 2026-02-26
 
 ### Fixed

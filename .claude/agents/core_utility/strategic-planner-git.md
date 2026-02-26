@@ -1,7 +1,7 @@
 ---
 name: strategic-planner-git
 description: Git worktree workflow for strategic-planner parallel execution. Reference module.
-version: "2.0.0"
+version: "2.1.0"
 ---
 
 # Git Worktree Workflow (MANDATORY)
@@ -34,12 +34,12 @@ git worktree list
 
 ## Mapping Claude → Worktree → Branch
 
-| Claude | Worktree | Branch | PR |
-|--------|----------|--------|-----|
-| CLAUDE 1 | `[project_root]` | [main_branch] | Coordina solo |
-| CLAUDE 2 | `../[project]-C2` | feature/[plan]-phase1 | PR #1 |
-| CLAUDE 3 | `../[project]-C3` | feature/[plan]-phase2 | PR #2 |
-| CLAUDE 4 | `../[project]-C4` | feature/[plan]-phase3 | PR #3 |
+| Claude   | Worktree          | Branch                | PR            |
+| -------- | ----------------- | --------------------- | ------------- |
+| CLAUDE 1 | `[project_root]`  | [main_branch]         | Coordina solo |
+| CLAUDE 2 | `../[project]-C2` | feature/[plan]-phase1 | PR #1         |
+| CLAUDE 3 | `../[project]-C3` | feature/[plan]-phase2 | PR #2         |
+| CLAUDE 4 | `../[project]-C4` | feature/[plan]-phase3 | PR #3         |
 
 ---
 
@@ -86,17 +86,38 @@ gh pr create --title "feat([scope]): Phase X - [description]" --body "## Summary
 
 ---
 
+## Pre-Merge: CI + Review Comments (NON-NEGOTIABLE)
+
+CLAUDE 1 does this for EACH PR before merge:
+
+```bash
+# 1. Wait for CI to pass
+gh pr checks [PR-X] --watch --timeout 600
+
+# 2. Check for unresolved review comments
+pr-threads.sh [PR-X] --no-cache
+# If unresolved > 0: invoke pr-comment-resolver agent, then re-check
+
+# 3. Verify merge readiness (CI + reviews + threads)
+pr-ops.sh ready [PR-X]
+# Must show 0 blockers. If blocked: fix, push, repeat from step 1. Max 3 rounds.
+```
+
+**Merging with unresolved PR comments = VIOLATION.**
+
+---
+
 ## Merge & Cleanup
 
-CLAUDE 1 does this at the end:
+CLAUDE 1 does this at the end (only after all PRs pass pre-merge checks):
 
 ```bash
 cd [project_root]
 
 # 1. Merge all PRs (in order!)
-gh pr merge [PR-1] --merge
-gh pr merge [PR-2] --merge
-gh pr merge [PR-3] --merge
+pr-ops.sh merge [PR-1]
+pr-ops.sh merge [PR-2]
+pr-ops.sh merge [PR-3]
 
 # 2. Pull changes
 git pull origin [main_branch]
@@ -129,4 +150,5 @@ npm run lint && npm run typecheck && npm run build
 
 ## Changelog
 
+- **2.1.0** (2026-02-26): Added Pre-Merge section: CI + review comments check mandatory before merge
 - **2.0.0** (2026-01-10): Extracted from strategic-planner.md for modularity

@@ -1,4 +1,4 @@
-<!-- v2.0.0 -->
+<!-- v2.1.0 -->
 
 # Process Guardian
 
@@ -20,7 +20,19 @@ See CLAUDE.md Anti-Bypass + Mandatory Routing sections. Plan creation = `/planne
 
 ## Git & PR
 
-Branch: feature/, fix/, chore/ | Conventional commits | Lint+typecheck+test before commit | All threads resolved | Build passes | ZERO debt (no TODO, FIXME, @ts-ignore)
+Branch: feature/, fix/, chore/ | Conventional commits | Lint+typecheck+test before commit | Build passes | ZERO debt (no TODO, FIXME, @ts-ignore)
+
+## PR Post-Push Protocol (NON-NEGOTIABLE)
+
+After every push on a PR, before merge:
+
+1. **CI green**: Wait for full CI. Fix ALL failures in one commit (CI Batch Fix rule)
+2. **Review comments**: `pr-threads.sh {pr} --no-cache` — check unresolved count
+3. **Resolve all threads**: For each unresolved thread — analyze, fix code, commit, reply, resolve. Use `pr-comment-resolver` agent or manual fix. Zero unresolved threads required.
+4. **Readiness check**: `pr-ops.sh ready {pr}` — must show 0 blockers
+5. **Merge**: Only after steps 1-4 pass. `pr-ops.sh merge {pr}` enforces this automatically.
+
+**Merging with unresolved PR comments = VIOLATION.** `wave-worktree.sh merge` blocks on unresolved threads.
 
 ## CI Batch Fix (NON-NEGOTIABLE)
 

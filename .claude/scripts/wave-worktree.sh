@@ -2,7 +2,7 @@
 # wave-worktree.sh — Wave-level worktree lifecycle management
 # Usage: wave-worktree.sh <command> <plan_id> [wave_db_id]
 # Commands: create, merge, cleanup, status
-# Version: 1.0.0
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -170,16 +170,29 @@ cmd_merge() {
 		exit 1
 	fi
 
-	# 8. Review comments (best-effort)
+	# 8. Check PR review comments (BLOCKING)
+	# pr-ops.sh ready checks: CI, review decision, unresolved threads, mergeable state
 	if [[ -x "$SCRIPT_DIR/pr-ops.sh" ]]; then
-		local pr_status
-		pr_status=$("$SCRIPT_DIR/pr-ops.sh" status "$pr_number" 2>/dev/null || true)
-		if echo "$pr_status" | grep -qi "unresolved"; then
-			log_warn "PR has unresolved comments — attempting auto-fix"
+		local ready_output blockers
+		ready_output=$("$SCRIPT_DIR/pr-ops.sh" ready "$pr_number" 2>&1 || true)
+		blockers=$(echo "$ready_output" | grep -c "BLOCKER:" || true)
+		if [[ "$blockers" -gt 0 ]]; then
+			local unresolved_threads
+			unresolved_threads=$(echo "$ready_output" | grep -i "unresolved thread" || true)
+			if [[ -n "$unresolved_threads" ]]; then
+				log_error "PR #$pr_number has unresolved review comments. Resolve before merge."
+				log_error "Run: pr-comment-resolver agent or pr-threads.sh $pr_number to inspect"
+				log_error "Then retry: wave-worktree.sh merge $plan_id $wave_db_id"
+			else
+				log_error "PR #$pr_number not ready to merge:"
+				echo "$ready_output" | grep "BLOCKER:" >&2
+			fi
+			db_query "UPDATE waves SET status='merging' WHERE id=${wave_db_id};" 2>/dev/null || true
+			exit 1
 		fi
 	fi
 
-	# 9. Merge
+	# 9. Merge (pr-ops.sh merge has its own ready check as safety net)
 	if [[ -x "$SCRIPT_DIR/pr-ops.sh" ]]; then
 		"$SCRIPT_DIR/pr-ops.sh" merge "$pr_number"
 	else

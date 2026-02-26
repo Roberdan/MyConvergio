@@ -1,6 +1,6 @@
 ---
 name: planner
-version: "2.2.0"
+version: "2.3.0"
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 -->
@@ -11,20 +11,23 @@ Plan and execute with parallel Claude instances.
 
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
-| #   | Rule                                                                                                                                                              |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Task Executor MANDATORY**: NEVER edit files directly while a plan is active. Direct edit = Thor bypass = VIOLATION. See CLAUDE.md Anti-Bypass.                  |
-| 2   | **F-xx Requirements**: Extract ALL. Nothing done until ALL verified [x]                                                                                           |
-| 3   | **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"                                                                                                 |
-| 4   | **Thor Enforcement**: Task done = per-task Thor passed. Wave done = per-wave Thor + build passed. Gate 9 MANDATORY.                                               |
-| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path. Wave-level worktrees are the default; plan-level is deprecated.                             |
-| 6   | **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See @planner-modules/knowledge-codification.md                                                |
-| 7   | **NO SILENT EXCLUSIONS**: NEVER exclude/defer ANY F-xx without EXPLICIT user approval via AskUserQuestion. Silently dropping = VIOLATION.                         |
-| 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8). |
-| 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                           |
-| 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                     |
-| 11  | **TEST CONSOLIDATION**: Final wave MUST include `TF-tests` task BEFORE `TF-pr`. See [Test Consolidation](#test-consolidation).                                    |
+| #   | Rule                                                                                                                                                                                                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Task Executor MANDATORY**: NEVER edit files directly while a plan is active. Direct edit = Thor bypass = VIOLATION. See CLAUDE.md Anti-Bypass.                                                                                                                                |
+| 2   | **F-xx Requirements**: Extract ALL. Nothing done until ALL verified [x]                                                                                                                                                                                                         |
+| 3   | **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"                                                                                                                                                                                                               |
+| 4   | **Thor Enforcement**: Task done = per-task Thor passed. Wave done = per-wave Thor + build passed. Gate 9 MANDATORY.                                                                                                                                                             |
+| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path. Wave-level worktrees are the default; plan-level is deprecated.                                                                                                                                           |
+| 6   | **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See @planner-modules/knowledge-codification.md                                                                                                                                                              |
+| 7   | **NO SILENT EXCLUSIONS**: NEVER exclude/defer ANY F-xx without EXPLICIT user approval via AskUserQuestion. Silently dropping = VIOLATION.                                                                                                                                       |
+| 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8).                                                                                                               |
+| 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                                                                                                                                         |
+| 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                                                                                                                                   |
+| 11  | **TEST CONSOLIDATION**: Final wave MUST include `TF-tests` task BEFORE `TF-pr`. See [Test Consolidation](#test-consolidation).                                                                                                                                                  |
 | 12  | **INFRA TASK DISCIPLINE (ADR-054)**: Infrastructure tasks (Azure CLI, Bicep, cloud ops) follow SAME plan-db discipline as code. Interactive `az` commands MUST update plan-db before/after. Batch updates at session end = VIOLATION. Hook `warn-infra-plan-drift.sh` enforces. |
+| 13  | **COPILOT-FIRST DELEGATION**: EVERY task MUST have explicit `executor_agent` assignment. Default=copilot. Skipping step 2.5 = VIOLATION. See [Step 2.5](#step-2-5).                                                                                                             |
+| 14  | **PLAN INTELLIGENCE REVIEW**: Steps 3.1-3.2 MANDATORY for plans with 3+ tasks. Skipping = VIOLATION. See [Step 3.1](#step-3-1).                                                                                                                                                 |
+| 15  | **TEST ADAPTS TO CODE**: When implementation changes break existing tests, update tests to match new behavior. NEVER revert implementation to make old tests pass. Tests follow code, not the opposite.                                                                         |
 
 ## Module References
 
@@ -72,6 +75,7 @@ Extract ALL constraints from user brief BEFORE generating tasks. Constraints are
 **Common constraint categories**: `permission` (no admin needed), `security` (no secrets in code), `cost` (budget limits), `compliance` (GDPR, single-tenant), `technical` (Python version, no breaking changes), `process` (no downtime, rollback required).
 
 **Extraction rules**:
+
 1. Read user brief for words: "never", "must not", "no", "without requiring", "only", "always", "non-negotiable"
 2. Each constraint gets `C-xx` ID, clear text, type, and machine-checkable `verify` where possible
 3. AskUserQuestion: "Ho estratto questi vincoli: [list]. Ne mancano? Ce ne sono altri impliciti?"
@@ -135,7 +139,7 @@ except ImportError:
 
 **BLOCK if validation fails.** Fix spec errors before proceeding. Common failures: missing `verify` array, invalid task ID pattern, effort outside 1-3 range.
 
-### 2.5 Copilot-First Delegation (DEFAULT)
+### 2.5 Copilot-First Delegation (MANDATORY — Rule 13) {#step-2-5}
 
 **ALL tasks default to `executor_agent: "copilot"`.** Only escalate to `claude` per decision tree in @planner-modules/model-strategy.md. Present summary: "Task su Claude (pagati): [list + perche']. Tutto il resto su Copilot (gratis). Ok?"
 
@@ -168,13 +172,14 @@ cd "$WORKTREE_PATH"
 
 **`--human-summary` MANDATORY**: Riassunto leggibile del piano (NO path, NO istruzioni agente, NO workflow). Max 200 chars. Esempio: "Rinomina deployment Azure OpenAI da gpt-4o-realtime a gpt-realtime in tutti i file di configurazione e secrets"
 
-### 3.1 Plan Intelligence Review (PARALLEL)
+### 3.1 Plan Intelligence Review (MANDATORY — Rule 14) {#step-3-1}
 
-**Skip if plan has <3 tasks** (overhead > value).
+**MANDATORY for plans with 3+ tasks.** Skip ONLY for 1-2 task plans (trivial scope). Skipping on 3+ tasks = VIOLATION.
 
 Launch plan-reviewer + plan-business-advisor in parallel. Both receive spec file path and plan_id.
 
 **Claude Code:**
+
 ```
 # Launch BOTH in parallel
 review_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json")
@@ -182,6 +187,7 @@ biz_result = await Task(subagent_type="plan-business-advisor", prompt="PLAN_ID=$
 ```
 
 **Copilot CLI:**
+
 ```bash
 # Two @agent invocations (parallel)
 @plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json
@@ -189,6 +195,7 @@ biz_result = await Task(subagent_type="plan-business-advisor", prompt="PLAN_ID=$
 ```
 
 Store results:
+
 ```bash
 plan-db.sh add-review $PLAN_ID "$REVIEW_JSON"
 plan-db.sh add-assessment $PLAN_ID "$ASSESSMENT_JSON"
@@ -198,10 +205,10 @@ plan-db.sh add-assessment $PLAN_ID "$ASSESSMENT_JSON"
 
 Display alongside plan summary:
 
-| Metric                    | Source              | Action if Red           |
-| ------------------------- | ------------------- | ----------------------- |
-| `fxx_coverage_score`      | plan-reviewer       | Fix gaps before approve |
-| `completeness_score`      | plan-reviewer       | Add missing verify/refs |
+| Metric                    | Source                | Action if Red           |
+| ------------------------- | --------------------- | ----------------------- |
+| `fxx_coverage_score`      | plan-reviewer         | Fix gaps before approve |
+| `completeness_score`      | plan-reviewer         | Add missing verify/refs |
 | `traditional_effort_days` | plan-business-advisor | Inform user of baseline |
 | `roi_projection`          | plan-business-advisor | Flag if ROI < 2x        |
 

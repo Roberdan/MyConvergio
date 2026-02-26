@@ -1,5 +1,13 @@
 # Changelog
 
+## [9.12.1] - 2026-02-26
+
+### Fixed
+
+- **wave-worktree.sh**: removed redundant `gh pr checks` call — unified CI + readiness into single `pr-ops.sh ready` gate with fallback
+
+---
+
 ## [9.12.0] - 2026-02-26
 
 ### Added

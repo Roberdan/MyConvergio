@@ -42,6 +42,8 @@ Per-task: Gate 1-4, 8, 9 | Per-wave: all 9 gates + build | Max 3 rejection round
 
 **Enforcement**: No `plan_id` in DB = `/execute` BLOCKED. `plan-db.sh check-readiness` validates before execution.
 
+**Hook enforcement**: `guard-plan-mode.sh` (blocks EnterPlanMode), `enforce-plan-db-safe.sh` (blocks direct plan-db.sh done), `enforce-plan-edit.sh` (blocks edit on plan-tracked files without task-executor).
+
 ## Mandatory Routing (NON-NEGOTIABLE)
 
 | Trigger                    | Claude Code                           | Copilot CLI     | NOT                        |

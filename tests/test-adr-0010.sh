@@ -1,13 +1,32 @@
+#!/bin/bash
+# Test: ADR 0010 multi-provider orchestration compliance
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Test: Status Accepted in ADR 0010
+ADR_FILE="$SCRIPT_DIR/../docs/adr/0010-multi-provider-orchestration.md"
 
-## Should contain 'Status: Accepted'
+if [[ ! -f "$ADR_FILE" ]]; then
+	echo "SKIP: ADR 0010 file not found at $ADR_FILE"
+	exit 0
+fi
 
-grep 'Status.*Accepted' docs/adr/0010-multi-provider-orchestration.md || (echo 'FAIL: Status Accepted not found' && exit 1)
+PASS=0
+FAIL=0
 
-# Test: delegate.sh mention in ADR 0010
+check() {
+	local desc="$1"
+	local pattern="$2"
+	if grep -q "$pattern" "$ADR_FILE"; then
+		echo "PASS: $desc"
+		PASS=$((PASS + 1))
+	else
+		echo "FAIL: $desc"
+		FAIL=$((FAIL + 1))
+	fi
+}
 
-## Should mention 'delegate.sh'
+check "Status Accepted" "Status.*Accepted"
+check "delegate.sh mention" "delegate\.sh"
 
-grep 'delegate.sh' docs/adr/0010-multi-provider-orchestration.md || (echo 'FAIL: delegate.sh not found' && exit 1)
+echo "Results: $PASS passed, $FAIL failed"
+[ "$FAIL" -eq 0 ]

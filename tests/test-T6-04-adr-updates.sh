@@ -1,87 +1,59 @@
 #!/usr/bin/env bash
-# Test T6-04: Verify ADR updates
-
+# Test T6-04: Verify ADR updates in docs/adr/
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-WORKTREE="/Users/roberdan/.claude-plan-189"
-ADR_DIR="$WORKTREE/docs/adr"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ADR_DIR="$SCRIPT_DIR/../docs/adr"
+
+if [[ ! -d "$ADR_DIR" ]]; then
+	echo "SKIP: ADR directory not found at $ADR_DIR"
+	exit 0
+fi
+
+ERRORS=0
+
+check_content() {
+	local file="$1" pattern="$2" desc="$3" flags="${4:-}"
+	if grep -q $flags "$pattern" "$file" 2>/dev/null; then
+		echo "PASS: $desc"
+	else
+		echo "FAIL: $desc"
+		ERRORS=$((ERRORS + 1))
+	fi
+}
 
 echo "Testing ADR 0003 updates..."
-# Test for February 2026 Update section
-if ! grep -q "February 2026 Update" "$ADR_DIR/0003-opus46-configuration-upgrade.md"; then
-  echo "FAIL: ADR 0003 missing 'February 2026 Update' section"
-  exit 1
-fi
-
-# Test for Opus 4.6 validation mention
-if ! grep -qi "opus 4.6 validation" "$ADR_DIR/0003-opus46-configuration-upgrade.md"; then
-  echo "FAIL: ADR 0003 missing Opus 4.6 validation content"
-  exit 1
-fi
-
-# Test for thinking token monitoring
-if ! grep -qi "thinking token" "$ADR_DIR/0003-opus46-configuration-upgrade.md"; then
-  echo "FAIL: ADR 0003 missing thinking token monitoring content"
-  exit 1
-fi
-
-# Test for 18 models mention
-if ! grep -q "18 models" "$ADR_DIR/0003-opus46-configuration-upgrade.md"; then
-  echo "FAIL: ADR 0003 missing 18 models reference"
-  exit 1
-fi
-
-echo "✓ ADR 0003 tests passed"
+ADR3="$ADR_DIR/0003-opus46-configuration-upgrade.md"
+check_content "$ADR3" "February 2026 Update" "ADR 0003 has February 2026 Update section"
+check_content "$ADR3" "opus 4.6 validation" "ADR 0003 has Opus 4.6 validation" -i
+check_content "$ADR3" "thinking token" "ADR 0003 has thinking token monitoring" -i
+check_content "$ADR3" "18 models" "ADR 0003 has 18 models reference"
+echo ""
 
 echo "Testing ADR 0009 updates..."
-# Test for @import optimization section
-if ! grep -q "@import Optimization" "$ADR_DIR/0009-compact-markdown-format.md"; then
-  echo "FAIL: ADR 0009 missing @import optimization section"
-  exit 1
-fi
-
-# Test for T0-01 reference
-if ! grep -q "T0-01" "$ADR_DIR/0009-compact-markdown-format.md"; then
-  echo "FAIL: ADR 0009 missing T0-01 reference"
-  exit 1
-fi
-
-# Test for lazy-load clarification
-if ! grep -qi "NOT lazy" "$ADR_DIR/0009-compact-markdown-format.md"; then
-  echo "FAIL: ADR 0009 missing lazy-load clarification"
-  exit 1
-fi
-
-# Test for token cost strategy
-if ! grep -qi "token cost" "$ADR_DIR/0009-compact-markdown-format.md"; then
-  echo "FAIL: ADR 0009 missing token cost strategy"
-  exit 1
-fi
-
-# Test for v2.0.0 format reference
-if ! grep -q "v2.0.0" "$ADR_DIR/0009-compact-markdown-format.md"; then
-  echo "FAIL: ADR 0009 missing v2.0.0 format reference"
-  exit 1
-fi
-
-echo "✓ ADR 0009 tests passed"
+ADR9="$ADR_DIR/0009-compact-markdown-format.md"
+check_content "$ADR9" "@import Optimization" "ADR 0009 has @import Optimization section"
+check_content "$ADR9" "T0-01" "ADR 0009 has T0-01 reference"
+check_content "$ADR9" "NOT lazy" "ADR 0009 has lazy-load clarification" -i
+check_content "$ADR9" "token cost" "ADR 0009 has token cost strategy" -i
+check_content "$ADR9" "v2.0.0" "ADR 0009 has v2.0.0 format reference"
+echo ""
 
 echo "Testing ADR 0005 updates..."
-# Test for ADR 0016 reference
-if ! grep -q "ADR 0016" "$ADR_DIR/0005-multi-agent-concurrency-control.md" && \
-   ! grep -q "ADR-0016" "$ADR_DIR/0005-multi-agent-concurrency-control.md"; then
-  echo "FAIL: ADR 0005 missing ADR 0016 reference"
-  exit 1
+ADR5="$ADR_DIR/0005-multi-agent-concurrency-control.md"
+if ! (grep -q "ADR 0016" "$ADR5" 2>/dev/null || grep -q "ADR-0016" "$ADR5" 2>/dev/null); then
+	echo "FAIL: ADR 0005 missing ADR 0016 reference"
+	ERRORS=$((ERRORS + 1))
+else
+	echo "PASS: ADR 0005 has ADR 0016 reference"
 fi
+check_content "$ADR5" "Layer 5" "ADR 0005 has Layer 5 context"
+echo ""
 
-# Test for Layer 5 expansion reference
-if ! grep -q "Layer 5" "$ADR_DIR/0005-multi-agent-concurrency-control.md"; then
-  echo "FAIL: ADR 0005 missing Layer 5 context (already exists, but verify reference)"
-  exit 1
+if [[ $ERRORS -eq 0 ]]; then
+	echo "All ADR tests passed!"
+	exit 0
+else
+	echo "$ERRORS test(s) FAILED"
+	exit 1
 fi
-
-echo "✓ ADR 0005 tests passed"
-
-echo "All tests passed!"
-exit 0

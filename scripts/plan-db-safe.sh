@@ -1,9 +1,9 @@
 #!/bin/bash
 # plan-db-safe.sh - Safe wrapper around plan-db.sh
 # Auto-releases file locks, checks staleness, warns about uncommitted changes.
-# AUTO-VALIDATES tasks/waves/plan after marking done (prevents 0% progress bug).
+# VALIDATE-THEN-DONE: Validation runs BEFORE marking done (blocking, no bypass flags).
 # CIRCUIT BREAKER: Auto-blocks tasks after MAX_REJECTIONS consecutive Thor rejections.
-# Version: 3.1.0
+# Version: 3.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -120,33 +120,40 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 		"$SCRIPT_DIR/file-lock.sh" release-task "$TASK_ID" 2>/dev/null || true
 	fi
 
-	# --- DELEGATE: mark task done (bypass guard — we ARE the safe wrapper) ---
+	# --- DELEGATE: mark task done (needed for validate-task status check) ---
 	PLAN_DB_SAFE_CALLER=1 "$SCRIPT_DIR/plan-db.sh" "$@"
 
-	# --- POST-DONE: auto-validate task (prevents 0% progress bug) ---
+	# --- POST-MARK-DONE: validate task (rollback to in_progress on failure) ---
 	if [[ -n "$plan_id" ]]; then
-		echo "[plan-db-safe] Auto-validating task $TASK_ID..." >&2
+		echo "[plan-db-safe] Validating task $TASK_ID (validate-before-confirm)..." >&2
 
 		# Track validation timing
 		validation_start=$(date +%s)
 		validation_result="pass"
 
-		"$SCRIPT_DIR/plan-db.sh" validate-task "$TASK_ID" "$plan_id" "executor-auto" --force 2>/dev/null || {
-			echo "WARN: Auto-validate task $TASK_ID failed (non-blocking)" >&2
+		"$SCRIPT_DIR/plan-db.sh" validate-task "$TASK_ID" "$plan_id" "plan-db-safe-auto" || {
+			echo "ERROR: Validation failed for task $TASK_ID — reverting to in_progress" >&2
 			validation_result="fail"
+
+			# Rollback: revert task to in_progress (task is still owned by this flow)
+			sqlite3 "$DB_FILE" \
+				"UPDATE tasks SET status = 'in_progress', validated_at = NULL, validated_by = NULL WHERE id = $TASK_ID;" 2>/dev/null || true
 
 			# Circuit breaker: track consecutive rejections
 			circuit_breaker_track_rejection "$TASK_ID" "$plan_id" || {
 				echo "ERROR: Circuit breaker triggered - task $TASK_ID auto-blocked after $MAX_REJECTIONS rejections" >&2
 				exit 1
 			}
+
+			exit 1
 		}
 
 		# Reset circuit breaker on successful validation
-		if [[ "$validation_result" == "pass" ]]; then
-			circuit_breaker_reset "$TASK_ID"
-		fi
+		circuit_breaker_reset "$TASK_ID"
+	fi
 
+	# --- POST-DONE: log audit trail ---
+	if [[ -n "$plan_id" ]]; then
 		validation_end=$(date +%s)
 		validation_duration=$((validation_end - validation_start))
 
@@ -156,19 +163,13 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 		task_id_str=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
 			"SELECT task_id FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "unknown")
 
-		if [[ "$validation_result" == "pass" ]]; then
-			gates_passed='["task-status","auto-validate"]'
-			gates_failed='[]'
-			confidence=1.0
-		else
-			gates_passed='[]'
-			gates_failed='["auto-validate"]'
-			confidence=0.0
-		fi
+		gates_passed='["task-status","pre-done-validate"]'
+		gates_failed='[]'
+		confidence=1.0
 
 		if [[ -x "$SCRIPT_DIR/thor-audit-log.sh" ]]; then
 			"$SCRIPT_DIR/thor-audit-log.sh" "$plan_id" "$task_id_str" "$wave_id" \
-				"$gates_passed" "$gates_failed" "executor-auto" "$validation_duration" "$confidence" 2>/dev/null || true
+				"$gates_passed" "$gates_failed" "plan-db-safe-auto" "$validation_duration" "$confidence" 2>/dev/null || true
 		fi
 
 		# Check if all tasks in this wave are done + validated
@@ -188,7 +189,7 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 				wave_validation_start=$(date +%s)
 				wave_validation_result="pass"
 
-				"$SCRIPT_DIR/plan-db.sh" validate-wave "$wave_db_id" "executor-auto" 2>/dev/null || {
+				"$SCRIPT_DIR/plan-db.sh" validate-wave "$wave_db_id" "plan-db-safe-auto" 2>/dev/null || {
 					echo "WARN: Auto-validate wave $wave_db_id failed (non-blocking)" >&2
 					wave_validation_result="fail"
 				}
@@ -209,7 +210,7 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 
 				if [[ -x "$SCRIPT_DIR/thor-audit-log.sh" ]]; then
 					"$SCRIPT_DIR/thor-audit-log.sh" "$plan_id" "wave-$wave_id" "$wave_id" \
-						"$wave_gates_passed" "$wave_gates_failed" "executor-auto" "$wave_validation_duration" "$wave_confidence" 2>/dev/null || true
+						"$wave_gates_passed" "$wave_gates_failed" "plan-db-safe-auto" "$wave_validation_duration" "$wave_confidence" 2>/dev/null || true
 				fi
 
 				# Wave-per-worktree: trigger merge if wave model is active
@@ -235,7 +236,7 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 				if [[ "$waves_not_done" -eq 0 ]]; then
 					echo "[plan-db-safe] All waves complete — syncing + completing plan $plan_id..." >&2
 					"$SCRIPT_DIR/plan-db.sh" sync "$plan_id" 2>/dev/null || true
-					"$SCRIPT_DIR/plan-db.sh" validate "$plan_id" "executor-auto" 2>/dev/null || true
+					"$SCRIPT_DIR/plan-db.sh" validate "$plan_id" "plan-db-safe-auto" 2>/dev/null || true
 					# complete may fail if Thor gate enforced — that's OK
 					"$SCRIPT_DIR/plan-db.sh" complete "$plan_id" 2>/dev/null || {
 						echo "WARN: Auto-complete plan $plan_id failed (Thor validation may be required)" >&2

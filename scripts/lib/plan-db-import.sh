@@ -159,7 +159,31 @@ cmd_import() {
 	if [[ -z "$current_source" || "$current_source" == "" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE plans SET source_file = '$(sql_escape "$spec_file")' WHERE id=$plan_id;"
 	fi
+
+	# Build plan file cache: extract all 'files' arrays from spec, deduplicate, resolve ~
+	_build_plan_file_cache "$plan_id" "$spec_file"
+
 	log_info "Imported $wave_count waves, $total_tasks tasks"
+}
+
+# Build ~/.claude/data/plan-{plan_id}-files.txt from spec.json
+# Extracts all task 'files' arrays, deduplicates, resolves ~ to $HOME
+_build_plan_file_cache() {
+	local plan_id="$1"
+	local spec_file="$2"
+	local cache_dir="${HOME}/.claude/data"
+	local cache_file="${cache_dir}/plan-${plan_id}-files.txt"
+
+	mkdir -p "$cache_dir"
+
+	# Extract all file paths from all waves/tasks, one per line, deduplicated
+	jq -r '[.waves[].tasks[].files // []] | flatten | unique | .[]' "$spec_file" 2>/dev/null |
+		sed "s|^~|${HOME}|g" \
+			>"$cache_file"
+
+	local file_count
+	file_count=$(wc -l <"$cache_file" | tr -d ' ')
+	log_info "File cache: $file_count paths -> $cache_file"
 }
 
 # Render plan markdown from DB + spec.json

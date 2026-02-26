@@ -46,6 +46,11 @@
             "type": "command",
             "command": "~/.claude/hooks/warn-infra-plan-drift.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/enforce-plan-db-safe.sh",
+            "timeout": 3
           }
         ]
       },
@@ -56,6 +61,11 @@
             "type": "command",
             "command": "~/.claude/hooks/session-file-lock.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/enforce-plan-edit.sh",
+            "timeout": 5
           }
         ]
       },
@@ -71,6 +81,16 @@
             "type": "command",
             "command": "~/.claude/scripts/env-vault-guard.sh",
             "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/guard-plan-mode.sh",
+            "timeout": 3
           }
         ]
       }

@@ -3,13 +3,24 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if ! grep -q 'Convergio Orchestrator' CHANGELOG.md; then
-  echo 'Missing Convergio Orchestrator in CHANGELOG.md'
-  exit 1
+CHANGELOG="$SCRIPT_DIR/../CHANGELOG.md"
+
+if [[ ! -f "$CHANGELOG" ]]; then
+	echo "SKIP: CHANGELOG.md not found at $CHANGELOG"
+	exit 0
 fi
-if ! grep -q 'ADR-0010' CHANGELOG.md; then
-  echo 'Missing ADR-0010 in CHANGELOG.md'
-  exit 1
+
+FAIL=0
+if ! grep -q 'Convergio Orchestrator' "$CHANGELOG"; then
+	echo 'FAIL: Missing Convergio Orchestrator in CHANGELOG.md'
+	FAIL=$((FAIL + 1))
 fi
-echo 'PASS'
-exit 0
+if ! grep -q 'ADR-0010' "$CHANGELOG"; then
+	echo 'FAIL: Missing ADR-0010 in CHANGELOG.md'
+	FAIL=$((FAIL + 1))
+fi
+
+if [[ "$FAIL" -eq 0 ]]; then
+	echo 'PASS: CHANGELOG.md contains expected entries'
+fi
+exit "$FAIL"

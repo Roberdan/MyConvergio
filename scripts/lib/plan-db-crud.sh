@@ -168,6 +168,15 @@ cmd_start() {
         INSERT INTO plan_versions (plan_id, version, change_type, change_reason, changed_by, changed_host)
         VALUES ($plan_id, $version, 'started', 'Execution started', 'planner', '$PLAN_DB_HOST');
     "
+
+	# Record active plan for enforce-plan-edit hook
+	local active_file="${HOME}/.claude/data/active-plan-id.txt"
+	mkdir -p "${HOME}/.claude/data"
+	# Append only if not already present
+	if ! grep -qxF "$plan_id" "$active_file" 2>/dev/null; then
+		echo "$plan_id" >>"$active_file"
+	fi
+
 	log_info "Started plan ID: $plan_id (host: $PLAN_DB_HOST)"
 }
 
@@ -446,7 +455,23 @@ cmd_update_task() {
 		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
 	elif [[ "$status" == "done" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
-		# NOTE: wave/plan counters updated automatically by SQLite trigger (task_done_counter)
+		# Ensure trigger exists, then sync counters as fallback (idempotent)
+		sqlite3 "$DB_FILE" "
+			CREATE TRIGGER IF NOT EXISTS task_done_counter
+			AFTER UPDATE OF status ON tasks
+			WHEN NEW.status = 'done' AND OLD.status != 'done'
+			BEGIN
+				UPDATE waves SET tasks_done = tasks_done + 1 WHERE id = NEW.wave_id_fk;
+				UPDATE plans SET tasks_done = tasks_done + 1 WHERE id = NEW.plan_id;
+			END;
+		"
+		# Recalculate counters from actual data (trigger may have fired or not)
+		local wave_fk_id plan_fk_id
+		IFS='|' read -r wave_fk_id plan_fk_id < <(sqlite3 "$DB_FILE" "SELECT wave_id_fk, plan_id FROM tasks WHERE id = $task_id;")
+		[[ -n "$wave_fk_id" ]] && sqlite3 "$DB_FILE" "
+			UPDATE waves SET tasks_done = (SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_fk_id AND status = 'done') WHERE id = $wave_fk_id;
+			UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done),0) FROM waves WHERE plan_id = $plan_fk_id) WHERE id = $plan_fk_id;
+		"
 
 		# Check if wave is now complete (for auto-marking wave as done)
 		local wave_fk wave_done wave_id_text
@@ -560,6 +585,9 @@ cmd_complete() {
     "
 	log_info "Plan $plan_id completed! (host: $PLAN_DB_HOST)"
 
+	# Cleanup enforce-plan-edit cache files
+	_cleanup_plan_file_cache "$plan_id"
+
 	# Auto-cleanup worktree if merged
 	if [[ -x "$SCRIPT_DIR/worktree-cleanup.sh" ]]; then
 		"$SCRIPT_DIR/worktree-cleanup.sh" --plan "$plan_id" 2>&1 || true
@@ -592,6 +620,24 @@ _calc_git_stats() {
 	added=$(echo "$stats" | awk '{s+=$4} END {print s+0}')
 	removed=$(echo "$stats" | awk '{s+=$6} END {print s+0}')
 	sqlite3 "$DB_FILE" "UPDATE plans SET lines_added = $added, lines_removed = $removed WHERE id = $plan_id;"
+}
+
+# Remove plan file cache and plan_id from active-plan-id.txt
+_cleanup_plan_file_cache() {
+	local plan_id="$1"
+	local cache_dir="${HOME}/.claude/data"
+	local cache_file="${cache_dir}/plan-${plan_id}-files.txt"
+	local active_file="${cache_dir}/active-plan-id.txt"
+
+	rm -f "$cache_file"
+
+	# Remove plan_id line from active-plan-id.txt (portable sed: create temp and move)
+	if [[ -f "$active_file" ]]; then
+		local tmp_file
+		tmp_file=$(mktemp "${active_file}.XXXXXX")
+		grep -vxF "$plan_id" "$active_file" >"$tmp_file" 2>/dev/null || true
+		mv "$tmp_file" "$active_file"
+	fi
 }
 
 # Normalize path: replace $HOME with ~ for portability across machines
@@ -772,6 +818,9 @@ SQL
 	cancelled_tasks=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE plan_id = $plan_id AND status = 'cancelled';")
 	cancelled_waves=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND status = 'cancelled';")
 	log_info "Cancelled plan $plan_id: $cancelled_tasks tasks, $cancelled_waves waves ($reason)"
+
+	# Cleanup enforce-plan-edit cache files
+	_cleanup_plan_file_cache "$plan_id"
 }
 
 # Cancel a single wave (cascades to its pending/in_progress tasks)

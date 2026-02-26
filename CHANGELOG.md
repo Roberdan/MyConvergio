@@ -1,5 +1,15 @@
 # Changelog
 
+## [9.11.0] - 2026-02-26
+
+### Fixed
+
+- **Worktree cleanup**: added `git worktree prune` + `git fetch --prune` after wave merge to remove stale metadata
+- **Plan completion safety net**: prune runs at plan completion regardless of wave cleanup success (handles CI failure exit path)
+- **Planner v2.3.0**: Steps 2.5/3.1 now MANDATORY (Rules 13-14), Rule 15 test-adapts-to-code
+
+---
+
 ## [9.10.0] - 2026-02-26
 
 ### Added

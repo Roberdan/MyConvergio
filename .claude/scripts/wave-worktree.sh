@@ -232,7 +232,13 @@ cmd_cleanup() {
 		git -C "$project_path" branch -d "$branch" 2>/dev/null || true
 	fi
 
-	# 6. Clear worktree + branch in DB
+	# 6. Prune stale worktree metadata + remote refs
+	if [[ -n "$project_path" ]]; then
+		git -C "$project_path" worktree prune 2>/dev/null || true
+		git -C "$project_path" fetch --prune 2>/dev/null || true
+	fi
+
+	# 7. Clear worktree + branch in DB
 	db_query "UPDATE waves SET worktree_path=NULL, branch_name=NULL WHERE id=${wave_db_id};" 2>/dev/null || true
 	log_info "Cleaned up wave ${wave_db_id} worktree"
 }

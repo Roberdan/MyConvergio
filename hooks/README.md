@@ -15,6 +15,19 @@ Hooks are automatically installed to `~/.claude/hooks/` by `myconvergio install`
 | `worktree-guard.sh`         | Blocks git operations on main/master when worktrees are active                      | 2=block |
 | `prefer-ci-summary.sh`      | Blocks verbose commands (npm build, git status, gh run view), forces digest scripts | 2=block |
 | `warn-bash-antipatterns.sh` | Warns when using bash for find/grep/cat/sed instead of dedicated tools              | 0=warn  |
+| `enforce-plan-db-safe.sh`   | Blocks `plan-db.sh update-task ... done` — forces `plan-db-safe.sh` instead         | 2=block |
+
+### PreToolUse (EnterPlanMode)
+
+| Hook                 | Purpose                                                        | Exit    |
+| -------------------- | -------------------------------------------------------------- | ------- |
+| `guard-plan-mode.sh` | Blocks EnterPlanMode — forces `Skill(skill="planner")` instead | 2=block |
+
+### PreToolUse (Edit/Write/MultiEdit)
+
+| Hook                   | Purpose                                                            | Exit    |
+| ---------------------- | ------------------------------------------------------------------ | ------- |
+| `enforce-plan-edit.sh` | Blocks edits on plan-tracked files unless `CLAUDE_TASK_EXECUTOR=1` | 2=block |
 
 ### PostToolUse (Edit/Write)
 
@@ -77,7 +90,26 @@ Add to `~/.claude/settings.json`:
           {
             "type": "command",
             "command": "~/.claude/hooks/warn-bash-antipatterns.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/enforce-plan-db-safe.sh"
           }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/enforce-plan-edit.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/guard-plan-mode.sh" }
         ]
       }
     ],

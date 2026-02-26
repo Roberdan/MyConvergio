@@ -25,6 +25,16 @@ cmd_import() {
 		cp "$spec_file" "$plan_dir/${plan_name}-spec.json"
 	fi
 
+	# Store constraints from spec (ADR-054: constraints are first-class citizens)
+	local constraints_json
+	constraints_json=$(jq -c '.constraints // []' "$spec_file" 2>/dev/null)
+	if [[ "$constraints_json" != "[]" ]]; then
+		sqlite3 "$DB_FILE" "UPDATE plans SET constraints_json = '$(sql_escape "$constraints_json")' WHERE id=$plan_id;"
+		local constraint_count
+		constraint_count=$(echo "$constraints_json" | jq 'length')
+		log_info "Stored $constraint_count constraints for plan #$plan_id"
+	fi
+
 	# Auto-set plan description from spec if not already set
 	local existing_desc
 	existing_desc=$(sqlite3 "$DB_FILE" "SELECT description FROM plans WHERE id=$plan_id;")
@@ -149,7 +159,31 @@ cmd_import() {
 	if [[ -z "$current_source" || "$current_source" == "" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE plans SET source_file = '$(sql_escape "$spec_file")' WHERE id=$plan_id;"
 	fi
+
+	# Build plan file cache: extract all 'files' arrays from spec, deduplicate, resolve ~
+	_build_plan_file_cache "$plan_id" "$spec_file"
+
 	log_info "Imported $wave_count waves, $total_tasks tasks"
+}
+
+# Build ~/.claude/data/plan-{plan_id}-files.txt from spec.json
+# Extracts all task 'files' arrays, deduplicates, resolves ~ to $HOME
+_build_plan_file_cache() {
+	local plan_id="$1"
+	local spec_file="$2"
+	local cache_dir="${HOME}/.claude/data"
+	local cache_file="${cache_dir}/plan-${plan_id}-files.txt"
+
+	mkdir -p "$cache_dir"
+
+	# Extract all file paths from all waves/tasks, one per line, deduplicated
+	jq -r '[.waves[].tasks[].files // []] | flatten | unique | .[]' "$spec_file" 2>/dev/null |
+		sed "s|^~|${HOME}|g" \
+			>"$cache_file"
+
+	local file_count
+	file_count=$(wc -l <"$cache_file" | tr -d ' ')
+	log_info "File cache: $file_count paths -> $cache_file"
 }
 
 # Render plan markdown from DB + spec.json
@@ -203,6 +237,15 @@ cmd_render() {
 			jq -r '.user_request // "" | split("\n")[] | "> " + .' "$spec_file" 2>/dev/null || echo "> [see source file]"
 		elif [[ -n "$source_file" ]]; then
 			echo "> [See source: $source_file]"
+		fi
+		echo ""
+
+		echo "## CONSTRAINTS (NON-NEGOTIABLE)"
+		echo "| ID | Constraint | Type | Verify |"
+		echo "|----|-----------|------|--------|"
+		if [[ -n "$spec_file" ]]; then
+			jq -r '.constraints // [] | .[] | "| \(.id) | \(.text) | \(.type) | \(.verify // "manual") |"' \
+				"$spec_file" 2>/dev/null || true
 		fi
 		echo ""
 
@@ -307,6 +350,10 @@ cmd_get_context() {
 		WHERE t.plan_id = $plan_id AND t.status = 'done' AND t.output_data IS NOT NULL AND t.output_data != ''
 		ORDER BY w.position, t.task_id;")
 
+	# Load constraints (ADR-054)
+	local constraints_json
+	constraints_json=$(sqlite3 "$DB_FILE" "SELECT COALESCE(constraints_json, '[]') FROM plans WHERE id=$plan_id;")
+
 	# Detect test framework from worktree
 	local framework="unknown"
 	if [[ -d "$wt_expanded" && -f "$wt_expanded/package.json" ]]; then
@@ -331,12 +378,14 @@ cmd_get_context() {
 		--arg md "$md_expanded" \
 		--argjson tasks "$tasks_json" \
 		--argjson completed_output "$completed_output_json" \
+		--argjson constraints "$constraints_json" \
 		--arg fw "$framework" \
 		'. + {
 			worktree_path: $wt,
 			markdown_path: $md,
 			pending_tasks: $tasks,
 			completed_tasks_output: $completed_output,
+			constraints: $constraints,
 			framework: $fw
 		}'
 }

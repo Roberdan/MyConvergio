@@ -4,11 +4,6 @@ description: Create execution plans with waves/tasks from F-xx requirements. Use
 tools: ["read", "edit", "search", "execute"]
 model: claude-opus-4.6-1m
 version: "2.1.0"
-maturity: stable
-providers:
-  - copilot
-constraints:
-  - "Creates plans only — never implements"
 handoffs:
   - label: Execute Plan
     agent: execute

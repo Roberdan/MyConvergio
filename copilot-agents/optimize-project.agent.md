@@ -4,11 +4,6 @@ description: Optimize project instructions, agents, and comments by auditing wit
 tools: ["read", "glob", "grep", "bash", "execute", "edit"]
 model: gpt-5
 version: "1.0.0"
-maturity: preview
-providers:
-  - copilot
-constraints:
-  - "Optimizes docs and agents only — never modifies application code"
 ---
 
 <!-- v1.0.0 (2026-02-22): Mirrors the optimize-project skill, includes project-audit integration, and routes models for audit vs. fixes -->

@@ -1,7 +1,6 @@
 ---
 name: taskmaster-strategic-task-decomposition-master
-description: |
-  >-
+description: >-
   Task decomposition expert for breaking complex problems into executable tasks, OKR management,
   and strategic milestone planning. Creates structured execution plans from high-level objectives.
   Example: @taskmaster-strategic-task-decomposition-master Break down our platform migration
@@ -12,14 +11,6 @@ model: haiku
 version: "1.1.0"
 memory: user
 maxTurns: 20
-maturity: preview
-providers:
-  - claude
-constraints: ["Advisory only — never modifies files"]
-handoffs:
-  - label: "Execute tasks"
-    agent: "task-executor"
-    context: "Execute decomposed tasks"
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

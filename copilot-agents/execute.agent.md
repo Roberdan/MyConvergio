@@ -4,11 +4,6 @@ description: Execute plan tasks with TDD workflow, drift detection, and worktree
 tools: ["read", "edit", "search", "execute"]
 model: gpt-5
 version: "3.0.0"
-maturity: stable
-providers:
-  - copilot
-constraints:
-  - "Executes tasks only — validates completion with Thor"
 handoffs:
   - label: Validate Wave
     agent: validate

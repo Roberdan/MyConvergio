@@ -71,14 +71,19 @@ cmd_validate_task() {
 		return 0
 	fi
 
-	# Enforce Thor agent requirement unless --force is used
-	if [[ "$force" == false ]]; then
+	# Enforce Thor agent requirement unless --force is used or auto-validator
+	local is_auto_validator=false
+	if [[ "$validated_by" == "plan-db-safe-auto" ]]; then
+		is_auto_validator=true
+	fi
+
+	if [[ "$force" == false && "$is_auto_validator" == false ]]; then
 		if [[ "$validated_by" != "thor" && "$validated_by" != "thor-quality-assurance-guardian" ]]; then
 			log_warn "Validator '$validated_by' is not a Thor agent. Use --force to validate without Thor agent verification."
 			return 1
 		fi
-	else
-		# Log warning if --force is used
+	elif [[ "$force" == true && "$is_auto_validator" == false ]]; then
+		# Log warning if --force is used with non-Thor, non-auto validator
 		if [[ "$validated_by" != "thor" && "$validated_by" != "thor-quality-assurance-guardian" ]]; then
 			log_warn "Task validated with --force (no Thor agent verification)"
 		fi

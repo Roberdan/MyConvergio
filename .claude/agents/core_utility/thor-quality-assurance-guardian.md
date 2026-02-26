@@ -9,14 +9,6 @@ context_isolation: true
 memory: project
 maxTurns: 30
 skills: ["code-review"]
-maturity: stable
-providers:
-  - claude
-constraints: ["Read-only — never modifies files"]
-handoffs:
-  - label: "Fix failures"
-    agent: "task-executor"
-    context: "Fix Thor validation failures"
 ---
 
 # Thor - Quality Gatekeeper

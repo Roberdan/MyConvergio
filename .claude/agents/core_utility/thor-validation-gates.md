@@ -2,10 +2,6 @@
 name: thor-validation-gates
 description: Validation gates module for Thor. Reference only.
 version: "3.0.0"
-maturity: stable
-providers:
-  - claude
-constraints: ["Read-only — never modifies files"]
 ---
 
 # Thor Validation Gates

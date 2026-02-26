@@ -14,6 +14,16 @@
 | Parallel work     | Multiple independent tasks  |
 | Fresh context     | Avoid context contamination |
 
+## Mandatory Skill Routing (NON-NEGOTIABLE)
+
+| Trigger                | Claude Code                           | Copilot CLI     | NOT                        |
+| ---------------------- | ------------------------------------- | --------------- | -------------------------- |
+| Create plan (3+ tasks) | `Skill(skill="planner")`              | `@planner`      | EnterPlanMode, manual text |
+| Execute plan           | `Skill(skill="execute", args="{id}")` | `@execute {id}` | Direct file editing        |
+| Validate               | `Task(subagent_type="thor")`          | `@validate`     | Self-declaring done        |
+
+EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
+
 ## Task Routing Table
 
 | Task               | Use                               |

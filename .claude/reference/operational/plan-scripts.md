@@ -11,22 +11,17 @@
 - **NEVER invent column names**. Schema: see `PLANNER-ARCHITECTURE.md`
 - **NEVER invent subcommands**. Use ONLY the commands listed below. Run `plan-db.sh` with no args to see help.
 
+## Mandatory Plan Creation (NON-NEGOTIABLE)
+
+NEVER create plans without `/planner` skill (Claude: `Skill(skill="planner")`, Copilot: `@planner`). EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
+
 ## Valid Statuses (NEVER invent values)
 
 | Entity | Valid statuses                                                                |
-| ------ | ---------------------------------------------------------------------------- |
+| ------ | ----------------------------------------------------------------------------- |
 | Task   | `pending` \| `in_progress` \| `done` \| `blocked` \| `skipped` \| `cancelled` |
-| Plan   | `todo` \| `doing` \| `done` \| `cancelled`                                    |
+| Plan   | `todo` \| `doing` \| `done` \| `archived` \| `cancelled`                      |
 | Wave   | `pending` \| `in_progress` \| `done` \| `blocked` \| `merging` \| `cancelled` |
-
-## Cancellation
-
-```bash
-plan-db.sh cancel {plan_id} "reason"           # Cancel plan (cascade → waves → tasks)
-plan-db.sh cancel-wave {wave_db_id} "reason"   # Cancel wave (cascade → tasks)
-plan-db.sh cancel-task {task_db_id} "reason"    # Cancel single task
-plan-db.sh execution-tree {plan_id}            # Colored tree view with reasons
-```
 
 ## Plan Management
 
@@ -42,6 +37,10 @@ plan-db.sh wave-overlap check-spec spec.json    # Intra-wave overlap detection
 plan-db.sh validate-task {task_id} {plan}  # Per-task Thor validation
 plan-db.sh validate-wave {wave_db_id}     # Per-wave Thor validation
 plan-db.sh validate {id}                  # Bulk Thor validation (all done tasks)
+plan-db.sh cancel {plan_id} "reason"      # Cancel plan (cascade → waves → tasks)
+plan-db.sh cancel-wave {wave_db_id} "reason"  # Cancel wave (cascade → tasks)
+plan-db.sh cancel-task {task_db_id} "reason"  # Cancel single task
+plan-db.sh execution-tree {plan_id}       # Colored tree view with reasons
 ```
 
 ## Troubleshooting: `complete` Fails (N/M tasks done)

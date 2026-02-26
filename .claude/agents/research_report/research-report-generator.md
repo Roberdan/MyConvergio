@@ -19,10 +19,6 @@ version: "1.3.0"
 context_isolation: true
 memory: user
 maxTurns: 50
-maturity: preview
-providers:
-  - claude
-constraints: ["Modifies files within assigned domain"]
 ---
 
 ## Security & Ethics Framework

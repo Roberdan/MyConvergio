@@ -4,11 +4,6 @@ description: TDD-focused task executor. Writes failing tests first, implements m
 tools: ["read", "edit", "search", "execute"]
 model: gpt-5
 version: "2.0.0"
-maturity: stable
-providers:
-  - copilot
-constraints:
-  - "Implements using strict TDD only — tests before code"
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 - 40% token reduction -->

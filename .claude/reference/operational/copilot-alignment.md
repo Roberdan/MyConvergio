@@ -20,6 +20,17 @@ GitHub Copilot CLI as Claude Code alternative reference.
 {project}/.github/: copilot-instructions.md, agents/, instructions/
 ```
 
+## Mandatory Routing (NON-NEGOTIABLE)
+
+| Trigger                    | Claude Code                           | Copilot CLI     | NOT                        |
+| -------------------------- | ------------------------------------- | --------------- | -------------------------- |
+| Multi-step work (3+ tasks) | `Skill(skill="planner")`              | `@planner`      | EnterPlanMode, manual text |
+| Execute plan tasks         | `Skill(skill="execute", args="{id}")` | `@execute {id}` | Direct file editing        |
+| Thor validation            | `Task(subagent_type="thor")`          | `@validate`     | Self-declaring done        |
+| Single isolated fix        | Direct edit                           | Direct edit     | Creating unnecessary plan  |
+
+EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
+
 ## Workflow Mapping
 
 | Claude Code            | Copilot CLI      | Notes                    |
@@ -33,13 +44,19 @@ GitHub Copilot CLI as Claude Code alternative reference.
 
 ## Hooks Comparison
 
-| Hook          | Claude Code                                  | Copilot CLI                       |
-| ------------- | -------------------------------------------- | --------------------------------- |
-| preToolUse    | worktree-guard, prefer-ci-summary, warn-bash | worktree-guard, enforce-standards |
-| postToolUse   | enforce-line-limit, auto-format              | enforce-line-limit                |
-| sessionEnd    | session-end-tokens                           | session-tokens                    |
-| subagentStart | inject-agent-context                         | N/A                               |
-| preCompact    | preserve-context                             | N/A                               |
+| Hook          | Claude Code                                                                                                                               | Copilot CLI                                                                                                    |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| preToolUse    | guard-plan-mode, enforce-plan-db-safe, enforce-plan-edit, worktree-guard, prefer-ci-summary, warn-bash, session-file-lock, guard-settings | guard-plan-mode, enforce-plan-db-safe, enforce-plan-edit, worktree-guard, enforce-standards, session-file-lock |
+| postToolUse   | enforce-line-limit, auto-format                                                                                                           | enforce-line-limit                                                                                             |
+| sessionEnd    | session-end-tokens, session-file-unlock                                                                                                   | session-tokens                                                                                                 |
+| subagentStart | inject-agent-context                                                                                                                      | N/A                                                                                                            |
+| preCompact    | preserve-context                                                                                                                          | N/A                                                                                                            |
+| preCommit     | secret-scanner, env-vault-guard                                                                                                           | N/A                                                                                                            |
+| setup         | model-registry-refresh, version-check                                                                                                     | N/A                                                                                                            |
+
+**Parity**: 15 portable hooks aligned across both platforms | 6 non-portable (Claude Code only: preCommit, setup, subagentStart, preCompact events)
+
+Full hook reference: `reference/operational/enforcement-hooks.md`
 
 ## Token Tracking
 

@@ -2,10 +2,6 @@
 name: strategic-planner-git
 description: Git worktree workflow for strategic-planner parallel execution. Reference module.
 version: "2.0.0"
-maturity: stable
-providers:
-  - claude
-constraints: ["Read-only — never modifies files"]
 ---
 
 # Git Worktree Workflow (MANDATORY)

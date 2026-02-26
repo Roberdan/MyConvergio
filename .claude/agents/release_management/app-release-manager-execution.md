@@ -2,10 +2,6 @@
 name: app-release-manager-execution
 description: Execution phases (3-5) for app-release-manager. Reference module. Updated for i18n, SEO, and maestri validation.
 version: "3.2.0"
-maturity: stable
-providers:
-  - claude
-constraints: ["Read-only — never modifies files"]
 ---
 
 # Release Manager Execution Phases

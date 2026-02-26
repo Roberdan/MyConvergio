@@ -9,14 +9,6 @@ version: "2.1.0"
 context_isolation: true
 memory: project
 maxTurns: 50
-maturity: stable
-providers:
-  - claude
-constraints: ["Operates within assigned task scope"]
-handoffs:
-  - label: "Validate task"
-    agent: "thor-quality-assurance-guardian"
-    context: "Validate completed task"
 ---
 
 # Task Executor

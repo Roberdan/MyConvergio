@@ -11,10 +11,6 @@ color: "#00897B"
 version: "1.0.0"
 memory: project
 maxTurns: 30
-maturity: preview
-providers:
-  - claude
-constraints: ["Modifies files within assigned domain"]
 ---
 
 ## Security & Ethics Framework

@@ -2,10 +2,6 @@
 name: task-executor-tdd
 description: TDD workflow module for task-executor. Reference only.
 version: "1.0.0"
-maturity: preview
-providers:
-  - claude
-constraints: ["Read-only — never modifies files"]
 ---
 
 # TDD Workflow Module

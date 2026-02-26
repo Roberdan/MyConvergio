@@ -95,6 +95,7 @@ Use \`plan-db-safe.sh\` (NOT \`plan-db.sh\`). \`plan-db.sh\` will REJECT done st
 export PATH="\$HOME/.claude/scripts:\$PATH"
 cd "$WT" && pwd
 worktree-guard.sh "$WT"
+worktree-safety.sh audit "$WT" 2>/dev/null || true
 plan-db-safe.sh update-task $TASK_ID in_progress "Started by Copilot"
 \`\`\`
 

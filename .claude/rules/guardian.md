@@ -16,7 +16,7 @@ See CLAUDE.md Thor Gate section for commands and gates.
 
 ## Anti-Bypass
 
-See CLAUDE.md Anti-Bypass section. _Why: Plan 182._
+See CLAUDE.md Anti-Bypass + Mandatory Routing sections. Plan creation = `/planner` only (Plan 225). Task execution = task-executor only (Plan 182).
 
 ## Git & PR
 

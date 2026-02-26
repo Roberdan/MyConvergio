@@ -8,10 +8,6 @@ version: "1.0.0"
 context_isolation: true
 memory: project
 maxTurns: 30
-maturity: preview
-providers:
-  - claude
-constraints: ["Read-only — never modifies files"]
 ---
 
 # Plan Post-Mortem Analyzer

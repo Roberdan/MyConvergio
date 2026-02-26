@@ -10,10 +10,6 @@ context_isolation: true
 memory: project
 maxTurns: 25
 skills: ["debugging"]
-maturity: preview
-providers:
-  - claude
-constraints: ["Read-only — never modifies files"]
 ---
 
 # Adversarial Debugger

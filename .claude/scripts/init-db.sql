@@ -490,3 +490,28 @@ CREATE INDEX IF NOT EXISTS idx_tasks_plan_status ON tasks(plan_id, status, wave_
 -- Recreate alias view (dropped with old table)
 DROP VIEW IF EXISTS plan_tasks;
 CREATE VIEW IF NOT EXISTS plan_tasks AS SELECT * FROM tasks;
+
+-- Auto-increment wave/plan done counters when task goes to done
+CREATE TRIGGER IF NOT EXISTS task_done_counter
+AFTER UPDATE OF status ON tasks
+WHEN NEW.status = 'done' AND OLD.status != 'done'
+BEGIN
+    UPDATE waves SET tasks_done = tasks_done + 1 WHERE id = NEW.wave_id_fk;
+    UPDATE plans SET tasks_done = tasks_done + 1 WHERE id = NEW.plan_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS task_undone_counter
+AFTER UPDATE OF status ON tasks
+WHEN OLD.status = 'done' AND NEW.status != 'done'
+BEGIN
+    UPDATE waves SET tasks_done = tasks_done - 1 WHERE id = NEW.wave_id_fk;
+    UPDATE plans SET tasks_done = tasks_done - 1 WHERE id = NEW.plan_id;
+END;
+
+-- Auto-complete wave when all tasks are done
+CREATE TRIGGER IF NOT EXISTS wave_auto_complete
+AFTER UPDATE OF tasks_done ON waves
+WHEN NEW.tasks_done = NEW.tasks_total AND NEW.tasks_total > 0 AND NEW.status != 'done'
+BEGIN
+    UPDATE waves SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')) WHERE id = NEW.id;
+END;

@@ -1,5 +1,45 @@
 # Changelog
 
+## [9.9.0] - 2026-02-26
+
+### Added
+
+- **Planner Rules 13-15**: Copilot-First Delegation MANDATORY (Rule 13), Plan Intelligence Review MANDATORY for 3+ tasks (Rule 14), Test-Adapts-to-Code (Rule 15)
+- **auto-version.sh**: Conventional commit semver bumper (feat=minor, fix=patch, !=major)
+- **verify-workflow-health.sh**: 46-check E2E verification for Claude Code + Copilot CLI
+- **test-enforcement-hooks.sh**: 49 tests covering all enforcement hooks on both platforms
+- 8 Copilot CLI enforcement hooks: guard-plan-mode, enforce-plan-db-safe, enforce-plan-edit, warn-bash-antipatterns, warn-infra-plan-drift, auto-format, guard-settings, verify-before-claim
+- DB schema: conversation A/B testing columns in init-db.sql
+
+### Changed
+
+- `planner.md` v2.2.0 → v2.3.0: Steps 2.5 and 3.1 now MANDATORY (not DEFAULT/optional)
+- `guardian.md`: added "Test Adapts to Code" NON-NEGOTIABLE section
+- `plan-db-safe.sh`: removed `--force` flag, added rollback on validation failure, `plan-db-safe-auto` validator
+- `plan-db-validate.sh`: `plan-db-safe-auto` as trusted auto-validator
+- `plan-db-import.sh`: `_build_plan_file_cache()` for enforce-plan-edit hook
+- `plan-db-crud.sh`: `active-plan-id.txt` tracking, `_cleanup_plan_file_cache()` on complete/cancel
+- `copilot-alignment.md`: updated hook parity documentation
+- `enforcement-hooks.md`: comprehensive hook reference table
+- `compaction-preservation.md`: expanded preservation categories
+- `plan-scripts.md`: added cancellation troubleshooting
+- Agent metadata cleanup: removed redundant frontmatter from 25 agent files
+- `strategic-planner.agent.md`: compacted from 346 to ~200 lines
+- `ecosystem-sync.agent.md`: compacted from 126 to ~50 lines
+- Test suite: consolidated 7 test files with portable SCRIPT_DIR pattern
+
+---
+
+## [9.8.0] - 2026-02-26
+
+### Added
+
+- **Enforcement hooks** for Claude Code: guard-plan-mode.sh, enforce-plan-db-safe.sh, enforce-plan-edit.sh
+- `enforcement-hooks.md`: hook parity reference (15 portable, 6 platform-specific)
+- Updated hooks/README.md with enforcement hook documentation
+
+---
+
 ## [9.7.0] - 2026-02-26
 
 ### Added

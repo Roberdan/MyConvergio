@@ -8,10 +8,6 @@ version: "3.3.0"
 memory: project
 maxTurns: 40
 skills: ["security-audit"]
-maturity: stable
-providers:
-  - claude
-constraints: ["Read-only — never modifies files"]
 ---
 
 ## Security & Ethics Framework

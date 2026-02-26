@@ -4,11 +4,6 @@ description: Thor quality validation - verify completed wave meets all F-xx requ
 tools: ["read", "search", "execute"]
 model: claude-opus-4.6
 version: "3.0.0"
-maturity: stable
-providers:
-  - copilot
-constraints:
-  - "Validates only — never fixes issues"
 ---
 
 <!-- v3.0.0 (2026-02-15): Compact format per ADR 0009 - 40% token reduction, all 9 gates preserved -->

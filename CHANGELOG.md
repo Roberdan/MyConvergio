@@ -1,5 +1,13 @@
 # Changelog
 
+## [9.10.0] - 2026-02-26
+
+### Added
+
+- **Auto-Version GitHub Action**: `auto-version.yml` bumps semver on every push to main using conventional commits (feat=minor, fix=patch, !=major), updates VERSION + CHANGELOG, creates tag → triggers release workflow
+
+---
+
 ## [9.9.0] - 2026-02-26
 
 ### Added

@@ -174,7 +174,7 @@ calibrate-estimates) cmd_calibrate_estimates "${2:-}" ;;
 	echo "  where [plan_id]                Show execution host for plans"
 	echo ""
 	echo "Bulk:"
-	echo "  import <plan_id> <spec.json>   Bulk import waves+tasks from JSON spec"
+	echo "  import <plan_id> <spec.json|spec.yaml>  Bulk import waves+tasks (JSON or YAML)"
 	echo "  render <plan_id>               Generate markdown from DB (single source of truth)"
 	echo "  get-context <plan_id>          Full plan+tasks JSON for execution (1 call)"
 	echo ""

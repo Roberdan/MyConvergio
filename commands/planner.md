@@ -1,6 +1,6 @@
 ---
 name: planner
-version: "2.3.0"
+version: "2.4.0"
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 -->
@@ -100,11 +100,11 @@ HARDENING_STATUS=$(echo "$HARDENING" | jq -r '.status')
 - If `gaps_found`: check severity. If ANY `critical` gap: add W0-01 task `"Run /harden skill to fix critical quality gaps"`. If only `warning`/`info`: present gaps to user via AskUserQuestion, let them decide.
 - W0 task uses `/harden` skill for full remediation (hooks, lint, scripts, PR template, ADR structure).
 
-### 2. Generate Plan Spec (JSON)
+### 2. Generate Plan Spec (JSON or YAML)
 
 **EXCLUSION GATE**: Compare ALL F-xx vs tasks. If ANY NOT covered: 1. List uncovered. 2. AskUserQuestion: "Requisiti non coperti: [list]. Per ciascuno: includerli, deferirli, o escluderli?" 3. BLOCK. NEVER silently skip with "scope.out", "backlog", "needs external resource".
 
-spec.json: `{user_request, constraints:[{id,text,type,verify}], requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
+spec.json or spec.yaml: `{user_request, constraints:[{id,text,type,verify}], requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
 
 **CONSTRAINT VALIDATION GATE (ADR-054)**: After generating tasks, cross-check EVERY task against EVERY constraint. Present matrix: `| Task | C-01 | C-02 | ... |`. Any cell = VIOLATES → redesign task or BLOCK. Example: if C-01 = "No admin permissions required" and T2-01 = "Configure EasyAuth (requires admin consent)" → VIOLATION → remove or redesign T2-01.
 
@@ -112,7 +112,7 @@ spec.json: `{user_request, constraints:[{id,text,type,verify}], requirements:[{i
 
 ### 2.1 Schema Validation (MANDATORY)
 
-Validate spec.json before import. Source: [HVE Core](https://github.com/microsoft/hve-core) schema-driven validation pattern.
+Validate spec.json or spec.yaml before import. Source: [HVE Core](https://github.com/microsoft/hve-core) schema-driven validation pattern.
 
 ```bash
 python3 -c "
@@ -120,9 +120,13 @@ import json, sys
 try:
     from jsonschema import validate, ValidationError
     schema = json.load(open('$HOME/.claude/config/plan-spec-schema.json'))
-    spec = json.load(open('/path/to/spec.json'))
+    spec_path = '/path/to/spec.json'  # or spec.yaml
+    if spec_path.endswith('.yaml') or spec_path.endswith('.yml'):
+        import yaml; spec = yaml.safe_load(open(spec_path))
+    else:
+        spec = json.load(open(spec_path))
     validate(spec, schema)
-    print('PASS: spec.json valid')
+    print('PASS: spec valid')
 except ValidationError as e:
     print(f'FAIL: {e.message}'); sys.exit(1)
 except ImportError:
@@ -133,7 +137,7 @@ except ImportError:
     for w in spec['waves']:
         for t in w['tasks']:
             assert t.get('verify'), f'Task {t[\"id\"]} missing verify'
-    print('PASS: spec.json structurally valid (no jsonschema)')
+    print('PASS: spec structurally valid (no jsonschema)')
 "
 ```
 
@@ -165,7 +169,7 @@ PROMPT_FILE=".copilot-tracking/prompt-{NNN}.json"
 PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" --source-file "$PROMPT_FILE" \
   --human-summary "2-3 righe in italiano che spiegano COSA fa il piano per un umano. Mostrato in dashboard.")
 # Note: --auto-worktree is deprecated; use wave-level worktrees instead
-plan-db.sh import $PLAN_ID /path/to/spec.json
+plan-db.sh import $PLAN_ID /path/to/spec.json   # also accepts spec.yaml
 WORKTREE_PATH=$(plan-db.sh get-worktree $PLAN_ID)
 cd "$WORKTREE_PATH"
 ```
@@ -176,12 +180,12 @@ cd "$WORKTREE_PATH"
 
 **MANDATORY for plans with 3+ tasks.** Skip ONLY for 1-2 task plans (trivial scope). Skipping on 3+ tasks = VIOLATION.
 
-Launch plan-reviewer + plan-business-advisor in parallel. Both receive spec file path and plan_id.
+Launch plan-reviewer + plan-business-advisor in FOREGROUND. Both receive spec file path and plan_id. **Launch BOTH in FOREGROUND — results MUST be reviewed before Step 4.**
 
 **Claude Code:**
 
 ```
-# Launch BOTH in parallel
+# Launch BOTH in FOREGROUND (await, not fire-and-forget)
 review_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json")
 biz_result = await Task(subagent_type="plan-business-advisor", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json")
 ```
@@ -189,7 +193,7 @@ biz_result = await Task(subagent_type="plan-business-advisor", prompt="PLAN_ID=$
 **Copilot CLI:**
 
 ```bash
-# Two @agent invocations (parallel)
+# Two @agent invocations (FOREGROUND — wait for each before proceeding)
 @plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json
 @plan-business-advisor PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json
 ```
@@ -203,7 +207,7 @@ plan-db.sh add-assessment $PLAN_ID "$ASSESSMENT_JSON"
 
 ### 3.2 Present Intelligence Summary
 
-Display alongside plan summary:
+Display alongside plan summary (wait for Step 3.3 before showing to user):
 
 | Metric                    | Source                | Action if Red           |
 | ------------------------- | --------------------- | ----------------------- |
@@ -213,6 +217,26 @@ Display alongside plan summary:
 | `roi_projection`          | plan-business-advisor | Flag if ROI < 2x        |
 
 Format: "📊 **Review**: coverage={score}%, completeness={score}% | **Business**: {days}d traditional, ROI {x}x"
+
+### 3.3 Challenger Review
+
+Launch plan-reviewer with `--challenger` mode in FOREGROUND. Challenger reviews spec from a skeptic's perspective.
+
+**Claude Code:**
+
+```
+challenger_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json --challenger")
+```
+
+**Copilot CLI:**
+
+```bash
+@plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json --challenger
+```
+
+Challenger asks: (1) Which tasks can be eliminated? (2) Which tasks are over-engineered? (3) What edge cases are missing? (4) Are constraints sufficient?
+
+Present challenger findings alongside plan summary and review metrics in Step 4. If challenger identifies critical gaps or over-engineering, address before user approval.
 
 ### 4. User Approval (MANDATORY STOP)
 
@@ -343,4 +367,4 @@ Plan NOT done until TF-pr done+Thor-validated.
 
 ## Cross-Tool Execution & State
 
-Cross-tool: Executing tool gets `T0-00 Review Plan` first (see @planner-modules/model-strategy.md). spec.json = handoff contract. States: `pending -> in_progress -> done|blocked|skipped`. Forbidden: `done -> pending`, `skipped -> done`.
+Cross-tool: Executing tool gets `T0-00 Review Plan` first (see @planner-modules/model-strategy.md). spec.json or spec.yaml = handoff contract. States: `pending -> in_progress -> done|blocked|skipped`. Forbidden: `done -> pending`, `skipped -> done`.

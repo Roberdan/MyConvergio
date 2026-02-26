@@ -14,6 +14,18 @@ cmd_import() {
 		exit 1
 	}
 
+	# YAML support: convert to temp JSON if file is YAML
+	local effective_spec="$spec_file"
+	if [[ "$spec_file" == *.yaml || "$spec_file" == *.yml ]]; then
+		effective_spec=$(mktemp /tmp/plan-spec-XXXX.json)
+		python3 -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(open(sys.argv[1]))))" "$spec_file" >"$effective_spec" || {
+			log_error "Failed to convert YAML to JSON: $spec_file"
+			rm -f "$effective_spec"
+			exit 1
+		}
+		log_info "Converted YAML spec to JSON: $spec_file"
+	fi
+
 	# Save spec in plan folder
 	local project_id
 	project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM plans WHERE id=$plan_id;")
@@ -21,13 +33,13 @@ cmd_import() {
 	plan_name=$(sqlite3 "$DB_FILE" "SELECT name FROM plans WHERE id=$plan_id;")
 	local plan_dir="${HOME}/.claude/plans/${project_id}"
 	mkdir -p "$plan_dir"
-	if [[ "$spec_file" != "$plan_dir/${plan_name}-spec.json" ]]; then
-		cp "$spec_file" "$plan_dir/${plan_name}-spec.json"
+	if [[ "$effective_spec" != "$plan_dir/${plan_name}-spec.json" ]]; then
+		cp "$effective_spec" "$plan_dir/${plan_name}-spec.json"
 	fi
 
 	# Store constraints from spec (ADR-054: constraints are first-class citizens)
 	local constraints_json
-	constraints_json=$(jq -c '.constraints // []' "$spec_file" 2>/dev/null)
+	constraints_json=$(jq -c '.constraints // []' "$effective_spec" 2>/dev/null)
 	if [[ "$constraints_json" != "[]" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE plans SET constraints_json = '$(sql_escape "$constraints_json")' WHERE id=$plan_id;"
 		local constraint_count
@@ -40,7 +52,7 @@ cmd_import() {
 	existing_desc=$(sqlite3 "$DB_FILE" "SELECT description FROM plans WHERE id=$plan_id;")
 	if [[ -z "$existing_desc" || "$existing_desc" == "{" ]]; then
 		local spec_desc
-		spec_desc=$(jq -r '.description // .user_request // empty' "$spec_file" 2>/dev/null | head -1 | cut -c1-200)
+		spec_desc=$(jq -r '.description // .user_request // empty' "$effective_spec" 2>/dev/null | head -1 | cut -c1-200)
 		if [[ -n "$spec_desc" ]]; then
 			sqlite3 "$DB_FILE" "UPDATE plans SET description = '$(sql_escape "$spec_desc")' WHERE id=$plan_id;"
 			log_info "Set plan description from spec"
@@ -79,7 +91,7 @@ cmd_import() {
 				test_criteria: (.test_criteria // [])
 			}]
 		}]
-	}' "$spec_file")
+	}' "$effective_spec")
 
 	local wave_count total_tasks=0
 	wave_count=$(echo "$spec_data" | jq '.waves | length')
@@ -161,9 +173,12 @@ cmd_import() {
 	fi
 
 	# Build plan file cache: extract all 'files' arrays from spec, deduplicate, resolve ~
-	_build_plan_file_cache "$plan_id" "$spec_file"
+	_build_plan_file_cache "$plan_id" "$effective_spec"
 
 	log_info "Imported $wave_count waves, $total_tasks tasks"
+
+	# Cleanup temp JSON if YAML was converted
+	[[ "$effective_spec" != "$spec_file" ]] && rm -f "$effective_spec"
 }
 
 # Build ~/.claude/data/plan-{plan_id}-files.txt from spec.json

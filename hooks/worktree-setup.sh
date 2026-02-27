@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Version: 1.0.0
+# Version: 1.1.0
 # WorktreeCreate hook: symlink .env* files and run npm install in new worktree
 set -euo pipefail
 
@@ -36,6 +36,12 @@ done
 # Run npm install if package.json exists in worktree
 if [[ -f "$WORKTREE_PATH/package.json" ]]; then
 	(cd "$WORKTREE_PATH" && npm install --silent 2>/dev/null) || true
+fi
+
+# Exclude build/cache dirs from Spotlight indexing
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)"
+if [[ -x "$SCRIPT_DIR/spotlight-exclude.sh" ]]; then
+	"$SCRIPT_DIR/spotlight-exclude.sh" "$WORKTREE_PATH" >/dev/null 2>/dev/null || true
 fi
 
 exit 0

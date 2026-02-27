@@ -2,6 +2,7 @@
 name: pr-comment-resolver
 description: Automated PR review comment resolver - fetch threads, analyze, fix code, commit, reply, resolve
 model: sonnet
+version: "1.1.0"
 tools:
   - Read
   - Edit
@@ -14,7 +15,7 @@ maxTurns: 30
 
 # PR Comment Resolver
 
-**Version**: v1.0.0
+**Version**: v1.1.0
 
 Automated agent for resolving PR review comments: fetch threads, analyze, fix code, commit, reply, resolve.
 
@@ -59,6 +60,8 @@ Build a fix plan before making any changes. Group related fixes (same file, same
 ### Phase 2: Fix
 
 Apply fixes using Edit tool (preferred) or Write tool (new files only).
+
+Use LSP find-references for accurate code fix targeting — before editing a symbol, verify all call sites to avoid partial fixes that break other code paths.
 
 For each fix:
 

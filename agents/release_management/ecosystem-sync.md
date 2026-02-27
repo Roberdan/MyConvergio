@@ -8,7 +8,7 @@ description: >-
 tools: ["Read", "Glob", "Grep", "Bash", "Edit", "Write", "Task"]
 model: sonnet
 color: "#00897B"
-version: "1.0.0"
+version: "1.1.0"
 memory: project
 maxTurns: 30
 ---
@@ -34,14 +34,14 @@ Trigger: Manual invocation before a MyConvergio release.
 
 ## Sync Scope
 
-| Source | Target | Notes |
-|--------|--------|-------|
-| `~/.claude/agents/` | `.claude/agents/` | Exclude blocklist entries |
-| `~/.claude/scripts/` | `.claude/scripts/` | Exclude personal helpers |
-| `~/.claude/skills/` | `.claude/skills/` | All generic skills |
-| `~/.claude/rules/` | `.claude/rules/` | All generic rules |
-| `~/.claude/copilot-agents/` | `copilot-agents/` | Format already correct |
-| `~/.claude/reference/` | `.claude/reference/` | Exclude personal refs |
+| Source                      | Target               | Notes                     |
+| --------------------------- | -------------------- | ------------------------- |
+| `~/.claude/agents/`         | `.claude/agents/`    | Exclude blocklist entries |
+| `~/.claude/scripts/`        | `.claude/scripts/`   | Exclude personal helpers  |
+| `~/.claude/skills/`         | `.claude/skills/`    | All generic skills        |
+| `~/.claude/rules/`          | `.claude/rules/`     | All generic rules         |
+| `~/.claude/copilot-agents/` | `copilot-agents/`    | Format already correct    |
+| `~/.claude/reference/`      | `.claude/reference/` | Exclude personal refs     |
 
 ## Blocklist (NEVER sync these)
 
@@ -67,6 +67,7 @@ Review output: NEW, UPDATED, REMOVED, BLOCKED entries.
 ### Step 2: Sanitization Check
 
 For each file to sync, verify:
+
 1. No hardcoded paths (`/Users/<name>/`, `/home/<name>/`)
 2. No credentials, API keys, tokens (actual values, not references)
 3. No project-specific references (MirrorBuddy, personal projects)
@@ -79,6 +80,7 @@ sync-to-myconvergio.sh --category all
 ```
 
 Or selective:
+
 ```bash
 sync-to-myconvergio.sh --category agents
 sync-to-myconvergio.sh --category scripts
@@ -98,17 +100,26 @@ If clean, commit with conventional message.
 
 ## Format Conversion: Claude Code ↔ Copilot CLI
 
-| Field | Claude Code | Copilot CLI |
-|-------|-------------|-------------|
-| File extension | `.md` | `.agent.md` |
-| `model` | alias (`sonnet`) | full (`claude-sonnet-4.5`) |
-| `tools` | PascalCase (`Read`) | lowercase (`read`) |
-| `color` | Present | Absent |
-| `memory` | Present | Absent |
-| `maxTurns` | Present | Absent |
-| `skills` | Present | Absent |
+| Field          | Claude Code         | Copilot CLI                |
+| -------------- | ------------------- | -------------------------- |
+| File extension | `.md`               | `.agent.md`                |
+| `model`        | alias (`sonnet`)    | full (`claude-sonnet-4.5`) |
+| `tools`        | PascalCase (`Read`) | lowercase (`read`)         |
+| `color`        | Present             | Absent                     |
+| `memory`       | Present             | Absent                     |
+| `maxTurns`     | Present             | Absent                     |
+| `skills`       | Present             | Absent                     |
 
 The sync script handles conversion automatically.
+
+## v2.1.x Feature Verification
+
+Before syncing a v2.1.x release, verify these features are present and consistent across `~/.claude/` and MyConvergio:
+
+- **LSP tool refs**: `codegraph_search`, `codegraph_callers`, `codegraph_callees`, `codegraph_impact`, `codegraph_node` documented in CLAUDE.md CodeGraph section
+- **WorktreeCreate hooks**: `worktree-create.sh` referenced in worktree-discipline.md and hooks; verify `symlink .env*` and `npm install` steps
+- **Wildcard permissions**: Check `settings.json` for wildcard tool grants and confirm they match MyConvergio's `settings.json`
+- **Agent Teams patterns**: `TeamCreate` usage patterns documented in agent files that use parallel Task spawning
 
 ## Post-Sync Checklist
 

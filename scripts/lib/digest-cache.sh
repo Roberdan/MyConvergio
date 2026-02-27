@@ -4,7 +4,7 @@
 # Cache dir: /tmp/claude-digest-cache/
 # TTL: configurable per caller
 
-# Version: 1.1.0
+# Version: 1.2.0
 DIGEST_CACHE_DIR="${TMPDIR:-/tmp}/claude-digest-cache"
 
 # Verify jq is available (required by all digest scripts)
@@ -50,6 +50,30 @@ digest_cache_set() {
 	local key="$1"
 	mkdir -p "$DIGEST_CACHE_DIR"
 	cat >"$DIGEST_CACHE_DIR/$key"
+}
+
+# Apply compact filter: keep only specified jq fields.
+# Usage: echo "$json" | digest_compact_filter '.status, .exit_code, .errors'
+# If COMPACT != 1, passes through unchanged.
+digest_compact_filter() {
+	local fields="$1"
+	if [[ "${COMPACT:-0}" -eq 1 ]]; then
+		jq "{${fields}}"
+	else
+		cat
+	fi
+}
+
+# Parse --compact from args. Sets COMPACT=1 if found.
+# Usage: digest_parse_args "$@" (call after sourcing, before arg parsing)
+digest_check_compact() {
+	for arg in "$@"; do
+		[[ "$arg" == "--compact" ]] && {
+			COMPACT=1
+			return 0
+		}
+	done
+	return 0
 }
 
 # Invalidate a specific cache key.

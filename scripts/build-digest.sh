@@ -2,7 +2,7 @@
 # Build Digest - Compact build output as JSON
 # Auto-detects Next.js/Vite/generic. Captures build output server-side.
 # Usage: build-digest.sh [--no-cache] [extra-args...]
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,10 +10,15 @@ source "$SCRIPT_DIR/lib/digest-cache.sh"
 
 CACHE_TTL=30
 NO_CACHE=0
-[[ "${1:-}" == "--no-cache" ]] && {
-	NO_CACHE=1
-	shift
-}
+COMPACT=0
+for arg in "$@"; do
+	case "$arg" in
+	--no-cache) NO_CACHE=1 ;;
+	--compact) COMPACT=1 ;;
+	esac
+done
+[[ "${1:-}" == "--no-cache" || "${1:-}" == "--compact" ]] && shift
+[[ "${1:-}" == "--no-cache" || "${1:-}" == "--compact" ]] && shift
 
 CACHE_KEY="build-$(digest_hash "$(pwd)")"
 
@@ -90,4 +95,5 @@ RESULT=$(jq -n \
 	  ts_errors:$ts_errors, errors:$errors, warnings:$warnings}')
 
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only status + errors (skip framework, routes, bundle_size, build_time, warnings)
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'status, exit_code, errors, ts_errors'

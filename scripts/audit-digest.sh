@@ -2,7 +2,7 @@
 # Audit Digest - Compact npm audit output as JSON
 # Returns only actionable items: critical, high, fixable.
 # Usage: audit-digest.sh [--no-cache] [extra-args...]
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,10 +10,13 @@ source "$SCRIPT_DIR/lib/digest-cache.sh"
 
 CACHE_TTL=60
 NO_CACHE=0
-[[ "${1:-}" == "--no-cache" ]] && {
-	NO_CACHE=1
-	shift
-}
+COMPACT=0
+digest_check_compact "$@"
+for arg in "$@"; do
+	[[ "$arg" == "--no-cache" ]] && NO_CACHE=1
+done
+[[ "${1:-}" == "--no-cache" || "${1:-}" == "--compact" ]] && shift
+[[ "${1:-}" == "--no-cache" || "${1:-}" == "--compact" ]] && shift
 
 CACHE_KEY="audit-$(digest_hash "$(pwd)")"
 
@@ -70,4 +73,5 @@ if [[ -z "$RESULT" || "$RESULT" == "null" ]]; then
 fi
 
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only actionable fields (skip low, moderate, total)
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'status, critical, high, fixable, items'

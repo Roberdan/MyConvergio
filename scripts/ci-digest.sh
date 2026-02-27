@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # CI Digest - Compact GitHub Actions status as JSON (~200 tokens)
 # Replaces ci-check.sh for AI consumption. Processes logs server-side.
-# Usage: ci-digest.sh [run-id|--all] [--no-cache]
-# Version: 1.1.0
+# Usage: ci-digest.sh [run-id|--all|checks <pr>] [--no-cache] [--compact]
+# Version: 1.3.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,14 +10,54 @@ source "$SCRIPT_DIR/lib/digest-cache.sh"
 
 CACHE_TTL=15
 NO_CACHE=0
+COMPACT=0
+digest_check_compact "$@"
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
-MODE="${1:-}"
+MODE=""
+for arg in "$@"; do
+	[[ "$arg" == "--no-cache" ]] && NO_CACHE=1
+	[[ "$arg" == "--compact" || "$arg" == "--no-cache" ]] && continue
+	[[ -z "$MODE" ]] && MODE="$arg"
+done
 
-[[ "$MODE" == "--no-cache" ]] && {
-	NO_CACHE=1
-	MODE="${2:-}"
-}
-[[ "${2:-}" == "--no-cache" ]] && NO_CACHE=1
+# === SUBCOMMAND: checks <pr> — PR check suites as compact JSON ===
+if [[ "$MODE" == "checks" ]]; then
+	PR_NUM=""
+	for arg in "$@"; do
+		[[ "$arg" == "checks" || "$arg" == "--no-cache" || "$arg" == "--compact" ]] && continue
+		[[ "$arg" =~ ^[0-9]+$ ]] && PR_NUM="$arg"
+	done
+	if [[ -z "$PR_NUM" ]]; then
+		BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+		PR_NUM=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+	fi
+	[[ -z "$PR_NUM" ]] && {
+		jq -n '{"pr":null,"checks":[]}'
+		exit 0
+	}
+
+	CACHE_KEY="checks-${PR_NUM}"
+	if [[ "$NO_CACHE" -eq 0 ]] && digest_cache_get "$CACHE_KEY" "$CACHE_TTL"; then
+		exit 0
+	fi
+
+	CHECKS=$(gh pr checks "$PR_NUM" --json name,state,completedAt 2>/dev/null |
+		jq '[.[] | {name, s: (.state | if . == "SUCCESS" then "pass" elif . == "FAILURE" then "fail" elif . == "PENDING" then "pending" else . end)}] | unique_by(.name)' 2>/dev/null || echo "[]")
+
+	PENDING=$(echo "$CHECKS" | jq '[.[] | select(.s == "pending")] | length')
+	FAILED=$(echo "$CHECKS" | jq '[.[] | select(.s == "fail")] | length')
+	PASSED=$(echo "$CHECKS" | jq '[.[] | select(.s == "pass")] | length')
+
+	RESULT=$(jq -n \
+		--argjson pr "$PR_NUM" \
+		--argjson pending "$PENDING" --argjson failed "$FAILED" --argjson passed "$PASSED" \
+		--argjson checks "$CHECKS" \
+		'{pr:$pr,pending:$pending,failed:$failed,passed:$passed,checks:$checks}')
+
+	echo "$RESULT" | digest_cache_set "$CACHE_KEY"
+	echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'pr, pending, failed, passed'
+	exit 0
+fi
 
 # Resolve run ID
 RUN_ID=""
@@ -106,4 +146,5 @@ RESULT=$(jq -n \
 
 # Cache and output
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only status + errors (skip branch, sha, name, full jobs list)
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'status, failed, errors'

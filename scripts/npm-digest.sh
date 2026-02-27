@@ -2,7 +2,7 @@
 # NPM Digest - Compact npm install/ci output as JSON
 # Captures install output server-side, returns only summary.
 # Usage: npm-digest.sh [install|ci|audit] [--no-cache] [extra-args...]
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,15 +10,26 @@ source "$SCRIPT_DIR/lib/digest-cache.sh"
 
 CACHE_TTL=120
 NO_CACHE=0
-CMD="${1:-install}"
-
-[[ "$CMD" == "--no-cache" ]] && {
-	NO_CACHE=1
-	CMD="${2:-install}"
-	shift 2>/dev/null || true
-}
-[[ "${2:-}" == "--no-cache" ]] && NO_CACHE=1
+COMPACT=0
+digest_check_compact "$@"
+CMD=""
+for arg in "$@"; do
+	[[ "$arg" == "--no-cache" ]] && {
+		NO_CACHE=1
+		continue
+	}
+	[[ "$arg" == "--compact" ]] && continue
+	[[ -z "$CMD" ]] && {
+		CMD="$arg"
+		continue
+	}
+done
+CMD="${CMD:-install}"
 shift 2>/dev/null || true
+# Skip flags already parsed
+while [[ "${1:-}" == "--no-cache" || "${1:-}" == "--compact" || "${1:-}" == "$CMD" ]]; do
+	shift 2>/dev/null || break
+done
 
 # For audit, delegate to audit-digest.sh (pass remaining args, skip CMD)
 if [[ "$CMD" == "audit" ]]; then
@@ -89,4 +100,5 @@ RESULT=$(jq -n \
 	  peer_warnings:$peer_warnings, errors:$errors}')
 
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only status + errors (skip packages, added, removed, changed, peer_warnings)
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'status, exit_code, audit, errors'

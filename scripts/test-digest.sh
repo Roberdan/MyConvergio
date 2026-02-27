@@ -2,7 +2,7 @@
 # Test Digest - Generic test runner with compact JSON output
 # Auto-detects vitest/jest/playwright. Returns only failures.
 # Usage: test-digest.sh [--suite unit|e2e|all] [--no-cache] [extra-args...]
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,6 +12,7 @@ CACHE_TTL=15
 NO_CACHE=0
 SUITE="all"
 
+COMPACT=0
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--suite)
@@ -20,6 +21,10 @@ while [[ $# -gt 0 ]]; do
 		;;
 	--no-cache)
 		NO_CACHE=1
+		shift
+		;;
+	--compact)
+		COMPACT=1
 		shift
 		;;
 	*) break ;;
@@ -166,4 +171,5 @@ RESULT=$(jq -n \
 	  duration:$duration, failures:$failures}')
 
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only status + failure details (skip framework, skipped, duration)
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'status, total, failed, failures'

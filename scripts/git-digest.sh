@@ -4,7 +4,7 @@
 # Usage: git-digest.sh [--full] [--no-cache]
 #   Default: compact status (~15 lines JSON)
 #   --full: includes file-level diff details
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,11 +13,13 @@ source "$SCRIPT_DIR/lib/digest-cache.sh"
 CACHE_TTL=5
 NO_CACHE=0
 FULL=0
+COMPACT=0
 
 for arg in "$@"; do
 	case "$arg" in
 	--full) FULL=1 ;;
 	--no-cache) NO_CACHE=1 ;;
+	--compact) COMPACT=1 ;;
 	esac
 done
 
@@ -130,4 +132,5 @@ else
 fi
 
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only decision-relevant fields
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'branch, clean, ahead, behind, staged, unstaged, untracked, conflicts'

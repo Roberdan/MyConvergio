@@ -1,6 +1,6 @@
 ---
 name: planner
-version: "2.4.0"
+version: "2.5.0"
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 -->
@@ -100,11 +100,13 @@ HARDENING_STATUS=$(echo "$HARDENING" | jq -r '.status')
 - If `gaps_found`: check severity. If ANY `critical` gap: add W0-01 task `"Run /harden skill to fix critical quality gaps"`. If only `warning`/`info`: present gaps to user via AskUserQuestion, let them decide.
 - W0 task uses `/harden` skill for full remediation (hooks, lint, scripts, PR template, ADR structure).
 
-### 2. Generate Plan Spec (JSON or YAML)
+### 2. Generate Plan Spec (YAML preferred, JSON supported)
+
+**Default format: YAML.** Generate spec as `.yaml`. Only use `.json` if user explicitly requests it.
 
 **EXCLUSION GATE**: Compare ALL F-xx vs tasks. If ANY NOT covered: 1. List uncovered. 2. AskUserQuestion: "Requisiti non coperti: [list]. Per ciascuno: includerli, deferirli, o escluderli?" 3. BLOCK. NEVER silently skip with "scope.out", "backlog", "needs external resource".
 
-spec.json or spec.yaml: `{user_request, constraints:[{id,text,type,verify}], requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
+spec.yaml (or spec.json): `{user_request, constraints:[{id,text,type,verify}], requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
 
 **CONSTRAINT VALIDATION GATE (ADR-054)**: After generating tasks, cross-check EVERY task against EVERY constraint. Present matrix: `| Task | C-01 | C-02 | ... |`. Any cell = VIOLATES → redesign task or BLOCK. Example: if C-01 = "No admin permissions required" and T2-01 = "Configure EasyAuth (requires admin consent)" → VIOLATION → remove or redesign T2-01.
 
@@ -112,16 +114,16 @@ spec.json or spec.yaml: `{user_request, constraints:[{id,text,type,verify}], req
 
 ### 2.1 Schema Validation (MANDATORY)
 
-Validate spec.json or spec.yaml before import. Source: [HVE Core](https://github.com/microsoft/hve-core) schema-driven validation pattern.
+Validate spec before import. Source: [HVE Core](https://github.com/microsoft/hve-core) schema-driven validation pattern.
 
 ```bash
 python3 -c "
 import json, sys
+spec_path = '/path/to/spec.yaml'  # or spec.json
 try:
     from jsonschema import validate, ValidationError
     schema = json.load(open('$HOME/.claude/config/plan-spec-schema.json'))
-    spec_path = '/path/to/spec.json'  # or spec.yaml
-    if spec_path.endswith('.yaml') or spec_path.endswith('.yml'):
+    if spec_path.endswith(('.yaml', '.yml')):
         import yaml; spec = yaml.safe_load(open(spec_path))
     else:
         spec = json.load(open(spec_path))
@@ -131,7 +133,10 @@ except ValidationError as e:
     print(f'FAIL: {e.message}'); sys.exit(1)
 except ImportError:
     # Fallback: basic structural check without jsonschema
-    spec = json.load(open('/path/to/spec.json'))
+    if spec_path.endswith(('.yaml', '.yml')):
+        import yaml; spec = yaml.safe_load(open(spec_path))
+    else:
+        spec = json.load(open(spec_path))
     for field in ['user_request', 'requirements', 'waves']:
         assert field in spec, f'Missing: {field}'
     for w in spec['waves']:
@@ -156,7 +161,7 @@ except ImportError:
 ### 2.7 Cross-Plan Conflict Check (MANDATORY)
 
 ```bash
-CONFLICT_REPORT=$(plan-db.sh conflict-check-spec $PROJECT_ID /path/to/spec.json)
+CONFLICT_REPORT=$(plan-db.sh conflict-check-spec $PROJECT_ID /path/to/spec.yaml)
 RISK=$(echo "$CONFLICT_REPORT" | jq -r '.overall_risk')
 ```
 
@@ -169,7 +174,7 @@ PROMPT_FILE=".copilot-tracking/prompt-{NNN}.json"
 PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" --source-file "$PROMPT_FILE" \
   --human-summary "2-3 righe in italiano che spiegano COSA fa il piano per un umano. Mostrato in dashboard.")
 # Note: --auto-worktree is deprecated; use wave-level worktrees instead
-plan-db.sh import $PLAN_ID /path/to/spec.json   # also accepts spec.yaml
+plan-db.sh import $PLAN_ID /path/to/spec.yaml   # also accepts spec.json
 WORKTREE_PATH=$(plan-db.sh get-worktree $PLAN_ID)
 cd "$WORKTREE_PATH"
 ```
@@ -186,16 +191,16 @@ Launch plan-reviewer + plan-business-advisor in FOREGROUND. Both receive spec fi
 
 ```
 # Launch BOTH in FOREGROUND (await, not fire-and-forget)
-review_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json")
-biz_result = await Task(subagent_type="plan-business-advisor", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json")
+review_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml")
+biz_result = await Task(subagent_type="plan-business-advisor", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml")
 ```
 
 **Copilot CLI:**
 
 ```bash
 # Two @agent invocations (FOREGROUND — wait for each before proceeding)
-@plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json
-@plan-business-advisor PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json
+@plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml
+@plan-business-advisor PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml
 ```
 
 Store results:
@@ -225,13 +230,13 @@ Launch plan-reviewer with `--challenger` mode in FOREGROUND. Challenger reviews 
 **Claude Code:**
 
 ```
-challenger_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json --challenger")
+challenger_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml --challenger")
 ```
 
 **Copilot CLI:**
 
 ```bash
-@plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json --challenger
+@plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml --challenger
 ```
 
 Challenger asks: (1) Which tasks can be eliminated? (2) Which tasks are over-engineered? (3) What edge cases are missing? (4) Are constraints sufficient?
@@ -251,7 +256,7 @@ See @planner-modules/parallelization-modes.md. AskUserQuestion: Standard (3) vs 
 Before execution starts, populate token estimates for all tasks:
 
 ```bash
-token-estimator.sh estimate $PLAN_ID /path/to/spec.json
+token-estimator.sh estimate $PLAN_ID /path/to/spec.yaml
 ```
 
 Writes per-task estimates to `plan_token_estimates` table. Used by post-mortem for variance analysis.
@@ -367,4 +372,4 @@ Plan NOT done until TF-pr done+Thor-validated.
 
 ## Cross-Tool Execution & State
 
-Cross-tool: Executing tool gets `T0-00 Review Plan` first (see @planner-modules/model-strategy.md). spec.json or spec.yaml = handoff contract. States: `pending -> in_progress -> done|blocked|skipped`. Forbidden: `done -> pending`, `skipped -> done`.
+Cross-tool: Executing tool gets `T0-00 Review Plan` first (see @planner-modules/model-strategy.md). spec.yaml = handoff contract (spec.json still supported). States: `pending -> in_progress -> done|blocked|skipped`. Forbidden: `done -> pending`, `skipped -> done`.

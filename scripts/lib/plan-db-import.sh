@@ -2,9 +2,9 @@
 # Plan DB Import, Render & Context - Bulk operations + execution context
 # Sourced by plan-db.sh
 
-# Import waves and tasks from a spec.json file
+# Import waves and tasks from a spec file (JSON or YAML)
 # Usage: import <plan_id> <spec_file>
-# Version: 1.2.0
+# Version: 1.3.0
 cmd_import() {
 	local plan_id="$1"
 	local spec_file="$2"
@@ -15,16 +15,9 @@ cmd_import() {
 	}
 
 	# YAML support: convert to temp JSON if file is YAML
-	local effective_spec="$spec_file"
-	if [[ "$spec_file" == *.yaml || "$spec_file" == *.yml ]]; then
-		effective_spec=$(mktemp /tmp/plan-spec-XXXX.json)
-		python3 -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(open(sys.argv[1]))))" "$spec_file" >"$effective_spec" || {
-			log_error "Failed to convert YAML to JSON: $spec_file"
-			rm -f "$effective_spec"
-			exit 1
-		}
-		log_info "Converted YAML spec to JSON: $spec_file"
-	fi
+	local effective_spec
+	effective_spec=$(yaml_to_json_temp "$spec_file") || exit 1
+	[[ "$effective_spec" != "$spec_file" ]] && log_info "Converted YAML spec to JSON: $spec_file"
 
 	# Save spec in plan folder
 	local project_id
@@ -33,8 +26,11 @@ cmd_import() {
 	plan_name=$(sqlite3 "$DB_FILE" "SELECT name FROM plans WHERE id=$plan_id;")
 	local plan_dir="${HOME}/.claude/plans/${project_id}"
 	mkdir -p "$plan_dir"
-	if [[ "$effective_spec" != "$plan_dir/${plan_name}-spec.json" ]]; then
-		cp "$effective_spec" "$plan_dir/${plan_name}-spec.json"
+	# Preserve original extension (.yaml or .json) for the saved copy
+	local spec_ext="${spec_file##*.}"
+	local saved_spec="$plan_dir/${plan_name}-spec.${spec_ext}"
+	if [[ "$spec_file" != "$saved_spec" ]]; then
+		cp "$spec_file" "$saved_spec"
 	fi
 
 	# Store constraints from spec (ADR-054: constraints are first-class citizens)
@@ -224,12 +220,24 @@ cmd_render() {
 		branch=$(cd "$wt_path" && git branch --show-current 2>/dev/null || echo "")
 	fi
 
-	# Locate spec.json for requirements + user_request
+	# Locate spec file (try .yaml first, then .json) for requirements + user_request
 	local spec_file=""
 	if [[ -n "$md_path" ]]; then
-		local candidate
-		candidate="$(dirname "$(_expand_path "$md_path")")/spec.json"
-		[[ -f "$candidate" ]] && spec_file="$candidate"
+		local spec_dir
+		spec_dir="$(dirname "$(_expand_path "$md_path")")"
+		# Try YAML first (new default), then JSON (legacy)
+		for ext in yaml yml json; do
+			local candidate="${spec_dir}/${plan_name}-spec.${ext}"
+			if [[ -f "$candidate" ]]; then
+				spec_file="$candidate"
+				break
+			fi
+		done
+	fi
+	# Convert YAML spec to temp JSON for jq consumption
+	local effective_render_spec="$spec_file"
+	if [[ -n "$spec_file" && ("$spec_file" == *.yaml || "$spec_file" == *.yml) ]]; then
+		effective_render_spec=$(yaml_to_json_temp "$spec_file") || effective_render_spec=""
 	fi
 
 	# Determine output file
@@ -248,8 +256,8 @@ cmd_render() {
 		echo ""
 
 		echo "## USER REQUEST"
-		if [[ -n "$spec_file" ]]; then
-			jq -r '.user_request // "" | split("\n")[] | "> " + .' "$spec_file" 2>/dev/null || echo "> [see source file]"
+		if [[ -n "$effective_render_spec" ]]; then
+			jq -r '.user_request // "" | split("\n")[] | "> " + .' "$effective_render_spec" 2>/dev/null || echo "> [see source file]"
 		elif [[ -n "$source_file" ]]; then
 			echo "> [See source: $source_file]"
 		fi
@@ -258,18 +266,18 @@ cmd_render() {
 		echo "## CONSTRAINTS (NON-NEGOTIABLE)"
 		echo "| ID | Constraint | Type | Verify |"
 		echo "|----|-----------|------|--------|"
-		if [[ -n "$spec_file" ]]; then
+		if [[ -n "$effective_render_spec" ]]; then
 			jq -r '.constraints // [] | .[] | "| \(.id) | \(.text) | \(.type) | \(.verify // "manual") |"' \
-				"$spec_file" 2>/dev/null || true
+				"$effective_render_spec" 2>/dev/null || true
 		fi
 		echo ""
 
 		echo "## FUNCTIONAL REQUIREMENTS"
 		echo "| ID | Requirement | Wave | Verified |"
 		echo "|----|-------------|------|----------|"
-		if [[ -n "$spec_file" ]]; then
+		if [[ -n "$effective_render_spec" ]]; then
 			jq -r '.requirements // [] | .[] | "| \(.id) | \(.text) | \(.wave) | [ ] |"' \
-				"$spec_file" 2>/dev/null || true
+				"$effective_render_spec" 2>/dev/null || true
 		fi
 		echo ""
 
@@ -302,6 +310,9 @@ cmd_render() {
 	else
 		cat
 	fi
+
+	# Cleanup temp render spec if YAML was converted
+	[[ -n "$effective_render_spec" && "$effective_render_spec" != "$spec_file" ]] && rm -f "$effective_render_spec"
 }
 
 # Get full execution context for a plan in single JSON

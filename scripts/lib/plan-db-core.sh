@@ -2,7 +2,7 @@
 # Plan DB Core - Shared utilities
 # Sourced by plan-db.sh
 
-# Version: 1.3.0
+# Version: 1.4.0
 DB_FILE="${HOME}/.claude/data/dashboard.db"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -43,6 +43,25 @@ init_db() {
 # Escape single quotes for SQL
 sql_escape() {
 	printf '%s' "$1" | tr '\n\r' '  ' | sed "s/'/''/g"
+}
+
+# Convert YAML spec to temp JSON, or pass JSON through unchanged.
+# Usage: effective_path=$(yaml_to_json_temp "$spec_file")
+# Caller MUST rm "$effective_path" when done IF input was YAML.
+yaml_to_json_temp() {
+	local spec_file="$1"
+	if [[ "$spec_file" == *.yaml || "$spec_file" == *.yml ]]; then
+		local tmp
+		tmp=$(mktemp /tmp/plan-spec-XXXX.json)
+		python3 -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(open(sys.argv[1]))))" "$spec_file" >"$tmp" || {
+			log_error "Failed to convert YAML to JSON: $spec_file"
+			rm -f "$tmp"
+			return 1
+		}
+		echo "$tmp"
+	else
+		echo "$spec_file"
+	fi
 }
 
 # ============================================================

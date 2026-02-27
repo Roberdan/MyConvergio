@@ -5,10 +5,10 @@
 #
 # Commands:
 #   conflict-check <plan_id>                     - Check plan vs active peers
-#   conflict-check-spec <project_id> <spec.json> - Check spec before import
+#   conflict-check-spec <project_id> <spec.yaml|spec.json> - Check spec before import
 
 # Extract target files from a plan's tasks in DB
-# Version: 1.2.0
+# Version: 1.3.0
 _extract_plan_files_db() {
 	db_query "
 		SELECT DISTINCT t.description || ' ' || COALESCE(t.test_criteria,'')
@@ -111,21 +111,32 @@ cmd_check_conflicts() {
 	_run_conflict_analysis "$plan_id" "$plan_name" "$project_id" "$new_files"
 }
 
-# Check spec.json against all active plans before import
+# Check spec (YAML or JSON) against all active plans before import
 # Exit: 0=clean, 1=minor, 2=major
 cmd_check_conflicts_spec() {
 	local project_id="$1" spec_file="$2"
 	[[ ! -f "$spec_file" ]] && echo '{"error":"spec file not found"}' && return 2
 
+	# Convert YAML to temp JSON if needed
+	local effective_spec
+	effective_spec=$(yaml_to_json_temp "$spec_file") || {
+		echo '{"error":"YAML conversion failed"}'
+		return 2
+	}
+
 	local new_files
-	new_files=$(_extract_spec_files "$spec_file")
+	new_files=$(_extract_spec_files "$effective_spec")
 	if [[ -z "$new_files" ]]; then
+		[[ "$effective_spec" != "$spec_file" ]] && rm -f "$effective_spec"
 		jq -n --arg proj "$project_id" \
 			'{project_id:$proj,conflicts:[],overall_risk:"none",
 			  recommendation:"proceed",note:"no file targets in spec"}'
 		return 0
 	fi
 	_run_conflict_analysis "0" "(new spec)" "$project_id" "$new_files"
+	local rc=$?
+	[[ "$effective_spec" != "$spec_file" ]] && rm -f "$effective_spec"
+	return $rc
 }
 
 # Core analysis: compare file list against all active plans

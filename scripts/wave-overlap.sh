@@ -8,7 +8,7 @@
 #   check-wave <plan_id> <wave_db_id>  - Check overlap within a wave
 #   check-plan <plan_id>               - Check all waves in a plan
 #   check-spec <spec.json>             - Check a spec file before import
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -162,8 +162,15 @@ cmd_check_spec() {
 	local spec_file="$1"
 	[[ ! -f "$spec_file" ]] && echo '{"error":"spec file not found"}' && return 2
 
+	# Convert YAML to temp JSON if needed
+	local effective_spec
+	effective_spec=$(yaml_to_json_temp "$spec_file") || {
+		echo '{"error":"YAML conversion failed"}'
+		return 2
+	}
+
 	local waves
-	waves=$(jq -c '.waves // []' "$spec_file")
+	waves=$(jq -c '.waves // []' "$effective_spec")
 	local wave_count
 	wave_count=$(echo "$waves" | jq 'length')
 	local results="[]" worst_risk="none"
@@ -201,6 +208,9 @@ cmd_check_spec() {
 		fi
 	done
 
+	# Cleanup temp JSON if YAML was converted
+	[[ "$effective_spec" != "$spec_file" ]] && rm -f "$effective_spec"
+
 	jq -n --arg spec "$spec_file" --argjson waves "$results" \
 		--arg risk "$worst_risk" --argjson total "$wave_count" \
 		'{spec:$spec,waves_checked:$total,waves_with_overlap:$waves,
@@ -216,6 +226,6 @@ check-spec) cmd_check_spec "${2:?spec_file required}" ;;
 	echo "Usage: wave-overlap.sh <command> [args]"
 	echo "  check-wave <plan_id> <wave_db_id>  - Overlap within a wave"
 	echo "  check-plan <plan_id>               - Check all waves"
-	echo "  check-spec <spec.json>             - Check before import"
+	echo "  check-spec <spec.yaml|spec.json>   - Check before import"
 	;;
 esac

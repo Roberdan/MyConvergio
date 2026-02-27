@@ -365,6 +365,15 @@ cmd_pr_sync() {
 	case "$pr_state" in
 	MERGED)
 		log_info "Previous wave PR #${prev_pr} is MERGED"
+		# Retroactive check: warn if merged with unresolved threads
+		if [[ -f "$SCRIPT_DIR/lib/pr-ops-api.sh" ]]; then
+			source "$SCRIPT_DIR/lib/pr-ops-api.sh"
+			local merged_threads
+			merged_threads=$(gql_review_threads "$prev_pr" 2>/dev/null | jq '[.[]? | select(.isResolved == false)] | length' 2>/dev/null || echo "0")
+			if [[ "${merged_threads:-0}" -gt 0 ]]; then
+				log_warn "PR #${prev_pr} was merged with ${merged_threads} unresolved thread(s) — review before proceeding"
+			fi
+		fi
 		db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${prev_wave_id};" 2>/dev/null || true
 
 		# Rebase current wave onto main
@@ -392,11 +401,20 @@ cmd_pr_sync() {
 		' 2>/dev/null || true)
 		;;
 	OPEN)
-		log_info "Previous wave PR #${prev_pr} still OPEN — checking CI"
+		log_info "Previous wave PR #${prev_pr} still OPEN — checking CI + threads"
 		local checks_ok
 		checks_ok=$(gh pr checks "$prev_pr" 2>/dev/null | grep -c "fail" || true)
 		if [[ "${checks_ok:-0}" -gt 0 ]]; then
 			log_warn "PR #${prev_pr} has CI failures — continue but note"
+		fi
+		# Check unresolved threads on open PR
+		if [[ -f "$SCRIPT_DIR/lib/pr-ops-api.sh" ]]; then
+			source "$SCRIPT_DIR/lib/pr-ops-api.sh"
+			local open_threads
+			open_threads=$(gql_review_threads "$prev_pr" 2>/dev/null | jq '[.[]? | select(.isResolved == false)] | length' 2>/dev/null || echo "0")
+			if [[ "${open_threads:-0}" -gt 0 ]]; then
+				log_warn "PR #${prev_pr} has ${open_threads} unresolved thread(s) — resolve before merge"
+			fi
 		fi
 		echo "{\"sync\":\"pending\",\"pr_state\":\"OPEN\",\"pr_number\":${prev_pr}}"
 		return 0

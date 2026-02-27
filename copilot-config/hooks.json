@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "hooks": {
     "preToolUse": [
       {
@@ -20,6 +20,11 @@
       {
         "type": "command",
         "bash": "~/.copilot/hooks/warn-bash-antipatterns.sh",
+        "timeoutSec": 5
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/prefer-ci-summary.sh",
         "timeoutSec": 5
       },
       {

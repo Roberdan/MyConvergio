@@ -99,6 +99,9 @@ if [ -f "$WORKTREE_PATH/package.json" ]; then
 	(cd "$WORKTREE_PATH" && npm install)
 fi
 
+# NOTE: If WorktreeCreate hook is configured in settings.json, .env symlink and
+# npm install are handled by the hook automatically. This inline setup is the fallback.
+
 echo ""
 echo -e "${GREEN}=== WORKTREE READY ===${NC}"
 echo -e "cd $WORKTREE_PATH"

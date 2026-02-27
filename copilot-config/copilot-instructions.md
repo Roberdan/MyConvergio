@@ -14,7 +14,7 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 | ------------------------------ | -------------------- | -------- |
 | **Requirements extraction**    | `claude-opus-4.6`    | premium  |
 | **Strategic planning**         | `claude-opus-4.6-1m` | premium  |
-| **Code generation / TDD**      | `gpt-5`              | standard |
+| **Code generation / TDD**      | `gpt-5.3-codex`      | standard |
 | **Quality validation (Thor)**  | `claude-opus-4.6`    | premium  |
 | **Code review / security**     | `claude-opus-4.6`    | premium  |
 | **Compliance (full codebase)** | `claude-opus-4.6-1m` | premium  |
@@ -22,7 +22,7 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 | **Codebase exploration**       | `claude-haiku-4.5`   | fast     |
 | **Quick fixes / bulk edits**   | `gpt-5-mini`         | fast     |
 | **Build / test execution**     | `claude-haiku-4.5`   | fast     |
-| **Complex refactoring**        | `gpt-5`              | standard |
+| **Complex refactoring**        | `gpt-5.3-codex`      | standard |
 | **Architecture analysis**      | `claude-opus-4.6-1m` | premium  |
 
 ### When to Use 1M Context (`claude-opus-4.6-1m`)
@@ -32,7 +32,7 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 - Architecture review of full project
 - Migration planning needing full dependency graph
 
-### When to Use GPT-5 (`gpt-5`)
+### When to Use GPT-5.3-Codex (`gpt-5.3-codex`)
 
 - Writing new code (functions, classes, modules)
 - TDD cycles (test writing + implementation)
@@ -52,11 +52,11 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 | --------------------- | ------------------------- | -------------------- |
 | `@prompt`             | Extract F-xx requirements | `claude-opus-4.6`    |
 | `@planner`            | Wave/task decomposition   | `claude-opus-4.6-1m` |
-| `@execute`            | TDD task execution        | `gpt-5`              |
+| `@execute`            | TDD task execution        | `gpt-5.3-codex`      |
 | `@validate`           | Thor quality gates        | `claude-opus-4.6`    |
 | `@strategic-planner`  | Multi-phase initiatives   | `claude-opus-4.6-1m` |
 | `@code-reviewer`      | Security-focused review   | `claude-opus-4.6`    |
-| `@tdd-executor`       | Standalone TDD cycle      | `gpt-5`              |
+| `@tdd-executor`       | Standalone TDD cycle      | `gpt-5.3-codex`      |
 | `@compliance-checker` | Regulatory validation     | `claude-opus-4.6-1m` |
 
 ## `/execute` — Plan Execution Workflow (MANDATORY)
@@ -156,6 +156,29 @@ Every token costs money. Applies to ALL agent output: code, commits, PRs, review
 - **PRs**: `## Summary` (2-3 bullets) + `## Test plan`.
 - **Reviews**: issue + fix. No softening.
 - **Docs/ADRs/CHANGELOGs**: tables > prose, commands > descriptions. No preambles.
+
+## Background Delegation
+
+Prefix any prompt with `&` to delegate to a cloud coding agent running in the background:
+
+```
+& refactor all fetch calls to use the new API client
+```
+
+Use `/resume` to check status or retrieve output. Useful for long-running mechanical tasks (bulk refactoring, file generation, migration scripts) where you don't need to wait inline.
+
+## Session Tools
+
+| Command              | Purpose                                             |
+| -------------------- | --------------------------------------------------- |
+| `/chronicle standup` | Auto-generate standup from session history          |
+| `/chronicle tips`    | Optimization tips based on current session patterns |
+
+**Cross-session memory**: Copilot retains context between sessions (Pro/Pro+ plans). Reference earlier decisions without re-explaining.
+
+## .github/skills/ Support
+
+Skills in `.github/skills/` are auto-loaded by Copilot CLI when relevant to the current task. Mirror key skills from `.claude/skills/` for cross-tool parity (same skill, both paths).
 
 ## Plan DB Commands
 

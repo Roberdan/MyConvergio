@@ -340,6 +340,110 @@ test_trigger_sets_merging() {
 }
 
 # ---------------------------------------------------------------------------
+# Test 9: resolve_github_remote() with remote named "github"
+# ---------------------------------------------------------------------------
+test_resolve_github_remote_named_github() {
+	echo ""
+	echo "--- Test 9: resolve_github_remote() — remote named 'github' ---"
+	setup
+	source_libs
+
+	local tmp_repo="$TEST_DIR/github-remote-repo"
+	mkdir -p "$tmp_repo"
+	git -C "$tmp_repo" init -q
+	git -C "$tmp_repo" config user.email "t@t.com"
+	git -C "$tmp_repo" config user.name "T"
+	git -C "$tmp_repo" remote add github "https://github.com/someuser/somerepo.git"
+	git -C "$tmp_repo" remote add origin "https://example.com/other.git"
+
+	local result
+	result=$(resolve_github_remote "$tmp_repo")
+	assert_eq "resolve_github_remote returns 'github' when a remote named github points to github.com" "github" "$result"
+
+	teardown
+}
+
+# ---------------------------------------------------------------------------
+# Test 10: resolve_github_remote() with remote named "origin" pointing to github.com
+# ---------------------------------------------------------------------------
+test_resolve_github_remote_origin() {
+	echo ""
+	echo "--- Test 10: resolve_github_remote() — origin points to github.com ---"
+	setup
+	source_libs
+
+	local tmp_repo="$TEST_DIR/origin-remote-repo"
+	mkdir -p "$tmp_repo"
+	git -C "$tmp_repo" init -q
+	git -C "$tmp_repo" config user.email "t@t.com"
+	git -C "$tmp_repo" config user.name "T"
+	git -C "$tmp_repo" remote add origin "https://github.com/someuser/somerepo.git"
+
+	local result
+	result=$(resolve_github_remote "$tmp_repo")
+	assert_eq "resolve_github_remote returns 'origin' when origin points to github.com" "origin" "$result"
+
+	teardown
+}
+
+# ---------------------------------------------------------------------------
+# Test 11: resolve_github_remote() falls back to first remote (non-github URL)
+# ---------------------------------------------------------------------------
+test_resolve_github_remote_fallback() {
+	echo ""
+	echo "--- Test 11: resolve_github_remote() — fallback to first remote ---"
+	setup
+	source_libs
+
+	local tmp_repo="$TEST_DIR/custom-remote-repo"
+	mkdir -p "$tmp_repo"
+	git -C "$tmp_repo" init -q
+	git -C "$tmp_repo" config user.email "t@t.com"
+	git -C "$tmp_repo" config user.name "T"
+	git -C "$tmp_repo" remote add custom "https://gitlab.com/someuser/somerepo.git"
+
+	local result
+	result=$(resolve_github_remote "$tmp_repo")
+	assert_eq "resolve_github_remote returns 'custom' (first remote) when no github.com URL" "custom" "$result"
+
+	teardown
+}
+
+# ---------------------------------------------------------------------------
+# Test 12: No --timeout flag in wave-worktree.sh
+# ---------------------------------------------------------------------------
+test_no_timeout_flag() {
+	echo ""
+	echo "--- Test 12: No --timeout flag in wave-worktree.sh ---"
+
+	local count
+	count=$(grep -c '\-\-timeout' "$SCRIPT_DIR/wave-worktree.sh" || true)
+	assert_eq "wave-worktree.sh contains 0 occurrences of --timeout" "0" "$count"
+}
+
+# ---------------------------------------------------------------------------
+# Test 13: Rollback pattern exists (merging -> in_progress on failure)
+# ---------------------------------------------------------------------------
+test_rollback_pattern_exists() {
+	echo ""
+	echo "--- Test 13: Rollback pattern: merging -> in_progress on failure ---"
+
+	assert "rollback pattern (status='in_progress' WHERE) found in wave-worktree.sh" \
+		grep -qE "status='in_progress'" "$SCRIPT_DIR/wave-worktree.sh"
+}
+
+# ---------------------------------------------------------------------------
+# Test 14: Pre-flight diff check exists (empty wave detection)
+# ---------------------------------------------------------------------------
+test_preflight_diff_check_exists() {
+	echo ""
+	echo "--- Test 14: Pre-flight diff check (No changes in wave worktree) ---"
+
+	assert "pre-flight diff check pattern found in wave-worktree.sh" \
+		grep -qE "log.*main.*HEAD|No changes in wave worktree" "$SCRIPT_DIR/wave-worktree.sh"
+}
+
+# ---------------------------------------------------------------------------
 # Run all tests
 # ---------------------------------------------------------------------------
 echo ""
@@ -353,6 +457,12 @@ test_cleanup_clears_db
 test_backward_compat_wave_is_active
 test_complete_blocks_merging
 test_trigger_sets_merging
+test_resolve_github_remote_named_github
+test_resolve_github_remote_origin
+test_resolve_github_remote_fallback
+test_no_timeout_flag
+test_rollback_pattern_exists
+test_preflight_diff_check_exists
 
 echo ""
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="

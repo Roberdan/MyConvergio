@@ -89,3 +89,4 @@ agents/research_report/output/
 
 # Package lock (not needed for this config repo)
 package-lock.json
+agent-memory/research-report-generator/MEMORY.md

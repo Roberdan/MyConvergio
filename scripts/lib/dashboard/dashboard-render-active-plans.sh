@@ -1,6 +1,6 @@
 #!/bin/bash
 # Active plans rendering
-# Version: 1.5.0
+# Version: 2.0.0
 
 _render_active_plans() {
 	echo -e "${BOLD}${WHITE}🚀 Piani Attivi${NC}"
@@ -9,13 +9,15 @@ _render_active_plans() {
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id),
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND tasks_done=tasks_total AND tasks_total>0),
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status='in_progress'),
-			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id)),
-			(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id) AND status='done'),
+			(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id),
+			(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id AND status='done'),
 			COALESCE((SELECT SUM(total_tokens) FROM token_usage WHERE project_id=p.project_id), 0),
 			COALESCE(p.execution_host, ''),
-			COALESCE(p.human_summary, REPLACE(REPLACE(COALESCE(p.description, ''), char(10), ' '), char(13), ''))
+			COALESCE(p.human_summary, REPLACE(REPLACE(COALESCE(p.description, ''), char(10), ' '), char(13), '')),
+			COALESCE((SELECT id FROM waves WHERE plan_id=p.id AND status='in_progress' ORDER BY position LIMIT 1), ''),
+			COALESCE((SELECT wave_id FROM waves WHERE plan_id=p.id AND status='in_progress' ORDER BY position LIMIT 1), '')
 		FROM plans p WHERE p.status IN ('doing', 'in_progress') ORDER BY p.id
-	" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated pproject wave_total wave_done wave_doing task_total task_done total_tokens exec_host pdescription; do
+	" | while IFS='|' read -r pid pname pstatus pupdated pstarted pcreated pproject wave_total wave_done wave_doing task_total task_done total_tokens exec_host pdescription active_wave_id active_wave_name; do
 		[ -z "$pid" ] && continue
 
 		# Elapsed time (running time)
@@ -154,10 +156,8 @@ _render_active_plans() {
 			done
 		fi
 
-		# Tasks della wave attiva (in_progress + pending)
-		active_wave_id=$(dbq "SELECT id FROM waves WHERE plan_id = $pid AND status = 'in_progress' ORDER BY position LIMIT 1" 2>/dev/null)
+		# Tasks della wave attiva (in_progress + pending) — active_wave_id/name from main query
 		if [ -n "$active_wave_id" ]; then
-			active_wave_name=$(dbq "SELECT wave_id FROM waves WHERE id = $active_wave_id" 2>/dev/null)
 			running_tasks=$(dbq "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), t.status FROM tasks t WHERE t.wave_id_fk = $active_wave_id AND t.status IN ('in_progress', 'pending') ORDER BY CASE t.status WHEN 'in_progress' THEN 0 ELSE 1 END, t.id" 2>/dev/null)
 			if [ -n "$running_tasks" ]; then
 				echo -e "${GRAY}│  ${NC}${YELLOW}⚡ Wave ${active_wave_name:-?}:${NC}"

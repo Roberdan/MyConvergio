@@ -1,7 +1,7 @@
 ---
 name: task-executor-tdd
 description: TDD workflow module for task-executor. Reference only.
-version: "1.1.0"
+version: "1.2.0"
 ---
 
 # TDD Workflow Module
@@ -39,26 +39,30 @@ For each item in `test_criteria`:
 2. **Write test describing expected behavior** - MUST FAIL initially
 3. **Run test to confirm RED state**
 
-**Commands by Framework**:
+**Commands by Framework** (ALWAYS minimize output — verbose wastes tokens):
 
 ```bash
-# Jest/Vitest
-npm test -- --testPathPattern="ComponentName"
+# Jest/Vitest (--silent = no console.log, summary only)
+npm test -- --testPathPattern="ComponentName" --silent
 
-# pytest
-pytest tests/test_feature.py -v
+# pytest (--tb=line = 1-line failures, -q = dots not verbose, --no-header = skip banner)
+pytest tests/test_feature.py --tb=line -q --no-header
 
-# Playwright
-npx playwright test feature.spec.ts
+# Playwright (line reporter = compact)
+npx playwright test feature.spec.ts --reporter=line
 
-# Cargo
-cargo test test_name
+# Cargo (--quiet = summary only)
+cargo test test_name --quiet
 ```
+
+**NEVER use `-v`/`--verbose` flags.** NEVER use `| tail`/`| head` pipes (hooks block these).
 
 ### Step 3: Verify RED State
 
 ```bash
-npm test 2>&1 | grep -E "(FAIL|failed)" && echo "RED confirmed"
+# Non-zero exit = RED confirmed. Framework flags already minimize output.
+npm test -- --testPathPattern="ComponentName" --silent
+# Check $? in Bash result
 ```
 
 **DO NOT proceed to implementation until tests are written and failing.**
@@ -82,10 +86,10 @@ npm test 2>&1 | grep -E "(FAIL|failed)" && echo "RED confirmed"
 - **Excluded**: Generated code, type definitions
 
 ```bash
-# Check coverage
-npm test -- --coverage --coverageReporters=text-summary
-pytest --cov=src --cov-report=term-missing
-cargo tarpaulin --out Stdout
+# Coverage (summary reporters only, no verbose)
+npm test -- --coverage --coverageReporters=text-summary --silent
+pytest --cov=src --cov-report=term-missing -q --no-header
+cargo tarpaulin --out Stdout --quiet
 ```
 
 ---
@@ -102,5 +106,6 @@ cargo tarpaulin --out Stdout
 
 ## Changelog
 
+- **1.2.0** (2026-02-27): Minimize test output (--silent, --tb=line, -q, --quiet); no | tail pipes (hooks block)
 - **1.1.0** (2026-02-27): Added LSP go-to-definition note for test file navigation (Step 1b)
 - **1.0.0** (2026-01-10): Extracted TDD workflow from task-executor.md for modularity

@@ -1,4 +1,4 @@
-<!-- v2.1.0 -->
+<!-- v2.2.0 -->
 
 # Process Guardian
 
@@ -20,7 +20,7 @@ See CLAUDE.md Anti-Bypass + Mandatory Routing sections. Plan creation = `/planne
 
 ## Git & PR
 
-Branch: feature/, fix/, chore/ | Conventional commits | Lint+typecheck+test before commit | Build passes | ZERO debt (no TODO, FIXME, @ts-ignore)
+Branch: feature/, fix/, chore/ | Conventional commits | Lint+typecheck+test before commit | Build passes | ZERO debt (no TODO, FIXME, @ts-ignore) | **NEVER `git merge main` into wave branch** — use `git rebase origin/main` (see worktree-discipline.md § Git Graph Hygiene)
 
 ## PR Post-Push Protocol (NON-NEGOTIABLE)
 

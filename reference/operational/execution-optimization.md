@@ -1,4 +1,4 @@
-<!-- v2.2.0 | 27 Feb 2026 | Pre-spawn memory gate, resource limits, Defender awareness -->
+<!-- v2.3.0 | 27 Feb 2026 | Rebase-before-merge in wave merge flow -->
 
 # Execution Optimization
 
@@ -85,7 +85,7 @@ After each task-executor completes, the coordinator MUST:
 After ALL tasks in a wave are Thor-validated:
 
 4. **Thor per-wave**: `plan-db.sh validate-wave {wave_db_id}`
-5. **Wave merge**: `wave-worktree.sh merge {plan_id} {wave_db_id}` → auto-commit + push + PR + CI + review comments check + squash merge to main
+5. **Wave merge**: `wave-worktree.sh merge {plan_id} {wave_db_id}` → auto-commit + rebase onto main + push (force-with-lease) + PR + CI + review comments check + squash merge to main
 6. **If merge blocked (unresolved PR comments)**: Invoke `Task(subagent_type='pr-comment-resolver')` with PR number. After resolution, retry `wave-worktree.sh merge`. Max 3 rounds.
 7. **Wave cleanup (NON-NEGOTIABLE)**: After merge succeeds, verify ALL artifacts are cleaned:
    - `session-reaper.sh --max-age 0` (kill orphan processes)

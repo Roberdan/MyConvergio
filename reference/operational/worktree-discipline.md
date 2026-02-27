@@ -1,4 +1,4 @@
-<!-- v3.1.0 | 27 Feb 2026 | Native Subagent Worktree Isolation (v2.1.50+) added -->
+<!-- v3.2.0 | 27 Feb 2026 | Rebase-before-merge, no forward-merge rule -->
 
 # Worktree Discipline
 
@@ -9,15 +9,27 @@ Every wave gets a dedicated worktree + PR. Merge is proof that work exists.
 ### Lifecycle
 
 ```
-create → execute tasks → Thor validate → PR → merge → cleanup
+create → execute tasks → Thor validate → rebase → PR → squash merge → cleanup
 ```
 
 1. `wave-worktree.sh create <plan_id> <wave_db_id>` — worktree from main HEAD
 2. Task executors work in wave worktree
 3. Thor per-task + per-wave validation
-4. `wave-worktree.sh merge` — auto-commit, push, PR, CI, squash merge
+4. `wave-worktree.sh merge` — rebase onto main, push, PR, CI, squash merge
 5. Wave status: `pending` → `in_progress` → `merging` → `done`
 6. `done` = ONLY after merge to main succeeds
+
+### Git Graph Hygiene (NON-NEGOTIABLE)
+
+**NEVER `git merge main` into a wave branch.** This creates merge commits that pollute the git graph.
+
+| Need to sync with main? | Do this                         | NOT this         |
+| ----------------------- | ------------------------------- | ---------------- |
+| During task execution   | `git rebase origin/main`        | `git merge main` |
+| Before push             | `wave-worktree.sh merge` (auto) | Manual merge     |
+| Conflicts               | Rebase + resolve                | Forward-merge    |
+
+`wave-worktree.sh merge` v2.1.0 auto-rebases onto main before push (`--force-with-lease`).
 
 ### Branch Naming
 

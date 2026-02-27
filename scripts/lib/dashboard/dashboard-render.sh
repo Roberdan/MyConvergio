@@ -1,6 +1,6 @@
 #!/bin/bash
 # Dashboard rendering functions
-# Version: 1.4.0
+# Version: 2.0.0
 # This module contains all display/rendering logic
 
 # Render single plan detail view
@@ -39,13 +39,22 @@ _render_single_plan() {
 	*) status_display="${BLUE}TODO${NC}" ;;
 	esac
 
-	# Pre-compute metrics for summary header
+	# Pre-compute metrics (single query instead of 5)
 	local task_total task_done task_validated wave_total wave_done
-	task_total=$(dbq "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
-	task_done=$(dbq "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
-	task_validated=$(dbq "SELECT COUNT(*) FROM tasks WHERE status='done' AND validated_at IS NOT NULL AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
-	wave_total=$(dbq "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
-	wave_done=$(dbq "SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND tasks_done = tasks_total AND tasks_total > 0")
+	local metrics_data
+	metrics_data=$(dbq "
+		SELECT
+			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid),
+			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid AND status='done'),
+			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid AND status='done' AND validated_at IS NOT NULL),
+			(SELECT COUNT(*) FROM waves WHERE plan_id = $pid),
+			(SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND tasks_done = tasks_total AND tasks_total > 0)
+	")
+	task_total=$(echo "$metrics_data" | cut -d'|' -f1)
+	task_done=$(echo "$metrics_data" | cut -d'|' -f2)
+	task_validated=$(echo "$metrics_data" | cut -d'|' -f3)
+	wave_total=$(echo "$metrics_data" | cut -d'|' -f4)
+	wave_done=$(echo "$metrics_data" | cut -d'|' -f5)
 
 	# Elapsed time
 	local elapsed_time=""

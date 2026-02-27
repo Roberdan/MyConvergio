@@ -1,6 +1,6 @@
 #!/bin/bash
 # Dashboard overview rendering (multi-plan mode)
-# Version: 2.0.0
+# Version: 2.1.0
 
 _render_dashboard_overview() {
 	echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════╗${NC}"
@@ -8,7 +8,7 @@ _render_dashboard_overview() {
 	echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════╝${NC}"
 	echo ""
 
-	# Overview (single query instead of 7 separate calls)
+	# Overview (single query, uses plan_id direct index instead of nested wave subqueries)
 	local overview
 	overview=$(dbq "
 SELECT
@@ -16,9 +16,9 @@ SELECT
 (SELECT COUNT(*) FROM plans WHERE status='done'),
 (SELECT COUNT(*) FROM plans WHERE status='doing'),
 (SELECT COUNT(*) FROM plans WHERE status='todo'),
-(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id IN (SELECT id FROM plans WHERE status='doing'))),
-(SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id IN (SELECT id FROM plans WHERE status='doing'))),
-(SELECT COUNT(*) FROM tasks WHERE status='in_progress' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id IN (SELECT id FROM plans WHERE status='doing')));
+(SELECT COUNT(*) FROM tasks WHERE plan_id IN (SELECT id FROM plans WHERE status='doing')),
+(SELECT COUNT(*) FROM tasks WHERE status='done' AND plan_id IN (SELECT id FROM plans WHERE status='doing')),
+(SELECT COUNT(*) FROM tasks WHERE status='in_progress' AND plan_id IN (SELECT id FROM plans WHERE status='doing'));
 ")
 	local total plan_done doing todo total_tasks done_tasks in_progress_tasks
 	total=$(echo "$overview" | cut -d'|' -f1)
@@ -70,7 +70,7 @@ SELECT
 		dbq "
 			SELECT p.id, p.name, p.project_id,
 				COALESCE(p.completed_at, p.updated_at, p.created_at),
-				(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id))
+				(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id)
 			FROM plans p WHERE p.status='done'
 			ORDER BY COALESCE(p.completed_at, p.updated_at, p.created_at) DESC LIMIT 7
 		" | while IFS='|' read -r pid pname pproject pcompleted ptasks; do

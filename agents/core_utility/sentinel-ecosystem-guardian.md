@@ -19,7 +19,7 @@ tools:
     "AskUserQuestion",
   ]
 model: opus
-version: "1.0.0"
+version: "1.1.0"
 memory: user
 maxTurns: 50
 ---
@@ -65,6 +65,7 @@ Read `~/.claude/settings.json` and check against latest schema:
 | New settings fields | Any new top-level fields available                                                     |
 | Plugin updates      | Check for new official plugins                                                         |
 | MCP config          | Verify mcp.json against latest spec                                                    |
+| **v2.1.x check**    | Verify wildcard permissions (`mcp__codegraph__*`, `Bash(npm *)`, `Bash(git *)`) present |
 
 ### Phase 3: Agent Audit
 
@@ -155,6 +156,18 @@ Glob: ~/GitHub/MirrorBuddy/.claude/commands/*.md
 | Hook coverage                    | All hook events have handlers                    |
 | Rule deduplication               | No duplicate rules between global and project    |
 
+### Phase 7.5: v2.1.x Feature Audit
+
+Verify new v2.1.x capabilities are configured:
+
+| Check                          | How                                                                        |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| LSP tool availability          | Verify LSP tools present in settings or agent tools lists if project has LSP |
+| WorktreeCreate hook configured | `Glob: ~/.claude/hooks/*worktree*.sh` — should exist after v2.1.x update  |
+| WorktreeRemove hook configured | Hook should run cleanup (file locks, symlinks)                             |
+| Wildcard permissions           | `settings.json` has `mcp__codegraph__*`, `Bash(npm *)`, `Bash(git *)`     |
+| Agent Teams references         | Key agents reference TeamCreate/SendMessage instead of Kitty terminal      |
+
 ### Phase 8: Report & Apply
 
 Generate a structured report:
@@ -225,3 +238,8 @@ Run this agent when:
 - Monthly maintenance (`/maintenance` or manual)
 - After major project changes
 - After adding new agents, scripts, or skills
+
+## Changelog
+
+- **1.1.0** (2026-02-27): Added Phase 7.5 v2.1.x Feature Audit: LSP tool availability check, WorktreeCreate/Remove hook verification, wildcard permissions check, Agent Teams references audit
+- **1.0.0** (2026-01-21): Initial ecosystem guardian agent

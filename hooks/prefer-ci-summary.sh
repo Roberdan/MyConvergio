@@ -2,7 +2,7 @@
 # prefer-ci-summary.sh - PreToolUse hook on Bash
 # Intercepts verbose commands → suggests token-efficient alternatives.
 # Block = exit 2. Hint = exit 0.
-# Version: 1.3.0
+# Version: 1.4.0
 #
 # Block rules check BASE_CMD (before pipe), so
 # "gh run view --log-failed | tail -200" is STILL blocked.
@@ -135,6 +135,12 @@ echo "$BASE_CMD" | grep -qE "^git status( |$)" && {
 }
 if echo "$BASE_CMD" | grep -qE "^git log( |$)" && ! echo "$COMMAND" | grep -qE "\-\-(oneline|format)"; then
 	echo "Use: git-digest.sh" >&2
+	exit 2
+fi
+
+# === BLOCK: GIT SHOW (verbose) ===
+if echo "$BASE_CMD" | grep -qE "^git show( |$)" && ! echo "$COMMAND" | grep -qE "\-\-(oneline|format|stat)"; then
+	echo "Use: git log --oneline --stat <sha> -1" >&2
 	exit 2
 fi
 

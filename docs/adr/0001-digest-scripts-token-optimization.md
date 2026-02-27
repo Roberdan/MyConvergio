@@ -100,8 +100,16 @@ Section "Digest Scripts (NON-NEGOTIABLE)" with full mapping table. Read by every
 
 ### Neutral
 
-- Old scripts (`ci-check.sh`, `vercel-helper.sh`) remain for backward compatibility
+- `vercel-helper.sh` remains for backward compatibility
+- `ci-check.sh` removed (deprecated); replaced by `ci-digest.sh checks` subcommand
 - Project-specific `ci-summary.sh` still preferred when available
+
+## Amendments
+
+| Version | Date        | Change                                                                                                            |
+| ------- | ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| v9.16.0 | 27 Feb 2026 | All digest scripts now support `--compact` flag (YAML output); see ADR 0021 for JSON vs YAML serialization policy |
+| v9.16.0 | 27 Feb 2026 | `ci-check.sh` removed; replaced by `ci-digest.sh checks` subcommand                                               |
 
 ## Usage Examples
 

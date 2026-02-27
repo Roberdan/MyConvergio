@@ -117,7 +117,7 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 
 	# Release file locks held by this task
 	if [[ -x "$SCRIPT_DIR/file-lock.sh" ]]; then
-		"$SCRIPT_DIR/file-lock.sh" release-task "$TASK_ID" 2>/dev/null || true
+		"$SCRIPT_DIR/file-lock.sh" release-task "$TASK_ID" >/dev/null 2>/dev/null || true
 	fi
 
 	# --- DELEGATE: mark task done (needed for validate-task status check) ---

@@ -13,7 +13,6 @@
 
 audit-digest.sh                                    1.1.0
 build-digest.sh                                    1.1.0
-ci-check.sh                                        1.1.0
 ci-digest.sh                                       1.1.0
 claude-monitor.sh                                  1.1.0
 claude-parallel.sh                                 1.0.0

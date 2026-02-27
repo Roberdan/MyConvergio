@@ -1,5 +1,29 @@
 # Changelog
 
+## [v9.16.0] - 27 Feb 2026
+
+### Added
+
+- `--compact` flag for all 14 digest scripts (~30-40% fewer tokens)
+- `ci-digest.sh checks <pr>` subcommand replacing `gh pr checks`
+- ADR 0021: Serialization Format Policy (JSON vs YAML)
+- ADR Index (docs/adr/INDEX.md)
+- Active wave tasks display in dashboard mini
+- `gh auth switch` hint for GitHub auth failures
+
+### Changed
+
+- `prefer-ci-summary.sh` v1.3.0: compact single-line error messages, blocks `gh pr checks`
+- `digest-scripts.md` and `tool-preferences.md` updated with new commands
+- ADR 0001 updated with `--compact` reference
+
+### Removed
+
+- `scripts/ci-check.sh` (replaced by `ci-digest.sh`)
+- `scripts/executor-tracking.sh` (broken dependency)
+
+---
+
 ## [v9.0.0] - 27 Feb 2026
 
 ### Added

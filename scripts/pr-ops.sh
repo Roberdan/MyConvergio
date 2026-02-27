@@ -190,7 +190,7 @@ cmd_ci() {
 		echo "No CI runs found for branch $branch"
 		exit 1
 	}
-	"$SCRIPT_DIR/ci-check.sh" "$run_id"
+	"$SCRIPT_DIR/ci-digest.sh" "$run_id"
 }
 
 # --- Dispatch ---

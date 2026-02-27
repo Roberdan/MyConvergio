@@ -1,4 +1,4 @@
-<!-- v2.3.0 -->
+<!-- v2.4.0 -->
 
 # Process Guardian
 
@@ -49,6 +49,16 @@ When plan implementation changes break existing tests, **update tests to match n
 ## Integration Completeness (NON-NEGOTIABLE)
 
 New code MUST be wired into at least one consumer. New components MUST have a render site. Changed interfaces MUST have ALL consumers updated. Orphan code (created but never imported) = REJECTION. See `~/.claude/rules/testing-standards.md` for mock boundaries and fail-loud patterns.
+
+## New Repo / Repo Audit Checklist
+
+When onboarding a new repo or auditing existing ones, verify:
+
+1. **Branch protection**: `branch-protect.sh check owner/repo [branch]` — must show PROTECTED
+2. **If not protected**: `branch-protect.sh apply owner/repo [branch]` (requires GitHub Pro for private repos)
+3. **Required settings**: `required_conversation_resolution: true` + `enforce_admins: true`
+
+Without branch protection, GitHub Web UI allows merging with unresolved review comments.
 
 ## Guardrails
 

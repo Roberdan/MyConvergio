@@ -63,6 +63,7 @@
 | `gh pr merge`            | `pr-ops.sh merge <pr>`            |
 | Pattern check (pre-PR)   | `code-pattern-check.sh --json`    |
 | Copilot review digest    | `copilot-review-digest.sh <pr>`   |
+| Branch protection audit  | `branch-protect.sh check <repo>`  |
 
 Hook `prefer-ci-summary.sh` enforces this automatically.
 

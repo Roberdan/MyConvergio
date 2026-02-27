@@ -223,28 +223,17 @@ cmd_merge() {
 			return 1
 		fi
 	else
-		local ci_status
-		ci_status=$(gh pr checks "$pr_number" --repo "$remote_repo" 2>/dev/null | grep -c "fail" || true)
-		if [[ "${ci_status:-0}" -gt 0 ]]; then
-			log_error "CI failed for PR $pr_url"
-			db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
-			return 1
-		fi
+		log_error "pr-ops.sh not found or not executable — cannot verify merge readiness"
+		log_error "Install pr-ops.sh or fix permissions: chmod +x $SCRIPT_DIR/pr-ops.sh"
+		db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 1
 	fi
 
-	# 11. Merge
-	if [[ -x "$SCRIPT_DIR/pr-ops.sh" ]]; then
-		if ! "$SCRIPT_DIR/pr-ops.sh" merge "$pr_number"; then
-			log_error "Merge failed for wave ${wave_db_id} — rolling back to in_progress"
-			db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
-			return 1
-		fi
-	else
-		if ! gh pr merge "$pr_number" --squash --delete-branch; then
-			log_error "Merge failed for wave ${wave_db_id} — rolling back to in_progress"
-			db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
-			return 1
-		fi
+	# 11. Merge (always via pr-ops.sh — no fallback to raw gh pr merge)
+	if ! "$SCRIPT_DIR/pr-ops.sh" merge "$pr_number"; then
+		log_error "Merge failed for wave ${wave_db_id} — rolling back to in_progress"
+		db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 1
 	fi
 
 	# 12. Mark done + cleanup

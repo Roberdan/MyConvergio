@@ -85,6 +85,11 @@
         "type": "command",
         "bash": "~/.copilot/hooks/session-file-unlock.sh",
         "timeoutSec": 10
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/session-reaper.sh",
+        "timeoutSec": 10
       }
     ]
   }

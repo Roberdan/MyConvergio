@@ -10,7 +10,18 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "permissions": {
-    "allow": ["mcp__codegraph__*", "Bash(npm *)", "Bash(git *)"],
+    "allow": [
+      "mcp__codegraph__*",
+      "Bash(npm *)",
+      "Bash(git *)",
+      "mcp__codegraph__codegraph_search",
+      "mcp__codegraph__codegraph_context",
+      "mcp__codegraph__codegraph_callers",
+      "mcp__codegraph__codegraph_callees",
+      "mcp__codegraph__codegraph_impact",
+      "mcp__codegraph__codegraph_node",
+      "mcp__codegraph__codegraph_status"
+    ],
     "deny": [],
     "defaultMode": "bypassPermissions"
   },
@@ -126,6 +137,16 @@
             "prompt": "~/.claude/hooks/advisory-suggest-alternatives.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "codegraph mark-dirty",
+            "async": true
+          }
+        ]
       }
     ],
     "SubagentStart": [
@@ -195,6 +216,24 @@
             "type": "command",
             "command": "~/.claude/hooks/session-file-unlock.sh",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/session-reaper.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "codegraph sync-if-dirty"
           }
         ]
       }

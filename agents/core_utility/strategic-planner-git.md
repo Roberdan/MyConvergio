@@ -1,7 +1,7 @@
 ---
 name: strategic-planner-git
 description: Git worktree workflow for strategic-planner parallel execution. Reference module.
-version: "2.1.0"
+version: "2.2.0"
 ---
 
 # Git Worktree Workflow (MANDATORY)
@@ -138,6 +138,12 @@ npm run lint && npm run typecheck && npm run build
 
 ---
 
+## Worktree Isolation Alternative
+
+Native worktree isolation (`isolation: worktree`) is available as an alternative to manual git worktree creation. When a plan uses `isolation: worktree`, the planner auto-creates per-wave worktrees via `wave-worktree.sh create`. This replaces the manual STEP 0 setup above.
+
+---
+
 ## Critical Rules
 
 1. **NO FILE OVERLAP**: Each Claude works on DIFFERENT files
@@ -150,5 +156,6 @@ npm run lint && npm run typecheck && npm run build
 
 ## Changelog
 
+- **2.2.0** (2026-02-27): Added native worktree isolation note (isolation: worktree) as alternative to manual setup
 - **2.1.0** (2026-02-26): Added Pre-Merge section: CI + review comments check mandatory before merge
 - **2.0.0** (2026-01-10): Extracted from strategic-planner.md for modularity

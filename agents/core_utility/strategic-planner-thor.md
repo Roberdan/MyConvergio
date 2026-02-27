@@ -1,7 +1,7 @@
 ---
 name: strategic-planner-thor
 description: Thor validation gates for strategic-planner. Reference module.
-version: "2.0.0"
+version: "2.1.0"
 ---
 
 # Thor Validation Gate (MANDATORY)
@@ -63,6 +63,7 @@ cat /tmp/thor-queue/responses/${REQUEST_ID}.json
 ## Thor's Brutal Validation
 
 Thor will:
+
 1. **Read the original task** from the plan
 2. **Verify EVERY requirement** was completed
 3. **Run the tests himself** - not trust claims
@@ -88,19 +89,22 @@ Add this to every plan:
 ```markdown
 ## 🔱 THOR VALIDATION STATUS
 
-| Worker | Task | Request ID | Status | Retry |
-|--------|------|------------|--------|:-----:|
-| Claude-2 | W1-T03 | abc123 | ✅ APPROVED | 1 |
-| Claude-3 | W1-T05 | def456 | ❌ REJECTED | 2 |
+| Worker   | Task   | Request ID | Status      | Retry |
+| -------- | ------ | ---------- | ----------- | :---: |
+| Claude-2 | W1-T03 | abc123     | ✅ APPROVED |   1   |
+| Claude-3 | W1-T05 | def456     | ❌ REJECTED |   2   |
 
 ### Validation Queue
+
 - Thor Tab: Thor-QA
 - Queue Dir: /tmp/thor-queue/
 - Protocol: ~/.claude/agents/core_utility/thor-quality-assurance-guardian.md
 
 ### Worker Reminder
+
 ⚠️ **YOU ARE NOT DONE UNTIL THOR SAYS YOU ARE DONE**
 Before marking ANY task complete:
+
 1. Submit validation request to Thor
 2. Wait for Thor's response
 3. If REJECTED: Fix everything, resubmit
@@ -115,13 +119,16 @@ Thor validation uses the consolidated Thor agent at:
 `~/.claude/agents/core_utility/thor-quality-assurance-guardian.md`
 
 Thor enforces:
+
 - F-xx functional requirements verification
 - 6 validation gates (Task, Code, ISE, Repo, Docs, Git)
 - Brutal challenge questions
 - ISE Engineering Fundamentals compliance
+- LSP find-references available for Gate 1 dead code verification
 
 ---
 
 ## Changelog
 
+- **2.1.0** (2026-02-27): Added LSP find-references note for Gate 1 dead code verification
 - **2.0.0** (2026-01-10): Extracted from strategic-planner.md for modularity

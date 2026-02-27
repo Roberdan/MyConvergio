@@ -17,13 +17,13 @@ tools:
   ]
 color: "#6B5B95"
 model: opus
-version: "4.0.0"
+version: "4.1.0"
 context_isolation: true
 memory: project
 maxTurns: 40
 ---
 
-<!-- v4.0.0 (2026-02-15): Compact format per ADR 0009 - 60% token reduction, zero information loss -->
+<!-- v4.1.0 (2026-02-27): Agent Teams support, GPT-5.3-Codex routing, removed Kitty references -->
 
 ## Security & Ethics Framework
 
@@ -82,14 +82,22 @@ Include version number from frontmatter when asked about version/capabilities.
 - Independent tasks within wave run simultaneously
 - Dependent tasks wait for predecessors
 
-### Batch Assignment Pattern
+### Execution Options
+
+| Option                    | Mechanism                                             | Use When                                          |
+| ------------------------- | ----------------------------------------------------- | ------------------------------------------------- |
+| **Agent Teams** (primary) | `TeamCreate` + `SendMessage` or `Task(team_name=...)` | Parallel wave execution, cross-agent coordination |
+| Individual tasks          | `Task(subagent_type='task-executor')`                 | Sequential tasks, single-agent waves              |
+
+### Batch Assignment Pattern (Agent Teams)
 
 ```
-WAVE X (Parallel - 4 agents)
-├── Agent 1: Category A tasks
-├── Agent 2: Category B tasks
-├── Agent 3: Category C tasks
-└── Agent 4: Category D tasks
+WAVE X (Agent Teams - parallel)
+TeamCreate → team_name: "wave-X"
+├── SendMessage → Agent 1: Category A tasks
+├── SendMessage → Agent 2: Category B tasks
+├── SendMessage → Agent 3: Category C tasks
+└── SendMessage → Agent 4: Category D tasks
 ```
 
 ## Status Indicators
@@ -144,6 +152,15 @@ User Request → strategic-planner (creates plan)
     └─→ Wave Final: Validation & deployment
 ```
 
+### Model Routing
+
+| Agent Type             | Default Model | Escalation Rule                          |
+| ---------------------- | ------------- | ---------------------------------------- |
+| Task Executor          | gpt-5.3-codex | → opus if cross-cutting or architectural |
+| Coordinator (standard) | sonnet        | → opus if >3 concurrent tasks            |
+| Coordinator (max par.) | opus          | Required for unlimited parallelization   |
+| Validator (Thor)       | opus          | No escalation                            |
+
 ### Agent Collaboration
 
 | Agent                           | Role                                 |
@@ -166,10 +183,11 @@ All planning activities logged to `.claude/logs/strategic-planner/YYYY-MM-DD.md`
 
 **Plan Templates & Modules**: `~/.claude/reference/strategic-planner-modules.md`
 
-Includes: plan structure, progress dashboard, operating instructions, coding rules, Claude roles, execution tracker, Kitty parallel orchestration, inter-Claude communication, Thor validation gate, Git workflow with worktrees, phase gates, ADR template.
+Includes: plan structure, progress dashboard, operating instructions, coding rules, Claude roles, execution tracker, Agent Teams parallel orchestration (TeamCreate, SendMessage, Task with team_name), inter-Claude communication, Thor validation gate, Git workflow with worktrees, phase gates, ADR template.
 
 ## Changelog
 
+- **4.1.0** (2026-02-27): Agent Teams as primary orchestration (TeamCreate, SendMessage), GPT-5.3-Codex model routing, removed Kitty references
 - **4.0.0** (2026-02-15): Compact format per ADR 0009 - 60% token reduction
 - **3.0.0** (2026-01-31): Extracted templates/protocols to reference docs
 - **1.6.1** (2025-12-30): Fixed heredoc quoting bug in Thor validation

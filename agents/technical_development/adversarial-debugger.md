@@ -5,7 +5,7 @@ tools: ["Read", "Glob", "Grep", "Bash", "Task"]
 disallowedTools: ["Write", "Edit", "WebSearch", "WebFetch"]
 color: "#ef4444"
 model: sonnet
-version: "1.1.0"
+version: "1.2.0"
 context_isolation: true
 memory: project
 maxTurns: 25
@@ -105,6 +105,10 @@ a multi-factor bug or incorrect assumptions.]
 7. **No guessing**: If evidence is insufficient, say so. "Unknown" is
    a valid answer. False certainty is worse than admitting uncertainty.
 
+## Platform Integration
+
+Use LSP go-to-definition and find-references for tracing code paths during debugging.
+
 ## When NOT to Use This Agent
 
 - Bug is obvious (typo, missing import, wrong variable name)
@@ -114,3 +118,8 @@ a multi-factor bug or incorrect assumptions.]
 
 Use this agent when: root cause is unclear after initial investigation,
 bug spans multiple subsystems, or the same fix has failed twice.
+
+## Changelog
+
+- **1.2.0** (2026-02-27): Added LSP tool hint for code path tracing
+- **1.1.0**: Previous version

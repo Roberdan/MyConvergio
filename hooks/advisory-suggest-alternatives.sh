@@ -1,0 +1,1 @@
+If the user just ran Grep or Glob to find a symbol definition, suggest: 'LSP go-to-definition may be faster for this lookup. Also consider codegraph_search if .codegraph/ exists.' Only suggest if the pattern looks like a symbol name (CamelCase or snake_case), not a general text search.

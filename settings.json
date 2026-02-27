@@ -117,6 +117,15 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Grep|Glob",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "~/.claude/hooks/advisory-suggest-alternatives.sh"
+          }
+        ]
       }
     ],
     "SubagentStart": [
@@ -185,6 +194,28 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/session-file-unlock.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/worktree-setup.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/worktree-teardown.sh",
             "timeout": 10
           }
         ]

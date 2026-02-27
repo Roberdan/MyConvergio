@@ -10,7 +10,7 @@ _render_dashboard_overview() {
 
 	# Overview (single query instead of 7 separate calls)
 	local overview
-	overview=$(sqlite3 "$DB" "
+	overview=$(dbq "
 SELECT
 (SELECT COUNT(*) FROM plans),
 (SELECT COUNT(*) FROM plans WHERE status='done'),
@@ -43,10 +43,10 @@ SELECT
 	# Blocked tasks (if requested)
 	if [ "$SHOW_BLOCKED" -eq 1 ]; then
 		local blocked_count
-		blocked_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='blocked'" 2>/dev/null)
+		blocked_count=$(dbq "SELECT COUNT(*) FROM tasks WHERE status='blocked'" 2>/dev/null)
 		if [ "$blocked_count" -gt 0 ]; then
 			echo -e "${BOLD}${RED}✗ Task Bloccati ($blocked_count)${NC}"
-			sqlite3 "$DB" "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), p.id, p.project_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id JOIN plans p ON w.plan_id = p.id WHERE t.status = 'blocked' ORDER BY p.id" 2>/dev/null | while IFS='|' read -r task_id title plan_id blocked_project; do
+			dbq "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), p.id, p.project_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id JOIN plans p ON w.plan_id = p.id WHERE t.status = 'blocked' ORDER BY p.id" 2>/dev/null | while IFS='|' read -r task_id title plan_id blocked_project; do
 				local short_title
 				short_title=$(echo "$title" | cut -c1-45)
 				[ ${#title} -gt 45 ] && short_title="${short_title}..."
@@ -59,19 +59,33 @@ SELECT
 		fi
 	fi
 
-	# Completed count (teaser, press C for full list)
-	local completed_total
-	completed_total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status = 'done'" 2>/dev/null)
+	# Last 7 completed plans (compact list + total count)
+	local completed_data
+	completed_data=$(dbq "
+		SELECT COUNT(*) FROM plans WHERE status='done';
+	")
+	local completed_total="${completed_data:-0}"
 	if [ "$completed_total" -gt 0 ]; then
-		local completed_24h
-		completed_24h=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day')" 2>/dev/null)
-		echo -e "${GRAY}Completati: ${GREEN}${completed_total}${NC} ${GRAY}totali$([ "$completed_24h" -gt 0 ] && echo -e " (${WHITE}${completed_24h}${NC} ${GRAY}ultime 24h)")${NC} ${GRAY}— premi ${WHITE}C${GRAY} per lista${NC}"
+		echo -e "${GRAY}Completati recenti ${GRAY}(${GREEN}${completed_total}${GRAY} totali — premi ${WHITE}C${GRAY} per tutti):${NC}"
+		dbq "
+			SELECT p.id, p.name, p.project_id,
+				COALESCE(p.completed_at, p.updated_at, p.created_at),
+				(SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id=p.id))
+			FROM plans p WHERE p.status='done'
+			ORDER BY COALESCE(p.completed_at, p.updated_at, p.created_at) DESC LIMIT 7
+		" | while IFS='|' read -r pid pname pproject pcompleted ptasks; do
+			[ -z "$pid" ] && continue
+			local short_name=$(echo "$pname" | cut -c1-35)
+			[ ${#pname} -gt 35 ] && short_name="${short_name}..."
+			local date_short=$(echo "$pcompleted" | cut -c1-10)
+			echo -e "${GRAY}  ${GREEN}#${pid}${NC} ${WHITE}${short_name}${NC} ${GRAY}[${pproject}] ${date_short} (${ptasks}t)${NC}"
+		done
 		echo ""
 	fi
 
 	# Warn about active/pipeline plans missing descriptions
 	local missing_desc
-	missing_desc=$(sqlite3 "$DB" "SELECT GROUP_CONCAT('#' || id, ', ') FROM plans WHERE status IN ('doing', 'todo') AND (description IS NULL OR description = '' OR description = '{')")
+	missing_desc=$(dbq "SELECT GROUP_CONCAT('#' || id, ', ') FROM plans WHERE status IN ('doing', 'todo') AND (description IS NULL OR description = '' OR description = '{')")
 	if [ -n "$missing_desc" ]; then
 		echo -e "${YELLOW}⚠ Piani senza descrizione: ${WHITE}${missing_desc}${NC}"
 		echo -e "${GRAY}  Usa: plan-db.sh update-desc <id> \"descrizione\"${NC}"

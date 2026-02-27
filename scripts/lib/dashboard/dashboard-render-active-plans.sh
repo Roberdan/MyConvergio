@@ -4,7 +4,7 @@
 
 _render_active_plans() {
 	echo -e "${BOLD}${WHITE}🚀 Piani Attivi${NC}"
-	sqlite3 "$DB" "
+	dbq "
 		SELECT p.id, p.name, p.status, p.updated_at, p.started_at, p.created_at, p.project_id,
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id),
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND tasks_done=tasks_total AND tasks_total>0),
@@ -142,7 +142,7 @@ _render_active_plans() {
 
 		# Verbose: show wave names
 		if [ "$VERBOSE" -eq 1 ]; then
-			sqlite3 "$DB" "SELECT wave_id, name, status FROM waves WHERE plan_id = $pid AND status != 'done' ORDER BY position LIMIT 3" | while IFS='|' read -r wid wname wstatus; do
+			dbq "SELECT wave_id, name, status FROM waves WHERE plan_id = $pid AND status != 'done' ORDER BY position LIMIT 3" | while IFS='|' read -r wid wname wstatus; do
 				case $wstatus in
 				in_progress) icon="${YELLOW}⚡${NC}" ;;
 				blocked) icon="${YELLOW}⏸${NC}" ;;
@@ -155,10 +155,10 @@ _render_active_plans() {
 		fi
 
 		# Tasks della wave attiva (in_progress + pending)
-		active_wave_id=$(sqlite3 "$DB" "SELECT id FROM waves WHERE plan_id = $pid AND status = 'in_progress' ORDER BY position LIMIT 1" 2>/dev/null)
+		active_wave_id=$(dbq "SELECT id FROM waves WHERE plan_id = $pid AND status = 'in_progress' ORDER BY position LIMIT 1" 2>/dev/null)
 		if [ -n "$active_wave_id" ]; then
-			active_wave_name=$(sqlite3 "$DB" "SELECT wave_id FROM waves WHERE id = $active_wave_id" 2>/dev/null)
-			running_tasks=$(sqlite3 "$DB" "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), t.status FROM tasks t WHERE t.wave_id_fk = $active_wave_id AND t.status IN ('in_progress', 'pending') ORDER BY CASE t.status WHEN 'in_progress' THEN 0 ELSE 1 END, t.id" 2>/dev/null)
+			active_wave_name=$(dbq "SELECT wave_id FROM waves WHERE id = $active_wave_id" 2>/dev/null)
+			running_tasks=$(dbq "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), t.status FROM tasks t WHERE t.wave_id_fk = $active_wave_id AND t.status IN ('in_progress', 'pending') ORDER BY CASE t.status WHEN 'in_progress' THEN 0 ELSE 1 END, t.id" 2>/dev/null)
 			if [ -n "$running_tasks" ]; then
 				echo -e "${GRAY}│  ${NC}${YELLOW}⚡ Wave ${active_wave_name:-?}:${NC}"
 				echo "$running_tasks" | while IFS='|' read -r tid ttitle tstatus; do

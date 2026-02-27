@@ -1,6 +1,6 @@
 #!/bin/bash
 # Interactive dashboard navigation (view stack + digit input)
-# Version: 1.0.0
+# Version: 1.1.0
 
 # View state: "main", "completed", "detail"
 VIEW_MODE="main"
@@ -54,11 +54,14 @@ _handle_digit_input() {
 	printf "\r${CYAN}Piano #: %s_${NC}%40s" "$INPUT_BUF" " "
 	while true; do
 		local ch=""
-		read -t 5 -n 1 ch 2>/dev/null || true
-		if [[ -z "$ch" ]]; then
+		local rc=0
+		read -t 5 -n 1 ch 2>/dev/null || rc=$?
+		if [[ $rc -gt 128 ]]; then
+			# Timeout (rc=142 on macOS) — cancel input
 			INPUT_BUF=""
 			return 1
-		elif [[ "$ch" == $'\n' || "$ch" == "" ]]; then
+		elif [[ -z "$ch" ]]; then
+			# Enter pressed (read returns 0, empty string)
 			break
 		elif [[ "$ch" =~ ^[0-9]$ ]]; then
 			INPUT_BUF+="$ch"
@@ -78,7 +81,7 @@ _handle_digit_input() {
 	done
 	if [[ -n "$INPUT_BUF" ]]; then
 		local exists
-		exists=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE id = $INPUT_BUF;" 2>/dev/null || echo "0")
+		exists=$(dbq "SELECT COUNT(*) FROM plans WHERE id = $INPUT_BUF;" 2>/dev/null || echo "0")
 		if [[ "$exists" -gt 0 ]]; then
 			VIEW_PLAN_ID="$INPUT_BUF"
 			VIEW_MODE="detail"

@@ -25,7 +25,7 @@ _render_plan_prs() {
 
 	# Query waves with PR data for this plan
 	local wave_prs
-	wave_prs=$(sqlite3 "$DB" "SELECT wave_id, pr_number, pr_url, branch_name, status FROM waves WHERE plan_id = $pid AND pr_number IS NOT NULL AND pr_number > 0 ORDER BY position;")
+	wave_prs=$(dbq "SELECT wave_id, pr_number, pr_url, branch_name, status FROM waves WHERE plan_id = $pid AND pr_number IS NOT NULL AND pr_number > 0 ORDER BY position;")
 	[ -z "$wave_prs" ] && return 0
 
 	echo -e "${GRAY}│  ${NC}${CYAN}PR (da waves DB):${NC}"
@@ -80,7 +80,7 @@ _render_plan_prs() {
 _render_completed_plan_prs() {
 	local pid="$1"
 	local wave_prs
-	wave_prs=$(sqlite3 "$DB" "SELECT wave_id, pr_number, status FROM waves WHERE plan_id = $pid AND pr_number IS NOT NULL AND pr_number > 0 ORDER BY position;")
+	wave_prs=$(dbq "SELECT wave_id, pr_number, status FROM waves WHERE plan_id = $pid AND pr_number IS NOT NULL AND pr_number > 0 ORDER BY position;")
 	[ -z "$wave_prs" ] && return 0
 
 	local total=0 merged=0 open=0

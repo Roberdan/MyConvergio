@@ -5,7 +5,7 @@ tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task"]
 disallowedTools: ["WebSearch", "WebFetch"]
 color: "#10b981"
 model: sonnet
-version: "2.2.0"
+version: "2.3.0"
 context_isolation: true
 memory: project
 maxTurns: 50
@@ -205,6 +205,28 @@ When navigating code, prefer LSP go-to-definition and find-references when avail
 
 Resolve ALL issues. Every CI error, lint warning, type error, test failure MUST be resolved before marking done. Accumulated debt = VIOLATION.
 
+## Bash Timeout (NON-NEGOTIABLE)
+
+**ALL Bash calls MUST set `timeout` parameter.** Orphan processes from unterminated test runs cause swap exhaustion and system crashes.
+
+| Command type                                                | Timeout        |
+| ----------------------------------------------------------- | -------------- |
+| Test runners (pytest, vitest, jest, playwright, cargo test) | 120000 (2 min) |
+| Build commands (npm run build, cargo build)                 | 180000 (3 min) |
+| Quick checks (lint, typecheck, git)                         | 60000 (1 min)  |
+| Everything else                                             | 60000 (1 min)  |
+
+**NEVER run Bash without `timeout`.** If a test run exceeds timeout, it's killed automatically — no orphan.
+
+## Process Cleanup (MANDATORY before returning)
+
+Before Phase 5 (Complete), kill any remaining child processes:
+
+```bash
+# Kill any orphaned test/build processes from this session
+session-reaper.sh --max-age 0 2>/dev/null || true
+```
+
 ## Anti-Patterns
 
 - Don't query DB for task details (PRE-LOADED in prompt)
@@ -215,31 +237,16 @@ Resolve ALL issues. Every CI error, lint warning, type error, test failure MUST 
 - Don't use raw git diff/status/log — use git-digest.sh or diff-digest.sh
 - Don't retry same failing approach more than twice
 - Don't defer lower-priority issues to "later" — resolve ALL now
+- **Don't run Bash without timeout** — orphan processes crash the system
 
 ## EXIT CHECKLIST (MANDATORY)
 
-```bash
-sqlite3 ~/.claude/data/dashboard.db \
-  "SELECT status, notes FROM tasks WHERE id={db_task_id};"
-# Must show: done|[notes present]
-```
-
-**If NOT done**: Run `plan-db-safe.sh update-task {db_task_id} done "Summary"` NOW.
-
-**FINAL OUTPUT** (required):
-
-```
-## TASK COMPLETION
-DB Status: [done|blocked]
-Task ID: {db_task_id}
-Summary: [1-2 sentence summary]
----
-Returning to coordinator.
-```
+1. Verify DB: `sqlite3 ~/.claude/data/dashboard.db "SELECT status FROM tasks WHERE id={db_task_id};"` — if not `done`, run `plan-db-safe.sh update-task {db_task_id} done "Summary"`
+2. Cleanup: `session-reaper.sh --max-age 0 2>/dev/null || true`
+3. Output: `## TASK COMPLETION` with `DB Status: [done|blocked]`, `Task ID`, `Summary`
 
 ---
 
-**v2.2.0** (2026-02-27): Add LSP tool awareness hint; document native worktree isolation
-**v2.1.0** (2026-01-31): Phase 3.5 Quick CI Check; Output Data inter-wave communication
-**v2.0.0** (2026-01-31): Token optimization - pre-loaded context, skip DB re-query
-**v1.8.0** (2026-01-26): Added MANDATORY EXIT CHECKLIST
+**v2.3.0** (2026-02-27): Mandatory Bash timeout; process cleanup before return
+**v2.2.0** (2026-02-27): LSP awareness; native worktree isolation
+**v2.1.0** (2026-01-31): Quick CI Check; Output Data inter-wave

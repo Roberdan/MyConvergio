@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # wave-worktree-core.sh — Shared library for wave-level worktree management
 # Sourced by wave-worktree scripts; requires plan-db-core.sh to be sourced first
-# Version: 1.0.0
+# Version: 1.1.0
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
@@ -114,4 +114,29 @@ wave_stash_if_dirty() {
 	local ref
 	ref=$(echo "$stash_out" | grep -o 'stash@{[0-9]*}' || true)
 	echo "${ref:-stash@{0}}"
+}
+
+# ---------------------------------------------------------------------------
+# resolve_github_remote [path] → remote name to use for GitHub operations
+# 1. Run `git remote -v` in path (or cwd)
+# 2. Return first remote whose URL contains 'github.com'
+# 3. If none, return first remote name
+# 4. If no remotes at all, return empty string
+# ---------------------------------------------------------------------------
+resolve_github_remote() {
+	local path="${1:-}"
+	local git_opts=()
+	[[ -n "$path" ]] && git_opts=(-C "$path")
+	local remotes
+	remotes=$(git "${git_opts[@]}" remote -v 2>/dev/null || true)
+	[[ -z "$remotes" ]] && echo "" && return 0
+	# Find first remote with github.com in URL
+	local github_remote
+	github_remote=$(echo "$remotes" | awk '/github\.com/ {print $1; exit}')
+	if [[ -n "$github_remote" ]]; then
+		echo "$github_remote"
+		return 0
+	fi
+	# Fall back to first remote name
+	echo "$remotes" | awk 'NR==1 {print $1}'
 }

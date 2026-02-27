@@ -224,8 +224,6 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 							echo "[plan-db-safe] Wave $wave_id merged successfully" >&2
 						else
 							echo "WARN: Wave $wave_id merge failed — wave stays in 'merging' state" >&2
-							# Stop cascade: don't check plan completion if merge failed
-							exit 0
 						fi
 					fi
 				fi

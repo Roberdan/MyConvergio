@@ -1,5 +1,22 @@
 # Changelog
 
+## [9.14.0] - 2026-02-27
+
+### Added
+
+- **session-check.sh v1.0.0**: fast JSON session status script (git, plans, PRs, warnings, next steps) — completes in <5s
+- **/check command**: Claude Code (`commands/check.md`) and Copilot CLI (`copilot-agents/check.agent.md`) for session recap in Italian
+- **resolve_github_remote()**: auto-detect git remote in wave-worktree-core.sh (no more hardcoded `origin`)
+- **Pre-flight empty diff check**: wave-worktree merge skips when branch has zero diff from main
+
+### Fixed
+
+- **wave-worktree.sh v2.0.0**: 5 structural reliability fixes — remote detection, pre-flight check, `--timeout` flag removal, rollback merging→in_progress on failure
+- **plan-db-safe.sh v3.2.0**: removed `exit 0` after merge failure — cascade continues to check other waves and plan completion
+- **test-wave-worktree.sh**: 24/24 tests (6 new covering remote detection, rollback, pre-flight)
+
+---
+
 ## [9.13.0] - 2026-02-27
 
 ### Added

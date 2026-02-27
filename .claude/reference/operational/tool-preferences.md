@@ -1,4 +1,4 @@
-<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+<!-- v2.1.0 | 27 Feb 2026 | ci-digest.sh checks mapping, gh auth switch hints -->
 
 # Tool Preferences
 
@@ -54,7 +54,8 @@
 | `npm run test:unit`      | `./scripts/ci-summary.sh --unit`  |
 | `npx playwright test`    | `./scripts/ci-summary.sh --e2e`   |
 | A11y/axe-core tests      | `./scripts/ci-summary.sh --a11y`  |
-| `gh run view --log`      | `./scripts/ci-check.sh <id>`      |
+| `gh run view --log`      | `ci-digest.sh <id>`               |
+| `gh pr checks`           | `ci-digest.sh checks <pr>`        |
 | `git diff file \| head`  | `git diff --stat` + Read tool     |
 | `git log` (verbose)      | `git log --oneline -N`            |
 | `gh pr view` (verbose)   | `pr-ops.sh status <pr>`           |
@@ -83,3 +84,11 @@ Hook `prefer-ci-summary.sh` enforces this automatically.
 | `script-versions.sh --stale`           | Scripts missing version header                  |
 | `script-versions.sh --category <name>` | Filter by category                              |
 | `agent-versions.sh`                    | Agent/component versions (markdown frontmatter) |
+
+## GitHub Auth Troubleshooting
+
+| Symptom                  | Fix                                 |
+| ------------------------ | ----------------------------------- |
+| `HTTP 404` on known repo | `gh auth switch` (wrong account)    |
+| `Could not resolve`      | `gh auth switch` or `gh auth login` |
+| `401 Unauthorized`       | `gh auth refresh`                   |

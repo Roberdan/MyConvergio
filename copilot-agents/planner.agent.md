@@ -105,7 +105,9 @@ Write `spec.json`:
 - `verify`: machine-checkable commands, not prose
 - `model`: see Task Model Routing table
 - `executor_agent`: copilot (default) | claude | codex | manual
-- `precondition`: array blocking wave until conditions met
+- `precondition`: object blocking wave until condition met. Types:
+  - `{type: wave_status, wave_id: W1, status: done}` — wait for full merge (sync)
+  - `{type: wave_pr_created, wave_id: W1}` — start when PR exists (overlapping)
 
 **Integration Completeness (MANDATORY)**:
 
@@ -122,6 +124,20 @@ spec = json.load(open('/path/to/spec.json'))
 validate(spec, schema)
 print('PASS: spec.json valid')
 " || { echo "BLOCK: spec.json validation failed. Fix errors before proceeding."; exit 1; }
+```
+
+### 3.1b Consumer Enforcement (MANDATORY — BLOCK if fails)
+
+After schema validation, verify every feature/refactor task has consumers:
+
+```bash
+python3 -c "
+import json, yaml, sys
+spec = yaml.safe_load(open('SPEC')) if 'SPEC'.endswith('.yaml') else json.load(open('SPEC'))
+bad = [f\"{t['id']}: {t['type']} without consumers\" for w in spec.get('waves',[]) for t in w.get('tasks',[]) if t.get('type') in ('feature','refactor') and not t.get('consumers')]
+if bad: print('BLOCK:', *bad, sep='\n  '); sys.exit(1)
+print('PASS: All feature/refactor tasks have consumers')
+"
 ```
 
 ### 3.2 F-xx Exclusion Gate (MANDATORY)
@@ -175,15 +191,15 @@ plan-db.sh start $PLAN_ID
 
 ## Database Commands
 
-| Command                                                                | Purpose                          |
-| ---------------------------------------------------------------------- | -------------------------------- |
-| `plan-db.sh create <proj> <name> --source-file <path> --auto-worktree` | Create plan with worktree        |
-| `plan-db.sh import <plan_id> <spec.json>`                              | Import tasks from spec           |
-| `plan-db.sh start <plan_id>`                                           | Mark plan as started             |
-| `plan-db.sh drift-check <plan_id>`                                     | Check staleness before execution |
-| `plan-db.sh get-context <plan_id>`                                     | Full plan+tasks JSON             |
+| Command | Purpose |
+|---------|---------|
+| `plan-db.sh create <proj> <name> --source-file <path> --auto-worktree` | Create plan |
+| `plan-db.sh import <plan_id> <spec.json>` | Import tasks |
+| `plan-db.sh start <plan_id>` | Start execution |
+| `plan-db.sh drift-check <plan_id>` | Check staleness |
+| `plan-db.sh get-context <plan_id>` | Full plan JSON |
 
 ## Changelog
 
-- **2.0.0** (2026-02-15): Compact format per ADR 0009 - 30% token reduction
-- **1.0.1** (Previous version): Task model routing added
+- **2.1.0** (2026-02-27): Step 3.1b Consumer Enforcement, wave_pr_created precondition
+- **2.0.0** (2026-02-15): Compact format per ADR 0009

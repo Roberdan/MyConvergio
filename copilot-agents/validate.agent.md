@@ -24,7 +24,7 @@ Works with ANY repository - auto-detects project context and test framework.
 | Rule | Requirement                                              |
 | ---- | -------------------------------------------------------- |
 | 1    | Read files directly - verify code, not claims            |
-| 2    | All 9 gates must PASS - any failure = REJECTED           |
+| 2    | All 10 gates must PASS - any failure = REJECTED          |
 | 3    | Max 3 rounds - after 3 rejections, ESCALATE              |
 | 4    | Zero tolerance - no TODO, FIXME, @ts-ignore, empty catch |
 
@@ -65,6 +65,7 @@ cd "$WORKTREE"
 | 7    | Performance              | No N+1 queries, heavy deps lazy-loaded                                                              | Code inspection            |
 | 8    | TDD Verification         | Tests written BEFORE implementation, all pass, coverage >= 80% new files                            | Test timestamps, coverage  |
 | 9    | Constitution & ADR       | CLAUDE.md followed, coding-standards.md respected, active ADRs not contradicted, max 250 lines/file | File reads, ADR compliance |
+| 10   | Integration Reachability | Every new file/export has ≥1 import site (excl. tests, entry points). Orphan = REJECT               | `grep -r ExportName .`     |
 
 ### Gate 9 - ADR-Smart Exception
 

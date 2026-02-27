@@ -88,11 +88,13 @@ Skill(skill="planner")
 ## Task Tracking Commands
 
 ```bash
-TaskList                              # All tasks + status
-TaskUpdate <id> status=done           # Mark task complete
-plan-db.sh validate-task <id> <plan>  # Thor per-task gate
-plan-db.sh validate-wave <wave_id>    # Thor per-wave gate
-wave-worktree.sh merge <plan> <wave>  # Merge on all done
+TaskList                                        # All tasks + status
+TaskUpdate <id> status=done                     # Mark task complete
+plan-db.sh validate-task <id> <plan>            # Thor per-task gate
+plan-db.sh validate-wave <wave_id>              # Thor per-wave gate
+wave-worktree.sh merge-async <plan> <wave>      # Push + PR, start next wave immediately
+wave-worktree.sh pr-sync <plan> <next_wave>     # Sync with prev PR before closing
+wave-worktree.sh merge <plan> <wave>            # Sync merge (final wave or fallback)
 ```
 
 ## Related

@@ -42,6 +42,7 @@ Works with ANY repository - auto-detects project context.
 | 4    | One task at a time - mark in_progress, execute, mark done             |
 | 5    | **NEVER skip Thor** - run `validate-task` after EVERY task completion |
 | 6    | NEVER mark done without proof - git-digest.sh + F-xx verification     |
+| 7    | Prefer merge-async for overlapping execution, sync merge as fallback  |
 
 ## Workflow
 
@@ -97,6 +98,18 @@ plan-db.sh update-task {db_task_id} in_progress "Started"
 **Step 2: TDD (RED)** - Write failing tests based on `test_criteria`. Run tests, confirm RED.
 
 **Step 3: Implement (GREEN)** - Minimum code to pass tests. Run tests after each change.
+
+**Step 3.5: Consumer Audit (MANDATORY)**
+
+For each file in `task.consumers[]` from the spec:
+
+```bash
+# Verify new export is imported by each consumer
+grep -r 'import.*NewExportName' path/to/consumer.tsx
+# If NOT found: fix the consumer NOW or report BLOCKED
+```
+
+If task has no `consumers` field, skip. If any consumer does NOT import the new code, update it before proceeding.
 
 **Step 4: F-xx Verification (MANDATORY)**
 
@@ -165,6 +178,28 @@ plan-db.sh validate-wave $WAVE_DB_ID
 
 **NEVER proceed to next wave without per-wave Thor PASS.**
 
+### Phase 4.5: Overlapping Wave Protocol (PREFERRED)
+
+Instead of blocking on PR merge, use async flow to start next wave immediately:
+
+```bash
+# After all tasks in wave are Thor-validated:
+wave-worktree.sh merge-async $PLAN_ID $WAVE_DB_ID
+# Returns immediately with PR number — does NOT wait for CI/review
+
+# Create next wave worktree from current branch tip (not main)
+wave-worktree.sh create $PLAN_ID $NEXT_WAVE_DB_ID
+# Start next wave tasks immediately
+
+# Before closing next wave, sync with previous PR:
+wave-worktree.sh pr-sync $PLAN_ID $NEXT_WAVE_DB_ID
+# Verifies previous PR merged, rebases current wave, extracts feedback
+```
+
+**Fallback**: If merge-async is not suitable (single-wave plan, final wave), use `merge` (sync).
+**Conflict handling**: If pr-sync rebase fails, STOP and resolve manually.
+**Feedback propagation**: PR review comments are injected into next wave task prompts automatically.
+
 ## Task Format
 
 Tasks from `CTX.pending_tasks` JSON:
@@ -181,31 +216,18 @@ Tasks from `CTX.pending_tasks` JSON:
 
 ## CI Batch Fix (NON-NEGOTIABLE)
 
-**ALWAYS wait for the FULL CI run to complete before pushing fixes.** Never fix-push-repeat per error.
-
-1. Push code, wait for CI to finish ALL checks (lint + typecheck + tests + build)
-2. Collect ALL failures from the CI run
-3. Fix ALL issues in a single commit
-4. Push once, wait for full CI again
-5. Repeat until CI is green (max 3 rounds)
-
-**Exception**: Security scan hard-fail — fix immediately, don't wait for other checks.
-
-**VIOLATION**: Pushing after fixing only 1 error while CI has more failures = REJECTED.
+Wait for FULL CI before pushing fixes. Collect ALL failures. Fix ALL in one commit. Push once. Max 3 rounds. Pushing after fixing only 1 error while CI has more = REJECTED.
 
 ## Zero Technical Debt (NON-NEGOTIABLE)
 
-Resolve ALL issues found during execution, not just high-priority ones. Prioritize by severity, but NEVER defer lower-priority items to "later". Every CI error, lint warning, type error, and test failure MUST be resolved before marking a task or wave as done. Accumulated debt = VIOLATION.
+Resolve ALL issues, not just high-priority. Every CI error, lint warning, type error, test failure MUST be resolved before done. Accumulated debt = VIOLATION.
 
 ## Coding Standards
 
-- Max 250 lines per file
-- No TODO, FIXME, @ts-ignore in new code
-- English for all code and comments
-- Conventional commits
+Max 250 lines/file. No TODO/FIXME/@ts-ignore. English. Conventional commits.
 
 ## Changelog
 
-- **3.0.0** (2026-02-24): Add Thor per-task (Step 6), F-xx verification (Step 4), proof of modification (Step 5), exit checklist (Step 8), per-wave Thor (Phase 4). Aligned with Claude task-executor.md phases.
-- **2.0.0** (2026-02-15): Compact format per ADR 0009 - 35% token reduction
-- **1.0.0** (Previous version): Initial version
+- **3.1.0** (2026-02-27): Add Phase 4.5 Overlapping Wave Protocol (merge-async, pr-sync, feedback injection)
+- **3.0.0** (2026-02-24): Thor per-task, F-xx verification, proof of modification, exit checklist
+- **2.0.0** (2026-02-15): Compact format per ADR 0009

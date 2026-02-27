@@ -1,5 +1,39 @@
 # Changelog
 
+## [v9.17.0] - 27 Feb 2026
+
+### Added
+
+- `wave-worktree.sh merge-async` — non-blocking PR creation (push + PR + return immediately)
+- `wave-worktree.sh pr-sync` — verify previous wave PR merged, rebase current wave, extract review feedback
+- PR feedback injection in `copilot-task-prompt.sh` — previous wave review comments injected into next wave prompts
+- `wave_pr_created` precondition type in planner — allows overlapping wave execution
+- `merge_mode` column in waves DB table (sync|async|none)
+- Wiring Inference in `prompt.agent.md` — auto-generates "Wire X" F-xx for every "Create X"
+- Step 3.1b Consumer Enforcement in `planner.agent.md` — BLOCKS if feature/refactor has empty consumers
+- Step 3.5 Consumer Audit in `execute.agent.md` — verifies consumers import new code
+- Gate 10 Integration Reachability in `validate.agent.md` — orphan exports = REJECT
+- `validate-css-vars.sh` — cross-project CSS variable orphan detector
+- `check_silent_degradation` in code-pattern-checks — detects `return null` on empty data
+- `check_orphan_exports` in code-pattern-checks — detects exports with zero imports
+- E2E smoke test template (`~/.claude/templates/e2e-smoke-test.spec.ts.template`)
+- ADR 0024: Overlapping Wave Execution Protocol
+- ADR: Workflow Hardening — Integration Completeness Quality Gates
+
+### Changed
+
+- `wave-worktree.sh` v3.0.0: 2 new subcommands, updated help/usage
+- `copilot-task-prompt.sh` v2.1.0: Previous Wave PR Feedback section
+- `execute.agent.md` v3.1.0: Phase 4.5 Overlapping Wave Protocol, Rule 7, Step 3.5
+- `planner.agent.md` v2.1.0: Step 3.1b, `wave_pr_created` precondition
+- `validate.agent.md`: 9 → 10 validation gates
+- `code-pattern-check.sh`: 9 → 11 checks
+- `code-pattern-checks.sh` v1.2.0: 2 new check functions
+- `orchestration/SKILL.md`: updated commands with merge-async/pr-sync
+- `plan-spec-schema.json`: consumers description updated (enforcement in planner, not schema)
+
+---
+
 ## [v9.16.0] - 27 Feb 2026
 
 ### Added

@@ -70,6 +70,8 @@ RESULTS+=("$(check_unused_parameters)")
 RESULTS+=("$(check_insecure_file_write)")
 RESULTS+=("$(check_missing_error_boundary)")
 RESULTS+=("$(check_comment_density)")
+RESULTS+=("$(check_silent_degradation)")
+RESULTS+=("$(check_orphan_exports)")
 
 ALL_JSON=$(printf '%s\n' "${RESULTS[@]}" | jq -s '.')
 
@@ -87,7 +89,7 @@ if [[ "$JSON_OUTPUT" -eq 1 ]]; then
 	echo "$SUMMARY"
 else
 	echo "=== Code Pattern Check ==="
-	echo "Files: ${#CODE_FILES[@]} | Checks: 9"
+	echo "Files: ${#CODE_FILES[@]} | Checks: 11"
 	echo ""
 	echo "$ALL_JSON" | jq -r '.[] | select(.pass == false) |
 		"[\(.severity)] \(.check): \(.findings | length) finding(s)\(.findings[] | "\n  - \(.file // "N/A"):\(.line // "?") \(.body | .[0:100])")"'

@@ -4,7 +4,7 @@ description: Brutal quality gatekeeper. Zero tolerance for incomplete work. Vali
 tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 color: "#9B59B6"
 model: sonnet
-version: "5.1.0"
+version: "5.2.0"
 context_isolation: true
 memory: project
 maxTurns: 30
@@ -67,6 +67,10 @@ Invoked after all tasks in wave complete. Validates wave as whole.
 | 7    | Performance                        | perf-check.sh, WebP, EventSource cleanup           |
 | 8    | **TDD** (MANDATORY)                | Tests before impl, coverage ≥80% new files         |
 | 9    | **Constitution & ADR** (MANDATORY) | CLAUDE.md rules, coding-standards, ADR compliance  |
+
+### Gate 1: Code Correctness
+
+Use LSP find-references to verify no dead code or broken imports when available. Confirm all modified symbols are properly referenced; unreferenced exports or missing imports = REJECT.
 
 ### Gate 3: Credential Scanning (ISE Playbook)
 

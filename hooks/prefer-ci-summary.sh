@@ -18,18 +18,17 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 BASE_CMD=$(echo "$COMMAND" | sed 's/|.*//' | sed 's/.*&&//' | sed 's/.*;//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
 
 # === ALWAYS ALLOW: our optimized scripts ===
-echo "$COMMAND" | grep -qE "digest\.sh|service-digest|pr-ops\.sh" && exit 0
+echo "$COMMAND" | grep -qE "digest\.sh|service-digest|pr-ops\.sh|code-pattern-check\.sh" && exit 0
 # ci-summary WITH explicit flag → allow immediately
 echo "$COMMAND" | grep -qE "ci-summary\.sh --(quick|full|all|lint|types|build|unit|i18n|e2e|a11y)" && exit 0
 # Release/deploy scripts (no ^ anchor: may be after cd &&)
 echo "$COMMAND" | grep -qE "(\./scripts/|npm run )(release|pre-push|pre-release)" && exit 0
 
-# === BLOCK: wc -l (broken on this system) ===
-# Check FULL command (wc -l is usually after a pipe). Skip git commit messages.
+# === HINT: wc -l (prefer grep -c for agents, but don't block) ===
+# wc -l works fine on macOS; was incorrectly blocked before.
 if echo "$COMMAND" | grep -qE "wc -l" && ! echo "$BASE_CMD" | grep -qE "^git (commit|tag)"; then
-	echo "BLOCKED: wc -l is broken on this system." >&2
-	echo "Use: grep -c . <file>  OR  awk 'END{print NR}' <file>" >&2
-	exit 2
+	echo "HINT: Prefer 'grep -c . <file>' over 'wc -l' for consistency." >&2
+	exit 0
 fi
 
 # === BLOCK: CI LOGS (even with pipe) ===

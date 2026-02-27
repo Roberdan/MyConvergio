@@ -1,4 +1,4 @@
-<!-- v3.0.0 | 22 Feb 2026 | Wave-per-Worktree Model (v2) added -->
+<!-- v3.1.0 | 27 Feb 2026 | Native Subagent Worktree Isolation (v2.1.50+) added -->
 
 # Worktree Discipline
 
@@ -47,6 +47,48 @@ dashboard-mini.sh waves <plan_id>                  # Dashboard wave view
 ### Backward Compatibility
 
 Old plans with `plans.worktree_path` work unchanged. `wave_is_active(plan_id)` distinguishes models.
+
+---
+
+## Native Subagent Worktree Isolation (v2.1.50+)
+
+Per-task isolation via Task tool parameter — no wave-worktree overhead required.
+
+### How It Works
+
+```json
+{
+  "type": "Task",
+  "subagent_type": "task-executor",
+  "isolation": "worktree"
+}
+```
+
+- Task tool creates a temporary git worktree automatically before subagent starts
+- Subagent works in isolation; no risk of cross-task file conflicts
+- On completion: if no changes → worktree cleaned up silently
+- If changes made → branch returned to coordinator for review/merge
+
+### Hook Lifecycle
+
+| Hook           | Trigger                 | Default Action                                           |
+| -------------- | ----------------------- | -------------------------------------------------------- |
+| WorktreeCreate | After worktree creation | Auto symlink `.env*` files; run `npm install` if present |
+| WorktreeRemove | Before worktree removal | Cleanup temp files; release file locks for task          |
+
+### When to Use
+
+- Per-task isolation without full wave-worktree lifecycle
+- Short-lived tasks where PR overhead is unnecessary
+- Parallel tasks touching disjoint files within same wave
+
+### Relationship to Wave-per-Worktree (v2)
+
+Native isolation is a **per-task enhancement**, NOT a replacement for wave-worktree:
+
+- Wave-per-Worktree v2 remains the **primary model** (PR + CI + merge = proof of work)
+- Native isolation is complementary: use inside a wave for finer-grained task isolation
+- Both can coexist; coordinator chooses per task based on scope
 
 ---
 

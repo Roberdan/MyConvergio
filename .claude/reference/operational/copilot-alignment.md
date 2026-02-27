@@ -1,8 +1,10 @@
-<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+<!-- v2.1.0 | 27 Feb 2026 | GA status, feature parity, plugin system, skills sync -->
 
 # Copilot CLI Alignment
 
 GitHub Copilot CLI as Claude Code alternative reference.
+
+**Copilot CLI is Generally Available (GA) as of 25 Feb 2026, v0.0.419.**
 
 ## Decision Matrix
 
@@ -17,7 +19,7 @@ GitHub Copilot CLI as Claude Code alternative reference.
 ```
 ~/.copilot/: config.json, copilot-instructions.md, hooks.json, mcp-config.json
   hooks/: enforce-standards.sh, worktree-guard.sh, enforce-line-limit.sh, session-tokens.sh
-{project}/.github/: copilot-instructions.md, agents/, instructions/
+{project}/.github/: copilot-instructions.md, agents/, instructions/, skills/
 ```
 
 ## Mandatory Routing (NON-NEGOTIABLE)
@@ -31,6 +33,22 @@ GitHub Copilot CLI as Claude Code alternative reference.
 
 EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
 
+## Feature Parity Matrix
+
+| Feature                | Claude Code       | Copilot CLI         | Notes                                     |
+| ---------------------- | ----------------- | ------------------- | ----------------------------------------- |
+| Plan DB + TDD + Thor   | Native            | Native              | Identical behaviour                       |
+| Hooks enforcement      | 15+ hooks         | 15+ hooks           | 15 portable, 6 Claude Code-only           |
+| Worktree isolation     | Native            | Native              | Same scripts                              |
+| Parallel task spawning | Yes (`Task` tool) | No                  | Claude Code only                          |
+| Agent Teams            | Native            | No                  | Claude Code native; no Copilot equivalent |
+| `/chronicle`           | No                | Yes                 | Copilot CLI only                          |
+| Background delegation  | No                | Yes                 | Copilot CLI only; async agent handoff     |
+| Cross-session memory   | Yes               | Yes                 | Both support persistent memory            |
+| Plugin system          | No                | Yes (`/plugin`)     | Copilot CLI only; see Plugin System below |
+| Context compaction     | Auto (preCompact) | Manual (`/compact`) | Claude Code auto at 95%                   |
+| Instruction caching    | Live reload       | Restart / `/resume` | Copilot requires restart on edit          |
+
 ## Workflow Mapping
 
 | Claude Code            | Copilot CLI      | Notes                    |
@@ -41,6 +59,37 @@ EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
 | Thor subagent          | `@validate`      | Same 9 gates             |
 | `Task` tool (parallel) | N/A              | No parallel spawning     |
 | preCompact hook        | N/A              | Auto-compact at 95%      |
+
+## Plugin System
+
+Copilot CLI supports `/plugin install` for bundled agents, MCP servers, and hooks.
+
+**Our plugin manifest**: `copilot-config/plugin.json`
+
+```
+/plugin install <name>   # Install from manifest
+/plugin list             # Show installed plugins
+/plugin remove <name>    # Uninstall
+```
+
+Plugin types supported:
+
+- **Bundled agents**: skill .md files auto-loaded into session
+- **MCP servers**: registered in `mcp-config.json` via plugin
+- **Hooks**: injected into `hooks.json` on install
+
+Claude Code equivalent: none. Use `settings.json` + `agents/` directory directly.
+
+## .github/skills/ Sync
+
+Key skills are mirrored to `.github/skills/` for Copilot CLI auto-loading.
+
+```bash
+copilot-sync.sh sync    # Mirror skills to .github/skills/, fix refs + symlinks
+copilot-sync.sh status  # Verify alignment between ~/.copilot/ and .github/skills/
+```
+
+Sync ensures Copilot CLI picks up updated skill definitions without manual install. Runs after `CLAUDE.md` edits that affect shared skills.
 
 ## Hooks Comparison
 
@@ -71,7 +120,8 @@ Full hook reference: `reference/operational/enforcement-hooks.md`
 1. `~/.copilot/copilot-instructions.md` — global
 2. `.github/copilot-instructions.md` — project (combined)
 3. `.github/instructions/*.instructions.md` — path-specific
-4. `CLAUDE.md` — agent-specific
+4. `.github/skills/*.md` — auto-loaded skill definitions
+5. `CLAUDE.md` — agent-specific
 
 ## Rigour & Limitations
 

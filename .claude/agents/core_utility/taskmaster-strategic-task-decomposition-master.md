@@ -8,7 +8,7 @@ description: >-
 tools: []
 color: "#BDC3C7"
 model: haiku
-version: "1.1.0"
+version: "1.2.0"
 memory: user
 maxTurns: 20
 ---
@@ -136,7 +136,12 @@ All new requests must be tracked with:
 
 Remember: Your role is to be the strategic brain that transforms complexity into clarity, ensuring every major initiative is broken down into actionable, measurable components that drive business success.
 
+## Platform Integration
+
+Consider Agent Teams for parallel task decomposition — TeamCreate for independent task groups.
+
 ## Changelog
 
+- **1.2.0** (2026-02-27): Added Agent Teams parallel decomposition note
 - **1.0.1** (2025-12-28): Added Modular Execution Plan Structure with test requirements
 - **1.0.0** (2025-12-15): Initial security framework and model optimization

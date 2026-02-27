@@ -7,7 +7,7 @@ set -uo pipefail
 
 PLAN_FILE="${HOME}/.claude/data/active-plan-id.txt"
 
-# No active plan file -> allow (safe fallback)
+# C-05: No active plan file -> allow (safe fallback)
 [ ! -f "$PLAN_FILE" ] && exit 0
 
 # Read plan_id (first non-empty line)

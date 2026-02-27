@@ -15,7 +15,7 @@ tools:
     "Task",
   ]
 model: opus
-version: "1.3.0"
+version: "1.4.0"
 context_isolation: true
 memory: user
 maxTurns: 50
@@ -201,8 +201,13 @@ All reports are branded as **Convergio Think Tank (CTT)**:
 
 ---
 
+## Web Review Continuation
+
+After PDF generation, use `/teleport` to continue report review in the web UI — this allows sharing the compiled PDF link, navigating the report interactively, and adding review annotations without restarting the agent session.
+
 ## Changelog
 
+- **1.4.0** (2026-02-27): Use /teleport to continue report review in web UI after generation
 - **1.3.0** (2026-02-14): Added memory, maxTurns; trimmed under 250 lines
 - **1.2.0** (2026-02-04): Added strict DATA INTEGRITY PROTOCOL
 - **1.1.0** (2026-02-04): Rebranded to Convergio Think Tank (CTT)

@@ -1,7 +1,7 @@
 ---
 name: thor-validation-gates
 description: Validation gates module for Thor. Reference only.
-version: "3.0.0"
+version: "3.1.0"
 ---
 
 # Thor Validation Gates
@@ -107,3 +107,18 @@ echo "{task_files}" | grep -q 'docs/adr/' && echo "ADR-SMART-MODE"
 ```
 
 **REJECT if**: Code contradicts active ADR | CLAUDE.md rule violated | File >250 lines
+
+---
+
+## Gate 10: Worktree Hook Configuration
+
+- For projects with worktree discipline, verify `WorktreeCreate` hook is configured in `settings.json`
+- Check: `cat ~/.claude/settings.json | grep -A2 WorktreeCreate` (or `.claude/settings.json` for project-local)
+- **WARN if missing**: Projects using `wave-worktree.sh` or `isolation: worktree` require this hook for auto-setup
+
+---
+
+## Changelog
+
+- **3.1.0** (2026-02-27): Added Gate 10: WorktreeCreate hook verification for worktree-disciplined projects
+- **3.0.0** (2026-02-26): Extracted validation gates into standalone reference module

@@ -11,8 +11,9 @@
 | Read file              | Read                                     | `cat`, `head`, `tail`   |
 | Edit file              | Edit                                     | `sed`, `awk`            |
 | Create file            | Write                                    | `echo >`, `cat <<EOF`   |
-| Navigate to definition | LSP go-to-definition                     | Grep for class/function |
-| Find all usages        | LSP find-references                      | Grep for symbol         |
+| Navigate to definition | LSP go-to-definition (preferred)         | Grep for class/function |
+| Find all usages        | LSP find-references (preferred)          | Grep for symbol         |
+| Find symbol by name    | `codegraph_search` (if `.codegraph/`)    | Grep for symbol         |
 | Explore codebase       | `Task(subagent_type='Explore')`          | Multiple grep/glob      |
 | Run project audit      | `project-audit.sh --project-root $(pwd)` | Manual audit scripts    |
 
@@ -25,13 +26,14 @@
 
 ## Subagent Routing
 
-| Scenario                        | Subagent                          |
-| ------------------------------- | --------------------------------- |
-| Open-ended codebase exploration | `Explore` (quick/medium/thorough) |
-| Execute plan task               | `task-executor`                   |
-| Create execution plan           | `strategic-planner`               |
-| Quality validation              | `thor-quality-assurance-guardian` |
-| Multi-step research             | `general-purpose`                 |
+| Scenario                        | Subagent                             |
+| ------------------------------- | ------------------------------------ |
+| Open-ended codebase exploration | `Explore` (quick/medium/thorough)    |
+| Execute plan task               | `task-executor`                      |
+| Create execution plan           | `strategic-planner`                  |
+| Quality validation              | `thor-quality-assurance-guardian`    |
+| Multi-step research             | `general-purpose`                    |
+| Parallel multi-agent work       | Agent Teams (TeamCreate/SendMessage) |
 
 ## Shell Safety (zsh)
 
@@ -62,6 +64,13 @@
 | Copilot review digest    | `copilot-review-digest.sh <pr>`   |
 
 Hook `prefer-ci-summary.sh` enforces this automatically.
+
+## Useful Slash Commands
+
+| Command  | Purpose                                         |
+| -------- | ----------------------------------------------- |
+| `/debug` | Enable debug mode for verbose tool call tracing |
+| `/copy`  | Copy last assistant response to clipboard       |
 
 ## Script Discovery
 

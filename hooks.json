@@ -1,0 +1,91 @@
+{
+  "version": 2,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/enforce-standards.sh",
+        "timeoutSec": 10
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/worktree-guard.sh",
+        "timeoutSec": 10
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/session-file-lock.sh",
+        "timeoutSec": 10
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/warn-bash-antipatterns.sh",
+        "timeoutSec": 5
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/prefer-ci-summary.sh",
+        "timeoutSec": 5
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/warn-infra-plan-drift.sh",
+        "timeoutSec": 5
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/guard-plan-mode.sh",
+        "timeoutSec": 5
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/enforce-plan-db-safe.sh",
+        "timeoutSec": 5
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/enforce-plan-edit.sh",
+        "timeoutSec": 10
+      }
+    ],
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/enforce-line-limit.sh",
+        "timeoutSec": 10
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/auto-format.sh",
+        "timeoutSec": 10
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/guard-settings.sh",
+        "timeoutSec": 5
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/verify-before-claim.sh",
+        "timeoutSec": 5
+      }
+    ],
+    "sessionEnd": [
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/session-task-recovery.sh",
+        "timeoutSec": 30
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/session-tokens.sh",
+        "timeoutSec": 15
+      },
+      {
+        "type": "command",
+        "bash": "~/.copilot/hooks/session-file-unlock.sh",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # wave-worktree.sh — Wave-level worktree lifecycle management
-# Usage: wave-worktree.sh <command> <plan_id> [wave_db_id]
+# Usage: wave-worktree.sh <command> <plan_id> [wave_db_id] [--native-isolation]
 # Commands: create, merge, cleanup, status
+#
+# --native-isolation: Uses Task(isolation: worktree) instead of manual git worktree.
+#   Currently experimental — default behavior unchanged when flag is not passed.
+#
 # Version: 2.0.0
 set -euo pipefail
 
@@ -300,5 +304,5 @@ create) cmd_create "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 status) cmd_status "${2:?plan_id required}" ;;
 merge) cmd_merge "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 cleanup) cmd_cleanup "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
-*) echo "Usage: wave-worktree.sh <create|merge|cleanup|status> <plan_id> [wave_db_id]" ;;
+*) echo "Usage: wave-worktree.sh <create|merge|cleanup|status> <plan_id> [wave_db_id] [--native-isolation]" ;;
 esac

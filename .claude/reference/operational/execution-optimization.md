@@ -1,4 +1,4 @@
-<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+<!-- v2.1.0 | 27 Feb 2026 | Agent Teams mode, GPT-5.3-Codex default, native worktree isolation -->
 
 # Execution Optimization
 
@@ -32,9 +32,10 @@ curl -s -X POST http://127.0.0.1:31415/api/tokens \
 
 | Agent Type                 | Default       | Escalation Rule                          |
 | -------------------------- | ------------- | ---------------------------------------- |
-| Task Executor              | gpt-5.3-codex | → opus if cross-cutting or architectural |
+| Task Executor              | GPT-5.3-Codex | → opus if cross-cutting or architectural |
 | Coordinator (Standard)     | sonnet        | → opus if >3 concurrent tasks            |
 | Coordinator (Max Parallel) | **opus**      | Required for unlimited parallelization   |
+| Coordinator (Agent Teams)  | sonnet        | → opus for large team coordination       |
 | Validator (Thor)           | opus          | No escalation                            |
 
 ## Parallelization Modes (User Choice)
@@ -49,8 +50,15 @@ curl -s -X POST http://127.0.0.1:31415/api/tokens \
 
 - Unlimited concurrent task-executors
 - **Opus coordination** (required)
-- Cost: $$$ high, Speed: ⚡⚡⚡⚡ (3-5x faster)
+- Cost: $$$ high, Speed: fast (3-5x)
 - Use case: Urgent deadlines, large plans (10+ tasks)
+
+**Agent Teams Mode** (v2.1.x):
+
+- Native multi-agent via `TeamCreate`/`SendMessage`
+- Built-in task tracking, message passing, shutdown
+- No external terminal dependency
+- Cost: $$ moderate, Speed: fast
 
 **Selection**: Planner asks user after plan approval, before execution starts.
 
@@ -70,6 +78,19 @@ After ALL tasks in a wave are Thor-validated:
 7. **Proceed to next wave**: Only after merge succeeds (wave status = `done`)
 
 **Why**: Task executors (especially non-task-executor agents) may not update plan-db or run Thor. The coordinator is the single source of truth for plan progress. Commit per-wave (not per-task) because Thor wave validation is the quality gate.
+
+## Native Worktree Isolation (v2.1.50+)
+
+`Task` tool supports `isolation: "worktree"` — subagents get an isolated git worktree automatically:
+
+- Reduces manual `cd`/`pwd`/verify overhead for each agent
+- `WorktreeCreate` hook: auto-provisions isolated branch on spawn
+- `WorktreeRemove` hook: auto-cleans worktree on agent exit
+- Combine with `task-executor` for full isolation without manual setup
+
+```yaml
+Task(subagent_type="task-executor", isolation="worktree", ...)
+```
 
 ## Agent Type for Task Execution
 

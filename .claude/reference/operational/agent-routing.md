@@ -1,4 +1,4 @@
-<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+<!-- v2.1.0 | 27 Feb 2026 | Agent Teams routing + new commands -->
 
 # Agent Routing
 
@@ -8,11 +8,12 @@
 
 ## Delegation Triggers
 
-| Trigger           | Reason                      |
-| ----------------- | --------------------------- |
-| Specialist needed | Domain expertise required   |
-| Parallel work     | Multiple independent tasks  |
-| Fresh context     | Avoid context contamination |
+| Trigger                   | Reason                          |
+| ------------------------- | ------------------------------- |
+| Specialist needed         | Domain expertise required       |
+| Parallel work             | Multiple independent tasks      |
+| Fresh context             | Avoid context contamination     |
+| Parallel independent work | Agent Teams native coordination |
 
 ## Mandatory Skill Routing (NON-NEGOTIABLE)
 
@@ -26,12 +27,13 @@ EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
 
 ## Task Routing Table
 
-| Task               | Use                               |
-| ------------------ | --------------------------------- |
-| Explore codebase   | `Explore`                         |
-| Execute plan task  | `task-executor`                   |
-| Quality validation | `thor-quality-assurance-guardian` |
-| Complex debugging  | `adversarial-debugger`            |
+| Task                 | Use                                      |
+| -------------------- | ---------------------------------------- |
+| Explore codebase     | `Explore`                                |
+| Execute plan task    | `task-executor`                          |
+| Quality validation   | `thor-quality-assurance-guardian`        |
+| Complex debugging    | `adversarial-debugger`                   |
+| Parallel multi-agent | Agent Teams (`TeamCreate`/`SendMessage`) |
 
 ## Repo Knowledge
 
@@ -42,3 +44,11 @@ agent-versions.sh                # All component versions (--json, --check)
 agent-version-bump.sh <file> <major|minor|patch>  # Bump semver
 script-versions.sh               # All script versions (--json, --stale, --category <name>)
 ```
+
+## Useful Commands
+
+| Command     | Purpose                                |
+| ----------- | -------------------------------------- |
+| `/teleport` | Move current session context to web UI |
+| `/debug`    | Troubleshoot agent/plan/session issues |
+| `/copy`     | Copy code block from agent response    |

@@ -28,12 +28,12 @@ NEVER create plans without `/planner` skill (Claude: `Skill(skill="planner")`, C
 ```bash
 plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree --human-summary "2-3 righe leggibili che spiegano il piano"
 plan-db.sh update-summary {plan_id} "Aggiorna il summary leggibile"
-plan-db.sh import {plan_id} spec.json
+plan-db.sh import {plan_id} spec.yaml  # also accepts spec.json
 plan-db-safe.sh update-task {id} done "Summary" # ALWAYS use safe wrapper for done
 # plan-db-safe.sh auto: validate-task + validate-wave + complete plan
 plan-db.sh conflict-check {id}            # Cross-plan file overlap detection
-plan-db.sh conflict-check-spec {proj} spec.json # Pre-import conflict check
-plan-db.sh wave-overlap check-spec spec.json    # Intra-wave overlap detection
+plan-db.sh conflict-check-spec {proj} spec.yaml # Pre-import conflict check (also accepts .json)
+plan-db.sh wave-overlap check-spec spec.yaml    # Intra-wave overlap detection (also accepts .json)
 plan-db.sh validate-task {task_id} {plan}  # Per-task Thor validation
 plan-db.sh validate-wave {wave_db_id}     # Per-wave Thor validation
 plan-db.sh validate {id}                  # Bulk Thor validation (all done tasks)

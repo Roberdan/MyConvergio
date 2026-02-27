@@ -1,5 +1,21 @@
 # Changelog
 
+## [9.13.0] - 2026-02-27
+
+### Added
+
+- **yaml_to_json_temp()**: shared helper in plan-db-core.sh for YAML-to-JSON spec conversion
+- **YAML spec support**: plan-db-conflicts.sh, wave-overlap.sh, token-estimator.sh now accept `.yaml` specs
+- **test-yaml-spec.sh**: 9-assertion test suite for YAML spec pipeline
+
+### Changed
+
+- **planner.md v2.5.0**: YAML is now the default spec format ("Default format: YAML"); JSON still supported
+- **plan-db-import.sh v1.3.0**: uses shared helper, preserves original extension on saved copy, render supports both `.yaml` and `.json` lookup
+- **plan-scripts.md**: updated examples to show `spec.yaml` as default
+
+---
+
 ## [9.12.1] - 2026-02-26
 
 ### Fixed

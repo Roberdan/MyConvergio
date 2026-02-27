@@ -22,7 +22,10 @@ check_claude_md_exists() {
 
 check_claude_md_structure() {
 	local pass=true findings=""
-	[[ ! -f "$PROJECT_ROOT/CLAUDE.md" ]] && { _pa_json claude_md_structure P2 true '[]'; return; }
+	[[ ! -f "$PROJECT_ROOT/CLAUDE.md" ]] && {
+		_pa_json claude_md_structure P2 true '[]'
+		return
+	}
 	local f="$PROJECT_ROOT/CLAUDE.md"
 	for section in "Build" "Test" "Lint"; do
 		if ! grep -qiE "^#+.*${section}" "$f" 2>/dev/null; then
@@ -38,9 +41,12 @@ check_claude_md_structure() {
 
 check_claude_md_line_count() {
 	local pass=true arr='[]'
-	[[ ! -f "$PROJECT_ROOT/CLAUDE.md" ]] && { _pa_json claude_md_line_count P2 true '[]'; return; }
+	[[ ! -f "$PROJECT_ROOT/CLAUDE.md" ]] && {
+		_pa_json claude_md_line_count P2 true '[]'
+		return
+	}
 	local lines
-	lines=$(wc -l < "$PROJECT_ROOT/CLAUDE.md" | tr -d ' ')
+	lines=$(wc -l <"$PROJECT_ROOT/CLAUDE.md" | tr -d ' ')
 	if [[ "$lines" -gt 500 ]]; then
 		pass=false
 		arr="[$(_pa_finding "$PROJECT_ROOT/CLAUDE.md" "CLAUDE.md is ${lines} lines (target <500) — consider splitting")]"
@@ -79,7 +85,10 @@ check_gitignore_completeness() {
 
 check_gitignore_secrets() {
 	local pass=true findings=""
-	[[ ! -f "$PROJECT_ROOT/.gitignore" ]] && { _pa_json gitignore_secrets P2 true '[]'; return; }
+	[[ ! -f "$PROJECT_ROOT/.gitignore" ]] && {
+		_pa_json gitignore_secrets P2 true '[]'
+		return
+	}
 	local gi="$PROJECT_ROOT/.gitignore"
 	for pat in ".env.local" "*.pem" "*.key"; do
 		if ! grep -qF "$pat" "$gi" 2>/dev/null; then
@@ -95,7 +104,10 @@ check_gitignore_secrets() {
 
 check_package_json_scripts() {
 	local pass=true findings=""
-	[[ ! -f "$PROJECT_ROOT/package.json" ]] && { _pa_json package_json_scripts P2 true '[]'; return; }
+	[[ ! -f "$PROJECT_ROOT/package.json" ]] && {
+		_pa_json package_json_scripts P2 true '[]'
+		return
+	}
 	local pj="$PROJECT_ROOT/package.json"
 	for script in build test lint; do
 		if ! jq -e ".scripts.${script}" "$pj" >/dev/null 2>&1; then
@@ -121,7 +133,10 @@ check_ci_workflow_exists() {
 
 check_a11y_config() {
 	local pass=true arr='[]'
-	[[ ! -f "$PROJECT_ROOT/package.json" ]] && { _pa_json a11y_config P3 true '[]'; return; }
+	[[ ! -f "$PROJECT_ROOT/package.json" ]] && {
+		_pa_json a11y_config P3 true '[]'
+		return
+	}
 	if ! jq -e '.devDependencies["eslint-plugin-jsx-a11y"] // .dependencies["eslint-plugin-jsx-a11y"]' \
 		"$PROJECT_ROOT/package.json" >/dev/null 2>&1; then
 		if jq -e '.dependencies.react // .devDependencies.react' "$PROJECT_ROOT/package.json" >/dev/null 2>&1; then
@@ -140,10 +155,13 @@ check_token_aware_comment_density() {
 	done < <(find "$PROJECT_ROOT" -maxdepth 4 \
 		\( -name node_modules -o -name .git -o -name dist -o -name coverage -o -name __pycache__ -o -name vendor \) -prune -o \
 		\( -name '*.py' -o -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \) -print0 2>/dev/null)
-	[[ ${#src_files[@]} -eq 0 ]] && { _pa_json token_aware_comment_density P2 true '[]'; return; }
+	[[ ${#src_files[@]} -eq 0 ]] && {
+		_pa_json token_aware_comment_density P2 true '[]'
+		return
+	}
 	for f in "${src_files[@]}"; do
 		local total comment_lines pct comment_re
-		total=$(awk 'END{print NR}' "$f" 2>/dev/null || echo 0)
+		total=$(awk 'END{print NR}' "$f" 2>/dev/null) || total=0
 		[[ "$total" -lt 10 ]] && continue
 		# Language-aware comment detection
 		if [[ "$f" =~ \.py$ ]]; then
@@ -151,10 +169,10 @@ check_token_aware_comment_density() {
 		elif [[ "$f" =~ \.(ts|tsx|js|jsx|mjs|cjs)$ ]]; then
 			comment_re='^\s*(//|/\*|\*)'
 		else
-			continue  # unknown language → skip
+			continue # unknown language → skip
 		fi
-		comment_lines=$(grep -cE "$comment_re" "$f" 2>/dev/null || echo 0)
-		pct=$((comment_lines * 100 / total))
+		comment_lines=$(grep -cE "$comment_re" "$f" 2>/dev/null) || comment_lines=0
+		pct=$((${comment_lines:-0} * 100 / ${total:-1}))
 		if [[ "$pct" -gt 10 ]]; then
 			local sev_label="P2"
 			[[ "$pct" -gt 20 ]] && sev_label="P1"
@@ -182,12 +200,15 @@ check_token_aware_doc_verbosity() {
 	done < <(find "$PROJECT_ROOT" -maxdepth 3 \
 		\( -name node_modules -o -name .git -o -name dist \) -prune -o \
 		-name '*.md' -print0 2>/dev/null)
-	[[ ${#md_files[@]} -eq 0 ]] && { _pa_json token_aware_doc_verbosity P3 true '[]'; return; }
+	[[ ${#md_files[@]} -eq 0 ]] && {
+		_pa_json token_aware_doc_verbosity P3 true '[]'
+		return
+	}
 	for f in "${md_files[@]}"; do
 		local lines words wpl
-		lines=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
+		lines=$(wc -l <"$f" 2>/dev/null | tr -d ' ')
 		[[ "$lines" -lt 5 ]] && continue
-		words=$(wc -w < "$f" 2>/dev/null | tr -d ' ')
+		words=$(wc -w <"$f" 2>/dev/null | tr -d ' ')
 		wpl=$((words / lines))
 		if [[ "$wpl" -gt 25 ]]; then
 			findings="${findings}$(jq -n --arg f "$f" --arg b "Avg ${wpl} words/line (target <25) — consider tables/bullets" \

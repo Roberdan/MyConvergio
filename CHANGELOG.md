@@ -1,5 +1,42 @@
 # Changelog
 
+## [v9.0.0] - 27 Feb 2026
+
+### Added
+
+- ADR 0020: Ecosystem Modernization for Claude Code v2.1.x
+- Agent Teams Mode in parallelization (replaces Kitty terminal orchestration)
+- Native worktree isolation (`isolation: "worktree"` in Task tool)
+- WorktreeCreate/WorktreeRemove hooks (auto .env symlink + npm install)
+- Advisory prompt hook for LSP/codegraph suggestions (PostToolUse Grep|Glob)
+- Auto-memory coexistence protocol (auto vs manual memory)
+- Copilot CLI GA alignment: plugin.json manifest, .github/skills/ directory
+- Copilot CLI GA features: background delegation (&), /chronicle, cross-session memory
+- GPT-5.3-Codex as default model for task execution
+- Wildcard permissions: mcp**codegraph**_, Bash(npm _), Bash(git \*)
+- New commands: /teleport, /debug, /copy, /memory, `claude agents`
+
+### Changed
+
+- ALL 21 agents updated for v2.1.x capabilities (LSP, Agent Teams, worktree isolation)
+- `orchestration` skill v2.0.0: Kitty → Agent Teams (TeamCreate/SendMessage)
+- `inject-agent-context.sh` v1.2.0: platform capabilities injection
+- `parallelization-modes.md`: Agent Teams primary, Kitty legacy
+- `copilot-instructions.md`: GPT-5.3-Codex, background delegation, /chronicle
+- `copilot-config/hooks.json` v2 GA format + prefer-ci-summary parity
+- `copilot-alignment.md`: GA status, feature parity matrix, plugin system
+- All `reference/operational/*.md` updated for v2.1.x features
+- `wave-worktree.sh`: native isolation flag documentation
+- `worktree-create.sh`: WorktreeCreate hook awareness
+
+### Gains
+
+- Token reduction: ~8K-14K tokens/plan (context isolation + wildcard permissions)
+- Time saved: ~3-5 min/plan (automated hooks + LSP navigation)
+- Quality: Agent Teams enables parallel independent validation
+
+---
+
 ## [v8.5.0] - 25 Feb 2026
 
 ### Changed

@@ -1,68 +1,86 @@
-<!-- v2.0.0 -->
+<!-- v1.0.0 -->
 
 # Testing Standards
 
-> MyConvergio agent ecosystem rule
+> Addresses: mock masking, integration gaps, cascading silent failures
 
-## Coverage
+## Mock Boundaries (NON-NEGOTIABLE)
 
-**Required**: 80% business logic, 100% critical paths (auth, payment, data integrity) | Track in CI/CD | Branch coverage, not just lines
+| Mock ALLOWED | Mock FORBIDDEN |
+|---|---|
+| External APIs (Azure DevOps, Redis, third-party) | Auth functions (`is_admin`, `get_current_user`, `fetch_studios`) |
+| Network I/O (HTTP calls, WebSocket) | Database queries (use test DB with seed data) |
+| File system (when testing non-I/O logic) | The module under test (circular mock = useless test) |
+| Time/Date (deterministic tests) | Internal routing/middleware (test the real chain) |
 
-## Unit Tests
+**Rule**: If you mock the thing you're testing, the test proves nothing. Mock at system BOUNDARIES, not at internal seams.
 
-**All business logic** | Isolated, mock external deps (DB, APIs, filesystem) | One behavior/test | Fast (<1ms ideal) | No network/IO | Format: `describe('Component', () => it('should X when Y'))` | Group in describe blocks
+## Integration Test Requirements
 
-## Integration Tests
+| Trigger | Required Test |
+|---|---|
+| New API endpoint | Request through real middleware chain (auth + validation + handler) |
+| New component consuming API data | Test with realistic API response shape (case, nulls, empty arrays) |
+| Interface change (props, types) | Test ALL consumers with new interface (grep for old interface first) |
+| New CSS variables | Verify variable defined in loaded stylesheet (not just referenced) |
 
-**All API endpoints** | Test DB with test database | Fixtures/factories for test data | Cleanup after each test | Auth/authz flows | External service integrations
+**Minimum**: Every plan MUST include at least ONE integration test that exercises the full data path from API response to UI render (or equivalent for backend-only plans).
 
-## Test Isolation
+## Data Format Verification
 
-Independent execution | No shared state | Each test sets up own data | `afterEach`/teardown cleanup | Pass in any order | No test interdependencies
+Backend/frontend boundary mismatches are recurring bugs. For EVERY API integration:
 
-## Mocking
+1. Log actual API response shape in test (case, field names, nesting)
+2. Assert frontend expectations match backend format
+3. Case-insensitive matching for string enums (`PROSPECT` vs `Prospect`)
 
-Mock external deps (APIs, DB, time) | Dependency injection | Avoid over-mocking (test real integration when beneficial) | Document what's mocked and why | Use test doubles appropriately (mocks, stubs, spies, fakes)
+## Fail-Loud Patterns (NON-NEGOTIABLE)
 
-## Performance
-
-Unit: milliseconds | Integration: seconds | Optimize slow tests | Parallelize when possible | Flag and fix flaky tests
-
-## Data Management
-
-Fixtures for complex data | Factories for test objects | NEVER production data | Reset DB state between tests
-
-## Good Patterns
+Empty data that SHOULD NOT be empty MUST produce visible feedback:
 
 ```typescript
-// Clear naming, isolated, AAA pattern
-describe('calculateDiscount', () => {
-  it('should apply 10% for premium users', () => {
-    const user = { isPremium: true }, price = 100;
-    const result = calculateDiscount(price, user);
-    expect(result).toBe(90);
-  });
-});
+// WRONG: silent degradation
+if (studios.length === 0) return null;
+
+// RIGHT: fail-loud with user feedback
+if (studios.length === 0) {
+  console.warn('[StudioSelector] Admin has 0 studios — check configuration');
+  return <Alert severity="warning">No studios found. Contact admin.</Alert>;
+}
 ```
 
-```python
-# Fixtures with cleanup
-@pytest.fixture
-def test_db():
-    db = create_test_database()
-    yield db
-    db.cleanup()
+**Rule**: `return null` on unexpected empty data = BUG. Use `console.warn` + visible UI message.
 
-def test_create_user(test_db, client):
-    response = client.post("/api/users", json={"email": "test@example.com"})
-    assert response.status_code == 201
-    assert test_db.query(User).filter_by(email="test@example.com").first()
-```
+**Exceptions**: Loading states, explicit "no data yet" states, optional features.
 
-## Anti-Patterns
+## CSS Variable Validation
 
-❌ Unclear names (`it('test1')`, `it('works')`) | ❌ Shared state between tests | ❌ Real API calls in unit tests | ❌ Magic values without context | ❌ Tests with no assertions | ❌ Order-dependent tests
+Every component using `var(--name)` MUST have the variable defined in the loaded stylesheet chain.
 
-## References
+**Verify**: `grep -rh 'var(--' src/ | grep -oP '(?<=var\()--.+?(?=[\),])' | sort -u` vs `grep -rh '^\s*--' src/styles/ | grep -oP '(?<=\s)--.+?(?=:)' | sort -u`. Orphans = REJECT.
 
-Jest | Pytest | [Testing Best Practices](https://testingjavascript.com/) | [Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html)
+## Real Data Only (NON-NEGOTIABLE)
+
+Test data MUST reflect real production values. NEVER invent, hallucinate, or use placeholder data.
+
+| ALLOWED | FORBIDDEN |
+|---|---|
+| Real studio names from config (`GTM EMEA Studio 3`, `Commercial Studio 2`) | Made-up names (`Studio A`, `Test Studio`, `Fake Studio`) |
+| Real API response shapes (exact fields, case, nesting) | Simplified/altered response shapes |
+| Real email formats matching config patterns | `test@example.com` if not in actual config |
+| Real stage labels from backend (`PROSPECT`, `EXPLORATION`) | Altered case or invented stages (`prospect`, `Stage 1`) |
+| Seed data from test fixtures that mirror production schema | Random data that "looks right" |
+
+**Rule**: If a test uses `'Studio A'` but production data never contains `'Studio A'`, the test proves nothing about real behavior. Use actual values from config files, seed data, or documented API contracts.
+
+**Enforcement**: Thor Gate 8b checks test data against production format. `code-pattern-check.sh` flags generic test data patterns.
+
+## Test Quality Checklist (Thor Gate 8 Extension)
+
+| Check | REJECT if |
+|---|---|
+| Mock depth | Test mocks >2 layers deep from the function under test |
+| Mock of tested module | Test mocks the very function/module it claims to test |
+| Coverage without assertions | Test has 80% coverage but zero meaningful assertions |
+| Format mismatch | Test uses different data format than production (case, shape) |
+| Missing consumer test | New export has zero tests for its integration point |

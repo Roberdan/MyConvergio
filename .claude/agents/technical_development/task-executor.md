@@ -5,7 +5,7 @@ tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task"]
 disallowedTools: ["WebSearch", "WebFetch"]
 color: "#10b981"
 model: sonnet
-version: "2.3.0"
+version: "2.4.0"
 context_isolation: true
 memory: project
 maxTurns: 50
@@ -104,6 +104,17 @@ Framework is pre-detected: `{framework}`. Skip detection, use directly.
 ```
 
 Use `--quick` (lint+types only). Full build/tests run at Thor wave validation.
+
+### Phase 3.7: Integration Verification (MANDATORY)
+
+After GREEN, before F-xx gate, verify new code is REACHABLE:
+
+1. **New files**: For each new file created, `Grep` for its exports being imported. Zero consumers → report to coordinator, do NOT silently mark done
+2. **Changed interfaces**: For each modified type/props/API shape, `Grep` for ALL consumers of old interface. Any not updated → update or BLOCK
+3. **New components**: Verify at least one render site imports and uses the component
+4. **Data format**: If task touches API↔frontend boundary, verify response shape matches consumer expectations (case, nulls, field names)
+
+**Scope**: `files` in task are PRIMARY scope. Barrel files, index files, and direct consumers are IN SCOPE for wiring. See `~/.claude/rules/testing-standards.md`.
 
 ### CI Batch Fix (NON-NEGOTIABLE)
 
@@ -247,6 +258,7 @@ session-reaper.sh --max-age 0 2>/dev/null || true
 
 ---
 
+**v2.4.0** (2026-02-27): Phase 3.7 Integration Verification; consumer/wiring scope
 **v2.3.0** (2026-02-27): Mandatory Bash timeout; process cleanup before return
 **v2.2.0** (2026-02-27): LSP awareness; native worktree isolation
 **v2.1.0** (2026-01-31): Quick CI Check; Output Data inter-wave

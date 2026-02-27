@@ -3,7 +3,7 @@ name: planner
 description: Create execution plans with waves/tasks from F-xx requirements. Uses plan-db.sh as single source of truth.
 tools: ["read", "edit", "search", "execute"]
 model: claude-opus-4.6-1m
-version: "2.1.0"
+version: "2.2.0"
 handoffs:
   - label: Execute Plan
     agent: execute
@@ -32,19 +32,19 @@ Works with ANY repository - auto-detects project context.
 | Mechanical edits, bulk changes | gpt-5-mini         | Fast, cheap        |
 | Large file analysis            | claude-opus-4.6-1m | 1M context         |
 | Test writing                   | gpt-5              | Code gen focus     |
-| Documentation                  | claude-sonnet-4.5   | Good writing, fast |
+| Documentation                  | claude-sonnet-4.5  | Good writing, fast |
 | Security review                | claude-opus-4.6    | Critical analysis  |
 | Quick exploration              | claude-haiku-4.5   | Fastest            |
 
 ## Critical Rules
 
-| Rule | Requirement                                                                                          |
-| ---- | ---------------------------------------------------------------------------------------------------- |
-| 1    | F-xx Requirements - extract ALL, verify ALL [x] before done                                          |
-| 2    | User Approval Gate - BLOCK until explicit confirmation                                               |
-| 3    | Worktree Isolation - EVERY task includes worktree path, NEVER on main                                |
-| 4    | TDD Mandatory - Every task has test_criteria                                                         |
-| 5    | NO SILENT EXCLUSIONS - NEVER exclude/defer F-xx without user approval. Silently dropping = VIOLATION |
+| Rule | Requirement                                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------------------------------ |
+| 1    | F-xx Requirements - extract ALL, verify ALL [x] before done                                                        |
+| 2    | User Approval Gate - BLOCK until explicit confirmation                                                             |
+| 3    | Worktree Isolation - EVERY task includes worktree path, NEVER on main                                              |
+| 4    | TDD Mandatory - Every task has test_criteria                                                                       |
+| 5    | NO SILENT EXCLUSIONS - NEVER exclude/defer F-xx without user approval. Silently dropping = VIOLATION               |
 | 6    | DB GATE - NEVER proceed to User Approval without verifying plan exists in plan-db (Step 4.1). Skipping = plan lost |
 
 ## Workflow
@@ -101,10 +101,15 @@ Write `spec.json`:
 
 - `do`: ONE atomic action (if "and" needed, split to 2 tasks)
 - `files`: explicit paths executor must touch
+- `consumers`: files that import/use what this task creates/changes (executor MUST verify these are updated)
 - `verify`: machine-checkable commands, not prose
 - `model`: see Task Model Routing table
 - `executor_agent`: copilot (default) | claude | codex | manual
 - `precondition`: array blocking wave until conditions met
+
+**Integration Completeness (MANDATORY)**:
+
+For EVERY task creating new code: plan a companion wiring task that connects it to consumers. For EVERY interface change: plan a consumer audit task that greps ALL references. Before spec generation: search codebase for existing imports of files being modified. Orphan code (created but never wired) = VIOLATION. See `~/.claude/rules/testing-standards.md`.
 
 ### 3.1 Schema Validation (MANDATORY)
 
@@ -122,6 +127,7 @@ print('PASS: spec.json valid')
 ### 3.2 F-xx Exclusion Gate (MANDATORY)
 
 Compare ALL F-xx requirements vs tasks. If ANY F-xx is NOT covered by at least one task `ref`:
+
 1. List uncovered F-xx
 2. Ask user: include, defer, or exclude each one
 3. **BLOCK** — NEVER silently skip
@@ -180,5 +186,6 @@ plan-db.sh start $PLAN_ID
 
 ## Changelog
 
+- **2.2.0** (2026-02-27): Integration Completeness rule; `consumers` field in spec rules
 - **2.0.0** (2026-02-15): Compact format per ADR 0009 - 30% token reduction
 - **1.0.1** (Previous version): Task model routing added

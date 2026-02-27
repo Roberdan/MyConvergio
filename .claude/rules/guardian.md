@@ -1,4 +1,4 @@
-<!-- v2.2.0 -->
+<!-- v2.3.0 -->
 
 # Process Guardian
 
@@ -46,6 +46,10 @@ Resolve ALL issues, not just high-priority. Prioritize by severity but NEVER def
 
 When plan implementation changes break existing tests, **update tests to match new behavior**. NEVER revert working implementation to make old tests pass. Tests verify correctness of the NEW code, not preserve the OLD behavior. Reverting implementation to green-light stale tests = VIOLATION.
 
+## Integration Completeness (NON-NEGOTIABLE)
+
+New code MUST be wired into at least one consumer. New components MUST have a render site. Changed interfaces MUST have ALL consumers updated. Orphan code (created but never imported) = REJECTION. See `~/.claude/rules/testing-standards.md` for mock boundaries and fail-loud patterns.
+
 ## Guardrails
 
-Avatar WebP | EventSource .close() | Lazy-load heavy deps | No N+1 without $transaction | Same approach fails twice → different strategy | Stuck → ask user | Reject if: Errors suppressed | Steps skipped | Verification promised but not done
+Avatar WebP | EventSource .close() | Lazy-load heavy deps | No N+1 without $transaction | Same approach fails twice → different strategy | Stuck → ask user | Reject if: Errors suppressed | Steps skipped | Verification promised but not done | Orphan code (created but never wired)

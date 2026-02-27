@@ -3,7 +3,7 @@
 # Auto-releases file locks, checks staleness, warns about uncommitted changes.
 # VALIDATE-THEN-DONE: Validation runs BEFORE marking done (blocking, no bypass flags).
 # CIRCUIT BREAKER: Auto-blocks tasks after MAX_REJECTIONS consecutive Thor rejections.
-# Version: 3.2.0
+# Version: 3.3.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -117,7 +117,16 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 
 	# Release file locks held by this task
 	if [[ -x "$SCRIPT_DIR/file-lock.sh" ]]; then
-		"$SCRIPT_DIR/file-lock.sh" release-task "$TASK_ID" 2>/dev/null || true
+		"$SCRIPT_DIR/file-lock.sh" release-task "$TASK_ID" >/dev/null 2>/dev/null || true
+	fi
+
+	# --- AUTO-TRANSITION: pending→in_progress if needed (prevents plan-db.sh rejection) ---
+	current_status=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+		"SELECT status FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
+	if [[ "$current_status" == "pending" ]]; then
+		echo "[plan-db-safe] Auto-transition: pending→in_progress for task $TASK_ID" >&2
+		sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+			"UPDATE tasks SET status = 'in_progress', started_at = datetime('now') WHERE id = $TASK_ID;"
 	fi
 
 	# --- DELEGATE: mark task done (needed for validate-task status check) ---

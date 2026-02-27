@@ -30,7 +30,7 @@ plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree --h
 plan-db.sh update-summary {plan_id} "Aggiorna il summary leggibile"
 plan-db.sh import {plan_id} spec.yaml  # also accepts spec.json
 plan-db-safe.sh update-task {id} done "Summary" # ALWAYS use safe wrapper for done
-# plan-db-safe.sh auto: validate-task + validate-wave + complete plan
+# plan-db-safe.sh auto: pending→in_progress (if needed) + validate-task + validate-wave + complete plan
 plan-db.sh conflict-check {id}            # Cross-plan file overlap detection
 plan-db.sh conflict-check-spec {proj} spec.yaml # Pre-import conflict check (also accepts .json)
 plan-db.sh wave-overlap check-spec spec.yaml    # Intra-wave overlap detection (also accepts .json)

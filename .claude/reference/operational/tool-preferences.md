@@ -1,4 +1,4 @@
-<!-- v2.1.0 | 27 Feb 2026 | ci-digest.sh checks mapping, gh auth switch hints -->
+<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
 
 # Tool Preferences
 

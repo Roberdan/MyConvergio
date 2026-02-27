@@ -1,5 +1,26 @@
 # Changelog
 
+## [9.17.0] - 2026-02-27
+
+### Changed
+
+- **task-executor-tdd v1.2.0**: minimized test output — no verbose flags, no pipe to tail (hook-safe)
+- **task-executor v2.3.0**: mandatory Bash timeout on all commands, explicit process cleanup on exit
+- **wave-worktree.sh v2.1.0**: rebase-before-merge to prevent forward-merge commits on main
+- **plan-db-safe.sh v3.3.0**: auto pending→in_progress→done transition (single call handles full lifecycle)
+- **execution-optimization.md v2.3.0**: rebase step documented in wave merge flow; plan closure checklist added
+- **worktree-discipline.md v3.2.0**: Git Graph Hygiene rule — no forward-merge commits, rebase enforced
+- **guardian.md v2.2.0**: git graph hygiene cross-reference added to PR merge section
+- **Dashboard query optimization**: 4 modules updated (active-plans, completed-plans, overview, prs) — navigation module extracted
+
+### Added
+
+- **session-reaper.sh**: cleanup stale Claude sessions and release orphaned file locks
+- **spotlight-exclude.sh**: drop .metadata_never_index in build/cache/dep dirs to prevent macOS Spotlight indexing waste
+- **dashboard-navigation.sh**: extracted navigation module from dashboard-mini.sh for reuse
+
+---
+
 ## [9.14.0] - 2026-02-27
 
 ### Added

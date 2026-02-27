@@ -1,10 +1,10 @@
 #!/bin/bash
 # Completed plans rendering
-# Version: 1.4.0
+# Version: 1.5.0
 
 _render_completed_plans() {
 	local completed_week_count
-	completed_week_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day')")
+	completed_week_count=$(dbq "SELECT COUNT(*) FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day')")
 	echo -e "${BOLD}${WHITE}✅ Completati ultime 24h ($completed_week_count)${NC}"
 	if [ "$completed_week_count" -eq 0 ]; then
 		echo -e "${GRAY}└─${NC} Nessun piano completato nelle ultime 24 ore"
@@ -13,7 +13,7 @@ _render_completed_plans() {
 		echo -e "${GRAY}│  ${NC}${GRAY}Usa ${WHITE}piani -e${GRAY} per vedere dettagli task${NC}"
 	fi
 
-	sqlite3 "$DB" "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')), COALESCE(lines_added, 0), COALESCE(lines_removed, 0), COALESCE(worktree_path, '') FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project pdescription lines_added lines_removed worktree_path; do
+	dbq "SELECT id, name, updated_at, validated_at, validated_by, completed_at, started_at, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')), COALESCE(lines_added, 0), COALESCE(lines_removed, 0), COALESCE(worktree_path, '') FROM plans WHERE status = 'done' AND datetime(COALESCE(completed_at, updated_at, created_at)) >= datetime('now', '-1 day') ORDER BY COALESCE(completed_at, updated_at, created_at) DESC" | while IFS='|' read -r plan_id name updated validated_at validated_by completed started created done_project pdescription lines_added lines_removed worktree_path; do
 		[ -z "$plan_id" ] && continue
 		# Use completed_at or updated_at for display
 		display_date="${completed:-${updated:-$created}}"
@@ -38,7 +38,7 @@ _render_completed_plans() {
 		elapsed_time=$(format_elapsed $elapsed_seconds)
 
 		# Token usage (usa project_id perché plan_id è sempre NULL nel DB)
-		total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$done_project'")
+		total_tokens=$(dbq "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$done_project'")
 		tokens_formatted=$(format_tokens $total_tokens)
 
 		# Thor validation status
@@ -49,8 +49,8 @@ _render_completed_plans() {
 		fi
 
 		# Count tasks (done/total)
-		task_done_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
-		task_total_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
+		task_done_count=$(dbq "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
+		task_total_count=$(dbq "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
 
 		# Project display for completed plans
 		done_project_display=""
@@ -62,67 +62,14 @@ _render_completed_plans() {
 			git_stats_display=" ${GRAY}│${NC} ${GREEN}+$(format_lines ${lines_added:-0})${NC} ${RED}-$(format_lines ${lines_removed:-0})${NC}"
 		fi
 
-		# PR detection for completed plan
-		local pr_display="" pr_merged=0 pr_ci_display="" pr_num=""
-		if [ -n "$done_project" ] && command -v gh &>/dev/null; then
-			local project_dir="$HOME/GitHub/$done_project"
-			if [ -d "$project_dir" ]; then
-				local owner_repo
-				owner_repo=$(_get_owner_repo "$project_dir")
-				if [ -n "$owner_repo" ]; then
-					local pr_data
-					pr_data=$(gh api "repos/$owner_repo/pulls?state=all&per_page=20&sort=updated&direction=desc" \
-						--jq '[.[] | {number, title, url: .html_url, headRefName: .head.ref, state, merged_at, head_sha: .head.sha}]' \
-						2>/dev/null || true)
-					if [ -n "$pr_data" ] && echo "$pr_data" | jq -e 'type == "array" and length > 0' &>/dev/null; then
-						local plan_normalized
-						plan_normalized=$(echo "$name" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | sed 's/plan-[0-9]*-//g')
-						while read -r pr; do
-							[ -z "$pr" ] && continue
-							local pr_branch pr_title_lower
-							pr_branch=$(echo "$pr" | jq -r '.headRefName' | tr '[:upper:]' '[:lower:]')
-							pr_title_lower=$(echo "$pr" | jq -r '.title' | tr '[:upper:]' '[:lower:]')
-							local match=0
-							for keyword in $(echo "$plan_normalized" | tr '-' '\n' | grep -v -E '^(the|and|for|with|complete|plan)$' | head -3); do
-								[ ${#keyword} -lt 3 ] && continue
-								if [[ "$pr_branch" == *"$keyword"* ]] || [[ "$pr_title_lower" == *"$keyword"* ]]; then
-									match=1
-									break
-								fi
-							done
-							if [ "$match" -eq 1 ]; then
-								pr_num=$(echo "$pr" | jq -r '.number')
-								local pr_url_val pr_merged_at pr_state pr_head_sha
-								pr_url_val=$(echo "$pr" | jq -r '.url')
-								pr_merged_at=$(echo "$pr" | jq -r '.merged_at // empty')
-								pr_state=$(echo "$pr" | jq -r '.state')
-								pr_head_sha=$(echo "$pr" | jq -r '.head_sha')
-								# CI status from commit status
-								if [ -n "$pr_head_sha" ] && [ "$pr_head_sha" != "null" ]; then
-									local ci_state
-									ci_state=$(gh api "repos/$owner_repo/commits/$pr_head_sha/status" --jq '.state' 2>/dev/null || echo "unknown")
-									case "$ci_state" in
-									success) pr_ci_display="${GREEN}CI:✓${NC}" ;;
-									failure) pr_ci_display="${RED}CI:✗${NC}" ;;
-									pending) pr_ci_display="${YELLOW}CI:◯${NC}" ;;
-									*) pr_ci_display="${GRAY}CI:--${NC}" ;;
-									esac
-								fi
-								if [ -n "$pr_merged_at" ]; then
-									pr_merged=1
-									pr_display="${GREEN}PR #${pr_num} merged${NC}"
-								elif [ "$pr_state" = "open" ]; then
-									pr_display="${YELLOW}PR #${pr_num} open${NC}"
-								else
-									pr_display="${RED}PR #${pr_num} closed${NC}"
-								fi
-								break
-							fi
-						done < <(echo "$pr_data" | jq -c '.[]' 2>/dev/null)
-					fi
-				fi
-			fi
-		fi
+		# PR detection from waves DB (no API calls)
+		local pr_display="" pr_merged=0 pr_num=""
+		pr_display=$(_render_completed_plan_prs "$plan_id")
+		# Check if any wave PR is not merged (for truly_done assessment)
+		local unmerged_wave_prs
+		unmerged_wave_prs=$(dbq "SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0 AND status <> 'done'")
+		[ "${unmerged_wave_prs:-0}" -gt 0 ] && pr_merged=0 || pr_merged=1
+		pr_num=$(dbq "SELECT pr_number FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0 LIMIT 1")
 
 		# Worktree check
 		local worktree_exists=0 worktree_display=""
@@ -152,7 +99,6 @@ _render_completed_plans() {
 		local closure_line=""
 		if [ -n "$pr_display" ]; then
 			closure_line+="$pr_display"
-			[ -n "$pr_ci_display" ] && closure_line+=" $pr_ci_display"
 		fi
 		if [ -n "$worktree_display" ]; then
 			[ -n "$closure_line" ] && closure_line+=" ${GRAY}│${NC} "
@@ -185,7 +131,7 @@ _render_completed_plans() {
 					echo -e "${GRAY}│  └─${NC} ${GRAY}Task completati:${NC}"
 				fi
 				# Show all completed tasks (limit to first 10 for readability)
-				sqlite3 "$DB" "SELECT task_id, REPLACE(REPLACE(title, char(10), ' '), char(13), '') FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id) ORDER BY task_id LIMIT 10" | while IFS='|' read -r tid title; do
+				dbq "SELECT task_id, REPLACE(REPLACE(title, char(10), ' '), char(13), '') FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id) ORDER BY task_id LIMIT 10" | while IFS='|' read -r tid title; do
 					short_title=$(echo "$title" | cut -c1-55)
 					if [ ${#title} -gt 55 ]; then
 						short_title="${short_title}..."

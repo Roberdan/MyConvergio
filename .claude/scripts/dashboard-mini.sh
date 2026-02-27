@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version: 1.5.0
+# Version: 2.0.0
 set -euo pipefail
 # Source all dashboard modules
 DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
@@ -16,6 +16,7 @@ DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
 . "$DASHBOARD_LIB/dashboard-render-pipeline-plans.sh"
 . "$DASHBOARD_LIB/dashboard-render-completed-plans.sh"
 . "$DASHBOARD_LIB/dashboard-render-overview.sh"
+. "$DASHBOARD_LIB/dashboard-navigation.sh"
 
 cmd_waves() {
 	local plan_id="$1"
@@ -121,10 +122,9 @@ while [[ $# -gt 0 ]]; do
 		echo "  - In Pipeline: piani creati ma non ancora lanciati"
 		echo "  - Completamenti: ultime 24 ore"
 		echo ""
-		echo "Comportamento default:"
-		echo "  - Auto-refresh ogni 5 minuti (300 secondi)"
-		echo "  - Task completati compressi (solo conteggio)"
-		echo "  - Premi R per refresh, Q per uscire, P per push Linux, L per git Linux"
+		echo "Navigazione interattiva:"
+		echo "  R=refresh  C=completati  B=back  Q=quit  P=push  L=linux"
+		echo "  <numero>+Enter = drill-down piano (input live)"
 		echo ""
 		echo "Esempi:"
 		echo "  piani                 # Dashboard compatta con auto-refresh"
@@ -154,43 +154,14 @@ if [ -n "$PLAN_ID" ]; then
 	EXPAND_COMPLETED=1
 fi
 
-# Refresh mode
+# Interactive or single-shot mode (navigation functions from dashboard-navigation.sh)
 if [ "$REFRESH_INTERVAL" -gt 0 ]; then
-	trap 'echo -e "\n${YELLOW}Dashboard terminata.${NC}"; exit 0' INT
-	clear
-	while true; do
-		quick_sync
-		render_dashboard
-		now=$(date "+%H:%M:%S")
-		echo -e "${GRAY}Ultimo aggiornamento: ${WHITE}$now${NC} ${GRAY}│ Prossimo refresh tra ${REFRESH_INTERVAL}s${NC}"
-		printf "\r${GRAY}Refresh tra: ${WHITE}%3ds${NC} ${GRAY}(${WHITE}R${GRAY}=refresh, ${WHITE}Q${GRAY}=esci, ${WHITE}P${GRAY}=push, ${WHITE}L${GRAY}=linux git)${NC}    " "$REFRESH_INTERVAL"
-		key=""
-		read -t "$REFRESH_INTERVAL" -n 1 key 2>/dev/null || true
-		case "$key" in
-		q | Q)
-			echo -e "\n${YELLOW}Dashboard terminata.${NC}"
-			exit 0
-			;;
-		p | P)
-			echo ""
-			_handle_remote_action "push"
-			echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
-			read -n 1 -s
-			;;
-		l | L)
-			echo ""
-			_handle_remote_action "status"
-			echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
-			read -n 1 -s
-			;;
-		"") ;;
-		*)
-			printf "\r${CYAN}Refresh forzato...%50s${NC}\r" " "
-			;;
-		esac
-		clear
-	done
+	_run_interactive_loop
 else
+	if [ -n "$PLAN_ID" ]; then
+		VIEW_MODE="detail"
+		VIEW_PLAN_ID="$PLAN_ID"
+	fi
 	quick_sync
-	render_dashboard
+	_render_current_view
 fi

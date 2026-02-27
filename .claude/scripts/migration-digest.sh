@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Migration Digest - Compact Prisma/Drizzle migration output as JSON
 # Usage: migration-digest.sh [status|push|generate|create <name>|diff] [--no-cache]
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -9,13 +9,18 @@ source "$SCRIPT_DIR/lib/digest-cache.sh"
 
 CACHE_TTL=60
 NO_CACHE=0
-CMD="${1:-status}"
-
-[[ "$CMD" == "--no-cache" ]] && {
-	NO_CACHE=1
-	CMD="${2:-status}"
-}
-[[ "${2:-}" == "--no-cache" ]] && NO_CACHE=1
+COMPACT=0
+digest_check_compact "$@"
+CMD=""
+for arg in "$@"; do
+	[[ "$arg" == "--no-cache" ]] && {
+		NO_CACHE=1
+		continue
+	}
+	[[ "$arg" == "--compact" ]] && continue
+	[[ -z "$CMD" ]] && CMD="$arg"
+done
+CMD="${CMD:-status}"
 
 # Detect ORM
 ORM="unknown"
@@ -135,4 +140,5 @@ RESULT=$(jq -n \
 	  destructive:$destructive, errors:$errors}')
 
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only actionable fields (skip orm, cmd, tables, applied)
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'status, exit_code, pending, destructive, errors'

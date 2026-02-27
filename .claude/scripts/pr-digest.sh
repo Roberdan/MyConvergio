@@ -2,7 +2,7 @@
 # PR Digest - Compact PR review status as JSON
 # Only human comments, only unresolved threads. Skips bots.
 # Usage: pr-digest.sh [pr-number] [--no-cache]
-# Version: 1.0.0
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,13 +32,17 @@ gh_api() {
 
 CACHE_TTL=30
 NO_CACHE=0
-PR_NUM="${1:-}"
-
-[[ "$PR_NUM" == "--no-cache" ]] && {
-	NO_CACHE=1
-	PR_NUM="${2:-}"
-}
-[[ "${2:-}" == "--no-cache" ]] && NO_CACHE=1
+COMPACT=0
+digest_check_compact "$@"
+PR_NUM=""
+for arg in "$@"; do
+	[[ "$arg" == "--no-cache" ]] && {
+		NO_CACHE=1
+		continue
+	}
+	[[ "$arg" == "--compact" ]] && continue
+	[[ -z "$PR_NUM" ]] && PR_NUM="$arg"
+done
 
 # Resolve PR number from current branch if not provided
 # Use REST API instead of gh pr list (GraphQL has numbering issues on forks)
@@ -151,4 +155,5 @@ RESULT=$(jq -n \
 
 # Cache and output
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only decision + unresolved threads (skip title, changes, general_comments)
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'pr, decision, inline_comments, threads'

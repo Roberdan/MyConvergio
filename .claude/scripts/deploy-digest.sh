@@ -2,7 +2,7 @@
 # Deploy Digest - Compact Vercel deployment status as JSON
 # Extracts status + errors only. No raw build logs.
 # Usage: deploy-digest.sh [deployment-url] [--no-cache]
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,13 +10,17 @@ source "$SCRIPT_DIR/lib/digest-cache.sh"
 
 CACHE_TTL=45
 NO_CACHE=0
-DEPLOYMENT="${1:-}"
-
-[[ "$DEPLOYMENT" == "--no-cache" ]] && {
-	NO_CACHE=1
-	DEPLOYMENT="${2:-}"
-}
-[[ "${2:-}" == "--no-cache" ]] && NO_CACHE=1
+COMPACT=0
+digest_check_compact "$@"
+DEPLOYMENT=""
+for arg in "$@"; do
+	[[ "$arg" == "--no-cache" ]] && {
+		NO_CACHE=1
+		continue
+	}
+	[[ "$arg" == "--compact" ]] && continue
+	[[ -z "$DEPLOYMENT" ]] && DEPLOYMENT="$arg"
+done
 
 # Check vercel CLI
 if ! command -v vercel &>/dev/null; then
@@ -105,4 +109,5 @@ RESULT=$(jq -n \
 	  errors:$errors,warnings:$warnings}')
 
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only status + errors (skip url, created, warnings)
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'status, errors'

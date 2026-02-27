@@ -6,7 +6,7 @@
 # --native-isolation: Uses Task(isolation: worktree) instead of manual git worktree.
 #   Currently experimental — default behavior unchanged when flag is not passed.
 #
-# Version: 2.0.0
+# Version: 2.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -165,8 +165,15 @@ cmd_merge() {
 		git -C "$wt_path" commit -m "feat(plan-${plan_id}): ${wave_db_id} — ${wave_name}"
 	fi
 
-	# 6. Push (use resolved remote)
-	if ! git -C "$wt_path" push -u "$remote" "$branch" 2>&1; then
+	# 5b. Rebase onto main (clean graph: removes merge commits from forward-merges)
+	git -C "$wt_path" fetch "$remote" "$main_branch" 2>/dev/null || true
+	if ! git -C "$wt_path" rebase "$remote/$main_branch" 2>/dev/null; then
+		log_warn "Rebase failed (conflicts) — aborting rebase, will push with merge history"
+		git -C "$wt_path" rebase --abort 2>/dev/null || true
+	fi
+
+	# 6. Push (force-with-lease: safe after rebase, allows history rewrite on wave branch only)
+	if ! git -C "$wt_path" push --force-with-lease -u "$remote" "$branch" 2>&1; then
 		log_error "Push failed for wave ${wave_db_id} — rolling back to in_progress"
 		db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
 		return 1

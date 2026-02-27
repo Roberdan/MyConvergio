@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Service Digest - Unified entry point for all service digests
 # Single call for CI + PR + Deploy status. Minimal tokens.
-# Usage: service-digest.sh <ci|pr|deploy|all> [args...] [--no-cache]
-# Version: 1.1.0
+# Usage: service-digest.sh <ci|pr|deploy|all> [args...] [--no-cache] [--compact]
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -107,6 +107,7 @@ Commands:
 
 Options:
   --no-cache    Skip cache, fetch fresh data
+  --compact     Omit non-essential fields (~30-40% fewer tokens)
 
 Examples:
   service-digest.sh ci                 # CI for current branch

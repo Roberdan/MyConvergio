@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: copilot-review-digest.sh [pr-number] [--no-cache]
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,13 +29,17 @@ gh_api() {
 
 CACHE_TTL=60
 NO_CACHE=0
-PR_NUM="${1:-}"
-
-[[ "$PR_NUM" == "--no-cache" ]] && {
-	NO_CACHE=1
-	PR_NUM="${2:-}"
-}
-[[ "${2:-}" == "--no-cache" ]] && NO_CACHE=1
+COMPACT=0
+digest_check_compact "$@"
+PR_NUM=""
+for arg in "$@"; do
+	[[ "$arg" == "--no-cache" ]] && {
+		NO_CACHE=1
+		continue
+	}
+	[[ "$arg" == "--compact" ]] && continue
+	[[ -z "$PR_NUM" ]] && PR_NUM="$arg"
+done
 
 if [[ -z "$PR_NUM" ]]; then
 	BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
@@ -117,4 +121,5 @@ RESULT=$(echo "$COPILOT_COMMENTS" | jq --arg pr "$PR_NUM" '
 }')
 
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only severity summary + comments (skip by_category)
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'copilot_comments, by_severity, comments'

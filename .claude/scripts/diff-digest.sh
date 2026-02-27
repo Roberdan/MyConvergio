@@ -5,7 +5,7 @@
 #   diff-digest.sh                    # diff vs main
 #   diff-digest.sh main feature/x     # diff between branches
 #   diff-digest.sh HEAD~3             # last 3 commits
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,15 +13,20 @@ source "$SCRIPT_DIR/lib/digest-cache.sh"
 
 CACHE_TTL=30
 NO_CACHE=0
-BASE="${1:-main}"
-HEAD="${2:-HEAD}"
-
-[[ "$BASE" == "--no-cache" ]] && {
-	NO_CACHE=1
-	BASE="${2:-main}"
-	HEAD="${3:-HEAD}"
-}
-[[ "${3:-}" == "--no-cache" ]] && NO_CACHE=1
+COMPACT=0
+digest_check_compact "$@"
+# Parse positional args, skipping flags
+POSITIONAL=()
+for arg in "$@"; do
+	[[ "$arg" == "--no-cache" ]] && {
+		NO_CACHE=1
+		continue
+	}
+	[[ "$arg" == "--compact" ]] && continue
+	POSITIONAL+=("$arg")
+done
+BASE="${POSITIONAL[0]:-main}"
+HEAD="${POSITIONAL[1]:-HEAD}"
 
 CACHE_KEY="diff-$(digest_hash "${BASE}..${HEAD}")"
 
@@ -94,4 +99,5 @@ RESULT=$(jq -n \
 	  by_type:$by_type, top_files:$top_files}')
 
 echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-echo "$RESULT"
+# --compact: only scope overview (skip by_type, commits)
+echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'files_changed, insertions, deletions, top_files'

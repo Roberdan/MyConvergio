@@ -7,9 +7,9 @@ _render_plan_waves() {
 	local pid="$1"
 	echo -e "${BOLD}${WHITE}Waves & Tasks${NC}"
 	local wave_count=0
-	wave_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
+	wave_count=$(dbq "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
 	local wave_idx=0
-	sqlite3 "$DB" "SELECT id, wave_id, name, status, tasks_done, tasks_total FROM waves WHERE plan_id = $pid ORDER BY position" | while IFS='|' read -r wdb_id wid wname wstatus wdone wtotal; do
+	dbq "SELECT id, wave_id, name, status, tasks_done, tasks_total FROM waves WHERE plan_id = $pid ORDER BY position" | while IFS='|' read -r wdb_id wid wname wstatus wdone wtotal; do
 		wave_idx=$((wave_idx + 1))
 		local is_last_wave=0
 		[ "$wave_idx" -eq "$wave_count" ] && is_last_wave=1
@@ -27,7 +27,7 @@ _render_plan_waves() {
 			effective_wstatus="done"
 		elif [ "$wdone" -gt 0 ] && [ "$wdone" -lt "$wtotal" ]; then
 			local non_done_non_human
-			non_done_non_human=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wdb_id AND status <> 'done' AND NOT (status = 'blocked' AND (notes LIKE '%Human-only%' OR notes LIKE '%human%' OR notes LIKE '%user acceptance%'))")
+			non_done_non_human=$(dbq "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wdb_id AND status <> 'done' AND NOT (status = 'blocked' AND (notes LIKE '%Human-only%' OR notes LIKE '%human%' OR notes LIKE '%user acceptance%'))")
 			if [ "$non_done_non_human" -eq 0 ]; then
 				effective_wstatus="waiting_human"
 			else
@@ -48,7 +48,7 @@ _render_plan_waves() {
 
 		# Nested tasks under this wave
 		local task_lines task_count_w=0
-		task_lines=$(sqlite3 "$DB" "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), t.status, t.priority, COALESCE(t.model, ''), REPLACE(REPLACE(COALESCE(t.notes, ''), char(10), ' '), char(13), ''), t.validated_at, COALESCE(t.effort_level, 1) FROM tasks t WHERE t.wave_id_fk = $wdb_id ORDER BY t.task_id")
+		task_lines=$(dbq "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), t.status, t.priority, COALESCE(t.model, ''), REPLACE(REPLACE(COALESCE(t.notes, ''), char(10), ' '), char(13), ''), t.validated_at, COALESCE(t.effort_level, 1) FROM tasks t WHERE t.wave_id_fk = $wdb_id ORDER BY t.task_id")
 		task_count_w=$(echo "$task_lines" | grep -c '|' 2>/dev/null || echo 0)
 
 		if [ -z "$task_lines" ]; then
@@ -58,7 +58,7 @@ _render_plan_waves() {
 		# For done waves with EXPAND_COMPLETED=0, show compressed with validation count
 		if [ "$effective_wstatus" = "done" ] && [ "$EXPAND_COMPLETED" -eq 0 ]; then
 			local w_validated
-			w_validated=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wdb_id AND validated_at IS NOT NULL")
+			w_validated=$(dbq "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wdb_id AND validated_at IS NOT NULL")
 			if [ "$w_validated" -eq "$wtotal" ]; then
 				echo -e "${child_prefix}${GRAY}└─ ${wdone} tasks completati${NC} ${GREEN}T✓${NC}"
 			else
@@ -128,7 +128,7 @@ _render_plan_waves() {
 _render_human_actions() {
 	local pid="$1"
 	local human_tasks
-	human_tasks=$(sqlite3 "$DB" "SELECT t.task_id, t.title, w.wave_id, REPLACE(REPLACE(COALESCE(t.description, t.title), char(10), ' '), char(13), '') FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $pid AND t.status = 'blocked' AND (t.notes LIKE '%Human-only%' OR t.notes LIKE '%human%' OR t.notes LIKE '%user acceptance%')" 2>/dev/null)
+	human_tasks=$(dbq "SELECT t.task_id, t.title, w.wave_id, REPLACE(REPLACE(COALESCE(t.description, t.title), char(10), ' '), char(13), '') FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $pid AND t.status = 'blocked' AND (t.notes LIKE '%Human-only%' OR t.notes LIKE '%human%' OR t.notes LIKE '%user acceptance%')" 2>/dev/null)
 	if [ -n "$human_tasks" ]; then
 		echo ""
 		local human_count

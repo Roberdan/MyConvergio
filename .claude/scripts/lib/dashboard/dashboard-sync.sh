@@ -43,7 +43,7 @@ quick_sync() {
 _fetch_remote_git_status() {
 	[ -z "$REMOTE_HOST_RESOLVED" ] && return 0
 	local projects
-	projects=$(sqlite3 "$DB" "SELECT DISTINCT p.project_id FROM plans p WHERE p.status='doing' AND p.execution_host IS NOT NULL AND p.execution_host != ''" 2>/dev/null)
+	projects=$(dbq "SELECT DISTINCT p.project_id FROM plans p WHERE p.status='doing' AND p.execution_host IS NOT NULL AND p.execution_host != ''" 2>/dev/null)
 	[ -z "$projects" ] && return 0
 	# Build a bash script to run remotely — produces valid JSON per project
 	local proj_list="" proj
@@ -137,7 +137,7 @@ _handle_remote_action() {
 	fi
 	# Get unique remote projects from active plans
 	local projects
-	projects=$(sqlite3 "$DB" "SELECT DISTINCT p.project_id FROM plans p WHERE p.status='doing' AND p.execution_host IS NOT NULL AND p.execution_host != ''" 2>/dev/null)
+	projects=$(dbq "SELECT DISTINCT p.project_id FROM plans p WHERE p.status='doing' AND p.execution_host IS NOT NULL AND p.execution_host != ''" 2>/dev/null)
 	if [ -z "$projects" ]; then
 		echo -e "${YELLOW}Nessun piano remoto attivo${NC}"
 		return 0

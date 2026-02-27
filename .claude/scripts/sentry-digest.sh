@@ -2,7 +2,7 @@
 # Sentry Digest - Compact Sentry issues status as JSON (~200 tokens)
 # Lists unresolved issues with counts. Can resolve issues by ID.
 # Usage: sentry-digest.sh [list|resolve <id>...] [--no-cache]
-# Version: 1.0.0
+# Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,18 +11,19 @@ source "$SCRIPT_DIR/lib/digest-cache.sh"
 CACHE_TTL=120
 NO_CACHE=0
 
-# Parse --no-cache from any position
+COMPACT=0
+# Parse flags from any position
 for arg in "$@"; do
 	[[ "$arg" == "--no-cache" ]] && NO_CACHE=1
+	[[ "$arg" == "--compact" ]] && COMPACT=1
 done
 
 # First non-flag arg is the command
 CMD="list"
 for arg in "$@"; do
-	[[ "$arg" != "--no-cache" ]] && {
-		CMD="$arg"
-		break
-	}
+	[[ "$arg" == "--no-cache" || "$arg" == "--compact" ]] && continue
+	CMD="$arg"
+	break
 done
 
 # Find sentry-cli and credentials
@@ -106,13 +107,14 @@ list)
 		'{status:"ok",org:$org,project:$project,unresolved:$count,issues:$issues}')
 
 	echo "$RESULT" | digest_cache_set "$CACHE_KEY"
-	echo "$RESULT"
+	# --compact: only count + issues (skip org, project)
+	echo "$RESULT" | COMPACT=$COMPACT digest_compact_filter 'unresolved, issues'
 	;;
 resolve)
 	shift
 	IDS=()
 	for arg in "$@"; do
-		[[ "$arg" != "--no-cache" ]] && IDS+=("$arg")
+		[[ "$arg" != "--no-cache" && "$arg" != "--compact" ]] && IDS+=("$arg")
 	done
 
 	if [[ ${#IDS[@]} -eq 0 ]]; then

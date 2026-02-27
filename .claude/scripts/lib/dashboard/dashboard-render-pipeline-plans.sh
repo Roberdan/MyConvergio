@@ -1,12 +1,19 @@
 #!/bin/bash
 # Pipeline plans rendering
-# Version: 1.4.0
+# Version: 2.0.0
 
 _render_pipeline_plans() {
 	local pipeline_count
-	pipeline_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plans WHERE status='todo'")
+	pipeline_count=$(dbq "SELECT COUNT(*) FROM plans WHERE status='todo'")
 	echo -e "${BOLD}${WHITE}📋 In Pipeline ($pipeline_count)${NC}"
-	sqlite3 "$DB" "SELECT id, name, created_at, project_id, COALESCE(human_summary, REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), '')) FROM plans WHERE status='todo' ORDER BY created_at DESC" | while IFS='|' read -r pid pname pcreated pproject pdescription; do
+	dbq "
+		SELECT p.id, p.name, p.created_at, p.project_id,
+			COALESCE(p.human_summary, REPLACE(REPLACE(COALESCE(p.description, ''), char(10), ' '), char(13), '')),
+			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id),
+			(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id)
+		FROM plans p WHERE p.status='todo' ORDER BY p.created_at DESC
+	" | while IFS='|' read -r pid pname pcreated pproject pdescription wave_count task_count; do
+		[ -z "$pid" ] && continue
 		# Days since created
 		if [ -n "$pcreated" ]; then
 			create_date=$(echo "$pcreated" | cut -d' ' -f1)
@@ -24,15 +31,8 @@ _render_pipeline_plans() {
 			age_info=""
 		fi
 
-		# Wave and task counts
-		wave_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
-		task_count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
-
-		# Truncate name
 		short_name=$(echo "$pname" | cut -c1-50)
 		[ ${#pname} -gt 50 ] && short_name="${short_name}..."
-
-		# Project display
 		project_display=""
 		[ -n "$pproject" ] && project_display="${BLUE}[$pproject]${NC} "
 

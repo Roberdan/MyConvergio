@@ -1,12 +1,12 @@
 #!/bin/bash
 # Dashboard rendering functions
-# Version: 1.4.0
+# Version: 2.0.0
 # This module contains all display/rendering logic
 
 # Render single plan detail view
 _render_single_plan() {
 	local plan_info
-	plan_info=$(sqlite3 "$DB" "SELECT id, name, status, project_id, source_file, created_at, started_at, completed_at, validated_at, validated_by, worktree_path, parallel_mode, COALESCE(human_summary, ''), REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), ''), markdown_path, COALESCE(lines_added, 0), COALESCE(lines_removed, 0) FROM plans WHERE id = $PLAN_ID")
+	plan_info=$(dbq "SELECT id, name, status, project_id, source_file, created_at, started_at, completed_at, validated_at, validated_by, worktree_path, parallel_mode, COALESCE(human_summary, ''), REPLACE(REPLACE(COALESCE(description, ''), char(10), ' '), char(13), ''), markdown_path, COALESCE(lines_added, 0), COALESCE(lines_removed, 0) FROM plans WHERE id = $PLAN_ID")
 	if [ -z "$plan_info" ]; then
 		echo -e "${RED}Piano #$PLAN_ID non trovato${NC}"
 		return 1
@@ -39,13 +39,22 @@ _render_single_plan() {
 	*) status_display="${BLUE}TODO${NC}" ;;
 	esac
 
-	# Pre-compute metrics for summary header
+	# Pre-compute metrics (single query instead of 5)
 	local task_total task_done task_validated wave_total wave_done
-	task_total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
-	task_done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
-	task_validated=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks WHERE status='done' AND validated_at IS NOT NULL AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $pid)")
-	wave_total=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid")
-	wave_done=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND tasks_done = tasks_total AND tasks_total > 0")
+	local metrics_data
+	metrics_data=$(dbq "
+		SELECT
+			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid),
+			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid AND status='done'),
+			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid AND status='done' AND validated_at IS NOT NULL),
+			(SELECT COUNT(*) FROM waves WHERE plan_id = $pid),
+			(SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND tasks_done = tasks_total AND tasks_total > 0)
+	")
+	task_total=$(echo "$metrics_data" | cut -d'|' -f1)
+	task_done=$(echo "$metrics_data" | cut -d'|' -f2)
+	task_validated=$(echo "$metrics_data" | cut -d'|' -f3)
+	wave_total=$(echo "$metrics_data" | cut -d'|' -f4)
+	wave_done=$(echo "$metrics_data" | cut -d'|' -f5)
 
 	# Elapsed time
 	local elapsed_time=""
@@ -102,7 +111,7 @@ _render_single_plan() {
 
 	# Tokens
 	local total_tokens tokens_formatted
-	total_tokens=$(sqlite3 "$DB" "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
+	total_tokens=$(dbq "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
 	tokens_formatted=$(format_tokens $total_tokens)
 	echo -e "${GRAY}├─${NC} Tokens: ${CYAN}$tokens_formatted${NC} ${GRAY}(progetto)${NC}"
 

@@ -1,106 +1,100 @@
 #!/bin/bash
-# PR rendering helper functions
-# Version: 1.4.0
+# PR rendering helper functions (DB-driven from waves table)
+# Version: 1.5.0
 
-# Render PR section for an active plan
-# Usage: _render_plan_prs <project_name> <plan_name>
+# Extract clean PR URL from pr_url field (handles "already exists:" messages)
+_sanitize_pr_url() {
+	local raw="$1"
+	if [[ "$raw" == *"https://github.com"* ]]; then
+		echo "$raw" | grep -oE 'https://github\.com/[^ ]+' | head -1
+	else
+		echo "$raw"
+	fi
+}
+
+# Get owner/repo from project dir git remote
+_get_owner_repo() {
+	local project_dir="$1"
+	git -C "$project_dir" remote get-url origin 2>/dev/null | sed -E 's#.+github\.com[:/]##; s/\.git$//'
+}
+
+# Render PR section for an active plan using waves DB data
+# Usage: _render_plan_prs <plan_id> <project_name>
 _render_plan_prs() {
-local pproject="$1" pname="$2"
-[ -z "$pproject" ] || ! command -v gh &>/dev/null && return 0
+	local pid="$1" pproject="$2"
 
-local project_dir="$HOME/GitHub/$pproject"
-[ ! -d "$project_dir" ] && return 0
+	# Query waves with PR data for this plan
+	local wave_prs
+	wave_prs=$(dbq "SELECT wave_id, pr_number, pr_url, branch_name, status FROM waves WHERE plan_id = $pid AND pr_number IS NOT NULL AND pr_number > 0 ORDER BY position;")
+	[ -z "$wave_prs" ] && return 0
 
-# REST API instead of gh pr list
-local pr_data
-pr_data=$(gh api 'repos/{owner}/{repo}/pulls?state=open' --jq '[.[] | {number, title, url: .html_url, headRefName: .head.ref, statusCheckRollup: null, comments: .comments, reviewDecision: null, isDraft: .draft, mergeable: .mergeable}]' 2>/dev/null || true)
-[ -z "$pr_data" ] || ! echo "$pr_data" | jq -e 'type == "array" and length > 0' &>/dev/null && return 0
+	echo -e "${GRAY}│  ${NC}${CYAN}PR (da waves DB):${NC}"
 
-# Normalize plan name for matching
-local plan_normalized
-plan_normalized=$(echo "$pname" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | sed 's/plan-[0-9]*-//g')
+	# Resolve owner/repo once for CI lookups
+	local owner_repo=""
+	if [ -n "$pproject" ] && command -v gh &>/dev/null; then
+		local project_dir="$HOME/GitHub/$pproject"
+		[ -d "$project_dir" ] && owner_repo=$(_get_owner_repo "$project_dir")
+	fi
 
-# Extract matching PRs
-local matched_prs=""
-while read -r pr; do
-[ -z "$pr" ] && continue
-local pr_branch pr_title_lower
-pr_branch=$(echo "$pr" | jq -r '.headRefName' | tr '[:upper:]' '[:lower:]')
-pr_title_lower=$(echo "$pr" | jq -r '.title' | tr '[:upper:]' '[:lower:]')
+	while IFS='|' read -r wid pr_num pr_url branch wstatus; do
+		[ -z "$pr_num" ] && continue
+		local clean_url
+		clean_url=$(_sanitize_pr_url "$pr_url")
 
-local match=0
-for keyword in $(echo "$plan_normalized" | tr '-' '\n' | grep -v -E '^(the|and|for|with|complete|plan)$' | head -3); do
-[ ${#keyword} -lt 3 ] && continue
-if [[ "$pr_branch" == *"$keyword"* ]] || [[ "$pr_title_lower" == *"$keyword"* ]]; then
-match=1
-break
-fi
-done
-[ "$match" -eq 1 ] && matched_prs+="$pr"$'\n'
-done < <(echo "$pr_data" | jq -c '.[]' 2>/dev/null)
+		# Wave status → PR status display
+		local pr_status_display ci_display=""
+		case "$wstatus" in
+		done)
+			pr_status_display="${GREEN}merged${NC}"
+			;;
+		merging)
+			pr_status_display="${YELLOW}merging${NC}"
+			;;
+		in_progress)
+			pr_status_display="${YELLOW}open${NC}"
+			# Fetch CI status for open PRs (lightweight single API call)
+			if [ -n "$owner_repo" ]; then
+				local ci_state
+				ci_state=$(gh api "repos/$owner_repo/pulls/$pr_num" --jq '.mergeable_state // "unknown"' 2>/dev/null || echo "unknown")
+				case "$ci_state" in
+				clean) ci_display="${GREEN}CI:ok${NC}" ;;
+				unstable) ci_display="${YELLOW}CI:unstable${NC}" ;;
+				dirty) ci_display="${RED}CI:dirty${NC}" ;;
+				blocked) ci_display="${RED}CI:blocked${NC}" ;;
+				*) ci_display="${GRAY}CI:--${NC}" ;;
+				esac
+			fi
+			;;
+		*)
+			pr_status_display="${GRAY}$wstatus${NC}"
+			;;
+		esac
 
-# Display matched PRs
-if [ -n "$matched_prs" ]; then
-echo -e "${GRAY}│  ${NC}${CYAN}🔀 Pull Requests:${NC}"
-echo -n "$matched_prs" | while read -r pr; do
-[ -z "$pr" ] && continue
-local pr_num pr_title pr_url pr_draft pr_comments pr_review pr_mergeable
-pr_num=$(echo "$pr" | jq -r '.number')
-pr_title=$(echo "$pr" | jq -r '.title')
-pr_url=$(echo "$pr" | jq -r '.url')
-pr_draft=$(echo "$pr" | jq -r '.isDraft')
-pr_comments=$(echo "$pr" | jq -r '.comments | length')
-pr_review=$(echo "$pr" | jq -r '.reviewDecision // "NONE"')
-pr_mergeable=$(echo "$pr" | jq -r '.mergeable // "UNKNOWN"')
+		echo -e "${GRAY}│  ├─${NC} ${CYAN}$wid${NC} PR #${BOLD}${pr_num}${NC} $pr_status_display $ci_display ${GRAY}${branch}${NC}"
+	done <<<"$wave_prs"
+}
 
-# CI status counts
-local ci_pass ci_fail ci_pending ci_total ci_display
-ci_pass=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == "SUCCESS" or .conclusion == "NEUTRAL")] | length else 0 end')
-ci_fail=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.conclusion == "FAILURE")] | length else 0 end')
-ci_pending=$(echo "$pr" | jq -r '.statusCheckRollup | if . then [.[] | select(.status == "IN_PROGRESS" or .state == "PENDING")] | length else 0 end')
-ci_total=$((ci_pass + ci_fail + ci_pending))
+# Render PR summary for completed plans (DB-only, no API calls)
+# Usage: _render_completed_plan_prs <plan_id>
+_render_completed_plan_prs() {
+	local pid="$1"
+	local wave_prs
+	wave_prs=$(dbq "SELECT wave_id, pr_number, status FROM waves WHERE plan_id = $pid AND pr_number IS NOT NULL AND pr_number > 0 ORDER BY position;")
+	[ -z "$wave_prs" ] && return 0
 
-if [ "$ci_total" -eq 0 ]; then
-ci_display="${GRAY}CI:--${NC}"
-elif [ "$ci_fail" -gt 0 ]; then
-ci_display="${RED}CI:✗${ci_fail}${NC}"
-[ "$ci_pass" -gt 0 ] && ci_display+="${GREEN}✓${ci_pass}${NC}"
-elif [ "$ci_pending" -gt 0 ]; then
-ci_display="${GREEN}CI:✓${ci_pass}${NC}${YELLOW}◯${ci_pending}${NC}"
-else
-ci_display="${GREEN}CI:✓${ci_total}${NC}"
-fi
+	local total=0 merged=0 open=0
+	while IFS='|' read -r wid pr_num wstatus; do
+		total=$((total + 1))
+		[ "$wstatus" = "done" ] && merged=$((merged + 1))
+		[ "$wstatus" = "in_progress" ] || [ "$wstatus" = "merging" ] && open=$((open + 1))
+	done <<<"$wave_prs"
 
-# Review status
-local review_display
-case "$pr_review" in
-APPROVED) review_display="${GREEN}Rev:✓${NC}" ;;
-CHANGES_REQUESTED) review_display="${RED}Rev:✗${NC}" ;;
-REVIEW_REQUIRED) review_display="${YELLOW}Rev:◯${NC}" ;;
-*) review_display="${GRAY}Rev:--${NC}" ;;
-esac
-
-# Mergeable status
-local merge_display
-case "$pr_mergeable" in
-MERGEABLE) merge_display="${GREEN}Mrg:✓${NC}" ;;
-CONFLICTING) merge_display="${RED}Mrg:✗${NC}" ;;
-*) merge_display="${GRAY}Mrg:?${NC}" ;;
-esac
-
-# Draft label
-local draft_label=""
-[ "$pr_draft" = "true" ] && draft_label="${GRAY}[draft]${NC} "
-
-# Comment count
-local comment_display=""
-[ "$pr_comments" -gt 0 ] && comment_display="${CYAN}💬${pr_comments}${NC}"
-
-# Truncate title
-local short_title=$(echo "$pr_title" | cut -c1-28)
-[ ${#pr_title} -gt 28 ] && short_title="${short_title}..."
-
-echo -e "${GRAY}│  ├─${NC} ${CYAN}PR #${pr_num}${NC} ${draft_label}${WHITE}$short_title${NC}  $ci_display $review_display $merge_display $comment_display"
-done
-fi
+	if [ "$merged" -eq "$total" ]; then
+		echo "${GREEN}PR:${merged}/${total} merged${NC}"
+	elif [ "$open" -gt 0 ]; then
+		echo "${YELLOW}PR:${merged}/${total} merged${NC} ${YELLOW}${open} open${NC}"
+	else
+		echo "${GRAY}PR:${merged}/${total}${NC}"
+	fi
 }

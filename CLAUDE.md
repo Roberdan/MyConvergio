@@ -20,9 +20,23 @@
 6. **Max 250 lines/file**: Check before writing. Split if exceeds. _Why: agents lose context in long files, merge conflicts multiply, and review becomes unreliable._
 7. **Compaction preservation**: When rewriting/compacting ANY file, NEVER remove workflow-critical content. See `rules/compaction-preservation.md`.
 
+## Auto Memory
+
+Claude automatically stores cross-session context (recent decisions, patterns, errors) in `/Users/roberdan/.claude/auto-memory/`. This coexists with manual `~/.claude/.claude/agent-memory/` files (strategic decisions, stable patterns). Auto-memory = ephemeral session continuity; manual = durable architectural knowledge. `/memory` command to inspect/clear.
+
 ## Workflow (MANDATORY)
 
 `/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task → Thor per-wave → closure (all F-xx verified) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
+
+### Slash Commands & CLI
+
+| Command         | Purpose                                |
+| --------------- | -------------------------------------- |
+| `/teleport`     | Move current session to Claude web UI  |
+| `/debug`        | Troubleshoot session issues            |
+| `/copy`         | Copy last code block to clipboard      |
+| `/memory`       | Inspect or clear auto-memory entries   |
+| `claude agents` | List available agents and their status |
 
 @reference/operational/plan-scripts.md
 @reference/operational/digest-scripts.md
@@ -75,6 +89,8 @@ LSP (if available) → Glob/Grep/Read/Edit → Subagents → Bash (git/npm only)
 ## Agents & Delegation
 
 **Extended**: baccio, dario, marco, otto, rex, luca (technical) | ali, amy, antonio, dan (leadership) | **Maturity**: Stable: strategic-planner, thor, task-executor, marcus, socrates, wanda, xavier | Preview: diana, po, taskmaster, app-release-manager, adversarial-debugger | **Codex**: Suggest for mechanical/repetitive bulk tasks. Never for architecture, security, debugging.
+
+**Agent Teams**: Use `TeamCreate` to spin up a named team of agents for parallel multi-agent work; `SendMessage` to communicate between team members. Prefer over sequential single-agent for independent parallel tasks.
 
 @reference/operational/agent-routing.md
 

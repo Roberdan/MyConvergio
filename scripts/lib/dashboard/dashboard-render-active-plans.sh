@@ -1,9 +1,9 @@
 #!/bin/bash
 # Active plans rendering
-# Version: 1.4.0
+# Version: 1.5.0
 
 _render_active_plans() {
-echo -e "${BOLD}${WHITE}🚀 Piani Attivi${NC}"
+	echo -e "${BOLD}${WHITE}🚀 Piani Attivi${NC}"
 	sqlite3 "$DB" "
 		SELECT p.id, p.name, p.status, p.updated_at, p.started_at, p.created_at, p.project_id,
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id),
@@ -154,21 +154,28 @@ echo -e "${BOLD}${WHITE}🚀 Piani Attivi${NC}"
 			done
 		fi
 
-		# Task in esecuzione per questo piano (inline)
-		plan_tasks=$(sqlite3 "$DB" "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), t.priority FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE w.plan_id = $pid AND t.status = 'in_progress' ORDER BY t.priority DESC" 2>/dev/null)
-		if [ -n "$plan_tasks" ]; then
-			echo -e "${GRAY}│  ${NC}${YELLOW}⚡ In esecuzione:${NC}"
-			echo "$plan_tasks" | while IFS='|' read -r tid ttitle tprio; do
-				short_ttitle=$(echo "$ttitle" | cut -c1-42)
-				[ ${#ttitle} -gt 42 ] && short_ttitle="${short_ttitle}..."
-				prio_color="${GRAY}"
-				[ "$tprio" = "P1" ] && prio_color="${RED}"
-				echo -e "${GRAY}│  ├─${NC} ${CYAN}$tid${NC} ${WHITE}$short_ttitle${NC} ${prio_color}[$tprio]${NC}"
-			done
+		# Tasks della wave attiva (in_progress + pending)
+		active_wave_id=$(sqlite3 "$DB" "SELECT id FROM waves WHERE plan_id = $pid AND status = 'in_progress' ORDER BY position LIMIT 1" 2>/dev/null)
+		if [ -n "$active_wave_id" ]; then
+			active_wave_name=$(sqlite3 "$DB" "SELECT wave_id FROM waves WHERE id = $active_wave_id" 2>/dev/null)
+			running_tasks=$(sqlite3 "$DB" "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), t.status FROM tasks t WHERE t.wave_id_fk = $active_wave_id AND t.status IN ('in_progress', 'pending') ORDER BY CASE t.status WHEN 'in_progress' THEN 0 ELSE 1 END, t.id" 2>/dev/null)
+			if [ -n "$running_tasks" ]; then
+				echo -e "${GRAY}│  ${NC}${YELLOW}⚡ Wave ${active_wave_name:-?}:${NC}"
+				echo "$running_tasks" | while IFS='|' read -r tid ttitle tstatus; do
+					short_ttitle=$(echo "$ttitle" | cut -c1-48)
+					[ ${#ttitle} -gt 48 ] && short_ttitle="${short_ttitle}..."
+					if [ "$tstatus" = "in_progress" ]; then
+						icon="${YELLOW}▶${NC}"
+					else
+						icon="${GRAY}◯${NC}"
+					fi
+					echo -e "${GRAY}│  ├─${NC} $icon ${CYAN}$tid${NC} ${WHITE}$short_ttitle${NC}"
+				done
+			fi
 		fi
 
-		# PR rendering (delegated to helper function)
-		_render_plan_prs "$pproject" "$pname"
+		# PR rendering from waves DB
+		_render_plan_prs "$pid" "$pproject"
 
 		echo ""
 	done

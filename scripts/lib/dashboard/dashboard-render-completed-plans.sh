@@ -1,6 +1,6 @@
 #!/bin/bash
 # Completed plans rendering
-# Version: 1.4.0
+# Version: 1.5.0
 
 _render_completed_plans() {
 	local completed_week_count
@@ -62,67 +62,14 @@ _render_completed_plans() {
 			git_stats_display=" ${GRAY}│${NC} ${GREEN}+$(format_lines ${lines_added:-0})${NC} ${RED}-$(format_lines ${lines_removed:-0})${NC}"
 		fi
 
-		# PR detection for completed plan
-		local pr_display="" pr_merged=0 pr_ci_display="" pr_num=""
-		if [ -n "$done_project" ] && command -v gh &>/dev/null; then
-			local project_dir="$HOME/GitHub/$done_project"
-			if [ -d "$project_dir" ]; then
-				local owner_repo
-				owner_repo=$(_get_owner_repo "$project_dir")
-				if [ -n "$owner_repo" ]; then
-					local pr_data
-					pr_data=$(gh api "repos/$owner_repo/pulls?state=all&per_page=20&sort=updated&direction=desc" \
-						--jq '[.[] | {number, title, url: .html_url, headRefName: .head.ref, state, merged_at, head_sha: .head.sha}]' \
-						2>/dev/null || true)
-					if [ -n "$pr_data" ] && echo "$pr_data" | jq -e 'type == "array" and length > 0' &>/dev/null; then
-						local plan_normalized
-						plan_normalized=$(echo "$name" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | sed 's/plan-[0-9]*-//g')
-						while read -r pr; do
-							[ -z "$pr" ] && continue
-							local pr_branch pr_title_lower
-							pr_branch=$(echo "$pr" | jq -r '.headRefName' | tr '[:upper:]' '[:lower:]')
-							pr_title_lower=$(echo "$pr" | jq -r '.title' | tr '[:upper:]' '[:lower:]')
-							local match=0
-							for keyword in $(echo "$plan_normalized" | tr '-' '\n' | grep -v -E '^(the|and|for|with|complete|plan)$' | head -3); do
-								[ ${#keyword} -lt 3 ] && continue
-								if [[ "$pr_branch" == *"$keyword"* ]] || [[ "$pr_title_lower" == *"$keyword"* ]]; then
-									match=1
-									break
-								fi
-							done
-							if [ "$match" -eq 1 ]; then
-								pr_num=$(echo "$pr" | jq -r '.number')
-								local pr_url_val pr_merged_at pr_state pr_head_sha
-								pr_url_val=$(echo "$pr" | jq -r '.url')
-								pr_merged_at=$(echo "$pr" | jq -r '.merged_at // empty')
-								pr_state=$(echo "$pr" | jq -r '.state')
-								pr_head_sha=$(echo "$pr" | jq -r '.head_sha')
-								# CI status from commit status
-								if [ -n "$pr_head_sha" ] && [ "$pr_head_sha" != "null" ]; then
-									local ci_state
-									ci_state=$(gh api "repos/$owner_repo/commits/$pr_head_sha/status" --jq '.state' 2>/dev/null || echo "unknown")
-									case "$ci_state" in
-									success) pr_ci_display="${GREEN}CI:✓${NC}" ;;
-									failure) pr_ci_display="${RED}CI:✗${NC}" ;;
-									pending) pr_ci_display="${YELLOW}CI:◯${NC}" ;;
-									*) pr_ci_display="${GRAY}CI:--${NC}" ;;
-									esac
-								fi
-								if [ -n "$pr_merged_at" ]; then
-									pr_merged=1
-									pr_display="${GREEN}PR #${pr_num} merged${NC}"
-								elif [ "$pr_state" = "open" ]; then
-									pr_display="${YELLOW}PR #${pr_num} open${NC}"
-								else
-									pr_display="${RED}PR #${pr_num} closed${NC}"
-								fi
-								break
-							fi
-						done < <(echo "$pr_data" | jq -c '.[]' 2>/dev/null)
-					fi
-				fi
-			fi
-		fi
+		# PR detection from waves DB (no API calls)
+		local pr_display="" pr_merged=0 pr_num=""
+		pr_display=$(_render_completed_plan_prs "$plan_id")
+		# Check if any wave PR is not merged (for truly_done assessment)
+		local unmerged_wave_prs
+		unmerged_wave_prs=$(sqlite3 "$DB" "SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0 AND status <> 'done'")
+		[ "${unmerged_wave_prs:-0}" -gt 0 ] && pr_merged=0 || pr_merged=1
+		pr_num=$(sqlite3 "$DB" "SELECT pr_number FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0 LIMIT 1")
 
 		# Worktree check
 		local worktree_exists=0 worktree_display=""
@@ -152,7 +99,6 @@ _render_completed_plans() {
 		local closure_line=""
 		if [ -n "$pr_display" ]; then
 			closure_line+="$pr_display"
-			[ -n "$pr_ci_display" ] && closure_line+=" $pr_ci_display"
 		fi
 		if [ -n "$worktree_display" ]; then
 			[ -n "$closure_line" ] && closure_line+=" ${GRAY}│${NC} "

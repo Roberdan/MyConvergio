@@ -76,6 +76,7 @@ backups/
 playwright-report/
 test-results/
 plugins/cache/
+plugins/blocklist.json
 paste-cache/
 tasks/
 

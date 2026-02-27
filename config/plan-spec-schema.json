@@ -68,7 +68,7 @@
                 "effort"
               ],
               "properties": {
-                "id": { "type": "string", "pattern": "^T[0-9F]-\\d{2}$" },
+                "id": { "type": "string", "pattern": "^T[0-9F]-\\d{2}$|^TF-(doc|tests|pr)$" },
                 "do": { "type": "string", "minLength": 1 },
                 "files": { "type": "array", "items": { "type": "string" } },
                 "verify": {
@@ -90,7 +90,8 @@
                     "test",
                     "config",
                     "documentation",
-                    "chore"
+                    "chore",
+                    "cleanup"
                   ]
                 },
                 "model": { "type": "string" },
@@ -101,7 +102,12 @@
                   "enum": ["copilot", "claude"]
                 },
                 "skip_if": { "type": "string" },
-                "output_match": { "type": "object" }
+                "output_match": { "type": "object" },
+                "consumers": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Files that import/use what this task creates/changes. Executor MUST verify these are updated. Thor Gate 2b validates."
+                }
               },
               "additionalProperties": false
             }

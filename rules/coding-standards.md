@@ -1,4 +1,4 @@
-<!-- v2.0.0 -->
+<!-- v2.1.0 -->
 
 # Coding Standards
 
@@ -35,6 +35,19 @@ Same principle: only text that changes agent behavior. Tables > prose. Commands 
 ## Quality
 
 **Testing**: 80% business logic, 100% critical paths, isolated, one behavior/test, no shared state | **API**: REST, plural nouns, /api/v1/, OpenAPI docs, paginate all lists, rate limiting | **Security**: Parameterized queries, CSP headers, env vars for secrets, TLS 1.2+, RBAC | Bicep outputs: no secrets (connection strings, keys) — store in Key Vault, output resource IDs only | SQL: bind parameters (`:param`) always, never f-strings — even for integers | IaC resource names: include environment suffix or `uniqueString()` to avoid collisions | **A11y**: 4.5:1 contrast, keyboard nav, screen readers, text alternatives, 200% resize | **Terms**: blocklist/allowlist, gender-neutral, primary/replica
+
+## Fail-Loud Patterns (NON-NEGOTIABLE)
+
+Empty data that SHOULD NOT be empty MUST produce visible feedback. Silent degradation (`return null` on unexpected empty) = BUG.
+
+| Pattern | WRONG | RIGHT |
+|---|---|---|
+| Admin with 0 studios | `if (!studios.length) return null` | `console.warn('[Component] unexpected empty') + <Alert>` |
+| API returns empty unexpectedly | Silently show blank UI | Log warning + show "No data — check configuration" |
+| Missing CSS variable | Render with broken style | CI script validates all `var(--name)` are defined |
+| Import not found at runtime | App crashes with cryptic error | Explicit error boundary with human-readable message |
+
+**Exception**: Loading states, optional features, explicit "no data" UX.
 
 ## Async/Await
 

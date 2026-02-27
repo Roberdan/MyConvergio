@@ -1,0 +1,1 @@
+/Users/roberdan/.claude/hooks/prefer-ci-summary.sh

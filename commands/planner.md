@@ -1,6 +1,6 @@
 ---
 name: planner
-version: "2.5.0"
+version: "2.6.0"
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 -->
@@ -28,6 +28,7 @@ Plan and execute with parallel Claude instances.
 | 13  | **COPILOT-FIRST DELEGATION**: EVERY task MUST have explicit `executor_agent` assignment. Default=copilot. Skipping step 2.5 = VIOLATION. See [Step 2.5](#step-2-5).                                                                                                             |
 | 14  | **PLAN INTELLIGENCE REVIEW**: Steps 3.1-3.2 MANDATORY for plans with 3+ tasks. Skipping = VIOLATION. See [Step 3.1](#step-3-1).                                                                                                                                                 |
 | 15  | **TEST ADAPTS TO CODE**: When implementation changes break existing tests, update tests to match new behavior. NEVER revert implementation to make old tests pass. Tests follow code, not the opposite.                                                                         |
+| 16  | **INTEGRATION COMPLETENESS**: For EVERY task that creates/exports new code, the plan MUST include a wiring task that connects it to consumers. For EVERY task that changes an interface, a consumer audit task MUST verify ALL consumers are updated. Orphan code = VIOLATION. See `~/.claude/rules/testing-standards.md`. |
 
 ## Module References
 
@@ -100,13 +101,28 @@ HARDENING_STATUS=$(echo "$HARDENING" | jq -r '.status')
 - If `gaps_found`: check severity. If ANY `critical` gap: add W0-01 task `"Run /harden skill to fix critical quality gaps"`. If only `warning`/`info`: present gaps to user via AskUserQuestion, let them decide.
 - W0 task uses `/harden` skill for full remediation (hooks, lint, scripts, PR template, ADR structure).
 
+### 1.8 Integration Impact Analysis (MANDATORY — Rule 16)
+
+Before generating tasks, for EVERY new component/module/route planned:
+
+1. **Consumer search**: `Grep` for existing imports of files being modified. List ALL consumers
+2. **Wiring check**: For each new export, identify WHERE it must be imported/rendered/called
+3. **Migration check**: If replacing old code, list ALL references to old code that need updating
+4. **Cleanup check**: If old code is fully replaced, plan its removal
+
+**Output**: `consumers` field in each task spec — files that IMPORT the thing being created/changed.
+
+**Rule**: If a task creates `NewComponent.tsx` but no task wires it into a render site → VIOLATION. If a task changes `interface Props` but no task audits ALL consumers → VIOLATION.
+
 ### 2. Generate Plan Spec (YAML preferred, JSON supported)
 
 **Default format: YAML.** Generate spec as `.yaml`. Only use `.json` if user explicitly requests it.
 
 **EXCLUSION GATE**: Compare ALL F-xx vs tasks. If ANY NOT covered: 1. List uncovered. 2. AskUserQuestion: "Requisiti non coperti: [list]. Per ciascuno: includerli, deferirli, o escluderli?" 3. BLOCK. NEVER silently skip with "scope.out", "backlog", "needs external resource".
 
-spec.yaml (or spec.json): `{user_request, constraints:[{id,text,type,verify}], requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
+spec.yaml (or spec.json): `{user_request, constraints:[{id,text,type,verify}], requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort,consumers}]}]}`
+
+**`consumers` field**: Files that import/use what this task creates/changes. Executor MUST verify these are updated. Thor Gate 2b validates.
 
 **CONSTRAINT VALIDATION GATE (ADR-054)**: After generating tasks, cross-check EVERY task against EVERY constraint. Present matrix: `| Task | C-01 | C-02 | ... |`. Any cell = VIOLATES → redesign task or BLOCK. Example: if C-01 = "No admin permissions required" and T2-01 = "Configure EasyAuth (requires admin consent)" → VIOLATION → remove or redesign T2-01.
 

@@ -3,7 +3,7 @@ name: planner
 description: Create execution plans with waves/tasks from F-xx requirements. Uses plan-db.sh as single source of truth.
 tools: ["read", "edit", "search", "execute"]
 model: claude-opus-4.6-1m
-version: "2.1.0"
+version: "2.2.0"
 handoffs:
   - label: Execute Plan
     agent: execute
@@ -101,10 +101,15 @@ Write `spec.json`:
 
 - `do`: ONE atomic action (if "and" needed, split to 2 tasks)
 - `files`: explicit paths executor must touch
+- `consumers`: files that import/use what this task creates/changes (executor MUST verify these are updated)
 - `verify`: machine-checkable commands, not prose
 - `model`: see Task Model Routing table
 - `executor_agent`: copilot (default) | claude | codex | manual
 - `precondition`: array blocking wave until conditions met
+
+**Integration Completeness (MANDATORY)**:
+
+For EVERY task creating new code: plan a companion wiring task that connects it to consumers. For EVERY interface change: plan a consumer audit task that greps ALL references. Before spec generation: search codebase for existing imports of files being modified. Orphan code (created but never wired) = VIOLATION. See `~/.claude/rules/testing-standards.md`.
 
 ### 3.1 Schema Validation (MANDATORY)
 

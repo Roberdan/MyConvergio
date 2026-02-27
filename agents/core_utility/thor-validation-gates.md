@@ -1,7 +1,7 @@
 ---
 name: thor-validation-gates
 description: Validation gates module for Thor. Reference only.
-version: "3.1.0"
+version: "3.2.0"
 ---
 
 # Thor Validation Gates
@@ -21,6 +21,14 @@ version: "3.1.0"
 - Coverage ≥80% modified files, lint ZERO warnings, build succeeds
 - No debug statements, commented code, TODO
 - **Challenge**: "Run tests right now. Show output."
+
+### Gate 2b: Integration Reachability (MANDATORY)
+
+- For each NEW file/export: `Grep` for at least one import. Zero consumers = REJECT ("orphan code — created but never wired")
+- For each NEW component: verify at least one render site. `Grep` for `<ComponentName` in project
+- For changed interfaces (types, props): `Grep` for ALL consumers — any using old shape = REJECT
+- For API↔frontend changes: verify response format matches consumer expectations (case, field names)
+- **Challenge**: "Show me where this new code is actually USED in the running app"
 
 ## Gate 3: ISE Fundamentals
 
@@ -80,6 +88,16 @@ git log --oneline --name-only | head -20
 
 **REJECT if**: No test files | Tests fail | Coverage <80% new | Implementation before tests
 
+### Gate 8b: Mock Quality (MANDATORY)
+
+Per `~/.claude/rules/testing-standards.md`:
+
+- **REJECT** if test mocks the module under test (circular mock)
+- **REJECT** if test mocks auth/DB when testing auth/DB endpoints (use test DB)
+- **WARN** if test mocks >2 layers deep from function under test
+- **REJECT** if test data format differs from production (e.g., title-case in test, UPPERCASE in prod)
+- **Challenge**: "Are mocks testing real behavior or just confirming the mock works?"
+
 ## Gate 9: Constitution & ADR Compliance (MANDATORY)
 
 ### 9a. Constitution
@@ -120,5 +138,6 @@ echo "{task_files}" | grep -q 'docs/adr/' && echo "ADR-SMART-MODE"
 
 ## Changelog
 
+- **3.2.0** (2026-02-27): Gate 2b Integration Reachability + Gate 8b Mock Quality
 - **3.1.0** (2026-02-27): Added Gate 10: WorktreeCreate hook verification for worktree-disciplined projects
 - **3.0.0** (2026-02-26): Extracted validation gates into standalone reference module

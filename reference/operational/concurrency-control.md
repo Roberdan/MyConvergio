@@ -1,4 +1,4 @@
-<!-- v3.0.0 | 19 Feb 2026 | Added session-based file locking -->
+<!-- v3.1.0 | 27 Feb 2026 | Added WorktreeCreate/WorktreeRemove hooks section -->
 
 # Concurrency Control
 
@@ -52,6 +52,34 @@ Set `CLAUDE_FILE_LOCK=0` in env to disable session locking entirely.
 | `copilot-config/hooks/session-file-unlock.sh` | Copilot CLI | sessionEnd: release locks       |
 | `hooks/lib/file-lock-common.sh`               | Shared      | Common lock utilities           |
 | `scripts/file-lock-session.sh`                | Shared      | acquire-session/release-session |
+
+## WorktreeCreate/WorktreeRemove Hooks (v2.1.50+)
+
+Hooks run automatically on worktree lifecycle events (native git or `wave-worktree.sh`). Eliminates ~500 tokens/worktree of manual setup commands.
+
+### WorktreeCreate Hook
+
+Runs after any worktree creation:
+
+1. Auto-symlinks all `.env*` files from main repo into the new worktree
+2. Runs `npm install` if `package.json` is present
+3. Configured in `settings.json` as a `PostWorktreeAdd` hook
+
+### WorktreeRemove Hook
+
+Runs before worktree removal:
+
+1. Releases file locks for the worktree session (`file-lock.sh release-session`)
+2. Cleans up temp files created during the worktree's lifetime
+
+### Files
+
+| File                       | Purpose                                      |
+| -------------------------- | -------------------------------------------- |
+| `hooks/worktree-create.sh` | PostWorktreeAdd: .env symlinks + npm install |
+| `hooks/worktree-remove.sh` | PreWorktreeRemove: release locks + cleanup   |
+
+Both hooks are configured in `settings.json` under the `hooks` key.
 
 ## Violations
 

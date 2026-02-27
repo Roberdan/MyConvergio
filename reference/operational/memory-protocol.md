@@ -1,4 +1,4 @@
-<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+<!-- v2.1.0 | 27 Feb 2026 | Added auto-memory vs manual memory section -->
 
 # Memory Protocol
 
@@ -68,3 +68,33 @@ Check `~/.claude/memory/{project-name}/` for recent files. Read, summarize, ask 
 ## Cleanup
 
 Archive files >90 days to `~/.claude/memory/.archive/`. Never delete.
+
+---
+
+## Auto-Memory vs Manual Memory
+
+Two memory systems coexist. Both active. Neither replaces the other.
+
+### Auto-Memory (Claude native v2.1.59+)
+
+- **What**: Automatic cross-session recall. Claude saves/retrieves context without explicit commands.
+- **Best for**: Recurring patterns, file locations, project structure, ephemeral context that repeats.
+- **How**: Claude manages it internally. No user action required.
+- **View/edit**: `/memory` command to inspect or modify.
+
+### Manual Memory (`~/.claude/projects/*/memory/`)
+
+- **What**: Explicit saves via Write/Edit tools. User-controlled markdown files.
+- **Best for**: Strategic decisions, stable conventions, architecture patterns, decisions that must persist reliably.
+- **How**: Explicitly write files using this protocol (save path, format, resume protocol above).
+- **View/edit**: Read/Write/Edit tools directly on `~/.claude/memory/{project}/` files.
+
+### Coexistence Rule
+
+| Scenario                                      | Use                                                           |
+| --------------------------------------------- | ------------------------------------------------------------- |
+| Ephemeral context (file locations, patterns)  | Auto-memory                                                   |
+| Durable decisions (architecture, conventions) | Manual memory                                                 |
+| Conflict between the two                      | Manual memory takes precedence (present in CLAUDE.md context) |
+
+**Decision order**: CLAUDE.md > manual memory files > auto-memory recall.

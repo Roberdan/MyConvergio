@@ -258,6 +258,38 @@ test_dispatch_cleanup_calls_function() {
 }
 
 # ---------------------------------------------------------------------------
+# --native-isolation flag: documented in script (F-02, F-12)
+# ---------------------------------------------------------------------------
+test_native_isolation_comment_exists() {
+	test_start "--native-isolation comment block exists in script"
+	if grep -q 'native.isolation\|native_isolation' "$SCRIPT"; then
+		test_pass
+	else
+		test_fail "--native-isolation comment not found in $SCRIPT"
+	fi
+}
+
+test_native_isolation_in_usage() {
+	test_start "--native-isolation appears in usage/help output"
+	local out
+	out=$(bash "$SCRIPT" 2>&1 || true)
+	if echo "$out" | grep -qi 'native.isolation\|native_isolation'; then
+		test_pass
+	else
+		test_fail "expected --native-isolation in usage, got: $out"
+	fi
+}
+
+test_native_isolation_experimental_note() {
+	test_start "experimental annotation present for --native-isolation"
+	if grep -qi 'experimental' "$SCRIPT"; then
+		test_pass
+	else
+		test_fail "expected 'experimental' note for --native-isolation"
+	fi
+}
+
+# ---------------------------------------------------------------------------
 # Line count check (max 250 lines per project rules)
 # ---------------------------------------------------------------------------
 test_line_count() {
@@ -301,6 +333,9 @@ test_cleanup_nonexistent_wave_errors
 test_cleanup_function_defined
 test_dispatch_merge_calls_function
 test_dispatch_cleanup_calls_function
+test_native_isolation_comment_exists
+test_native_isolation_in_usage
+test_native_isolation_experimental_note
 test_line_count
 
 echo ""

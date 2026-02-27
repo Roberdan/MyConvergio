@@ -24,9 +24,10 @@
 
 - `wave-worktree.sh` v3.0.0: 2 new subcommands, updated help/usage
 - `copilot-task-prompt.sh` v2.1.0: Previous Wave PR Feedback section
-- `execute.agent.md` v3.1.0: Phase 4.5 Overlapping Wave Protocol, Rule 7, Step 3.5
-- `planner.agent.md` v2.1.0: Step 3.1b, `wave_pr_created` precondition
-- `validate.agent.md`: 9 → 10 validation gates
+- `execute.agent.md` v3.0.0: Phase 4.5 Overlapping Wave Protocol, Rule 7, Step 3.5
+- `planner.agent.md` v2.2.0: Step 3.1b, `wave_pr_created` precondition
+- `validate.agent.md` v3.1.0: 9 → 10 validation gates
+- `plan-spec-schema.json`: downgrade to draft-07 (Zed validator compatibility)
 - `code-pattern-check.sh`: 9 → 11 checks
 - `code-pattern-checks.sh` v1.2.0: 2 new check functions
 - `orchestration/SKILL.md`: updated commands with merge-async/pr-sync

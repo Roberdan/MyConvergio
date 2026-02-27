@@ -3,10 +3,10 @@ name: validate
 description: Thor quality validation - verify completed wave meets all F-xx requirements and quality gates.
 tools: ["read", "search", "execute"]
 model: claude-opus-4.6
-version: "3.0.0"
+version: "3.1.0"
 ---
 
-<!-- v3.0.0 (2026-02-15): Compact format per ADR 0009 - 40% token reduction, all 9 gates preserved -->
+<!-- v3.1.0 (2026-02-27): Gate 10 Integration Reachability, compact format per ADR 0009 -->
 
 # Thor Quality Validation
 
@@ -52,7 +52,7 @@ cd "$WORKTREE"
 | Go           | go.mod                  | go test ./... | golangci-lint run    |
 | Java         | pom.xml                 | mvn test      | mvn checkstyle:check |
 
-## 9 Validation Gates
+## 10 Validation Gates
 
 | Gate | Name                     | Requirements                                                                                        | Evidence                   |
 | ---- | ------------------------ | --------------------------------------------------------------------------------------------------- | -------------------------- |

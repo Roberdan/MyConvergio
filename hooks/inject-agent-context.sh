@@ -1,7 +1,7 @@
 #!/bin/bash
 # SubagentStart hook - inject common context into subagents
 # Replaces boilerplate removed from individual agent files
-# Version: 1.1.0
+# Version: 1.2.0
 set -euo pipefail
 
 source ~/.claude/hooks/lib/common.sh 2>/dev/null || true
@@ -30,6 +30,15 @@ task-executor* | Bash | app-release-manager* | mirrorbuddy*)
 - RBAC enforcement on all endpoints"
 	;;
 esac
+
+# Add v2.1.x platform capabilities for all agents
+CONTEXT="${CONTEXT}
+## Platform Capabilities (v2.1.x)
+- LSP: go-to-definition and find-references available for code navigation
+- Worktree isolation: Task tool supports isolation: worktree for per-task git isolation
+- Agent Teams: TeamCreate/SendMessage for multi-agent coordination
+- Auto-memory: Claude retains cross-session context automatically alongside manual memory
+- /debug: troubleshoot current session issues"
 
 # Output JSON with additionalContext
 jq -n --arg ctx "$CONTEXT" '{"additionalContext": $ctx}'

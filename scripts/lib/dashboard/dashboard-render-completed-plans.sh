@@ -1,6 +1,6 @@
 #!/bin/bash
 # Completed plans rendering
-# Version: 1.5.0
+# Version: 1.6.0
 
 _render_completed_plans() {
 	local completed_week_count
@@ -62,14 +62,20 @@ _render_completed_plans() {
 			git_stats_display=" ${GRAY}│${NC} ${GREEN}+$(format_lines ${lines_added:-0})${NC} ${RED}-$(format_lines ${lines_removed:-0})${NC}"
 		fi
 
-		# PR detection from waves DB (no API calls)
+		# PR detection with live GitHub state
 		local pr_display="" pr_merged=0 pr_num=""
-		pr_display=$(_render_completed_plan_prs "$plan_id")
-		# Check if any wave PR is not merged (for truly_done assessment)
-		local unmerged_wave_prs
-		unmerged_wave_prs=$(dbq "SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0 AND status <> 'done'")
-		[ "${unmerged_wave_prs:-0}" -gt 0 ] && pr_merged=0 || pr_merged=1
-		pr_num=$(dbq "SELECT pr_number FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0 LIMIT 1")
+		local has_wave_prs
+		has_wave_prs=$(dbq "SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0")
+		if [ "${has_wave_prs:-0}" -gt 0 ]; then
+			pr_display=$(_render_completed_plan_prs "$plan_id")
+			# Check if any wave PR is not merged (for truly_done assessment)
+			local unmerged_wave_prs
+			unmerged_wave_prs=$(dbq "SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0 AND status NOT IN ('done', 'cancelled')")
+			[ "${unmerged_wave_prs:-0}" -gt 0 ] && pr_merged=0 || pr_merged=1
+			pr_num=$(dbq "SELECT pr_number FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0 LIMIT 1")
+		else
+			pr_display="${GRAY}no PR${NC}"
+		fi
 
 		# Worktree check
 		local worktree_exists=0 worktree_display=""

@@ -93,6 +93,5 @@ copilot-sync.sh status|sync        # Copilot CLI alignment check/fix
 
 ## Dashboard
 
-- **URL**: http://localhost:31415 | **DB**: ~/.claude/data/dashboard.db
-- **Reboot**: `cd ~/.claude/dashboard && node reboot.js`
+- **CLI**: `piani` (interactive) | `piani -n` (single-shot) | **DB**: ~/.claude/data/dashboard.db
 - **Sync**: `dbsync status|pull|push|incremental` (multi-machine)

@@ -109,7 +109,7 @@ Full hook reference: `reference/operational/enforcement-hooks.md`
 
 ## Token Tracking
 
-`SELECT * FROM token_usage WHERE agent='copilot-cli' ORDER BY id DESC;` → dashboard.db (localhost:31415)
+`SELECT * FROM token_usage WHERE agent='copilot-cli' ORDER BY id DESC;` → dashboard.db
 
 ## Sync & Maintenance
 

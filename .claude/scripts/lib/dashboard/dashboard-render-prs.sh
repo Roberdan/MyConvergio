@@ -1,6 +1,6 @@
 #!/bin/bash
 # PR rendering helper functions (DB-driven from waves table)
-# Version: 1.5.0
+# Version: 2.0.0
 
 # Extract clean PR URL from pr_url field (handles "already exists:" messages)
 _sanitize_pr_url() {
@@ -65,36 +65,75 @@ _render_plan_prs() {
 				*) ci_display="${GRAY}CI:--${NC}" ;;
 				esac
 			fi
+			# Fetch review decision and reviewers for open PRs
+			local review_display=""
+			if [ -n "$owner_repo" ]; then
+				local decision
+				decision=$(gh api "repos/$owner_repo/pulls/$pr_num/reviews" \
+					--jq '[.[] | .state] | if any(. == "CHANGES_REQUESTED") then "CHANGES_REQUESTED" elif any(. == "APPROVED") then "APPROVED" else "PENDING" end' 2>/dev/null || echo "PENDING")
+				case "$decision" in
+				APPROVED) review_display="${GREEN}APPROVED${NC}" ;;
+				CHANGES_REQUESTED) review_display="${RED}CHANGES_REQ${NC}" ;;
+				*)
+					# Check requested reviewers
+					local reviewers
+					reviewers=$(gh api "repos/$owner_repo/pulls/$pr_num/requested_reviewers" \
+						--jq '[.users[].login] | join(", ")' 2>/dev/null || echo "")
+					if [ -n "$reviewers" ]; then
+						review_display="${YELLOW}needs: @${reviewers}${NC}"
+					else
+						review_display="${GRAY}no review${NC}"
+					fi
+					;;
+				esac
+			fi
 			;;
 		*)
 			pr_status_display="${GRAY}$wstatus${NC}"
 			;;
 		esac
 
-		echo -e "${GRAY}│  ├─${NC} ${CYAN}$wid${NC} PR #${BOLD}${pr_num}${NC} $pr_status_display $ci_display ${GRAY}${branch}${NC}"
+		# Clickable PR link (OSC 8 terminal hyperlink)
+		local pr_link
+		if [[ -n "$clean_url" && "$clean_url" == https://* ]]; then
+			pr_link="\e]8;;${clean_url}\e\\PR #${pr_num}\e]8;;\e\\"
+		else
+			pr_link="PR #${pr_num}"
+		fi
+		echo -e "${GRAY}│  ├─${NC} ${CYAN}$wid${NC} ${BOLD}${pr_link}${NC} $pr_status_display $ci_display $review_display ${GRAY}${branch}${NC}"
 	done <<<"$wave_prs"
 }
 
-# Render PR summary for completed plans (DB-only, no API calls)
+# Render PR summary for completed plans with clickable links
 # Usage: _render_completed_plan_prs <plan_id>
 _render_completed_plan_prs() {
 	local pid="$1"
 	local wave_prs
-	wave_prs=$(dbq "SELECT wave_id, pr_number, status FROM waves WHERE plan_id = $pid AND pr_number IS NOT NULL AND pr_number > 0 ORDER BY position;")
+	wave_prs=$(dbq "SELECT wave_id, pr_number, pr_url, status FROM waves WHERE plan_id = $pid AND pr_number IS NOT NULL AND pr_number > 0 ORDER BY position;")
 	[ -z "$wave_prs" ] && return 0
 
-	local total=0 merged=0 open=0
-	while IFS='|' read -r wid pr_num wstatus; do
+	local total=0 merged=0 parts=""
+	while IFS='|' read -r wid pr_num pr_url wstatus; do
 		total=$((total + 1))
-		[ "$wstatus" = "done" ] && merged=$((merged + 1))
-		[ "$wstatus" = "in_progress" ] || [ "$wstatus" = "merging" ] && open=$((open + 1))
+		local clean_url
+		clean_url=$(_sanitize_pr_url "$pr_url")
+		local pr_link
+		if [[ -n "$clean_url" && "$clean_url" == https://* ]]; then
+			pr_link="\e]8;;${clean_url}\e\\#${pr_num}\e]8;;\e\\"
+		else
+			pr_link="#${pr_num}"
+		fi
+		if [ "$wstatus" = "done" ]; then
+			merged=$((merged + 1))
+			parts="${parts}${GREEN}${pr_link}✓${NC} "
+		else
+			parts="${parts}${YELLOW}${pr_link}?${NC} "
+		fi
 	done <<<"$wave_prs"
 
 	if [ "$merged" -eq "$total" ]; then
-		echo "${GREEN}PR:${merged}/${total} merged${NC}"
-	elif [ "$open" -gt 0 ]; then
-		echo "${YELLOW}PR:${merged}/${total} merged${NC} ${YELLOW}${open} open${NC}"
+		echo -e "${GREEN}PR:${merged}/${total}${NC} ${parts}"
 	else
-		echo "${GRAY}PR:${merged}/${total}${NC}"
+		echo -e "${YELLOW}PR:${merged}/${total}${NC} ${parts}"
 	fi
 }

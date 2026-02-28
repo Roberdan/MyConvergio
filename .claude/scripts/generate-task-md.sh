@@ -8,8 +8,7 @@ set -euo pipefail
 set -e
 
 # Configuration
-DASHBOARD_API="${DASHBOARD_API:-http://localhost:31415/api}"
-DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:31415}"
+DB="$HOME/.claude/data/dashboard.db"
 
 PROJECT=$1
 PLAN_ID=$2
@@ -124,7 +123,7 @@ _Command outputs will be pasted here_
 
 - **Wave:** [W${WAVE}-wave-name.md](../../W${WAVE}-wave-name.md)
 - **Plan:** [plan-${PLAN_ID}.md](../../../../plan-${PLAN_ID}.md)
-- **Dashboard:** [View in Dashboard](${DASHBOARD_URL}?project=${PROJECT}&task=${TASK_ID})
+- **Dashboard:** \`piani -p ${PLAN_ID}\`
 
 ---
 
@@ -133,21 +132,12 @@ EOF
 
 echo "✅ Generated: ${TASK_FILE}"
 
-# Update database with markdown_path (if dashboard is running)
-RESPONSE=$(curl -s -X POST "${DASHBOARD_API}/project/${PROJECT}/task/${TASK_ID}/update-markdown" \
-	-H "Content-Type: application/json" \
-	-d "{\"markdown_path\": \"${TASK_FILE}\"}" 2>&1)
-
-if echo "$RESPONSE" | jq -e '.status == "success"' >/dev/null 2>&1; then
-	echo "✅ Database updated with markdown_path"
-elif echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
-	# Task doesn't exist yet - this is OK, will be created when planner runs
-	echo "⚠️  Task not yet in database (will be created during planning)"
-else
-	echo "⚠️  Dashboard may not be running"
-	echo "   Start dashboard to enable automatic database updates"
-fi
+# Update database with markdown_path (direct DB write)
+sqlite3 "$DB" ".timeout 3000" \
+	"UPDATE tasks SET markdown_path = '${TASK_FILE}' WHERE task_id = '${TASK_ID}' AND plan_id IN (SELECT id FROM plans WHERE project_id = '${PROJECT}');" 2>/dev/null &&
+	echo "Database updated with markdown_path" ||
+	echo "Task not yet in database (will be created during planning)"
 
 echo ""
-echo "📝 Task markdown file created at: ${TASK_FILE}"
-echo "📊 View in dashboard: ${DASHBOARD_URL}?project=${PROJECT}&task=${TASK_ID}"
+echo "Task markdown file created at: ${TASK_FILE}"
+echo "View: piani -p ${PLAN_ID}"

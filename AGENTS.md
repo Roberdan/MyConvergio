@@ -210,14 +210,13 @@ For tool-specific configuration, environment setup, and operational guidelines, 
 ```
 MyConvergio/
 ├── .claude/                # Claude Code configuration
-│   ├── agents/             # 74 agent files (single source of truth)
+│   ├── agents/             # <!-- AGENT_COUNT_MARKER -->74<!-- /AGENT_COUNT_MARKER --> agent files (single source of truth)
 │   ├── rules/              # Coding standards, engineering guidelines
 │   ├── skills/             # Reusable workflows
 │   ├── scripts/            # 89+ utility scripts
 │   ├── reference/          # Operational docs (on-demand)
 │   └── CLAUDE.md           # Tool-specific config
-├── agents/                 # Agent definitions (deployed to ~/.claude/agents/)
-├── copilot-agents/         # 83 Copilot agent files
+├── copilot-agents/         # Copilot CLI agents
 ├── hooks/                  # Enforcement hooks (token optimization)
 ├── scripts/                # Deployment and management
 ├── docs/                   # Documentation

@@ -1,6 +1,6 @@
 # MyConvergio Agents
 
-**v9.17.0** | 74 Claude Agent Files + 83 Copilot Agent Files | Multi-Provider Orchestrator
+**v9.18.0** | 74 Claude Agent Files + 83 Copilot Agent Files | Multi-Provider Orchestrator
 <!-- AGENT_COUNTS: claude:74 copilot:83 total:157 -->
 
 > _"Intent is human, momentum is agent"_ — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -238,7 +238,7 @@ MyConvergio/
 
 ## Version
 
-**Current**: v9.17.0
+**Current**: v9.18.0
 **Release Notes**: See `CHANGELOG.md`
 **Versioning**: SemVer 2.0.0 (system + individual agents)
 

@@ -1,5 +1,36 @@
 # Changelog
 
+## [9.18.0] - 2026-02-28
+
+### Security
+- Pin all GitHub Actions to SHA hashes (actions/checkout, github-script, gh-release)
+- Upgrade softprops/action-gh-release v1 → v2
+- Add `.github/CODEOWNERS` for critical paths (CONSTITUTION, hooks, install)
+- Add `jq` prerequisite check in install.sh
+- Replace `eval` with `bash -c` in test/verify scripts
+- Fix auto-version.yml to use PAT with GITHUB_TOKEN fallback
+- Add `MYCONVERGIO_DRY_RUN=1` dry-run mode for hooks
+
+### Added
+- BATS test framework with 21 tests (secret-scanner, worktree-guard, enforce-line-limit, install)
+- `checksums.txt` for install.sh integrity verification
+- ShellCheck CI workflow
+- `.editorconfig` for consistent formatting
+- `myconvergio-doctor.sh` health check script
+- `make install` idempotency: backup existing files before overwrite
+
+### Fixed
+- Duplicate TEST 6 → TEST 8 in test-deployment.sh
+- `install-selector.sh` agent count filter excluding all .md files
+- `hooks.json` paths from `~/.copilot/hooks/` → `~/.claude/hooks/`
+- AGENTS.md: removed phantom `agents/` dir reference
+- Consolidated `skills/` as symlink to `.claude/skills/`
+
+### Changed
+- Compress 1.5MB PNG logo to 31KB WebP
+- Promote `git clone` as primary install method (Option A)
+- Add `set -euo pipefail` to 11 scripts missing it
+
 ## [9.17.0] - 2026-02-27
 
 ### Changed

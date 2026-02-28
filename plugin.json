@@ -1,7 +1,7 @@
 {
   "_note": "Best-effort draft. The official GitHub Copilot plugin.json schema may differ. See https://docs.github.com/en/copilot for the authoritative schema.",
   "name": "claude-config",
-  "version": "9.17.0",
+  "version": "9.18.0",
   "description": "Production-grade AI development workflow with plan-db, Thor validation, wave-worktree, and multi-agent orchestration",
   "author": "roberdan",
   "homepage": "https://github.com/roberdan/MyConvergio",

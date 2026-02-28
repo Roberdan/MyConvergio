@@ -67,15 +67,19 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "name", "tasks"],
+        "required": ["id", "name", "merge_mode", "tasks"],
         "properties": {
           "id": { "type": "string", "pattern": "^W[0-9F]" },
           "name": { "type": "string", "minLength": 1 },
           "estimated_hours": { "type": "number", "minimum": 0 },
           "merge_mode": {
             "type": "string",
-            "enum": ["sync", "batch", "async", "none"],
-            "description": "Wave merge strategy: sync (PR+merge before next wave), batch (accumulate, merge at theme boundary), async (overlapping), none (no PR)"
+            "enum": ["sync", "batch", "none"],
+            "description": "Planner-decided merge strategy: sync (PR+merge, use at theme boundary), batch (accumulate on theme branch, no PR), none (docs/config only, no merge)"
+          },
+          "theme": {
+            "type": "string",
+            "description": "Theme group name (e.g., 'security', 'quality', 'infra'). Waves with same theme share one branch+PR. Planner assigns based on domain affinity."
           },
           "precondition": { "type": "object" },
           "tasks": {

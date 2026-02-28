@@ -124,20 +124,7 @@ spec.yaml (or spec.json): `{user_request, constraints:[{id,text,type,verify}], r
 
 **`consumers` field**: Files that import/use what this task creates/changes. Executor MUST verify these are updated. Thor Gate 2b validates.
 
-**`merge_mode` assignment (per-wave)**: Every wave MUST have `merge_mode`. **Default is `batch`** — intermediate waves accumulate on one branch, merge at theme boundary. This reduces PR overhead (CI wait + review comments) by 60-70%.
-
-| Wave Position               | merge_mode | Why                                         |
-| --------------------------- | ---------- | ------------------------------------------- |
-| Intermediate wave (default) | `batch`    | Accumulate, Thor per-wave validates quality |
-| Last wave in theme group    | `sync`     | Force merge+CI before next theme            |
-| Single-wave plan            | `sync`     | Merge immediately                           |
-| Final closure wave (WF)     | `sync`     | PR + CI must pass before plan done          |
-
-**Quality between waves**: Thor per-wave (not CI) validates quality at wave boundaries. CI runs only at merge points (`sync` waves). This is safe because Thor catches 90%+ of issues that CI would find.
-
-**Theme grouping**: Consecutive waves sharing a logical concern. Planner assigns themes based on file overlap and domain affinity. Plans with 4+ waves SHOULD have 2-3 themes (not 4+ separate PRs).
-
-**Override**: User can pass `--pr-per-wave` to force all waves to `sync` (old behavior).
+**`merge_mode` assignment**: Handled in Step 2.6 (Merge Strategy). Planner decides per-wave based on risk, dependencies, and file overlap — NOT a fixed rule.
 
 **CONSTRAINT VALIDATION GATE (ADR-054)**: After generating tasks, cross-check EVERY task against EVERY constraint. Present matrix: `| Task | C-01 | C-02 | ... |`. Any cell = VIOLATES → redesign task or BLOCK. Example: if C-01 = "No admin permissions required" and T2-01 = "Configure EasyAuth (requires admin consent)" → VIOLATION → remove or redesign T2-01.
 
@@ -190,6 +177,35 @@ except ImportError:
 **Model naming rule (NON-NEGOTIABLE)**: ALL `model` fields in spec MUST use full model IDs from @planner-modules/model-strategy.md. Short aliases (`sonnet`, `opus`, `haiku`, `codex`) are FORBIDDEN — they break copilot-worker.sh routing. Valid examples: `gpt-5.3-codex`, `claude-sonnet-4.6`, `claude-opus-4.6-fast`, `gpt-4.1`, `gpt-5-mini`, `gpt-5.1-codex-mini`. See model-strategy.md Full Copilot Multiplier Reference for the complete list.
 
 **Exec**: `copilot-worker.sh <id> --model <model> --timeout 600`. Requires: `copilot --yolo`, `GH_TOKEN`.
+
+### 2.6 Merge Strategy (MANDATORY — planner decides) {#step-2-6}
+
+After generating waves, the planner MUST decide the merge strategy. This is a **reasoning step**, not a lookup table. The planner analyzes the specific plan and assigns `merge_mode` per wave.
+
+**Decision inputs** (planner already has all of these):
+
+| Input                      | Where                      | Why it matters                                        |
+| -------------------------- | -------------------------- | ----------------------------------------------------- |
+| File overlap between waves | `files` field in tasks     | Overlapping files = must merge before next wave       |
+| Domain affinity            | Task `type` + `ref` fields | Same F-xx = same theme = batch together               |
+| Risk level                 | Task `priority` + `type`   | P0 security = merge early, P2 refactor = batch safely |
+| Wave count                 | Spec wave array            | 2-3 wave plan = sync all. 6+ wave = MUST batch        |
+| Deploy dependency          | Task `do` description      | If wave N+1 needs deployed code from wave N = sync    |
+| CI pipeline time           | CI knowledge file          | Slow CI (10+ min) = batch more aggressively           |
+
+**Decision framework** (planner reasons through these):
+
+1. **Group waves into themes** by file overlap + domain. Consecutive waves touching same subsystem = one theme
+2. **For each theme**: intermediate waves = `batch`, last wave = `sync`
+3. **Force `sync` if**: wave changes public API/schema that next wave consumes, wave is security-critical (P0), wave requires deploy before next wave can start
+4. **Force `none` if**: wave only modifies docs/config with no CI relevance
+5. **Final wave (WF)**: always `sync` (PR must exist before plan closes)
+
+**Quality assurance**: Thor per-wave runs between ALL waves regardless of merge_mode. CI runs only at `sync` points. This is safe: Thor validates lint, types, build, tests, F-xx coverage.
+
+**Present to user**: "Strategia merge: [theme1: W1-W2 batch → PR al W2] [theme2: W3-W4 batch → PR al W4] [WF: PR finale]. Totale: N PR invece di M. Ok?"
+
+**Override**: user `--pr-per-wave` forces all to `sync`.
 
 ### 2.7 Cross-Plan Conflict Check (MANDATORY)
 

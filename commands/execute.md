@@ -135,7 +135,25 @@ When `wave_done == wave_tasks_total` AND all tasks have `validated_at`:
 
 `Task(subagent_type="thor-quality-assurance-guardian", model="sonnet", max_turns=20, prompt="THOR PER-WAVE VALIDATION | Plan: ${PLAN_ID} | Wave: ${wave_id} (db_id: ${wave_db_id}) | WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK} | Tasks in wave: [list task_ids + titles from CTX] | Verify criteria: [list test_criteria for each task] | Run ALL 9 gates. Run: ci-summary.sh --full. Check F-xx cross-task. Read files directly.")`
 
-PASS → `plan-db.sh validate-wave ${wave_db_id}` → next wave | REJECT → fix → re-validate (max 3 rounds)
+PASS → `plan-db.sh validate-wave ${wave_db_id}` → merge decision | REJECT → fix → re-validate (max 3 rounds)
+
+### P4c: Post-Wave Merge Decision
+
+After Thor per-wave passes, executor reads `merge_mode` from wave DB and acts accordingly:
+
+| merge_mode | Action                                                     | Branch                          |
+| ---------- | ---------------------------------------------------------- | ------------------------------- |
+| `sync`     | `wave-worktree.sh merge` → PR + CI + squash merge to main  | wave branch deleted after merge |
+| `batch`    | Commit to shared theme branch, NO PR, proceed to next wave | same branch continues           |
+| `none`     | Commit only, no PR, no merge                               | wave branch stays               |
+
+**Batch flow**: waves in same theme share one worktree/branch. When the last wave in the theme hits `sync`, ALL accumulated changes merge as one PR. Executor tracks theme boundary via `merge_mode` field.
+
+```
+W1 (batch) → commit → Thor → W2 (batch) → commit → Thor → W3 (sync) → PR with W1+W2+W3 → CI → merge
+```
+
+**Theme branch naming**: `plan/{plan_id}-{theme}` (e.g., `plan/270-security`). First `batch` wave in a theme creates the branch; subsequent `batch` waves reuse it.
 
 ### P5: Completion
 

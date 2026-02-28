@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Launch N parallel Claude instances in tmux windows
 # Usage: tmux-parallel.sh [num] [directory]
 # Works from ANY terminal (including Zed)

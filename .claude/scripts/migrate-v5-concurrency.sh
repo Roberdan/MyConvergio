@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # ARCHIVED: Migration already applied. Kept for reference only.
 # This script should not be run again on existing databases.
 #

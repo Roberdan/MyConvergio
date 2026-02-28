@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Task Markdown Generation Script
 # Usage: ./generate-task-md.sh <project> <plan_id> <wave> <task_id> <task_name> <assignee> <estimate>
 # Example: ./generate-task-md.sh convergioedu 8 0 T01 "Setup database migration" "CLAUDE 2" "1h"

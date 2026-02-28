@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # migrate-v8-wave-worktree.sh - Wave worktree tracking and merging status
 # Adds: worktree_path, branch_name, pr_number, pr_url columns to waves
 # Rebuilds waves table CHECK constraint to include 'merging' status

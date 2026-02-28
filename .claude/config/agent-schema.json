@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Agent Frontmatter Schema",
+  "description": "Validates agent .md file YAML frontmatter",
+  "type": "object",
+  "required": ["name", "version", "type"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]+$",
+      "description": "Agent identifier (kebab-case)"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["core", "utility", "release", "research", "technical", "custom"],
+      "description": "Agent category"
+    },
+    "model": {
+      "type": "string",
+      "description": "Default model for this agent"
+    },
+    "maturity": {
+      "type": "string",
+      "enum": ["stable", "preview", "experimental", "deprecated"],
+      "default": "preview"
+    },
+    "tools": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Required tool capabilities"
+    },
+    "max_tokens": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 200000,
+      "description": "Max output tokens for this agent"
+    }
+  },
+  "additionalProperties": false
+}

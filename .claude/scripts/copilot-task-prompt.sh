@@ -1,9 +1,10 @@
 #!/bin/bash
+set -euo pipefail
 # Generate self-contained prompt for Copilot CLI worker
 # Usage: copilot-task-prompt.sh <db_task_id>
 # Output: prompt string to stdout (pipe to copilot -p)
 
-# Version: 2.0.0
+# Version: 2.1.0
 set -euo pipefail
 
 TASK_ID="${1:-}"
@@ -61,6 +62,24 @@ PRIOR_OUTPUTS=$(sqlite3 "$DB_FILE" "
 	ORDER BY w.position, t.task_id;
 ")
 
+# Check for PR feedback from previous wave (overlapping wave protocol)
+PR_FEEDBACK=""
+PREV_WAVE_INFO=$(sqlite3 "$DB_FILE" "
+	SELECT pw.id, pw.pr_number, pw.merge_mode
+	FROM waves pw
+	WHERE pw.plan_id = $PLAN_ID
+	  AND pw.position < (SELECT cw.position FROM waves cw JOIN tasks ct ON ct.wave_id_fk = cw.id WHERE ct.id = $TASK_ID)
+	  AND pw.merge_mode = 'async'
+	ORDER BY pw.position DESC LIMIT 1;
+" 2>/dev/null || true)
+if [[ -n "$PREV_WAVE_INFO" ]]; then
+	PREV_WAVE_ID=$(echo "$PREV_WAVE_INFO" | cut -d'|' -f1)
+	FEEDBACK_FILE="${HOME}/.claude/data/pr-feedback-wave-${PREV_WAVE_ID}.txt"
+	if [[ -f "$FEEDBACK_FILE" ]]; then
+		PR_FEEDBACK=$(cat "$FEEDBACK_FILE" 2>/dev/null | head -50)
+	fi
+fi
+
 # Detect test framework
 FW="unknown"
 if [[ -f "$WT/package.json" ]]; then
@@ -113,6 +132,13 @@ $DESC
 
 ## Prior Task Outputs
 $(if [[ -n "$PRIOR_OUTPUTS" ]]; then echo "$PRIOR_OUTPUTS"; else echo "None."; fi)
+
+## Previous Wave PR Feedback
+$(if [[ -n "$PR_FEEDBACK" ]]; then
+echo "⚠️ The previous wave's PR had review feedback. Do NOT repeat these issues:"
+echo ""
+echo "$PR_FEEDBACK"
+else echo "None."; fi)
 
 ## Test Criteria
 $TC

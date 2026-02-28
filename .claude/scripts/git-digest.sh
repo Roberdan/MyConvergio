@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Git Digest - All git state in ONE call as JSON
 # Replaces: git status + git diff --stat + git log --oneline + git branch
 # Usage: git-digest.sh [--full] [--no-cache]

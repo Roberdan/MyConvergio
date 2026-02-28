@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Plan DB CLI - Single source of truth for plan management
 # Usage: plan-db.sh <command> [args]
 #

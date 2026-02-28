@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Grafana HTTP API helper
 # Replaces Grafana MCP (13.8k token overhead)
 

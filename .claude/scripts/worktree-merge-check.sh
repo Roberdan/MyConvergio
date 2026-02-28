@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # worktree-merge-check.sh - AI-optimized worktree merge readiness
 # Output: ~1 line per worktree, minimal tokens
 # Usage: worktree-merge-check.sh [--detail BRANCH]

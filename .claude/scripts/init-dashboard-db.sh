@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Initialize Dashboard SQLite Database
 # Usage: ./init-dashboard-db.sh [--force]
 

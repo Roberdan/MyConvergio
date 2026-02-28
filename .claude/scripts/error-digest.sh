@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Error Digest - Parse stack traces into compact JSON
 # Strips node_modules frames, extracts error type + file:line.
 # Usage: some-command 2>&1 | error-digest.sh

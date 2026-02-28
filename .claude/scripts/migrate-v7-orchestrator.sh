@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # migrate-v7-orchestrator.sh - Orchestrator delegation and env-vault tracking
 # Adds: delegation_log, env_vault_log tables, indexes, views
 # Idempotent: uses CREATE TABLE/INDEX IF NOT EXISTS, DROP+CREATE VIEW

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # execute-plan.sh - Standalone plan executor callable from any CLI
 # Usage: execute-plan.sh <plan_id> [--from T1-03] [--engine copilot|claude|opencode] [--model <model>]
 #

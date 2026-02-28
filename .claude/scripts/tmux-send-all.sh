@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Send a message to all Claude workers in tmux
 # Usage: tmux-send-all.sh "message"
 

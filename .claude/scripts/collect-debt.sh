@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Technical Debt Collector - Finds TODO, FIXME, HACK, DEFERRED, SKIPPED
 # Usage: ./collect-debt.sh [project_path]
 # Output: JSON to stdout

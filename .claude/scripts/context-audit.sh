@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Context Audit - Automated health check for Claude Code configuration
 # Usage: context-audit.sh [--maintenance]
 # Exit: 0=healthy, 1=needs attention

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Generate repository context for Claude Code
 # Creates .claude-index with structure, symbols, and patterns
 # Usage: repo-index.sh [output-dir]

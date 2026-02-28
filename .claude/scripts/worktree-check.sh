@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Worktree Context Check - Shows current git context clearly
 # Usage: worktree-check.sh [expected-worktree-name]
 # Returns: 0 if OK, 1 if mismatch or problems

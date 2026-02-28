@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Quick Task Operations - Reduces token usage for common operations
 # Usage: task-quick.sh <command> [args]
 #

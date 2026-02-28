@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # pr-ops.sh - PR write/action operations (reply, resolve, merge, status)
 # Complements pr-digest.sh (read-only) with correct API calls.
 # Usage: pr-ops.sh <command> [args...]

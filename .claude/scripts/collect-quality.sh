@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Quality Collector - Engineering Fundamentals Checklist
 # Usage: ./collect-quality.sh [project_path]
 # Output: JSON to stdout

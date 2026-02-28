@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Master Collector - Runs all collectors and merges output into plan.json
 # Usage: ./collect-all.sh [project_path] [--update-plan]
 # Output: Combined JSON to stdout, optionally updates plan.json

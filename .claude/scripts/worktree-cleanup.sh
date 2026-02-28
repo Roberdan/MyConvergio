@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Worktree Cleanup - Auto-remove merged worktrees
 # Usage: worktree-cleanup.sh [--plan <plan_id>] [--wave <wave_db_id>] [--branch <branch>] [--all-merged] [--dry-run]
 # Called automatically by plan-db.sh complete, or manually after merge.

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Install missing CLI tools for optimal Claude Code experience
 # Run: ~/.claude/scripts/install-missing-tools.sh
 

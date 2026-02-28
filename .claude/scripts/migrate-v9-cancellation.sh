@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # migrate-v9-cancellation.sh - Add cancelled status to plans, tasks, waves
 # Adds: cancelled_at, cancelled_reason columns
 # Rebuilds CHECK constraints to include 'cancelled'

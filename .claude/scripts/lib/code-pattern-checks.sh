@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Requires CODE_FILES array. Each function outputs JSON: {check, severity, pass, findings[]}
-# Version: 1.1.0
+# Version: 1.2.0
 
 check_unguarded_json_parse() {
 	local findings
@@ -223,20 +223,10 @@ check_comment_density() {
 		local total comment_lines pct
 		total=$(awk 'END{print NR}' "$f" 2>/dev/null || echo 0)
 		[[ "$total" -lt 10 ]] && continue
-		if [[ "$f" =~ \.(sh|bash)$ ]]; then
-			comment_lines=$(grep -cE '^\s*#[^!]' "$f" 2>/dev/null || echo 0)
-		elif [[ "$f" =~ \.(ts|tsx|js|jsx|mjs|cjs)$ ]]; then
-			comment_lines=$(grep -cE '^\s*(//|/\*|\*)' "$f" 2>/dev/null || echo 0)
-		elif [[ "$f" =~ \.py$ ]]; then
-			comment_lines=$(grep -cE '^\s*#' "$f" 2>/dev/null || echo 0)
-		else
-			continue
-		fi
+		comment_lines=$(grep -cE '^\s*(#[^!]|//|/\*|\*)' "$f" 2>/dev/null || echo 0)
 		pct=$((comment_lines * 100 / total))
 		if [[ "$pct" -gt 20 ]]; then
-			findings="${findings}$(jq -n --arg f "$f" --arg pct "${pct}%" \
-				--arg b "Comment density ${pct}% (${comment_lines}/${total} lines) — target <5%" \
-				'{file:$f, line:null, body:$b}')
+			findings="${findings}$(jq -n --arg f "$f" --arg b "Comment density ${pct}% (${comment_lines}/${total}) — target <5%" '{file:$f, line:null, body:$b}')
 "
 		fi
 	done
@@ -245,6 +235,58 @@ check_comment_density() {
 	local pass=true
 	[[ $(echo "$arr" | jq 'length') -gt 0 ]] && pass=false
 	jq -n --arg check "comment_density" --arg sev "P3" \
+		--argjson pass "$pass" --argjson findings "$arr" \
+		'{check:$check, severity:$sev, pass:$pass, findings:$findings}'
+}
+
+check_silent_degradation() {
+	local tsx_files=()
+	for f in "${CODE_FILES[@]}"; do [[ "$f" =~ \.tsx$ ]] && tsx_files+=("$f"); done
+	[[ ${#tsx_files[@]} -eq 0 ]] && { jq -n '{"check":"silent_degradation","severity":"P2","pass":true,"findings":[]}'; return; }
+	local findings
+	findings=$(grep -rEnH 'return null|return undefined' "${tsx_files[@]}" 2>/dev/null | while IFS= read -r match; do
+		local file line_num
+		file=$(echo "$match" | cut -d: -f1)
+		line_num=$(echo "$match" | cut -d: -f2)
+		local start=$((line_num - 3)); [[ $start -lt 1 ]] && start=1
+		local ctx; ctx=$(sed -n "${start},${line_num}p" "$file" 2>/dev/null || true)
+		if echo "$ctx" | grep -qE '(\.length\s*(===|==)\s*0|!.*data|isEmpty|\.length\s*<\s*1)'; then
+			jq -n --arg f "$file" --arg l "$line_num" \
+				--arg b "Silent degradation: return null on empty data — use fail-loud pattern" \
+				'{file:$f, line:($l|tonumber), body:$b}'
+		fi
+	done || true)
+	local arr; arr=$(echo "$findings" | jq -s '.' 2>/dev/null || echo '[]')
+	local pass=true; [[ $(echo "$arr" | jq 'length') -gt 0 ]] && pass=false
+	jq -n --arg check "silent_degradation" --arg sev "P2" \
+		--argjson pass "$pass" --argjson findings "$arr" \
+		'{check:$check, severity:$sev, pass:$pass, findings:$findings}'
+}
+
+check_orphan_exports() {
+	local ts_files=()
+	for f in "${CODE_FILES[@]}"; do [[ "$f" =~ \.(ts|tsx)$ ]] && ts_files+=("$f"); done
+	[[ ${#ts_files[@]} -eq 0 ]] && { jq -n '{"check":"orphan_exports","severity":"P2","pass":true,"findings":[]}'; return; }
+	local findings=""
+	for f in "${ts_files[@]}"; do
+		[[ "$f" =~ (index\.ts|\.test\.|\.spec\.|main\.tsx|app\.tsx|app\.py)$ ]] && continue
+		local exports; exports=$(grep -oE 'export (function|const|class|type|interface) ([A-Z][A-Za-z0-9]+)' "$f" 2>/dev/null | awk '{print $3}' || true)
+		for exp in $exports; do
+			[[ -z "$exp" ]] && continue
+			local dir; dir=$(dirname "$f")
+			local imports; imports=$(grep -rl "$exp" "$dir" --include='*.ts' --include='*.tsx' 2>/dev/null | grep -v "$f" | grep -v '\.test\.' | grep -v '\.spec\.' | head -1 || true)
+			if [[ -z "$imports" ]]; then
+				local line; line=$(grep -n "export.*$exp" "$f" 2>/dev/null | head -1 | cut -d: -f1)
+				findings="${findings}$(jq -n --arg f "$f" --arg l "${line:-0}" \
+					--arg b "Orphan export: '$exp' has no imports outside its own file" \
+					'{file:$f, line:($l|tonumber), body:$b}')
+"
+			fi
+		done
+	done
+	local arr; arr=$(echo "$findings" | jq -s '.' 2>/dev/null || echo '[]')
+	local pass=true; [[ $(echo "$arr" | jq 'length') -gt 0 ]] && pass=false
+	jq -n --arg check "orphan_exports" --arg sev "P2" \
 		--argjson pass "$pass" --argjson findings "$arr" \
 		'{check:$check, severity:$sev, pass:$pass, findings:$findings}'
 }

@@ -83,7 +83,7 @@ Run `code-pattern-check.sh` on changed files to catch mechanical issues (null sa
 ```bash
 ls -la **/*.test.ts **/*.spec.ts tests/*.py
 npm test -- --coverage --coverageReporters=text-summary
-git log --oneline --name-only | head -20
+git log --oneline --name-only -20
 ```
 
 **REJECT if**: No test files | Tests fail | Coverage <80% new | Implementation before tests
@@ -104,7 +104,7 @@ Per `~/.claude/rules/testing-standards.md`:
 
 - Read `CLAUDE.md` (worktree root + `~/.claude/CLAUDE.md`) + `~/.claude/rules/*.md`
 - Verify new/changed code follows ALL conventions
-- Max 250 lines/file: `for f in {changed_files}; do echo "$(grep -c . "$f") $f"; done | sort -rn | head -10`
+- Max 250 lines/file: `for f in {changed_files}; do wc -l "$f"; done` (use Read tool to inspect results)
 - Check prohibited patterns: `grep -rn 'TODO\|FIXME\|@ts-ignore' {changed_files}`
 
 ### 9b. ADR Compliance

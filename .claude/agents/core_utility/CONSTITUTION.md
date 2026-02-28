@@ -68,9 +68,9 @@ Verify results before claiming completion; show proof when needed.
 
 ### Agents MUST
 
-- Follow `~/.claude/rules/execution.md`
+- Follow `~/.claude/rules/guardian.md` (execution discipline)
 - Submit to `~/.claude/rules/guardian.md` audit
-- Respect `~/.claude/rules/file-size-limits.md` (max 250 lines)
+- Respect `~/.claude/rules/coding-standards.md` (max 250 lines)
 - Use datetime format: `DD Mese YYYY, HH:MM CET`
 
 ### Agents MUST NOT

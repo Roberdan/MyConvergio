@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MyConvergio Plan Spec",
   "description": "JSON Schema for plan spec.json validation. Source: HVE Core pattern (schema-driven validation).",
   "type": "object",
@@ -18,10 +18,32 @@
         "type": "object",
         "required": ["id", "text", "type"],
         "properties": {
-          "id": { "type": "string", "pattern": "^C-\\d{2,3}$", "description": "Constraint ID (C-01, C-02, ...)" },
-          "text": { "type": "string", "minLength": 1, "description": "Constraint text — clear, machine-checkable where possible" },
-          "type": { "type": "string", "enum": ["permission", "security", "cost", "compliance", "technical", "process"], "description": "Constraint category" },
-          "verify": { "type": "string", "description": "How to verify this constraint is respected (CLI command or check)" }
+          "id": {
+            "type": "string",
+            "pattern": "^C-\\d{2,3}$",
+            "description": "Constraint ID (C-01, C-02, ...)"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Constraint text — clear, machine-checkable where possible"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "permission",
+              "security",
+              "cost",
+              "compliance",
+              "technical",
+              "process"
+            ],
+            "description": "Constraint category"
+          },
+          "verify": {
+            "type": "string",
+            "description": "How to verify this constraint is respected (CLI command or check)"
+          }
         },
         "additionalProperties": false
       }
@@ -68,7 +90,10 @@
                 "effort"
               ],
               "properties": {
-                "id": { "type": "string", "pattern": "^T[0-9F]-\\d{2}$|^TF-(doc|tests|pr)$" },
+                "id": {
+                  "type": "string",
+                  "pattern": "^T[0-9F]-\\d{2}$|^TF-(doc|tests|pr)$"
+                },
                 "do": { "type": "string", "minLength": 1 },
                 "files": { "type": "array", "items": { "type": "string" } },
                 "verify": {
@@ -106,7 +131,7 @@
                 "consumers": {
                   "type": "array",
                   "items": { "type": "string" },
-                  "description": "Files that import/use what this task creates/changes. Executor MUST verify these are updated. Thor Gate 2b validates."
+                  "description": "Files that import/use what this task creates/changes. REQUIRED for feature/refactor tasks (enforced by planner Step 3.1b). Thor Gate 10 validates."
                 }
               },
               "additionalProperties": false

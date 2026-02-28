@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-# plan-db-safe.sh v4.0.0 - Safe wrapper around plan-db.sh
+# plan-db-safe.sh - Safe wrapper around plan-db.sh
 # Auto-releases file locks, checks staleness, warns about uncommitted changes.
 # VALIDATE-THEN-DONE: Validation runs BEFORE marking done (blocking, no bypass flags).
 # CIRCUIT BREAKER: Auto-blocks tasks after MAX_REJECTIONS consecutive Thor rejections.
@@ -144,6 +144,8 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 		"SELECT test_criteria FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
 	task_type=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
 		"SELECT COALESCE(type, 'code') FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "code")
+	task_title=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+		"SELECT COALESCE(title, '') FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
 	task_started=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
 		"SELECT started_at FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
 
@@ -173,6 +175,14 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 	proof_of_work=false
 	if [[ "$task_type" == "doc" || "$task_type" == "docs" ]]; then
 		proof_of_work=true # Doc tasks may not touch code
+	fi
+	# Verification/closure tasks don't produce file changes
+	task_title_lower=$(echo "$task_title" | tr '[:upper:]' '[:lower:]')
+	if [[ "$task_type" == "chore" && "$task_title_lower" == create\ pr* ]]; then
+		proof_of_work=true # PR creation/merge tasks
+	fi
+	if [[ "$task_type" == "test" ]] && [[ "$task_title_lower" == verify* || "$task_title_lower" == consolidate\ and\ verify* || "$task_title_lower" == run\ full\ validation* ]]; then
+		proof_of_work=true # Verification-only tasks
 	fi
 
 	if [[ "$proof_of_work" == false && -n "$plan_id" ]]; then

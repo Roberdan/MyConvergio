@@ -9,8 +9,8 @@ _render_pipeline_plans() {
 	dbq "
 		SELECT p.id, p.name, p.created_at, p.project_id,
 			COALESCE(p.human_summary, REPLACE(REPLACE(COALESCE(p.description, ''), char(10), ' '), char(13), '')),
-			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id),
-			(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id)
+			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status NOT IN ('cancelled')),
+			(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id AND status NOT IN ('cancelled', 'skipped'))
 		FROM plans p WHERE p.status='todo' ORDER BY p.created_at DESC
 	" | while IFS='|' read -r pid pname pcreated pproject pdescription wave_count task_count; do
 		[ -z "$pid" ] && continue

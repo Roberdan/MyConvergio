@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# wave-worktree.sh — Wave-level worktree lifecycle management
+# wave-worktree.sh v3.2.0 — Wave-level worktree lifecycle management
 # Usage: wave-worktree.sh <command> <plan_id> [wave_db_id]
 # Commands: create, merge, merge-async, pr-sync, cleanup, status
 #
@@ -8,7 +8,7 @@ set -euo pipefail
 #   Next wave can start while PR is in review. Use pr-sync to reconcile.
 # pr-sync: Check previous wave's async PR, rebase current wave, extract feedback.
 #
-# Version: 3.0.0
+# Version: 3.2.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -26,11 +26,7 @@ cmd_create() {
 	project_path=$(db_query \
 		"SELECT p2.path FROM plans p JOIN projects p2 ON p.project_id = p2.id WHERE p.id = ${plan_id};" \
 		2>/dev/null || true)
-
-	# Expand ~ to $HOME
 	[[ -n "$project_path" ]] && project_path=$(_expand_path "$project_path")
-
-	# Fallback: try git rev-parse from cwd
 	if [[ -z "$project_path" ]]; then
 		project_path=$(git rev-parse --show-toplevel 2>/dev/null || true)
 	fi
@@ -39,35 +35,59 @@ cmd_create() {
 		exit 1
 	fi
 
-	# 2. Get wave_id (text code like W1)
-	local wave_id
+	# 2. Get wave_id and theme
+	local wave_id wave_theme
 	wave_id=$(db_query "SELECT wave_id FROM waves WHERE id = ${wave_db_id};" 2>/dev/null || true)
+	wave_theme=$(db_query "SELECT COALESCE(theme, '') FROM waves WHERE id = ${wave_db_id};" 2>/dev/null || true)
 	if [[ -z "$wave_id" ]]; then
 		log_error "Wave not found: db_id=${wave_db_id}"
 		exit 1
 	fi
 
-	local branch wt_path
-	branch=$(wave_branch_name "$plan_id" "$wave_id")
-	wt_path=$(wave_worktree_path "$project_path" "$plan_id" "$wave_id")
-
-	local expanded_wt
-	expanded_wt=$(_expand_path "$wt_path")
-	if [[ -d "$expanded_wt" ]]; then
-		log_info "Worktree already exists: $expanded_wt (skipping creation)"
-	else
-		local remote
-		remote=$(resolve_github_remote "$project_path")
-		git -C "$project_path" fetch "${remote:-origin}" main 2>/dev/null || true
-		(cd "$project_path" && "$SCRIPT_DIR/worktree-create.sh" "$branch" "$wt_path")
+	# 3. Check for existing theme worktree (batch reuse)
+	local reused=false
+	if [[ -n "$wave_theme" ]]; then
+		local prev_wt prev_branch
+		prev_wt=$(db_query "SELECT worktree_path FROM waves WHERE plan_id=${plan_id} AND theme='$(sql_escape "$wave_theme")' AND id <> ${wave_db_id} AND worktree_path IS NOT NULL AND worktree_path <> '' ORDER BY position DESC LIMIT 1;" 2>/dev/null || true)
+		if [[ -n "$prev_wt" ]]; then
+			prev_wt=$(_expand_path "$prev_wt")
+			if [[ -d "$prev_wt" ]]; then
+				prev_branch=$(db_query "SELECT branch_name FROM waves WHERE plan_id=${plan_id} AND theme='$(sql_escape "$wave_theme")' AND worktree_path IS NOT NULL AND worktree_path <> '' ORDER BY position DESC LIMIT 1;" 2>/dev/null || true)
+				log_info "Reusing theme worktree from ${wave_theme}: $prev_wt (branch: $prev_branch)"
+				wave_set_db "$wave_db_id" "$(_normalize_path "$prev_wt")" "$prev_branch"
+				reused=true
+			fi
+		fi
 	fi
 
-	wave_set_db "$wave_db_id" "$wt_path" "$branch"
+	# 4. Create new worktree if not reused
+	if [[ "$reused" == "false" ]]; then
+		local branch wt_path
+		if [[ -n "$wave_theme" ]]; then
+			branch="plan/${plan_id}-${wave_theme}"
+			wt_path="${project_path%/}-plan-${plan_id}-${wave_theme}"
+		else
+			branch=$(wave_branch_name "$plan_id" "$wave_id")
+			wt_path=$(wave_worktree_path "$project_path" "$plan_id" "$wave_id")
+		fi
+
+		local expanded_wt
+		expanded_wt=$(_expand_path "$wt_path")
+		if [[ -d "$expanded_wt" ]]; then
+			log_info "Worktree already exists: $expanded_wt (skipping creation)"
+		else
+			local remote
+			remote=$(resolve_github_remote "$project_path")
+			git -C "$project_path" fetch "${remote:-origin}" main 2>/dev/null || true
+			(cd "$project_path" && "$SCRIPT_DIR/worktree-create.sh" "$branch" "$wt_path")
+		fi
+
+		wave_set_db "$wave_db_id" "$wt_path" "$branch"
+	fi
 
 	local norm_wt
-	norm_wt=$(_normalize_path "$wt_path")
+	norm_wt=$(db_query "SELECT worktree_path FROM waves WHERE id=${wave_db_id};" 2>/dev/null || true)
 	db_query "UPDATE plans SET worktree_path = '$(sql_escape "$norm_wt")' WHERE id = ${plan_id};"
-
 	db_query "UPDATE waves SET status = 'in_progress', started_at = COALESCE(started_at, datetime('now')) WHERE id = ${wave_db_id};"
 	log_info "Wave ${wave_db_id} -> in_progress"
 	wave_get_db "$wave_db_id"
@@ -81,7 +101,7 @@ cmd_status() {
 
 	local rows
 	rows=$(db_query -separator '|' \
-		"SELECT w.id, w.wave_id, w.name, w.status, COALESCE(w.worktree_path,''), COALESCE(w.branch_name,''), COALESCE(CAST(w.pr_number AS TEXT),'-'), w.tasks_done, w.tasks_total
+		"SELECT w.id, w.wave_id, w.name, w.status, COALESCE(w.worktree_path,''), COALESCE(w.branch_name,''), COALESCE(CAST(w.pr_number AS TEXT),'-'), w.tasks_done, w.tasks_total, COALESCE(w.merge_mode,'sync'), COALESCE(w.theme,'')
 		 FROM waves w WHERE w.plan_id = ${plan_id} ORDER BY w.position;" \
 		2>/dev/null || true)
 
@@ -90,10 +110,10 @@ cmd_status() {
 		return 0
 	fi
 
-	printf "%-6s %-12s %-6s %-24s %-5s %s\n" "Wave" "Status" "Tasks" "Branch" "PR" "Worktree"
-	printf "%-6s %-12s %-6s %-24s %-5s %s\n" "------" "------------" "------" "------------------------" "-----" "--------"
+	printf "%-6s %-12s %-6s %-6s %-10s %-24s %-5s %s\n" "Wave" "Status" "Tasks" "Mode" "Theme" "Branch" "PR" "Worktree"
+	printf "%-6s %-12s %-6s %-6s %-10s %-24s %-5s %s\n" "------" "------------" "------" "------" "----------" "------------------------" "-----" "--------"
 
-	while IFS='|' read -r id wid name status wt_path branch pr_num done total; do
+	while IFS='|' read -r id wid name status wt_path branch pr_num done total merge_mode theme; do
 		local clean="-"
 		if [[ -n "$wt_path" ]]; then
 			local expanded
@@ -107,9 +127,47 @@ cmd_status() {
 			fi
 		fi
 		local disp_wt="${wt_path:-"-"}"
-		printf "%-6s %-12s %-6s %-24s %-5s %s [%s]\n" \
-			"$wid" "$status" "${done}/${total}" "${branch:-"-"}" "${pr_num}" "$disp_wt" "$clean"
+		printf "%-6s %-12s %-6s %-6s %-10s %-24s %-5s %s [%s]\n" \
+			"$wid" "$status" "${done}/${total}" "$merge_mode" "${theme:-"-"}" "${branch:-"-"}" "${pr_num}" "$disp_wt" "$clean"
 	done <<<"$rows"
+}
+
+# ---------------------------------------------------------------------------
+# cmd_batch plan_id wave_db_id
+# Commit changes, mark wave done, keep worktree for next wave in theme.
+# No PR, no merge to main. Used for intermediate waves in a theme group.
+# ---------------------------------------------------------------------------
+cmd_batch() {
+	local plan_id="$1" wave_db_id="$2"
+
+	local db_json wt_path wave_name
+	db_json=$(wave_get_db "$wave_db_id" 2>/dev/null || true)
+	if echo "$db_json" | grep -q '"error"'; then
+		log_error "Wave not found: db_id=${wave_db_id}"
+		exit 1
+	fi
+	wt_path=$(echo "$db_json" | sed 's/.*"worktree_path":"\([^"]*\)".*/\1/')
+	wave_name=$(db_query "SELECT COALESCE(name, wave_id) FROM waves WHERE id = ${wave_db_id};" 2>/dev/null || true)
+
+	if [[ -z "$wt_path" ]] || [[ ! -d "$wt_path" ]]; then
+		log_error "Worktree not found for wave ${wave_db_id}: '${wt_path}'"
+		exit 1
+	fi
+
+	# Commit if dirty
+	local dirty
+	dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null || true)
+	if [[ -n "$dirty" ]]; then
+		git -C "$wt_path" add -A
+		git -C "$wt_path" commit -m "feat(plan-${plan_id}): ${wave_name}"
+		log_info "Wave ${wave_db_id} committed (batch — no PR)"
+	else
+		log_info "Wave ${wave_db_id} clean — nothing to commit"
+	fi
+
+	# Mark wave done but keep worktree (next wave in theme will reuse it)
+	db_query "UPDATE waves SET status='done', merge_mode='batch', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+	log_info "Wave ${wave_db_id} -> done (batch, worktree kept for theme)"
 }
 
 # ---------------------------------------------------------------------------
@@ -235,6 +293,25 @@ cmd_merge() {
 		log_error "Merge failed for wave ${wave_db_id} — rolling back to in_progress"
 		db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
 		return 1
+	fi
+
+	# 11b. Post-merge CI watch on main (non-blocking — merge already happened)
+	if [[ -x "$SCRIPT_DIR/ci-watch.sh" ]]; then
+		log_info "Monitoring CI on $main_branch after merge..."
+		local merge_sha ci_result ci_status
+		merge_sha=$(git -C "$wt_path" rev-parse "$remote/$main_branch" 2>/dev/null || echo "")
+		if [[ -n "$merge_sha" ]]; then
+			ci_result=$("$SCRIPT_DIR/ci-watch.sh" "$main_branch" --repo "$remote_repo" --sha "$merge_sha" --timeout 120 2>/dev/null || echo '{"status":"error"}')
+			ci_status=$(echo "$ci_result" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")
+			if [[ "$ci_status" == "fail" ]]; then
+				log_warn "CI on $main_branch FAILED after merge of wave ${wave_db_id}. Review immediately."
+				log_warn "Failed checks: $(echo "$ci_result" | jq -r '[.checks[]? | select(.conclusion=="fail") | .name] | join(", ")' 2>/dev/null || echo "unknown")"
+			elif [[ "$ci_status" == "pass" ]]; then
+				log_info "CI on $main_branch passed after merge"
+			else
+				log_info "CI on $main_branch: $ci_status (non-blocking)"
+			fi
+		fi
 	fi
 
 	# 12. Mark done + cleanup
@@ -500,10 +577,11 @@ cmd_cleanup() {
 # ---------------------------------------------------------------------------
 case "${1:-help}" in
 create) cmd_create "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
+batch) cmd_batch "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 status) cmd_status "${2:?plan_id required}" ;;
 merge) cmd_merge "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 merge-async) cmd_merge_async "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 pr-sync) cmd_pr_sync "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 cleanup) cmd_cleanup "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
-*) echo "Usage: wave-worktree.sh <create|merge|merge-async|pr-sync|cleanup|status> <plan_id> [wave_db_id]" ;;
+*) echo "Usage: wave-worktree.sh <create|batch|merge|merge-async|pr-sync|cleanup|status> <plan_id> [wave_db_id]" ;;
 esac

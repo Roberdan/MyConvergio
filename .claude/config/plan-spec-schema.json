@@ -70,10 +70,20 @@
         "required": ["id", "name", "tasks"],
         "properties": {
           "id": { "type": "string", "pattern": "^W[0-9F]" },
-          "name": { "type": "string", "minLength": 1 },
-          "estimated_hours": { "type": "number", "minimum": 0 },
-          "precondition": { "type": "object" },
-          "tasks": {
+           "name": { "type": "string", "minLength": 1 },
+           "estimated_hours": { "type": "number", "minimum": 0 },
+           "precondition": { "type": "object" },
+           "merge_mode": {
+             "type": "string",
+             "enum": ["sync", "batch", "async", "none"],
+             "description": "Wave merge strategy (sync now, batch by theme, async PR, none/no-PR)"
+           },
+           "theme": {
+             "type": "string",
+             "minLength": 1,
+             "description": "Theme/group key used to reuse branch/worktree across batch waves"
+           },
+           "tasks": {
             "type": "array",
             "minItems": 1,
             "items": {

@@ -1,7 +1,7 @@
 #!/bin/bash
 # copilot-worker.sh - Launch Copilot CLI worker for a plan task
 # Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]
-# Version: 2.2.0 - Adds retry logic, exit code differentiation, Thor validation
+# Version: 3.0.0 - submitted status flow, per-task Thor validation, SQLite trigger compatibility
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,10 +35,6 @@ done
 
 if [[ -z "$TASK_ID" ]]; then
 	echo "Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]" >&2
-	exit 1
-fi
-if [[ ! "$TASK_ID" =~ ^[0-9]+$ ]]; then
-	echo "ERROR: task id must be numeric, got: $TASK_ID" >&2
 	exit 1
 fi
 
@@ -79,8 +75,6 @@ WT="$(echo "$TASK_CTX" | jq -r '.worktree // ""')"
 WT="${WT/#\~/$HOME}"
 PLAN_ID="$(echo "$TASK_CTX" | jq -r '.plan_id // 0')"
 PROJECT_ID="$(echo "$TASK_CTX" | jq -r '.project_id // ""')"
-validate_numeric "plan id" "$PLAN_ID"
-validate_numeric "project id" "$PROJECT_ID"
 
 # Generate prompt
 PROMPT=$("$SCRIPT_DIR/copilot-task-prompt.sh" "$TASK_ID")
@@ -191,15 +185,16 @@ elif [[ "$EXIT_CODE" -ne 0 ]]; then
 	safe_update_task "$TASK_ID" blocked "$NOTE" --tokens "$TOKENS_USED" || true
 	echo "{\"status\":\"error\",\"task_id\":${TASK_ID},\"exit_code\":${EXIT_CODE}}" >&2
 	THOR_RESULT="REJECT"
-elif [[ "$FINAL_STATUS" != "done" ]]; then
+elif [[ "$FINAL_STATUS" != "done" && "$FINAL_STATUS" != "submitted" ]]; then
 	if WORK_DONE="$(verify_work_done "$WT" 2>/dev/null)"; then
 		ARTIFACTS_JSON="$(git -C "$WT" status --porcelain | awk '{print $2}' | jq -Rsc 'split("\n") | map(select(length>0)) | unique')"
 		OUTPUT_DATA="$(jq -cn --arg summary 'Auto-completed from detected worktree changes' --argjson artifacts "$ARTIFACTS_JSON" '{summary:$summary,artifacts:$artifacts}')"
 		NOTE="Auto-completed: worker changed files but task status was not updated"
 		safe_update_task "$TASK_ID" done "$NOTE" --tokens "$TOKENS_USED" --output-data "$OUTPUT_DATA" || true
-		FINAL_STATUS="done"
-		THOR_RESULT="PASS"
-		echo '{"status":"auto_done","task_id":'$TASK_ID',"copilot_exit":'$EXIT_CODE'}'
+		# plan-db-safe.sh sets 'submitted' (not done). Thor validation required.
+		FINAL_STATUS="submitted"
+		THOR_RESULT="PENDING"
+		echo '{"status":"submitted","task_id":'$TASK_ID',"copilot_exit":'$EXIT_CODE'}'
 	else
 		NOTE="Copilot exited without completing"
 		safe_update_task "$TASK_ID" blocked "$NOTE" --tokens "$TOKENS_USED" || true
@@ -207,8 +202,14 @@ elif [[ "$FINAL_STATUS" != "done" ]]; then
 		THOR_RESULT="REJECT"
 	fi
 else
-	echo '{"status":"done","task_id":'$TASK_ID'}'
-	THOR_RESULT="PASS"
+	# Task was marked submitted by the Copilot agent itself (via plan-db-safe.sh)
+	# or already done from a previous run
+	echo '{"status":"'$FINAL_STATUS'","task_id":'$TASK_ID'}'
+	if [[ "$FINAL_STATUS" == "done" ]]; then
+		THOR_RESULT="PASS"
+	else
+		THOR_RESULT="PENDING"
+	fi
 fi
 
 # Log delegation with proper duration
@@ -216,12 +217,19 @@ DURATION_MS="$((TOTAL_DURATION * 1000))"
 log_delegation "$TASK_ID" "$PLAN_ID" "$PROJECT_ID" "copilot" "$MODEL" \
 	"$PROMPT_TOKENS" "$TOKENS_USED" "$DURATION_MS" "$EXIT_CODE" "$THOR_RESULT" "0" "unknown" || true
 
-# Run Thor validation if task completed successfully
-if [[ "$FINAL_STATUS" == "done" && "$THOR_RESULT" == "PASS" ]]; then
-	echo "Running Thor validation for plan $PLAN_ID..."
-	"$SCRIPT_DIR/thor-validate.sh" "$PLAN_ID" >/dev/null 2>&1 &&
-		echo "Thor validation: PASSED" ||
-		echo "Thor validation: FAILED (see logs)" >&2
+# Run Thor validation if task is submitted (awaiting validation)
+if [[ "$FINAL_STATUS" == "submitted" || "$THOR_RESULT" == "PENDING" ]]; then
+	echo "Running Thor per-task validation for task $TASK_ID in plan $PLAN_ID..."
+	if "$SCRIPT_DIR/plan-db.sh" validate-task "$TASK_ID" "$PLAN_ID" thor 2>&1; then
+		echo "Thor validation: PASSED (submitted → done)"
+		THOR_RESULT="PASS"
+		FINAL_STATUS="done"
+	else
+		echo "Thor validation: FAILED — task stays submitted" >&2
+		THOR_RESULT="REJECT"
+	fi
+elif [[ "$FINAL_STATUS" == "done" && "$THOR_RESULT" == "PASS" ]]; then
+	echo "Task already done + validated, skipping Thor."
 fi
 
 exit $EXIT_CODE

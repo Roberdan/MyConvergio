@@ -36,6 +36,8 @@ _render_single_plan() {
 	case $pstatus in
 	done) status_display="${GREEN}DONE${NC}" ;;
 	doing) status_display="${YELLOW}IN PROGRESS${NC}" ;;
+	cancelled) status_display="${RED}CANCELLED${NC}" ;;
+	archived) status_display="${GRAY}ARCHIVED${NC}" ;;
 	*) status_display="${BLUE}TODO${NC}" ;;
 	esac
 

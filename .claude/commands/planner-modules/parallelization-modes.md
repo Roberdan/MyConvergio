@@ -1,6 +1,6 @@
 ---
 name: parallelization-modes
-version: "1.0.0"
+version: "1.1.0"
 ---
 
 # Parallelization Modes
@@ -13,9 +13,32 @@ At plan approval, ASK user via AskUserQuestion:
 Modalità di esecuzione:
 1. Standard (3 task paralleli) - Bilanciata, costi moderati
 2. Massima Parallelizzazione - Veloce, costi elevati, Opus orchestration
+3. Agent Teams - Nativo multi-agent, senza dipendenze esterne
 
 Quale modalità preferisci?
 ```
+
+## Agent Teams Mode (v2.1.x) — Recommended
+
+Native multi-agent via TeamCreate/SendMessage. Built-in task tracking, message passing, graceful shutdown.
+No external terminal (Kitty) dependency. Works in headless/remote/CI environments.
+
+| Setting     | Value                        |
+| ----------- | ---------------------------- |
+| Concurrency | Unlimited (team-managed)     |
+| Coordinator | Sonnet (TeamCreate owner)    |
+| Task Model  | Per task-executor assignment |
+| Cost        | $$ moderate                  |
+| Speed       | fast                         |
+| Setup       | instant (no terminal tabs)   |
+
+**Execution Logic**:
+
+- Coordinator creates team via TeamCreate
+- Tasks dispatched via SendMessage to team members
+- Built-in task tracking and message passing
+- Graceful shutdown on completion or error
+- Thor validates after each wave (same as other modes)
 
 ## Mode 1: Standard (Default)
 
@@ -53,6 +76,11 @@ Quale modalità preferisci?
 - Thor validates after each wave (same as standard)
 
 **CRITICAL**: Se user sceglie Mode 2, upgrade coordinator a Opus.
+
+## Kitty Terminal Mode (Legacy)
+
+Previous multi-agent approach using Kitty terminal tabs. Replaced by Agent Teams Mode.
+Requires Kitty terminal installed locally; does not work in headless/remote/CI environments.
 
 ## Token/Cost Estimates
 

@@ -1,6 +1,6 @@
 ---
 name: planner
-version: "2.3.0"
+version: "v2.6.0"
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 -->
@@ -11,23 +11,24 @@ Plan and execute with parallel Claude instances.
 
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
-| #   | Rule                                                                                                                                                                                                                                                                            |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Task Executor MANDATORY**: NEVER edit files directly while a plan is active. Direct edit = Thor bypass = VIOLATION. See CLAUDE.md Anti-Bypass.                                                                                                                                |
-| 2   | **F-xx Requirements**: Extract ALL. Nothing done until ALL verified [x]                                                                                                                                                                                                         |
-| 3   | **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"                                                                                                                                                                                                               |
-| 4   | **Thor Enforcement**: Task done = per-task Thor passed. Wave done = per-wave Thor + build passed. Gate 9 MANDATORY.                                                                                                                                                             |
-| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path. Wave-level worktrees are the default; plan-level is deprecated.                                                                                                                                           |
-| 6   | **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See @planner-modules/knowledge-codification.md                                                                                                                                                              |
-| 7   | **NO SILENT EXCLUSIONS**: NEVER exclude/defer ANY F-xx without EXPLICIT user approval via AskUserQuestion. Silently dropping = VIOLATION.                                                                                                                                       |
-| 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8).                                                                                                               |
-| 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                                                                                                                                         |
-| 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                                                                                                                                   |
-| 11  | **TEST CONSOLIDATION**: Final wave MUST include `TF-tests` task BEFORE `TF-pr`. See [Test Consolidation](#test-consolidation).                                                                                                                                                  |
-| 12  | **INFRA TASK DISCIPLINE (ADR-054)**: Infrastructure tasks (Azure CLI, Bicep, cloud ops) follow SAME plan-db discipline as code. Interactive `az` commands MUST update plan-db before/after. Batch updates at session end = VIOLATION. Hook `warn-infra-plan-drift.sh` enforces. |
-| 13  | **COPILOT-FIRST DELEGATION**: EVERY task MUST have explicit `executor_agent` assignment. Default=copilot. Skipping step 2.5 = VIOLATION. See [Step 2.5](#step-2-5).                                                                                                             |
-| 14  | **PLAN INTELLIGENCE REVIEW**: Steps 3.1-3.2 MANDATORY for plans with 3+ tasks. Skipping = VIOLATION. See [Step 3.1](#step-3-1).                                                                                                                                                 |
-| 15  | **TEST ADAPTS TO CODE**: When implementation changes break existing tests, update tests to match new behavior. NEVER revert implementation to make old tests pass. Tests follow code, not the opposite.                                                                         |
+| #   | Rule                                                                                                                                                                                                                                                                                                                       |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Task Executor MANDATORY**: NEVER edit files directly while a plan is active. Direct edit = Thor bypass = VIOLATION. See CLAUDE.md Anti-Bypass.                                                                                                                                                                           |
+| 2   | **F-xx Requirements**: Extract ALL. Nothing done until ALL verified [x]                                                                                                                                                                                                                                                    |
+| 3   | **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"                                                                                                                                                                                                                                                          |
+| 4   | **Thor Enforcement**: Task done = per-task Thor passed. Wave done = per-wave Thor + build passed. Gate 9 MANDATORY.                                                                                                                                                                                                        |
+| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path. Wave-level worktrees are the default; plan-level is deprecated.                                                                                                                                                                                      |
+| 6   | **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See @planner-modules/knowledge-codification.md                                                                                                                                                                                                         |
+| 7   | **NO SILENT EXCLUSIONS**: NEVER exclude/defer ANY F-xx without EXPLICIT user approval via AskUserQuestion. Silently dropping = VIOLATION.                                                                                                                                                                                  |
+| 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8).                                                                                                                                                          |
+| 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                                                                                                                                                                                    |
+| 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                                                                                                                                                                              |
+| 11  | **TEST CONSOLIDATION**: Final wave MUST include `TF-tests` task BEFORE `TF-pr`. See [Test Consolidation](#test-consolidation).                                                                                                                                                                                             |
+| 12  | **INFRA TASK DISCIPLINE (ADR-054)**: Infrastructure tasks (Azure CLI, Bicep, cloud ops) follow SAME plan-db discipline as code. Interactive `az` commands MUST update plan-db before/after. Batch updates at session end = VIOLATION. Hook `warn-infra-plan-drift.sh` enforces.                                            |
+| 13  | **COPILOT-FIRST DELEGATION**: EVERY task MUST have explicit `executor_agent` assignment. Default=copilot. Skipping step 2.5 = VIOLATION. See [Step 2.5](#step-2-5).                                                                                                                                                        |
+| 14  | **PLAN INTELLIGENCE REVIEW**: Steps 3.1-3.2 MANDATORY for plans with 3+ tasks. Skipping = VIOLATION. See [Step 3.1](#step-3-1).                                                                                                                                                                                            |
+| 15  | **TEST ADAPTS TO CODE**: When implementation changes break existing tests, update tests to match new behavior. NEVER revert implementation to make old tests pass. Tests follow code, not the opposite.                                                                                                                    |
+| 16  | **INTEGRATION COMPLETENESS**: For EVERY task that creates/exports new code, the plan MUST include a wiring task that connects it to consumers. For EVERY task that changes an interface, a consumer audit task MUST verify ALL consumers are updated. Orphan code = VIOLATION. See `~/.claude/rules/testing-standards.md`. |
 
 ## Module References
 
@@ -100,11 +101,30 @@ HARDENING_STATUS=$(echo "$HARDENING" | jq -r '.status')
 - If `gaps_found`: check severity. If ANY `critical` gap: add W0-01 task `"Run /harden skill to fix critical quality gaps"`. If only `warning`/`info`: present gaps to user via AskUserQuestion, let them decide.
 - W0 task uses `/harden` skill for full remediation (hooks, lint, scripts, PR template, ADR structure).
 
-### 2. Generate Plan Spec (JSON)
+### 1.8 Integration Impact Analysis (MANDATORY — Rule 16)
+
+Before generating tasks, for EVERY new component/module/route planned:
+
+1. **Consumer search**: `Grep` for existing imports of files being modified. List ALL consumers
+2. **Wiring check**: For each new export, identify WHERE it must be imported/rendered/called
+3. **Migration check**: If replacing old code, list ALL references to old code that need updating
+4. **Cleanup check**: If old code is fully replaced, plan its removal
+
+**Output**: `consumers` field in each task spec — files that IMPORT the thing being created/changed.
+
+**Rule**: If a task creates `NewComponent.tsx` but no task wires it into a render site → VIOLATION. If a task changes `interface Props` but no task audits ALL consumers → VIOLATION.
+
+### 2. Generate Plan Spec (YAML preferred, JSON supported)
+
+**Default format: YAML.** Generate spec as `.yaml`. Only use `.json` if user explicitly requests it.
 
 **EXCLUSION GATE**: Compare ALL F-xx vs tasks. If ANY NOT covered: 1. List uncovered. 2. AskUserQuestion: "Requisiti non coperti: [list]. Per ciascuno: includerli, deferirli, o escluderli?" 3. BLOCK. NEVER silently skip with "scope.out", "backlog", "needs external resource".
 
-spec.json: `{user_request, constraints:[{id,text,type,verify}], requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort}]}]}`
+spec.yaml (or spec.json): `{user_request, constraints:[{id,text,type,verify}], requirements:[{id,text,wave}], waves:[{id,name,estimated_hours,tasks:[{id,do,files,verify,ref,priority,type,model,effort,consumers}]}]}`
+
+**`consumers` field**: Files that import/use what this task creates/changes. Executor MUST verify these are updated. Thor Gate 2b validates.
+
+**`merge_mode` assignment**: Handled in Step 2.6 (Merge Strategy). Planner decides per-wave based on risk, dependencies, and file overlap — NOT a fixed rule.
 
 **CONSTRAINT VALIDATION GATE (ADR-054)**: After generating tasks, cross-check EVERY task against EVERY constraint. Present matrix: `| Task | C-01 | C-02 | ... |`. Any cell = VIOLATES → redesign task or BLOCK. Example: if C-01 = "No admin permissions required" and T2-01 = "Configure EasyAuth (requires admin consent)" → VIOLATION → remove or redesign T2-01.
 
@@ -112,28 +132,35 @@ spec.json: `{user_request, constraints:[{id,text,type,verify}], requirements:[{i
 
 ### 2.1 Schema Validation (MANDATORY)
 
-Validate spec.json before import. Source: [HVE Core](https://github.com/microsoft/hve-core) schema-driven validation pattern.
+Validate spec before import. Source: [HVE Core](https://github.com/microsoft/hve-core) schema-driven validation pattern.
 
 ```bash
 python3 -c "
 import json, sys
+spec_path = '/path/to/spec.yaml'  # or spec.json
 try:
     from jsonschema import validate, ValidationError
     schema = json.load(open('$HOME/.claude/config/plan-spec-schema.json'))
-    spec = json.load(open('/path/to/spec.json'))
+    if spec_path.endswith(('.yaml', '.yml')):
+        import yaml; spec = yaml.safe_load(open(spec_path))
+    else:
+        spec = json.load(open(spec_path))
     validate(spec, schema)
-    print('PASS: spec.json valid')
+    print('PASS: spec valid')
 except ValidationError as e:
     print(f'FAIL: {e.message}'); sys.exit(1)
 except ImportError:
     # Fallback: basic structural check without jsonschema
-    spec = json.load(open('/path/to/spec.json'))
+    if spec_path.endswith(('.yaml', '.yml')):
+        import yaml; spec = yaml.safe_load(open(spec_path))
+    else:
+        spec = json.load(open(spec_path))
     for field in ['user_request', 'requirements', 'waves']:
         assert field in spec, f'Missing: {field}'
     for w in spec['waves']:
         for t in w['tasks']:
             assert t.get('verify'), f'Task {t[\"id\"]} missing verify'
-    print('PASS: spec.json structurally valid (no jsonschema)')
+    print('PASS: spec structurally valid (no jsonschema)')
 "
 ```
 
@@ -147,12 +174,43 @@ except ImportError:
 
 **Never delegate to Copilot**: architecture decisions, security-sensitive, investigative debugging, cross-system integration where failure cascades.
 
+**Model naming rule (NON-NEGOTIABLE)**: ALL `model` fields in spec MUST use full model IDs from @planner-modules/model-strategy.md. Short aliases (`sonnet`, `opus`, `haiku`, `codex`) are FORBIDDEN — they break copilot-worker.sh routing. Valid examples: `gpt-5.3-codex`, `claude-sonnet-4.6`, `claude-opus-4.6-fast`, `gpt-4.1`, `gpt-5-mini`, `gpt-5.1-codex-mini`. See model-strategy.md Full Copilot Multiplier Reference for the complete list.
+
 **Exec**: `copilot-worker.sh <id> --model <model> --timeout 600`. Requires: `copilot --yolo`, `GH_TOKEN`.
+
+### 2.6 Merge Strategy (MANDATORY — planner decides) {#step-2-6}
+
+After generating waves, the planner MUST decide the merge strategy. This is a **reasoning step**, not a lookup table. The planner analyzes the specific plan and assigns `merge_mode` per wave.
+
+**Decision inputs** (planner already has all of these):
+
+| Input                      | Where                      | Why it matters                                        |
+| -------------------------- | -------------------------- | ----------------------------------------------------- |
+| File overlap between waves | `files` field in tasks     | Overlapping files = must merge before next wave       |
+| Domain affinity            | Task `type` + `ref` fields | Same F-xx = same theme = batch together               |
+| Risk level                 | Task `priority` + `type`   | P0 security = merge early, P2 refactor = batch safely |
+| Wave count                 | Spec wave array            | 2-3 wave plan = sync all. 6+ wave = MUST batch        |
+| Deploy dependency          | Task `do` description      | If wave N+1 needs deployed code from wave N = sync    |
+| CI pipeline time           | CI knowledge file          | Slow CI (10+ min) = batch more aggressively           |
+
+**Decision framework** (planner reasons through these):
+
+1. **Group waves into themes** by file overlap + domain. Consecutive waves touching same subsystem = one theme
+2. **For each theme**: intermediate waves = `batch`, last wave = `sync`
+3. **Force `sync` if**: wave changes public API/schema that next wave consumes, wave is security-critical (P0), wave requires deploy before next wave can start
+4. **Force `none` if**: wave only modifies docs/config with no CI relevance
+5. **Final wave (WF)**: always `sync` (PR must exist before plan closes)
+
+**Quality assurance**: Thor per-wave runs between ALL waves regardless of merge_mode. CI runs only at `sync` points. This is safe: Thor validates lint, types, build, tests, F-xx coverage.
+
+**Present to user**: "Strategia merge: [theme1: W1-W2 batch → PR al W2] [theme2: W3-W4 batch → PR al W4] [WF: PR finale]. Totale: N PR invece di M. Ok?"
+
+**Override**: user `--pr-per-wave` forces all to `sync`.
 
 ### 2.7 Cross-Plan Conflict Check (MANDATORY)
 
 ```bash
-CONFLICT_REPORT=$(plan-db.sh conflict-check-spec $PROJECT_ID /path/to/spec.json)
+CONFLICT_REPORT=$(plan-db.sh conflict-check-spec $PROJECT_ID /path/to/spec.yaml)
 RISK=$(echo "$CONFLICT_REPORT" | jq -r '.overall_risk')
 ```
 
@@ -165,7 +223,7 @@ PROMPT_FILE=".copilot-tracking/prompt-{NNN}.json"
 PLAN_ID=$(plan-db.sh create $PROJECT_ID "{PlanName}" --source-file "$PROMPT_FILE" \
   --human-summary "2-3 righe in italiano che spiegano COSA fa il piano per un umano. Mostrato in dashboard.")
 # Note: --auto-worktree is deprecated; use wave-level worktrees instead
-plan-db.sh import $PLAN_ID /path/to/spec.json
+plan-db.sh import $PLAN_ID /path/to/spec.yaml   # also accepts spec.json
 WORKTREE_PATH=$(plan-db.sh get-worktree $PLAN_ID)
 cd "$WORKTREE_PATH"
 ```
@@ -176,22 +234,22 @@ cd "$WORKTREE_PATH"
 
 **MANDATORY for plans with 3+ tasks.** Skip ONLY for 1-2 task plans (trivial scope). Skipping on 3+ tasks = VIOLATION.
 
-Launch plan-reviewer + plan-business-advisor in parallel. Both receive spec file path and plan_id.
+Launch plan-reviewer + plan-business-advisor in FOREGROUND. Both receive spec file path and plan_id. **Launch BOTH in FOREGROUND — results MUST be reviewed before Step 4.**
 
 **Claude Code:**
 
 ```
-# Launch BOTH in parallel
-review_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json")
-biz_result = await Task(subagent_type="plan-business-advisor", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json")
+# Launch BOTH in FOREGROUND (await, not fire-and-forget)
+review_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml")
+biz_result = await Task(subagent_type="plan-business-advisor", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml")
 ```
 
 **Copilot CLI:**
 
 ```bash
-# Two @agent invocations (parallel)
-@plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json
-@plan-business-advisor PLAN_ID=$PLAN_ID SPEC=/path/to/spec.json
+# Two @agent invocations (FOREGROUND — wait for each before proceeding)
+@plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml
+@plan-business-advisor PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml
 ```
 
 Store results:
@@ -203,7 +261,7 @@ plan-db.sh add-assessment $PLAN_ID "$ASSESSMENT_JSON"
 
 ### 3.2 Present Intelligence Summary
 
-Display alongside plan summary:
+Display alongside plan summary (wait for Step 3.3 before showing to user):
 
 | Metric                    | Source                | Action if Red           |
 | ------------------------- | --------------------- | ----------------------- |
@@ -213,6 +271,26 @@ Display alongside plan summary:
 | `roi_projection`          | plan-business-advisor | Flag if ROI < 2x        |
 
 Format: "📊 **Review**: coverage={score}%, completeness={score}% | **Business**: {days}d traditional, ROI {x}x"
+
+### 3.3 Challenger Review
+
+Launch plan-reviewer with `--challenger` mode in FOREGROUND. Challenger reviews spec from a skeptic's perspective.
+
+**Claude Code:**
+
+```
+challenger_result = await Task(subagent_type="plan-reviewer", prompt="PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml --challenger")
+```
+
+**Copilot CLI:**
+
+```bash
+@plan-reviewer PLAN_ID=$PLAN_ID SPEC=/path/to/spec.yaml --challenger
+```
+
+Challenger asks: (1) Which tasks can be eliminated? (2) Which tasks are over-engineered? (3) What edge cases are missing? (4) Are constraints sufficient?
+
+Present challenger findings alongside plan summary and review metrics in Step 4. If challenger identifies critical gaps or over-engineering, address before user approval.
 
 ### 4. User Approval (MANDATORY STOP)
 
@@ -227,7 +305,7 @@ See @planner-modules/parallelization-modes.md. AskUserQuestion: Standard (3) vs 
 Before execution starts, populate token estimates for all tasks:
 
 ```bash
-token-estimator.sh estimate $PLAN_ID /path/to/spec.json
+token-estimator.sh estimate $PLAN_ID /path/to/spec.yaml
 ```
 
 Writes per-task estimates to `plan_token_estimates` table. Used by post-mortem for variance analysis.
@@ -343,4 +421,4 @@ Plan NOT done until TF-pr done+Thor-validated.
 
 ## Cross-Tool Execution & State
 
-Cross-tool: Executing tool gets `T0-00 Review Plan` first (see @planner-modules/model-strategy.md). spec.json = handoff contract. States: `pending -> in_progress -> done|blocked|skipped`. Forbidden: `done -> pending`, `skipped -> done`.
+Cross-tool: Executing tool gets `T0-00 Review Plan` first (see @planner-modules/model-strategy.md). spec.yaml = handoff contract (spec.json still supported). States: `pending -> in_progress -> done|blocked|skipped`. Forbidden: `done -> pending`, `skipped -> done`.

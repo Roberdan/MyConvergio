@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version: 2.2.0
+# Version: 2.3.0
 set -uo pipefail
 # Source all dashboard modules
 DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
@@ -65,28 +65,24 @@ cmd_waves() {
 			fi
 		fi
 
-		# Build PR display: OSC 8 clickable link if URL available
+		# PR display: plain text with URL (auto-clickable in most terminals)
 		local pr_display="$pr"
+		local pr_extra=""
 		if [[ "$pr" != "-" && "$pr_url" == https://* ]]; then
-			# OSC 8 hyperlink: ESC]8;;URL ESC\ text ESC]8;; ESC\
-			pr_display=$'\e]8;;'"$pr_url"$'\e\\'"#${pr}"$'\e]8;;\e\\'
-			if [[ "$status" == "done" ]]; then
-				# Green = merged
-				pr_display=$'\e[32m'"$pr_display"$'\e[0m'
-			elif [[ "$status" == "in_progress" || "$status" == "merging" ]]; then
-				# Live CI state if --prs flag set
+			pr_display="#${pr}"
+			pr_extra=" $pr_url"
+			if [[ "$status" == "in_progress" || "$status" == "merging" ]]; then
 				if [[ "$live_prs" -eq 1 ]]; then
 					local ci_state
 					ci_state=$(gh api "repos/{owner}/{repo}/pulls/${pr}" \
 						--jq '.mergeable_state' 2>/dev/null || echo "?")
-					pr_display="${pr_display} [${ci_state}]"
+					pr_extra="${pr_extra} [${ci_state}]"
 				fi
-				pr_display=$'\e[33m'"$pr_display"$'\e[0m'
 			fi
 		fi
 
-		printf "%-6s %-12s %-6s %-24s %-8b %-30s %s\n" \
-			"$wid" "$status" "$tasks" "$branch" "$pr_display" "$wt_path" "$clean"
+		printf "%-6s %-12s %-6s %-24s %-8s %-30s %s%s\n" \
+			"$wid" "$status" "$tasks" "$branch" "$pr_display" "$wt_path" "$clean" "$pr_extra"
 	done <<<"$rows"
 }
 

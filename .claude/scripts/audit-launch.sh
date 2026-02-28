@@ -18,25 +18,25 @@ echo "  DB synced."
 
 # Step 2: Sync spec files to Linux
 echo "[2/5] Syncing spec files..."
-scp /Users/roberdan/GitHub/MirrorBuddy/.claude/plans/mirrorbuddy-audit-remediation-spec.yaml \
+scp "$HOME/GitHub/MirrorBuddy/.claude/plans/mirrorbuddy-audit-remediation-spec.yaml" \
 	"${REMOTE}:~/GitHub/MirrorBuddy/.claude/plans/"
-scp /Users/roberdan/GitHub/VirtualBPM/.claude/plans/virtualbpm-audit-remediation-spec.yaml \
+scp "$HOME/GitHub/VirtualBPM/.claude/plans/virtualbpm-audit-remediation-spec.yaml" \
 	"${REMOTE}:~/GitHub/VirtualBPM/.claude/plans/"
-scp /Users/roberdan/GitHub/MyConvergio/.claude/plans/myconvergio-audit-remediation-spec.yaml \
+scp "$HOME/GitHub/MyConvergio/.claude/plans/myconvergio-audit-remediation-spec.yaml" \
 	"${REMOTE}:~/GitHub/MyConvergio/.claude/plans/"
-scp /Users/roberdan/.claude/plans/claude-global-audit-remediation-spec.yaml \
+scp "$HOME/.claude/plans/claude-global-audit-remediation-spec.yaml" \
 	"${REMOTE}:~/.claude/plans/"
 echo "  Specs synced."
 
 # Step 3: Sync prompt files
 echo "[3/5] Syncing prompt files..."
-scp /Users/roberdan/GitHub/MirrorBuddy/.claude/prompts/audit-remediation-2026-02-28.md \
+scp "$HOME/GitHub/MirrorBuddy/.claude/prompts/audit-remediation-2026-02-28.md" \
 	"${REMOTE}:~/GitHub/MirrorBuddy/.claude/prompts/"
-scp /Users/roberdan/GitHub/VirtualBPM/.claude/prompts/audit-remediation-2026-02-28.md \
+scp "$HOME/GitHub/VirtualBPM/.claude/prompts/audit-remediation-2026-02-28.md" \
 	"${REMOTE}:~/GitHub/VirtualBPM/.claude/prompts/"
-scp /Users/roberdan/GitHub/MyConvergio/.claude/prompts/audit-remediation-2026-02-28.md \
+scp "$HOME/GitHub/MyConvergio/.claude/prompts/audit-remediation-2026-02-28.md" \
 	"${REMOTE}:~/GitHub/MyConvergio/.claude/prompts/"
-scp /Users/roberdan/.claude/prompts/audit-remediation-2026-02-28.md \
+scp "$HOME/.claude/prompts/audit-remediation-2026-02-28.md" \
 	"${REMOTE}:~/.claude/prompts/"
 echo "  Prompts synced."
 

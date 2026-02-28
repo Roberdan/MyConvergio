@@ -2,8 +2,9 @@
 # Plan DB Core - Shared utilities
 # Sourced by plan-db.sh
 
-# Version: 1.4.0
+# Version: 1.5.0
 DB_FILE="${HOME}/.claude/data/dashboard.db"
+AUDIT_LOG="${AUDIT_LOG:-${HOME}/.claude/data/thor-audit.jsonl}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Export hostname for distributed execution tracking
@@ -37,6 +38,103 @@ init_db() {
 		sqlite3 "$DB_FILE" <"$SCRIPT_DIR/init-db.sql"
 		sqlite3 "$DB_FILE" "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA cache_size=-8000; PRAGMA temp_store=MEMORY; PRAGMA mmap_size=268435456;"
 		log_info "Database initialized"
+	fi
+	# Migration: add 'submitted' status + enforce_thor_done trigger (v5.0.0)
+	_migrate_submitted_status 2>/dev/null || true
+	# Migration: ensure task_undone_counter + wave_auto_complete are correct
+	_migrate_counter_triggers 2>/dev/null || true
+}
+
+# Migration: add 'submitted' status to CHECK constraint + Thor enforcement trigger
+_migrate_submitted_status() {
+	# Check if already migrated
+	local has_submitted
+	has_submitted=$(sqlite3 "$DB_FILE" "SELECT sql FROM sqlite_master WHERE name = 'tasks' AND type = 'table' AND sql LIKE '%submitted%';" 2>/dev/null || echo "")
+	if [[ -n "$has_submitted" ]]; then
+		# Already migrated — ensure trigger exists (idempotent)
+		sqlite3 "$DB_FILE" "
+			DROP TRIGGER IF EXISTS enforce_thor_done;
+			CREATE TRIGGER enforce_thor_done
+			BEFORE UPDATE OF status ON tasks
+			WHEN NEW.status = 'done' AND OLD.status <> 'done'
+			BEGIN
+				SELECT RAISE(ABORT, 'BLOCKED: Only Thor can set status=done. validated_by must be thor/thor-quality-assurance-guardian/thor-per-wave/forced-admin.')
+				WHERE OLD.status <> 'submitted'
+					OR NEW.validated_by IS NULL
+					OR NEW.validated_by NOT IN ('thor', 'thor-quality-assurance-guardian', 'thor-per-wave', 'forced-admin');
+			END;
+		" 2>/dev/null || true
+		return 0
+	fi
+
+	# Add 'submitted' to CHECK constraint via writable_schema
+	sqlite3 "$DB_FILE" "
+		PRAGMA writable_schema = ON;
+		UPDATE sqlite_master SET sql = replace(sql,
+			'CHECK(status IN (''pending'', ''in_progress'', ''done'', ''blocked'', ''skipped'', ''cancelled''))',
+			'CHECK(status IN (''pending'', ''in_progress'', ''submitted'', ''done'', ''blocked'', ''skipped'', ''cancelled''))')
+		WHERE name = 'tasks' AND type = 'table';
+		PRAGMA writable_schema = OFF;
+	"
+
+	# Rebuild schema cache after writable_schema modification
+	sqlite3 "$DB_FILE" "VACUUM;" 2>/dev/null || true
+
+	# Verify integrity
+	local integrity
+	integrity=$(sqlite3 "$DB_FILE" "PRAGMA integrity_check;" 2>/dev/null || echo "error")
+	if [[ "$integrity" != "ok" ]]; then
+		echo "[migration] WARNING: integrity_check after schema update: $integrity" >&2
+	fi
+
+	# Create enforcement trigger: ONLY Thor can transition submitted → done
+	sqlite3 "$DB_FILE" "
+		DROP TRIGGER IF EXISTS enforce_thor_done;
+		CREATE TRIGGER enforce_thor_done
+		BEFORE UPDATE OF status ON tasks
+		WHEN NEW.status = 'done' AND OLD.status <> 'done'
+		BEGIN
+			SELECT RAISE(ABORT, 'BLOCKED: Only Thor can set status=done. validated_by must be thor/thor-quality-assurance-guardian/thor-per-wave/forced-admin.')
+			WHERE OLD.status <> 'submitted'
+				OR NEW.validated_by IS NULL
+				OR NEW.validated_by NOT IN ('thor', 'thor-quality-assurance-guardian', 'thor-per-wave', 'forced-admin');
+		END;
+	"
+
+	echo "[migration] Added 'submitted' status + enforce_thor_done trigger (v5.0.0)" >&2
+}
+
+# Migration: ensure counter triggers are correct (task_undone_counter + wave_auto_complete with merging)
+_migrate_counter_triggers() {
+	# task_undone_counter: decrement counters when task leaves 'done' (e.g., Thor re-review)
+	local has_undone
+	has_undone=$(sqlite3 "$DB_FILE" "SELECT name FROM sqlite_master WHERE name = 'task_undone_counter' AND type = 'trigger';" 2>/dev/null || echo "")
+	if [[ -z "$has_undone" ]]; then
+		sqlite3 "$DB_FILE" "
+			CREATE TRIGGER IF NOT EXISTS task_undone_counter
+			AFTER UPDATE OF status ON tasks
+			WHEN OLD.status = 'done' AND NEW.status <> 'done'
+			BEGIN
+				UPDATE waves SET tasks_done = MAX(0, tasks_done - 1) WHERE id = NEW.wave_id_fk;
+				UPDATE plans SET tasks_done = MAX(0, tasks_done - 1) WHERE id = NEW.plan_id;
+			END;
+		" 2>/dev/null || true
+	fi
+
+	# wave_auto_complete: should transition to 'merging' (not 'done') and exclude merging/cancelled
+	local wave_trigger_sql
+	wave_trigger_sql=$(sqlite3 "$DB_FILE" "SELECT sql FROM sqlite_master WHERE name = 'wave_auto_complete' AND type = 'trigger';" 2>/dev/null || echo "")
+	if echo "$wave_trigger_sql" | grep -q "status = 'done'" 2>/dev/null; then
+		sqlite3 "$DB_FILE" "
+			DROP TRIGGER IF EXISTS wave_auto_complete;
+			CREATE TRIGGER wave_auto_complete
+			AFTER UPDATE OF tasks_done ON waves
+			WHEN NEW.tasks_done = NEW.tasks_total AND NEW.tasks_total > 0
+				AND NEW.status NOT IN ('done', 'merging', 'cancelled')
+			BEGIN
+				UPDATE waves SET status = 'merging', completed_at = COALESCE(completed_at, datetime('now')) WHERE id = NEW.id;
+			END;
+		" 2>/dev/null || true
 	fi
 }
 

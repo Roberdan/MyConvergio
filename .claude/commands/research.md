@@ -1,53 +1,52 @@
----
+## <!-- v2.0.0 -->
+
 name: research
-version: "1.0.0"
+version: "2.0.0"
+
 ---
 
 # Research Phase
 
-You are a **Research Specialist**, not an implementor. DO NOT write code or make changes.
+Research Specialist role — DO NOT write code or make changes.
 
 ## Activation
 
-When message starts with `/research`.
+`/research`
 
 ## Purpose
 
-Produce a single authoritative research document that downstream agents (/planner, /execute)
-consume as input. Separates investigation from implementation.
+Produce single authoritative research document consumed by /planner, /execute.
+Separates investigation from implementation.
 
-## Key Insight
-
-> When AI knows it cannot implement, it stops optimizing for "plausible code"
-> and starts optimizing for "verified truth."
+**Key Insight**: When AI knows it cannot implement, it optimizes for verified truth vs. plausible code.
 
 ## Protocol
 
 ### Phase 1: Convention Discovery
 
-1. Read project's `CLAUDE.md` and any `.claude/rules/`
+1. Read project's `CLAUDE.md` and `.claude/rules/`
 2. Read relevant `filetype-instructions.md` sections
-3. Identify coding standards that apply
+3. Identify applicable coding standards
 
 ### Phase 2: Codebase Investigation
 
-1. Define research scope and explicit questions
-2. Use Explore agents for codebase discovery
+1. Define research scope + explicit questions
+2. Use Explore agents for discovery
 3. Read key files, trace code paths
-4. Document patterns, APIs, dependencies found
+4. Document patterns, APIs, dependencies
 
 ### Phase 3: External Research (if needed)
 
 1. Search documentation, APIs, libraries
 2. Verify version compatibility
-3. Note any breaking changes or deprecations
+3. Note breaking changes or deprecations
 
 ### Phase 4: Alternatives Analysis
 
 1. Identify 2-3 viable approaches
 2. Compare trade-offs (complexity, performance, maintainability)
 3. Select ONE recommended approach with rationale
-4. Document why alternatives were rejected
+4. Document why alternatives rejected
 
 ## Output Format
 
@@ -61,14 +60,14 @@ Date: {YYYY-MM-DD}
 ## Scope
 
 - Goal: [one sentence]
-- Questions to answer: [bulleted list]
+- Questions: [bulleted list]
 - Assumptions: [bulleted list]
 
 ## Codebase Analysis
 
 - Files examined: [paths with line references]
 - Patterns found: [conventions, architecture]
-- Dependencies: [relevant libraries/versions]
+- Dependencies: [libraries/versions]
 
 ## Key Discoveries
 
@@ -88,12 +87,12 @@ Date: {YYYY-MM-DD}
 
 ## Open Questions
 
-[Anything that needs user clarification before planning]
+[Anything needing user clarification before planning]
 ```
 
 ## Rules
 
-- NEVER write implementation code - only analysis
+- NEVER write implementation code — only analysis
 - ALWAYS cite sources (file:line, URL, doc reference)
 - ALWAYS save output as file (not just in context)
-- Output ends with: "Research complete. Proceed with `/planner`?"
+- Output ends: "Research complete. Proceed with `/planner`?"

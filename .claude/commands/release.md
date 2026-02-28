@@ -1,11 +1,13 @@
----
+## <!-- v2.0.0 -->
+
 name: release
-version: "1.0.0"
+version: "2.0.0"
+
 ---
 
 # Release Manager
 
-Comprehensive pre-release validation via `app-release-manager` subagent.
+Pre-release validation via `app-release-manager` subagent.
 
 ## Context (pre-computed)
 
@@ -18,17 +20,17 @@ Version: `node -p "require('./package.json').version" 2>/dev/null || echo "unkno
 
 ## Activation
 
-When message contains `/release` or `/release {version}`.
+`/release` or `/release {version}`
 
-## What It Does
+## Validation Checklist
 
-Launches `app-release-manager` subagent which validates:
+Agent validates:
 
-1. **Build Quality** - Lint, typecheck, build passes
-2. **Test Execution** - Unit, integration, E2E tests
-3. **Security Audit** - Secrets, dependencies, vulnerabilities
-4. **Code Quality** - No TODOs, debug prints, commented code
-5. **Documentation** - CHANGELOG, README up to date
+1. **Build Quality** — lint, typecheck, build passes
+2. **Test Execution** — unit, integration, E2E tests
+3. **Security Audit** — secrets, dependencies, vulnerabilities
+4. **Code Quality** — no TODOs, debug prints, commented code
+5. **Documentation** — CHANGELOG, README up to date
 
 ## Workflow
 
@@ -38,8 +40,7 @@ Launches `app-release-manager` subagent which validates:
 await Task({
   subagent_type: "app-release-manager",
   description: "Release validation",
-  prompt: `
-RELEASE VALIDATION
+  prompt: `RELEASE VALIDATION
 
 Project: ${project}
 Target Version: ${version || "auto-detect from package.json"}
@@ -58,14 +59,13 @@ Zero tolerance policy:
 - ANY security issue = BLOCK
 - ANY lint error = BLOCK
 
-Output: Release report with APPROVE or BLOCK decision.
-`,
+Output: Release report with APPROVE or BLOCK decision.`,
 });
 ```
 
 ### Phase 2: Review Results
 
-Agent returns comprehensive report:
+Agent returns:
 
 - All checks with pass/fail status
 - Auto-fixes applied (if any)
@@ -74,37 +74,27 @@ Agent returns comprehensive report:
 
 ### Phase 3: User Decision
 
-If APPROVED:
+**If APPROVED**:
 
 - Confirm version bump (major/minor/patch)
 - Create git tag
 - Update CHANGELOG
 - Optional: create GitHub release
 
-If BLOCKED:
+**If BLOCKED**:
 
 - Fix listed issues
 - Re-run `/release`
 
-## Quick Reference
+## Zero Tolerance (Blocking)
 
-```bash
-# Full release validation
-/release
-
-# Validate specific version
-/release 1.5.0
-```
-
-## Zero Tolerance Policy (Blocking)
-
-- ❌ ANY compiler/lint warning
-- ❌ ANY test failure
-- ❌ ANY security vulnerability
-- ❌ ANY TODO/FIXME in code
-- ❌ ANY hardcoded secrets
-- ❌ ANY debug prints (console.log)
-- ❌ ANY outdated deps with CVEs
+- BLOCK: ANY compiler/lint warning
+- BLOCK: ANY test failure
+- BLOCK: ANY security vulnerability
+- BLOCK: ANY TODO/FIXME in code
+- BLOCK: ANY hardcoded secrets
+- BLOCK: ANY debug prints (console.log)
+- BLOCK: ANY outdated deps with CVEs
 
 ## Auto-Fix Protocol
 
@@ -153,12 +143,12 @@ Bump patch (bugfix):   1.4.3
 
 If release fails in production:
 
-1. `git checkout v{previous}` - revert to previous tag
+1. `git checkout v{previous}` — revert to previous tag
 2. Trigger rollback deployment
 3. Notify stakeholders
 4. Post-mortem analysis
 
 ## Related Agents
 
-- `app-release-manager` - Main release orchestrator
-- `thor-quality-assurance-guardian` - Quality gates
+- `app-release-manager` — Main release orchestrator
+- `thor-quality-assurance-guardian` — Quality gates

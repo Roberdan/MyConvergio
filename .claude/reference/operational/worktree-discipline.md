@@ -1,4 +1,4 @@
-<!-- v3.2.0 | 27 Feb 2026 | Rebase-before-merge, no forward-merge rule -->
+<!-- v3.3.0 | 28 Feb 2026 | Document merge_mode/theme wave metadata -->
 
 # Worktree Discipline
 
@@ -43,6 +43,8 @@ create → execute tasks → Thor validate → rebase → PR → squash merge �
 | branch_name   | TEXT    | Git branch name       |
 | pr_number     | INTEGER | PR number             |
 | pr_url        | TEXT    | PR URL                |
+| merge_mode    | TEXT    | `sync` \| `batch` \| `async` \| `none` |
+| theme         | TEXT    | Theme key for batch branch reuse (`plan/{plan_id}-{theme}`) |
 
 ### Commands
 

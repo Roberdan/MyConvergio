@@ -46,12 +46,11 @@ record_sqlite_async() {
 	echo "Recorded: $input_tokens + $output_tokens tokens ($agent)"
 }
 
-# Async API write (conditionally called when DB is not available)
+# Async DB write (fallback when direct DB insert is not available)
 record_api_async() {
 	local json="$1"
-	# Token tracking via direct DB write (web dashboard removed)
 	local db="$HOME/.claude/data/dashboard.db"
-	{ sqlite3 "$db" "INSERT INTO token_usage (project_id, agent, model, input_tokens, output_tokens, cost_usd, created_at) VALUES ($(echo "$json" | jq -r '.project_id // \"unknown\"' | sed "s/.*/'&'/"), $(echo "$json" | jq -r '.agent // \"unknown\"' | sed "s/.*/'&'/"), $(echo "$json" | jq -r '.model // \"unknown\"' | sed "s/.*/'&'/"), $(echo "$json" | jq -r '.input_tokens // 0'), $(echo "$json" | jq -r '.output_tokens // 0'), $(echo "$json" | jq -r '.cost_usd // 0'), datetime('now'));" 2>/dev/null; } &
+	{ sqlite3 "$db" ".timeout 3000" "INSERT INTO token_usage (project_id, agent, model, input_tokens, output_tokens, cost_usd, created_at) SELECT json_extract('$json','$.project_id'), json_extract('$json','$.agent'), json_extract('$json','$.model'), json_extract('$json','$.input_tokens'), json_extract('$json','$.output_tokens'), json_extract('$json','$.cost_usd'), datetime('now');" 2>/dev/null; } &
 	echo "Recorded tokens via DB"
 }
 

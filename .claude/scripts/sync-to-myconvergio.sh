@@ -32,7 +32,7 @@ BLOCKLIST=(
 
 # Personal path patterns to detect (not actual secrets, but shouldn't be hardcoded)
 PERSONAL_PATTERNS=(
-	"/Users/roberdan"
+	"$HOME"
 	"/home/roberdan"
 	"danieleroberti"
 )

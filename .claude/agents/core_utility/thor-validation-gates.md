@@ -1,7 +1,7 @@
 ---
 name: thor-validation-gates
 description: Validation gates module for Thor. Reference only.
-version: "3.2.0"
+version: "3.3.0"
 ---
 
 # Thor Validation Gates
@@ -67,6 +67,12 @@ Run `code-pattern-check.sh` on changed files to catch mechanical issues (null sa
 - Correct branch (NOT main for features), changes committed
 - Conventional commits, no unrelated files, no secrets committed
 - **Challenge**: "Run `git status` and `git branch` now."
+
+### Gate 6b: Task Status Integrity (MANDATORY)
+
+- Executor completion must go through `plan-db-safe.sh update-task ... done` (which sets `submitted`)
+- Only Thor validation (`plan-db.sh validate-task`) may transition `submitted` → `done`
+- **REJECT** if task was forced to `done` via direct `plan-db.sh update-task` or raw SQLite write
 
 ## Gate 7: Performance
 
@@ -138,6 +144,7 @@ echo "{task_files}" | grep -q 'docs/adr/' && echo "ADR-SMART-MODE"
 
 ## Changelog
 
+- **3.3.0** (2026-02-28): Added Gate 6b task status integrity (`submitted` flow, Thor-only `done`)
 - **3.2.0** (2026-02-27): Gate 2b Integration Reachability + Gate 8b Mock Quality
 - **3.1.0** (2026-02-27): Added Gate 10: WorktreeCreate hook verification for worktree-disciplined projects
 - **3.0.0** (2026-02-26): Extracted validation gates into standalone reference module

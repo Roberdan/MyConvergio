@@ -1,0 +1,15 @@
+#!/bin/bash
+REAL_GREP="/usr/bin/grep"
+if [[ "$1" == "-c" ]]; then
+  shift
+  pattern="$1"
+  shift
+  result=$("$REAL_GREP" -c "$pattern" "$@")
+  status=$?
+  printf "%s\n" "$result"
+  if [[ "$status" -eq 1 ]]; then
+    exit 0
+  fi
+  exit $status
+fi
+"$REAL_GREP" "$@"

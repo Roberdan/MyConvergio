@@ -1,4 +1,4 @@
-<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+<!-- v3.0.0 | 28 Feb 2026 | submitted status + Thor-only done via SQLite trigger -->
 
 # Plan & DB Scripts
 
@@ -19,9 +19,17 @@ NEVER create plans without `/planner` skill (Claude: `Skill(skill="planner")`, C
 
 | Entity | Valid statuses                                                                |
 | ------ | ----------------------------------------------------------------------------- |
-| Task   | `pending` \| `in_progress` \| `done` \| `blocked` \| `skipped` \| `cancelled` |
+| Task   | `pending` \| `in_progress` \| `submitted` \| `done` \| `blocked` \| `skipped` \| `cancelled` |
 | Plan   | `todo` \| `doing` \| `done` \| `archived` \| `cancelled`                      |
 | Wave   | `pending` \| `in_progress` \| `done` \| `blocked` \| `merging` \| `cancelled` |
+
+## Task Lifecycle (v3.0, enforced)
+
+`in_progress` → `submitted` → `done`
+
+- `plan-db-safe.sh update-task {id} done ...` writes **`submitted`** (executor complete, Thor pending)
+- **Only Thor** (`plan-db.sh validate-task`) can transition `submitted` → `done`
+- SQLite trigger `enforce_thor_done` blocks non-Thor `done` transitions
 
 ## Plan Management
 
@@ -29,8 +37,8 @@ NEVER create plans without `/planner` skill (Claude: `Skill(skill="planner")`, C
 plan-db.sh create {project} "Name" --source-file {prompt.md} --auto-worktree --human-summary "2-3 righe leggibili che spiegano il piano"
 plan-db.sh update-summary {plan_id} "Aggiorna il summary leggibile"
 plan-db.sh import {plan_id} spec.yaml  # also accepts spec.json
-plan-db-safe.sh update-task {id} done "Summary" # ALWAYS use safe wrapper for done
-# plan-db-safe.sh auto: pending→in_progress (if needed) + validate-task + validate-wave + complete plan
+plan-db-safe.sh update-task {id} done "Summary" # ALWAYS use safe wrapper; sets submitted
+# then run Thor validation: plan-db.sh validate-task {task_id} {plan_id}
 plan-db.sh conflict-check {id}            # Cross-plan file overlap detection
 plan-db.sh conflict-check-spec {proj} spec.yaml # Pre-import conflict check (also accepts .json)
 plan-db.sh wave-overlap check-spec spec.yaml    # Intra-wave overlap detection (also accepts .json)
@@ -51,7 +59,8 @@ plan-db.sh execution-tree {plan_id}       # Colored tree view with reasons
 sqlite3 ~/.claude/data/dashboard.db "SELECT id, task_id, title, status FROM tasks WHERE plan_id = {PLAN_ID} AND status NOT IN ('done', 'validated', 'skipped', 'cancelled');"
 # Step 2: Update each task
 plan-db-safe.sh update-task {TASK_DB_ID} done "Reason"
-# Step 3: Complete
+# Step 3: Thor validate then complete
+plan-db.sh validate-task {TASK_DB_ID} {PLAN_ID}
 plan-db.sh complete {PLAN_ID}
 ```
 

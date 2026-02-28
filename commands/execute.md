@@ -40,6 +40,32 @@ NEVER execute without plan_id | NEVER skip tasks/Thor | WORKTREE ISOLATION — p
 
 `DRIFT_JSON=$(plan-db.sh drift-check $PLAN_ID)` → Check `DRIFT_LEVEL`: **major** → ASK USER (Proceed/Rebase/Replan) | **minor** → `plan-db.sh rebase-plan $PLAN_ID`
 
+### P1.8: CI Knowledge Lookup
+
+Load per-repo CI knowledge to inject into task-executor prompts:
+
+```bash
+CI_KNOWLEDGE_PATH="$HOME/.claude/data/ci-knowledge/${PROJECT_ID}.md"
+CI_KNOWLEDGE=""
+[[ -f "$CI_KNOWLEDGE_PATH" ]] && CI_KNOWLEDGE=$(cat "$CI_KNOWLEDGE_PATH")
+```
+
+### Model Name Mapping (Claude tasks)
+
+When `executor_agent == "claude"`, map full model IDs to Claude API shorthand:
+
+| Full Model ID (DB)       | Agent Shorthand |
+| ------------------------ | --------------- |
+| `claude-opus-4.6`        | `opus`          |
+| `claude-opus-4.6-fast`   | `opus`          |
+| `claude-opus-4.5`        | `opus`          |
+| `claude-sonnet-4.6`      | `sonnet`        |
+| `claude-sonnet-4.5`      | `sonnet`        |
+| `claude-sonnet-4`        | `sonnet`        |
+| `claude-haiku-4.5`       | `haiku`         |
+
+Unmapped models (GPT, Gemini) pass through as-is. Use: `MODEL_MAP[task.model] || task.model`.
+
 ### P2-3: Execute Tasks (Per-Task Routing)
 
 Tasks in `CTX.pending_tasks` (no separate query). Route each task by `executor_agent` (NULL or empty = `copilot`):
@@ -64,7 +90,7 @@ const priorOutputs = CTX.completed_tasks_output
   .join("\n");
 await Task({
   subagent_type: "task-executor",
-  model: task.model || "sonnet",
+  model: MODEL_MAP[task.model] || task.model || "sonnet",
   max_turns: 30,
   description: `Execute ${task.task_id}`,
   prompt: `TASK ${task.task_id} | Wave: ${task.wave_id} | db_id: ${task.db_id}
@@ -75,6 +101,7 @@ ${task.description}
 Verify: ${task.test_criteria}
 Wave peers: ${wavePeers}
 Prior task outputs: ${priorOutputs || "none"}
+${CI_KNOWLEDGE ? `CI Knowledge (avoid these patterns):\n${CI_KNOWLEDGE}` : ""}
 PATH: export PATH="$HOME/.claude/scripts:$PATH"`,
 });
 ```

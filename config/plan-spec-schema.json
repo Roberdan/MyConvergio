@@ -72,6 +72,11 @@
           "id": { "type": "string", "pattern": "^W[0-9F]" },
           "name": { "type": "string", "minLength": 1 },
           "estimated_hours": { "type": "number", "minimum": 0 },
+          "merge_mode": {
+            "type": "string",
+            "enum": ["sync", "batch", "async", "none"],
+            "description": "Wave merge strategy: sync (PR+merge before next wave), batch (accumulate, merge at theme boundary), async (overlapping), none (no PR)"
+          },
           "precondition": { "type": "object" },
           "tasks": {
             "type": "array",
@@ -119,7 +124,26 @@
                     "cleanup"
                   ]
                 },
-                "model": { "type": "string" },
+                "model": {
+                  "type": "string",
+                  "enum": [
+                    "claude-opus-4.6",
+                    "claude-opus-4.6-fast",
+                    "claude-sonnet-4.6",
+                    "claude-sonnet-4.5",
+                    "claude-haiku-4.5",
+                    "gpt-5.3-codex",
+                    "gpt-5.2-codex",
+                    "gpt-5.1-codex-max",
+                    "gpt-5.1-codex",
+                    "gpt-5.1-codex-mini",
+                    "gpt-5",
+                    "gpt-5-mini",
+                    "gpt-4.1",
+                    "gemini-3-pro-preview",
+                    "claude-opus-4.5"
+                  ]
+                },
                 "effort": { "type": "integer", "minimum": 1, "maximum": 3 },
                 "summary": { "type": "string", "maxLength": 80 },
                 "executor_agent": {

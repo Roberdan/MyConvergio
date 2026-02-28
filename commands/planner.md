@@ -124,6 +124,17 @@ spec.yaml (or spec.json): `{user_request, constraints:[{id,text,type,verify}], r
 
 **`consumers` field**: Files that import/use what this task creates/changes. Executor MUST verify these are updated. Thor Gate 2b validates.
 
+**`merge_mode` assignment (per-wave)**: Every wave MUST have `merge_mode` in the spec. Assignment rules:
+
+| Wave Position                        | merge_mode | Why                                                  |
+| ------------------------------------ | ---------- | ---------------------------------------------------- |
+| Intermediate wave in a theme group   | `batch`    | Accumulate changes, merge once at theme boundary     |
+| Last wave in a theme group           | `sync`     | Force merge+CI before next theme starts              |
+| Single-wave theme (no grouping)      | `sync`     | Merge immediately after Thor validation              |
+| Final closure wave (WF-Closure)      | `sync`     | PR must be created and CI must pass before plan done |
+
+Theme group = consecutive waves sharing a logical concern (e.g., W1-W2 both touching auth = one theme). Planner assigns themes when generating waves. If no explicit theme grouping, every wave defaults to `sync`.
+
 **CONSTRAINT VALIDATION GATE (ADR-054)**: After generating tasks, cross-check EVERY task against EVERY constraint. Present matrix: `| Task | C-01 | C-02 | ... |`. Any cell = VIOLATES → redesign task or BLOCK. Example: if C-01 = "No admin permissions required" and T2-01 = "Configure EasyAuth (requires admin consent)" → VIOLATION → remove or redesign T2-01.
 
 **Rules**: `do`=ONE action. `files`=explicit paths. `verify`=machine-checkable. `ref`=F-xx ID. Missing `verify`=broken. **Per-wave docs**: TX-doc (CHANGELOG + plan-{id}-notes.md). **Final wave** "WF-Closure": TF-01 (notes->ADRs), TF-02 (CHANGELOG), TF-03 (ESLint), TF-tests (test consolidation), TF-pr (PR+CI). Cite ADRs in `do`.
@@ -171,6 +182,8 @@ except ImportError:
 **Copilot model assignment**: trivial -> `gpt-5.1-codex-mini` | standard -> `gpt-5.3-codex` | complex -> `claude-opus-4.6-fast`. See model-strategy for full tree.
 
 **Never delegate to Copilot**: architecture decisions, security-sensitive, investigative debugging, cross-system integration where failure cascades.
+
+**Model naming rule (NON-NEGOTIABLE)**: ALL `model` fields in spec MUST use full model IDs from @planner-modules/model-strategy.md. Short aliases (`sonnet`, `opus`, `haiku`, `codex`) are FORBIDDEN — they break copilot-worker.sh routing. Valid examples: `gpt-5.3-codex`, `claude-sonnet-4.6`, `claude-opus-4.6-fast`, `gpt-4.1`, `gpt-5-mini`, `gpt-5.1-codex-mini`. See model-strategy.md Full Copilot Multiplier Reference for the complete list.
 
 **Exec**: `copilot-worker.sh <id> --model <model> --timeout 600`. Requires: `copilot --yolo`, `GH_TOKEN`.
 

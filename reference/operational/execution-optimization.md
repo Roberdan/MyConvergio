@@ -26,13 +26,18 @@ Token tracking handled by `plan-db-safe.sh update-task {id} done "Summary" --tok
 
 ## Model Escalation Strategy
 
-| Agent Type                 | Default       | Escalation Rule                          |
-| -------------------------- | ------------- | ---------------------------------------- |
-| Task Executor              | GPT-5.3-Codex | → opus if cross-cutting or architectural |
-| Coordinator (Standard)     | sonnet        | → opus if >3 concurrent tasks            |
-| Coordinator (Max Parallel) | **opus**      | Required for unlimited parallelization   |
-| Coordinator (Agent Teams)  | sonnet        | → opus for large team coordination       |
-| Validator (Thor)           | opus          | No escalation                            |
+| Agent Type                 | Default                            | Escalation Rule                                         |
+| -------------------------- | ---------------------------------- | ------------------------------------------------------- |
+| Task Executor              | `gpt-5.3-codex` (GPT-5.3-Codex)    | → `claude-opus-4.6` if cross-cutting or architectural   |
+| Coordinator (Standard)     | `claude-sonnet-4.6` (`sonnet`)     | → `claude-opus-4.6` (`opus`) if >3 concurrent tasks     |
+| Coordinator (Max Parallel) | `claude-opus-4.6` (`opus`)         | Required for unlimited parallelization                  |
+| Coordinator (Agent Teams)  | `claude-sonnet-4.6` (`sonnet`)     | → `claude-opus-4.6` (`opus`) for large team coordination |
+| Validator (Thor)           | `claude-opus-4.6` (`opus`)         | No escalation                                           |
+
+**Model naming note**:
+
+- Claude API shorthand (`sonnet` / `opus` / `haiku`) is an alias layer.
+- Copilot Task `model:` must use full model IDs (for example `gpt-5.3-codex`, `claude-sonnet-4.6`).
 
 ## Parallelization Modes (User Choice)
 

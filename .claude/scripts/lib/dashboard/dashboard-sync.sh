@@ -1,18 +1,23 @@
 #!/bin/bash
 # Dashboard sync operations and remote git functions
-# Version: 1.4.0
+# Version: 2.0.0
 
-# Quick sync: pull remote changes before rendering (silent, best-effort)
-# Sets REMOTE_ONLINE=1 if sync succeeded, 0 if remote unreachable
+# Quick sync: non-blocking. All SSH work runs in background.
+# Dashboard renders instantly from local DB + cached remote data.
 REMOTE_ONLINE=0
 REMOTE_HOST_RESOLVED=""
+_BG_SYNC_PID=""
 
 quick_sync() {
 	REMOTE_ONLINE=0
 	[ ! -x "$SYNC_SCRIPT" ] && return 0
-	REMOTE_HOST_RESOLVED="$(grep '^REMOTE_HOST=' "$HOME/.claude/config/sync-db.conf" 2>/dev/null | cut -d'"' -f2)"
-	# Skip if synced less than 30s ago (but still mark online from last result)
+	# Source config to properly expand bash variables (e.g. ${REMOTE_HOST:-omarchy-ts})
+	if [ -f "$HOME/.claude/config/sync-db.conf" ]; then
+		source "$HOME/.claude/config/sync-db.conf"
+	fi
+	REMOTE_HOST_RESOLVED="${REMOTE_HOST:-omarchy-ts}"
 	local marker="$HOME/.claude/data/last-quick-sync"
+	# Check if we have a recent successful sync (marker exists and is fresh)
 	if [ -f "$marker" ]; then
 		local last now diff
 		if [[ "$(uname)" == "Darwin" ]]; then
@@ -22,20 +27,37 @@ quick_sync() {
 		fi
 		now=$(date +%s)
 		diff=$((now - last))
-		if [ "$diff" -lt 30 ]; then
+		if [ "$diff" -lt 120 ]; then
+			# Recent sync exists — remote was online
 			REMOTE_ONLINE=1
 			return 0
 		fi
 	fi
-	# Run incremental sync with 3s SSH timeout, fully silent
-	if ssh -o ConnectTimeout=3 -o BatchMode=yes "$REMOTE_HOST_RESOLVED" "echo ok" &>/dev/null; then
-		"$SYNC_SCRIPT" incremental &>/dev/null
+	# No recent sync: launch background sync (non-blocking)
+	# Kill any previous bg sync still running
+	if [ -n "$_BG_SYNC_PID" ] && kill -0 "$_BG_SYNC_PID" 2>/dev/null; then
+		return 0 # Previous sync still running, skip
+	fi
+	_bg_sync &
+	_BG_SYNC_PID=$!
+	disown "$_BG_SYNC_PID" 2>/dev/null || true
+	# Use cached data: if marker exists at all, remote was online at some point
+	[ -f "$marker" ] && REMOTE_ONLINE=1
+}
+
+# Background sync: all SSH work happens here, never blocks the UI.
+# With SSH ControlMaster, the first call opens a persistent socket;
+# subsequent calls reuse it (~50ms instead of ~1-3s each).
+_bg_sync() {
+	local marker="$HOME/.claude/data/last-quick-sync"
+	# Skip the separate "ssh echo ok" test — just try the sync directly.
+	# If SSH fails, the sync script fails silently and we remove the marker.
+	if "$SYNC_SCRIPT" incremental &>/dev/null; then
 		touch "$marker"
-		REMOTE_ONLINE=1
-		# Sync ~/.claude git repo (Mac=master, push to Linux)
 		git -C "$HOME/.claude" push linux main --quiet 2>/dev/null || true
-		# Fetch git status for all remote active projects (piggyback on SSH)
 		_fetch_remote_git_status
+	else
+		rm -f "$marker" 2>/dev/null || true
 	fi
 }
 

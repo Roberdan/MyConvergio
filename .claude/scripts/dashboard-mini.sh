@@ -1,6 +1,6 @@
 #!/bin/bash
-# Version: 2.0.0
-set -euo pipefail
+# Version: 2.2.0
+set -uo pipefail
 # Source all dashboard modules
 DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
 
@@ -19,7 +19,16 @@ DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
 . "$DASHBOARD_LIB/dashboard-navigation.sh"
 
 cmd_waves() {
-	local plan_id="$1"
+	local plan_id="${1:?plan_id required}"
+	local live_prs=0
+	shift
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+		--prs) live_prs=1 ;;
+		esac
+		shift
+	done
+
 	local DB_FILE="$HOME/.claude/data/dashboard.db"
 
 	echo "=== Wave Worktrees — Plan $plan_id ==="
@@ -29,6 +38,7 @@ cmd_waves() {
 	rows=$(sqlite3 -separator '|' "$DB_FILE" \
 		"SELECT w.wave_id, w.name, w.status, w.tasks_done||'/'||w.tasks_total,
                 COALESCE(w.branch_name, '-'), COALESCE(CAST(w.pr_number AS TEXT), '-'),
+                COALESCE(w.pr_url, '-'),
                 COALESCE(w.worktree_path, '-')
          FROM waves w WHERE w.plan_id = $plan_id ORDER BY w.position;" 2>/dev/null)
 
@@ -37,12 +47,12 @@ cmd_waves() {
 		return 0
 	fi
 
-	printf "%-6s %-12s %-6s %-24s %-5s %-30s %s\n" \
+	printf "%-6s %-12s %-6s %-24s %-8s %-30s %s\n" \
 		"Wave" "Status" "Tasks" "Branch" "PR" "Worktree" "Clean"
-	printf "%-6s %-12s %-6s %-24s %-5s %-30s %s\n" \
-		"------" "------------" "------" "------------------------" "-----" "------------------------------" "-----"
+	printf "%-6s %-12s %-6s %-24s %-8s %-30s %s\n" \
+		"------" "------------" "------" "------------------------" "--------" "------------------------------" "-----"
 
-	while IFS='|' read -r wid name status tasks branch pr wt_path; do
+	while IFS='|' read -r wid name status tasks branch pr pr_url wt_path; do
 		local clean="-"
 		if [[ "$wt_path" != "-" ]]; then
 			local expanded="${wt_path/#\~/$HOME}"
@@ -54,15 +64,37 @@ cmd_waves() {
 				clean="Gone"
 			fi
 		fi
-		printf "%-6s %-12s %-6s %-24s %-5s %-30s %s\n" \
-			"$wid" "$status" "$tasks" "$branch" "$pr" "$wt_path" "$clean"
+
+		# Build PR display: OSC 8 clickable link if URL available
+		local pr_display="$pr"
+		if [[ "$pr" != "-" && "$pr_url" == https://* ]]; then
+			# OSC 8 hyperlink: ESC]8;;URL ESC\ text ESC]8;; ESC\
+			pr_display=$'\e]8;;'"$pr_url"$'\e\\'"#${pr}"$'\e]8;;\e\\'
+			if [[ "$status" == "done" ]]; then
+				# Green = merged
+				pr_display=$'\e[32m'"$pr_display"$'\e[0m'
+			elif [[ "$status" == "in_progress" || "$status" == "merging" ]]; then
+				# Live CI state if --prs flag set
+				if [[ "$live_prs" -eq 1 ]]; then
+					local ci_state
+					ci_state=$(gh api "repos/{owner}/{repo}/pulls/${pr}" \
+						--jq '.mergeable_state' 2>/dev/null || echo "?")
+					pr_display="${pr_display} [${ci_state}]"
+				fi
+				pr_display=$'\e[33m'"$pr_display"$'\e[0m'
+			fi
+		fi
+
+		printf "%-6s %-12s %-6s %-24s %-8b %-30s %s\n" \
+			"$wid" "$status" "$tasks" "$branch" "$pr_display" "$wt_path" "$clean"
 	done <<<"$rows"
 }
 
 # Subcommand dispatch (must come before flag parsing)
 case "${1:-}" in
 waves)
-	cmd_waves "${2:?plan_id required}"
+	shift
+	cmd_waves "$@"
 	exit 0
 	;;
 esac
@@ -102,10 +134,10 @@ while [[ $# -gt 0 ]]; do
 		;;
 	-h | --help)
 		echo "Usage: piani [OPTIONS]"
-		echo "       piani waves <plan_id>"
+		echo "       piani waves <plan_id> [--prs]"
 		echo ""
 		echo "Subcommands:"
-		echo "  waves <plan_id>      Show wave worktree status for a plan"
+		echo "  waves <plan_id> [--prs]   Show wave worktrees; --prs fetches live CI state"
 		echo ""
 		echo "Options:"
 		echo "  -v, --verbose        Mostra dettagli extra (wave names, task priorities)"

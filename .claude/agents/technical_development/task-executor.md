@@ -163,9 +163,7 @@ plan-db.sh validate-task {db_task_id} {plan_id}
 ```bash
 plan-db-safe.sh update-task {db_task_id} done "Summary" --tokens {N}
 
-curl -s -X POST http://127.0.0.1:31415/api/tokens \
-  -H "Content-Type: application/json" \
-  -d '{"project_id":"{proj}","plan_id":{plan},"wave_id":"{wave}","task_id":"{task}","agent":"task-executor","model":"{model}","input_tokens":{in},"output_tokens":{out},"cost_usd":{cost}}'
+# Token tracking is handled by plan-db-safe.sh --tokens flag
 ```
 
 ## Output Data (Inter-Wave Communication)

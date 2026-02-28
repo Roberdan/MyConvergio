@@ -156,22 +156,16 @@ _render_active_plans() {
 			done
 		fi
 
-		# Tasks della wave attiva (in_progress + pending) — active_wave_id/name from main query
-		if [ -n "$active_wave_id" ]; then
-			running_tasks=$(dbq "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), t.status FROM tasks t WHERE t.wave_id_fk = $active_wave_id AND t.status IN ('in_progress', 'pending') ORDER BY CASE t.status WHEN 'in_progress' THEN 0 ELSE 1 END, t.id" 2>/dev/null)
-			if [ -n "$running_tasks" ]; then
-				echo -e "${GRAY}│  ${NC}${YELLOW}⚡ Wave ${active_wave_name:-?}:${NC}"
-				echo "$running_tasks" | while IFS='|' read -r tid ttitle tstatus; do
-					short_ttitle=$(echo "$ttitle" | cut -c1-48)
-					[ ${#ttitle} -gt 48 ] && short_ttitle="${short_ttitle}..."
-					if [ "$tstatus" = "in_progress" ]; then
-						icon="${YELLOW}▶${NC}"
-					else
-						icon="${GRAY}◯${NC}"
-					fi
-					echo -e "${GRAY}│  ├─${NC} $icon ${CYAN}$tid${NC} ${WHITE}$short_ttitle${NC}"
-				done
-			fi
+		# Active tasks: show all in_progress tasks for this plan (any wave)
+		local running_tasks
+		running_tasks=$(dbq "SELECT t.task_id, REPLACE(REPLACE(t.title, char(10), ' '), char(13), ''), w.wave_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE t.plan_id = $pid AND t.status = 'in_progress' ORDER BY t.id" 2>/dev/null)
+		if [ -n "$running_tasks" ]; then
+			echo -e "${GRAY}│  ${NC}${YELLOW}⚡ Task attivi:${NC}"
+			echo "$running_tasks" | while IFS='|' read -r tid ttitle twid; do
+				short_ttitle=$(echo "$ttitle" | cut -c1-48)
+				[ ${#ttitle} -gt 48 ] && short_ttitle="${short_ttitle}..."
+				echo -e "${GRAY}│  ├─${NC} ${YELLOW}▶${NC} ${CYAN}$tid${NC} ${WHITE}$short_ttitle${NC} ${GRAY}[$twid]${NC}"
+			done
 		fi
 
 		# PR rendering from waves DB

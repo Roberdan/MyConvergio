@@ -4,7 +4,8 @@
 
 <img src="./CovergioLogoTransparent.webp" alt="Convergio Logo" width="200"/>
 
-**v9.19.0** | 157 Agent Files (74 Claude + 83 Copilot) | Multi-Provider Orchestrator | Independent Quality Validation
+**v9.20.0** | 157 Agent Files (74 Claude + 83 Copilot) | Multi-Provider Orchestrator | Independent Quality Validation
+
 <!-- AGENT_COUNTS: claude:76 copilot:83 total:159 -->
 
 > _"Intent is human, momentum is agent"_
@@ -177,12 +178,12 @@ graph TD
     THOR -->|FAIL| EXEC
 ```
 
-| Provider | Worker               | Use Case                | Cost         | Agents Using |
-| -------- | -------------------- | ----------------------- | ------------ | ------------ |
-| Copilot  | `copilot-worker.sh`  | Coding, tests, PR-ops   | Subscription | technical_development (9) |
-| OpenCode | `opencode-worker.sh` | Sensitive data, bulk    | Free (local) | compliance_legal (5) |
+| Provider | Worker               | Use Case                | Cost         | Agents Using                                      |
+| -------- | -------------------- | ----------------------- | ------------ | ------------------------------------------------- |
+| Copilot  | `copilot-worker.sh`  | Coding, tests, PR-ops   | Subscription | technical_development (9)                         |
+| OpenCode | `opencode-worker.sh` | Sensitive data, bulk    | Free (local) | compliance_legal (5)                              |
 | Gemini   | `gemini-worker.sh`   | Research, analysis      | Metered      | leadership_strategy (7), specialized_experts (14) |
-| Claude   | `task-executor`      | Reviews, critical tasks | Premium      | All categories via escalation |
+| Claude   | `task-executor`      | Reviews, critical tasks | Premium      | All categories via escalation                     |
 
 **Provider Selection**: Each agent declares its `providers` field (see AGENTS.md Agent Metadata). Router follows priority order, enables intelligent fallback, and respects constraints (cost, privacy, capability).
 
@@ -241,19 +242,26 @@ MyConvergio is not an agent framework — it's a **practitioner's toolkit** for 
 
 **Terminal-native project dashboard — no browser, no server, no dependencies.**
 
+<img src="./docs/images/dashboard-overview.png" alt="Dashboard Overview" width="800"/>
+
 ```bash
-dashboard-mini.sh              # Full project overview
-dashboard-mini.sh --overview   # Cross-project summary
-plan-db.sh list-tasks 42       # Task-level drilldown
+~/.claude/scripts/dashboard-mini.sh              # Interactive dashboard with auto-refresh
+~/.claude/scripts/dashboard-mini.sh -n           # Single-shot view
+~/.claude/scripts/dashboard-mini.sh -p 265       # Drill-down on specific plan
+~/.claude/scripts/dashboard-mini.sh -v           # Verbose mode (wave names, priorities)
 ```
+
+> **Tip**: Add `alias piani='~/.claude/scripts/dashboard-mini.sh'` to your `.zshrc` for shorter usage.
+
+<img src="./docs/images/dashboard-drilldown.png" alt="Plan Drilldown" width="800"/>
 
 | Feature            | Description                                    |
 | ------------------ | ---------------------------------------------- |
 | Project Overview   | Plans, waves, tasks with progress bars         |
-| Token Tracking     | API token consumption and cost monitoring      |
-| Wave Drilldown     | Detailed per-wave and per-task status          |
+| Token Tracking     | Token consumption and cost per project         |
+| Wave Drilldown     | Per-wave and per-task status with Thor gates   |
 | Human Tasks        | Highlights tasks requiring manual intervention |
-| Git Integration    | Branch status, PR data (via `gh` CLI)          |
+| Git Integration    | Branch status, remote sync, PR data            |
 | Multi-Machine Sync | Remote sync via `sync-dashboard-db.sh`         |
 
 Reads the SQLite database at `~/.claude/data/dashboard.db`. No configuration required.
@@ -347,6 +355,6 @@ Commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v9.19.0** | February 2026 | 157 Agent Files (74 Claude + 83 Copilot) · Multi-Provider · Thor Validation · Claude Code + Copilot CLI
+**v9.20.0** | February 2026 | 157 Agent Files (74 Claude + 83 Copilot) · Multi-Provider · Thor Validation · Claude Code + Copilot CLI
 
 </div>

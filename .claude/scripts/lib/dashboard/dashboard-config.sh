@@ -3,7 +3,6 @@
 # Version: 1.4.0
 
 # Configuration
-DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:31415}"
 
 # Colors
 RED='\033[0;31m'

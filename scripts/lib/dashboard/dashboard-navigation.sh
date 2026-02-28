@@ -97,6 +97,8 @@ _handle_digit_input() {
 }
 
 _run_interactive_loop() {
+	# Disable errexit for interactive loop — transient errors must not kill the UI
+	set +e
 	trap 'echo -e "\n${YELLOW}Dashboard terminata.${NC}"; exit 0' INT
 	clear
 	while true; do

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Version: 2.1.0
-set -euo pipefail
+# Version: 2.2.0
+set -uo pipefail
 # Source all dashboard modules
 DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
 

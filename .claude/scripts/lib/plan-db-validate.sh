@@ -3,7 +3,7 @@
 # Sourced by plan-db.sh
 
 # Thor validates plan - ACTUAL validation checks
-# Version: 1.4.0
+# Version: 2.0.0
 
 # Validate a single task by DB id or task_id within a plan
 # Usage: validate-task <task_db_id_or_task_id> [plan_id] [validated_by] [--force] [--report 'JSON']
@@ -55,51 +55,84 @@ cmd_validate_task() {
 		return 1
 	fi
 
-	# Verify task is done before validating
+	# Verify task status — accept 'submitted' (normal) or 'done' (legacy re-validation)
 	local task_status
 	task_status=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id = $task_db_id;")
-	if [[ "$task_status" != "done" ]]; then
-		log_error "Task $identifier status is '$task_status' — only 'done' tasks can be validated"
+	if [[ "$task_status" != "submitted" && "$task_status" != "done" ]]; then
+		log_error "Task $identifier status is '$task_status' — only 'submitted' or 'done' tasks can be validated"
+		log_error "Flow: in_progress → submitted (plan-db-safe.sh) → done (Thor validate-task)"
 		return 1
 	fi
 
-	# Check if already validated
-	local already_validated
-	already_validated=$(sqlite3 "$DB_FILE" "SELECT validated_at FROM tasks WHERE id = $task_db_id;")
-	if [[ -n "$already_validated" ]]; then
-		echo -e "${YELLOW}Task $identifier already validated at $already_validated${NC}"
-		return 0
+	# Check if already validated (only for 'done' tasks — submitted tasks are never validated yet)
+	if [[ "$task_status" == "done" ]]; then
+		local already_validated
+		already_validated=$(sqlite3 "$DB_FILE" "SELECT validated_at FROM tasks WHERE id = $task_db_id;")
+		if [[ -n "$already_validated" ]]; then
+			echo -e "${YELLOW}Task $identifier already validated at $already_validated${NC}"
+			return 0
+		fi
 	fi
 
-	# Enforce Thor agent requirement unless --force is used or auto-validator
-	local is_auto_validator=false
-	if [[ "$validated_by" == "plan-db-safe-auto" ]]; then
-		is_auto_validator=true
-	fi
-
-	if [[ "$force" == false && "$is_auto_validator" == false ]]; then
-		if [[ "$validated_by" != "thor" && "$validated_by" != "thor-quality-assurance-guardian" ]]; then
-			log_warn "Validator '$validated_by' is not a Thor agent. Use --force to validate without Thor agent verification."
+	# Enforce Thor agent requirement
+	local valid_validators="thor|thor-quality-assurance-guardian|thor-per-wave"
+	local effective_validator="$validated_by"
+	if [[ "$force" == false ]]; then
+		if ! echo "$validated_by" | grep -qE "^($valid_validators)$"; then
+			log_error "REJECTED: Validator '$validated_by' is not a Thor agent."
+			log_error "Only [$valid_validators] can validate tasks. Use --force to override (audited)."
 			return 1
 		fi
-	elif [[ "$force" == true && "$is_auto_validator" == false ]]; then
-		# Log warning if --force is used with non-Thor, non-auto validator
-		if [[ "$validated_by" != "thor" && "$validated_by" != "thor-quality-assurance-guardian" ]]; then
-			log_warn "Task validated with --force (no Thor agent verification)"
+	elif [[ "$force" == true ]]; then
+		if ! echo "$validated_by" | grep -qE "^($valid_validators)$"; then
+			# --force uses 'forced-admin' validator (allowed by trigger, audited)
+			effective_validator="forced-admin"
+			log_warn "FORCED validation: using 'forced-admin' validator (audited, not Thor)"
+			local timestamp
+			timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+			local audit_entry="{\"timestamp\":\"$timestamp\",\"event\":\"forced_validation\",\"task_db_id\":$task_db_id,\"validated_by\":\"$validated_by\",\"forced_as\":\"forced-admin\",\"action\":\"forced_bypass\"}"
+			mkdir -p "$(dirname "$AUDIT_LOG")"
+			echo "$audit_entry" >>"$AUDIT_LOG" 2>/dev/null || true
 		fi
 	fi
 
-	# Build UPDATE with optional validation_report
 	local report_clause=""
 	if [[ -n "$report" ]]; then
 		report_clause=", validation_report = '$(sql_escape "$report")'"
 	fi
-	sqlite3 "$DB_FILE" "UPDATE tasks SET validated_at = datetime('now'), validated_by = '$(sql_escape "$validated_by")'${report_clause} WHERE id = $task_db_id;"
 
 	local task_id_text
 	task_id_text=$(sqlite3 "$DB_FILE" "SELECT task_id FROM tasks WHERE id = $task_db_id;")
-	echo -e "${GREEN}Task $task_id_text validated by $validated_by${NC}"
-	[[ -n "$report" ]] && echo -e "${GREEN}  Validation report saved ($(echo "$report" | grep -c . || echo 0) lines)${NC}"
+
+	if [[ "$task_status" == "submitted" ]]; then
+		# ATOMIC: submitted → done + validated_at + validated_by in ONE statement
+		# The enforce_thor_done trigger checks validated_by is in the whitelist
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')), validated_at = datetime('now'), validated_by = '$(sql_escape "$effective_validator")'${report_clause} WHERE id = $task_db_id AND status = 'submitted';"
+
+		# Recalculate counters (task_done_counter trigger fires, but sync as safety)
+		local wave_fk_id plan_fk_id
+		IFS='|' read -r wave_fk_id plan_fk_id < <(sqlite3 "$DB_FILE" "SELECT wave_id_fk, plan_id FROM tasks WHERE id = $task_db_id;")
+		if [[ -n "$wave_fk_id" ]]; then
+			sqlite3 "$DB_FILE" "
+				UPDATE waves SET tasks_done = (SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_fk_id AND status = 'done') WHERE id = $wave_fk_id;
+				UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done),0) FROM waves WHERE plan_id = $plan_fk_id) WHERE id = $plan_fk_id;
+			"
+			# Check wave completion
+			local wave_all_done
+			wave_all_done=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_fk_id AND status NOT IN ('done', 'cancelled', 'skipped');")
+			if [[ "$wave_all_done" -eq 0 ]]; then
+				log_info "Wave fully validated — all tasks done"
+			fi
+		fi
+
+		echo -e "${GREEN}Task $task_id_text: submitted → done (validated by $effective_validator)${NC}"
+	else
+		# Legacy: task already 'done', just add validation metadata
+		sqlite3 "$DB_FILE" "UPDATE tasks SET validated_at = datetime('now'), validated_by = '$(sql_escape "$effective_validator")'${report_clause} WHERE id = $task_db_id;"
+		echo -e "${GREEN}Task $task_id_text validated by $effective_validator (legacy re-validation)${NC}"
+	fi
+
+	[[ -n "$report" ]] && echo -e "${GREEN}  Validation report saved${NC}"
 	return 0
 }
 
@@ -120,14 +153,26 @@ cmd_validate_wave() {
 	IFS='|' read -r wave_id plan_id tasks_done tasks_total <<<"$wave_info"
 
 	# Check all tasks in wave are resolved (done, cancelled, or skipped)
+	# NOTE: 'submitted' is NOT resolved — it means Thor hasn't validated yet
 	local not_resolved
 	not_resolved=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status NOT IN ('done', 'cancelled', 'skipped');")
 	if [[ "$not_resolved" -gt 0 ]]; then
-		log_error "Wave $wave_id has $not_resolved unresolved tasks — cannot validate"
+		local submitted_count
+		submitted_count=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'submitted';")
+		if [[ "$submitted_count" -gt 0 ]]; then
+			log_error "Wave $wave_id has $submitted_count tasks in SUBMITTED status — Thor must validate each before wave completion"
+			sqlite3 "$DB_FILE" "SELECT task_id, title FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'submitted';" | while IFS='|' read -r tid title; do
+				echo "  - $tid: $title (needs: plan-db.sh validate-task $tid)"
+			done
+		fi
+		local other_count=$((not_resolved - submitted_count))
+		if [[ "$other_count" -gt 0 ]]; then
+			log_error "Wave $wave_id has $other_count unresolved tasks (not submitted/done/cancelled/skipped)"
+		fi
 		return 1
 	fi
 
-	# Check if all done tasks have been validated by Thor (skip cancelled/skipped)
+	# Check if all done tasks have been validated by Thor
 	local not_validated
 	not_validated=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'done' AND validated_at IS NULL;")
 	if [[ "$not_validated" -gt 0 ]]; then

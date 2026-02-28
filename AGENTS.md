@@ -1,17 +1,17 @@
 # MyConvergio Agents
 
-**v9.19.0** | 74 Claude Agent Files + 83 Copilot Agent Files | Multi-Provider Orchestrator
+**v9.19.0** | 76 Claude Agent Files + 83 Copilot Agent Files | Multi-Provider Orchestrator
 <!-- AGENT_COUNTS: claude:76 copilot:83 total:159 -->
 
 > _"Intent is human, momentum is agent"_ — [The Agentic Manifesto](./AgenticManifesto.md)
 
 ## Overview
 
-MyConvergio is an enterprise AI agent suite providing specialized assistance across strategy, development, compliance, operations, and orchestration. It supports both **Claude Code** (74 agent files) and **GitHub Copilot CLI** (83 agent files), enabling cross-tool agent discovery and unified workflows.
+MyConvergio is an enterprise AI agent suite providing specialized assistance across strategy, development, compliance, operations, and orchestration. It supports both **Claude Code** (76 agent files) and **GitHub Copilot CLI** (83 agent files), enabling cross-tool agent discovery and unified workflows.
 
 **Key Features**:
 
-- 74 Claude agent files across 8 categories
+- 76 Claude agent files across 8 categories
 - 83 Copilot agent files for GitHub Copilot users
 - Multi-provider orchestration (Claude, Copilot CLI, OpenCode, Gemini)
 - Modular installation tiers (minimal/standard/full)
@@ -31,7 +31,7 @@ MyConvergio is an enterprise AI agent suite providing specialized assistance acr
 | specialized_experts   | 14    | domik, behice, fiona, angela, ethan, evan, michael, research-report-generator         | Claude (sonnet), Gemini        |
 | design_ux             | 3     | creative-director (5 skills), ux-designer, design-thinking                            | Claude (sonnet)                |
 
-**Total**: 157 agent files (74 Claude + 83 Copilot)
+**Total**: 159 agent files (76 Claude + 83 Copilot)
 
 ### Model Tiering
 
@@ -121,14 +121,14 @@ claude --plugin-dir .
 curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
 ```
 
-Clones to `~/.myconvergio/`, copies all 74 Claude agent files to `~/.claude/agents/`, installs `myconvergio` CLI.
+Clones to `~/.myconvergio/`, copies all 76 Claude agent files to `~/.claude/agents/`, installs `myconvergio` CLI.
 
 #### Option 3: Modular Install
 
 ```bash
 myconvergio install --minimal                       # 9 core agents (~50KB)
 myconvergio install --standard                      # 20 agents (~200KB)
-myconvergio install --lean                          # 74 Claude agent files, 50% smaller
+myconvergio install --lean                          # 76 Claude agent files, 50% smaller
 make install-tier TIER=minimal VARIANT=lean         # Same via Makefile
 ```
 
@@ -136,7 +136,7 @@ make install-tier TIER=minimal VARIANT=lean         # Same via Makefile
 
 - **minimal**: 9 agents (thor, strategic-planner, guardian, task-executor, etc.)
 - **standard**: 20 agents (adds architects, core specialists)
-- **full**: All 74 Claude agent files
+- **full**: All 76 Claude agent files
 
 ### Copilot CLI
 

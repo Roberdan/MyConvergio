@@ -5,7 +5,7 @@ tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task"]
 disallowedTools: ["WebSearch", "WebFetch"]
 color: "#10b981"
 model: sonnet
-version: "2.4.0"
+version: "2.5.0"
 context_isolation: true
 memory: project
 maxTurns: 50
@@ -158,12 +158,12 @@ plan-db.sh validate-task {db_task_id} {plan_id}
 
 **If Thor REJECTS**: Fix and re-run. Max 3 rounds. Do NOT proceed to Phase 5 without PASS.
 
-### Phase 5: Complete
+### Phase 5: Submit for Thor
 
 ```bash
 plan-db-safe.sh update-task {db_task_id} done "Summary" --tokens {N}
 
-# Token tracking is handled by plan-db-safe.sh --tokens flag
+# Token tracking is handled by plan-db-safe.sh --tokens flag (`done` request writes `submitted`; Thor validate-task sets `done`)
 ```
 
 ## Output Data (Inter-Wave Communication)
@@ -197,7 +197,7 @@ When navigating code, prefer LSP go-to-definition and find-references when avail
 
 ## Success Criteria
 
-1. Status: pending -> in_progress -> done
+1. Status: pending -> in_progress -> submitted -> done (Thor)
 2. Tests written BEFORE implementation (TDD)
 3. Tests initially FAILED (RED confirmed)
 4. Implementation makes tests PASS (GREEN)
@@ -250,13 +250,13 @@ session-reaper.sh --max-age 0 2>/dev/null || true
 
 ## EXIT CHECKLIST (MANDATORY)
 
-1. Verify DB: `sqlite3 ~/.claude/data/dashboard.db "SELECT status FROM tasks WHERE id={db_task_id};"` — if not `done`, run `plan-db-safe.sh update-task {db_task_id} done "Summary"`
+1. Verify DB: `sqlite3 ~/.claude/data/dashboard.db "SELECT status FROM tasks WHERE id={db_task_id};"` — if not `submitted|done`, run `plan-db-safe.sh update-task {db_task_id} done "Summary"`
 2. Cleanup: `session-reaper.sh --max-age 0 2>/dev/null || true`
 3. Output: `## TASK COMPLETION` with `DB Status: [done|blocked]`, `Task ID`, `Summary`
 
 ---
 
+**v2.5.0** (2026-02-28): Clarify submitted lifecycle (`plan-db-safe` submit, Thor validates to done)
 **v2.4.0** (2026-02-27): Phase 3.7 Integration Verification; consumer/wiring scope
 **v2.3.0** (2026-02-27): Mandatory Bash timeout; process cleanup before return
 **v2.2.0** (2026-02-27): LSP awareness; native worktree isolation
-**v2.1.0** (2026-01-31): Quick CI Check; Output Data inter-wave

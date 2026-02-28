@@ -1,6 +1,6 @@
 #!/bin/bash
 # PR rendering helper functions (DB-driven from waves table)
-# Version: 2.0.0
+# Version: 2.3.0
 
 # Extract clean PR URL from pr_url field (handles "already exists:" messages)
 _sanitize_pr_url() {
@@ -43,7 +43,7 @@ _render_plan_prs() {
 		clean_url=$(_sanitize_pr_url "$pr_url")
 
 		# Wave status → PR status display
-		local pr_status_display ci_display=""
+		local pr_status_display ci_display="" review_display=""
 		case "$wstatus" in
 		done)
 			pr_status_display="${GREEN}merged${NC}"
@@ -93,18 +93,17 @@ _render_plan_prs() {
 			;;
 		esac
 
-		# Clickable PR link (OSC 8 terminal hyperlink)
-		local pr_link
+		# PR link: plain URL (auto-clickable in most terminals)
+		local pr_link="PR #${pr_num}"
+		local url_display=""
 		if [[ -n "$clean_url" && "$clean_url" == https://* ]]; then
-			pr_link="\e]8;;${clean_url}\e\\PR #${pr_num}\e]8;;\e\\"
-		else
-			pr_link="PR #${pr_num}"
+			url_display=" ${clean_url}"
 		fi
-		echo -e "${GRAY}│  ├─${NC} ${CYAN}$wid${NC} ${BOLD}${pr_link}${NC} $pr_status_display $ci_display $review_display ${GRAY}${branch}${NC}"
+		echo -e "${GRAY}│  ├─${NC} ${CYAN}$wid${NC} ${BOLD}${pr_link}${NC} $pr_status_display $ci_display $review_display ${GRAY}${branch}${NC}${url_display}"
 	done <<<"$wave_prs"
 }
 
-# Render PR summary for completed plans with clickable links
+# Render PR summary for completed/cancelled plans with live GitHub state
 # Usage: _render_completed_plan_prs <plan_id>
 _render_completed_plan_prs() {
 	local pid="$1"
@@ -112,28 +111,61 @@ _render_completed_plan_prs() {
 	wave_prs=$(dbq "SELECT wave_id, pr_number, pr_url, status FROM waves WHERE plan_id = $pid AND pr_number IS NOT NULL AND pr_number > 0 ORDER BY position;")
 	[ -z "$wave_prs" ] && return 0
 
-	local total=0 merged=0 parts=""
+	# Resolve owner/repo for live PR state check
+	local owner_repo=""
+	local project_id
+	project_id=$(dbq "SELECT project_id FROM plans WHERE id = $pid")
+	if [ -n "$project_id" ] && command -v gh &>/dev/null; then
+		local project_dir
+		project_dir=$(dbq "SELECT path FROM projects WHERE id = '$project_id'")
+		project_dir="${project_dir/#\~/$HOME}"
+		[ -d "$project_dir" ] && owner_repo=$(_get_owner_repo "$project_dir")
+	fi
+
+	local total=0 on_main=0 open=0 closed=0 parts=""
 	while IFS='|' read -r wid pr_num pr_url wstatus; do
+		[ -z "$pr_num" ] && continue
 		total=$((total + 1))
-		local clean_url
+		local clean_url pr_link="#${pr_num}" pr_state=""
 		clean_url=$(_sanitize_pr_url "$pr_url")
-		local pr_link
-		if [[ -n "$clean_url" && "$clean_url" == https://* ]]; then
-			pr_link="\e]8;;${clean_url}\e\\#${pr_num}\e]8;;\e\\"
-		else
-			pr_link="#${pr_num}"
+
+		# Live GitHub check (fast: single field query)
+		if [ -n "$owner_repo" ]; then
+			pr_state=$(gh api "repos/$owner_repo/pulls/$pr_num" --jq '.state + "/" + (.merged_at // "null" | if . == "null" then "no" else "yes" end)' 2>/dev/null || echo "")
 		fi
-		if [ "$wstatus" = "done" ]; then
-			merged=$((merged + 1))
-			parts="${parts}${GREEN}${pr_link}✓${NC} "
-		else
-			parts="${parts}${YELLOW}${pr_link}?${NC} "
-		fi
+
+		case "$pr_state" in
+		closed/yes)
+			on_main=$((on_main + 1))
+			parts="${parts}${GREEN}${pr_link} main${NC} "
+			;;
+		closed/no)
+			closed=$((closed + 1))
+			parts="${parts}${RED}${pr_link} chiusa${NC} "
+			;;
+		open/*)
+			open=$((open + 1))
+			parts="${parts}${YELLOW}${pr_link} aperta${NC} "
+			[ -n "$clean_url" ] && [ "$clean_url" != "-" ] && parts="${parts}${clean_url} "
+			;;
+		*)
+			# Fallback: use DB wave status
+			if [ "$wstatus" = "done" ]; then
+				on_main=$((on_main + 1))
+				parts="${parts}${GREEN}${pr_link} main${NC} "
+			else
+				parts="${parts}${GRAY}${pr_link} ?${NC} "
+			fi
+			;;
+		esac
 	done <<<"$wave_prs"
 
-	if [ "$merged" -eq "$total" ]; then
-		echo -e "${GREEN}PR:${merged}/${total}${NC} ${parts}"
+	# Summary label
+	if [ "$on_main" -eq "$total" ]; then
+		echo -e "${GREEN}su main${NC} ${parts}"
+	elif [ "$open" -gt 0 ]; then
+		echo -e "${YELLOW}${open} PR aperte${NC} ${parts}"
 	else
-		echo -e "${YELLOW}PR:${merged}/${total}${NC} ${parts}"
+		echo -e "${GRAY}PR:${on_main}/${total}${NC} ${parts}"
 	fi
 }

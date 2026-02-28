@@ -1,4 +1,4 @@
-<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+<!-- v2.1.0 | 28 Feb 2026 | Add branch-protect.sh mapping -->
 
 # Tool Preferences
 
@@ -63,6 +63,7 @@
 | `gh pr merge`            | `pr-ops.sh merge <pr>`            |
 | Pattern check (pre-PR)   | `code-pattern-check.sh --json`    |
 | Copilot review digest    | `copilot-review-digest.sh <pr>`   |
+| Branch protection checks | `branch-protect.sh check <owner/repo> [branch]` |
 
 Hook `prefer-ci-summary.sh` enforces this automatically.
 

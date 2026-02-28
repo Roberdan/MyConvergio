@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
-# plan-db-safe.sh - Safe wrapper around plan-db.sh
+# plan-db-safe.sh v4.0.0 - Safe wrapper around plan-db.sh
 # Auto-releases file locks, checks staleness, warns about uncommitted changes.
 # VALIDATE-THEN-DONE: Validation runs BEFORE marking done (blocking, no bypass flags).
 # CIRCUIT BREAKER: Auto-blocks tasks after MAX_REJECTIONS consecutive Thor rejections.
-# Version: 3.3.0
+# Version: 4.0.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -130,124 +130,205 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 			"UPDATE tasks SET status = 'in_progress', started_at = datetime('now') WHERE id = $TASK_ID;"
 	fi
 
-	# --- DELEGATE: mark task done (needed for validate-task status check) ---
-	PLAN_DB_SAFE_CALLER=1 "$SCRIPT_DIR/plan-db.sh" "$@"
+	# ======================================================================
+	# PROOF-OF-WORK GATE (v3.4.0): Verify ACTUAL changes before marking done
+	# Without this, agents can call plan-db-safe.sh done without doing work.
+	# ======================================================================
+	task_id_str=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+		"SELECT task_id FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "unknown")
+	task_files=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+		"SELECT files FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
+	task_effort=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+		"SELECT COALESCE(effort, 2) FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "2")
+	task_verify=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+		"SELECT test_criteria FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
+	task_type=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+		"SELECT COALESCE(type, 'code') FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "code")
+	task_started=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+		"SELECT started_at FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
 
-	# --- POST-MARK-DONE: validate task (rollback to in_progress on failure) ---
-	if [[ -n "$plan_id" ]]; then
-		echo "[plan-db-safe] Validating task $TASK_ID (validate-before-confirm)..." >&2
-
-		# Track validation timing
-		validation_start=$(date +%s)
-		validation_result="pass"
-
-		"$SCRIPT_DIR/plan-db.sh" validate-task "$TASK_ID" "$plan_id" "plan-db-safe-auto" || {
-			echo "ERROR: Validation failed for task $TASK_ID — reverting to in_progress" >&2
-			validation_result="fail"
-
-			# Rollback: revert task to in_progress (task is still owned by this flow)
-			sqlite3 "$DB_FILE" \
-				"UPDATE tasks SET status = 'in_progress', validated_at = NULL, validated_by = NULL WHERE id = $TASK_ID;" 2>/dev/null || true
-
-			# Circuit breaker: track consecutive rejections
-			circuit_breaker_track_rejection "$TASK_ID" "$plan_id" || {
-				echo "ERROR: Circuit breaker triggered - task $TASK_ID auto-blocked after $MAX_REJECTIONS rejections" >&2
+	# --- Guard 1: Time-based sanity check ---
+	if [[ -n "$task_started" ]]; then
+		started_epoch=$(date -d "$task_started" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "$task_started" +%s 2>/dev/null || echo "0")
+		now_epoch=$(date +%s)
+		elapsed=$((now_epoch - started_epoch))
+		min_seconds=60
+		[[ "$task_effort" -ge 2 ]] && min_seconds=120
+		[[ "$task_effort" -ge 3 ]] && min_seconds=300
+		if [[ "$elapsed" -lt "$min_seconds" ]]; then
+			echo "REJECTED: Task $task_id_str completed in ${elapsed}s (min ${min_seconds}s for effort=$task_effort). Suspiciously fast." >&2
+			echo "  If this is a genuine quick fix, wait and retry, or use --force-time flag." >&2
+			# Check for --force-time flag in remaining args
+			force_time=false
+			for arg in "$@"; do [[ "$arg" == "--force-time" ]] && force_time=true; done
+			if [[ "$force_time" == false ]]; then
 				exit 1
-			}
-
-			exit 1
-		}
-
-		# Reset circuit breaker on successful validation
-		circuit_breaker_reset "$TASK_ID"
+			else
+				echo "WARN: --force-time used, proceeding despite fast completion" >&2
+			fi
+		fi
 	fi
 
-	# --- POST-DONE: log audit trail ---
-	if [[ -n "$plan_id" ]]; then
-		validation_end=$(date +%s)
-		validation_duration=$((validation_end - validation_start))
+	# --- Guard 2: Git-diff proof (code/test/chore tasks must modify files) ---
+	proof_of_work=false
+	if [[ "$task_type" == "doc" || "$task_type" == "docs" ]]; then
+		proof_of_work=true # Doc tasks may not touch code
+	fi
 
-		# Log to Thor audit trail
-		wave_id=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
-			"SELECT w.wave_id FROM waves w JOIN tasks t ON t.wave_id_fk = w.id WHERE t.id = $TASK_ID;" 2>/dev/null || echo "unknown")
-		task_id_str=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
-			"SELECT task_id FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "unknown")
+	if [[ "$proof_of_work" == false && -n "$plan_id" ]]; then
+		resolve_worktree() {
+			# Try wave worktree first, then plan worktree, then pwd
+			local wt=""
+			local wave_fk=$(sqlite3 "$DB_FILE" "SELECT wave_id_fk FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
+			if [[ -n "$wave_fk" ]]; then
+				wt=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM waves WHERE id = $wave_fk;" 2>/dev/null || echo "")
+			fi
+			[[ -z "$wt" || ! -d "$wt" ]] && wt=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM plans WHERE id = $plan_id;" 2>/dev/null || echo "")
+			[[ -z "$wt" || ! -d "$wt" ]] && wt="$(pwd)"
+			echo "$wt"
+		}
+		work_dir=$(resolve_worktree)
 
-		gates_passed='["task-status","pre-done-validate"]'
-		gates_failed='[]'
-		confidence=1.0
+		if [[ -d "$work_dir/.git" || -f "$work_dir/.git" ]]; then
+			# Check: uncommitted changes OR recent commits (last 10 min)
+			uncommitted=$(git -C "$work_dir" diff --name-only 2>/dev/null | head -20)
+			staged=$(git -C "$work_dir" diff --cached --name-only 2>/dev/null | head -20)
+			recent_commits=$(git -C "$work_dir" log --since="10 minutes ago" --name-only --pretty=format: 2>/dev/null | sort -u | head -20)
+			all_changed="$uncommitted"$'\n'"$staged"$'\n'"$recent_commits"
+			all_changed=$(echo "$all_changed" | sort -u | grep -v '^$' || true)
 
-		if [[ -x "$SCRIPT_DIR/thor-audit-log.sh" ]]; then
-			"$SCRIPT_DIR/thor-audit-log.sh" "$plan_id" "$task_id_str" "$wave_id" \
-				"$gates_passed" "$gates_failed" "plan-db-safe-auto" "$validation_duration" "$confidence" 2>/dev/null || true
+			if [[ -z "$all_changed" ]]; then
+				echo "REJECTED: Task $task_id_str has ZERO file changes (no uncommitted, staged, or recent commits in $work_dir)." >&2
+				echo "  You must modify at least one file before marking done." >&2
+				exit 1
+			fi
+
+			# If task has specific files, verify at least one was touched
+			if [[ -n "$task_files" && "$task_files" != "[]" && "$task_files" != "null" ]]; then
+				file_match=false
+				# Parse task_files (JSON array or pipe-separated)
+				file_list=$(echo "$task_files" | tr -d '[]"' | tr ',' '\n' | tr '|' '\n' | sed 's/^ *//;s/ *$//' | grep -v '^$')
+				while IFS= read -r expected_file; do
+					[[ -z "$expected_file" ]] && continue
+					# Check if any changed file matches (partial match for directory patterns)
+					if echo "$all_changed" | grep -q "$expected_file"; then
+						file_match=true
+						break
+					fi
+				done <<<"$file_list"
+				if [[ "$file_match" == false ]]; then
+					echo "REJECTED: Task $task_id_str modified files but NONE match task spec files: $task_files" >&2
+					echo "  Changed: $(echo "$all_changed" | head -5 | tr '\n' ', ')" >&2
+					echo "  Expected: $task_files" >&2
+					exit 1
+				fi
+			fi
+			proof_of_work=true
+			echo "[plan-db-safe] Proof-of-work: $(echo "$all_changed" | wc -l | tr -d ' ') file(s) changed" >&2
 		fi
+	fi
 
-		# Check if all tasks in this wave are done + validated
+	# --- Guard 3: Run verify commands from test_criteria ---
+	if [[ -n "$task_verify" && "$task_verify" != "[]" && "$task_verify" != "null" ]]; then
+		verify_cmds=$(echo "$task_verify" | python3 -c "
+import json,sys
+try:
+    data = json.load(sys.stdin)
+    if isinstance(data, list):
+        for item in data:
+            if isinstance(item, str) and not item.startswith('No '):
+                print(item)
+    elif isinstance(data, dict):
+        for v in data.get('verify', data.values()):
+            if isinstance(v, str) and not v.startswith('No '):
+                print(v)
+except: pass
+" 2>/dev/null || true)
+
+		if [[ -n "$verify_cmds" ]]; then
+			verify_failures=0
+			while IFS= read -r vcmd; do
+				[[ -z "$vcmd" ]] && continue
+				# Skip non-executable verify criteria (prose descriptions)
+				[[ "$vcmd" != *"/"* && "$vcmd" != *"."* && "$vcmd" != *"$"* ]] && continue
+				echo "[plan-db-safe] Running verify: $vcmd" >&2
+				if ! eval "$vcmd" >/dev/null 2>&1; then
+					echo "REJECTED: Verify command failed: $vcmd" >&2
+					verify_failures=$((verify_failures + 1))
+				fi
+			done <<<"$verify_cmds"
+			if [[ "$verify_failures" -gt 0 ]]; then
+				echo "REJECTED: $verify_failures verify command(s) failed for task $task_id_str" >&2
+				exit 1
+			fi
+		fi
+	fi
+
+	# --- DELEGATE: set task to 'submitted' (NOT done) ---
+	# plan-db-safe.sh NEVER sets 'done'. It sets 'submitted' = executor finished, Thor pending.
+	# Only validate-task (Thor) can transition submitted → done (enforced by SQLite trigger).
+	PLAN_DB_SAFE_CALLER=1 "$SCRIPT_DIR/plan-db.sh" "update-task" "$TASK_ID" "submitted" "${@:4}"
+
+	echo "[plan-db-safe] Task $task_id_str set to SUBMITTED (proof-of-work passed). Thor validation REQUIRED." >&2
+
+	# --- POST-SUBMIT: Log audit + check wave readiness ---
+	if [[ -n "$plan_id" ]]; then
 		wave_db_id=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
 			"SELECT wave_id_fk FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
+		wave_id=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+			"SELECT w.wave_id FROM waves w JOIN tasks t ON t.wave_id_fk = w.id WHERE t.id = $TASK_ID;" 2>/dev/null || echo "unknown")
+
+		# Log proof-of-work audit entry
+		if [[ -x "$SCRIPT_DIR/thor-audit-log.sh" ]]; then
+			"$SCRIPT_DIR/thor-audit-log.sh" "$plan_id" "$task_id_str" "$wave_id" \
+				'["proof-of-work","git-diff","time-check"]' '[]' "plan-db-safe-pow" "0" "0.5" 2>/dev/null || true
+		fi
+
+		# Check wave: all executor work complete? (submitted + done + cancelled + skipped = all)
 		if [[ -n "$wave_db_id" ]]; then
-			not_done=$(sqlite3 "$DB_FILE" \
+			still_working=$(sqlite3 "$DB_FILE" \
+				"SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status NOT IN ('done', 'submitted', 'cancelled', 'skipped');" 2>/dev/null || echo "1")
+			need_thor=$(sqlite3 "$DB_FILE" \
+				"SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'submitted';" 2>/dev/null || echo "1")
+
+			if [[ "$still_working" -eq 0 && "$need_thor" -gt 0 ]]; then
+				echo "" >&2
+				echo "================================================================" >&2
+				echo "  WAVE $wave_id: All executor work complete." >&2
+				echo "  $need_thor task(s) in SUBMITTED status — need Thor validation." >&2
+				echo "  Thor: plan-db.sh validate-task <id> $plan_id thor" >&2
+				echo "  Or:   @validate (copilot) / Task(subagent_type='thor') (claude)" >&2
+				echo "================================================================" >&2
+			fi
+
+			# Check if everything is done AND validated (all tasks = done, not submitted)
+			all_done=$(sqlite3 "$DB_FILE" \
 				"SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status NOT IN ('done', 'cancelled', 'skipped');" 2>/dev/null || echo "1")
-			not_validated=$(sqlite3 "$DB_FILE" \
-				"SELECT COUNT(*) FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'done' AND validated_at IS NULL;" 2>/dev/null || echo "1")
+			if [[ "$all_done" -eq 0 ]]; then
+				# All tasks are done (Thor-validated) — safe for wave completion
+				echo "[plan-db-safe] Wave $wave_id: all tasks done + Thor-validated" >&2
+				"$SCRIPT_DIR/plan-db.sh" validate-wave "$wave_db_id" "thor" 2>/dev/null || true
 
-			if [[ "$not_done" -eq 0 && "$not_validated" -eq 0 ]]; then
-				wave_id=$(sqlite3 "$DB_FILE" "SELECT wave_id FROM waves WHERE id = $wave_db_id;" 2>/dev/null || echo "?")
-				echo "[plan-db-safe] Wave $wave_id complete — auto-validating..." >&2
-
-				# Track wave validation timing
-				wave_validation_start=$(date +%s)
-				wave_validation_result="pass"
-
-				"$SCRIPT_DIR/plan-db.sh" validate-wave "$wave_db_id" "plan-db-safe-auto" 2>/dev/null || {
-					echo "WARN: Auto-validate wave $wave_db_id failed (non-blocking)" >&2
-					wave_validation_result="fail"
-				}
-
-				wave_validation_end=$(date +%s)
-				wave_validation_duration=$((wave_validation_end - wave_validation_start))
-
-				# Log wave validation to Thor audit trail
-				if [[ "$wave_validation_result" == "pass" ]]; then
-					wave_gates_passed='["wave-complete","all-tasks-validated"]'
-					wave_gates_failed='[]'
-					wave_confidence=1.0
-				else
-					wave_gates_passed='[]'
-					wave_gates_failed='["wave-validation"]'
-					wave_confidence=0.0
-				fi
-
-				if [[ -x "$SCRIPT_DIR/thor-audit-log.sh" ]]; then
-					"$SCRIPT_DIR/thor-audit-log.sh" "$plan_id" "wave-$wave_id" "$wave_id" \
-						"$wave_gates_passed" "$wave_gates_failed" "plan-db-safe-auto" "$wave_validation_duration" "$wave_confidence" 2>/dev/null || true
-				fi
-
-				# Wave-per-worktree: trigger merge if wave model is active
-				if [[ "$wave_validation_result" == "pass" && -x "$SCRIPT_DIR/wave-worktree.sh" ]]; then
-					# Check if this plan uses wave-level worktrees
+				# Wave-per-worktree: trigger merge
+				if [[ -x "$SCRIPT_DIR/wave-worktree.sh" ]]; then
 					wave_wt=$(sqlite3 "$DB_FILE" \
 						"SELECT worktree_path FROM waves WHERE id = $wave_db_id AND worktree_path IS NOT NULL AND worktree_path <> '';" 2>/dev/null || echo "")
 					if [[ -n "$wave_wt" ]]; then
 						echo "[plan-db-safe] Wave $wave_id: wave-worktree merge..." >&2
-						if "$SCRIPT_DIR/wave-worktree.sh" merge "$plan_id" "$wave_db_id" 2>&1; then
-							echo "[plan-db-safe] Wave $wave_id merged successfully" >&2
-						else
-							echo "WARN: Wave $wave_id merge failed — wave stays in 'merging' state" >&2
-						fi
+						"$SCRIPT_DIR/wave-worktree.sh" merge "$plan_id" "$wave_db_id" 2>&1 || {
+							echo "WARN: Wave $wave_id merge failed" >&2
+						}
 					fi
 				fi
 
-				# Check if ALL waves in plan are done (skip cancelled)
+				# Check plan completion
 				waves_not_done=$(sqlite3 "$DB_FILE" \
 					"SELECT COUNT(*) FROM waves WHERE plan_id = $plan_id AND status NOT IN ('done', 'cancelled');" 2>/dev/null || echo "1")
 				if [[ "$waves_not_done" -eq 0 ]]; then
-					echo "[plan-db-safe] All waves complete — syncing + completing plan $plan_id..." >&2
+					echo "[plan-db-safe] All waves complete — syncing plan $plan_id..." >&2
 					"$SCRIPT_DIR/plan-db.sh" sync "$plan_id" 2>/dev/null || true
-					"$SCRIPT_DIR/plan-db.sh" validate "$plan_id" "plan-db-safe-auto" 2>/dev/null || true
-					# complete may fail if Thor gate enforced — that's OK
 					"$SCRIPT_DIR/plan-db.sh" complete "$plan_id" 2>/dev/null || {
-						echo "WARN: Auto-complete plan $plan_id failed (Thor validation may be required)" >&2
+						echo "WARN: Auto-complete plan $plan_id failed" >&2
 					}
 				fi
 			fi

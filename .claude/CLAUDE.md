@@ -29,7 +29,7 @@ Pipe restrictions apply to **interactive agent sessions** only. Allowed exceptio
 
 ## Auto Memory
 
-Claude automatically stores cross-session context (recent decisions, patterns, errors) in `/Users/roberdan/.claude/auto-memory/`. This coexists with manual `~/.claude/.claude/agent-memory/` files (strategic decisions, stable patterns). Auto-memory = ephemeral session continuity; manual = durable architectural knowledge. `/memory` command to inspect/clear.
+Claude automatically stores cross-session context (recent decisions, patterns, errors) in `~/.claude/projects/{project-slug}/memory/`. This coexists with manual `~/.claude/.claude/agent-memory/` files (strategic decisions, stable patterns). Auto-memory = ephemeral session continuity; manual = durable architectural knowledge. `/memory` command to inspect/clear.
 
 ## Workflow (MANDATORY)
 

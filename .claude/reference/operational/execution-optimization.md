@@ -1,4 +1,4 @@
-<!-- v2.3.0 | 27 Feb 2026 | Rebase-before-merge in wave merge flow -->
+<!-- v2.4.0 | 28 Feb 2026 | Add ci-watch.sh for CI polling -->
 
 # Execution Optimization
 
@@ -89,6 +89,12 @@ After ALL tasks in a wave are Thor-validated:
    - `git branch | grep plan/{plan_id}` (wave branch deleted)
    - Wave DB status = `done`
 8. **Proceed to next wave**: Only after merge + cleanup succeeds
+
+## CI Watch (Token-Efficient)
+
+| Need              | Use command                                                 |
+| ----------------- | ----------------------------------------------------------- |
+| Poll CI checkruns | `ci-watch.sh <branch> --repo owner/repo [--sha SHA] [--timeout SEC]` |
 
 ## Plan Closure Checklist (NON-NEGOTIABLE)
 

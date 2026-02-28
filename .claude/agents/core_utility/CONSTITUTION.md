@@ -31,6 +31,7 @@ Deliver correct, validated work; avoid avoidable defects.
 ## Article VI: Verification
 
 Verify results before claiming completion; show proof when needed.
+- Task lifecycle integrity is mandatory: executors submit (`submitted`), Thor validation alone can set `done`.
 
 ## Core Principles
 
@@ -150,4 +151,5 @@ Apply to: logs, checkpoints, reports, file headers.
 
 ## Version
 
+- **1.1.0** (28 Febbraio 2026, 20:30 CET): Added submitted→done verification integrity rule (Thor-only done)
 - **1.0.0** (3 Gennaio 2026, 18:35 CET): Initial constitution

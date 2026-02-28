@@ -4,7 +4,7 @@
 
 # Import waves and tasks from a spec file (JSON or YAML)
 # Usage: import <plan_id> <spec_file>
-# Version: 1.3.0
+# Version: 1.4.0
 cmd_import() {
 	local plan_id="$1"
 	local spec_file="$2"
@@ -64,6 +64,8 @@ cmd_import() {
 			hours: (.estimated_hours // 8),
 			depends: (.depends_on // ""),
 			precondition: (.precondition // null),
+			merge_mode: (.merge_mode // "sync"),
+			theme: (.theme // ""),
 			tasks: [.tasks[] | {
 				id: .id,
 				title: (if has("do") then .do else .title end),
@@ -93,16 +95,20 @@ cmd_import() {
 	wave_count=$(echo "$spec_data" | jq '.waves | length')
 
 	for ((i = 0; i < wave_count; i++)); do
-		local w_id w_name w_hours w_depends w_precondition
+		local w_id w_name w_hours w_depends w_precondition w_merge_mode w_theme
 		w_id=$(echo "$spec_data" | jq -r ".waves[$i].id")
 		w_name=$(echo "$spec_data" | jq -r ".waves[$i].name")
 		w_hours=$(echo "$spec_data" | jq -r ".waves[$i].hours")
 		w_depends=$(echo "$spec_data" | jq -r ".waves[$i].depends")
 		w_precondition=$(echo "$spec_data" | jq -c ".waves[$i].precondition // empty")
+		w_merge_mode=$(echo "$spec_data" | jq -r ".waves[$i].merge_mode")
+		w_theme=$(echo "$spec_data" | jq -r ".waves[$i].theme")
 
 		local wave_args=("$plan_id" "$w_id" "$w_name" --estimated-hours "$w_hours")
 		[[ -n "$w_depends" ]] && wave_args+=(--depends-on "$w_depends")
 		[[ -n "$w_precondition" ]] && wave_args+=(--precondition "$w_precondition")
+		[[ -n "$w_merge_mode" ]] && wave_args+=(--merge-mode "$w_merge_mode")
+		[[ -n "$w_theme" ]] && wave_args+=(--theme "$w_theme")
 
 		local db_wave_id
 		db_wave_id=$(cmd_add_wave "${wave_args[@]}") || {
@@ -355,7 +361,9 @@ cmd_get_context() {
 			'wave_db_id', w.id, 'wave_id', w.wave_id,
 			'wave_name', w.name,
 			'wave_tasks_done', w.tasks_done,
-			'wave_tasks_total', w.tasks_total
+			'wave_tasks_total', w.tasks_total,
+			'wave_merge_mode', COALESCE(w.merge_mode, 'sync'),
+			'wave_theme', COALESCE(w.theme, '')
 		)), '[]')
 		FROM tasks t
 		JOIN waves w ON t.wave_id_fk = w.id

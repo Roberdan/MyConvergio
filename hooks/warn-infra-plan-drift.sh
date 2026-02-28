@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
-# warn-infra-plan-drift.sh v1.0.0 — ADR-054 enforcement
+# warn-infra-plan-drift.sh — Copilot CLI version
 # PreToolUse hook: warns when az infra commands run while infra tasks are pending.
 # Does NOT block — just warns loudly so the agent updates plan-db.
+# Version: 1.0.0
 set -euo pipefail
 
 DB="$HOME/.claude/data/dashboard.db"
 [[ ! -f "$DB" ]] && exit 0
 
-# Only check Bash tool calls
 INPUT=$(cat)
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null)
-[[ "$TOOL" != "Bash" ]] && exit 0
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+
+# Only check Bash tool calls
+case "$TOOL_NAME" in
+Bash | bash) ;;
+*) exit 0 ;;
+esac
 
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 [[ -z "$CMD" ]] && exit 0

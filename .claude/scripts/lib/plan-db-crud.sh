@@ -2,7 +2,7 @@
 # Plan DB CRUD - Create, Read, Update operations
 # Sourced by plan-db.sh
 
-# Version: 1.2.0
+# Version: 1.3.0
 # List plans for a project
 cmd_list() {
 	local project_id="$1"
@@ -187,11 +187,29 @@ cmd_add_wave() {
 	local name="$3"
 	shift 3
 
-	local assignee="" planned_start="" planned_end="" estimated_hours="8" depends_on="" precondition=""
+	local assignee="" planned_start="" planned_end="" estimated_hours="8" depends_on="" precondition="" merge_mode="sync" theme=""
 
 	set +u
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
+		--merge-mode)
+			[[ -z "${2}" ]] && {
+				log_error "Missing --merge-mode value"
+				set -u
+				exit 1
+			}
+			merge_mode="$2"
+			shift 2
+			;;
+		--theme)
+			[[ -z "${2}" ]] && {
+				log_error "Missing --theme value"
+				set -u
+				exit 1
+			}
+			theme="$2"
+			shift 2
+			;;
 		--assignee)
 			[[ -z "${2}" ]] && {
 				log_error "Missing --assignee value"
@@ -270,9 +288,12 @@ cmd_add_wave() {
 	local safe_wave_id="$(sql_escape "$wave_id")"
 	local safe_name="$(sql_escape "$name")"
 	local safe_assignee="$(sql_escape "$assignee")"
+	local safe_merge_mode="$(sql_escape "$merge_mode")"
+	local theme_val="NULL"
+	[[ -n "$theme" ]] && theme_val="'$(sql_escape "$theme")'"
 	sqlite3 "$DB_FILE" "
-        INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position, estimated_hours, planned_start, planned_end, depends_on, precondition)
-        VALUES ('$project_id', $plan_id, '$safe_wave_id', '$safe_name', 'pending', '$safe_assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val, $precond_val);
+        INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position, estimated_hours, planned_start, planned_end, depends_on, precondition, merge_mode, theme)
+        VALUES ('$project_id', $plan_id, '$safe_wave_id', '$safe_name', 'pending', '$safe_assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val, $precond_val, '$safe_merge_mode', $theme_val);
     "
 	local db_wave_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE plan_id=$plan_id AND wave_id='$safe_wave_id';")
 	log_info "Added wave: $name (ID: $db_wave_id)"
@@ -432,17 +453,21 @@ cmd_update_task() {
 	fi
 
 	case "$status" in
-	pending | in_progress | done | blocked | skipped | cancelled) ;;
+	pending | in_progress | submitted | done | blocked | skipped | cancelled) ;;
 	*)
-		log_error "Invalid task status: '$status'. Valid: pending | in_progress | done | blocked | skipped | cancelled"
+		log_error "Invalid task status: '$status'. Valid: pending | in_progress | submitted | done | blocked | skipped | cancelled"
 		exit 1
 		;;
 	esac
 	local old_status=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id = $task_id;")
 
-	# Strict: cannot go directly from pending to done
+	# Strict: cannot go directly from pending to done or submitted
 	if [[ "$status" == "done" && "$old_status" == "pending" ]]; then
 		log_error "Cannot transition pending→done directly. Mark as in_progress first."
+		exit 1
+	fi
+	if [[ "$status" == "submitted" && "$old_status" == "pending" ]]; then
+		log_error "Cannot transition pending→submitted directly. Mark as in_progress first."
 		exit 1
 	fi
 	local tokens_sql=""
@@ -453,9 +478,15 @@ cmd_update_task() {
 
 	if [[ "$status" == "in_progress" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
+	elif [[ "$status" == "submitted" ]]; then
+		# Executor finished work, awaiting Thor validation. Does NOT count as done.
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = 'submitted', completed_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
+		log_info "Task $task_id submitted — awaiting Thor validation"
 	elif [[ "$status" == "done" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
-		# Ensure trigger exists, then sync counters as fallback (idempotent)
+		# NOTE: This branch is reached ONLY from validate-task (Thor).
+		# plan-db.sh guard blocks direct 'done'. enforce_thor_done trigger is final defense.
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = COALESCE(completed_at, datetime('now')), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
+		# Ensure counter trigger exists
 		sqlite3 "$DB_FILE" "
 			CREATE TRIGGER IF NOT EXISTS task_done_counter
 			AFTER UPDATE OF status ON tasks
@@ -465,7 +496,7 @@ cmd_update_task() {
 				UPDATE plans SET tasks_done = tasks_done + 1 WHERE id = NEW.plan_id;
 			END;
 		"
-		# Recalculate counters from actual data (trigger may have fired or not)
+		# Recalculate counters from actual data
 		local wave_fk_id plan_fk_id
 		IFS='|' read -r wave_fk_id plan_fk_id < <(sqlite3 "$DB_FILE" "SELECT wave_id_fk, plan_id FROM tasks WHERE id = $task_id;")
 		[[ -n "$wave_fk_id" ]] && sqlite3 "$DB_FILE" "
@@ -473,7 +504,7 @@ cmd_update_task() {
 			UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done),0) FROM waves WHERE plan_id = $plan_fk_id) WHERE id = $plan_fk_id;
 		"
 
-		# Check if wave is now complete (for auto-marking wave as done)
+		# Check if wave is now complete
 		local wave_fk wave_done wave_id_text
 		IFS='|' read -r wave_fk wave_done wave_id_text < <(sqlite3 "$DB_FILE" "SELECT t.wave_id_fk, (w.tasks_done = w.tasks_total), w.wave_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE t.id = $task_id;")
 		[[ "$wave_done" == "1" ]] && {
@@ -553,6 +584,29 @@ cmd_complete() {
 	if [[ -z "$validated_at" ]]; then
 		log_error "Cannot complete plan $plan_id: Thor validation required"
 		return 1
+	fi
+
+	# Check that all wave PRs are actually MERGED on GitHub (live verification)
+	if [[ "$force_flag" != "--force" ]] && command -v gh >/dev/null 2>&1; then
+		local waves_with_prs unmerged_prs
+		waves_with_prs=$(sqlite3 "$DB_FILE" "SELECT wave_id, pr_number FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0;")
+		if [[ -n "$waves_with_prs" ]]; then
+			unmerged_prs=""
+			while IFS='|' read -r wave_id pr_num; do
+				[[ -z "$pr_num" ]] && continue
+				local pr_state
+				pr_state=$(gh pr view "$pr_num" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
+				if [[ "$pr_state" != "MERGED" ]]; then
+					unmerged_prs="${unmerged_prs}  Wave $wave_id: PR #$pr_num ($pr_state)\n"
+				fi
+			done <<<"$waves_with_prs"
+			if [[ -n "$unmerged_prs" ]]; then
+				log_error "Cannot complete plan $plan_id: PRs not merged on GitHub"
+				echo -e "$unmerged_prs" >&2
+				echo "  Use --force to bypass this check" >&2
+				return 1
+			fi
+		fi
 	fi
 
 	# Check worktree merge status if worktree exists

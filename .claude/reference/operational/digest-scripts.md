@@ -1,4 +1,4 @@
-<!-- v2.1.0 | 27 Feb 2026 | Add --compact flag, gh pr checks mapping (F-08) -->
+<!-- v2.2.0 | 28 Feb 2026 | Add ci-watch.sh mapping -->
 
 # Digest Scripts
 
@@ -23,6 +23,7 @@
 | Copilot bot PR comments                                | `copilot-review-digest.sh`               |
 | Manual audit scripts such as hardening-check + linters | `project-audit.sh --project-root $(pwd)` |
 | `gh pr checks`                                         | `ci-digest.sh checks <pr>`               |
+| Manual CI polling (`gh pr checks --watch`, run loops) | `ci-watch.sh <branch> --repo owner/repo` |
 
 ## Options
 

@@ -1,14 +1,19 @@
 #!/bin/bash
-# Warn when Claude uses bash commands that should be tool calls
-# Hook type: PreToolUse on Bash
-# Version: 1.2.0
+# warn-bash-antipatterns.sh — Copilot CLI version
+# PreToolUse hook: blocks unsafe bash patterns (zsh sqlite3 != expansion, discouraged commands).
+# Version: 1.0.0
 set -uo pipefail
 
-# Get command from stdin (Claude passes tool input as JSON)
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 
-# Exit if no command
+# Only check Bash tool calls
+case "$TOOL_NAME" in
+Bash | bash) ;;
+*) exit 0 ;;
+esac
+
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 [ -z "$COMMAND" ] && exit 0
 
 # Check patterns and suggest tools
@@ -56,17 +61,13 @@ check_pattern "^printf .+>" "Write" && exit 0
 check_pattern "cat <<" "Write" && exit 0
 
 # Pipe to non-builtin without absolute path -> warn to use `which` first
-# Builtins that don't need path: echo, printf, read, test, [, cd, export, etc.
 BUILTINS="echo|printf|read|test|cd|export|set|unset|shift|return|exit|true|false|type|hash|alias|source|eval|exec|wait|trap|kill|jobs|bg|fg|times|umask|getopts|command|builtin|declare|local|typeset|readonly|let|ulimit|shopt|enable|mapfile|readarray|dirs|pushd|popd|suspend|logout|disown|coproc|compgen|complete|compopt"
 if echo "$COMMAND" | grep -qE '\|' 2>/dev/null; then
-	# Extract commands after pipes (strip leading whitespace)
 	PIPED_CMDS=$(echo "$COMMAND" | tr '|' '\n' | tail -n +2 | sed 's/^ *//' | awk '{print $1}')
 	for cmd in $PIPED_CMDS; do
-		# Skip if absolute path, variable, or builtin
 		[[ "$cmd" == /* ]] && continue
 		[[ "$cmd" == \$* ]] && continue
 		echo "$cmd" | grep -qE "^($BUILTINS)$" && continue
-		# Warn: non-builtin piped without absolute path
 		echo "WARNING: Piping to '$cmd' without absolute path. Run 'which $cmd' first or use absolute path."
 		exit 0
 	done

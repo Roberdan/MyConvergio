@@ -1,5 +1,21 @@
 # Changelog
 
+## [10.0.0] — 2026-02-28
+
+### Added
+- Registered ci-watch.sh plus refreshed plan-db and dashboard helper scripts to keep plan automation aligned with sanitized execution libs.
+- Synced Copilot CLI commands (check, optimize-instructions, planner, prepare, prompt, release, execute, planner modules) for the new release flow.
+- Documented ADR INDEX plus entries 0001-digest-scripts-token-optimization and 0024-overlapping-wave-execution for plan lifecycle guidance.
+- Added sanitized hooks (enforce-standards.sh, session-reaper.sh, worktree-guard.sh) to reinforce guardrails.
+
+### Changed
+- Bumped scripts (plan-db safe/import/validate libs, dashboard renderers, audit scripts, ci-watch) for the v10 automation sweep.
+- Rewrote README for v10, ensuring the new narrative and Mermaid sanity checks reflect the latest release structure.
+- Updated agents (CONSTITUTION, thor-validation-gates, app-release-manager) to align with safety, routing, and release metadata.
+
+### Fixed
+- CLAUDE.md personal path references now sanitized to remove /Users/roberdan dependencies.
+
 ## [9.19.0] — 2026-02-28
 
 ### Added

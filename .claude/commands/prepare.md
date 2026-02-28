@@ -1,11 +1,13 @@
----
+## <!-- v2.0.0 -->
+
 name: prepare
-version: "1.0.0"
+version: "2.0.0"
+
 ---
 
 # Prepare - Project Bootstrap
 
-Run `/prepare` to register project + generate/update `CLAUDE.md`.
+`/prepare` registers project + generates/updates `CLAUDE.md`.
 
 ## Context (pre-computed)
 
@@ -68,7 +70,7 @@ icon: [detected or suggested path]
 ## Icon Detection
 
 Search order: `public/logo*.png` → `assets/icon*.png` → `.claude/icon.png` → `favicon.*`
-If found, suggest adding `icon: <path>` to CLAUDE.md. User confirms.
+If found, suggest `icon: <path>` in CLAUDE.md. User confirms.
 
 ## Flags
 

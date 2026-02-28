@@ -32,11 +32,46 @@ NEVER execute without plan_id | NEVER skip tasks/Thor | WORKTREE ISOLATION — p
 
 ### P1: Initialize
 
-`export PATH="$HOME/.claude/scripts:$PATH" && PLAN_ID={plan_id}` → `CTX=$(plan-db.sh get-context $PLAN_ID)` → Extract: `WORKTREE_PATH`, `FRAMEWORK`, `PLAN_STATUS` → `cd "$WORKTREE_PATH"` → `[[ "$PLAN_STATUS" != "doing" ]] && plan-db.sh start $PLAN_ID` → `plan-db.sh check-readiness $PLAN_ID`
+`export PATH="$HOME/.claude/scripts:$PATH" && PLAN_ID={plan_id}` → `CTX=$(plan-db.sh get-context $PLAN_ID)` → Extract: `WORKTREE_PATH`, `FRAMEWORK`, `PLAN_STATUS`, `CONSTRAINTS` → `cd "$WORKTREE_PATH"` → `[[ "$PLAN_STATUS" != "doing" ]] && plan-db.sh start $PLAN_ID` → `plan-db.sh check-readiness $PLAN_ID`
+
+**Extract constraints** (ADR-054): `CONSTRAINTS=$(echo "$CTX" | jq -r '.constraints // [] | .[] | "C-" + .id + ": " + .text' )`. If non-empty, EVERY task prompt MUST include constraints block.
 
 ### P1.5: Drift Check
 
 `DRIFT_JSON=$(plan-db.sh drift-check $PLAN_ID)` → Check `DRIFT_LEVEL`: **major** → ASK USER (Proceed/Rebase/Replan) | **minor** → `plan-db.sh rebase-plan $PLAN_ID`
+
+### P1.8: CI Knowledge Lookup
+
+Load CI knowledge from the repo first, fallback to global:
+
+```bash
+CI_KNOWLEDGE=""
+if [[ -f "${WORKTREE_PATH}/.claude/ci-knowledge.md" ]]; then
+  CI_KNOWLEDGE=$(cat "${WORKTREE_PATH}/.claude/ci-knowledge.md")
+elif [[ -f "${WORKTREE_PATH}/docs/ci-knowledge.md" ]]; then
+  CI_KNOWLEDGE=$(cat "${WORKTREE_PATH}/docs/ci-knowledge.md")
+elif [[ -f "$HOME/.claude/data/ci-knowledge/${PROJECT_ID}.md" ]]; then
+  CI_KNOWLEDGE=$(cat "$HOME/.claude/data/ci-knowledge/${PROJECT_ID}.md")
+fi
+```
+
+New repos: add `.claude/ci-knowledge.md` (if `.claude/` is trackable) or `docs/ci-knowledge.md` (if `.claude/` has nested git or is gitignored).
+
+### Model Name Mapping (Claude tasks)
+
+When `executor_agent == "claude"`, map full model IDs to Claude API shorthand:
+
+| Full Model ID (DB)     | Agent Shorthand |
+| ---------------------- | --------------- |
+| `claude-opus-4.6`      | `opus`          |
+| `claude-opus-4.6-fast` | `opus`          |
+| `claude-opus-4.5`      | `opus`          |
+| `claude-sonnet-4.6`    | `sonnet`        |
+| `claude-sonnet-4.5`    | `sonnet`        |
+| `claude-sonnet-4`      | `sonnet`        |
+| `claude-haiku-4.5`     | `haiku`         |
+
+Unmapped models (GPT, Gemini) pass through as-is. Use: `MODEL_MAP[task.model] || task.model`.
 
 ### P2-3: Execute Tasks (Per-Task Routing)
 
@@ -62,16 +97,18 @@ const priorOutputs = CTX.completed_tasks_output
   .join("\n");
 await Task({
   subagent_type: "task-executor",
-  model: task.model || "sonnet",
+  model: MODEL_MAP[task.model] || task.model || "sonnet",
   max_turns: 30,
   description: `Execute ${task.task_id}`,
   prompt: `TASK ${task.task_id} | Wave: ${task.wave_id} | db_id: ${task.db_id}
 WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK}
+CONSTRAINTS (MUST NOT VIOLATE): ${CONSTRAINTS || "none"}
 Do: ${task.title}
 ${task.description}
 Verify: ${task.test_criteria}
 Wave peers: ${wavePeers}
 Prior task outputs: ${priorOutputs || "none"}
+${CI_KNOWLEDGE ? `CI Knowledge (avoid these patterns):\n${CI_KNOWLEDGE}` : ""}
 PATH: export PATH="$HOME/.claude/scripts:$PATH"`,
 });
 ```
@@ -96,9 +133,38 @@ PASS → `plan-db.sh validate-task ${task_id} ${PLAN_ID}` | REJECT → fix → r
 
 When `wave_done == wave_tasks_total` AND all tasks have `validated_at`:
 
-`Task(subagent_type="thor-quality-assurance-guardian", model="sonnet", max_turns=20, prompt="THOR PER-WAVE VALIDATION | Plan: ${PLAN_ID} | Wave: ${wave_id} (db_id: ${wave_db_id}) | WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK} | Tasks in wave: [list task_ids + titles from CTX] | Verify criteria: [list test_criteria for each task] | Run ALL 10 gates. Run: ci-summary.sh --full. Check F-xx cross-task. Read files directly.")`
+`Task(subagent_type="thor-quality-assurance-guardian", model="sonnet", max_turns=20, prompt="THOR PER-WAVE VALIDATION | Plan: ${PLAN_ID} | Wave: ${wave_id} (db_id: ${wave_db_id}) | WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK} | Tasks in wave: [list task_ids + titles from CTX] | Verify criteria: [list test_criteria for each task] | Run ALL 9 gates. Run: ci-summary.sh --full. Check F-xx cross-task. Read files directly.")`
 
-PASS → `plan-db.sh validate-wave ${wave_db_id}` → next wave | REJECT → fix → re-validate (max 3 rounds)
+PASS → `plan-db.sh validate-wave ${wave_db_id}` → merge decision | REJECT → fix → re-validate (max 3 rounds)
+
+### P4c: Post-Wave Merge Decision
+
+After Thor per-wave passes, executor reads `merge_mode` from wave DB and acts accordingly:
+
+| merge_mode | Action                                                     | Branch                          |
+| ---------- | ---------------------------------------------------------- | ------------------------------- |
+| `sync`     | `wave-worktree.sh merge` → PR + CI + squash merge to main  | wave branch deleted after merge |
+| `batch`    | Commit to shared theme branch, NO PR, proceed to next wave | same branch continues           |
+| `none`     | Commit only, no PR, no merge                               | wave branch stays               |
+
+**Batch flow**: waves in same theme share one worktree/branch. When the last wave in the theme hits `sync`, ALL accumulated changes merge as one PR. Executor tracks theme boundary via `merge_mode` field.
+
+```
+W1 (batch) → commit → Thor → W2 (batch) → commit → Thor → W3 (sync) → PR with W1+W2+W3 → CI → merge
+```
+
+**Theme branch naming**: `plan/{plan_id}-{theme}` (e.g., `plan/270-security`). First `batch` wave in a theme creates the branch; subsequent `batch` waves reuse it.
+
+**Merge dispatch** (after Thor per-wave PASS):
+
+```bash
+MERGE_MODE=$(sqlite3 ~/.claude/data/dashboard.db "SELECT COALESCE(merge_mode,'sync') FROM waves WHERE id=${wave_db_id};")
+case "$MERGE_MODE" in
+  sync)  wave-worktree.sh merge $PLAN_ID $wave_db_id ;;
+  batch) wave-worktree.sh batch $PLAN_ID $wave_db_id ;;
+  none)  plan-db.sh validate-wave $wave_db_id ;;
+esac
+```
 
 ### P5: Completion
 

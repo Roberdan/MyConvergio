@@ -4,7 +4,7 @@ description: Post-mortem analyzer for completed plans. Extracts structured learn
 tools: ["Read", "Grep", "Glob", "Bash"]
 color: "#C62828"
 model: opus
-version: "1.1.0"
+version: "1.2.0"
 context_isolation: true
 memory: project
 maxTurns: 30
@@ -31,7 +31,7 @@ DB="$HOME/.claude/data/dashboard.db"
 PLAN_ID={plan_id}
 
 sqlite3 "$DB" "SELECT * FROM plans WHERE id=$PLAN_ID;"
-sqlite3 "$DB" -json "SELECT t.*, w.wave_number FROM tasks t JOIN waves w ON t.wave_id=w.id WHERE w.plan_id=$PLAN_ID ORDER BY w.wave_number, t.task_number;"
+sqlite3 "$DB" -json "SELECT t.*, w.wave_number FROM tasks t JOIN waves w ON t.wave_id_fk=w.id WHERE w.plan_id=$PLAN_ID ORDER BY w.wave_number, t.task_number;"
 sqlite3 "$DB" "SELECT * FROM plan_reviews WHERE plan_id=$PLAN_ID;"
 sqlite3 "$DB" "SELECT * FROM plan_learnings WHERE plan_id=$PLAN_ID;"
 ```
@@ -51,7 +51,7 @@ Classify gaps by type (coverage, completeness, coherence, risk). Count revision 
 ### Check 2: Estimation Accuracy
 
 ```bash
-sqlite3 "$DB" -json "SELECT id, task_number, title, estimated_effort, actual_effort, estimated_tokens, actual_tokens FROM tasks t JOIN waves w ON t.wave_id=w.id WHERE w.plan_id=$PLAN_ID AND status='done';"
+sqlite3 "$DB" -json "SELECT id, task_number, title, estimated_effort, actual_effort, estimated_tokens, actual_tokens FROM tasks t JOIN waves w ON t.wave_id_fk=w.id WHERE w.plan_id=$PLAN_ID AND status='done';"
 ```
 
 Flag tasks where `actual_effort >> estimated_effort` (ratio > 2x).
@@ -61,7 +61,7 @@ Flag tasks where `actual_effort >> estimated_effort` (ratio > 2x).
 ### Check 3: Token Variance
 
 ```bash
-sqlite3 "$DB" -json "SELECT id, task_number, title, estimated_tokens, actual_tokens, ROUND((CAST(actual_tokens AS REAL)/NULLIF(estimated_tokens,0)-1)*100,1) as variance_pct FROM tasks t JOIN waves w ON t.wave_id=w.id WHERE w.plan_id=$PLAN_ID AND actual_tokens IS NOT NULL AND estimated_tokens > 0;"
+sqlite3 "$DB" -json "SELECT id, task_number, title, estimated_tokens, actual_tokens, ROUND((CAST(actual_tokens AS REAL)/NULLIF(estimated_tokens,0)-1)*100,1) as variance_pct FROM tasks t JOIN waves w ON t.wave_id_fk=w.id WHERE w.plan_id=$PLAN_ID AND actual_tokens IS NOT NULL AND estimated_tokens > 0;"
 ```
 
 **Category**: `token_blowup` | critical: >500% | warning: >100% | insight: <-50%
@@ -69,7 +69,7 @@ sqlite3 "$DB" -json "SELECT id, task_number, title, estimated_tokens, actual_tok
 ### Check 4: Rework Detection
 
 ```bash
-sqlite3 "$DB" -json "SELECT id, task_number, title, status FROM tasks t JOIN waves w ON t.wave_id=w.id WHERE w.plan_id=$PLAN_ID AND (output_data LIKE '%rework%' OR output_data LIKE '%retry%' OR output_data LIKE '%revision%');"
+sqlite3 "$DB" -json "SELECT id, task_number, title, status FROM tasks t JOIN waves w ON t.wave_id_fk=w.id WHERE w.plan_id=$PLAN_ID AND (output_data LIKE '%rework%' OR output_data LIKE '%retry%' OR output_data LIKE '%revision%');"
 ```
 
 **Category**: `pr_friction` (if PR-related) or `process` (if workflow-related)
@@ -125,8 +125,8 @@ Review tasks touching >5 files, test coverage gaps, architecture decisions causi
 sqlite3 "$DB" "INSERT INTO plan_learnings (plan_id, category, severity, title, detail, task_id, wave_id, tags, actionable) VALUES ($PLAN_ID, '{category}', '{severity}', '{title}', '{detail}', '{task_id}', '{wave_id}', '{tags}', {actionable});"
 
 # Write to plan_actuals
-TOTAL_TOKENS=$(sqlite3 "$DB" "SELECT COALESCE(SUM(actual_tokens),0) FROM tasks t JOIN waves w ON t.wave_id=w.id WHERE w.plan_id=$PLAN_ID;")
-TOTAL_TASKS=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks t JOIN waves w ON t.wave_id=w.id WHERE w.plan_id=$PLAN_ID;")
+TOTAL_TOKENS=$(sqlite3 "$DB" "SELECT COALESCE(SUM(actual_tokens),0) FROM tasks t JOIN waves w ON t.wave_id_fk=w.id WHERE w.plan_id=$PLAN_ID;")
+TOTAL_TASKS=$(sqlite3 "$DB" "SELECT COUNT(*) FROM tasks t JOIN waves w ON t.wave_id_fk=w.id WHERE w.plan_id=$PLAN_ID;")
 THOR_REJECTIONS=$(sqlite3 "$DB" "SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$PLAN_ID AND verdict='NEEDS_REVISION';")
 THOR_RATE=$(sqlite3 "$DB" "SELECT ROUND(CAST(COUNT(CASE WHEN verdict='NEEDS_REVISION' THEN 1 END) AS REAL)/NULLIF(COUNT(*),0)*100,1) FROM plan_reviews WHERE plan_id=$PLAN_ID;")
 sqlite3 "$DB" "INSERT OR REPLACE INTO plan_actuals (plan_id, total_tokens, total_tasks, tasks_revised_by_thor, thor_rejection_rate, completed_at) VALUES ($PLAN_ID, $TOTAL_TOKENS, $TOTAL_TASKS, $THOR_REJECTIONS, $THOR_RATE, datetime('now'));"
@@ -207,5 +207,6 @@ claude --agent plan-post-mortem --prompt "POST-MORTEM\nPlan:{plan_id}\nPROJECT:{
 
 ## Changelog
 
+- **1.2.0** (2026-02-28): Fixed tasks↔waves joins to use `wave_id_fk` consistently
 - **1.1.0** (2026-02-27): Integrate with auto-memory for cross-session learnings persistence; compress to 250-line limit
 - **1.0.0** (2026-02-24): Initial version with 8 analysis checks, 9 learning categories, DB integration, cross-platform invocation

@@ -4,7 +4,7 @@ description: Independent plan quality reviewer. Fresh context, zero planner bias
 tools: ["Read", "Grep", "Glob", "Bash"]
 color: "#2E86AB"
 model: opus
-version: "1.2.0"
+version: "1.3.0"
 context_isolation: true
 memory: project
 maxTurns: 25
@@ -78,6 +78,7 @@ Validate structural integrity:
 - **File existence**: Referenced files exist in codebase (for modifications) or parent dirs exist (for new files)
 - **Task granularity**: No task touches >5 files (risk: too broad). No task is trivially empty.
 - **Model assignment**: Effort 3 tasks should not use weak models
+- **Wave merge metadata**: Each wave uses valid `merge_mode` (`sync|batch|async|none`); `batch` waves must define a non-empty `theme`
 
 ### Gate 4: Value-Add Analysis
 
@@ -217,6 +218,7 @@ claude --agent plan-reviewer --prompt "PLAN REVIEW\nPlan:{plan_id}\nSPEC:{spec}\
 
 ## Changelog
 
+- **1.3.0** (2026-02-28): Added merge metadata coherence check (`merge_mode` + `theme`) in Gate 3
 - **1.2.0** (2026-02-27): Add LSP find-references for code verification in Rule 3
 - **1.1.0** (2026-02-24): Add Cross-Platform Invocation section (Claude Code, Copilot CLI, programmatic)
 - **1.0.0** (2026-02-24): Initial version

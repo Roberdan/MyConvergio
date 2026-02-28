@@ -1,5 +1,18 @@
 # Changelog
 
+## [v9.18.0] - 28 Feb 2026
+
+### Changed
+
+- `CLAUDE.md`: fix auto-memory path (`~/.claude/auto-memory/` → `~/.claude/projects/{slug}/memory/`), document v2.1.63 cross-worktree sharing
+- `worktree-discipline.md` v3.3.0: add Cross-Worktree Auto-Memory section — verified on plan 270 (VirtualBPM), no script changes needed
+
+### Verified
+
+- Claude Code v2.1.63 cross-worktree memory sharing: wave worktree sessions resolve to main repo project dir via `git-common-dir`. Pre-2.1.63 worktree dirs (MirrorBuddy ×4) are orphaned — safe to clean up.
+
+---
+
 ## [v9.17.0] - 27 Feb 2026
 
 ### Added

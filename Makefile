@@ -33,7 +33,7 @@ NC := \033[0m
 .DEFAULT_GOAL := help
 
 help:
-	@echo "$(BLUE)MyConvergio Agent Management v9.18.0$(NC)"
+	@echo "$(BLUE)MyConvergio Agent Management v9.19.0$(NC)"
 	@echo ""
 	@echo "$(YELLOW)For New Users:$(NC)"
 	@echo "  make install        Install ALL agents, rules, and skills to ~/.claude/"

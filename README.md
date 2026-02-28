@@ -1,11 +1,12 @@
+<!-- AGENT_COUNTS: claude:76 copilot:83 total:159 -->
 <div align="center">
 
 # MyConvergio v10
 <img src="./CovergioLogoTransparent.webp" alt="MyConvergio Logo" width="200"/>
 
 [![Version](https://img.shields.io/badge/version-v10.0.0-0A66C2)](./VERSION)
-[![Agent Files](https://img.shields.io/badge/agent_files-164-4C1)](#agent-portfolio)
-[![Claude Catalog](https://img.shields.io/badge/claude_catalog-81-6A5ACD)](#agent-portfolio)
+[![Agent Files](https://img.shields.io/badge/agent_files-159-4C1)](#agent-portfolio)
+[![Claude Catalog](https://img.shields.io/badge/claude_catalog-76-6A5ACD)](#agent-portfolio)
 [![Copilot Agents](https://img.shields.io/badge/copilot_agents-83-111827)](#agent-portfolio)
 [![License](https://img.shields.io/badge/license-CC_BY--NC--SA_4.0-lightgrey)](./LICENSE)
 
@@ -164,9 +165,9 @@ Terminal first visibility for plans, waves, quality gates, and token usage.
 
 ## Agent Portfolio
 ### Actual file counts in this repository
-- Claude catalog files in `.claude/agents`: **81**
+- Claude catalog files in `.claude/agents`: **76**
 - Copilot agent files in `copilot-agents`: **83**
-- Total agent files: **164**
+- Total agent files: **159**
 
 | Claude Catalog Area | File Count |
 | --- | --- |
@@ -223,6 +224,6 @@ Licensed under [CC BY-NC-SA 4.0](./LICENSE).
 
 <div align="center">
 
-**MyConvergio v10.0.0** | **28 Feb 2026** | **164 agent files total** | **81 Claude catalog + 83 Copilot**
+**MyConvergio v10.0.0** | **28 Feb 2026** | **159 agent files total** | **76 Claude catalog + 83 Copilot**
 
 </div>

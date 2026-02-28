@@ -37,6 +37,10 @@ if [[ -z "$TASK_ID" ]]; then
 	echo "Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]" >&2
 	exit 1
 fi
+if [[ ! "$TASK_ID" =~ ^[0-9]+$ ]]; then
+	echo "ERROR: task id must be numeric, got: $TASK_ID" >&2
+	exit 1
+fi
 
 # Preflight checks
 if ! command -v copilot &>/dev/null; then
@@ -75,6 +79,8 @@ WT="$(echo "$TASK_CTX" | jq -r '.worktree // ""')"
 WT="${WT/#\~/$HOME}"
 PLAN_ID="$(echo "$TASK_CTX" | jq -r '.plan_id // 0')"
 PROJECT_ID="$(echo "$TASK_CTX" | jq -r '.project_id // ""')"
+validate_numeric "plan id" "$PLAN_ID"
+validate_numeric "project id" "$PROJECT_ID"
 
 # Generate prompt
 PROMPT=$("$SCRIPT_DIR/copilot-task-prompt.sh" "$TASK_ID")

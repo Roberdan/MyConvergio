@@ -4,7 +4,7 @@
 # Version: 2.0.0
 # =============================================================================
 
-.PHONY: install install-local upgrade test clean update check-sync version help lint validate
+.PHONY: install install-local upgrade test clean update check-sync version help lint validate release count-agents
 .PHONY: install-tier install-categories install-agents generate-lean list-tiers list-categories copilot-agents
 
 # Directories
@@ -33,7 +33,7 @@ NC := \033[0m
 .DEFAULT_GOAL := help
 
 help:
-	@echo "$(BLUE)MyConvergio Agent Management v3.7.0$(NC)"
+	@echo "$(BLUE)MyConvergio Agent Management v9.17.0$(NC)"
 	@echo ""
 	@echo "$(YELLOW)For New Users:$(NC)"
 	@echo "  make install        Install ALL agents, rules, and skills to ~/.claude/"
@@ -175,9 +175,21 @@ version:
 		echo "  Hooks:  $(RED)not installed$(NC)"; \
 	fi
 
+release:
+	@echo "$(BLUE)Syncing version metadata from VERSION...$(NC)"
+	@bash scripts/version-sync.sh
+	@echo "$(GREEN)✓ Version sync complete$(NC)"
+
+count-agents:
+	@bash scripts/count-agents.sh
+
 test:
 	@echo "$(BLUE)Running agent tests...$(NC)"
 	@./scripts/test-deployment.sh
+	@if command -v bats >/dev/null 2>&1; then \
+		echo "$(BLUE)Running BATS tests...$(NC)"; \
+		bats tests/bats/; \
+	fi
 
 lint:
 	@echo "$(BLUE)Linting agent YAML frontmatter...$(NC)"
@@ -263,4 +275,3 @@ check-sync:
 	@echo "$(BLUE)Checking for upstream changes in ConvergioCLI...$(NC)"
 	@curl -s "https://api.github.com/repos/Roberdan/convergio-cli/commits?path=src/agents/definitions&per_page=1" 2>/dev/null | \
 		grep -E '"sha"|"message"|"date"' | head -6 || echo "Could not fetch (check network)"
-

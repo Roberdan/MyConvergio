@@ -1,0 +1,3 @@
+# MyConvergio Checksums
+# Verify: sha256sum -c checksums.txt
+528ccf9e1a7a5a1ca9abbd6f1ca0e408edcda1fbb54b6f6ca34d90b3b0d4a7dd  install.sh

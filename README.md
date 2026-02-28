@@ -4,7 +4,8 @@
 
 <img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
 
-**v9.3.0** | 65 Specialized Agents | Multi-Provider Orchestrator | Independent Quality Validation
+**v9.17.0** | 157 Agent Files (74 Claude + 83 Copilot) | Multi-Provider Orchestrator | Independent Quality Validation
+<!-- AGENT_COUNTS: claude:74 copilot:83 total:157 -->
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -44,7 +45,7 @@ A solopreneur using Claude or Copilot has immense power with no structure.
 
 ## The Solution
 
-MyConvergio adds **65 specialized agents** + independent quality validation + multi-provider routing + budget caps + worktree isolation on top of your existing AI tools.
+MyConvergio adds **157 agent files (74 Claude + 83 Copilot)** + independent quality validation + multi-provider routing + budget caps + worktree isolation on top of your existing AI tools.
 
 Three enforcement policies make it production-grade:
 
@@ -56,17 +57,23 @@ Three enforcement policies make it production-grade:
 
 ## Quick Start
 
-### Option A: One-Line Install (Recommended)
-
-```bash
-curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
-```
-
-### Option B: Clone & Make
+### Option A: Clone & Make (Recommended)
 
 ```bash
 git clone https://github.com/roberdan/MyConvergio.git && cd MyConvergio
 make install          # Full install to ~/.claude/
+```
+
+### Option B: One-Line Install
+
+```bash
+# Verify integrity first (optional)
+curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/checksums.txt -o /tmp/mc-checksums.txt
+curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh -o /tmp/mc-install.sh
+sha256sum -c /tmp/mc-checksums.txt --ignore-missing && bash /tmp/mc-install.sh
+
+# Or direct (trusting the source)
+curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
 ```
 
 ### Option C: Modular Install
@@ -74,7 +81,7 @@ make install          # Full install to ~/.claude/
 ```bash
 myconvergio install --minimal    # 9 core agents (~50KB)
 myconvergio install --standard   # 20 agents (~200KB)
-myconvergio install --lean       # 65 agents, 50% smaller
+myconvergio install --lean       # 74 Claude agent files, 50% smaller
 ```
 
 ### Option D: GitHub Copilot CLI
@@ -83,7 +90,7 @@ myconvergio install --lean       # 65 agents, 50% smaller
 cp copilot-agents/*.agent.md ~/.copilot/agents/
 ```
 
-**Prerequisites**: `bash` + `sqlite3` (preinstalled on macOS/Linux). Zero external dependencies.
+**Prerequisites**: `bash` + `sqlite3` + `jq` (preinstalled on macOS/Linux). Zero external dependencies.
 
 ### Usage
 
@@ -109,7 +116,7 @@ cp copilot-agents/*.agent.md ~/.copilot/agents/
 
 ```bash
 /myconvergio:status    # Show ecosystem status
-/myconvergio:team      # List all 65 agents by category
+/myconvergio:team      # List all 74 Claude agent files by category
 /myconvergio:plan      # Create a strategic execution plan
 ```
 
@@ -121,7 +128,7 @@ cp copilot-agents/*.agent.md ~/.copilot/agents/
 
 | #   | Feature                 | Description                                                       | Docs                                                |
 | --- | ----------------------- | ----------------------------------------------------------------- | --------------------------------------------------- |
-| 1   | 65 Specialized Agents   | Domain experts with personas, not generic templates               | [Agent Portfolio](./docs/agents/agent-portfolio.md) |
+| 1   | 157 Agent Files         | 74 Claude + 83 Copilot agent files with specialized personas      | [Agent Portfolio](./docs/agents/agent-portfolio.md) |
 | 2   | Thor 9-Gate Validation  | Independent QA — reads files, never trusts agent self-reports     | [Concepts](./docs/concepts.md)                      |
 | 3   | Multi-Provider Routing  | Claude + Copilot + Gemini + OpenCode with priority/privacy/budget | [Concepts](./docs/concepts.md)                      |
 | 4   | TDD Enforcement         | RED → GREEN → REFACTOR cycle required for every task              | [Workflow](./docs/workflow.md)                      |
@@ -136,7 +143,7 @@ cp copilot-agents/*.agent.md ~/.copilot/agents/
 
 ## Agent Portfolio
 
-**65 specialized agents** across 8 categories:
+**74 Claude agent files** across 8 categories:
 
 | Category              | Count | Key Agents                                                   |
 | --------------------- | ----- | ------------------------------------------------------------ |
@@ -340,6 +347,6 @@ Commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v9.3.0** | February 2026 | 65 Agents · Multi-Provider · Thor Validation · Claude Code + Copilot CLI
+**v9.17.0** | February 2026 | 157 Agent Files (74 Claude + 83 Copilot) · Multi-Provider · Thor Validation · Claude Code + Copilot CLI
 
 </div>

@@ -23,7 +23,7 @@ fail() {
 }
 
 # Check dependencies
-for cmd in git make bash; do
+for cmd in git make bash jq; do
 	command -v "$cmd" &>/dev/null || fail "Required: '$cmd' not found. Please install it first."
 done
 

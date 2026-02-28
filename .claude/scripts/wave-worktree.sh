@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # wave-worktree.sh — Wave-level worktree lifecycle management
-# Usage: wave-worktree.sh <command> <plan_id> [wave_db_id] [--native-isolation]
-# Commands: create, merge, cleanup, status
+# Usage: wave-worktree.sh <command> <plan_id> [wave_db_id]
+# Commands: create, merge, merge-async, pr-sync, cleanup, status
 #
-# --native-isolation: Uses Task(isolation: worktree) instead of manual git worktree.
-#   Currently experimental — default behavior unchanged when flag is not passed.
+# merge-async: Push + create PR + return immediately (non-blocking).
+#   Next wave can start while PR is in review. Use pr-sync to reconcile.
+# pr-sync: Check previous wave's async PR, rebase current wave, extract feedback.
 #
-# Version: 2.1.0
+# Version: 3.0.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -222,33 +224,223 @@ cmd_merge() {
 			return 1
 		fi
 	else
-		local ci_status
-		ci_status=$(gh pr checks "$pr_number" --repo "$remote_repo" 2>/dev/null | grep -c "fail" || true)
-		if [[ "${ci_status:-0}" -gt 0 ]]; then
-			log_error "CI failed for PR $pr_url"
-			db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
-			return 1
-		fi
+		log_error "pr-ops.sh not found or not executable — cannot verify merge readiness"
+		log_error "Install pr-ops.sh or fix permissions: chmod +x $SCRIPT_DIR/pr-ops.sh"
+		db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 1
 	fi
 
-	# 11. Merge
-	if [[ -x "$SCRIPT_DIR/pr-ops.sh" ]]; then
-		if ! "$SCRIPT_DIR/pr-ops.sh" merge "$pr_number"; then
-			log_error "Merge failed for wave ${wave_db_id} — rolling back to in_progress"
-			db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
-			return 1
-		fi
-	else
-		if ! gh pr merge "$pr_number" --squash --delete-branch; then
-			log_error "Merge failed for wave ${wave_db_id} — rolling back to in_progress"
-			db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
-			return 1
-		fi
+	# 11. Merge (always via pr-ops.sh — no fallback to raw gh pr merge)
+	if ! "$SCRIPT_DIR/pr-ops.sh" merge "$pr_number"; then
+		log_error "Merge failed for wave ${wave_db_id} — rolling back to in_progress"
+		db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 1
 	fi
 
 	# 12. Mark done + cleanup
 	db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
 	cmd_cleanup "$plan_id" "$wave_db_id"
+}
+
+# ---------------------------------------------------------------------------
+# cmd_merge_async plan_id wave_db_id
+# Push + create PR + return immediately (no CI wait, no merge)
+# ---------------------------------------------------------------------------
+cmd_merge_async() {
+	local plan_id="$1" wave_db_id="$2"
+
+	local db_json wt_path branch wave_name
+	db_json=$(wave_get_db "$wave_db_id" 2>/dev/null || true)
+	if echo "$db_json" | grep -q '"error"'; then
+		log_error "Wave not found: db_id=${wave_db_id}"
+		exit 1
+	fi
+	wt_path=$(echo "$db_json" | sed 's/.*"worktree_path":"\([^"]*\)".*/\1/')
+	branch=$(echo "$db_json" | sed 's/.*"branch_name":"\([^"]*\)".*/\1/')
+	wave_name=$(db_query "SELECT COALESCE(name, wave_id) FROM waves WHERE id = ${wave_db_id};" 2>/dev/null || true)
+
+	if [[ -z "$wt_path" ]] || [[ ! -d "$wt_path" ]]; then
+		log_error "Worktree not found for wave ${wave_db_id}: '${wt_path}'"
+		exit 1
+	fi
+
+	local remote
+	remote=$(resolve_github_remote "$wt_path")
+	if [[ -z "$remote" ]]; then
+		log_warn "No git remote — marking wave done (no PR)"
+		db_query "UPDATE waves SET status='done', merge_mode='none', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 0
+	fi
+
+	local main_branch="main"
+	git -C "$wt_path" rev-parse --verify "$main_branch" >/dev/null 2>&1 || main_branch="master"
+
+	local diff_count
+	diff_count=$(git -C "$wt_path" log "${main_branch}..HEAD" --oneline 2>/dev/null | wc -l | tr -d ' ')
+	if [[ "${diff_count:-0}" -eq 0 ]]; then
+		log_info "No changes vs $main_branch — marking done"
+		db_query "UPDATE waves SET status='done', merge_mode='none', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 0
+	fi
+
+	# Commit if dirty
+	local dirty
+	dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null || true)
+	if [[ -n "$dirty" ]]; then
+		git -C "$wt_path" add -A
+		git -C "$wt_path" commit -m "feat(plan-${plan_id}): ${wave_db_id} — ${wave_name}"
+	fi
+
+	# Rebase onto main
+	git -C "$wt_path" fetch "$remote" "$main_branch" 2>/dev/null || true
+	if ! git -C "$wt_path" rebase "$remote/$main_branch" 2>/dev/null; then
+		log_warn "Rebase failed — pushing with merge history"
+		git -C "$wt_path" rebase --abort 2>/dev/null || true
+	fi
+
+	# Push
+	if ! git -C "$wt_path" push --force-with-lease -u "$remote" "$branch" 2>&1; then
+		log_error "Push failed for wave ${wave_db_id}"
+		return 1
+	fi
+
+	# Create PR (non-blocking — no --watch)
+	local remote_repo pr_url pr_number
+	remote_repo=$(git -C "$wt_path" remote get-url "$remote" 2>/dev/null | sed 's|.*github.com[:/]||;s|\.git$||' || true)
+	if [[ -z "$remote_repo" ]] || ! command -v gh >/dev/null 2>&1; then
+		log_warn "gh not available — marking done (no PR)"
+		db_query "UPDATE waves SET status='done', merge_mode='none', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 0
+	fi
+	pr_url=$(gh pr create --repo "$remote_repo" --base "$main_branch" --head "$branch" \
+		--title "Plan ${plan_id}: ${wave_db_id} — ${wave_name}" \
+		--body "Auto-generated by wave-worktree.sh (merge-async) for plan ${plan_id}, wave ${wave_db_id}" 2>&1 || true)
+	pr_number=$(basename "$pr_url")
+	db_query "UPDATE waves SET pr_number=${pr_number:-0}, pr_url='$(sql_escape "$pr_url")', merge_mode='async' WHERE id=${wave_db_id};" 2>/dev/null || true
+
+	log_info "PR #${pr_number} created for wave ${wave_db_id} — NOT waiting for CI/merge"
+	log_info "Next wave can start immediately. Run pr-sync before closing next wave."
+	echo "{\"pr_number\":${pr_number:-0},\"pr_url\":\"${pr_url}\",\"merge_mode\":\"async\"}"
+}
+
+# ---------------------------------------------------------------------------
+# cmd_pr_sync plan_id current_wave_db_id
+# Sync with previous wave's async PR: verify merged, rebase, extract feedback
+# ---------------------------------------------------------------------------
+cmd_pr_sync() {
+	local plan_id="$1" current_wave_db_id="$2"
+
+	# Find previous wave (by position)
+	local prev_wave_id prev_pr prev_status prev_merge_mode
+	read -r prev_wave_id prev_pr prev_status prev_merge_mode < <(db_query -separator ' ' \
+		"SELECT w.id, COALESCE(w.pr_number,0), w.status, COALESCE(w.merge_mode,'sync')
+		 FROM waves w
+		 WHERE w.plan_id=${plan_id}
+		   AND w.position < (SELECT position FROM waves WHERE id=${current_wave_db_id})
+		 ORDER BY w.position DESC LIMIT 1;" 2>/dev/null || echo "0 0 done sync")
+
+	if [[ "$prev_merge_mode" != "async" ]]; then
+		log_info "Previous wave not async — no pr-sync needed"
+		echo '{"sync":"skip","reason":"previous wave not async"}'
+		return 0
+	fi
+
+	if [[ "$prev_status" == "done" ]]; then
+		log_info "Previous wave already done — no sync needed"
+		echo '{"sync":"skip","reason":"already done"}'
+		return 0
+	fi
+
+	if [[ "${prev_pr:-0}" -eq 0 ]]; then
+		log_warn "Previous wave has no PR number — marking done"
+		db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${prev_wave_id};" 2>/dev/null || true
+		echo '{"sync":"done","reason":"no PR"}'
+		return 0
+	fi
+
+	# Check PR status via gh
+	local pr_state
+	pr_state=$(gh pr view "$prev_pr" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
+
+	local feedback=""
+	case "$pr_state" in
+	MERGED)
+		log_info "Previous wave PR #${prev_pr} is MERGED"
+		# Retroactive check: warn if merged with unresolved threads
+		if [[ -f "$SCRIPT_DIR/lib/pr-ops-api.sh" ]]; then
+			source "$SCRIPT_DIR/lib/pr-ops-api.sh"
+			local merged_threads
+			merged_threads=$(gql_review_threads "$prev_pr" 2>/dev/null | jq '[.[]? | select(.isResolved == false)] | length' 2>/dev/null || echo "0")
+			if [[ "${merged_threads:-0}" -gt 0 ]]; then
+				log_warn "PR #${prev_pr} was merged with ${merged_threads} unresolved thread(s) — review before proceeding"
+			fi
+		fi
+		db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${prev_wave_id};" 2>/dev/null || true
+
+		# Rebase current wave onto main
+		local cur_wt
+		cur_wt=$(db_query "SELECT worktree_path FROM waves WHERE id=${current_wave_db_id};" 2>/dev/null || true)
+		cur_wt="${cur_wt/#\~/$HOME}"
+		if [[ -n "$cur_wt" ]] && [[ -d "$cur_wt" ]]; then
+			local remote
+			remote=$(resolve_github_remote "$cur_wt")
+			git -C "$cur_wt" fetch "${remote:-origin}" main 2>/dev/null || true
+			if git -C "$cur_wt" rebase "${remote:-origin}/main" 2>/dev/null; then
+				log_info "Rebased current wave onto main (post-merge)"
+			else
+				log_warn "Rebase conflict — aborting, manual resolution needed"
+				git -C "$cur_wt" rebase --abort 2>/dev/null || true
+				echo '{"sync":"conflict","pr_state":"MERGED","action":"manual rebase needed"}'
+				return 1
+			fi
+		fi
+
+		# Extract PR review feedback
+		feedback=$(gh pr view "$prev_pr" --json reviews,comments --jq '
+			[.reviews[]? | select(.state != "APPROVED") | .body] +
+			[.comments[]? | .body] | map(select(. != null and . != "")) | join("\n---\n")
+		' 2>/dev/null || true)
+		;;
+	OPEN)
+		log_info "Previous wave PR #${prev_pr} still OPEN — checking CI + threads"
+		local checks_ok
+		checks_ok=$(gh pr checks "$prev_pr" 2>/dev/null | grep -c "fail" || true)
+		if [[ "${checks_ok:-0}" -gt 0 ]]; then
+			log_warn "PR #${prev_pr} has CI failures — continue but note"
+		fi
+		# Check unresolved threads on open PR
+		if [[ -f "$SCRIPT_DIR/lib/pr-ops-api.sh" ]]; then
+			source "$SCRIPT_DIR/lib/pr-ops-api.sh"
+			local open_threads
+			open_threads=$(gql_review_threads "$prev_pr" 2>/dev/null | jq '[.[]? | select(.isResolved == false)] | length' 2>/dev/null || echo "0")
+			if [[ "${open_threads:-0}" -gt 0 ]]; then
+				log_warn "PR #${prev_pr} has ${open_threads} unresolved thread(s) — resolve before merge"
+			fi
+		fi
+		echo "{\"sync\":\"pending\",\"pr_state\":\"OPEN\",\"pr_number\":${prev_pr}}"
+		return 0
+		;;
+	CLOSED)
+		log_error "Previous wave PR #${prev_pr} was CLOSED (not merged)"
+		echo '{"sync":"error","pr_state":"CLOSED","action":"investigate"}'
+		return 1
+		;;
+	*)
+		log_warn "Cannot determine PR state for #${prev_pr}: ${pr_state}"
+		echo "{\"sync\":\"unknown\",\"pr_state\":\"${pr_state}\"}"
+		return 0
+		;;
+	esac
+
+	# Save feedback for injection
+	if [[ -n "$feedback" ]]; then
+		local feedback_file="${HOME}/.claude/data/pr-feedback-wave-${prev_wave_id}.txt"
+		echo "$feedback" >"$feedback_file"
+		log_info "PR feedback saved: ${feedback_file}"
+		echo "{\"sync\":\"done\",\"pr_state\":\"MERGED\",\"feedback_file\":\"${feedback_file}\"}"
+	else
+		echo '{"sync":"done","pr_state":"MERGED","feedback":"none"}'
+	fi
 }
 
 # ---------------------------------------------------------------------------
@@ -310,6 +502,8 @@ case "${1:-help}" in
 create) cmd_create "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 status) cmd_status "${2:?plan_id required}" ;;
 merge) cmd_merge "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
+merge-async) cmd_merge_async "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
+pr-sync) cmd_pr_sync "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 cleanup) cmd_cleanup "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
-*) echo "Usage: wave-worktree.sh <create|merge|cleanup|status> <plan_id> [wave_db_id] [--native-isolation]" ;;
+*) echo "Usage: wave-worktree.sh <create|merge|merge-async|pr-sync|cleanup|status> <plan_id> [wave_db_id]" ;;
 esac

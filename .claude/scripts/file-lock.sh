@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # file-lock.sh - File-level locking for concurrent agent work
 # Backend: SQLite (dashboard.db). Commands: acquire|release|release-task|check|heartbeat|list|cleanup
 # Session commands: acquire-session|release-session (non-plan workflow)

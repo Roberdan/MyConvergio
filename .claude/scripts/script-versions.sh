@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # script-versions.sh — Auto-generated index of all scripts with versions
 # Usage: script-versions.sh [--json|--stale|--category <name>]
 # Resolves scripts dir: ~/.claude/scripts → npm global → script's own dir

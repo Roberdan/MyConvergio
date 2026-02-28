@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # wave-overlap.sh - Detect file overlap between tasks in the same wave
 # Prevents parallel agents from touching the same files
 # Backend: SQLite (dashboard.db) tasks table

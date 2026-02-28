@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # file-lock-session.sh - Session-based file locking (non-plan workflow)
 # Sourced by file-lock.sh for acquire-session and release-session commands.
 # Provides re-entrant locking using session_id instead of task_id.

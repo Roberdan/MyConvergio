@@ -73,7 +73,7 @@ TOTAL: ~2 minutes (vs ~10 minutes sequential)
 
 ```bash
 ls package.json Cargo.toml pyproject.toml Makefile 2>/dev/null
-cat VERSION package.json pyproject.toml 2>/dev/null | grep -i version | head -5
+grep -i version VERSION package.json pyproject.toml 2>/dev/null; # use Read tool for full inspection
 git status --short && git log --oneline -5
 ```
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Planner Init - Single-call project context bootstrap
 # Returns JSON with everything the planner needs in ONE call
 # Usage: planner-init.sh [project_path]

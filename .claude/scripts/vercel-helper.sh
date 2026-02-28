@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Vercel CLI wrapper with common operations
 # Replaces Vercel MCP (2.6k token overhead)
 

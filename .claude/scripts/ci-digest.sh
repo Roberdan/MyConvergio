@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # CI Digest - Compact GitHub Actions status as JSON (~200 tokens)
 # Replaces ci-check.sh for AI consumption. Processes logs server-side.
 # Usage: ci-digest.sh [run-id|--all|checks <pr>] [--no-cache] [--compact]

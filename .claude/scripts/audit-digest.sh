@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Audit Digest - Compact npm audit output as JSON
 # Returns only actionable items: critical, high, fixable.
 # Usage: audit-digest.sh [--no-cache] [extra-args...]

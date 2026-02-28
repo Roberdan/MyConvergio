@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Multi-Worker Orchestrator - Run FROM Kitty terminal
 # Multi-Worker Orchestrator - Run FROM Kitty terminal
 # Usage: orchestrate.sh <plan-file> [num-workers] [--engine claude|copilot|mixed] [--use-delegate]

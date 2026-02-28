@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # PR Threads - Fetch unresolved PR review threads with full context
 # Complements pr-digest.sh (compact) with full comment bodies and thread IDs.
 # Usage: pr-threads.sh [pr-number] [--no-cache]

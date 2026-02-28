@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Verify Kitty is properly configured for Claude orchestration
 
 # Version: 1.0.0

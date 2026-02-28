@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # session-cleanup.sh - Kill idle Claude/caffeinate processes to prevent overnight CPU waste
 # Usage: session-cleanup.sh [--dry-run] [--max-idle MINUTES]
 # Can be run manually or via launchd/cron

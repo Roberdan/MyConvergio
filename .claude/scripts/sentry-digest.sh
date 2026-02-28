@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Sentry Digest - Compact Sentry issues status as JSON (~200 tokens)
 # Lists unresolved issues with counts. Can resolve issues by ID.
 # Usage: sentry-digest.sh [list|resolve <id>...] [--no-cache]

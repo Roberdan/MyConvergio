@@ -48,9 +48,9 @@ _render_completed_plans() {
 			thor_status="${GRAY}⊘ No Thor${NC}"
 		fi
 
-		# Count tasks (done/total)
-		task_done_count=$(dbq "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
-		task_total_count=$(dbq "SELECT COUNT(*) FROM tasks WHERE wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id)")
+		# Count tasks (done/total) — exclude cancelled/skipped
+		task_done_count=$(dbq "SELECT COUNT(*) FROM tasks WHERE status='done' AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id AND status != 'cancelled')")
+		task_total_count=$(dbq "SELECT COUNT(*) FROM tasks WHERE status NOT IN ('cancelled', 'skipped') AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id = $plan_id AND status != 'cancelled')")
 
 		# Project display for completed plans
 		done_project_display=""

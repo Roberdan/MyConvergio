@@ -46,10 +46,10 @@ _render_single_plan() {
 	local metrics_data
 	metrics_data=$(dbq "
 		SELECT
-			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid),
+			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid AND status NOT IN ('cancelled', 'skipped')),
 			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid AND status='done'),
 			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid AND status='done' AND validated_at IS NOT NULL),
-			(SELECT COUNT(*) FROM waves WHERE plan_id = $pid),
+			(SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND status NOT IN ('cancelled')),
 			(SELECT COUNT(*) FROM waves WHERE plan_id = $pid AND tasks_done = tasks_total AND tasks_total > 0)
 	")
 	task_total=$(echo "$metrics_data" | cut -d'|' -f1)

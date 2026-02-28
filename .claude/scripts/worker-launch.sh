@@ -9,6 +9,10 @@ set -euo pipefail
 TYPE="${1:?Usage: worker-launch.sh <claude|copilot> <tab_name> <task_db_id> --cwd <dir>}"
 TAB_NAME="${2:?tab_name required}"
 TASK_DB_ID="${3:?task_db_id required}"
+if [[ ! "$TASK_DB_ID" =~ ^[0-9]+$ ]]; then
+	echo "ERROR: task_db_id must be numeric, got: $TASK_DB_ID" >&2
+	exit 1
+fi
 shift 3
 
 CWD="$(pwd)"

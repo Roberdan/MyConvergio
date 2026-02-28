@@ -5,6 +5,13 @@
 # Version: 1.1.0
 set -uo pipefail
 
+# Dry-run mode: warn instead of block
+if [[ "${MYCONVERGIO_DRY_RUN:-0}" == "1" ]]; then
+	DRY_RUN=true
+else
+	DRY_RUN=false
+fi
+
 MAX_LINES=250
 
 # Read JSON input from stdin
@@ -39,6 +46,11 @@ LINE_COUNT=$(/usr/bin/wc -l <"$FILE" 2>/dev/null | tr -d '[:space:]')
 LINE_COUNT=${LINE_COUNT:-0}
 
 if [ "$LINE_COUNT" -gt "$MAX_LINES" ] 2>/dev/null; then
+	if $DRY_RUN; then
+		echo "WARNING (dry-run): File exceeds $MAX_LINES line limit ($LINE_COUNT lines)"
+		echo "File: $FILE"
+		exit 0
+	fi
 	echo "BLOCKED: File exceeds $MAX_LINES line limit ($LINE_COUNT lines)"
 	echo "File: $FILE"
 	echo ""

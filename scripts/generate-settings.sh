@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Hardware-Aware Settings Generator for Claude Code
 # Detects system resources and generates optimal settings.json

@@ -1,17 +1,18 @@
 # MyConvergio Agents
 
-**v9.3.0** | 65 Claude Code Agents + 9 Copilot CLI Agents | Multi-Provider Orchestrator
+**v9.18.0** | 74 Claude Agent Files + 83 Copilot Agent Files | Multi-Provider Orchestrator
+<!-- AGENT_COUNTS: claude:74 copilot:83 total:157 -->
 
 > _"Intent is human, momentum is agent"_ — [The Agentic Manifesto](./AgenticManifesto.md)
 
 ## Overview
 
-MyConvergio is an enterprise AI agent suite providing specialized assistance across strategy, development, compliance, operations, and orchestration. It supports both **Claude Code** (65 agents) and **GitHub Copilot CLI** (9 agents), enabling cross-tool agent discovery and unified workflows.
+MyConvergio is an enterprise AI agent suite providing specialized assistance across strategy, development, compliance, operations, and orchestration. It supports both **Claude Code** (74 agent files) and **GitHub Copilot CLI** (83 agent files), enabling cross-tool agent discovery and unified workflows.
 
 **Key Features**:
 
-- 65 specialized Claude agents across 8 categories
-- 9 Copilot CLI agents for GitHub Copilot users
+- 74 Claude agent files across 8 categories
+- 83 Copilot agent files for GitHub Copilot users
 - Multi-provider orchestration (Claude, Copilot CLI, OpenCode, Gemini)
 - Modular installation tiers (minimal/standard/full)
 - Lean variants (~50% smaller) for context optimization
@@ -30,7 +31,7 @@ MyConvergio is an enterprise AI agent suite providing specialized assistance acr
 | specialized_experts   | 14    | domik, behice, fiona, angela, ethan, evan, michael, research-report-generator         | Claude (sonnet), Gemini        |
 | design_ux             | 3     | creative-director (5 skills), ux-designer, design-thinking                            | Claude (sonnet)                |
 
-**Total**: 65 agents (including 2 constitutional documents: CONSTITUTION.md, CommonValuesAndPrinciples.md)
+**Total**: 157 agent files (74 Claude + 83 Copilot)
 
 ### Model Tiering
 
@@ -88,7 +89,7 @@ compatible_with: [execute, planner, strategic-planner]
 
 ## Copilot CLI Agents
 
-MyConvergio ships **9 Copilot CLI agents** in `copilot-agents/` for GitHub Copilot users:
+MyConvergio ships **83 Copilot CLI agent files** in `copilot-agents/` for GitHub Copilot users:
 
 | Agent               | Purpose                                      |
 | ------------------- | -------------------------------------------- |
@@ -120,14 +121,14 @@ claude --plugin-dir .
 curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
 ```
 
-Clones to `~/.myconvergio/`, copies all 65 agents to `~/.claude/agents/`, installs `myconvergio` CLI.
+Clones to `~/.myconvergio/`, copies all 74 Claude agent files to `~/.claude/agents/`, installs `myconvergio` CLI.
 
 #### Option 3: Modular Install
 
 ```bash
 myconvergio install --minimal                       # 9 core agents (~50KB)
 myconvergio install --standard                      # 20 agents (~200KB)
-myconvergio install --lean                          # 65 agents, 50% smaller
+myconvergio install --lean                          # 74 Claude agent files, 50% smaller
 make install-tier TIER=minimal VARIANT=lean         # Same via Makefile
 ```
 
@@ -135,7 +136,7 @@ make install-tier TIER=minimal VARIANT=lean         # Same via Makefile
 
 - **minimal**: 9 agents (thor, strategic-planner, guardian, task-executor, etc.)
 - **standard**: 20 agents (adds architects, core specialists)
-- **full**: All 65 agents
+- **full**: All 74 Claude agent files
 
 ### Copilot CLI
 
@@ -209,14 +210,13 @@ For tool-specific configuration, environment setup, and operational guidelines, 
 ```
 MyConvergio/
 ├── .claude/                # Claude Code configuration
-│   ├── agents/             # 65 subagents (single source of truth)
+│   ├── agents/             # <!-- AGENT_COUNT_MARKER -->74<!-- /AGENT_COUNT_MARKER --> agent files (single source of truth)
 │   ├── rules/              # Coding standards, engineering guidelines
 │   ├── skills/             # Reusable workflows
 │   ├── scripts/            # 89+ utility scripts
 │   ├── reference/          # Operational docs (on-demand)
 │   └── CLAUDE.md           # Tool-specific config
-├── agents/                 # Agent definitions (deployed to ~/.claude/agents/)
-├── copilot-agents/         # 9 Copilot CLI agents
+├── copilot-agents/         # Copilot CLI agents
 ├── hooks/                  # Enforcement hooks (token optimization)
 ├── scripts/                # Deployment and management
 ├── docs/                   # Documentation
@@ -238,7 +238,7 @@ MyConvergio/
 
 ## Version
 
-**Current**: v9.3.0
+**Current**: v9.18.0
 **Release Notes**: See `CHANGELOG.md`
 **Versioning**: SemVer 2.0.0 (system + individual agents)
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Thor Queue Setup Script
 # Initializes the validation queue for Thor-based quality gating
 #

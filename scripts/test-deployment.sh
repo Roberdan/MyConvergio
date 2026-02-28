@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # =============================================================================
 # MYCONVERGIO DEPLOYMENT TEST SCRIPT
@@ -44,7 +45,7 @@ run_test() {
 	echo -n "Testing: $test_name... "
 
 	set +e
-	eval "$test_cmd" >/dev/null 2>&1
+	bash -c "$test_cmd" >/dev/null 2>&1
 	local result=$?
 	set -e
 
@@ -195,7 +196,50 @@ run_test "No translate-agents.sh script" "[ ! -f '$ROOT_DIR/scripts/translate-ag
 echo ""
 
 # =============================================================================
-# TEST 6: Makefile commands
+# TEST: Worker script numeric ID validation
+# =============================================================================
+echo -e "${BLUE}Test Suite: Worker Script Security${NC}"
+
+COPILOT_WORKER="$ROOT_DIR/.claude/scripts/copilot-worker.sh"
+run_test "copilot-worker.sh has numeric TASK_ID validation" \
+	"grep -qE '\[\[.*TASK_ID.*=~.*\^\\[0-9\\]' '$COPILOT_WORKER'"
+
+echo ""
+
+# =============================================================================
+# TEST: Version Sync (F-02)
+# =============================================================================
+echo -e "${BLUE}Test Suite: Version Sync${NC}"
+
+run_test "version-sync.sh exists" "[ -f '$ROOT_DIR/scripts/version-sync.sh' ]"
+run_test "version-sync.sh is executable" "[ -x '$ROOT_DIR/scripts/version-sync.sh' ]"
+run_test "version-sync.sh is idempotent (no git diff after sync)" \
+	"cd '$ROOT_DIR' && bash scripts/version-sync.sh >/dev/null 2>&1 && [ \"\$(git diff --name-only | wc -l | tr -d ' ')\" = '0' ]"
+run_test "make release target exists" "cd '$ROOT_DIR' && make -n release 2>/dev/null | grep -q 'version-sync'"
+
+echo ""
+
+# =============================================================================
+# TEST: Agent Count Script (F-03)
+# =============================================================================
+echo -e "${BLUE}Test Suite: Agent Count Script${NC}"
+
+run_test "count-agents.sh exists" "[ -f '$ROOT_DIR/scripts/count-agents.sh' ]"
+run_test "count-agents.sh is executable" "[ -x '$ROOT_DIR/scripts/count-agents.sh' ]"
+run_test "count-agents.sh outputs claude: field" \
+	"bash '$ROOT_DIR/scripts/count-agents.sh' | grep -q 'claude:'"
+run_test "count-agents.sh outputs copilot: field" \
+	"bash '$ROOT_DIR/scripts/count-agents.sh' | grep -q 'copilot:'"
+run_test "count-agents.sh claude count >= 50" \
+	"CLAUDE_N=\$(bash '$ROOT_DIR/scripts/count-agents.sh' | grep -oP 'claude:\\s*\\K[0-9]+'); [ \"\$CLAUDE_N\" -ge 50 ]"
+run_test "count-agents.sh copilot count >= 1" \
+	"COPILOT_N=\$(bash '$ROOT_DIR/scripts/count-agents.sh' | grep -oP 'copilot:\\s*\\K[0-9]+'); [ \"\$COPILOT_N\" -ge 1 ]"
+run_test "make count-agents target exists" "cd '$ROOT_DIR' && make -n count-agents 2>/dev/null | grep -q 'count-agents.sh'"
+
+echo ""
+
+# =============================================================================
+# TEST 8: Makefile commands
 # =============================================================================
 echo -e "${BLUE}Test Suite: Makefile Commands${NC}"
 

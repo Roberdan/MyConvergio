@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # spotlight-exclude.sh - Drop .metadata_never_index in build/cache/deps directories
 # Prevents macOS Spotlight from indexing waste (saves CPU, battery, I/O)
 # Usage: spotlight-exclude.sh [path...] [--dry-run] [--worktree-cleanup]

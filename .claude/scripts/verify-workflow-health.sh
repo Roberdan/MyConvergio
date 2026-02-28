@@ -30,7 +30,7 @@ done
 check() {
 	local name="$1" cmd="$2" expected="${3:-0}"
 	local result
-	result=$(eval "$cmd" 2>/dev/null) || true
+	result=$(bash -c "$cmd" 2>/dev/null) || true
 	local exit_code=$?
 	if [[ "$expected" == "0" && $exit_code -eq 0 ]] || [[ "$result" == *"$expected"* ]]; then
 		PASS=$((PASS + 1))
@@ -46,7 +46,7 @@ check() {
 check_exit() {
 	local name="$1" cmd="$2" expected_exit="$3"
 	local actual_exit=0
-	eval "$cmd" >/dev/null 2>&1 && actual_exit=0 || actual_exit=$?
+	bash -c "$cmd" >/dev/null 2>&1 && actual_exit=0 || actual_exit=$?
 	if [[ "$actual_exit" -eq "$expected_exit" ]]; then
 		PASS=$((PASS + 1))
 		RESULTS+=("PASS|$name")

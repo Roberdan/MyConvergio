@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Verify directory structure
         run: |
@@ -26,13 +26,22 @@ jobs:
 
       - name: Count agents
         run: |
-          AGENT_COUNT=$(find .claude/agents -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'MICROSOFT_VALUES.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'EXECUTION_DISCIPLINE.md' | wc -l)
-          echo "Found $AGENT_COUNT agents"
-          if [ "$AGENT_COUNT" -lt 50 ]; then
-            echo "❌ Expected at least 50 agents, found $AGENT_COUNT"
+          COUNTS=$(bash scripts/count-agents.sh)
+          echo "$COUNTS"
+          CLAUDE_COUNT=$(echo "$COUNTS" | sed -E 's/.*claude:([0-9]+).*/\1/')
+          COPILOT_COUNT=$(echo "$COUNTS" | sed -E 's/.*copilot:([0-9]+).*/\1/')
+          if [ "$CLAUDE_COUNT" -lt 50 ]; then
+            echo "❌ Expected at least 50 Claude agent files, found $CLAUDE_COUNT"
+            exit 1
+          fi
+          if [ "$COPILOT_COUNT" -lt 1 ]; then
+            echo "❌ Expected at least 1 Copilot agent file, found $COPILOT_COUNT"
             exit 1
           fi
           echo "✅ Agent count OK"
+
+      - name: Check README/AGENTS count template
+        run: bash scripts/count-agents.sh --check-docs
 
       - name: Validate YAML frontmatter
         run: |

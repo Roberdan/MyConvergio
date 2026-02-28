@@ -1,0 +1,20 @@
+# MyConvergio CODEOWNERS — Require review for critical paths
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Constitution and core governance
+.claude/agents/core_utility/CONSTITUTION.md @roberdan
+.claude/agents/core_utility/CommonValuesAndPrinciples.md @roberdan
+
+# Security-sensitive hooks
+hooks/ @roberdan
+
+# Installation scripts
+install.sh @roberdan
+scripts/install-selector.sh @roberdan
+Makefile @roberdan
+
+# CI/CD workflows
+.github/workflows/ @roberdan
+
+# Security configuration
+SECURITY.md @roberdan

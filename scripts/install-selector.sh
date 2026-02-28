@@ -93,7 +93,7 @@ install_standard() {
 		fi
 	done
 
-	COUNT=$(find "$CLAUDE_HOME/agents" -name '*.md' ! -name 'CONSTITUTION.md' ! -name '*.md' -type f | wc -l | tr -d ' ')
+	COUNT=$(find "$CLAUDE_HOME/agents" -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' -type f | wc -l | tr -d ' ')
 	echo ""
 	echo -e "${GREEN}✅ Installed $COUNT agents${NC}"
 }

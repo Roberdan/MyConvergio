@@ -1,5 +1,5 @@
 #!/bin/bash
-# MyConvergio CLI v8.1.0 — Agent management for Claude Code
+# MyConvergio CLI v9.18.0 — Agent management for Claude Code
 set -euo pipefail
 
 # Resolve symlinks to find repo root

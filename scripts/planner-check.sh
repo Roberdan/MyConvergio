@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # planner-check.sh — Validate planner workflow completed correctly
 # Usage: planner-check.sh <PLAN_ID>
 # Checks: spec exists, plan in DB, tasks imported, worktree set

@@ -65,7 +65,9 @@ TASK_CTX=$(sqlite3 "$DB_FILE" "
 	SELECT json_object(
 		'worktree', COALESCE(p.worktree_path,''),
 		'plan_id', COALESCE(t.plan_id,0),
-		'project_id', COALESCE(p.project_id,'')
+		'project_id', COALESCE(p.project_id,''),
+		'task_type', COALESCE(t.type,'code'),
+		'task_title', COALESCE(t.title,'')
 	)
 	FROM tasks t
 	JOIN plans p ON t.plan_id = p.id
@@ -75,6 +77,8 @@ WT="$(echo "$TASK_CTX" | jq -r '.worktree // ""')"
 WT="${WT/#\~/$HOME}"
 PLAN_ID="$(echo "$TASK_CTX" | jq -r '.plan_id // 0')"
 PROJECT_ID="$(echo "$TASK_CTX" | jq -r '.project_id // ""')"
+TASK_TYPE="$(echo "$TASK_CTX" | jq -r '.task_type // "code"')"
+TASK_TITLE="$(echo "$TASK_CTX" | jq -r '.task_title // ""')"
 
 # Generate prompt
 PROMPT=$("$SCRIPT_DIR/copilot-task-prompt.sh" "$TASK_ID")
@@ -186,12 +190,26 @@ elif [[ "$EXIT_CODE" -ne 0 ]]; then
 	echo "{\"status\":\"error\",\"task_id\":${TASK_ID},\"exit_code\":${EXIT_CODE}}" >&2
 	THOR_RESULT="REJECT"
 elif [[ "$FINAL_STATUS" != "done" && "$FINAL_STATUS" != "submitted" ]]; then
+	# Check if this is a verification/closure task that doesn't require file changes
+	_title_lower="$(echo "$TASK_TITLE" | tr '[:upper:]' '[:lower:]')"
+	IS_VERIFY_TASK=false
+	if [[ "$TASK_TYPE" == "chore" && "$_title_lower" == create\ pr* ]]; then IS_VERIFY_TASK=true; fi
+	if [[ "$TASK_TYPE" == "test" ]] && [[ "$_title_lower" == verify* || "$_title_lower" == consolidate\ and\ verify* || "$_title_lower" == run\ full\ validation* ]]; then IS_VERIFY_TASK=true; fi
+	if [[ "$TASK_TYPE" == "doc" || "$TASK_TYPE" == "docs" ]]; then IS_VERIFY_TASK=true; fi
+
 	if WORK_DONE="$(verify_work_done "$WT" 2>/dev/null)"; then
 		ARTIFACTS_JSON="$(git -C "$WT" status --porcelain | awk '{print $2}' | jq -Rsc 'split("\n") | map(select(length>0)) | unique')"
 		OUTPUT_DATA="$(jq -cn --arg summary 'Auto-completed from detected worktree changes' --argjson artifacts "$ARTIFACTS_JSON" '{summary:$summary,artifacts:$artifacts}')"
 		NOTE="Auto-completed: worker changed files but task status was not updated"
 		safe_update_task "$TASK_ID" done "$NOTE" --tokens "$TOKENS_USED" --output-data "$OUTPUT_DATA" || true
 		# plan-db-safe.sh sets 'submitted' (not done). Thor validation required.
+		FINAL_STATUS="submitted"
+		THOR_RESULT="PENDING"
+		echo '{"status":"submitted","task_id":'$TASK_ID',"copilot_exit":'$EXIT_CODE'}'
+	elif [[ "$IS_VERIFY_TASK" == true && "$EXIT_CODE" -eq 0 ]]; then
+		NOTE="Auto-completed: verification/closure task with clean exit (no file changes expected)"
+		OUTPUT_DATA='{"summary":"Verification task completed without file changes","artifacts":[]}'
+		safe_update_task "$TASK_ID" done "$NOTE" --tokens "$TOKENS_USED" --output-data "$OUTPUT_DATA" || true
 		FINAL_STATUS="submitted"
 		THOR_RESULT="PENDING"
 		echo '{"status":"submitted","task_id":'$TASK_ID',"copilot_exit":'$EXIT_CODE'}'

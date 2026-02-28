@@ -1,6 +1,6 @@
 #!/bin/bash
 # PR rendering helper functions (DB-driven from waves table)
-# Version: 2.1.0
+# Version: 2.2.0
 
 # Extract clean PR URL from pr_url field (handles "already exists:" messages)
 _sanitize_pr_url() {
@@ -43,7 +43,7 @@ _render_plan_prs() {
 		clean_url=$(_sanitize_pr_url "$pr_url")
 
 		# Wave status → PR status display
-		local pr_status_display ci_display=""
+		local pr_status_display ci_display="" review_display=""
 		case "$wstatus" in
 		done)
 			pr_status_display="${GREEN}merged${NC}"

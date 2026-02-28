@@ -1,0 +1,9 @@
+{
+  "mappings": [
+    { "path": "~/GitHub/VirtualBPM", "account": "roberdan_microsoft" },
+    { "path": "~/GitHub/MirrorBuddy", "account": "Roberdan" },
+    { "path": "~/GitHub/MyConvergio", "account": "Roberdan" },
+    { "path": "~/.claude", "account": "Roberdan" }
+  ],
+  "default_account": null
+}

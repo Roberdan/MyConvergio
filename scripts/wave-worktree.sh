@@ -237,6 +237,25 @@ cmd_merge() {
 		return 1
 	fi
 
+	# 11b. Post-merge CI watch on main (non-blocking — merge already happened)
+	if [[ -x "$SCRIPT_DIR/ci-watch.sh" ]]; then
+		log_info "Monitoring CI on $main_branch after merge..."
+		local merge_sha ci_result ci_status
+		merge_sha=$(git -C "$wt_path" rev-parse "$remote/$main_branch" 2>/dev/null || echo "")
+		if [[ -n "$merge_sha" ]]; then
+			ci_result=$("$SCRIPT_DIR/ci-watch.sh" "$main_branch" --repo "$remote_repo" --sha "$merge_sha" --timeout 120 2>/dev/null || echo '{"status":"error"}')
+			ci_status=$(echo "$ci_result" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")
+			if [[ "$ci_status" == "fail" ]]; then
+				log_warn "CI on $main_branch FAILED after merge of wave ${wave_db_id}. Review immediately."
+				log_warn "Failed checks: $(echo "$ci_result" | jq -r '[.checks[]? | select(.conclusion=="fail") | .name] | join(", ")' 2>/dev/null || echo "unknown")"
+			elif [[ "$ci_status" == "pass" ]]; then
+				log_info "CI on $main_branch passed after merge"
+			else
+				log_info "CI on $main_branch: $ci_status (non-blocking)"
+			fi
+		fi
+	fi
+
 	# 12. Mark done + cleanup
 	db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
 	cmd_cleanup "$plan_id" "$wave_db_id"

@@ -23,6 +23,7 @@
 | Copilot bot PR comments                                | `copilot-review-digest.sh`               |
 | Manual audit scripts such as hardening-check + linters | `project-audit.sh --project-root $(pwd)` |
 | `gh pr checks`                                         | `ci-digest.sh checks <pr>`               |
+| `CI polling post-merge`                                | `ci-watch.sh`                            |
 
 ## Options
 

@@ -37,10 +37,12 @@ plan-db.sh wave-overlap check-spec spec.yaml    # Intra-wave overlap detection (
 plan-db.sh validate-task {task_id} {plan}  # Per-task Thor validation
 plan-db.sh validate-wave {wave_db_id}     # Per-wave Thor validation
 plan-db.sh validate {id}                  # Bulk Thor validation (all done tasks)
+plan-db.sh complete {plan_id}              # Blocks if wave PRs not MERGED on GitHub (--force to bypass)
 plan-db.sh cancel {plan_id} "reason"      # Cancel plan (cascade → waves → tasks)
 plan-db.sh cancel-wave {wave_db_id} "reason"  # Cancel wave (cascade → tasks)
 plan-db.sh cancel-task {task_db_id} "reason"  # Cancel single task
 plan-db.sh execution-tree {plan_id}       # Colored tree view with reasons
+ci-watch.sh [branch] [--repo R] [--sha S] [--timeout N]  # Poll CI with backoff (JSON output)
 ```
 
 ## Troubleshooting: `complete` Fails (N/M tasks done)

@@ -86,6 +86,7 @@ After ALL tasks in a wave are Thor-validated:
 
 4. **Thor per-wave**: `plan-db.sh validate-wave {wave_db_id}`
 5. **Wave merge**: `wave-worktree.sh merge {plan_id} {wave_db_id}` → auto-commit + rebase onto main + push (force-with-lease) + PR + CI + review comments check + squash merge to main
+   5b. **Post-merge CI watch**: `ci-watch.sh` auto-monitors main CI after squash merge. If fail, coordinator logs warning. Non-blocking (merge already happened).
 6. **If merge blocked (unresolved PR comments)**: Invoke `Task(subagent_type='pr-comment-resolver')` with PR number. After resolution, retry `wave-worktree.sh merge`. Max 3 rounds.
 7. **Wave cleanup (NON-NEGOTIABLE)**: After merge succeeds, verify ALL artifacts are cleaned:
    - `session-reaper.sh --max-age 0` (kill orphan processes)

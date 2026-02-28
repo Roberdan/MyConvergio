@@ -26,7 +26,7 @@ Branch: feature/, fix/, chore/ | Conventional commits | Lint+typecheck+test befo
 
 After every push on a PR, before merge:
 
-1. **CI green**: Wait for full CI. Fix ALL failures in one commit (CI Batch Fix rule)
+1. **CI green**: Wait for full CI. Fix ALL failures in one commit (CI Batch Fix rule). Use `ci-watch.sh` for automated polling.
 2. **Review comments**: `pr-threads.sh {pr} --no-cache` — check unresolved count
 3. **Resolve all threads**: For each unresolved thread — analyze, fix code, commit, reply, resolve. Use `pr-comment-resolver` agent or manual fix. Zero unresolved threads required.
 4. **Readiness check**: `pr-ops.sh ready {pr}` — must show 0 blockers

@@ -32,6 +32,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.claude/hooks/gh-auto-token.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/worktree-guard.sh",
             "timeout": 5
           },
@@ -137,16 +142,6 @@
             "prompt": "~/.claude/hooks/advisory-suggest-alternatives.sh"
           }
         ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "codegraph mark-dirty",
-            "async": true
-          }
-        ]
       }
     ],
     "SubagentStart": [
@@ -225,15 +220,6 @@
             "type": "command",
             "command": "~/.claude/hooks/session-reaper.sh",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "codegraph sync-if-dirty"
           }
         ]
       }

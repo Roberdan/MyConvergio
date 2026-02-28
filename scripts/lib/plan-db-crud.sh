@@ -555,6 +555,29 @@ cmd_complete() {
 		return 1
 	fi
 
+	# Check that all wave PRs are actually MERGED on GitHub (live verification)
+	if [[ "$force_flag" != "--force" ]] && command -v gh >/dev/null 2>&1; then
+		local waves_with_prs unmerged_prs
+		waves_with_prs=$(sqlite3 "$DB_FILE" "SELECT wave_id, pr_number FROM waves WHERE plan_id = $plan_id AND pr_number IS NOT NULL AND pr_number > 0;")
+		if [[ -n "$waves_with_prs" ]]; then
+			unmerged_prs=""
+			while IFS='|' read -r wave_id pr_num; do
+				[[ -z "$pr_num" ]] && continue
+				local pr_state
+				pr_state=$(gh pr view "$pr_num" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
+				if [[ "$pr_state" != "MERGED" ]]; then
+					unmerged_prs="${unmerged_prs}  Wave $wave_id: PR #$pr_num ($pr_state)\n"
+				fi
+			done <<<"$waves_with_prs"
+			if [[ -n "$unmerged_prs" ]]; then
+				log_error "Cannot complete plan $plan_id: PRs not merged on GitHub"
+				echo -e "$unmerged_prs" >&2
+				echo "  Use --force to bypass this check" >&2
+				return 1
+			fi
+		fi
+	fi
+
 	# Check worktree merge status if worktree exists
 	if [[ -n "$worktree_path" && "$force_flag" != "--force" ]]; then
 		local wt_expanded="$(_expand_path "$worktree_path")"

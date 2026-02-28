@@ -92,6 +92,6 @@ SELECT
 		echo ""
 	fi
 
-	echo -e "${GRAY}Dashboard: ${CYAN}${DASHBOARD_URL}${NC} ${GRAY}│ Usa ${WHITE}piani -h${GRAY} per opzioni${NC}"
+	echo -e "${GRAY}Usa ${WHITE}piani -h${GRAY} per opzioni${NC}"
 	echo ""
 }

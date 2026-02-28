@@ -61,7 +61,7 @@ plan-db-safe.sh update-task $TASK_ID done "Summary"  # auto-validates
 ## Verification
 
 ```bash
-curl http://localhost:31415/api/plans/claude    # Dashboard
+piani -p <plan_id>                               # CLI dashboard
 sqlite3 ~/.claude/data/dashboard.db \
   "SELECT id, name, status FROM plans WHERE project_id='claude';"
 ```

@@ -46,12 +46,12 @@ record_sqlite_async() {
 	echo "Recorded: $input_tokens + $output_tokens tokens ($agent)"
 }
 
-# Async API write (conditionally called when DB is not available)
+# Async DB write (fallback when direct DB insert is not available)
 record_api_async() {
 	local json="$1"
-	local api_url="${DASHBOARD_API:-http://127.0.0.1:31415/api/tokens}"
-	{ curl -s -X POST "$api_url" -H "Content-Type: application/json" -d "$json" >/dev/null 2>&1; } &
-	echo "Recorded tokens via API"
+	local db="$HOME/.claude/data/dashboard.db"
+	{ sqlite3 "$db" ".timeout 3000" "INSERT INTO token_usage (project_id, agent, model, input_tokens, output_tokens, cost_usd, created_at) SELECT json_extract('$json','$.project_id'), json_extract('$json','$.agent'), json_extract('$json','$.model'), json_extract('$json','$.input_tokens'), json_extract('$json','$.output_tokens'), json_extract('$json','$.cost_usd'), datetime('now');" 2>/dev/null; } &
+	echo "Recorded tokens via DB"
 }
 
 # Parse hook event types (TeammateIdle, TaskCompleted)

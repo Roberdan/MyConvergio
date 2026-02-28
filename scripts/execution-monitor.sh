@@ -10,8 +10,7 @@ set -euo pipefail
 PLAN_ID="${1:-}"
 REFRESH="${2:-3}"
 DB="$HOME/.claude/data/dashboard.db"
-API="${DASHBOARD_API:-http://localhost:31415/api}"
-DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:31415}"
+DB="$HOME/.claude/data/dashboard.db"
 
 # Colors
 RED='\033[0;31m'
@@ -160,7 +159,7 @@ while true; do
 	echo -e "  ${BOLD}Tokens Used:${NC} ${TOTAL_TOKENS}"
 
 	# Dashboard link
-	echo -e "  ${BOLD}Dashboard:${NC} ${DASHBOARD_URL}?project=$PROJECT_ID&plan=$PLAN_ID"
+	echo -e "  ${BOLD}Dashboard:${NC} piani -p $PLAN_ID"
 	echo ""
 
 	# Footer

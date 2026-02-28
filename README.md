@@ -1,13 +1,13 @@
 # ~/.claude - Claude Global Configuration
 
-Personal Claude Code configuration with dashboard, scripts, and rules.
+Personal Claude Code configuration with scripts and rules.
 
 ## Quick Start
 
 ```bash
-~/.claude/server.sh start|stop|restart|status|logs  # PM2 management
-curl http://localhost:31415/api/health              # Health check
-open http://localhost:31415                         # Dashboard
+piani                 # Terminal dashboard (interactive)
+piani -n              # Single-shot view
+piani -p 265          # Drill-down on plan
 ```
 
 ## Architecture Overview
@@ -27,9 +27,8 @@ graph TB
         J[stale-check.sh] --> F
     end
     subgraph "Dashboard"
-        F --> K[API :31415]
-        K --> L[Web UI]
-        K --> M[SSE Stream]
+        F --> K[dashboard-mini.sh]
+        K --> L[Terminal UI]
     end
     B --> E
     C --> E
@@ -218,9 +217,8 @@ flowchart TD
 
 ```
 ~/.claude/
-├── CLAUDE.md, README.md, PLANNER-ARCHITECTURE.md, server.sh
+├── CLAUDE.md, README.md, PLANNER-ARCHITECTURE.md
 ├── data/dashboard.db      # SQLite WAL mode
-├── dashboard/             # API :31415
 ├── docs/adr/              # ADR-0001 to ADR-0008
 ├── rules/                 # Auto-loaded: coding-standards.md, guardian.md
 ├── reference/             # NOT auto-loaded: operational/, detailed/
@@ -282,7 +280,6 @@ script-versions.sh --category <name>       # Filter: digest, pr, ci, plan-db, wo
 ### Other Utilities
 
 ```bash
-server.sh start|stop|restart|status|logs
 register-project.sh "$(pwd)" --name "Name"
 cleanup-cache.sh, session-cleanup.sh [--dry-run]
 ```
@@ -291,25 +288,12 @@ cleanup-cache.sh, session-cleanup.sh [--dry-run]
 
 - **MCP source of truth**: `~/.claude/mcp.json` (Desktop mirrors this)
 - **Dashboard DB**: `~/.claude/data/dashboard.db` (SQLite WAL)
-- **Token API**: `DASHBOARD_API` or `http://127.0.0.1:31415/api/tokens`
-
-## Dashboard API
-
-```
-GET  /api/health, /api/plans, /api/plans/:id
-POST /api/tokens
-GET  /api/tokens/summary/:plan_id, /api/notifications/stream (SSE)
-```
 
 ## Troubleshooting
 
 ```bash
-# Dashboard restart
-lsof -ti:31415 | xargs kill -9 && cd ~/.claude/dashboard && node reboot.js
 # Database check
 sqlite3 ~/.claude/data/dashboard.db ".tables"
-# PM2 reset
-pm2 kill && pm2 start ~/.claude/dashboard/ecosystem.config.js && pm2 save
 ```
 
 ## ADRs

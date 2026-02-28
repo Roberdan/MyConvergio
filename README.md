@@ -1,174 +1,39 @@
 # MyConvergio Platform
 
-An AI-powered software engineering orchestration platform that turns a single user request into a fully planned, executed, validated, and merged codebase change — across multiple AI providers, with zero manual intervention after approval.
+**A trust layer between AI agents and your codebase.**
 
-**32 agents** | **119 scripts** | **24 ADRs** | **Multi-model, per-task routing** | **SQLite-backed state**
+AI coding agents produce [1.7x more logical bugs](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report) than human code. Google's DORA Report found [+91% code review time and +154% PR size](https://dora.dev) with AI adoption. The [pattern that works](https://www.codebridge.tech/articles/mastering-multi-agent-orchestration-coordination-is-the-new-scale-frontier) is Planner, Worker, Judge — not equal-status agents hoping for the best.
 
-## What Makes This Different
+MyConvergio adds independent validation, file isolation, and merge automation to AI coding workflows. Provider-agnostic: Claude Code, Copilot CLI, Gemini, OpenCode.
 
-### vs. Cursor / Windsurf / Aider (Single-Agent IDE Tools)
+---
 
-These tools give you one AI assistant editing files in your IDE. MyConvergio gives you an **orchestrated multi-agent pipeline**:
+## Before and after
 
-| Capability     | Single-Agent Tools                   | MyConvergio                                                       |
-| -------------- | ------------------------------------ | ----------------------------------------------------------------- |
-| Planning       | None — user tells AI what to do      | AI planner decomposes into waves, tasks, dependencies             |
-| Execution      | One agent, one file at a time        | Parallel executors (up to 5 concurrent), auto-routed              |
-| Validation     | User reviews diff                    | Independent Thor validator (9 gates), no self-approval            |
-| State tracking | None — context lost between sessions | SQLite DB with full audit trail across sessions                   |
-| Model routing  | One model for everything             | Per-task model selection: best model for each task's complexity   |
-| Merge strategy | Manual git                           | Automated: batch/sync/none per wave, theme grouping, PR lifecycle |
-| Learning       | Starts fresh every time              | CI knowledge base, failed approaches log, post-mortem learnings   |
-| Multi-provider | Locked to one provider               | Claude + Copilot + GPT + Gemini in the same plan                  |
+| Without trust layer                  | With MyConvergio                                                        |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| Agent says "done" and you trust it   | Thor validator: 9 gates, fresh context, SQLite-enforced                 |
+| Two agents edit same file, last wins | File locking blocks second agent, zero silent overwrites                |
+| CI log dumps 2000 lines into context | Digest scripts compress to 50-line JSON, 10x less tokens                |
+| "How many tasks are done?" — no idea | SQLite plan state + CLI dashboard + execution tree                      |
+| Manual merge, pray nothing breaks    | Wave auto-merge: rebase, CI, squash, cleanup                            |
+| Locked into one model provider       | Per-task routing: Opus for architecture, Codex for code, Haiku for bulk |
 
-### vs. GitHub Copilot Workspace / Devin
+---
 
-| Capability           | Copilot Workspace / Devin | MyConvergio                                                               |
-| -------------------- | ------------------------- | ------------------------------------------------------------------------- |
-| Provider lock-in     | GitHub / Cognition only   | Any LLM provider, routed per task                                         |
-| Quality gates        | Basic CI                  | 9-gate Thor validation + plan-reviewer + business-advisor                 |
-| Model intelligence   | One model fits all        | Per-task routing: Opus for architecture, Codex for bulk, Haiku for config |
-| Merge intelligence   | One PR per session        | Theme-based batching, planner-decided merge strategy                      |
-| Institutional memory | None                      | Per-repo CI knowledge, cross-plan learnings, failed approaches            |
-| Concurrency          | Sequential                | Parallel wave execution with file locking + stale detection               |
-
-### vs. Custom Agent Frameworks (CrewAI, AutoGen, LangGraph)
-
-Those are frameworks — you build the pipeline yourself. MyConvergio is the **finished product**: a production-ready orchestration platform with 119 tested scripts, 32 specialized agents, and 24 architectural decisions codified as ADRs. You don't write agent code — you write a user request, and the platform handles the rest.
-
-## Key Innovations
-
-### 1. Intelligent Model Routing
-
-The planner **selects the best model for each task** based on complexity, risk, and domain. Not one model for everything — the right model for each job:
-
-```
-T1-01: config change     → gpt-5.1-codex-mini   (fast, simple)
-T1-02: standard feature  → gpt-5.3-codex         (capable, bulk work)
-T2-01: security review   → claude-opus-4.6       (best judgment, reasoning)
-T2-02: complex refactor  → claude-sonnet-4.6     (good balance)
-T3-01: architecture      → claude-opus-4.6       (cross-cutting decisions)
-T3-02: docs update       → claude-haiku-4.5      (fast, trivial)
-```
-
-The planner reasons about **what each task needs**: cross-cutting impact? Use Opus. Mechanical code generation? Use Codex. Security-sensitive? Never delegate to a weak model. This routing is decided at planning time, not hardcoded.
-
-### 2. Planner-Driven Merge Strategy
-
-The planner reasons about merge strategy — not a fixed rule. Waves are grouped into themes; intermediate waves batch on a shared branch, boundary waves trigger PR + CI + merge.
-
-```mermaid
-flowchart LR
-    subgraph "Theme: security"
-        W1[W1 batch] --> W2[W2 sync]
-    end
-    subgraph "Theme: quality"
-        W3[W3 batch] --> W4[W4 batch] --> W5[W5 sync]
-    end
-    subgraph "Closure"
-        WF[WF sync]
-    end
-
-    W2 -->|"PR: W1+W2"| Main[(main)]
-    W5 -->|"PR: W3+W4+W5"| Main
-    WF -->|PR| Main
-
-    style W1 fill:#ffd
-    style W3 fill:#ffd
-    style W4 fill:#ffd
-    style W2 fill:#9f9
-    style W5 fill:#9f9
-    style WF fill:#9f9
-```
-
-A 6-wave plan with batch mode creates **2-3 PRs** instead of 6, saving hours of CI overhead.
-
-### 3. Independent Quality Validation (Thor)
-
-Task executors **cannot self-declare done**. A SQLite trigger physically blocks `status='done'` unless set by the Thor validator. No agent can bypass this — it's enforced at the database level.
-
-```mermaid
-graph LR
-    subgraph "Per-Task (Gate 1-4,8,9)"
-        T1[1: Task Compliance]
-        T2[2: Code Quality]
-        T3[3: ISE Standards]
-        T4[4: Repo Compliance]
-        T8[8: TDD Evidence]
-        T9[9: Constitution+ADR]
-    end
-    subgraph "Per-Wave (All 9 + Build)"
-        W5[5: Documentation]
-        W6[6: Git Standards]
-        W7[7: Performance]
-        W10[Build Passes]
-    end
-    T1 --> T2 --> T3 --> T4 --> T8 --> T9
-    T9 --> W5 --> W6 --> W7 --> W10
-    style T9 fill:#ff9
-    style W10 fill:#9f9
-```
-
-### 4. Institutional Memory
-
-The system learns from every plan execution:
-
-- **CI Knowledge Base** (`ci-knowledge.md` per repo): recurring review patterns, auto-updated by post-mortem
-- **Failed Approaches Log**: what was tried and why it failed — next plan avoids repeating mistakes
-- **Plan Intelligence**: calibrated effort estimates from historical actuals, not guesses
-- **Constraint Extraction**: hard limits extracted from user brief, validated against every task
-
-### 5. Cross-Engine Architecture
-
-Everything works with **any AI provider**. The architecture is engine-agnostic by design:
-
-```mermaid
-flowchart TD
-    subgraph "Orchestration Layer (engine-agnostic)"
-        P[Planner] --> S[spec.yaml]
-        S --> I[plan-db.sh import]
-        I --> DB[(dashboard.db)]
-        DB --> E[Executor Router]
-    end
-
-    subgraph "Execution Engines (pluggable)"
-        E -->|"executor_agent: copilot"| C1[copilot-worker.sh]
-        E -->|"executor_agent: claude"| C2[task-executor agent]
-        E -->|"executor_agent: gemini"| C3[future: gemini-worker]
-        C1 --> V[Thor Validation]
-        C2 --> V
-        C3 --> V
-    end
-
-    subgraph "Merge Layer (engine-agnostic)"
-        V --> M[wave-worktree.sh]
-        M --> G[git + GitHub API]
-    end
-```
-
-**How it works**: Task executors receive a worktree path and a task description. They write code. They don't know about merge strategy, other tasks, or the plan structure. The coordinator handles everything else. Adding a new engine means writing one worker script.
-
-| Component       | Copilot CLI              | Claude Code                           | Both                              |
-| --------------- | ------------------------ | ------------------------------------- | --------------------------------- |
-| Plan creation   | `@planner`               | `Skill(skill="planner")`              | spec.yaml is the handoff contract |
-| Task execution  | `copilot-worker.sh`      | `Task(subagent_type="task-executor")` | Same DB, same worktree            |
-| Thor validation | `@validate`              | `Task(subagent_type="thor")`          | Same 9 gates                      |
-| Merge           | `wave-worktree.sh merge` | `wave-worktree.sh merge`              | Identical bash script             |
-| Dashboard       | `piani`                  | `piani`                               | Same SQLite DB                    |
-
-## System Architecture
+## Architecture
 
 ```mermaid
 graph TB
     subgraph "Context Layer"
-        A[Session] --> B[CLAUDE.md<br/>47 lines]
-        A --> C[rules/*.md<br/>4 files]
-        A -.->|on-demand| D[reference/operational/<br/>7 files]
+        A[Session] --> B[CLAUDE.md]
+        A --> C[rules/*.md]
+        A -.->|on-demand| D[reference/operational/]
     end
     subgraph "Planning"
-        E["Planner"] --> F["spec.yaml<br/>schema-validated"]
+        E["Planner"] --> F["spec.yaml"]
         F --> G[plan-db.sh import]
-        G --> H[(dashboard.db<br/>SQLite WAL)]
+        G --> H[(dashboard.db)]
         I[plan-reviewer] --> F
         J[plan-business-advisor] --> F
     end
@@ -193,7 +58,7 @@ graph TB
     end
 ```
 
-## Workflow
+### Core pipeline
 
 ```mermaid
 stateDiagram-v2
@@ -228,7 +93,82 @@ stateDiagram-v2
     PostMortem --> [*]: plan-db.sh complete
 ```
 
-## Concurrency Control
+---
+
+## Thor: the agent that says no
+
+The [industry consensus](https://vadim.blog/verification-gate-research-to-practice): generation without verification is a net negative. Thor is the independent validator.
+
+```mermaid
+graph LR
+    subgraph "Per-Task (Gate 1-4,8,9)"
+        T1[1: Task Compliance]
+        T2[2: Code Quality]
+        T3[3: ISE Standards]
+        T4[4: Repo Compliance]
+        T8[8: TDD Evidence]
+        T9[9: Constitution+ADR]
+    end
+    subgraph "Per-Wave (All 9 + Build)"
+        W5[5: Documentation]
+        W6[6: Git Standards]
+        W7[7: Performance]
+        W10[Build Passes]
+    end
+    T1 --> T2 --> T3 --> T4 --> T8 --> T9
+    T9 --> W5 --> W6 --> W7 --> W10
+    style T9 fill:#ff9
+    style W10 fill:#9f9
+```
+
+Thor runs as a **separate agent with fresh context**. Tasks move `submitted` to `done` **only** through Thor. A SQLite trigger (`enforce_thor_done`) blocks any bypass — even raw SQL.
+
+---
+
+## Model routing
+
+Per-task model selection based on complexity and risk. [Plan-and-Execute can reduce costs 90%](https://www.pulumi.com/blog/ai-predictions-2026-devops-guide/) vs frontier models for everything.
+
+```
+T1-01: config change     → gpt-5.1-codex-mini   (fast, simple)
+T1-02: standard feature  → gpt-5.3-codex         (capable, bulk work)
+T2-01: security review   → claude-opus-4.6       (best judgment)
+T2-02: complex refactor  → claude-sonnet-4.6     (good balance)
+T3-01: architecture      → claude-opus-4.6       (cross-cutting)
+T3-02: docs update       → claude-haiku-4.5      (fast, trivial)
+```
+
+---
+
+## Wave merge strategy
+
+```mermaid
+flowchart LR
+    subgraph "Theme: security"
+        W1[W1 batch] --> W2[W2 sync]
+    end
+    subgraph "Theme: quality"
+        W3[W3 batch] --> W4[W4 batch] --> W5[W5 sync]
+    end
+    subgraph "Closure"
+        WF[WF sync]
+    end
+    W2 -->|"PR: W1+W2"| Main[(main)]
+    W5 -->|"PR: W3+W4+W5"| Main
+    WF -->|PR| Main
+    style W1 fill:#ffd
+    style W3 fill:#ffd
+    style W4 fill:#ffd
+    style W2 fill:#9f9
+    style W5 fill:#9f9
+    style WF fill:#9f9
+```
+
+Tasks grouped by theme. Batch waves accumulate on a shared branch. Sync waves trigger PR + CI + merge. A 6-wave plan creates 2-3 PRs instead of 6.
+
+---
+
+## Concurrency control
 
 ```mermaid
 sequenceDiagram
@@ -248,7 +188,43 @@ sequenceDiagram
 
 File locking prevents silent overwrites. Stale detection catches external changes before commit. Merge queue serializes merges to main.
 
-## Quick Start
+---
+
+## Cross-engine parity
+
+```mermaid
+flowchart TD
+    subgraph "Orchestration (engine-agnostic)"
+        P[Planner] --> S[spec.yaml]
+        S --> I[plan-db.sh import]
+        I --> DB[(dashboard.db)]
+        DB --> E[Executor Router]
+    end
+    subgraph "Execution (pluggable)"
+        E -->|copilot| C1[copilot-worker.sh]
+        E -->|claude| C2[task-executor agent]
+        E -->|gemini| C3[future: gemini-worker]
+        C1 --> V[Thor Validation]
+        C2 --> V
+        C3 --> V
+    end
+    subgraph "Merge (engine-agnostic)"
+        V --> M[wave-worktree.sh]
+        M --> G[git + GitHub API]
+    end
+```
+
+| Component       | Copilot CLI              | Claude Code                           | Both                      |
+| --------------- | ------------------------ | ------------------------------------- | ------------------------- |
+| Plan creation   | `@planner`               | `Skill(skill="planner")`              | spec.yaml is the contract |
+| Task execution  | `copilot-worker.sh`      | `Task(subagent_type="task-executor")` | Same DB, same worktree    |
+| Thor validation | `@validate`              | `Task(subagent_type="thor")`          | Same 9 gates              |
+| Merge           | `wave-worktree.sh merge` | `wave-worktree.sh merge`              | Identical script          |
+| Dashboard       | `piani`                  | `piani`                               | Same SQLite DB            |
+
+---
+
+## Quick start
 
 ```bash
 piani                 # Terminal dashboard (interactive)
@@ -256,7 +232,7 @@ piani -n              # Single-shot view
 piani -p 265          # Drill-down on plan
 ```
 
-## Key Commands
+## Key commands
 
 ```bash
 # Planning
@@ -283,28 +259,28 @@ pr-ops.sh status|reply|resolve|merge    # Full PR lifecycle
 copilot-review-digest.sh {pr}           # Review digest
 
 # Discovery
-script-versions.sh [--json|--stale]     # 119 scripts indexed
-agent-versions.sh [--json|--check]      # 32 agents indexed
+script-versions.sh [--json|--stale]     # Scripts indexed
+agent-versions.sh [--json|--check]      # Agents indexed
 ```
 
-## Directory Structure
+## Directory structure
 
 ```
 ~/.claude/
-├── CLAUDE.md                     # 47 lines, always loaded
-├── rules/                        # Auto-loaded (4 files)
-├── reference/operational/        # On-demand (7 files)
+├── CLAUDE.md                     # Always loaded
+├── rules/                        # Auto-loaded
+├── reference/operational/        # On-demand
 ├── config/plan-spec-schema.json  # Spec validation schema
 ├── commands/                     # /prompt, /planner, /execute
-├── agents/                       # 32 specialized agents
-├── scripts/                      # 119 shell scripts
+├── agents/                       # Specialized agents
+├── scripts/                      # Shell scripts
 │   ├── plan-db.sh                # Central DB operations
 │   ├── wave-worktree.sh          # Wave lifecycle
 │   ├── copilot-worker.sh         # Copilot CLI executor
 │   ├── *-digest.sh               # Token-efficient wrappers
 │   └── lib/                      # Shared libraries
 ├── data/dashboard.db             # SQLite WAL (source of truth)
-├── docs/adr/                     # 24 ADRs
+├── docs/adr/                     # ADRs
 └── plans/                        # Per-project artifacts
 ```
 
@@ -327,4 +303,4 @@ agent-versions.sh [--json|--check]      # 32 agents indexed
 
 ---
 
-**Version**: 3.0.0 (28 Febbraio 2026) | **Context**: 209 lines auto-loaded (CLAUDE.md + rules/\*)
+**Version**: 3.1.0 (28 Feb 2026)

@@ -1,6 +1,6 @@
 #!/bin/bash
 # PR rendering helper functions (DB-driven from waves table)
-# Version: 2.0.0
+# Version: 2.1.0
 
 # Extract clean PR URL from pr_url field (handles "already exists:" messages)
 _sanitize_pr_url() {
@@ -93,14 +93,13 @@ _render_plan_prs() {
 			;;
 		esac
 
-		# Clickable PR link (OSC 8 terminal hyperlink)
-		local pr_link
+		# PR link: plain URL (auto-clickable in most terminals)
+		local pr_link="PR #${pr_num}"
+		local url_display=""
 		if [[ -n "$clean_url" && "$clean_url" == https://* ]]; then
-			pr_link="\e]8;;${clean_url}\e\\PR #${pr_num}\e]8;;\e\\"
-		else
-			pr_link="PR #${pr_num}"
+			url_display=" ${clean_url}"
 		fi
-		echo -e "${GRAY}│  ├─${NC} ${CYAN}$wid${NC} ${BOLD}${pr_link}${NC} $pr_status_display $ci_display $review_display ${GRAY}${branch}${NC}"
+		echo -e "${GRAY}│  ├─${NC} ${CYAN}$wid${NC} ${BOLD}${pr_link}${NC} $pr_status_display $ci_display $review_display ${GRAY}${branch}${NC}${url_display}"
 	done <<<"$wave_prs"
 }
 
@@ -117,12 +116,7 @@ _render_completed_plan_prs() {
 		total=$((total + 1))
 		local clean_url
 		clean_url=$(_sanitize_pr_url "$pr_url")
-		local pr_link
-		if [[ -n "$clean_url" && "$clean_url" == https://* ]]; then
-			pr_link="\e]8;;${clean_url}\e\\#${pr_num}\e]8;;\e\\"
-		else
-			pr_link="#${pr_num}"
-		fi
+		local pr_link="#${pr_num}"
 		if [ "$wstatus" = "done" ]; then
 			merged=$((merged + 1))
 			parts="${parts}${GREEN}${pr_link}✓${NC} "

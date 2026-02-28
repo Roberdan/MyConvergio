@@ -166,7 +166,7 @@ graph TB
         A -.->|on-demand| D[reference/operational/<br/>7 files]
     end
     subgraph "Planning"
-        E[/planner] --> F[spec.yaml<br/>schema-validated]
+        E["Planner"] --> F["spec.yaml<br/>schema-validated"]
         F --> G[plan-db.sh import]
         G --> H[(dashboard.db<br/>SQLite WAL)]
         I[plan-reviewer] --> F
@@ -206,7 +206,7 @@ stateDiagram-v2
     SchemaValidation --> Reviews: plan-reviewer + business-advisor
     Reviews --> UserApproval: Present coverage + ROI
     UserApproval --> Import: plan-db.sh import
-    Import --> Execute: /execute {id}
+    Import --> Execute: execute plan
 
     state Execute {
         [*] --> CreateWorktree: wave-worktree.sh create

@@ -171,7 +171,8 @@ calc_weighted_progress() {
 				THEN COALESCE(t.effort_level, 1) ELSE 0 END), 0),
 			COALESCE(SUM(COALESCE(t.effort_level, 1)), 0)
 		FROM tasks t
-		WHERE t.wave_id_fk IN (SELECT id FROM waves WHERE $plan_filter)
+		WHERE t.status NOT IN ('cancelled', 'skipped')
+		AND t.wave_id_fk IN (SELECT id FROM waves WHERE $plan_filter AND status != 'cancelled')
 	"
 }
 

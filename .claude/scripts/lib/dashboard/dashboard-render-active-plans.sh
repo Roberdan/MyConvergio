@@ -6,10 +6,10 @@ _render_active_plans() {
 	echo -e "${BOLD}${WHITE}🚀 Piani Attivi${NC}"
 	dbq "
 		SELECT p.id, p.name, p.status, p.updated_at, p.started_at, p.created_at, p.project_id,
-			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id),
+			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status NOT IN ('cancelled')),
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND tasks_done=tasks_total AND tasks_total>0),
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status='in_progress'),
-			(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id),
+			(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id AND status NOT IN ('cancelled', 'skipped')),
 			(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id AND status='done'),
 			COALESCE((SELECT SUM(total_tokens) FROM token_usage WHERE project_id=p.project_id), 0),
 			COALESCE(p.execution_host, ''),

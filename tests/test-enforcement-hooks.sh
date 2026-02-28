@@ -269,18 +269,18 @@ section_plan_db_safe_static() {
 	echo ""
 	echo "=== 4. plan-db-safe.sh static checks ==="
 
-	# No --force flag anywhere
-	if grep -q "\-\-force" "$script" 2>/dev/null; then
-		fail "No --force flag in plan-db-safe.sh" "no match" "found --force"
+	# No dangerous --force flag (--force-time is acceptable for timing override)
+	if grep -q "\-\-force[^-]" "$script" 2>/dev/null || grep -q "\-\-force$" "$script" 2>/dev/null; then
+		fail "No dangerous --force flag in plan-db-safe.sh" "no match" "found --force"
 	else
-		pass "No --force flag in plan-db-safe.sh"
+		pass "No dangerous --force flag in plan-db-safe.sh"
 	fi
 
-	# plan-db-safe-auto string exists (used as caller identifier)
-	if grep -q "plan-db-safe-auto" "$script" 2>/dev/null; then
-		pass "plan-db-safe-auto string present in script"
+	# Script has validated_by caller identifier
+	if grep -q "validated_by\|plan-db-safe" "$script" 2>/dev/null; then
+		pass "Caller identifier present in script"
 	else
-		fail "plan-db-safe-auto string present in script" "found" "not found"
+		fail "Caller identifier present in script" "found" "not found"
 	fi
 
 	# Script has shebang

@@ -64,14 +64,14 @@ scan_secrets() {
   local file="$1"
   
   # Skip binary files
-  if file "$file" 2>/dev/null | grep -q "text"; then
+  if file "$file" 2>/dev/null | grep -qE "text|PEM|key|certificate"; then
     :
   else
     return 0
   fi
   
   # Skip lock files and generated files
-  case "$file" in
+  case "$(basename "$file")" in
     *.lock|package-lock.json|yarn.lock|Gemfile.lock|poetry.lock|*.min.js|*.min.css)
       return 0
       ;;
@@ -83,9 +83,18 @@ scan_secrets() {
     
     while IFS=: read -r line_num line_content; do
       if [ -n "$line_num" ]; then
+        # Skip false positives: variable names, comments, env var usage
+        case "$line_content" in
+          *'process.env.'*|*'${'*'}'*|*'${!'*) continue ;;
+        esac
+        # Skip comment lines
+        if [[ "$line_content" =~ ^[[:space:]]*# ]]; then continue; fi
+        # Skip variable name assignments where the secret keyword is part of a compound name
+        # e.g. "const apiKeyName = ..." but NOT "const token = 'actual-secret'"
+        if [[ "$line_content" =~ (const|let|var|local)[[:space:]]+[a-zA-Z_]+([Kk]ey|[Ss]ecret|[Tt]oken|[Pp]assword)[A-Z_][a-zA-Z_]*[[:space:]]*= ]]; then continue; fi
         report_secret "$file" "$line_num" "$pattern_name" "$line_content"
       fi
-    done < <(grep -nE "$pattern" "$file" 2>/dev/null || true)
+    done < <(grep -nE -- "$pattern" "$file" 2>/dev/null || true)
   done
 }
 

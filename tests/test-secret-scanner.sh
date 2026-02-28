@@ -37,7 +37,8 @@ run_test() {
     [ "$expect_block" = "block" ] && { echo -e "${GREEN}✓ $name${NC}"; TESTS_PASSED=$((TESTS_PASSED + 1)); } || \
       { echo -e "${RED}✗ $name (expected allow, got block)${NC}"; echo "  Error: $output" | head -1; TESTS_FAILED=$((TESTS_FAILED + 1)); }
   fi
-  git reset HEAD "$file" >/dev/null 2>&1 || true
+  git rm --cached -f "$file" >/dev/null 2>&1 || git reset HEAD "$file" >/dev/null 2>&1 || true
+  rm -f "$file"
 }
 
 main() {
@@ -54,7 +55,7 @@ main() {
   run_test block "GitHub OAuth" "t4.sh" 'OAUTH="gho_abcdefghijklmnopqrstuvwxyz123456"'
   run_test block "AWS Access Key" "t5.py" 'key = "AKIAIOSFODNN7EXAMPLE"'
   run_test block "AWS Secret Key" "t6.py" 'aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
-  run_test block "Azure Storage Key" "t7.cs" 'key = "AccountKey=abcd1234EFGH5678ijkl9012MNOP3456qrst7890uvwxABCD1234EFGH5678ijkl9012MNOPqrst==";'
+  run_test block "Azure Storage Key" "t7.cs" 'key = "AccountKey=abcd1234EFGH5678ijkl9012MNOP3456qrst7890uvwxABCD1234EFGH5678ijkl9012MNOP3456qrst7890uv==";'
   run_test block "GCP API Key" "t8.js" 'const k = "AIzaSyDaGmWKa4JsXZ-HjGw7ISLn_3namBGewQe";'
   run_test block "Generic API Key" "t9.rb" 'api_key = "abcdefgh12345678"'
   run_test block "Generic Secret" "t10.py" 'secret = "my-super-secret-value-123"'

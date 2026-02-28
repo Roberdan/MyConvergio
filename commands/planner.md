@@ -11,23 +11,23 @@ Plan and execute with parallel Claude instances.
 
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
-| #   | Rule                                                                                                                                                                                                                                                                            |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Task Executor MANDATORY**: NEVER edit files directly while a plan is active. Direct edit = Thor bypass = VIOLATION. See CLAUDE.md Anti-Bypass.                                                                                                                                |
-| 2   | **F-xx Requirements**: Extract ALL. Nothing done until ALL verified [x]                                                                                                                                                                                                         |
-| 3   | **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"                                                                                                                                                                                                               |
-| 4   | **Thor Enforcement**: Task done = per-task Thor passed. Wave done = per-wave Thor + build passed. Gate 9 MANDATORY.                                                                                                                                                             |
-| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path. Wave-level worktrees are the default; plan-level is deprecated.                                                                                                                                           |
-| 6   | **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See @planner-modules/knowledge-codification.md                                                                                                                                                              |
-| 7   | **NO SILENT EXCLUSIONS**: NEVER exclude/defer ANY F-xx without EXPLICIT user approval via AskUserQuestion. Silently dropping = VIOLATION.                                                                                                                                       |
-| 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8).                                                                                                               |
-| 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                                                                                                                                         |
-| 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                                                                                                                                   |
-| 11  | **TEST CONSOLIDATION**: Final wave MUST include `TF-tests` task BEFORE `TF-pr`. See [Test Consolidation](#test-consolidation).                                                                                                                                                  |
-| 12  | **INFRA TASK DISCIPLINE (ADR-054)**: Infrastructure tasks (Azure CLI, Bicep, cloud ops) follow SAME plan-db discipline as code. Interactive `az` commands MUST update plan-db before/after. Batch updates at session end = VIOLATION. Hook `warn-infra-plan-drift.sh` enforces. |
-| 13  | **COPILOT-FIRST DELEGATION**: EVERY task MUST have explicit `executor_agent` assignment. Default=copilot. Skipping step 2.5 = VIOLATION. See [Step 2.5](#step-2-5).                                                                                                             |
-| 14  | **PLAN INTELLIGENCE REVIEW**: Steps 3.1-3.2 MANDATORY for plans with 3+ tasks. Skipping = VIOLATION. See [Step 3.1](#step-3-1).                                                                                                                                                 |
-| 15  | **TEST ADAPTS TO CODE**: When implementation changes break existing tests, update tests to match new behavior. NEVER revert implementation to make old tests pass. Tests follow code, not the opposite.                                                                         |
+| #   | Rule                                                                                                                                                                                                                                                                                                                       |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Task Executor MANDATORY**: NEVER edit files directly while a plan is active. Direct edit = Thor bypass = VIOLATION. See CLAUDE.md Anti-Bypass.                                                                                                                                                                           |
+| 2   | **F-xx Requirements**: Extract ALL. Nothing done until ALL verified [x]                                                                                                                                                                                                                                                    |
+| 3   | **User Approval Gate**: BLOCK until explicit "si"/"yes"/"procedi"                                                                                                                                                                                                                                                          |
+| 4   | **Thor Enforcement**: Task done = per-task Thor passed. Wave done = per-wave Thor + build passed. Gate 9 MANDATORY.                                                                                                                                                                                                        |
+| 5   | **Worktree Isolation**: EVERY task prompt MUST include worktree path. Wave-level worktrees are the default; plan-level is deprecated.                                                                                                                                                                                      |
+| 6   | **Knowledge Codification**: Errors -> ADR + ESLint. Thor validates. See @planner-modules/knowledge-codification.md                                                                                                                                                                                                         |
+| 7   | **NO SILENT EXCLUSIONS**: NEVER exclude/defer ANY F-xx without EXPLICIT user approval via AskUserQuestion. Silently dropping = VIOLATION.                                                                                                                                                                                  |
+| 8   | **MINIMIZE HUMAN INTERVENTION**: Explore automated alternatives first. Only mark `manual` if no alternative. Consolidate+front-load to W0. See [Rule 8](#rule-8).                                                                                                                                                          |
+| 9   | **EFFORT LEVEL MANDATORY**: Every task MUST have `"effort": 1\|2\|3`. 1=trivial, 2=standard, 3=complex.                                                                                                                                                                                                                    |
+| 10  | **PR + CI CLOSURE TASK**: Final wave MUST include `TF-pr` task. Plan NOT done until TF-pr done+Thor-validated. See [Closure](#final-closure).                                                                                                                                                                              |
+| 11  | **TEST CONSOLIDATION**: Final wave MUST include `TF-tests` task BEFORE `TF-pr`. See [Test Consolidation](#test-consolidation).                                                                                                                                                                                             |
+| 12  | **INFRA TASK DISCIPLINE (ADR-054)**: Infrastructure tasks (Azure CLI, Bicep, cloud ops) follow SAME plan-db discipline as code. Interactive `az` commands MUST update plan-db before/after. Batch updates at session end = VIOLATION. Hook `warn-infra-plan-drift.sh` enforces.                                            |
+| 13  | **COPILOT-FIRST DELEGATION**: EVERY task MUST have explicit `executor_agent` assignment. Default=copilot. Skipping step 2.5 = VIOLATION. See [Step 2.5](#step-2-5).                                                                                                                                                        |
+| 14  | **PLAN INTELLIGENCE REVIEW**: Steps 3.1-3.2 MANDATORY for plans with 3+ tasks. Skipping = VIOLATION. See [Step 3.1](#step-3-1).                                                                                                                                                                                            |
+| 15  | **TEST ADAPTS TO CODE**: When implementation changes break existing tests, update tests to match new behavior. NEVER revert implementation to make old tests pass. Tests follow code, not the opposite.                                                                                                                    |
 | 16  | **INTEGRATION COMPLETENESS**: For EVERY task that creates/exports new code, the plan MUST include a wiring task that connects it to consumers. For EVERY task that changes an interface, a consumer audit task MUST verify ALL consumers are updated. Orphan code = VIOLATION. See `~/.claude/rules/testing-standards.md`. |
 
 ## Module References
@@ -124,16 +124,20 @@ spec.yaml (or spec.json): `{user_request, constraints:[{id,text,type,verify}], r
 
 **`consumers` field**: Files that import/use what this task creates/changes. Executor MUST verify these are updated. Thor Gate 2b validates.
 
-**`merge_mode` assignment (per-wave)**: Every wave MUST have `merge_mode` in the spec. Assignment rules:
+**`merge_mode` assignment (per-wave)**: Every wave MUST have `merge_mode`. **Default is `batch`** — intermediate waves accumulate on one branch, merge at theme boundary. This reduces PR overhead (CI wait + review comments) by 60-70%.
 
-| Wave Position                        | merge_mode | Why                                                  |
-| ------------------------------------ | ---------- | ---------------------------------------------------- |
-| Intermediate wave in a theme group   | `batch`    | Accumulate changes, merge once at theme boundary     |
-| Last wave in a theme group           | `sync`     | Force merge+CI before next theme starts              |
-| Single-wave theme (no grouping)      | `sync`     | Merge immediately after Thor validation              |
-| Final closure wave (WF-Closure)      | `sync`     | PR must be created and CI must pass before plan done |
+| Wave Position               | merge_mode | Why                                         |
+| --------------------------- | ---------- | ------------------------------------------- |
+| Intermediate wave (default) | `batch`    | Accumulate, Thor per-wave validates quality |
+| Last wave in theme group    | `sync`     | Force merge+CI before next theme            |
+| Single-wave plan            | `sync`     | Merge immediately                           |
+| Final closure wave (WF)     | `sync`     | PR + CI must pass before plan done          |
 
-Theme group = consecutive waves sharing a logical concern (e.g., W1-W2 both touching auth = one theme). Planner assigns themes when generating waves. If no explicit theme grouping, every wave defaults to `sync`.
+**Quality between waves**: Thor per-wave (not CI) validates quality at wave boundaries. CI runs only at merge points (`sync` waves). This is safe because Thor catches 90%+ of issues that CI would find.
+
+**Theme grouping**: Consecutive waves sharing a logical concern. Planner assigns themes based on file overlap and domain affinity. Plans with 4+ waves SHOULD have 2-3 themes (not 4+ separate PRs).
+
+**Override**: User can pass `--pr-per-wave` to force all waves to `sync` (old behavior).
 
 **CONSTRAINT VALIDATION GATE (ADR-054)**: After generating tasks, cross-check EVERY task against EVERY constraint. Present matrix: `| Task | C-01 | C-02 | ... |`. Any cell = VIOLATES → redesign task or BLOCK. Example: if C-01 = "No admin permissions required" and T2-01 = "Configure EasyAuth (requires admin consent)" → VIOLATION → remove or redesign T2-01.
 

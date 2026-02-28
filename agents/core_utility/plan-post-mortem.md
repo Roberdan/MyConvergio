@@ -4,7 +4,7 @@ description: Post-mortem analyzer for completed plans. Extracts structured learn
 tools: ["Read", "Grep", "Glob", "Bash"]
 color: "#C62828"
 model: opus
-version: "1.1.0"
+version: "1.2.0"
 context_isolation: true
 memory: project
 maxTurns: 30
@@ -104,19 +104,52 @@ Review tasks touching >5 files, test coverage gaps, architecture decisions causi
 
 **Categories**: `architecture`, `testing`
 
+### Check 9: CI Knowledge Update
+
+After checks 1-8, evaluate if `ci-knowledge.md` needs updating. Source: Thor rejections (Check 1), PR friction (Check 5), recurring learnings from `plan_learnings` table.
+
+```bash
+# Get project path and find ci-knowledge file
+PROJECT_DIR=$(sqlite3 "$DB" "SELECT path FROM projects WHERE id=(SELECT project_id FROM plans WHERE id=$PLAN_ID);")
+CIK=""
+for p in "$PROJECT_DIR/.claude/ci-knowledge.md" "$PROJECT_DIR/docs/ci-knowledge.md"; do
+  [[ -f "$p" ]] && CIK="$p" && break
+done
+
+# Count recurring patterns across plans for this project
+PROJECT_ID=$(sqlite3 "$DB" "SELECT project_id FROM plans WHERE id=$PLAN_ID;")
+sqlite3 "$DB" -json "SELECT category, title, COUNT(*) as cnt FROM plan_learnings WHERE plan_id IN (SELECT id FROM plans WHERE project_id=$PROJECT_ID) AND severity IN ('critical','warning') GROUP BY category, title HAVING cnt >= 2 ORDER BY cnt DESC LIMIT 10;"
+```
+
+**Update rules**:
+
+1. Only add patterns seen in **2+ plans** (not one-off errors)
+2. Each pattern = ONE line: `- NEVER/MUST/ALWAYS + specific action + why`
+3. Max **50 lines** total in file (header + patterns). If over, remove lowest-frequency or resolved patterns
+4. Group by category using `##` headers. Max 8 categories per file
+5. If pattern already in file and tasks STILL violated it → flag as `critical` learning (executor ignoring knowledge)
+6. If ci-knowledge file doesn't exist → create it with patterns from this plan only if 3+ PR friction findings
+
+**Output**: Append `ci_knowledge_updates` array to post-mortem result. Each entry: `{action: "add|remove|update", pattern: "text", reason: "data"}`.
+
+If updates needed and `$CIK` exists, write directly. If new file needed, create at `.claude/ci-knowledge.md` (or `docs/ci-knowledge.md` if `.claude/` has nested git).
+
+**Category**: `ci_knowledge`
+
 ## Learning Categories Reference
 
-| Category          | Description                  | Example                                     |
-| ----------------- | ---------------------------- | ------------------------------------------- |
-| `pr_friction`     | PR review/merge difficulties | "PR #42 rejected 3x for missing tests"      |
-| `thor_rejection`  | Thor validation failures     | "Gate 2 completeness gap: no wiring task"   |
-| `estimation_miss` | Effort estimate vs actual    | "T2-03 estimated 1h, took 5h (5x)"          |
-| `token_blowup`    | Token budget exceeded        | "T1-05 used 45K tokens vs 8K estimated"     |
-| `what_worked`     | Positive patterns to repeat  | "TDD approach caught 3 bugs early"          |
-| `user_time`       | Human time analysis          | "Spec writing took 60% of total time"       |
-| `process`         | Workflow/process issues      | "Wave 2 blocked 4h waiting for approval"    |
-| `architecture`    | Structural decisions         | "Shared module reduced 3 tasks to 1"        |
-| `testing`         | Test quality/coverage        | "Integration tests caught DB migration gap" |
+| Category          | Description                  | Example                                      |
+| ----------------- | ---------------------------- | -------------------------------------------- |
+| `pr_friction`     | PR review/merge difficulties | "PR #42 rejected 3x for missing tests"       |
+| `thor_rejection`  | Thor validation failures     | "Gate 2 completeness gap: no wiring task"    |
+| `estimation_miss` | Effort estimate vs actual    | "T2-03 estimated 1h, took 5h (5x)"           |
+| `token_blowup`    | Token budget exceeded        | "T1-05 used 45K tokens vs 8K estimated"      |
+| `what_worked`     | Positive patterns to repeat  | "TDD approach caught 3 bugs early"           |
+| `user_time`       | Human time analysis          | "Spec writing took 60% of total time"        |
+| `process`         | Workflow/process issues      | "Wave 2 blocked 4h waiting for approval"     |
+| `architecture`    | Structural decisions         | "Shared module reduced 3 tasks to 1"         |
+| `testing`         | Test quality/coverage        | "Integration tests caught DB migration gap"  |
+| `ci_knowledge`    | CI knowledge base updates    | "Added error-handling pattern after 3 plans" |
 
 ## Writing Results
 
@@ -207,5 +240,6 @@ claude --agent plan-post-mortem --prompt "POST-MORTEM\nPlan:{plan_id}\nPROJECT:{
 
 ## Changelog
 
+- **1.2.0** (2026-02-28): Add Check 9 — CI knowledge base auto-update from recurring patterns
 - **1.1.0** (2026-02-27): Integrate with auto-memory for cross-session learnings persistence; compress to 250-line limit
 - **1.0.0** (2026-02-24): Initial version with 8 analysis checks, 9 learning categories, DB integration, cross-platform invocation

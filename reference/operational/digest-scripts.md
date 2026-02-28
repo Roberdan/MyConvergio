@@ -24,6 +24,8 @@
 | Manual audit scripts such as hardening-check + linters | `project-audit.sh --project-root $(pwd)` |
 | `gh pr checks`                                         | `ci-digest.sh checks <pr>`               |
 | `CI polling post-merge`                                | `ci-watch.sh`                            |
+| `sqlite3 dashboard.db`                                 | `db-digest.sh`                           |
+| `custom SQL query`                                     | `db-query.sh`                            |
 
 ## Options
 

@@ -16,6 +16,8 @@
 | Find symbol by name    | `codegraph_search` (if `.codegraph/`)    | Grep for symbol         |
 | Explore codebase       | `Task(subagent_type='Explore')`          | Multiple grep/glob      |
 | Run project audit      | `project-audit.sh --project-root $(pwd)` | Manual audit scripts    |
+| `sqlite3 dashboard.db` | `db-digest.sh`                         | Manual sqlite3 queries  |
+| `custom SQL query`     | `db-query.sh`                          | Ad-hoc SQL statements   |
 
 ## Parallel Execution
 

@@ -71,7 +71,7 @@ sqlite3 "$DB_FILE" "
 ### Fix 2: Create migration for wave_id FK
 Run the migration script FIRST:
 ```bash
-~/.claude/scripts/migrate-wave-fk.sh
+~/.claude/scripts/archive/migrations/migrate-wave-fk.sh
 ```
 
 This adds `tasks.wave_id_fk INTEGER FK` to properly reference `waves.id`.
@@ -111,7 +111,7 @@ sqlite3 "$DB_FILE" "
 
 1. **Run the migration FIRST:**
    ```bash
-   ~/.claude/scripts/migrate-wave-fk.sh
+   ~/.claude/scripts/archive/migrations/migrate-wave-fk.sh
    ```
 
 2. **Backup current plan-db.sh:**

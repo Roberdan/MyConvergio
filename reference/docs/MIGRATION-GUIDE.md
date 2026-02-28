@@ -48,7 +48,7 @@ cp ~/.claude/data/dashboard.db ~/.claude/data/dashboard.db.backup.$(date +%s)
 ### Step 2: Run Migration
 
 ```bash
-~/.claude/scripts/migrate-wave-fk.sh
+~/.claude/scripts/archive/migrations/migrate-wave-fk.sh
 ```
 
 **What it does**:
@@ -145,7 +145,7 @@ If something goes wrong:
 cp ~/.claude/data/dashboard.db.backup.XXXX ~/.claude/data/dashboard.db
 
 # Then re-run migration after fixing plan-db.sh
-~/.claude/scripts/migrate-wave-fk.sh
+~/.claude/scripts/archive/migrations/migrate-wave-fk.sh
 ```
 
 ---
@@ -224,7 +224,7 @@ sqlite3 ~/.claude/data/dashboard.db "
      ```
 
 3. **"How do I verify it worked?"**
-   - Run: `~/.claude/scripts/migrate-wave-fk.sh` again
+   - Run: `~/.claude/scripts/archive/migrations/migrate-wave-fk.sh` again
    - Should report: "Migration already applied (wave_id_fk column exists)"
    - Run: `plan-db.sh validate <plan_id>`
    - Should show: "VALIDATION PASSED: 0 errors"
@@ -244,5 +244,5 @@ sqlite3 ~/.claude/data/dashboard.db "
 **Start with:**
 
 ```bash
-~/.claude/scripts/migrate-wave-fk.sh
+~/.claude/scripts/archive/migrations/migrate-wave-fk.sh
 ```

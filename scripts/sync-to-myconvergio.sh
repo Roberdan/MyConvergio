@@ -26,7 +26,7 @@ BLOCKLIST=(
 	"agents:strategic-planner.md"
 	"scripts:sync-claude-config.sh"
 	"scripts:sync-dashboard-db.sh"
-	"scripts:migrate-plan-to-linux.sh"
+	"scripts:archive/migrations/migrate-plan-to-linux.sh"
 	"scripts:remote-repo-sync.sh"
 )
 

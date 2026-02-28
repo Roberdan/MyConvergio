@@ -18,7 +18,7 @@ fi
 REMOTE_HOST="${REMOTE_HOST:-omarchy-ts}"
 LOCAL_REPO="$HOME/.claude"
 REMOTE_REPO="~/.claude"
-BUNDLE="/tmp/claude-config-sync.bundle"
+BUNDLE="${TMPDIR:-/tmp}/claude-config-sync.bundle"
 
 # Runs from Mac only (Linux cannot SSH back to Mac)
 CURRENT_HOST=$(hostname -s 2>/dev/null || hostname)

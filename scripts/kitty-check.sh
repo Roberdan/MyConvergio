@@ -43,7 +43,7 @@ if [ -f "$CONFIG" ]; then
 		pass "Listen socket configured"
 	else
 		warn "Listen socket not explicitly set (using default)"
-		echo "    → Optionally add: listen_on unix:/tmp/kitty-socket"
+		echo "    → Optionally add: listen_on unix:${TMPDIR:-/tmp}/kitty-socket"
 	fi
 else
 	fail "Kitty config not found at $CONFIG"

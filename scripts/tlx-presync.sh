@@ -20,8 +20,8 @@ START=$(date +%s)
 # --- Phase 1: Mac pushes (parallel) ---
 info "Phase 1: Pushing DB + config to $HOST..."
 
-db_log="/tmp/tlx-dbsync-$$.log"
-config_log="/tmp/tlx-configsync-$$.log"
+db_log="${TMPDIR:-/tmp}/tlx-dbsync-$$.log"
+config_log="${TMPDIR:-/tmp}/tlx-configsync-$$.log"
 
 REMOTE_HOST="$HOST" "$SCRIPT_DIR/sync-dashboard-db.sh" push >"$db_log" 2>&1 &
 pid_db=$!
@@ -55,8 +55,8 @@ if [[ ! -f "$REMOTE_SYNC_SCRIPT" ]]; then
 	exit 1
 fi
 
-scp -q "$REMOTE_SYNC_SCRIPT" "$HOST:/tmp/remote-repo-sync.sh"
-ssh "$HOST" "chmod +x /tmp/remote-repo-sync.sh && /tmp/remote-repo-sync.sh"
+scp -q "$REMOTE_SYNC_SCRIPT" "$HOST:${TMPDIR:-/tmp}/remote-repo-sync.sh"
+ssh "$HOST" "chmod +x ${TMPDIR:-/tmp}/remote-repo-sync.sh && ${TMPDIR:-/tmp}/remote-repo-sync.sh"
 
 # --- Summary ---
 END=$(date +%s)

@@ -508,7 +508,7 @@ section "9. Concurrent File Access (Multi-Agent)"
 # ============================================================
 
 LOCK_SCRIPT="$SCRIPT_DIR/file-lock.sh"
-TEST_FILE="/tmp/test-concurrent-access-$$"
+TEST_FILE="${TMPDIR:-/tmp}/test-concurrent-access-$$"
 touch "$TEST_FILE"
 
 # Test 9.1: Two agents acquire same file — second must block
@@ -540,7 +540,7 @@ fi
 "$LOCK_SCRIPT" release "$TEST_FILE" "task-agent2" 2>/dev/null || true
 
 # Test 9.3: Parallel acquisition race — exactly one wins
-RACE_FILE="/tmp/test-race-$$"
+RACE_FILE="${TMPDIR:-/tmp}/test-race-$$"
 touch "$RACE_FILE"
 RACE_TMPDIR=$(mktemp -d)
 for i in $(seq 1 5); do
@@ -565,11 +565,11 @@ else
 	fail "9.3 Parallel race: nobody acquired lock"
 fi
 # Cleanup race locks
-sq "DELETE FROM file_locks WHERE file_path LIKE '/tmp/test-race-%';" 2>/dev/null || true
+sq "DELETE FROM file_locks WHERE file_path LIKE '${TMPDIR:-/tmp}/test-race-%';" 2>/dev/null || true
 
 # Test 9.4: release-task releases all locks for a task
 for i in 1 2 3; do
-	F="/tmp/test-multi-lock-$$-$i"
+	F="${TMPDIR:-/tmp}/test-multi-lock-$$-$i"
 	touch "$F"
 	"$LOCK_SCRIPT" acquire "$F" "multi-task" --agent "executor" --timeout 2 2>/dev/null || true
 done
@@ -580,10 +580,10 @@ if [[ "${REMAINING:-0}" -eq 0 ]]; then
 else
 	fail "9.4 release-task left $REMAINING locks"
 fi
-rm -f /tmp/test-multi-lock-$$-*
+rm -f ${TMPDIR:-/tmp}/test-multi-lock-$$-*
 
 # Test 9.5: Stale lock detection (dead PID)
-STALE_FILE="/tmp/test-stale-$$"
+STALE_FILE="${TMPDIR:-/tmp}/test-stale-$$"
 touch "$STALE_FILE"
 ABS_STALE=$("$LOCK_SCRIPT" acquire "$STALE_FILE" "stale-task" --agent "dead-agent" --timeout 2 2>/dev/null | jq -r '.file' 2>/dev/null || echo "$STALE_FILE")
 # Fake a dead PID + old heartbeat

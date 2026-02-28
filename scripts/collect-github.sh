@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # GitHub Collector - Collects PR status, actions, comments via gh CLI
 # Usage: ./collect-github.sh [project_path]
 # Output: JSON to stdout

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Monitor running Claude/Copilot workers in Kitty tabs
 # Usage: claude-monitor.sh [refresh-seconds]
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Detect terminal type for orchestration
 # Returns: kitty, tmux, tmux-external, or plain
 

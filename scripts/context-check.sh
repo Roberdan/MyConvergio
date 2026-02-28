@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Context Optimization Check - Identifies token-heavy files
 # Usage: context-check.sh [--fix]
 

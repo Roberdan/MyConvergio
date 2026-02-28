@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # session-reaper.sh — Kill orphaned AI agent shell processes (Claude Code + Copilot CLI)
 # Version: 3.0.0
 # Usage:

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Thor Quick Validation - Runs all validations in one command
 # Reduces tokens by running via bash instead of inline agent work
 # Usage: thor-validate.sh <plan_id> [--full]

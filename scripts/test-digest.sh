@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Test Digest - Generic test runner with compact JSON output
 # Auto-detects vitest/jest/playwright. Returns only failures.
 # Usage: test-digest.sh [--suite unit|e2e|all] [--no-cache] [extra-args...]

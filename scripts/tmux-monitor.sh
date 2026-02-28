@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Monitor Claude workers in tmux session
 # Usage: tmux-monitor.sh [session_name]
 

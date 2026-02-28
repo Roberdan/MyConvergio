@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Real-time execution monitor for plan tasks
 # Usage: execution-monitor.sh [plan_id] [refresh_seconds]
 # Works in any terminal (not just Kitty)

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # thor-audit-log.sh - Persist Thor validation results to audit log
 # Usage: thor-audit-log.sh <plan_id> <task_id> <wave_id> <gates_passed> <gates_failed> <validated_by> <duration_ms> <confidence_score>
 # Version: 1.0.0

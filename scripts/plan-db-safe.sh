@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # plan-db-safe.sh - Safe wrapper around plan-db.sh
 # Auto-releases file locks, checks staleness, warns about uncommitted changes.
 # VALIDATE-THEN-DONE: Validation runs BEFORE marking done (blocking, no bypass flags).

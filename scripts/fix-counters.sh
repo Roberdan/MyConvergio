@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Fix DB counters - ensures plan/wave counters match actual task counts
 
 # Version: 1.1.0

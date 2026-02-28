@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Tests Collector - Parses Jest/Playwright/Vitest JSON output
 # Usage: ./collect-tests.sh [project_path]
 # Output: JSON to stdout

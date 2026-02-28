@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Deploy Digest - Compact Vercel deployment status as JSON
 # Extracts status + errors only. No raw build logs.
 # Usage: deploy-digest.sh [deployment-url] [--no-cache]

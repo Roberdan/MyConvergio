@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Migration v6: Add session_id support to file_locks
 # Enables session-based locking for non-plan workflows (teams, parallel agents)
 # Idempotent: checks column existence before ALTER

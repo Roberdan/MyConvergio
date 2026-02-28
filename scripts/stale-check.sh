@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # stale-check.sh - Detect when files changed under an agent's feet
 # Backend: SQLite (dashboard.db) file_snapshots table
 # Usage: stale-check.sh <command> [args]

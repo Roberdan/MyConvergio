@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # sync-claude-config.sh - Sync ~/.claude git repo between Mac and Linux
 # Usage: sync-claude-config.sh [push|pull|status]
 # Uses git bundle for safe, atomic transfer. Only fast-forward merges.

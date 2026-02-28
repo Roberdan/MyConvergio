@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Build Digest - Compact build output as JSON
 # Auto-detects Next.js/Vite/generic. Captures build output server-side.
 # Usage: build-digest.sh [--no-cache] [extra-args...]

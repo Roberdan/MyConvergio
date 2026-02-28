@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Launch N parallel Claude instances in Kitty tabs
 # Usage: claude-parallel.sh [num] [directory]
 

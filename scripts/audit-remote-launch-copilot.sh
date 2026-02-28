@@ -1,7 +1,7 @@
 #!/bin/bash
-# Version: 1.1.0
-# Remote tmux launcher for audit remediation plans
-# Runs on the LINUX machine — creates 4 tmux windows, one per plan
+# Version: 1.0.0
+# Remote tmux launcher — ALL COPILOT (zero Claude tokens)
+# Runs on the LINUX machine
 set -euo pipefail
 
 SESSION="audit-remediation"
@@ -27,14 +27,14 @@ tmux kill-session -t "$SESSION" 2>/dev/null || true
 IFS='|' read -r pid project label dir token <<<"${PLANS[0]}"
 tmux new-session -d -s "$SESSION" -n "$label" -c "$dir"
 tmux send-keys -t "$SESSION:$label" \
-	"export GH_TOKEN='$token' && echo '=== Plan #$pid: $label ===' && cd $dir && claude --dangerously-skip-permissions -p '/execute $pid'" Enter
+	"export GH_TOKEN='$token' && echo '=== Plan #$pid: $label (COPILOT) ===' && cd $dir && copilot --yolo -p '@execute $pid'" Enter
 
 # Create remaining windows
 for i in 1 2 3; do
 	IFS='|' read -r pid project label dir token <<<"${PLANS[$i]}"
 	tmux new-window -t "$SESSION" -n "$label" -c "$dir"
 	tmux send-keys -t "$SESSION:$label" \
-		"export GH_TOKEN='$token' && echo '=== Plan #$pid: $label ===' && cd $dir && claude --dangerously-skip-permissions -p '/execute $pid'" Enter
+		"export GH_TOKEN='$token' && echo '=== Plan #$pid: $label (COPILOT) ===' && cd $dir && copilot --yolo -p '@execute $pid'" Enter
 done
 
 # Create monitor window (5th tab)
@@ -45,11 +45,11 @@ tmux send-keys -t "$SESSION:Monitor" \
 # Select first window
 tmux select-window -t "$SESSION:1"
 
-echo "Tmux session '$SESSION' created with 5 windows:"
-echo "  0: MirrorBuddy   (Plan #265) — GH: Roberdan"
-echo "  1: VirtualBPM    (Plan #266) — GH: roberdan_microsoft"
-echo "  2: MyConvergio   (Plan #267) — GH: Roberdan"
-echo "  3: Claude-Global (Plan #268) — GH: Roberdan"
-echo "  4: Monitor       (dashboard-mini auto-refresh 30s)"
+echo "Tmux session '$SESSION' created with 5 windows (ALL COPILOT):"
+echo "  1: MirrorBuddy   (Plan #265) — GH: Roberdan"
+echo "  2: VirtualBPM    (Plan #266) — GH: roberdan_microsoft"
+echo "  3: MyConvergio   (Plan #267) — GH: Roberdan"
+echo "  4: Claude-Global (Plan #268) — GH: Roberdan"
+echo "  5: Monitor       (dashboard-mini auto-refresh 30s)"
 echo ""
 echo "Attach: tmux attach -t $SESSION"

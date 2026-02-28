@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Track Plan Change - Records plan modifications for learning/optimization
 # Usage: ./track-plan-change.sh <project_id> <plan_name> <change_type> [--reason "text"] [--tasks-before N] [--tasks-after N]
 # Change types: created, user_edit, scope_add, scope_remove, blocker, replan, task_split, completed

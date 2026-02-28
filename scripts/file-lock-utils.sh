@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # file-lock-utils.sh - List and cleanup utilities for file locks
 # Sourced by file-lock.sh for list and cleanup commands.
 # Version: 1.0.0

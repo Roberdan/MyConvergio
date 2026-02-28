@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Verify task was updated in DB after task-executor completion
 # Usage: verify-task-update.sh <db_task_id> [expected_status]
 #

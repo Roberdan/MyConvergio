@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Git Collector - Collects git status, log, branches, uncommitted changes
 # Usage: ./collect-git.sh [project_path]
 # Output: JSON to stdout

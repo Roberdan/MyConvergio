@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Unified worker launcher for Kitty tabs
 # Usage: worker-launch.sh <type> <tab_name> <task_db_id> --cwd <worktree>
 # Types: claude, copilot

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Register Project - Adds/updates a project in the centralized registry
 # Usage: ./register-project.sh [project_path] [--name "Display Name"]
 # Auto-detects: project_id (from folder), git remote, GitHub URL

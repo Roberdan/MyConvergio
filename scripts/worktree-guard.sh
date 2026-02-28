@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Worktree Guard - BLOCKS execution if not in correct worktree
 # Usage: worktree-guard.sh <expected_worktree_path>
 # Exit codes: 0=OK, 1=VIOLATION (on main or wrong worktree)

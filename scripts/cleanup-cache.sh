@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Prune old cache/log artifacts to keep ~/.claude tidy.
 # Usage: cleanup-cache.sh [--verbose]
 

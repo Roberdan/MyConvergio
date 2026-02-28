@@ -16,7 +16,7 @@
         "serve",
         "--mcp",
         "--path",
-        "/Users/roberdan/GitHub/MirrorBuddy"
+        "${PROJECT_ROOT:-.}"
       ]
     }
   }

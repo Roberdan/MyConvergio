@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Supabase CLI wrapper with common operations
 # Replaces Supabase MCP (5k token overhead)
 

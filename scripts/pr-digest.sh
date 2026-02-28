@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # PR Digest - Compact PR review status as JSON
 # Only human comments, only unresolved threads. Skips bots.
 # Usage: pr-digest.sh [pr-number] [--no-cache]

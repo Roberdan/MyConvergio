@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Diff Digest - Summarize large git diffs as compact JSON
 # Use before merge/PR review to understand scope without reading raw diff.
 # Usage: diff-digest.sh [base] [head] [--no-cache]

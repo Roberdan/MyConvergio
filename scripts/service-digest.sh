@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Service Digest - Unified entry point for all service digests
 # Single call for CI + PR + Deploy status. Minimal tokens.
 # Usage: service-digest.sh <ci|pr|deploy|all> [args...] [--no-cache] [--compact]

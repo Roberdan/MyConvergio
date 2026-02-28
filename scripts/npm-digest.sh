@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # NPM Digest - Compact npm install/ci output as JSON
 # Captures install output server-side, returns only summary.
 # Usage: npm-digest.sh [install|ci|audit] [--no-cache] [extra-args...]

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Merge Digest - Extract git conflict blocks as compact JSON
 # One call replaces N file reads during conflict resolution.
 # Usage: merge-digest.sh [--rebase] [branch]

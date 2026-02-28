@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Worktree Create - Creates worktree with automatic .env symlinks
 # Usage: worktree-create.sh <branch> [path]
 # Example: worktree-create.sh feature/new-api ../project-feature

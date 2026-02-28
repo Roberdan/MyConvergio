@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Generate self-contained prompt for Copilot CLI worker
 # Usage: copilot-task-prompt.sh <db_task_id>
 # Output: prompt string to stdout (pipe to copilot -p)

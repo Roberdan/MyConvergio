@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Thor Queue Monitor Script
 # Monitors the validation queue and shows pending requests
 #

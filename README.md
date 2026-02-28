@@ -2,7 +2,7 @@
 
 # MyConvergio — Your Night Agents at Work
 
-<img src="./CovergioLogoTransparent.png" alt="Convergio Logo" width="200"/>
+<img src="./CovergioLogoTransparent.webp" alt="Convergio Logo" width="200"/>
 
 **v9.17.0** | 157 Agent Files (74 Claude + 83 Copilot) | Multi-Provider Orchestrator | Independent Quality Validation
 <!-- AGENT_COUNTS: claude:74 copilot:83 total:157 -->

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Thor Worker Submit Script
 # Submits a validation request to Thor and waits for response
 #

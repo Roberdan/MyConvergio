@@ -70,6 +70,15 @@ help:
 install:
 	@echo "$(BLUE)Installing MyConvergio to $(CLAUDE_HOME)/...$(NC)"
 	@echo ""
+	@# Backup existing installation if present
+	@if [ -d "$(GLOBAL_AGENTS)" ] && [ "$$(ls -A $(GLOBAL_AGENTS) 2>/dev/null)" ]; then \
+		BACKUP="$(CLAUDE_HOME)/.backup-$$(date +%Y%m%d%H%M%S)"; \
+		echo "  $(YELLOW)⚠$(NC) Backing up existing installation to $$BACKUP"; \
+		mkdir -p "$$BACKUP"; \
+		cp -r $(GLOBAL_AGENTS) "$$BACKUP/agents" 2>/dev/null || true; \
+		cp -r $(GLOBAL_RULES) "$$BACKUP/rules" 2>/dev/null || true; \
+		cp -r $(GLOBAL_HOOKS) "$$BACKUP/hooks" 2>/dev/null || true; \
+	fi
 	@# Install agents
 	@mkdir -p $(GLOBAL_AGENTS)
 	@cp -r $(AGENTS_SRC)/* $(GLOBAL_AGENTS)/

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # =============================================================================
 # MYCONVERGIO DEPLOYMENT TEST SCRIPT
@@ -238,7 +239,7 @@ run_test "make count-agents target exists" "cd '$ROOT_DIR' && make -n count-agen
 echo ""
 
 # =============================================================================
-# TEST 6: Makefile commands
+# TEST 8: Makefile commands
 # =============================================================================
 echo -e "${BLUE}Test Suite: Makefile Commands${NC}"
 

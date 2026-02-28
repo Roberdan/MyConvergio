@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 # MyConvergio Selective Installation Script
 # Allows modular installation with tier, variant, and rules selection

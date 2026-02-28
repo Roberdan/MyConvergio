@@ -4,8 +4,8 @@
 
 <img src="./CovergioLogoTransparent.webp" alt="Convergio Logo" width="200"/>
 
-**v9.18.0** | 157 Agent Files (74 Claude + 83 Copilot) | Multi-Provider Orchestrator | Independent Quality Validation
-<!-- AGENT_COUNTS: claude:74 copilot:83 total:157 -->
+**v9.19.0** | 157 Agent Files (74 Claude + 83 Copilot) | Multi-Provider Orchestrator | Independent Quality Validation
+<!-- AGENT_COUNTS: claude:76 copilot:83 total:159 -->
 
 > _"Intent is human, momentum is agent"_
 > — [The Agentic Manifesto](./AgenticManifesto.md)
@@ -347,6 +347,6 @@ Commercial licensing: roberdan@fightthestroke.org
 
 _Built with AI assistance in Milano, following the Agentic Manifesto principles_
 
-**v9.18.0** | February 2026 | 157 Agent Files (74 Claude + 83 Copilot) · Multi-Provider · Thor Validation · Claude Code + Copilot CLI
+**v9.19.0** | February 2026 | 157 Agent Files (74 Claude + 83 Copilot) · Multi-Provider · Thor Validation · Claude Code + Copilot CLI
 
 </div>

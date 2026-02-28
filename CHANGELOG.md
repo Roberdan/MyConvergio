@@ -1,5 +1,25 @@
 # Changelog
 
+## [9.19.0] — 2026-02-28
+
+### Added
+- 3 new agents: deep-repo-auditor, strategic-planner (core_utility), mirrorbuddy-hardening-checks
+- 10 new scripts: audit-launch, audit-remote-launch, branch-protect, cleanup-bloat, copilot-plan-runner, migrate-plan-to-linux, remote-repo-sync, token-audit, validate-css-vars, audit-remote-launch-copilot
+- token-budget.md rule
+- Config: agent-schema.json, cross-repo-learnings.yaml, sync-db.conf
+
+### Changed
+- CLAUDE.md: Shell Pipe Exceptions, Auto Memory, Slash Commands, expanded Mandatory Routing
+- Updated agents: CONSTITUTION, thor-validation-gates, app-release-manager
+- Updated guardian.md rule
+- 79 scripts synced with latest ~/.claude improvements
+- Aligned plan-spec-schema.json, code-pattern-checks.sh
+
+### Fixed
+- wave-worktree.sh and env-vault.sh improvements
+- sync-dashboard-db.sh cleanup
+
+
 ## [9.18.0] - 2026-02-28
 
 ### Security

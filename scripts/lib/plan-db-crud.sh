@@ -2,7 +2,7 @@
 # Plan DB CRUD - Create, Read, Update operations
 # Sourced by plan-db.sh
 
-# Version: 1.2.0
+# Version: 1.3.0
 # List plans for a project
 cmd_list() {
 	local project_id="$1"
@@ -187,11 +187,29 @@ cmd_add_wave() {
 	local name="$3"
 	shift 3
 
-	local assignee="" planned_start="" planned_end="" estimated_hours="8" depends_on="" precondition=""
+	local assignee="" planned_start="" planned_end="" estimated_hours="8" depends_on="" precondition="" merge_mode="sync" theme=""
 
 	set +u
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
+		--merge-mode)
+			[[ -z "${2}" ]] && {
+				log_error "Missing --merge-mode value"
+				set -u
+				exit 1
+			}
+			merge_mode="$2"
+			shift 2
+			;;
+		--theme)
+			[[ -z "${2}" ]] && {
+				log_error "Missing --theme value"
+				set -u
+				exit 1
+			}
+			theme="$2"
+			shift 2
+			;;
 		--assignee)
 			[[ -z "${2}" ]] && {
 				log_error "Missing --assignee value"
@@ -270,9 +288,12 @@ cmd_add_wave() {
 	local safe_wave_id="$(sql_escape "$wave_id")"
 	local safe_name="$(sql_escape "$name")"
 	local safe_assignee="$(sql_escape "$assignee")"
+	local safe_merge_mode="$(sql_escape "$merge_mode")"
+	local theme_val="NULL"
+	[[ -n "$theme" ]] && theme_val="'$(sql_escape "$theme")'"
 	sqlite3 "$DB_FILE" "
-        INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position, estimated_hours, planned_start, planned_end, depends_on, precondition)
-        VALUES ('$project_id', $plan_id, '$safe_wave_id', '$safe_name', 'pending', '$safe_assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val, $precond_val);
+        INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position, estimated_hours, planned_start, planned_end, depends_on, precondition, merge_mode, theme)
+        VALUES ('$project_id', $plan_id, '$safe_wave_id', '$safe_name', 'pending', '$safe_assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val, $precond_val, '$safe_merge_mode', $theme_val);
     "
 	local db_wave_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE plan_id=$plan_id AND wave_id='$safe_wave_id';")
 	log_info "Added wave: $name (ID: $db_wave_id)"

@@ -4,7 +4,7 @@ description: Independent plan quality reviewer. Fresh context, zero planner bias
 tools: ["Read", "Grep", "Glob", "Bash"]
 color: "#2E86AB"
 model: opus
-version: "1.2.0"
+version: "1.3.0"
 context_isolation: true
 memory: project
 maxTurns: 25
@@ -67,6 +67,32 @@ Check for red flags:
 **Ask for each feature chain**: "If I execute all tasks for this F-xx, do I get a working feature or a collection of disconnected files?"
 
 Score: `completeness_score` = (complete chains / total feature chains) \* 100
+
+### Gate 2b: Merge Strategy Validation
+
+For EVERY wave in the spec, verify the `merge_mode` and `theme` fields are coherent:
+
+| Check                        | FAIL condition                                                                               |
+| ---------------------------- | -------------------------------------------------------------------------------------------- |
+| **Theme consistency**        | Two waves with same `theme` but non-adjacent positions (gap between them)                    |
+| **Batch without theme**      | `merge_mode: "batch"` but no `theme` set (batch requires theme grouping)                     |
+| **Orphan batch**             | Last wave in a theme group is `batch` instead of `sync` (accumulated changes never merge)    |
+| **Cross-theme file overlap** | Waves in different themes modify the same file (merge conflict risk)                         |
+| **Security forces sync**     | P0 security tasks in a `batch` wave (should be `sync` for immediate deployment)              |
+| **Final wave mode**          | WF (closure) wave must be `sync` (PR required for closure)                                   |
+| **Docs-only not none**       | Wave with only `documentation`/`config` tasks should be `none`, not `sync` (avoids empty PR) |
+
+**Cross-theme file overlap check**: Build a map of `theme -> files touched`. If two different themes touch the same file, flag as HIGH risk — merge order matters. Suggest either: (a) merge the themes, or (b) sequence the themes (not parallel).
+
+**Output**:
+
+```markdown
+| Wave | Theme    | Mode  | Issues                                |
+| ---- | -------- | ----- | ------------------------------------- |
+| W1   | security | batch | -                                     |
+| W2   | security | sync  | -                                     |
+| W3   | quality  | batch | WARN: orphan batch (no sync in theme) |
+```
 
 ### Gate 3: Plan Coherence
 
@@ -217,6 +243,7 @@ claude --agent plan-reviewer --prompt "PLAN REVIEW\nPlan:{plan_id}\nSPEC:{spec}\
 
 ## Changelog
 
+- **1.3.0** (2026-02-28): Add Gate 2b — Merge Strategy Validation (theme coherence, batch flow, cross-theme overlap)
 - **1.2.0** (2026-02-27): Add LSP find-references for code verification in Rule 3
 - **1.1.0** (2026-02-24): Add Cross-Platform Invocation section (Claude Code, Copilot CLI, programmatic)
 - **1.0.0** (2026-02-24): Initial version

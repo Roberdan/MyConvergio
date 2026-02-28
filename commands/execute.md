@@ -155,6 +155,17 @@ W1 (batch) → commit → Thor → W2 (batch) → commit → Thor → W3 (sync) 
 
 **Theme branch naming**: `plan/{plan_id}-{theme}` (e.g., `plan/270-security`). First `batch` wave in a theme creates the branch; subsequent `batch` waves reuse it.
 
+**Merge dispatch** (after Thor per-wave PASS):
+
+```bash
+MERGE_MODE=$(sqlite3 ~/.claude/data/dashboard.db "SELECT COALESCE(merge_mode,'sync') FROM waves WHERE id=${wave_db_id};")
+case "$MERGE_MODE" in
+  sync)  wave-worktree.sh merge $PLAN_ID $wave_db_id ;;
+  batch) wave-worktree.sh batch $PLAN_ID $wave_db_id ;;
+  none)  plan-db.sh validate-wave $wave_db_id ;;
+esac
+```
+
 ### P5: Completion
 
 `plan-db.sh validate $PLAN_ID && plan-db.sh complete $PLAN_ID`

@@ -42,27 +42,32 @@ NEVER execute without plan_id | NEVER skip tasks/Thor | WORKTREE ISOLATION — p
 
 ### P1.8: CI Knowledge Lookup
 
-Load per-repo CI knowledge to inject into task-executor prompts:
+Load CI knowledge from the repo first, fallback to global:
 
 ```bash
-CI_KNOWLEDGE_PATH="$HOME/.claude/data/ci-knowledge/${PROJECT_ID}.md"
 CI_KNOWLEDGE=""
-[[ -f "$CI_KNOWLEDGE_PATH" ]] && CI_KNOWLEDGE=$(cat "$CI_KNOWLEDGE_PATH")
+if [[ -f "${WORKTREE_PATH}/.claude/ci-knowledge.md" ]]; then
+  CI_KNOWLEDGE=$(cat "${WORKTREE_PATH}/.claude/ci-knowledge.md")
+elif [[ -f "$HOME/.claude/data/ci-knowledge/${PROJECT_ID}.md" ]]; then
+  CI_KNOWLEDGE=$(cat "$HOME/.claude/data/ci-knowledge/${PROJECT_ID}.md")
+fi
 ```
+
+New repos: add `.claude/ci-knowledge.md` in the repo root. No global config needed.
 
 ### Model Name Mapping (Claude tasks)
 
 When `executor_agent == "claude"`, map full model IDs to Claude API shorthand:
 
-| Full Model ID (DB)       | Agent Shorthand |
-| ------------------------ | --------------- |
-| `claude-opus-4.6`        | `opus`          |
-| `claude-opus-4.6-fast`   | `opus`          |
-| `claude-opus-4.5`        | `opus`          |
-| `claude-sonnet-4.6`      | `sonnet`        |
-| `claude-sonnet-4.5`      | `sonnet`        |
-| `claude-sonnet-4`        | `sonnet`        |
-| `claude-haiku-4.5`       | `haiku`         |
+| Full Model ID (DB)     | Agent Shorthand |
+| ---------------------- | --------------- |
+| `claude-opus-4.6`      | `opus`          |
+| `claude-opus-4.6-fast` | `opus`          |
+| `claude-opus-4.5`      | `opus`          |
+| `claude-sonnet-4.6`    | `sonnet`        |
+| `claude-sonnet-4.5`    | `sonnet`        |
+| `claude-sonnet-4`      | `sonnet`        |
+| `claude-haiku-4.5`     | `haiku`         |
 
 Unmapped models (GPT, Gemini) pass through as-is. Use: `MODEL_MAP[task.model] || task.model`.
 

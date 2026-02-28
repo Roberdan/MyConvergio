@@ -6,6 +6,7 @@ description: >-
   Example: @xavier-coordination-patterns Design coordination pattern for distributed
   decision-making across regional teams
 tools: ["Task", "Read", "Write", "Edit", "Grep", "Glob"]
+disallowedTools: ["Write", "Edit"]
 color: "#2E7D32"
 model: sonnet
 version: "2.2.0"

@@ -89,3 +89,8 @@ agents/research_report/output/
 
 # Package lock (not needed for this config repo)
 package-lock.json
+
+# LaTeX build artifacts
+agents/research_report/Reports/*.aux
+agents/research_report/Reports/*.log
+agents/research_report/Reports/*.out

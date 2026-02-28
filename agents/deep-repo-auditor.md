@@ -11,6 +11,7 @@ tools:
   - Glob
   - Grep
   - Task
+disallowedTools: ["Write", "Edit"]
 maxTurns: 50
 context_isolation: true
 ---

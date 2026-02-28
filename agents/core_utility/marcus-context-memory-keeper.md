@@ -6,6 +6,7 @@ description: >-
   Example: @marcus-context-memory-keeper What architectural decisions did we make about
   payment system last quarter?
 tools: ["Read", "Write", "Edit", "Grep", "Glob", "LS"]
+disallowedTools: ["Write", "Edit"]
 color: "#607D8B"
 model: sonnet
 version: "1.2.0"

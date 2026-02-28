@@ -5,6 +5,7 @@ description: >-
   AI system effectiveness. Enhances agent prompts for better performance.
   Example: @po-prompt-optimizer Optimize this agent prompt to improve response quality and token efficiency
 tools: []
+disallowedTools: ["Write", "Edit", "WebSearch", "WebFetch"]
 color: "#FF6B35"
 model: haiku
 version: "1.2.0"

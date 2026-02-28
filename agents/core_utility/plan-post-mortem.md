@@ -2,6 +2,7 @@
 name: plan-post-mortem
 description: Post-mortem analyzer for completed plans. Extracts structured learnings from execution data — Thor rejections, estimation misses, token blowups, rework patterns, PR friction. Writes findings to plan_learnings and plan_actuals tables.
 tools: ["Read", "Grep", "Glob", "Bash"]
+disallowedTools: ["Write", "Edit"]
 color: "#C62828"
 model: opus
 version: "1.2.0"

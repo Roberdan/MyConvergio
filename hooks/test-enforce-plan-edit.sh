@@ -3,9 +3,9 @@
 # Version: 1.0.0
 set -uo pipefail
 
-HOOK="/Users/roberdan/.claude/hooks/enforce-plan-edit.sh"
-PLAN_FILE="/Users/roberdan/.claude/data/active-plan-id.txt"
-DATA_DIR="/Users/roberdan/.claude/data"
+HOOK="$HOME/.claude/hooks/enforce-plan-edit.sh"
+PLAN_FILE="$HOME/.claude/data/active-plan-id.txt"
+DATA_DIR="$HOME/.claude/data"
 
 PASS=0
 FAIL=0

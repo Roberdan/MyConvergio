@@ -2,6 +2,7 @@
 name: plan-reviewer
 description: Independent plan quality reviewer. Fresh context, zero planner bias. Validates requirements coverage, feature completeness, and adds value the requester missed.
 tools: ["Read", "Grep", "Glob", "Bash"]
+disallowedTools: ["Write", "Edit"]
 color: "#2E86AB"
 model: opus
 version: "1.3.0"

@@ -5,6 +5,7 @@ description: >-
   analytics, and optimization recommendations for the MyConvergio platform.
   Example: @diana-performance-dashboard Show agent performance metrics and bottlenecks for last month
 tools: ["Read", "Grep", "Glob", "LS", "WebSearch", "WebFetch"]
+disallowedTools: ["Write", "Edit"]
 color: "#E91E63"
 model: sonnet
 version: "1.2.0"

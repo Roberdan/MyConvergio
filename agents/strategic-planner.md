@@ -15,6 +15,7 @@ tools:
     "TaskGet",
     "TaskUpdate",
   ]
+disallowedTools: ["Write", "Edit", "WebSearch", "WebFetch"]
 color: "#6B5B95"
 model: opus
 version: "4.1.0"

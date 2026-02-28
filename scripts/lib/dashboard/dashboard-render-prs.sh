@@ -71,7 +71,14 @@ _render_plan_prs() {
 			;;
 		esac
 
-		echo -e "${GRAY}│  ├─${NC} ${CYAN}$wid${NC} PR #${BOLD}${pr_num}${NC} $pr_status_display $ci_display ${GRAY}${branch}${NC}"
+		# Clickable PR link (OSC 8 terminal hyperlink)
+		local pr_link
+		if [[ -n "$clean_url" && "$clean_url" == https://* ]]; then
+			pr_link="\e]8;;${clean_url}\e\\PR #${pr_num}\e]8;;\e\\"
+		else
+			pr_link="PR #${pr_num}"
+		fi
+		echo -e "${GRAY}│  ├─${NC} ${CYAN}$wid${NC} ${BOLD}${pr_link}${NC} $pr_status_display $ci_display ${GRAY}${branch}${NC}"
 	done <<<"$wave_prs"
 }
 

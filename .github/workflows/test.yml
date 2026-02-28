@@ -30,8 +30,14 @@ jobs:
           echo "$COUNTS"
           CLAUDE_COUNT=$(echo "$COUNTS" | sed -E 's/.*claude:([0-9]+).*/\1/')
           COPILOT_COUNT=$(echo "$COUNTS" | sed -E 's/.*copilot:([0-9]+).*/\1/')
-          if [ "$CLAUDE_COUNT" -lt 50 ]; then
-            echo "❌ Expected at least 50 Claude agent files, found $CLAUDE_COUNT"
+          EXPECTED_CLAUDE_COUNT=$(sed -nE 's/^<!-- AGENT_COUNTS: claude:([0-9]+) .*/\1/p' README.md)
+          if [ -z "$EXPECTED_CLAUDE_COUNT" ]; then
+            echo "❌ Unable to read expected Claude count from README.md AGENT_COUNTS template"
+            exit 1
+          fi
+          MIN_CLAUDE_COUNT=$((EXPECTED_CLAUDE_COUNT * 80 / 100))
+          if [ "$CLAUDE_COUNT" -lt "$MIN_CLAUDE_COUNT" ]; then
+            echo "❌ Expected at least ${MIN_CLAUDE_COUNT} Claude agent files (80% of ${EXPECTED_CLAUDE_COUNT}), found $CLAUDE_COUNT"
             exit 1
           fi
           if [ "$COPILOT_COUNT" -lt 1 ]; then

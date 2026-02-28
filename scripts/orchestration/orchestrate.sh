@@ -22,50 +22,53 @@ NC='\033[0m'
 log() { echo -e "${BLUE}[ORCHESTRATE]${NC} $1"; }
 success() { echo -e "${GREEN}[✓]${NC} $1"; }
 warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-error() { echo -e "${RED}[✗]${NC} $1"; exit 1; }
+error() {
+	echo -e "${RED}[✗]${NC} $1"
+	exit 1
+}
 
 # Detect terminal
 TERMINAL=$("$SCRIPT_DIR/detect-terminal.sh")
 log "Detected terminal: $TERMINAL"
 
 case "$TERMINAL" in
-    kitty)
-        log "Using Kitty remote control"
-        "$SCRIPT_DIR/kitty-check.sh" || error "Kitty remote control not configured"
-        "$SCRIPT_DIR/claude-parallel.sh" "$NUM"
+kitty)
+	log "Using Kitty remote control"
+	kitty @ ls >/dev/null 2>&1 || error "Kitty remote control not configured"
+	"$SCRIPT_DIR/claude-parallel.sh" "$NUM"
 
-        # Send plan if provided
-        if [ -n "$PLAN" ] && [ -f "$PLAN" ]; then
-            log "Sending plan to workers..."
-            for i in $(seq 2 $NUM); do
-                kitty @ send-text --match title:Claude-$i "Leggi $PLAN, sei CLAUDE $i. Esegui i tuoi task."
-                kitty @ send-key --match title:Claude-$i Return
-            done
-        fi
-        ;;
+	# Send plan if provided
+	if [ -n "$PLAN" ] && [ -f "$PLAN" ]; then
+		log "Sending plan to workers..."
+		for i in $(seq 2 $NUM); do
+			kitty @ send-text --match title:Claude-$i "Leggi $PLAN, sei CLAUDE $i. Esegui i tuoi task."
+			kitty @ send-key --match title:Claude-$i Return
+		done
+	fi
+	;;
 
-    tmux|tmux-external)
-        log "Using tmux"
-        "$SCRIPT_DIR/tmux-parallel.sh" "$NUM" "$DIR"
+tmux | tmux-external)
+	log "Using tmux"
+	"$SCRIPT_DIR/tmux-parallel.sh" "$NUM" "$DIR"
 
-        # Send plan if provided
-        if [ -n "$PLAN" ] && [ -f "$PLAN" ]; then
-            log "Sending plan to workers..."
-            sleep 3  # Wait for Claude instances to start
-            for i in $(seq 2 $NUM); do
-                tmux send-keys -t claude-workers:Claude-$i "Leggi $PLAN, sei CLAUDE $i. Esegui i tuoi task." Enter
-            done
-        fi
+	# Send plan if provided
+	if [ -n "$PLAN" ] && [ -f "$PLAN" ]; then
+		log "Sending plan to workers..."
+		sleep 3 # Wait for Claude instances to start
+		for i in $(seq 2 $NUM); do
+			tmux send-keys -t claude-workers:Claude-$i "Leggi $PLAN, sei CLAUDE $i. Esegui i tuoi task." Enter
+		done
+	fi
 
-        echo ""
-        log "Attaching to tmux session..."
-        sleep 2
-        tmux attach -t claude-workers
-        ;;
+	echo ""
+	log "Attaching to tmux session..."
+	sleep 2
+	tmux attach -t claude-workers
+	;;
 
-    plain)
-        error "No orchestration terminal available. Install tmux: brew install tmux"
-        ;;
+plain)
+	error "No orchestration terminal available. Install tmux: brew install tmux"
+	;;
 esac
 
 success "Orchestration complete"

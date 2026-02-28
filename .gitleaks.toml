@@ -1,0 +1,12 @@
+title = "MyConvergio gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exclude test fixtures from secret scanning"
+paths = [
+  '''(^|/)(tests?|testdata)/fixtures(/|$)''',
+  '''(^|/)__fixtures__(/|$)''',
+  '''(^|/)fixtures(/|$)''',
+]

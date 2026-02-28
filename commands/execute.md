@@ -48,12 +48,14 @@ Load CI knowledge from the repo first, fallback to global:
 CI_KNOWLEDGE=""
 if [[ -f "${WORKTREE_PATH}/.claude/ci-knowledge.md" ]]; then
   CI_KNOWLEDGE=$(cat "${WORKTREE_PATH}/.claude/ci-knowledge.md")
+elif [[ -f "${WORKTREE_PATH}/docs/ci-knowledge.md" ]]; then
+  CI_KNOWLEDGE=$(cat "${WORKTREE_PATH}/docs/ci-knowledge.md")
 elif [[ -f "$HOME/.claude/data/ci-knowledge/${PROJECT_ID}.md" ]]; then
   CI_KNOWLEDGE=$(cat "$HOME/.claude/data/ci-knowledge/${PROJECT_ID}.md")
 fi
 ```
 
-New repos: add `.claude/ci-knowledge.md` in the repo root. No global config needed.
+New repos: add `.claude/ci-knowledge.md` (if `.claude/` is trackable) or `docs/ci-knowledge.md` (if `.claude/` has nested git or is gitignored).
 
 ### Model Name Mapping (Claude tasks)
 

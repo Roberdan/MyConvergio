@@ -91,8 +91,8 @@ cmd_validate_task() {
 			local timestamp
 			timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 			local audit_entry="{\"timestamp\":\"$timestamp\",\"event\":\"forced_validation\",\"task_db_id\":$task_db_id,\"validated_by\":\"$validated_by\",\"forced_as\":\"forced-admin\",\"action\":\"forced_bypass\"}"
-			mkdir -p "$(dirname "${AUDIT_LOG:-$HOME/.claude/data/thor-audit.jsonl}")"
-			echo "$audit_entry" >>"${AUDIT_LOG:-$HOME/.claude/data/thor-audit.jsonl}" 2>/dev/null || true
+			mkdir -p "$(dirname "$AUDIT_LOG")"
+			echo "$audit_entry" >>"$AUDIT_LOG" 2>/dev/null || true
 		fi
 	fi
 

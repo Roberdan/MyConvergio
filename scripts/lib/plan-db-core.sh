@@ -4,6 +4,7 @@
 
 # Version: 1.5.0
 DB_FILE="${HOME}/.claude/data/dashboard.db"
+AUDIT_LOG="${AUDIT_LOG:-${HOME}/.claude/data/thor-audit.jsonl}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Export hostname for distributed execution tracking

@@ -6,6 +6,13 @@
 
 set -euo pipefail
 
+# Dry-run mode: warn instead of block
+if [[ "${MYCONVERGIO_DRY_RUN:-0}" == "1" ]]; then
+	DRY_RUN=true
+else
+	DRY_RUN=false
+fi
+
 # Color codes for output
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -191,6 +198,10 @@ done
 
 # Report results
 if [ $SECRETS_FOUND -eq 1 ]; then
+  if $DRY_RUN; then
+    echo -e "${YELLOW}⚠ DRY-RUN: Secrets detected but not blocking${NC}"
+    exit 0
+  fi
   echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo -e "${RED}❌ COMMIT BLOCKED: Secrets or hardcoded values detected${NC}"
   echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

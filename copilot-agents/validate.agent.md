@@ -1,12 +1,12 @@
 ---
 name: validate
-description: Thor quality validation - verify completed wave meets all F-xx requirements and quality gates.
+description: Thor quality validation - verify completed tasks/waves meet all F-xx requirements and quality gates.
 tools: ["read", "search", "execute"]
 model: claude-opus-4.6
-version: "3.1.0"
+version: "4.0.0"
 ---
 
-<!-- v3.1.0 (2026-02-27): Gate 10 Integration Reachability, compact format per ADR 0009 -->
+<!-- v4.0.0 (2026-02-28): submitted status flow, per-task validate-task with thor validator -->
 
 # Thor Quality Validation
 
@@ -98,20 +98,36 @@ REJECTED (round X/3):
       fix: "How to fix it"
 ```
 
+## CRITICAL: Status Flow (v5.0.0)
+
+```
+pending → in_progress → submitted (executor) → done (ONLY Thor)
+```
+
+**Executors set `submitted`.** Only this agent (Thor) can transition `submitted → done`.
+A SQLite trigger `enforce_thor_done` blocks ANY attempt to set `done` without Thor validation.
+
 ## After Validation
 
 ```bash
-# Per-task (after validating a single task)
-plan-db.sh validate-task {task_id} $PLAN_ID
+# Per-task: APPROVED → transition submitted → done
+plan-db.sh validate-task {task_db_id} $PLAN_ID thor
+# 'thor' is the validator name. MUST be passed explicitly.
+# This atomically: sets status=done, validated_at=now, validated_by=thor
 
-# Per-wave (after validating all tasks in wave)
+# Per-task: REJECTED → task stays submitted, executor fixes
+plan-db.sh update-task {task_db_id} in_progress "Thor rejection: reason"
+# Executor fixes → re-submits → re-validate
+
+# Per-wave (after ALL tasks in wave are done via per-task validation)
 plan-db.sh validate-wave {wave_db_id}
 
-# Bulk (all done tasks in plan)
+# Bulk (all submitted tasks in plan)
 plan-db.sh validate $PLAN_ID
 ```
 
 ## Changelog
 
+- **4.0.0** (2026-02-28): submitted status flow, per-task validate-task with explicit thor validator
+- **3.1.0** (2026-02-27): Gate 10 Integration Reachability
 - **3.0.0** (2026-02-15): Compact format per ADR 0009 - 40% token reduction
-- **2.0.0** (Previous version): 9 gates documented

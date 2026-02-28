@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   wave_id TEXT NOT NULL,
   task_id TEXT NOT NULL,
   title TEXT NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'skipped')),
+  status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'submitted', 'done', 'blocked', 'skipped', 'cancelled')),
   assignee TEXT,
   priority TEXT CHECK(priority IN ('P0', 'P1', 'P2', 'P3')),
   type TEXT CHECK(type IN ('bug', 'feature', 'fix', 'refactor', 'test', 'config', 'documentation', 'chore', 'doc')),
@@ -111,6 +111,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   executor_host TEXT DEFAULT NULL,
   effort_level INTEGER DEFAULT 1 CHECK(effort_level IN (1, 2, 3)),
   validation_report TEXT,
+  cancelled_at DATETIME,
+  cancelled_reason TEXT,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
@@ -167,15 +169,37 @@ WHERE rn = 1;
 CREATE TABLE IF NOT EXISTS plans (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id TEXT NOT NULL,
-  plan_name TEXT NOT NULL,
-  plan_file TEXT NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('draft', 'active', 'completed', 'abandoned')),
+  name TEXT NOT NULL,
+  source_file TEXT,
+  is_master BOOLEAN DEFAULT 0,
+  parent_plan_id INTEGER,
+  status TEXT NOT NULL DEFAULT 'todo' CHECK(status IN ('todo', 'doing', 'done', 'archived', 'cancelled')),
   tasks_total INTEGER DEFAULT 0,
   tasks_done INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  started_at DATETIME,
   completed_at DATETIME,
+  validated_at DATETIME,
+  validated_by TEXT,
+  markdown_dir TEXT,
+  archived_at DATETIME,
+  archived_path TEXT,
+  updated_at DATETIME,
+  git_clean_at_closure INTEGER DEFAULT NULL,
+  parallel_mode TEXT DEFAULT 'standard',
+  markdown_path TEXT,
+  worktree_path TEXT,
+  execution_host TEXT DEFAULT NULL,
+  description TEXT DEFAULT NULL,
+  human_summary TEXT DEFAULT NULL,
+  lines_added INTEGER DEFAULT NULL,
+  lines_removed INTEGER DEFAULT NULL,
+  constraints_json TEXT DEFAULT NULL,
+  cancelled_at DATETIME,
+  cancelled_reason TEXT,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-  UNIQUE(project_id, plan_name)
+  FOREIGN KEY (parent_plan_id) REFERENCES plans(id) ON DELETE SET NULL,
+  UNIQUE(project_id, name)
 );
 
 -- Plan versions for tracking modifications and learning
@@ -447,7 +471,7 @@ CREATE TABLE IF NOT EXISTS tasks_new (
     wave_id TEXT NOT NULL,
     task_id TEXT NOT NULL,
     title TEXT NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'skipped')),
+    status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'submitted', 'done', 'blocked', 'skipped', 'cancelled')),
     assignee TEXT,
     priority TEXT CHECK(priority IN ('P0', 'P1', 'P2', 'P3')),
     type TEXT CHECK(type IN ('bug', 'feature', 'fix', 'refactor', 'test', 'config', 'documentation', 'chore', 'doc')),
@@ -473,6 +497,8 @@ CREATE TABLE IF NOT EXISTS tasks_new (
     executor_host TEXT DEFAULT NULL,
     effort_level INTEGER DEFAULT 1 CHECK(effort_level IN (1, 2, 3)),
     validation_report TEXT,
+    cancelled_at DATETIME,
+    cancelled_reason TEXT,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
@@ -508,10 +534,24 @@ BEGIN
     UPDATE plans SET tasks_done = tasks_done - 1 WHERE id = NEW.plan_id;
 END;
 
--- Auto-complete wave when all tasks are done
+-- Auto-transition wave to merging when all tasks are done
 CREATE TRIGGER IF NOT EXISTS wave_auto_complete
 AFTER UPDATE OF tasks_done ON waves
-WHEN NEW.tasks_done = NEW.tasks_total AND NEW.tasks_total > 0 AND NEW.status != 'done'
+WHEN NEW.tasks_done = NEW.tasks_total AND NEW.tasks_total > 0
+     AND NEW.status NOT IN ('done', 'merging', 'cancelled')
 BEGIN
-    UPDATE waves SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')) WHERE id = NEW.id;
+    UPDATE waves SET status = 'merging', completed_at = COALESCE(completed_at, datetime('now')) WHERE id = NEW.id;
+END;
+
+-- ENFORCE: Only Thor can set status=done (v5.0.0)
+-- Tasks must go through 'submitted' first, then Thor transitions submitted→done
+-- with a valid validated_by value. Even raw SQL is blocked without Thor validator.
+CREATE TRIGGER IF NOT EXISTS enforce_thor_done
+BEFORE UPDATE OF status ON tasks
+WHEN NEW.status = 'done' AND OLD.status <> 'done'
+BEGIN
+    SELECT RAISE(ABORT, 'BLOCKED: Only Thor can set status=done. validated_by must be thor/thor-quality-assurance-guardian/thor-per-wave/forced-admin.')
+    WHERE OLD.status <> 'submitted'
+        OR NEW.validated_by IS NULL
+        OR NEW.validated_by NOT IN ('thor', 'thor-quality-assurance-guardian', 'thor-per-wave', 'forced-admin');
 END;

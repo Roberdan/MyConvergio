@@ -432,17 +432,21 @@ cmd_update_task() {
 	fi
 
 	case "$status" in
-	pending | in_progress | done | blocked | skipped | cancelled) ;;
+	pending | in_progress | submitted | done | blocked | skipped | cancelled) ;;
 	*)
-		log_error "Invalid task status: '$status'. Valid: pending | in_progress | done | blocked | skipped | cancelled"
+		log_error "Invalid task status: '$status'. Valid: pending | in_progress | submitted | done | blocked | skipped | cancelled"
 		exit 1
 		;;
 	esac
 	local old_status=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id = $task_id;")
 
-	# Strict: cannot go directly from pending to done
+	# Strict: cannot go directly from pending to done or submitted
 	if [[ "$status" == "done" && "$old_status" == "pending" ]]; then
 		log_error "Cannot transition pending→done directly. Mark as in_progress first."
+		exit 1
+	fi
+	if [[ "$status" == "submitted" && "$old_status" == "pending" ]]; then
+		log_error "Cannot transition pending→submitted directly. Mark as in_progress first."
 		exit 1
 	fi
 	local tokens_sql=""
@@ -453,9 +457,15 @@ cmd_update_task() {
 
 	if [[ "$status" == "in_progress" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
+	elif [[ "$status" == "submitted" ]]; then
+		# Executor finished work, awaiting Thor validation. Does NOT count as done.
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = 'submitted', completed_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
+		log_info "Task $task_id submitted — awaiting Thor validation"
 	elif [[ "$status" == "done" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
-		# Ensure trigger exists, then sync counters as fallback (idempotent)
+		# NOTE: This branch is reached ONLY from validate-task (Thor).
+		# plan-db.sh guard blocks direct 'done'. enforce_thor_done trigger is final defense.
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = COALESCE(completed_at, datetime('now')), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
+		# Ensure counter trigger exists
 		sqlite3 "$DB_FILE" "
 			CREATE TRIGGER IF NOT EXISTS task_done_counter
 			AFTER UPDATE OF status ON tasks
@@ -465,7 +475,7 @@ cmd_update_task() {
 				UPDATE plans SET tasks_done = tasks_done + 1 WHERE id = NEW.plan_id;
 			END;
 		"
-		# Recalculate counters from actual data (trigger may have fired or not)
+		# Recalculate counters from actual data
 		local wave_fk_id plan_fk_id
 		IFS='|' read -r wave_fk_id plan_fk_id < <(sqlite3 "$DB_FILE" "SELECT wave_id_fk, plan_id FROM tasks WHERE id = $task_id;")
 		[[ -n "$wave_fk_id" ]] && sqlite3 "$DB_FILE" "
@@ -473,7 +483,7 @@ cmd_update_task() {
 			UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done),0) FROM waves WHERE plan_id = $plan_fk_id) WHERE id = $plan_fk_id;
 		"
 
-		# Check if wave is now complete (for auto-marking wave as done)
+		# Check if wave is now complete
 		local wave_fk wave_done wave_id_text
 		IFS='|' read -r wave_fk wave_done wave_id_text < <(sqlite3 "$DB_FILE" "SELECT t.wave_id_fk, (w.tasks_done = w.tasks_total), w.wave_id FROM tasks t JOIN waves w ON t.wave_id_fk = w.id WHERE t.id = $task_id;")
 		[[ "$wave_done" == "1" ]] && {

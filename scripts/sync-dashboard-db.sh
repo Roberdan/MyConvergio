@@ -1,14 +1,16 @@
 #!/bin/bash
 # sync-dashboard-db.sh - Sync dashboard.db between machines
-# Usage: sync-dashboard-db.sh [push|pull|incremental|diagnose|status]
-# Version: 2.0.0 - Modularized
+# Usage: sync-dashboard-db.sh [push|pull|push-all|pull-all|status-all|incremental|diagnose|status]
+# Version: 2.1.0 - Multi-peer support
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source shared libraries
 source "${SCRIPT_DIR}/lib/common.sh"
+source "${SCRIPT_DIR}/lib/peers.sh"
 source "${SCRIPT_DIR}/lib/sync-dashboard-db-ops.sh"
+source "${SCRIPT_DIR}/lib/sync-dashboard-db-multi.sh"
 
 CONFIG_FILE="$HOME/.claude/config/sync-db.conf"
 if [[ -f "$CONFIG_FILE" ]]; then
@@ -67,12 +69,29 @@ diagnose)
 	check_ssh "$REMOTE_HOST"
 	diagnose_sync
 	;;
+push-all)
+	peers_load
+	multi_push_all
+	log_info "push-all complete"
+	;;
+pull-all)
+	peers_load
+	multi_pull_all
+	log_info "pull-all complete"
+	;;
+status-all)
+	peers_load
+	multi_status_all
+	;;
 *)
-	echo "Usage: $0 [pull|push|incremental|diagnose|full-pull|full-push|copy-plan|status]"
-	echo "  pull/push - Sync completed plans | incremental - Changed rows only"
-	echo "  diagnose - Run incremental sync with verbose tracing for debugging"
+	echo "Usage: $0 [pull|push|push-all|pull-all|status-all|incremental|diagnose|full-pull|full-push|copy-plan|status]"
+	echo "  pull/push       - Sync completed plans (single peer) | incremental - Changed rows only"
+	echo "  push-all        - Push to all active peers (latest-wins merge)"
+	echo "  pull-all        - Pull from all active peers (latest-wins merge)"
+	echo "  status-all      - DB state table for all peers"
+	echo "  diagnose        - Incremental sync with verbose tracing"
 	echo "  full-pull/full-push - Replace entire DB | copy-plan <id> [push|pull]"
-	echo "  status - Compare both DBs | Config: $CONFIG_FILE"
+	echo "  status          - Compare both DBs | Config: $CONFIG_FILE"
 	exit 1
 	;;
 esac

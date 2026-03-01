@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# tlx-presync.sh - Pre-sync Mac -> omarchy before connecting
-# Usage: tlx-presync.sh <host>  (omarchy-local or omarchy-ts)
-# Version: 1.0.0
+# tlx-presync.sh - Pre-sync local -> remote peer before connecting
+# Usage: tlx-presync.sh <peer-name>
+# Version: 2.0.0
 set -euo pipefail
 
-HOST="${1:?Usage: tlx-presync.sh <host>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/peers.sh
+source "${SCRIPT_DIR}/lib/peers.sh"
+
+PEER="${1:?Usage: tlx-presync.sh <peer-name>}"
 REMOTE_SYNC_SCRIPT="$SCRIPT_DIR/remote-repo-sync.sh"
 
 # --- Output helpers ---
@@ -15,10 +18,28 @@ ok() { echo -e "${G}[presync]${N} $*"; }
 warn() { echo -e "${Y}[presync]${N} $*"; }
 err() { echo -e "${R}[presync]${N} $*" >&2; }
 
+# --- Connectivity check via peers_check ---
+peers_load 2>/dev/null || true
+
+info "Checking connectivity to $PEER..."
+if ! peers_check "$PEER" 2>/dev/null; then
+	err "Peer '$PEER' is unreachable. Aborting pre-sync."
+	exit 1
+fi
+ok "Peer '$PEER' is reachable."
+
+# Resolve SSH destination
+HOST="$(peers_best_route "$PEER" 2>/dev/null)" || {
+	err "Cannot resolve SSH route for '$PEER'. Check peers.conf."
+	exit 1
+}
+PEER_USER="$(_peers_get_raw "$PEER" "user" 2>/dev/null || true)"
+[[ -n "$PEER_USER" ]] && HOST="${PEER_USER}@${HOST}"
+
 START=$(date +%s)
 
-# --- Phase 1: Mac pushes (parallel) ---
-info "Phase 1: Pushing DB + config to $HOST..."
+# --- Phase 1: local pushes (parallel) ---
+info "Phase 1: Pushing DB + config to $PEER ($HOST)..."
 
 db_log="${TMPDIR:-/tmp}/tlx-dbsync-$$.log"
 config_log="${TMPDIR:-/tmp}/tlx-configsync-$$.log"
@@ -47,8 +68,8 @@ else
 	warn "Claude config sync: FAILED (see $config_log)"
 fi
 
-# --- Phase 2: Linux-side repo sync ---
-info "Phase 2: Syncing repos on $HOST..."
+# --- Phase 2: remote-side repo sync ---
+info "Phase 2: Syncing repos on $PEER..."
 
 if [[ ! -f "$REMOTE_SYNC_SCRIPT" ]]; then
 	err "Missing: $REMOTE_SYNC_SCRIPT"
@@ -63,6 +84,7 @@ END=$(date +%s)
 ELAPSED=$((END - START))
 echo ""
 ok "Pre-sync complete in ${ELAPSED}s"
+echo -e "  Connectivity: ${G}OK${N}"
 echo -e "  DB:     $([ "$db_ok" -eq 1 ] && echo "${G}OK${N}" || echo "${R}FAIL${N}")"
 echo -e "  Config: $([ "$config_ok" -eq 1 ] && echo "${G}OK${N}" || echo "${R}FAIL${N}")"
 echo -e "  Repos:  ${G}OK${N}"

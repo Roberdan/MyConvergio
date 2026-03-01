@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-03-01] — Mesh Networking Sync Evolution (Plan 297 W2)
+
+### Added
+
+- `scripts/sync-claude-config.sh` v2.0.0: multi-peer push-all/pull-all/status-all via peers.sh
+- `scripts/lib/sync-dashboard-db-multi.sh` v1.0.0: multi-peer DB sync with latest-wins merge (updated_at), insert-or-ignore for token_usage
+- `scripts/peer-sync.sh`: one-command config+DB sync (push/pull/status) with parallel execution
+- `psync` alias in shell-aliases.sh
+
+### Changed
+
+- `scripts/sync-dashboard-db.sh` v2.1.0: sources sync-dashboard-db-multi.sh, adds push-all/pull-all/status-all
+- `scripts/lib/plan-db-cluster.sh`: N-peer iteration via peers_online() instead of single REMOTE_HOST
+- `scripts/lib/plan-db-remote.sh`: N-peer status, token_usage aggregation across all peers
+- `scripts/tlx-presync.sh`: replaced hardcoded hostname with peers_check
+
+---
+
 ## [2026-03-01] — Mesh Networking Foundation (Plan 297 W1)
 
 ### Added

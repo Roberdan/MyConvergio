@@ -85,8 +85,10 @@ alias grafana='~/.claude/scripts/grafana-helper.sh'
 alias supabase-wrap='~/.claude/scripts/supabase-helper.sh'
 alias vercel-wrap='~/.claude/scripts/vercel-helper.sh'
 
-# === Claude config sync (Mac ↔ Linux) ===
+# === Peer sync shortcuts ===
+alias psync='~/.claude/scripts/peer-sync.sh'
 alias csync='~/.claude/scripts/sync-claude-config.sh'
+alias dbsync='~/.claude/scripts/sync-dashboard-db.sh'
 
 # === GitHub account switch ===
 # Usage: ghs           → toggle between accounts

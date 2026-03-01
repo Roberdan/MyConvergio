@@ -169,12 +169,8 @@ parse_and_log() {
 			-H "anthropic-beta: message-batches-2024-09-24" || echo "")"
 
 		if [[ -n "$results" ]]; then
-			input_tokens="$(echo "$results" | python3 -c \
-				'import sys,json; data=[json.loads(l) for l in sys.stdin if l.strip()]; u=[d.get("result",{}).get("message",{}).get("usage",{}) for d in data]; print(sum(x.get("input_tokens",0) for x in u))' \
-				2>/dev/null || echo "0")"
-			output_tokens="$(echo "$results" | python3 -c \
-				'import sys,json; data=[json.loads(l) for l in sys.stdin if l.strip()]; u=[d.get("result",{}).get("message",{}).get("usage",{}) for d in data]; print(sum(x.get("output_tokens",0) for x in u))' \
-				2>/dev/null || echo "0")"
+			input_tokens="$(echo "$results" | python3 -c $'import sys, json\ntotal = 0\nfor line in sys.stdin:\n    line = line.strip()\n    if not line: continue\n    try:\n        d = json.loads(line)\n        total += d.get(\"result\", {}).get(\"message\", {}).get(\"usage\", {}).get(\"input_tokens\", 0)\n    except (json.JSONDecodeError, ValueError): pass\nprint(total)' 2>/dev/null || echo "0")"
+			output_tokens="$(echo "$results" | python3 -c $'import sys, json\ntotal = 0\nfor line in sys.stdin:\n    line = line.strip()\n    if not line: continue\n    try:\n        d = json.loads(line)\n        total += d.get(\"result\", {}).get(\"message\", {}).get(\"usage\", {}).get(\"output_tokens\", 0)\n    except (json.JSONDecodeError, ValueError): pass\nprint(total)' 2>/dev/null || echo "0")"
 		fi
 	fi
 

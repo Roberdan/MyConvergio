@@ -1,5 +1,24 @@
 # Changelog
 
+## [2026-03-01] — Dynamic Dispatch — AI Agent Load Balancer (Plan 297 W3)
+
+### Added
+
+- `scripts/mesh-load-query.sh`: per-peer load query with cost_tier mapping and privacy_safe detection
+- `scripts/remote-dispatch.sh`: SSH task execution on remote peers with cost attribution
+- `scripts/mesh-dispatcher.sh`: floating coordinator with cost/privacy-aware peer scoring
+- `scripts/lib/mesh-scoring.sh`: peer scoring library (capability +3, cost +2/+1/0, privacy +3, load 0-2, capacity +1)
+- `scripts/mesh-heartbeat.sh`: peer liveness daemon with launchd/systemd templates
+- `config/mesh-heartbeat.plist.template`: macOS launchd template (envsubst-ready)
+- `config/mesh-heartbeat.service.template`: Linux systemd user service template
+
+### Changed
+
+- `scripts/delegate.sh`: added --host flag for remote dispatch via mesh network
+- `config/orchestrator.yaml`: added mesh: section with routing defaults (max_tasks_per_peer, dispatch_timeout, cost_priority)
+
+---
+
 ## [2026-03-01] — Mesh Networking Sync Evolution (Plan 297 W2)
 
 ### Added

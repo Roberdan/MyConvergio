@@ -73,11 +73,37 @@ if grep -q 'orchestrator.yaml' "$TARGET"; then
 	pass "orchestrator.yaml reference"
 else fail "missing orchestrator.yaml"; fi
 
-# T12: Line count < 250
+# T12: Line count <= 250 (verify criteria: awk exits 1 if >250)
 lines=$(wc -l <"$TARGET")
-if [ "$lines" -lt 250 ]; then
-	pass "$lines lines (<250)"
-else fail "$lines lines (>=250)"; fi
+if [ "$lines" -le 250 ]; then
+	pass "$lines lines (<=250)"
+else fail "$lines lines (>250)"; fi
+
+# T13: --host flag present in argument parser
+if grep -q -- '--host' "$TARGET"; then
+	pass "--host flag in argument parser"
+else fail "--host flag missing"; fi
+
+# T14: remote-dispatch.sh invocation present
+if grep -q 'remote-dispatch' "$TARGET"; then
+	pass "remote-dispatch.sh invocation present"
+else fail "remote-dispatch.sh not referenced"; fi
+
+# T15: peers_self check (lazy-loaded peers.sh only on --host)
+if grep -q 'peers_self\|peers\.sh' "$TARGET"; then
+	pass "peers_self / peers.sh reference present"
+else fail "peers_self / peers.sh reference missing"; fi
+
+# T16: No hardcoded machine names (check for common hostname patterns)
+if grep -qE '(macbook|MacBook|laptop|desktop|imac|iMac|workstation)[^-]' "$TARGET"; then
+	fail "hardcoded machine names detected"
+else pass "no hardcoded machine names"; fi
+
+# T17: mesh: section in orchestrator.yaml
+YAML="${SCRIPT_DIR}/config/orchestrator.yaml"
+if grep -q 'max_tasks_per_peer' "$YAML" && grep -q 'dispatch_timeout' "$YAML"; then
+	pass "orchestrator.yaml has mesh defaults"
+else fail "orchestrator.yaml missing mesh defaults"; fi
 
 echo ""
 echo "=== Results: $PASS/$((PASS + FAIL)) passed, $FAIL failed ==="

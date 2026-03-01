@@ -197,3 +197,21 @@ vault:
     gh_repo: 'MyConvergio/myconvergio'
     env_files:
       - '$CLAUDE_HOME/projects/myconvergio/.env.local'
+
+# ---------------------------------------------------------------------------
+# MESH
+# ---------------------------------------------------------------------------
+mesh:
+  max_tasks_per_peer: 3
+  dispatch_timeout: 600
+  load_threshold: 0.8
+  heartbeat_interval: 30
+  heartbeat_dead_after: 60
+  cost_priority: [free, zero, premium]
+  # cost_tier mapping: capability -> tier name (from providers above)
+  cost_tiers:
+    claude: premium
+    copilot: zero
+    gemini: premium
+    opencode: free
+    ollama: free

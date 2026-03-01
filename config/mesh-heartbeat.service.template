@@ -1,0 +1,33 @@
+# mesh-heartbeat.service.template — systemd user service for mesh-heartbeat daemon (Linux)
+#
+# Installation:
+#   export CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
+#   mkdir -p ~/.config/systemd/user
+#   envsubst < config/mesh-heartbeat.service.template \
+#     > ~/.config/systemd/user/mesh-heartbeat.service
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now mesh-heartbeat.timer
+#
+# Or for one-shot daemon mode (managed by mesh-heartbeat.sh start/stop):
+#   systemctl --user start mesh-heartbeat.service
+#
+# Variables (set before envsubst or edit manually):
+#   CLAUDE_HOME  — path to .claude directory (default: $HOME/.claude)
+
+[Unit]
+Description=Claude Mesh Heartbeat Daemon
+Documentation=file://${CLAUDE_HOME}/docs/mesh-heartbeat.md
+After=network.target
+
+[Service]
+Type=simple
+Environment=CLAUDE_HOME=${CLAUDE_HOME}
+ExecStart=${CLAUDE_HOME}/scripts/mesh-heartbeat.sh start
+ExecStop=${CLAUDE_HOME}/scripts/mesh-heartbeat.sh stop
+Restart=on-failure
+RestartSec=10s
+StandardOutput=append:${CLAUDE_HOME}/data/mesh-heartbeat.log
+StandardError=append:${CLAUDE_HOME}/data/mesh-heartbeat.log
+
+[Install]
+WantedBy=default.target

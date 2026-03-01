@@ -168,6 +168,8 @@ NEVER use it as the primary execution method — it spawns a sub-copilot, double
 | Thor validation            | `@validate` handoff (NEVER self-validate) | Skipping / self-declaring done |
 | Single isolated fix        | Direct edit                               | Creating unnecessary plan      |
 
+**PLANNER MODEL (NON-NEGOTIABLE)**: `@planner` DEVE sempre girare su `claude-opus-4.6-1m`. Modelli inferiori per la pianificazione = VIOLATION (vedi Plan 289, cancellato perché pianificato da Sonnet).
+
 ## Digest Scripts (NON-NEGOTIABLE)
 
 **NEVER run verbose commands directly.** Use digest scripts — compact JSON, cached.

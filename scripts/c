@@ -168,6 +168,9 @@ branch) # branch group → branch-protect.sh
 	esac
 	;;
 
+model) # model routing → model-router.sh
+	model-router.sh "$@" | c_out ;;
+
 --help | -h | "")
 	cat <<'EOF'
 c — unified CLI dispatcher (Version: 2.0.0)
@@ -185,6 +188,7 @@ Groups:
   c tok [estimate|reconcile]  token-estimator
   c audit [project|hard|code]  project-audit/hardening-check/code-pattern-check
   c branch [check|protect]  branch-protect
+  c model [--task-type T --effort N --executor-agent A]  model-router
 
 Use `c <group> --help` for original script equivalents.
 EOF

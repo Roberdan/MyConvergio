@@ -73,61 +73,80 @@ When `executor_agent == "claude"`, map full model IDs to Claude API shorthand:
 
 Unmapped models (GPT, Gemini) pass through as-is. Use: `MODEL_MAP[task.model] || task.model`.
 
-### P2-3: Execute Tasks (Per-Task Routing)
+### P2-3: Execute Tasks
 
-Tasks in `CTX.pending_tasks` (no separate query). Route each task by `executor_agent` (NULL or empty = `copilot`):
+Tasks in `CTX.pending_tasks` (no separate query). Execute each task directly:
 
-**If `executor_agent == "copilot"` (default)**:
-
-```bash
-copilot-worker.sh ${task.db_id} --model ${task.model} --timeout 600
-```
-
-Uses `--allow-all`, `--add-dir`, `--no-ask-user`, `-p` mode. Model from DB (e.g. `gpt-5.3-codex`, `claude-opus-4.6-fast`).
-
-**If `executor_agent == "claude"`**:
-
-```typescript
-const wavePeers = pendingTasks
-  .filter((t) => t.wave_db_id === task.wave_db_id && t.db_id !== task.db_id)
-  .map((t) => `${t.task_id}: ${t.title}`)
-  .join("\n");
-const priorOutputs = CTX.completed_tasks_output
-  .map((t) => `${t.task_id}: ${t.output_data}`)
-  .join("\n");
-await Task({
-  subagent_type: "task-executor",
-  model: MODEL_MAP[task.model] || task.model || "sonnet",
-  max_turns: 30,
-  description: `Execute ${task.task_id}`,
-  prompt: `TASK ${task.task_id} | Wave: ${task.wave_id} | db_id: ${task.db_id}
-WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK}
-CONSTRAINTS (MUST NOT VIOLATE): ${CONSTRAINTS || "none"}
-Do: ${task.title}
-${task.description}
-Verify: ${task.test_criteria}
-Wave peers: ${wavePeers}
-Prior task outputs: ${priorOutputs || "none"}
-${CI_KNOWLEDGE ? `CI Knowledge (avoid these patterns):\n${CI_KNOWLEDGE}` : ""}
-PATH: export PATH="$HOME/.claude/scripts:$PATH"`,
-});
-```
-
-**Post-exec (both engines)**: `verify-task-update.sh ${task.db_id} done` | Retry max 2x → **log failure** → mark `blocked`, ASK USER
-
-**Failed Approaches Logging** (HVE Core pattern): Before marking a task `blocked`, log what was tried and why it failed:
+**Step 1: Mark started**
 
 ```bash
-plan-db.sh log-failure $PLAN_ID ${task.task_id} "approach description" "failure reason"
+plan-db.sh update-task ${task.db_id} in_progress "Started"
 ```
 
-Before retrying a failed task, check prior failures: `plan-db.sh get-failures $PROJECT_ID --task-pattern ${task.task_id}`. If same approach failed before, use a different strategy.
+**Step 2: TDD + implement (inline)**
 
-### P4a: Per-Task Thor
+Work directly in worktree: edit/create files, write tests, run tests.
 
-`Task(subagent_type="thor-quality-assurance-guardian", model="sonnet", max_turns=15, prompt="THOR PER-TASK VALIDATION | Plan: ${PLAN_ID} | Task: ${task_id} | Wave: ${wave_id} | WORKTREE: ${WORKTREE_PATH} | Task do: ${task_description} | Task type: ${task_type} | Task verify: ${test_criteria_json} | Task ref: ${task_ref} | Task files: ${task_files} | Run verify commands. Check Gate 1-4, 8, 9. Read files directly.")`
+**Step 3: Verify**
 
-PASS → `plan-db.sh validate-task ${task_id} ${PLAN_ID}` | REJECT → fix → re-execute (max 3 rounds)
+```bash
+cd "$WORKTREE_PATH"
+npm run test:unit -- --reporter=dot   # full unit suite
+npm run typecheck                      # type safety
+# Run task-specific verify commands from test_criteria
+```
+
+**Step 4: Submit (proof-of-work)**
+
+```bash
+plan-db-safe.sh update-task ${task.db_id} done "Summary" \
+  --output-data '{"summary":"...","artifacts":["file1"]}'
+# Runs Guard 1 (time), Guard 2 (git-diff), Guard 3 (verify) → sets "submitted"
+# If REJECTED: fix the issue, retry
+```
+
+**Step 5: Validate (Thor)**
+
+Self-validate: re-read files, check constraints, confirm tests pass.
+
+```bash
+plan-db.sh validate-task ${task.db_id} ${PLAN_ID} thor
+# SQLite trigger enforces: submitted → done with valid validator
+```
+
+**Step 6: Confirm**
+
+```bash
+sqlite3 ~/.claude/data/dashboard.db \
+  "SELECT status, validated_at FROM tasks WHERE id=${task.db_id};"
+# Must show: status=done, validated_at NOT NULL
+```
+
+**Background delegation** (parallel low-risk tasks only):
+
+```bash
+copilot-worker.sh ${task.db_id} --model gpt-5-mini --timeout 300 &
+```
+
+**Failed task handling**: max 3 rounds fix→resubmit→revalidate. After 3 rejections: circuit breaker auto-blocks. Log failures:
+
+```bash
+plan-db.sh log-failure $PLAN_ID ${task.task_id} "approach" "reason"
+```
+
+### P4a: Per-Task Thor (Self-Validation)
+
+Before calling `validate-task`, verify ALL of:
+
+1. Files exist: `test -f` for each expected artifact
+2. Verify commands: run ALL from `test_criteria.verify[]`
+3. Tests pass: `npm run test:unit -- {files} --reporter=dot`
+4. Constraints: check C-01..C-xx from plan context
+5. Line limits: `wc -l` on modified files (max 250)
+
+If ANY fails → fix, re-submit (Step 4), re-validate.
+
+PASS → `plan-db.sh validate-task ${task.db_id} ${PLAN_ID} thor`
 
 ### P4b: Per-Wave Thor
 

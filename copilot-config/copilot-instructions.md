@@ -15,7 +15,7 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 | **Requirements extraction**    | `claude-opus-4.6`    | premium  |
 | **Strategic planning**         | `claude-opus-4.6-1m` | premium  |
 | **Code generation / TDD**      | `gpt-5.3-codex`      | standard |
-| **Quality validation (Thor)**  | `claude-opus-4.6`    | premium  |
+| **Quality validation (Thor)**  | `claude-sonnet-4.6`  | standard |
 | **Code review / security**     | `claude-opus-4.6`    | premium  |
 | **Compliance (full codebase)** | `claude-opus-4.6-1m` | premium  |
 | **Documentation writing**      | `claude-sonnet-4.5`  | standard |
@@ -63,8 +63,6 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 
 When the user says `/execute {plan_id}` or `@execute {plan_id}`:
 
-**NEVER execute tasks by editing files directly.** EVERY task MUST go through `copilot-worker.sh`.
-
 ### Step-by-step
 
 ```bash
@@ -74,56 +72,101 @@ PLAN_ID={plan_id}
 # 1. Initialize
 CTX=$(plan-db.sh get-context $PLAN_ID)
 # Extract WORKTREE_PATH, FRAMEWORK, pending tasks from CTX
+cd "$WORKTREE_PATH"
 
-# 2. Start plan if not already doing
+# 2. Start plan + guards
 plan-db.sh start $PLAN_ID
+worktree-guard.sh "$WORKTREE_PATH"
+plan-db.sh drift-check $PLAN_ID
 
-# 3. For EACH pending task — delegate to copilot-worker.sh
-copilot-worker.sh ${task_db_id} --model gpt-5.3-codex --timeout 600
+# 3. For EACH pending task — DIRECT inline execution
+#    (copilot-worker.sh is for BACKGROUND delegation only)
+```
 
-# 4. After each task: verify DB was updated
-verify-task-update.sh ${task_db_id} done
-# If FAILED: force recovery
-plan-db-safe.sh update-task ${task_db_id} done "Auto-recovered by executor"
+### Per-Task Protocol (6 steps — NEVER skip)
 
-# 5. After all tasks in a wave: Thor validation
+```bash
+# STEP 1: Mark started
+plan-db.sh update-task ${db_id} in_progress "Started"
+
+# STEP 2: Do the work (inline edit/create/test in worktree)
+# TDD: write failing test → implement → pass
+
+# STEP 3: Verify (unit tests + typecheck)
+cd "$WORKTREE_PATH" && npm run test:unit -- --reporter=dot
+# Run task-specific verify commands from test_criteria
+
+# STEP 4: Submit (proof-of-work gates)
+plan-db-safe.sh update-task ${db_id} done "Summary" \
+  --output-data '{"summary":"...","artifacts":["file1","file2"]}'
+# plan-db-safe.sh runs Guard 1 (time), Guard 2 (git-diff), Guard 3 (verify commands)
+# Sets status to "submitted" (NEVER done directly)
+
+# STEP 5: Thor validation
+# Option A — claude CLI available (preferred, independent validator):
+#   claude --model sonnet -p "Thor per-task: verify task ${task_id}..." \
+#     && plan-db.sh validate-task ${db_id} ${PLAN_ID} thor
+# Option B — self-validation (Copilot CLI acts as Thor):
+#   Re-read modified files, verify quality, check constraints
+plan-db.sh validate-task ${db_id} ${PLAN_ID} thor
+# SQLite trigger enforces: only submitted→done with valid validator
+
+# STEP 6: Confirm
+sqlite3 ~/.claude/data/dashboard.db \
+  "SELECT status, validated_at FROM tasks WHERE id=${db_id};"
+# Must show: status=done, validated_at NOT NULL
+```
+
+### Self-Validation Protocol (when acting as Thor)
+
+Before calling `validate-task`, verify ALL of:
+
+1. **Files exist**: `test -f` for each expected artifact
+2. **Verify commands**: run ALL commands from `test_criteria.verify[]`
+3. **Tests pass**: `npm run test:unit -- {relevant_files} --reporter=dot`
+4. **Typecheck**: `npm run typecheck` (or targeted check)
+5. **Constraints**: check plan constraints (C-01..C-xx)
+6. **Line limits**: `wc -l` on modified files (max 250)
+
+If ANY check fails → fix first, re-submit, re-validate. Max 3 rounds.
+
+### Wave Completion
+
+```bash
+# After ALL tasks in wave are done:
 plan-db.sh validate-wave ${wave_db_id}
-
-# 6. After all waves: complete plan
+# After ALL waves: complete plan
 plan-db.sh sync $PLAN_ID
 plan-db.sh complete $PLAN_ID
 ```
 
-**KEY**: `copilot-worker.sh` handles task prompt generation, DB updates, retries, and auto-completion detection. Always runs in `--yolo` mode for full autonomy. NEVER bypass it by running tasks inline.
+### When to use copilot-worker.sh (BACKGROUND only)
 
-### If copilot-worker.sh is unavailable
-
-Fall back to manual task execution but **ALWAYS call plan-db-safe.sh** (not plan-db.sh) for done status:
+Use `copilot-worker.sh` ONLY for fire-and-forget background delegation:
 
 ```bash
-# Mark started
-plan-db-safe.sh update-task ${task_db_id} in_progress "Started"
-# ... do the work ...
-# Mark done — MUST use plan-db-safe.sh (plan-db.sh BLOCKS done status)
-plan-db-safe.sh update-task ${task_db_id} done "Summary" --tokens 0
+# Parallel low-risk tasks while you work on something else
+copilot-worker.sh ${db_id} --model gpt-5-mini --timeout 300 &
 ```
+
+NEVER use it as the primary execution method — it spawns a sub-copilot, doubles token cost, and blocks the orchestrator.
 
 ## Anti-Bypass Protection (CRITICAL)
 
-**Plan creation**: NEVER create plans inline. ALWAYS use `@planner`. Manual plan text = no DB registration = Thor/execute/tracking all break. _Why: Plan 225._
-
-**Task execution**: NEVER edit files directly during active plan. EVERY task through `copilot-worker.sh`. Direct edit = VIOLATION. _Why: Plan 182._
+**Plan creation**: NEVER create plans inline. ALWAYS use `@planner`. _Why: Plan 225._
 
 **Enforcement**: No `plan_id` in DB = `@execute` BLOCKED. `plan-db.sh check-readiness` validates.
 
+**Status chain**: pending → in_progress → submitted (plan-db-safe.sh) → done (validate-task ONLY). SQLite trigger `enforce_thor_done` blocks shortcuts.
+
 ### Mandatory Routing
 
-| Trigger                    | Copilot CLI     | NOT                       |
-| -------------------------- | --------------- | ------------------------- |
-| Multi-step work (3+ tasks) | `@planner`      | Inline plan text          |
-| Execute plan tasks         | `@execute {id}` | Direct file editing       |
-| Thor validation            | `@validate`     | Self-declaring done       |
-| Single isolated fix        | Direct edit     | Creating unnecessary plan |
+| Trigger                    | Copilot CLI                               | NOT                            |
+| -------------------------- | ----------------------------------------- | ------------------------------ |
+| Multi-step work (3+ tasks) | `@planner`                                | Inline plan text               |
+| Execute plan tasks         | `@execute {id}`                           | —                              |
+| Thor validation            | `@validate` handoff (NEVER self-validate) | Skipping / self-declaring done |
+| Single isolated fix        | Direct edit                               | Creating unnecessary plan      |
 
 ## Digest Scripts (NON-NEGOTIABLE)
 

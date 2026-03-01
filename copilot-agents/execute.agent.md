@@ -3,7 +3,7 @@ name: execute
 description: Execute plan tasks with TDD workflow, drift detection, and worktree enforcement.
 tools: ["read", "edit", "search", "execute"]
 model: gpt-5
-version: "5.0.0"
+version: "6.0.0"
 handoffs:
   - label: Thor Per-Task Validation (MANDATORY after each task)
     agent: validate
@@ -15,7 +15,7 @@ handoffs:
     send: true
 ---
 
-<!-- v5.0.0 (2026-02-28): submitted status, Thor-only done, SQLite trigger enforcement -->
+<!-- v6.0.0 (2026-03-01): Direct execution mode, self-validation, no sub-copilot -->
 
 # Plan Executor
 
@@ -256,8 +256,35 @@ Resolve ALL issues. Every CI error, lint warning, type error, test failure MUST 
 
 Max 250 lines/file. No TODO/FIXME/@ts-ignore. English. Conventional commits.
 
+## Copilot CLI Direct Execution Mode
+
+When running inside Copilot CLI (not Claude Code), execute tasks **inline** instead of delegating to sub-agents:
+
+1. **No copilot-worker.sh** — work directly in worktree (no sub-copilot spawning)
+2. **Self-validation as Thor** — Copilot CLI verifies its own work before calling `validate-task`
+3. **Same gates** — `plan-db-safe.sh` proof-of-work (time, git-diff, verify) + SQLite trigger enforcement
+
+### Self-Validation Checklist (before validate-task)
+
+| Check | How |
+|-------|-----|
+| Files exist | `test -f` for each artifact |
+| Verify commands | Run ALL from `test_criteria.verify[]` |
+| Tests pass | `npm run test:unit -- {files} --reporter=dot` |
+| Typecheck | `npm run typecheck` |
+| Constraints | Check C-01..C-xx from plan context |
+| Line limits | `wc -l < file` (max 250) |
+
+### When claude CLI is available (optional independent Thor)
+
+```bash
+claude --model sonnet -p "THOR PER-TASK VALIDATION | Task: ${task_id} | Plan: ${PLAN_ID} | WORKTREE: ${WT} | Verify: ${test_criteria} | Check files, run tests, validate quality. If PASS: exit 0. If FAIL: exit 1 with reasons."
+[[ $? -eq 0 ]] && plan-db.sh validate-task ${db_id} ${PLAN_ID} thor
+```
+
 ## Changelog
 
+- **6.0.0** (2026-03-01): Direct execution mode for Copilot CLI, self-validation as Thor, no sub-copilot spawning
 - **5.0.0** (2026-02-28): submitted status, Thor-only done, SQLite trigger enforcement, audit trail
 - **4.0.0** (2026-02-28): MANDATORY Thor handoff, proof-of-work gate, no self-validation
 - **3.1.0** (2026-02-27): Add Phase 4.5 Overlapping Wave Protocol

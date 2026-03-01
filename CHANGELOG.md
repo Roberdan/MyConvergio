@@ -1,5 +1,18 @@
 # Changelog
 
+## [2026-03-01] — Model Tier Optimization
+
+### Changed
+
+- 6 agents downgraded opus→sonnet: plan-post-mortem, sentinel-ecosystem-guardian, plan-business-advisor, plan-reviewer, research-report-generator, deep-repo-auditor
+- 2 agents downgraded sonnet→haiku: marcus-context-memory-keeper, diana-performance-dashboard
+- execution-optimization.md v2.4.0: Thor validator row corrected opus→sonnet (stale docs fix)
+- agent-routing.md v2.2.0: Haiku Candidates section added with selection criteria
+- model-strategy.md v2.2.0: Two Execution Modes section (copilot vs claude routing), haiku tier in decision tree
+- CLAUDE.md: Identity line updated to reflect tiered model strategy (Sonnet/Opus/Haiku)
+
+---
+
 ## [v9.18.0] - 28 Feb 2026
 
 ### Changed

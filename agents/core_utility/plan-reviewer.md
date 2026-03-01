@@ -4,7 +4,7 @@ description: Independent plan quality reviewer. Fresh context, zero planner bias
 tools: ["Read", "Grep", "Glob", "Bash"]
 disallowedTools: ["Write", "Edit"]
 color: "#2E86AB"
-model: opus
+model: sonnet
 version: "1.3.0"
 context_isolation: true
 memory: project

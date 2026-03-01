@@ -1,9 +1,16 @@
 ---
 name: model-strategy
-version: "2.1.0"
+version: "2.2.0"
 ---
 
 # Model Strategy & Assignment
+
+## Two Execution Modes
+
+Coordinator routes each task by `executor_agent` field:
+
+- `executor_agent: copilot` → use **Copilot Model Selection** table below
+- `executor_agent: claude` → use **Claude Model Selection** table below (haiku/sonnet/opus)
 
 ## Copilot-First Principle (NON-NEGOTIABLE)
 
@@ -106,6 +113,9 @@ If the task is "do X following pattern Y" -- that's Copilot, even if complex.
 ## Decision Tree (Planner MUST follow)
 
 ```
+Read-only lookup only (memory retrieval, dashboard, analytics, status)?
+  YES → haiku
+  NO  ↓
 Does the task require DECIDING what to do (architecture, design)?
   YES → claude (opus)
   NO  ↓
@@ -142,10 +152,11 @@ Split by **responsibility/concern**, NOT by model capability. 1 task = 1 coheren
 
 When `executor_agent: "claude"`, pick model by complexity:
 
-| Complexity             | Model    | Criteria                                                    |
-| ---------------------- | -------- | ----------------------------------------------------------- |
-| **Standard**           | `sonnet` | Clear requirements, known patterns, 1-3 files               |
-| **Requires reasoning** | `opus`   | Ambiguous, architectural, cross-cutting, unknown root cause |
+| Complexity             | Model    | Criteria                                                                       |
+| ---------------------- | -------- | ------------------------------------------------------------------------------ |
+| **Utility/Lookup**     | `haiku`  | Read-only: memory lookup, dashboard analytics, status check, result formatting |
+| **Standard**           | `sonnet` | Clear requirements, known patterns, 1-3 files                                  |
+| **Requires reasoning** | `opus`   | Ambiguous, architectural, cross-cutting, unknown root cause                    |
 
 ## Context Isolation
 

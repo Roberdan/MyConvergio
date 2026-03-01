@@ -4,7 +4,7 @@ description: Post-mortem analyzer for completed plans. Extracts structured learn
 tools: ["Read", "Grep", "Glob", "Bash"]
 disallowedTools: ["Write", "Edit"]
 color: "#C62828"
-model: opus
+model: sonnet
 version: "1.2.0"
 context_isolation: true
 memory: project

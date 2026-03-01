@@ -14,7 +14,7 @@ tools:
     "AskUserQuestion",
     "Task",
   ]
-model: opus
+model: sonnet
 version: "1.4.0"
 context_isolation: true
 memory: user

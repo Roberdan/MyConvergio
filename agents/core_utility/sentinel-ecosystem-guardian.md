@@ -18,7 +18,7 @@ tools:
     "Task",
     "AskUserQuestion",
   ]
-model: opus
+model: sonnet
 version: "1.1.0"
 memory: user
 maxTurns: 50

@@ -4,7 +4,7 @@ description: Business impact advisor for execution plans. Estimates traditional 
 tools: ["Read", "Grep", "Glob", "Bash"]
 disallowedTools: ["Write", "Edit"]
 color: "#E8871E"
-model: opus
+model: sonnet
 version: "1.1.0"
 context_isolation: true
 memory: project

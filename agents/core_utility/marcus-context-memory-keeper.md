@@ -8,8 +8,8 @@ description: >-
 tools: ["Read", "Write", "Edit", "Grep", "Glob", "LS"]
 disallowedTools: ["Write", "Edit"]
 color: "#607D8B"
-model: sonnet
-version: "1.2.0"
+model: haiku
+version: "1.2.1"
 memory: user
 maxTurns: 15
 ---

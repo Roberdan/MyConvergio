@@ -1,4 +1,4 @@
-<!-- v2.3.0 | 27 Feb 2026 | Rebase-before-merge in wave merge flow -->
+<!-- v2.4.0 | 01 Mar 2026 | Thor validator updated to sonnet -->
 
 # Execution Optimization
 
@@ -26,13 +26,13 @@ Token tracking handled by `plan-db-safe.sh update-task {id} done "Summary" --tok
 
 ## Model Escalation Strategy
 
-| Agent Type                 | Default                            | Escalation Rule                                         |
-| -------------------------- | ---------------------------------- | ------------------------------------------------------- |
-| Task Executor              | `gpt-5.3-codex` (GPT-5.3-Codex)    | → `claude-opus-4.6` if cross-cutting or architectural   |
-| Coordinator (Standard)     | `claude-sonnet-4.6` (`sonnet`)     | → `claude-opus-4.6` (`opus`) if >3 concurrent tasks     |
-| Coordinator (Max Parallel) | `claude-opus-4.6` (`opus`)         | Required for unlimited parallelization                  |
-| Coordinator (Agent Teams)  | `claude-sonnet-4.6` (`sonnet`)     | → `claude-opus-4.6` (`opus`) for large team coordination |
-| Validator (Thor)           | `claude-opus-4.6` (`opus`)         | No escalation                                           |
+| Agent Type                 | Default                         | Escalation Rule                                          |
+| -------------------------- | ------------------------------- | -------------------------------------------------------- |
+| Task Executor              | `gpt-5.3-codex` (GPT-5.3-Codex) | → `claude-opus-4.6` if cross-cutting or architectural    |
+| Coordinator (Standard)     | `claude-sonnet-4.6` (`sonnet`)  | → `claude-opus-4.6` (`opus`) if >3 concurrent tasks      |
+| Coordinator (Max Parallel) | `claude-opus-4.6` (`opus`)      | Required for unlimited parallelization                   |
+| Coordinator (Agent Teams)  | `claude-sonnet-4.6` (`sonnet`)  | → `claude-opus-4.6` (`opus`) for large team coordination |
+| Validator (Thor)           | `claude-sonnet-4.6` (`sonnet`)  | No escalation                                            |
 
 **Model naming note**:
 

@@ -7,8 +7,8 @@ description: >-
 tools: ["Read", "Grep", "Glob", "LS", "WebSearch", "WebFetch"]
 disallowedTools: ["Write", "Edit"]
 color: "#E91E63"
-model: sonnet
-version: "1.2.0"
+model: haiku
+version: "1.2.1"
 memory: user
 maxTurns: 15
 ---

@@ -57,6 +57,23 @@ fi
 
 New repos: add `.claude/ci-knowledge.md` (if `.claude/` is trackable) or `docs/ci-knowledge.md` (if `.claude/` has nested git or is gitignored).
 
+### P1.9: Claude Max Fallback Check
+
+```bash
+if [[ "${CLAUDE_MAX_EXHAUSTED:-}" == "true" ]]; then
+  if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+    echo "ERROR: Claude Max exhausted and no ANTHROPIC_API_KEY set. Cannot continue." >&2
+    exit 1
+  fi
+  echo "WARN: Claude Max exhausted — switching to API key billing (agent='api-fallback')"
+  sqlite3 ~/.claude/data/dashboard.db \
+    "INSERT OR IGNORE INTO token_usage (plan_id, task_id, agent, model, created_at) \
+     VALUES ($PLAN_ID, 'coordinator', 'api-fallback', 'claude-sonnet-4.6', '$(date -u +%Y-%m-%dT%H:%M:%SZ)');" 2>/dev/null || true
+fi
+```
+
+When `CLAUDE_MAX_EXHAUSTED=true` and `executor_agent == "claude"`: invoke task-executor via `ANTHROPIC_API_KEY` (API billing) instead of Claude Code subagent.
+
 ### Model Name Mapping (Claude tasks)
 
 When `executor_agent == "claude"`, map full model IDs to Claude API shorthand:

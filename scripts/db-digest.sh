@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/digest-cache.sh"
+source "$SCRIPT_DIR/lib/cost-calculator.sh"
 
 DB_FILE="${PLAN_DB_FILE:-$HOME/.claude/data/dashboard.db}"
 CACHE_TTL=10
@@ -144,6 +145,14 @@ cmd_token_stats() {
   " | jq '.[0]'
 }
 
+cmd_cost_report() {
+	[[ "${1:-}" =~ ^[0-9]+$ ]] || {
+		echo '{"status":"error","msg":"plan_id required"}' >&2
+		exit 1
+	}
+	calc_cost_from_token_usage "$1"
+}
+
 cmd_monthly() {
 	validate_or_die plans id status created_at
 	sqlite3 -json "$DB_FILE" "
@@ -161,20 +170,7 @@ cmd_monthly() {
 }
 
 print_help() {
-	cat <<'EOF_HELP'
-DB Digest - Compact dashboard DB summaries
-
-Usage:
-  db-digest.sh plans [--no-cache] [--compact]
-  db-digest.sh tasks <plan_id> [--no-cache] [--compact]
-  db-digest.sh waves <plan_id> [--no-cache] [--compact]
-  db-digest.sh stats [--no-cache] [--compact]
-  db-digest.sh --help
-
-Options:
-  --no-cache   Skip cache and fetch fresh data
-  --compact    Keep only decision-critical fields
-EOF_HELP
+	echo "Usage: db-digest.sh <plans|tasks|waves|stats|token-stats|monthly|cost-report> [plan_id] [--no-cache] [--compact]"
 }
 
 COMMAND=""
@@ -189,7 +185,7 @@ for arg in "$@"; do
 		print_help
 		exit 0
 		;;
-	plans | tasks | waves | stats | token-stats | monthly)
+	plans | tasks | waves | stats | token-stats | monthly | cost-report)
 		[[ -z "$COMMAND" ]] && COMMAND="$arg"
 		;;
 	*)
@@ -233,6 +229,10 @@ token-stats)
 monthly)
 	RESULT=$(cmd_monthly)
 	FILTER='map({month, plans, tasks_done})'
+	;;
+cost-report)
+	cmd_cost_report "$PLAN_ID"
+	exit 0
 	;;
 *)
 	print_help

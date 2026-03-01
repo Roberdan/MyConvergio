@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# c-compact.sh — machine-only JSON output engine | Version: 1.0.0
+# c-compact.sh — machine-only JSON output engine | Version: 1.1.0
 # Strips null/0/false/[] from JSON objects and arrays. NO key abbreviation.
 # Source this lib: source "$(dirname "${BASH_SOURCE[0]}")/c-compact.sh"
 
@@ -50,4 +50,25 @@ except Exception:
 # c_out: pipe filter — strips defaults from single JSON object (use as final step)
 c_out() {
 	c_strip_defaults
+}
+
+# c_table: pipe-separated stdin → JSON array of objects
+# First row = header field names; subsequent rows = data. Per ADR-0021: JSON only.
+c_table() {
+	if [[ -z "$_PYTHON3" ]]; then
+		cat # passthrough if python3 unavailable
+		return
+	fi
+	"$_PYTHON3" -c "
+import json, sys
+lines = [l.rstrip('\n') for l in sys.stdin if l.strip()]
+if not lines:
+    print('[]'); sys.exit(0)
+headers = lines[0].split('|')
+result = []
+for row in lines[1:]:
+    fields = row.split('|')
+    result.append({headers[i]: fields[i] if i < len(fields) else '' for i in range(len(headers))})
+print(json.dumps(result, separators=(',', ':')))
+"
 }

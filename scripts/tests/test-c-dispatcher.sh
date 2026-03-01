@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-c-dispatcher.sh — test suite for c dispatcher | Version: 1.0.0
+# test-c-dispatcher.sh — test suite for c dispatcher | Version: 1.1.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -106,6 +106,74 @@ if "$DISPATCHER" xyz abc 2>/dev/null; then
 	_fail "unknown subcommand exits non-zero" "exit code was 0"
 else
 	_ok "unknown subcommand exits non-zero"
+fi
+
+# Test 13: c pr --help shows pr-ops.sh
+if "$DISPATCHER" pr --help 2>&1 | grep -q 'pr-ops'; then
+	_ok "c pr --help shows pr-ops.sh"
+else
+	_fail "c pr --help shows pr-ops.sh" "missing pr-ops reference"
+fi
+
+# Test 14: c tok --help shows token-estimator.sh
+if "$DISPATCHER" tok --help 2>&1 | grep -q 'token-estimator'; then
+	_ok "c tok --help shows token-estimator.sh"
+else
+	_fail "c tok --help shows token-estimator.sh" "missing token-estimator reference"
+fi
+
+# Test 15: c audit --help shows project-audit.sh
+if "$DISPATCHER" audit --help 2>&1 | grep -q 'project-audit'; then
+	_ok "c audit --help shows project-audit.sh"
+else
+	_fail "c audit --help shows project-audit.sh" "missing project-audit reference"
+fi
+
+# Test 16: c branch --help shows branch-protect.sh
+if "$DISPATCHER" branch --help 2>&1 | grep -q 'branch-protect'; then
+	_ok "c branch --help shows branch-protect.sh"
+else
+	_fail "c branch --help shows branch-protect.sh" "missing branch-protect reference"
+fi
+
+# Test 17: c p create exits non-zero without required args
+if "$DISPATCHER" p create 2>/dev/null; then
+	_fail "c p create exits non-zero without required args" "exit code was 0"
+else
+	_ok "c p create exits non-zero without required args"
+fi
+
+# Test 18: c p cancel exits non-zero without required args
+if "$DISPATCHER" p cancel 2>/dev/null; then
+	_fail "c p cancel exits non-zero without required args" "exit code was 0"
+else
+	_ok "c p cancel exits non-zero without required args"
+fi
+
+# Test 19: c_table produces valid JSON array from pipe-separated input
+# shellcheck source=../lib/c-compact.sh
+source "$COMPACT_LIB"
+TABLE_RESULT=$(printf 'id|name\n1|foo\n2|bar\n' | c_table)
+if echo "$TABLE_RESULT" | python3 -c 'import json,sys; assert isinstance(json.load(sys.stdin), list)' 2>/dev/null; then
+	_ok "c_table produces valid JSON array"
+else
+	_fail "c_table produces valid JSON array" "got: $TABLE_RESULT"
+fi
+
+# Test 20: c_table preserves header field names as JSON keys
+TABLE_RESULT2=$(printf 'status|count\ndone|5\n' | c_table)
+if echo "$TABLE_RESULT2" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[0].get("status")=="done" and d[0].get("count")=="5"' 2>/dev/null; then
+	_ok "c_table preserves header field names as keys"
+else
+	_fail "c_table preserves header field names as keys" "got: $TABLE_RESULT2"
+fi
+
+# Test 21: c_table handles 2+ data rows correctly
+TABLE_RESULT3=$(printf 'id|name\n1|alpha\n2|beta\n3|gamma\n' | c_table)
+if echo "$TABLE_RESULT3" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert len(d)==3 and d[2].get("name")=="gamma"' 2>/dev/null; then
+	_ok "c_table handles 2+ data rows (3 rows)"
+else
+	_fail "c_table handles 2+ data rows" "got: $TABLE_RESULT3"
 fi
 
 echo ""

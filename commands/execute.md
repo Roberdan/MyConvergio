@@ -83,6 +83,28 @@ Tasks in `CTX.pending_tasks` (no separate query). Execute each task directly:
 plan-db.sh update-task ${task.db_id} in_progress "Started"
 ```
 
+**Step 1.5: Model routing (before TDD)**
+
+```bash
+MODEL_JSON=$(model-router.sh --task-type ${task.type} --effort ${task.effort_level} --executor-agent ${task.executor_agent} 2>/dev/null || echo '{"model":"","batch_eligible":false}')
+MODEL=$(echo "$MODEL_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d["model"])' 2>/dev/null || echo "${task.model}")
+BATCH_ELIGIBLE=$(echo "$MODEL_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); print("true" if d.get("batch_eligible") else "false")' 2>/dev/null || echo "false")
+```
+
+**Shortcut**: `c model route --type X --effort Y --agent Z` → calls model-router.sh
+**Fallback**: if model-router.sh not found, MODEL defaults to `task.model` from DB (backward compat)
+
+**Batch routing** (after MODEL/BATCH_ELIGIBLE set):
+
+```bash
+if [[ "$BATCH_ELIGIBLE" == "true" ]] && [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+  batch-dispatcher.sh ${task.db_id} ${PLAN_ID} "${task_prompt}"
+  # batch-dispatcher.sh handles status update; skip inline execution
+else
+  # Standard inline execution (existing logic below)
+fi
+```
+
 **Step 2: TDD + implement (inline)**
 
 Work directly in worktree: edit/create files, write tests, run tests.

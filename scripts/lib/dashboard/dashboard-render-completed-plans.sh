@@ -38,7 +38,7 @@ _render_completed_plans() {
 		elapsed_time=$(format_elapsed $elapsed_seconds)
 
 		# Token usage (usa project_id perché plan_id è sempre NULL nel DB)
-		total_tokens=$(dbq "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$done_project'")
+		total_tokens=$(dbq "SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM token_usage WHERE project_id = '$done_project'")
 		tokens_formatted=$(format_tokens $total_tokens)
 
 		# Thor validation status

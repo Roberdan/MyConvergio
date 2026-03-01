@@ -11,7 +11,7 @@ _render_active_plans() {
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status='in_progress'),
 			(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id AND status NOT IN ('cancelled', 'skipped')),
 			(SELECT COUNT(*) FROM tasks WHERE plan_id=p.id AND status='done'),
-			COALESCE((SELECT SUM(total_tokens) FROM token_usage WHERE project_id=p.project_id), 0),
+			COALESCE((SELECT SUM(input_tokens + output_tokens) FROM token_usage WHERE project_id=p.project_id), 0),
 			COALESCE(p.execution_host, ''),
 			COALESCE(p.human_summary, REPLACE(REPLACE(COALESCE(p.description, ''), char(10), ' '), char(13), '')),
 			COALESCE((SELECT id FROM waves WHERE plan_id=p.id AND status='in_progress' ORDER BY position LIMIT 1), ''),

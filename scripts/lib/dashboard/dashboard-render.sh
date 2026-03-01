@@ -113,7 +113,7 @@ _render_single_plan() {
 
 	# Tokens
 	local total_tokens tokens_formatted
-	total_tokens=$(dbq "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
+	total_tokens=$(dbq "SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
 	tokens_formatted=$(format_tokens $total_tokens)
 	echo -e "${GRAY}├─${NC} Tokens: ${CYAN}$tokens_formatted${NC} ${GRAY}(progetto)${NC}"
 

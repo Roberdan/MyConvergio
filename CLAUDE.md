@@ -60,12 +60,14 @@ Per-task: Gate 1-4, 8, 9 | Per-wave: all 9 gates + build | Max 3 rejection round
 
 ## Mandatory Routing (NON-NEGOTIABLE)
 
-| Trigger                    | Claude Code                           | Copilot CLI     | NOT                        |
-| -------------------------- | ------------------------------------- | --------------- | -------------------------- |
-| Multi-step work (3+ tasks) | `Skill(skill="planner")`              | `@planner`      | EnterPlanMode, manual text |
-| Execute plan tasks         | `Skill(skill="execute", args="{id}")` | `@execute {id}` | Direct file editing        |
-| Thor validation            | `Task(subagent_type="thor")`          | `@validate`     | Self-declaring done        |
-| Single isolated fix        | Direct edit (no plan needed)          | Direct edit     | Creating unnecessary plan  |
+| Trigger                    | Claude Code                                          | Copilot CLI     | NOT                        |
+| -------------------------- | ---------------------------------------------------- | --------------- | -------------------------- |
+| Multi-step work (3+ tasks) | `Skill(skill="planner")` **(SOLO con modello Opus)** | `@planner`      | EnterPlanMode, manual text |
+| Execute plan tasks         | `Skill(skill="execute", args="{id}")`                | `@execute {id}` | Direct file editing        |
+| Thor validation            | `Task(subagent_type="thor")`                         | `@validate`     | Self-declaring done        |
+| Single isolated fix        | Direct edit (no plan needed)                         | Direct edit     | Creating unnecessary plan  |
+
+**PLANNER MODEL (NON-NEGOTIABLE)**: `/planner` DEVE sempre girare su `claude-opus-4.6`. Se il coordinator è Sonnet, BLOCCA e avvisa l'utente. Sonnet che pianifica = VIOLATION (vedi Plan 289).
 
 ## Pre-Closure Checklist (MANDATORY)
 

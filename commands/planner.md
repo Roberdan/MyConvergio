@@ -1,6 +1,7 @@
 ---
 name: planner
-version: "2.6.0"
+version: "2.6.1"
+model: claude-opus-4.6
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 -->

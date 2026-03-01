@@ -39,7 +39,7 @@ db_snapshot() {
 			COALESCE((SELECT host FROM plans WHERE id=p.id), ''),
 			REPLACE(REPLACE(COALESCE(p.human_summary, COALESCE(p.description, '')), char(10), ' '), char(13), ''),
 			COALESCE(p.branch_name, 'main'),
-			COALESCE((SELECT SUM(total_tokens) FROM token_usage WHERE project_id=p.project_id), 0)
+			COALESCE((SELECT SUM(input_tokens + output_tokens) FROM token_usage WHERE project_id=p.project_id), 0)
 		FROM plans p WHERE p.status='doing' ORDER BY p.started_at DESC;
 
 		-- Pipeline plans

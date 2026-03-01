@@ -1,6 +1,6 @@
 # ADR-0003: Opus 4.6 Configuration Upgrade
 
-**Status**: Accepted
+**Status**: Accepted — model assignment section superseded by ADR-0025 (Tiered Model Strategy, 01 Mar 2026)
 **Date**: 07 February 2026
 **Context**: Claude Opus 4.6 released 05 Feb 2026 with breaking changes and new capabilities
 

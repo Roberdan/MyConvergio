@@ -1,5 +1,20 @@
 # Changelog
 
+## [2026-03-01] — Anti-Self-Validation + Post-Plan Hardening
+
+### Added
+
+- ADR-0025: Tiered Model Strategy (Sonnet/Opus/Haiku) — supersedes ADR-0003 model section
+- ADR-0026: Anti-Self-Validation Protocol — 3-layer protection (plan-db-safe + @validate + SQLite trigger)
+
+### Changed
+
+- execution-optimization.md v2.5.0: added Copilot CLI Thor Validation section (anti-self-validation, 3-layer protection table); post-merge CI + deployment gates now BLOCKING (not warning)
+- copilot-instructions.md: Thor model row `claude-opus-4.6` → `claude-sonnet-4.6`; mandatory routing table: `@validate` handoff instead of self-validate
+- `.github/skills/execute.md`: removed "self-validation" language; step 5 now references `@validate` handoff explicitly
+
+---
+
 ## [2026-03-01] — Model Tier Optimization
 
 ### Changed

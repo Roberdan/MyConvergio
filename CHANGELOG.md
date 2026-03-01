@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-03-01] — Token Attribution via DB Time Window
+
+### Changed
+
+- `scripts/lib/plan-db/validate-gate-8.sh` v1.1.0: `cmd_validate_task` now auto-populates `tasks.tokens` at Thor validation time by summing `token_usage` entries whose `created_at` falls within `[task.started_at, task.completed_at]` for the task's project. DB-only, no file reads.
+
+### Details
+
+- Works for **Claude Code task-executor subagents**: each subagent is its own session; Stop hook writes `token_usage` before parent calls `validate-task`
+- Works for **Copilot CLI** (copilot-worker.sh): `session-tokens.sh` (sessionEnd hook) writes real API counts before validate-task runs; overwrites `_ap_tokens` estimate with accurate data
+- Works for **any executor** that writes to `token_usage` (delegate.sh, direct API calls)
+- Limitation: in-session execution (no subagent) → `tokens = 0` at validate-task time; Stop hook fires only at full session end
+- Priority: real API counts from `token_usage` preferred over `--tokens N` estimates; if no time-window data, existing value preserved (no regression)
+
+---
+
 ## [2026-03-01] — Opus Enforcement for Planner (Process Fix)
 
 ### Changed

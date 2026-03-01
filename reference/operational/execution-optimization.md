@@ -22,7 +22,14 @@
 
 ## Token Tracking (MANDATORY for task-executor)
 
-Token tracking handled by `plan-db-safe.sh update-task {id} done "Summary" --tokens {N}` (direct DB write).
+Token tracking is **automatic** at `validate-task` time: `tasks.tokens` is populated by summing `token_usage` entries in `[task.started_at, task.completed_at]` for the task's project (DB time-window join, no file reads). Real API counts from `token_usage` are preferred over `--tokens N` estimates; if no data in the window, existing value is preserved.
+
+| Executor                          | How tokens land in `token_usage`                          | Timing vs validate-task                            |
+| --------------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
+| Claude task-executor subagent     | Stop hook (`session-end-tokens.sh`) per subagent session  | Before validate-task ✓                             |
+| Copilot CLI (copilot-worker.sh)   | sessionEnd hook (`session-tokens.sh`) per copilot session | Before validate-task ✓                             |
+| Direct API (delegate.sh)          | `delegate-utils.sh` writes per call                       | Before validate-task ✓                             |
+| In-session executor (no subagent) | Stop hook fires at full session end                       | After validate-task — pass `--tokens N` explicitly |
 
 ## Model Escalation Strategy
 

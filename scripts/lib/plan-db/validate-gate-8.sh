@@ -107,15 +107,17 @@ UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done),0) FROM waves WHE
 				local tu_end="${tu_completed_at:-$(date -u '+%Y-%m-%d %H:%M:%S')}"
 				local safe_pid
 				safe_pid=$(sql_escape "$tu_project_id")
+				# Prefer real API counts from token_usage over _ap_tokens estimates.
+				# If time-window has no data, keep existing tokens (don't regress to 0).
 				sqlite3 "$DB_FILE" "
-    UPDATE tasks SET tokens = COALESCE((
-      SELECT SUM(input_tokens + output_tokens)
-      FROM token_usage
-      WHERE project_id = '$safe_pid'
-        AND created_at >= '$tu_started_at'
-        AND created_at <= '$tu_end'
-    ), 0)
-    WHERE id = $task_db_id AND (tokens IS NULL OR tokens = 0);" 2>/dev/null || true
+    UPDATE tasks SET tokens = COALESCE(
+      (SELECT SUM(input_tokens + output_tokens) FROM token_usage
+       WHERE project_id = '$safe_pid'
+         AND created_at >= '$tu_started_at'
+         AND created_at <= '$tu_end'),
+      tokens,
+      0)
+    WHERE id = $task_db_id;" 2>/dev/null || true
 			fi
 		} 2>/dev/null || true
 

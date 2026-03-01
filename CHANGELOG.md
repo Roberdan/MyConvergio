@@ -1,5 +1,27 @@
 # Changelog
 
+## [2026-03-01] — Opus Enforcement for Planner (Process Fix)
+
+### Changed
+
+- `CLAUDE.md`: Mandatory Routing table — added Opus enforcement note; planning by non-Opus = VIOLATION
+- `commands/planner.md` v2.6.1: frontmatter `model: claude-opus-4.6` — skill now requires Opus
+- `AGENTS.md`: Workflow Enforcement section — explicit Opus requirement for `/planner` and `@planner`
+- `copilot-config/copilot-instructions.md`: Mandatory Routing — enforcement note for `@planner` on `claude-opus-4.6-1m`
+- `copilot-agents/planner.agent.md`: already set to `claude-opus-4.6-1m` (no change needed)
+- `projects/-Users-roberdan--claude/memory/user-preferences.md`: added lesson from Plan 289
+
+### Fixed
+
+- `v_plan_roi` view: `p.plan_name` → `p.name AS plan_name` (pre-existing column name bug)
+- `v_plan_intervention_stats` view: added JOIN to `plans` table (pre-existing — `plan_versions` lacks `project_id`/`plan_name`)
+
+### Notes
+
+Plan 289 cancelled: planned by Sonnet (coordinator) instead of Opus. Full rollback executed (plan cancelled, worktree removed, ALTER TABLE columns dropped). Plan 291 re-created by Opus.
+
+---
+
 ## [2026-03-01] — c Dispatcher (Token Optimization)
 
 ### Added

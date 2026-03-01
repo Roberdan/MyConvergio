@@ -1,5 +1,24 @@
 # Changelog
 
+## [2026-03-01] — Environment + Documentation (Plan 297 W4)
+
+### Added
+
+- `scripts/mesh-env-setup.sh` v1.0.0: full environment replication in 3 commands (tools, AI engines, hooks, aliases)
+- `scripts/lib/mesh-env-tools.sh`: cross-platform tool install functions (macOS brew, Linux apt)
+- `docs/adr/0029-mesh-networking.md`: ADR for P2P mesh architecture (evolution from ADR-0004)
+- `reference/operational/mesh-networking.md`: operational guide (205 lines, table-first format)
+- MyConvergio: `docs/mesh-networking.md` user-facing guide + README.md mesh section
+
+### Changed
+
+- `agents/release_management/ecosystem-sync.md`: mesh scripts added to sync scope
+- `CLAUDE.md`: added `@reference/operational/mesh-networking.md` import
+- `AGENTS.md`: mesh networking reference in Infrastructure section
+- `docs/adr/INDEX.md`: added row 0029
+
+---
+
 ## [2026-03-01] — Dynamic Dispatch — AI Agent Load Balancer (Plan 297 W3)
 
 ### Added

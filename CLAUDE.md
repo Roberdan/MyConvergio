@@ -43,6 +43,7 @@ Claude stores cross-session context in `~/.claude/projects/{project-slug}/memory
 @reference/operational/worktree-discipline.md
 @reference/operational/concurrency-control.md
 @reference/operational/execution-optimization.md
+@reference/operational/mesh-networking.md
 
 ## Thor Gate (NON-NEGOTIABLE)
 

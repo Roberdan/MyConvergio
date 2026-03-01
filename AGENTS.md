@@ -230,6 +230,7 @@ plan-db.sh validate-fxx {plan_id} # F-xx requirements
 - `reference/operational/plan-scripts.md` - Plan DB script reference
 - `reference/operational/worktree-discipline.md` - Worktree details
 - `reference/operational/tool-preferences.md` - Tool selection
+- `reference/operational/mesh-networking.md` - Mesh networking operational guide
 - `PLANNER-ARCHITECTURE.md` - DB schema, architecture
 
 ---

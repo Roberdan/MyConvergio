@@ -1,75 +1,71 @@
 #!/bin/bash
-# Warn when Claude uses bash commands that should be tool calls
+# Block bash commands that have dedicated tool replacements
 # Hook type: PreToolUse on Bash
-# Version: 1.2.0
+# Version: 2.0.0 — upgraded from warn (exit 0) to block (exit 2)
+# Why: warnings were ignored, wasting 3-4 tool calls per violation
 set -uo pipefail
 
-# Get command from stdin (Claude passes tool input as JSON)
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
-
-# Exit if no command
 [ -z "$COMMAND" ] && exit 0
 
-# Check patterns and suggest tools
-check_pattern() {
-	local pattern="$1"
-	local tool="$2"
-	if echo "$COMMAND" | grep -qE "$pattern" 2>/dev/null; then
-		echo "ANTIPATTERN: Use $tool tool instead of bash"
-		echo "Command: $COMMAND"
-		return 0
-	fi
-	return 1
-}
+# Extract first command (before pipe)
+FIRST_CMD=$(echo "$COMMAND" | sed 's/|.*//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
 
-# zsh safety: != inside double-quoted sqlite3/SQL -> use <> or NOT IN
-if echo "$COMMAND" | grep -qE 'sqlite3.*"[^"]*!=.*"' 2>/dev/null; then
-	echo "BLOCKED: '!=' inside double-quoted sqlite3 command will break in zsh (! expansion)."
-	echo "Fix: Use SQL '<>' operator or 'NOT IN (...)' instead of '!='."
-	echo "Example: status <> 'done' OR status NOT IN ('done')"
+# === BLOCK: standalone grep/rg → use Grep tool ===
+if echo "$FIRST_CMD" | grep -qE "^(grep|rg) " 2>/dev/null; then
+	echo "BLOCKED: Use Grep tool instead of $(echo "$FIRST_CMD" | awk '{print $1}') in Bash." >&2
+	echo "The Grep tool is faster and doesn't count against Bash permissions." >&2
 	exit 2
 fi
 
-# File search patterns -> Glob
-check_pattern "^find " "Glob" && exit 0
-check_pattern " find " "Glob" && exit 0
+# === BLOCK: cat/head/tail for file reading → use Read tool ===
+if echo "$FIRST_CMD" | grep -qE "^cat [^|<>]+$" 2>/dev/null; then
+	echo "BLOCKED: Use Read tool instead of cat." >&2
+	exit 2
+fi
+if echo "$FIRST_CMD" | grep -qE "^(head|tail) " 2>/dev/null; then
+	echo "BLOCKED: Use Read tool (with offset/limit) instead of head/tail." >&2
+	exit 2
+fi
 
-# Content search patterns -> Grep
-check_pattern "^grep " "Grep" && exit 0
-check_pattern "^rg " "Grep" && exit 0
-check_pattern " \| *grep " "Grep" && exit 0
+# === BLOCK: find → use Glob tool ===
+if echo "$FIRST_CMD" | grep -qE "^find " 2>/dev/null; then
+	echo "BLOCKED: Use Glob tool instead of find." >&2
+	exit 2
+fi
 
-# File reading patterns -> Read
-check_pattern "^cat [^|<>]+$" "Read" && exit 0
-check_pattern "^head " "Read" && exit 0
-check_pattern "^tail " "Read" && exit 0
+# === BLOCK: sed -i → use Edit tool ===
+if echo "$FIRST_CMD" | grep -qE "^sed (-i|.* -i)" 2>/dev/null; then
+	echo "BLOCKED: Use Edit tool instead of sed -i." >&2
+	exit 2
+fi
 
-# File editing patterns -> Edit
-check_pattern "^sed -i" "Edit" && exit 0
-check_pattern "^sed .* -i" "Edit" && exit 0
-check_pattern "^awk " "Edit" && exit 0
+# === BLOCK: standalone sqlite3 → use db-query.sh ===
+if echo "$FIRST_CMD" | grep -qE "^sqlite3 " 2>/dev/null; then
+	echo "BLOCKED: Use db-query.sh for custom SQL or db-digest.sh for standard queries." >&2
+	exit 2
+fi
 
-# File writing patterns -> Write
-check_pattern "^echo .+>" "Write" && exit 0
-check_pattern "^printf .+>" "Write" && exit 0
-check_pattern "cat <<" "Write" && exit 0
+# === WARN ONLY: piped grep/head/tail ===
+# These are sometimes legitimate (script output truncation, filtering).
+# Standalone grep/head/tail are BLOCKED above. Pipes are just warnings.
+if echo "$COMMAND" | grep -qE '\|[[:space:]]*(grep|rg) ' 2>/dev/null; then
+	echo "Hint: Consider using Grep tool instead of piping to grep." >&2
+	exit 0
+fi
 
-# Pipe to non-builtin without absolute path -> warn to use `which` first
-# Builtins that don't need path: echo, printf, read, test, [, cd, export, etc.
-BUILTINS="echo|printf|read|test|cd|export|set|unset|shift|return|exit|true|false|type|hash|alias|source|eval|exec|wait|trap|kill|jobs|bg|fg|times|umask|getopts|command|builtin|declare|local|typeset|readonly|let|ulimit|shopt|enable|mapfile|readarray|dirs|pushd|popd|suspend|logout|disown|coproc|compgen|complete|compopt"
-if echo "$COMMAND" | grep -qE '\|' 2>/dev/null; then
-	# Extract commands after pipes (strip leading whitespace)
-	PIPED_CMDS=$(echo "$COMMAND" | tr '|' '\n' | tail -n +2 | sed 's/^ *//' | awk '{print $1}')
-	for cmd in $PIPED_CMDS; do
-		# Skip if absolute path, variable, or builtin
-		[[ "$cmd" == /* ]] && continue
-		[[ "$cmd" == \$* ]] && continue
-		echo "$cmd" | grep -qE "^($BUILTINS)$" && continue
-		# Warn: non-builtin piped without absolute path
-		echo "WARNING: Piping to '$cmd' without absolute path. Run 'which $cmd' first or use absolute path."
-		exit 0
-	done
+# === WARN: zsh != in double-quoted sqlite3 ===
+if echo "$COMMAND" | grep -qE 'sqlite3.*"[^"]*!=.*"' 2>/dev/null; then
+	echo "BLOCKED: '!=' inside double-quoted sqlite3 breaks in zsh (! expansion)." >&2
+	echo "Fix: Use SQL '<>' or 'NOT IN (...)' instead of '!='." >&2
+	exit 2
+fi
+
+# === WARN: echo/printf for file writing → use Write tool ===
+if echo "$FIRST_CMD" | grep -qE "^(echo|printf) " 2>/dev/null && echo "$COMMAND" | grep -qE ">" 2>/dev/null; then
+	echo "BLOCKED: Use Write tool instead of echo/printf redirect." >&2
+	exit 2
 fi
 
 exit 0

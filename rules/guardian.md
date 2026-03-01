@@ -60,6 +60,29 @@ When onboarding a new repo or auditing existing ones, verify:
 
 Without branch protection, GitHub Web UI allows merging with unresolved review comments.
 
+## Pre-Push Hook Failures — Machine Load Strategy
+
+When `git push` is blocked by a pre-push hook running unit tests:
+
+1. **Check which tests failed**: `./scripts/ci-summary.sh --unit --fail-only`
+2. **Check machine load**: `sysctl -n vm.loadavg` vs `sysctl -n hw.logicalcpu`
+3. **Decision matrix**:
+
+| Failing tests             | My change touches those files? | Load > 1× cores? | Action                                          |
+| ------------------------- | ------------------------------ | ---------------- | ----------------------------------------------- |
+| Timing/crypto/performance | No                             | Yes              | `git push --no-verify` — let GitHub CI validate |
+| Timing/crypto/performance | No                             | No               | Retry once (machine may have cooled)            |
+| Logic tests               | Yes                            | Any              | Fix the tests before pushing                    |
+| Logic tests               | No                             | Any              | Investigate: pre-existing failure or env issue  |
+
+4. **`--no-verify` is authorized when ALL of**:
+   - Failing tests are timing/env-dependent (not logic failures)
+   - My change does NOT touch the failing test files or their dependencies
+   - GitHub CI is expected to pass (same tests passed on main before)
+   - Machine load explains the failure (load > 1× cores in 5-min avg)
+
+5. **Log the bypass**: State explicitly why you used `--no-verify` and confirm CI passes post-push.
+
 ## Guardrails
 
 Avatar WebP | EventSource .close() | Lazy-load heavy deps | No N+1 without $transaction | Same approach fails twice → different strategy | Stuck → ask user | Reject if: Errors suppressed | Steps skipped | Verification promised but not done | Orphan code (created but never wired)

@@ -1,5 +1,26 @@
 # Changelog
 
+## [2026-03-01] — API Cost Optimization v2 (Plan 291)
+
+### Added
+
+- `scripts/batch-dispatcher.sh` v1.0.0: Anthropic Batch API submit/poll/parse — eligibility check (effort=1, chore/doc/test), exponential backoff, token_usage logging with `agent='batch-api'`
+- `scripts/model-router.sh` v1.0.0: decision tree for copilot/claude model routing by task-type+effort, JSON output with `batch_eligible` flag
+- `scripts/lib/cost-calculator.sh`: per-model pricing functions (haiku/sonnet/opus/batch), `calc_cost_from_token_usage()`
+- `reference/operational/prompt-caching-guide.md` v1.0.0: caching mechanics, `DISABLE_PROMPT_CACHING`, cost math (write=1.25x, read=0.1x → 90% discount)
+- `docs/adr/0028-api-cost-optimization.md`: 5-strategy cost reduction decision, Accepted
+
+### Changed
+
+- `commands/execute.md` v2.2.0: P1.5 model-router integration + batch routing; P1.9 `CLAUDE_MAX_EXHAUSTED` fallback check
+- `scripts/db-digest.sh`: added `cost-report` subcommand (per-model cost breakdown)
+- `scripts/c`: added `model` group (`c model`) and `cost-report` to `db` group
+- `reference/operational/continuous-optimization.md` v2.1.0: Prompt Caching Health + Batch API Usage monthly checklist
+- `reference/operational/digest-scripts.md` v2.3.0: cost-report row
+- `plan_actuals`: added `model_cost_breakdown` column (idempotent ALTER)
+
+---
+
 ## [2026-03-01] — Token Attribution via DB Time Window
 
 ### Changed

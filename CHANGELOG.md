@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-03-01] — c Dispatcher (Token Optimization)
+
+### Added
+
+- `scripts/c`: unified CLI dispatcher, 8 subcommand groups (d/p/db/w/lock/reap/ci/git), wraps 121 scripts
+- `scripts/lib/c-compact.sh`: compact JSON output engine — strips null/0/false/[] via python3 inline
+- `db-digest.sh` v1.1.0: token-stats and monthly subcommands (eliminates raw SQL for DB analytics)
+- ADR-0027: c dispatcher architecture decision
+
+### Changed
+
+- `digest-scripts.md` v2.2.0: `c alias` column in mapping table
+- `tool-preferences.md` v2.1.0: `c` shortcuts in tool mapping + CI/Build Commands
+
+---
+
 ## [2026-03-01] — Anti-Self-Validation + Post-Plan Hardening
 
 ### Added

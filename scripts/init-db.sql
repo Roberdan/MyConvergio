@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   validation_report TEXT,
   cancelled_at DATETIME,
   cancelled_reason TEXT,
+  privacy_required BOOLEAN DEFAULT 0,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
@@ -499,10 +500,21 @@ CREATE TABLE IF NOT EXISTS tasks_new (
     validation_report TEXT,
     cancelled_at DATETIME,
     cancelled_reason TEXT,
+    privacy_required BOOLEAN DEFAULT 0,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
-INSERT INTO tasks_new SELECT * FROM tasks;
+INSERT INTO tasks_new (id, project_id, wave_id, task_id, title, status, assignee, priority, type,
+    duration_minutes, started_at, completed_at, tokens, validated_at, validated_by, markdown_path,
+    executor_session_id, executor_started_at, executor_last_activity, executor_status, notes,
+    wave_id_fk, plan_id, test_criteria, model, description, output_data, executor_agent,
+    executor_host, effort_level, validation_report, cancelled_at, cancelled_reason)
+SELECT id, project_id, wave_id, task_id, title, status, assignee, priority, type,
+    duration_minutes, started_at, completed_at, tokens, validated_at, validated_by, markdown_path,
+    executor_session_id, executor_started_at, executor_last_activity, executor_status, notes,
+    wave_id_fk, plan_id, test_criteria, model, description, output_data, executor_agent,
+    executor_host, effort_level, validation_report, cancelled_at, cancelled_reason
+FROM tasks;
 DROP TABLE IF EXISTS tasks;
 ALTER TABLE tasks_new RENAME TO tasks;
 
@@ -555,3 +567,24 @@ BEGIN
         OR NEW.validated_by IS NULL
         OR NEW.validated_by NOT IN ('thor', 'thor-quality-assurance-guardian', 'thor-per-wave', 'forced-admin');
 END;
+
+-- ============================================================
+-- Distributed peer coordination (F-26)
+-- ============================================================
+
+-- Peer heartbeats for multi-host agent coordination
+CREATE TABLE IF NOT EXISTS peer_heartbeats (
+    peer_name TEXT PRIMARY KEY,
+    last_seen INTEGER NOT NULL,
+    load_json TEXT,
+    capabilities TEXT,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- ============================================================
+-- Privacy routing support (F-16, F-17)
+-- ============================================================
+
+-- privacy_required is included in the tasks table definition above (both initial CREATE
+-- and tasks_new rebuild). For existing databases that predate this migration, the
+-- ensure_tables() function in plan-db-core.sh adds the column via ALTER TABLE IF NOT EXISTS guard.

@@ -1,5 +1,18 @@
 # Changelog
 
+## [2026-03-01] — Mesh Networking Foundation (Plan 297 W1)
+
+### Added
+
+- `config/peers.conf`: peer registry flat file — generic hostnames (my-mac, my-linux, my-cloud)
+- `scripts/lib/peers.sh` v1.0.0: peer discovery library (load, list, get, check, online, self, others)
+- `scripts/bootstrap-peer.sh`: remote peer initialization with bidirectional SSH key distribution
+- `scripts/mesh-auth-sync.sh`: credential sync (Claude, Copilot, OpenCode, Ollama) via SSH
+- `peer_heartbeats` DB table: peer liveness tracking (last_seen, load_json, capabilities)
+- `tasks.privacy_required` column: privacy-aware task routing (F-16/F-17)
+
+---
+
 ## [2026-03-01] — API Cost Optimization v2 (Plan 291)
 
 ### Added

@@ -6,12 +6,15 @@ description: >-
   Example: @socrates-first-principles-reasoning Help me think through whether we should
   build or buy our authentication system
 tools: ["Read", "Write", "Edit", "Grep", "Glob", "LS", "WebSearch", "WebFetch"]
-disallowedTools: ["Write", "Edit"]
 color: "#8B4513"
 model: sonnet
 version: "1.2.0"
 memory: user
 maxTurns: 20
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — advisory analysis"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

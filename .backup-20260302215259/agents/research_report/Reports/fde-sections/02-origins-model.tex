@@ -1,0 +1,137 @@
+% ============================================
+% SECTION 1: ORIGINS & HISTORY
+% ============================================
+\section{Origins: From Forward Operating Bases to Silicon Valley}
+
+\subsection{The Palantir Genesis (2003--2016)}
+
+The term ``Forward Deployed Engineer'' was coined at Palantir Technologies
+during its founding years serving the U.S.\ intelligence community. The
+name carried deliberate military resonance: early Palantir engineers were
+literally embedded at forward operating bases in conflict zones, aboard
+Navy ships, and at intelligence agency facilities. The role was born from
+necessity---Palantir's Gotham platform required deep integration with
+classified, messy, heterogeneous data systems that could not be understood
+remotely.
+
+\begin{itemize}
+    \item \textbf{Internal codenames}: FDEs were known as ``Delta''
+        internally; Deployment Strategists (the non-engineering
+        complement) were called ``Echo.''
+    \item \textbf{Scale}: Until 2016, Palantir employed \textit{more}
+        FDEs than traditional software engineers---a radical inversion of
+        typical engineering org structures.
+    \item \textbf{Project Frontline (2015)}: Created by Vinoo Ganesh,
+        this program cycled 250+ engineers through forward deployed
+        rotations, building institutional muscle memory for
+        customer-facing engineering.
+    \item \textbf{Palantir Foundry (2016)}: The launch of Foundry marked
+        a strategic pivot. Many FDE-built solutions were generalized into
+        platform capabilities, and a significant cohort of FDEs
+        transitioned to product engineering roles.
+\end{itemize}
+
+\subsection{The Diaspora}
+
+Palantir's FDE alumni have produced a disproportionately exceptional
+cohort of technology leaders and founders:
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{tabular}{L{3.5cm}L{4cm}L{5.5cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Individual}} &
+\textcolor{white}{\textbf{Palantir Role}} &
+\textcolor{white}{\textbf{Post-Palantir}} \\
+\midrule
+Barry McCardel & FDE (5 years) & CEO, Hex \\
+Vinoo Ganesh & Project Frontline Creator & ex-Citadel, CEO Efficiently Technologies \\
+Anduril Co-founders (2) & FDE & Co-founded Anduril Industries \\
+Veraset Founders & FDE & \$15M ARR, acquired \\
+Multiple alumni & Various FDE roles & Leadership at OpenAI, xAI, Citadel \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Crisis Response: Hurricane Sandy (2012)}
+
+In a defining moment for the FDE model, Palantir FDEs deployed to
+Far Rockaway, New York during the aftermath of Hurricane Sandy. Engineers
+worked on-site in disaster conditions, applying Palantir's data
+integration capabilities to emergency response coordination---
+demonstrating that the ``forward deployed'' ethos extended beyond military
+contexts to any environment where data complexity met human urgency.
+
+% ============================================
+% SECTION 2: THE FDE OPERATING MODEL
+% ============================================
+\section{The FDE Operating Model: Architecture \& Doctrine}
+
+\subsection{Dual Structure}
+
+The FDE model operates on a fundamental organizational duality:
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{tabular}{L{3cm}L{5cm}L{5cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Dimension}} &
+\textcolor{white}{\textbf{Forward Engineers}} &
+\textcolor{white}{\textbf{Core/Platform Engineers}} \\
+\midrule
+Location & Customer site (3--4 days/week) & HQ / remote \\
+Focus & Custom solutions, integration & Generalization, platform \\
+Output & Working deployments & Reusable abstractions \\
+Feedback & Field intelligence to product & Platform capabilities to field \\
+Risk & Bespoke sprawl & Ivory tower disconnect \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{The Circular Flow}
+
+The economic engine of a well-run FDE program is iterative generalization:
+
+\begin{enumerate}
+    \item \textbf{FDE \#1} builds a custom solution for Customer A.
+    \item \textbf{FDE \#2} encounters a similar problem at Customer B,
+        reuses and adapts FDE \#1's work.
+    \item \textbf{FDE \#3} refines the pattern at Customer C.
+    \item After \textbf{N iterations}, the solution is generalized into a
+        platform-standard capability available to all customers without
+        FDE involvement.
+\end{enumerate}
+
+This circular flow is what distinguishes an FDE program from consulting:
+each deployment creates durable assets that compound across the customer
+base.
+
+\subsection{Auftragstaktik: Mission-Type Tactics}
+
+Palantir's FDE doctrine draws explicitly from \textit{Auftragstaktik},
+the German military concept of mission-type tactics: leadership defines
+the objective and constraints, but the FDE has total autonomy over
+execution. This enables rapid decision-making in the field without
+waiting for HQ approval---critical when working inside customer
+environments with unique constraints and time pressure.
+
+\subsection{Pod Model (Salesforce Variant)}
+
+Salesforce's 2025--2026 FDE expansion introduced a structured pod model:
+
+\begin{itemize}
+    \item \textbf{Composition}: 1 Deployment Strategist + 2 FDEs per pod.
+    \item \textbf{Duration}: Full-time on one client for approximately
+        3 months.
+    \item \textbf{Focus}: Agentforce deployment and customization.
+    \item \textbf{Scale target}: 1,000 FDEs planned.
+\end{itemize}
+
+\subsection{On-Site Expectations}
+
+Across the industry, FDE on-site time typically ranges from 25--50\% of
+working hours. At companies with the most intensive models (OpenAI,
+Palantir), FDEs spend 3--4 days per week at customer facilities, writing
+code directly on customer infrastructure.

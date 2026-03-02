@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   wave_id TEXT NOT NULL,
   task_id TEXT NOT NULL,
   title TEXT NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'submitted', 'done', 'blocked', 'skipped', 'cancelled')),
+  status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'skipped')),
   assignee TEXT,
   priority TEXT CHECK(priority IN ('P0', 'P1', 'P2', 'P3')),
   type TEXT CHECK(type IN ('bug', 'feature', 'fix', 'refactor', 'test', 'config', 'documentation', 'chore', 'doc')),
@@ -111,9 +111,6 @@ CREATE TABLE IF NOT EXISTS tasks (
   executor_host TEXT DEFAULT NULL,
   effort_level INTEGER DEFAULT 1 CHECK(effort_level IN (1, 2, 3)),
   validation_report TEXT,
-  cancelled_at DATETIME,
-  cancelled_reason TEXT,
-  privacy_required BOOLEAN DEFAULT 0,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
@@ -170,37 +167,15 @@ WHERE rn = 1;
 CREATE TABLE IF NOT EXISTS plans (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  source_file TEXT,
-  is_master BOOLEAN DEFAULT 0,
-  parent_plan_id INTEGER,
-  status TEXT NOT NULL DEFAULT 'todo' CHECK(status IN ('todo', 'doing', 'done', 'archived', 'cancelled')),
+  plan_name TEXT NOT NULL,
+  plan_file TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('draft', 'active', 'completed', 'abandoned')),
   tasks_total INTEGER DEFAULT 0,
   tasks_done INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  started_at DATETIME,
   completed_at DATETIME,
-  validated_at DATETIME,
-  validated_by TEXT,
-  markdown_dir TEXT,
-  archived_at DATETIME,
-  archived_path TEXT,
-  updated_at DATETIME,
-  git_clean_at_closure INTEGER DEFAULT NULL,
-  parallel_mode TEXT DEFAULT 'standard',
-  markdown_path TEXT,
-  worktree_path TEXT,
-  execution_host TEXT DEFAULT NULL,
-  description TEXT DEFAULT NULL,
-  human_summary TEXT DEFAULT NULL,
-  lines_added INTEGER DEFAULT NULL,
-  lines_removed INTEGER DEFAULT NULL,
-  constraints_json TEXT DEFAULT NULL,
-  cancelled_at DATETIME,
-  cancelled_reason TEXT,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-  FOREIGN KEY (parent_plan_id) REFERENCES plans(id) ON DELETE SET NULL,
-  UNIQUE(project_id, name)
+  UNIQUE(project_id, plan_name)
 );
 
 -- Plan versions for tracking modifications and learning
@@ -472,7 +447,7 @@ CREATE TABLE IF NOT EXISTS tasks_new (
     wave_id TEXT NOT NULL,
     task_id TEXT NOT NULL,
     title TEXT NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'submitted', 'done', 'blocked', 'skipped', 'cancelled')),
+    status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'skipped')),
     assignee TEXT,
     priority TEXT CHECK(priority IN ('P0', 'P1', 'P2', 'P3')),
     type TEXT CHECK(type IN ('bug', 'feature', 'fix', 'refactor', 'test', 'config', 'documentation', 'chore', 'doc')),
@@ -498,23 +473,10 @@ CREATE TABLE IF NOT EXISTS tasks_new (
     executor_host TEXT DEFAULT NULL,
     effort_level INTEGER DEFAULT 1 CHECK(effort_level IN (1, 2, 3)),
     validation_report TEXT,
-    cancelled_at DATETIME,
-    cancelled_reason TEXT,
-    privacy_required BOOLEAN DEFAULT 0,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
-INSERT INTO tasks_new (id, project_id, wave_id, task_id, title, status, assignee, priority, type,
-    duration_minutes, started_at, completed_at, tokens, validated_at, validated_by, markdown_path,
-    executor_session_id, executor_started_at, executor_last_activity, executor_status, notes,
-    wave_id_fk, plan_id, test_criteria, model, description, output_data, executor_agent,
-    executor_host, effort_level, validation_report, cancelled_at, cancelled_reason)
-SELECT id, project_id, wave_id, task_id, title, status, assignee, priority, type,
-    duration_minutes, started_at, completed_at, tokens, validated_at, validated_by, markdown_path,
-    executor_session_id, executor_started_at, executor_last_activity, executor_status, notes,
-    wave_id_fk, plan_id, test_criteria, model, description, output_data, executor_agent,
-    executor_host, effort_level, validation_report, cancelled_at, cancelled_reason
-FROM tasks;
+INSERT INTO tasks_new SELECT * FROM tasks;
 DROP TABLE IF EXISTS tasks;
 ALTER TABLE tasks_new RENAME TO tasks;
 
@@ -546,45 +508,10 @@ BEGIN
     UPDATE plans SET tasks_done = tasks_done - 1 WHERE id = NEW.plan_id;
 END;
 
--- Auto-transition wave to merging when all tasks are done
+-- Auto-complete wave when all tasks are done
 CREATE TRIGGER IF NOT EXISTS wave_auto_complete
 AFTER UPDATE OF tasks_done ON waves
-WHEN NEW.tasks_done = NEW.tasks_total AND NEW.tasks_total > 0
-     AND NEW.status NOT IN ('done', 'merging', 'cancelled')
+WHEN NEW.tasks_done = NEW.tasks_total AND NEW.tasks_total > 0 AND NEW.status != 'done'
 BEGIN
-    UPDATE waves SET status = 'merging', completed_at = COALESCE(completed_at, datetime('now')) WHERE id = NEW.id;
+    UPDATE waves SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')) WHERE id = NEW.id;
 END;
-
--- ENFORCE: Only Thor can set status=done (v5.0.0)
--- Tasks must go through 'submitted' first, then Thor transitions submitted→done
--- with a valid validated_by value. Even raw SQL is blocked without Thor validator.
-CREATE TRIGGER IF NOT EXISTS enforce_thor_done
-BEFORE UPDATE OF status ON tasks
-WHEN NEW.status = 'done' AND OLD.status <> 'done'
-BEGIN
-    SELECT RAISE(ABORT, 'BLOCKED: Only Thor can set status=done. validated_by must be thor/thor-quality-assurance-guardian/thor-per-wave/forced-admin.')
-    WHERE OLD.status <> 'submitted'
-        OR NEW.validated_by IS NULL
-        OR NEW.validated_by NOT IN ('thor', 'thor-quality-assurance-guardian', 'thor-per-wave', 'forced-admin');
-END;
-
--- ============================================================
--- Distributed peer coordination (F-26)
--- ============================================================
-
--- Peer heartbeats for multi-host agent coordination
-CREATE TABLE IF NOT EXISTS peer_heartbeats (
-    peer_name TEXT PRIMARY KEY,
-    last_seen INTEGER NOT NULL,
-    load_json TEXT,
-    capabilities TEXT,
-    updated_at TEXT DEFAULT (datetime('now'))
-);
-
--- ============================================================
--- Privacy routing support (F-16, F-17)
--- ============================================================
-
--- privacy_required is included in the tasks table definition above (both initial CREATE
--- and tasks_new rebuild). For existing databases that predate this migration, the
--- ensure_tables() function in plan-db-core.sh adds the column via ALTER TABLE IF NOT EXISTS guard.

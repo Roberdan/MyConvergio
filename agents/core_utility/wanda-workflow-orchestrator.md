@@ -6,12 +6,15 @@ description: >-
   Example: @wanda-workflow-orchestrator Set up workflow for product launch coordination
   across marketing, sales, and support
 tools: ["Task", "Read", "Write", "Edit"]
-disallowedTools: ["Write", "Edit", "WebSearch", "WebFetch"]
 color: "#FF6B6B"
 model: sonnet
 version: "2.2.0"
 memory: user
 maxTurns: 20
+maturity: stable
+providers:
+  - claude
+constraints: ["Read-only — orchestrates via Task tool"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

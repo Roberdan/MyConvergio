@@ -9,6 +9,20 @@ delegate_utils_sql_escape() {
 	printf '%s' "$1" | sed "s/'/''/g"
 }
 
+validate_numeric() {
+	local label="${1:?label required}"
+	local value="${2:-}"
+
+	if [[ -z "$value" ]]; then
+		echo "ERROR: $label must be numeric, got empty value" >&2
+		exit 1
+	fi
+	if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+		echo "ERROR: $label must be numeric, got: $value" >&2
+		exit 1
+	fi
+}
+
 parse_yaml_field() {
 	local yaml_file="${1:?yaml_file required}"
 	local field_expr="${2:?field expression required}"

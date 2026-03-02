@@ -1,13 +1,11 @@
-#!/bin/bash
-# session-reaper.sh - Claude Code Stop hook
-# Kills orphaned shell processes when a session ends.
-# Version: 1.0.0
+#!/usr/bin/env bash
 set -uo pipefail
 
-INPUT=$(cat)
+# session-reaper.sh — Copilot CLI sessionEnd hook
+# Kills orphaned shell processes when a session ends.
+# Version: 1.0.0
 
-# Find which shell-snapshot this session uses
-# The session's temp dir pattern helps identify its processes
+INPUT=$(cat)
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 [[ -z "$SESSION_ID" ]] && exit 0
 

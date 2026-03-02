@@ -31,6 +31,7 @@ Deliver correct, validated work; avoid avoidable defects.
 ## Article VI: Verification
 
 Verify results before claiming completion; show proof when needed.
+- Task lifecycle integrity is mandatory: executors submit (`submitted`), Thor validation alone can set `done`.
 
 ## Core Principles
 
@@ -68,9 +69,9 @@ Verify results before claiming completion; show proof when needed.
 
 ### Agents MUST
 
-- Follow `~/.claude/rules/execution.md`
+- Follow `~/.claude/rules/guardian.md` (execution discipline)
 - Submit to `~/.claude/rules/guardian.md` audit
-- Respect `~/.claude/rules/file-size-limits.md` (max 250 lines)
+- Respect `~/.claude/rules/coding-standards.md` (max 250 lines)
 - Use datetime format: `DD Mese YYYY, HH:MM CET`
 
 ### Agents MUST NOT
@@ -150,4 +151,5 @@ Apply to: logs, checkpoints, reports, file headers.
 
 ## Version
 
+- **1.1.0** (28 Febbraio 2026, 20:30 CET): Added submitted→done verification integrity rule (Thor-only done)
 - **1.0.0** (3 Gennaio 2026, 18:35 CET): Initial constitution

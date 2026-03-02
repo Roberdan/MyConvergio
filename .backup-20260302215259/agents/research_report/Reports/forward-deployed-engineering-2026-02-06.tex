@@ -1,0 +1,133 @@
+% Forward Deployed Engineering: The Definitive Analysis
+% Technology & Talent Strategy Report
+% Convergio Think Tank | February 6, 2026
+
+\documentclass[11pt,a4paper]{article}
+
+% ============================================
+% PACKAGES
+% ============================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{tcolorbox}
+\usepackage{amssymb}
+\usepackage{textcomp}
+\usepackage{tabularx}
+
+% ============================================
+% COLORS
+% ============================================
+\definecolor{msblue}{RGB}{0,51,102}
+\definecolor{mslightblue}{RGB}{0,102,179}
+\definecolor{msgray}{RGB}{128,128,128}
+\definecolor{mslightgray}{RGB}{245,245,245}
+\definecolor{msgreen}{RGB}{0,128,0}
+\definecolor{msred}{RGB}{192,0,0}
+\definecolor{msorange}{RGB}{255,140,0}
+\definecolor{msdarkgray}{RGB}{64,64,64}
+\definecolor{msyellow}{RGB}{255,193,7}
+
+% ============================================
+% PAGE GEOMETRY
+% ============================================
+\geometry{
+    a4paper,
+    left=0.7in,
+    right=0.7in,
+    top=1in,
+    bottom=0.7in,
+    headheight=30pt,
+    headsep=15pt
+}
+
+% ============================================
+% HEADER/FOOTER
+% ============================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{%
+    \textcolor{msblue}{\footnotesize\textbf{Forward Deployed Engineering}} \\
+    \textcolor{msgray}{\scriptsize February 6, 2026}%
+}
+\fancyhead[R]{%
+    \textcolor{msblue}{\footnotesize\textbf{Technology \& Talent Strategy}} \\
+    \textcolor{msgray}{\scriptsize Page \thepage}%
+}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{%
+    \hbox to\headwidth{%
+        \color{msblue}\leaders\hrule height \headrulewidth\hfill%
+    }%
+}
+\fancyfoot[C]{%
+    \textcolor{msgray}{\scriptsize%
+        Convergio Think Tank | CTT-2026-005 | Data as of February 2026%
+    }%
+}
+
+% ============================================
+% SECTION STYLING
+% ============================================
+\titleformat{\section}%
+    {\Large\bfseries\color{msblue}}{}{0em}{}[\color{msblue}\titlerule]
+\titleformat{\subsection}%
+    {\large\bfseries\color{msblue}}{}{0em}{}
+\titleformat{\subsubsection}%
+    {\normalsize\bfseries\color{msdarkgray}}{}{0em}{}
+\titlespacing*{\section}{0pt}{16pt}{8pt}
+\titlespacing*{\subsection}{0pt}{10pt}{5pt}
+
+% ============================================
+% CUSTOM COMMANDS
+% ============================================
+\newcommand{\kpiup}{\textcolor{msgreen}{$\blacktriangle$}}
+\newcommand{\kpidown}{\textcolor{msred}{$\blacktriangledown$}}
+\newcommand{\kpiflat}{\textcolor{msgray}{$\bullet$}}
+\newcommand{\statusgreen}{\textcolor{msgreen}{\checkmark}}
+\newcommand{\statusorange}{\textcolor{msorange}{$\sim$}}
+\newcommand{\statusred}{\textcolor{msred}{$\times$}}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+\setlist[itemize]{leftmargin=16pt, itemsep=3pt, parsep=0pt, topsep=4pt}
+\renewcommand{\labelitemi}{\textcolor{msblue}{$\blacksquare$}}
+
+% ============================================
+% HYPERREF
+% ============================================
+\hypersetup{
+    colorlinks=true,
+    linkcolor=msblue,
+    urlcolor=mslightblue,
+    pdftitle={Forward Deployed Engineering: The Definitive Analysis},
+    pdfauthor={Convergio Think Tank}
+}
+
+% ============================================
+% DOCUMENT BEGIN
+% ============================================
+\begin{document}
+
+\input{fde-sections/01-title-executive}
+\input{fde-sections/02-origins-model}
+\input{fde-sections/03-companies-talent}
+\input{fde-sections/04-cases-risks}
+\input{fde-sections/05-practices-future}
+\input{fde-sections/06-sources-disclaimer}
+
+\end{document}

@@ -1,4 +1,4 @@
-<!-- v2.2.0 | 01 Mar 2026 | Haiku Candidates section -->
+<!-- v2.1.0 | 27 Feb 2026 | Agent Teams routing + new commands -->
 
 # Agent Routing
 
@@ -34,15 +34,6 @@ EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
 | Quality validation   | `thor-quality-assurance-guardian`        |
 | Complex debugging    | `adversarial-debugger`                   |
 | Parallel multi-agent | Agent Teams (`TeamCreate`/`SendMessage`) |
-
-## Haiku Candidates (Read-Only Utility)
-
-| Agent                          | Reason                        |
-| ------------------------------ | ----------------------------- |
-| `marcus-context-memory-keeper` | Memory lookup — no decisions  |
-| `diana-performance-dashboard`  | Analytics read — no decisions |
-
-Rule: Haiku ONLY for agents with `disallowedTools: [Write, Edit]` AND task profile is pure retrieval/formatting. Any decision-making = minimum sonnet.
 
 ## Repo Knowledge
 

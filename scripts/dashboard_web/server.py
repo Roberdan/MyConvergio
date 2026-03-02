@@ -77,25 +77,34 @@ def api_overview() -> dict:
     }
 
 
-def api_mission() -> dict | None:
-    p = query_one(
+def api_mission() -> dict:
+    plans = query(
         "SELECT id,name,status,tasks_done,tasks_total,human_summary,"
         "execution_host,parallel_mode,project_id FROM plans"
-        " WHERE status IN ('todo','doing') ORDER BY id DESC LIMIT 1"
+        " WHERE status IN ('todo','doing') ORDER BY id DESC"
     )
-    if not p:
-        return None
-    waves = query(
-        "SELECT wave_id,name,status,tasks_done,tasks_total,position,validated_at"
-        " FROM waves WHERE plan_id=? ORDER BY position",
-        (p["id"],),
-    )
-    tasks = query(
-        "SELECT task_id,title,status,executor_agent,executor_host,tokens"
-        ",validated_at FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
-        (p["id"],),
-    )
-    return {"plan": p, "waves": waves, "tasks": tasks}
+    if not plans:
+        return {"plans": []}
+    result = []
+    for p in plans:
+        waves = query(
+            "SELECT wave_id,name,status,tasks_done,tasks_total,position,validated_at"
+            " FROM waves WHERE plan_id=? ORDER BY position",
+            (p["id"],),
+        )
+        tasks = query(
+            "SELECT task_id,title,status,executor_agent,executor_host,tokens"
+            ",validated_at FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
+            (p["id"],),
+        )
+        result.append({"plan": p, "waves": waves, "tasks": tasks})
+    # Backward compat: "plan"/"waves"/"tasks" = first (most recent) plan
+    return {
+        "plans": result,
+        "plan": plans[0],
+        "waves": result[0]["waves"],
+        "tasks": result[0]["tasks"],
+    }
 
 
 def api_tokens_daily() -> list[dict]:

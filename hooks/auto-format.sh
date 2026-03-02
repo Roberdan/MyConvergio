@@ -1,18 +1,23 @@
 #!/bin/bash
-# Auto-format hook for Claude Code
-# Runs after Edit/Write/MultiEdit to format code automatically
-# PostToolUse hook receives JSON on stdin
-# Version: 1.1.0
+# auto-format.sh — Copilot CLI version
+# PostToolUse hook: runs formatter after Edit/Write/MultiEdit.
+# Version: 1.0.0
 set -uo pipefail
 
-# Read JSON input from stdin
 INPUT=$(cat)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+
+# Only run after edit/write tools
+case "$TOOL_NAME" in
+Edit | Write | MultiEdit | editFile | writeFile | multiEdit) ;;
+*) exit 0 ;;
+esac
 
 # Extract file_path from tool_input
 FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 [ -z "$FILE" ] && FILE="${CLAUDE_FILE_PATH:-}"
 
-# Exit if no file path
+# Exit if no file path or file doesn't exist
 [ -z "$FILE" ] || [ ! -f "$FILE" ] && exit 0
 
 # Format based on extension

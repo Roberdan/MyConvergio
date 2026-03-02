@@ -1,4 +1,4 @@
-<!-- v2.5.0 | 01 Mar 2026 | Copilot CLI Thor validation pattern (anti-self-validation) -->
+<!-- v2.4.0 | 28 Feb 2026 | Add ci-watch.sh for CI polling -->
 
 # Execution Optimization
 
@@ -22,29 +22,17 @@
 
 ## Token Tracking (MANDATORY for task-executor)
 
-Token tracking is **automatic** at `validate-task` time: `tasks.tokens` is populated by summing `token_usage` entries in `[task.started_at, task.completed_at]` for the task's project (DB time-window join, no file reads). Real API counts from `token_usage` are preferred over `--tokens N` estimates; if no data in the window, existing value is preserved.
-
-| Executor                          | How tokens land in `token_usage`                          | Timing vs validate-task                            |
-| --------------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
-| Claude task-executor subagent     | Stop hook (`session-end-tokens.sh`) per subagent session  | Before validate-task ✓                             |
-| Copilot CLI (copilot-worker.sh)   | sessionEnd hook (`session-tokens.sh`) per copilot session | Before validate-task ✓                             |
-| Direct API (delegate.sh)          | `delegate-utils.sh` writes per call                       | Before validate-task ✓                             |
-| In-session executor (no subagent) | Stop hook fires at full session end                       | After validate-task — pass `--tokens N` explicitly |
+Token tracking handled by `plan-db-safe.sh update-task {id} done "Summary" --tokens {N}` (direct DB write).
 
 ## Model Escalation Strategy
 
-| Agent Type                 | Default                         | Escalation Rule                                          |
-| -------------------------- | ------------------------------- | -------------------------------------------------------- |
-| Task Executor              | `gpt-5.3-codex` (GPT-5.3-Codex) | → `opus` if cross-cutting or architectural               |
-| Coordinator (Standard)     | `sonnet`                         | → `opus` if >3 concurrent tasks                          |
-| Coordinator (Max Parallel) | `opus`                           | Required for unlimited parallelization                   |
-| Coordinator (Agent Teams)  | `sonnet`                         | → `opus` for large team coordination                     |
-| Validator (Thor)           | `claude-sonnet-4.6` (`sonnet`)  | No escalation                                            |
-
-**Model naming note**:
-
-- Claude API shorthand (`sonnet` / `opus` / `haiku`) is an alias layer.
-- Copilot Task `model:` must use full model IDs (for example `gpt-5.3-codex`, `claude-sonnet-4.6`).
+| Agent Type                 | Default       | Escalation Rule                          |
+| -------------------------- | ------------- | ---------------------------------------- |
+| Task Executor              | GPT-5.3-Codex | → opus if cross-cutting or architectural |
+| Coordinator (Standard)     | sonnet        | → opus if >3 concurrent tasks            |
+| Coordinator (Max Parallel) | **opus**      | Required for unlimited parallelization   |
+| Coordinator (Agent Teams)  | sonnet        | → opus for large team coordination       |
+| Validator (Thor)           | opus          | No escalation                            |
 
 ## Parallelization Modes (User Choice)
 
@@ -94,11 +82,6 @@ After ALL tasks in a wave are Thor-validated:
 
 4. **Thor per-wave**: `plan-db.sh validate-wave {wave_db_id}`
 5. **Wave merge**: `wave-worktree.sh merge {plan_id} {wave_db_id}` → auto-commit + rebase onto main + push (force-with-lease) + PR + CI + review comments check + squash merge to main
-   **Pre-merge gate (NON-NEGOTIABLE)**: `pr-ops.sh ready {pr}` MUST show 0 blockers. Requires: (a) CI green on PR branch, (b) zero unresolved review threads. `wave-worktree.sh merge` enforces this automatically and BLOCKS if either fails.
-   5b. **Post-merge CI + Deployment (BLOCKING — NON-NEGOTIABLE)**: After squash merge to main, coordinator MUST verify BOTH:
-   - CI on main: `ci-watch.sh [branch] --sha {merge_sha}` → MUST reach SUCCESS. If FAIL → coordinator flags, does NOT close wave until fixed.
-   - Deployment: `service-digest.sh deploy` → MUST show deployment COMPLETE (not just triggered). Wave is NOT done until deployment status = success/complete.
-     Wave stays in `merging` state until both CI and deployment confirm green. Closing a wave with pending/failed main CI or incomplete deployment = VIOLATION.
 6. **If merge blocked (unresolved PR comments)**: Invoke `Task(subagent_type='pr-comment-resolver')` with PR number. After resolution, retry `wave-worktree.sh merge`. Max 3 rounds.
 7. **Wave cleanup (NON-NEGOTIABLE)**: After merge succeeds, verify ALL artifacts are cleaned:
    - `session-reaper.sh --max-age 0` (kill orphan processes)
@@ -106,6 +89,12 @@ After ALL tasks in a wave are Thor-validated:
    - `git branch | grep plan/{plan_id}` (wave branch deleted)
    - Wave DB status = `done`
 8. **Proceed to next wave**: Only after merge + cleanup succeeds
+
+## CI Watch (Token-Efficient)
+
+| Need              | Use command                                                 |
+| ----------------- | ----------------------------------------------------------- |
+| Poll CI checkruns | `ci-watch.sh <branch> --repo owner/repo [--sha SHA] [--timeout SEC]` |
 
 ## Plan Closure Checklist (NON-NEGOTIABLE)
 
@@ -155,35 +144,3 @@ Task(subagent_type="task-executor", isolation="worktree", ...)
 - File locking (prevents conflicts)
 
 **NEVER use `general-purpose`** for plan task execution. It lacks plan-db awareness and will not update task status.
-
-## Copilot CLI Thor Validation (NON-NEGOTIABLE — Anti-Self-Validation)
-
-**Self-validation = executor calls `validate-task ... thor` directly = VIOLATION.**
-Same LLM has confirmation bias from implementation context. Fresh context reduces but does not eliminate bias.
-
-**3-Layer Protection (all layers required):**
-
-| Layer | Mechanism                                                                           | Bypassable?                       |
-| ----- | ----------------------------------------------------------------------------------- | --------------------------------- |
-| 1     | `plan-db-safe.sh` guards (time, git-diff, verify cmds)                              | NO — deterministic                |
-| 2     | Independent validator in fresh context window                                       | Partially — same model, no memory |
-| 3     | SQLite trigger `enforce_thor_done` (submitted→done only via validated_by whitelist) | NO — DB enforced                  |
-
-**Correct Copilot CLI flow:**
-
-```bash
-# 1. Execute inline
-# (Copilot edits files directly — faster than spawning copilot-worker subprocess)
-
-# 2. Submit with mechanical guards (NON-BYPASSABLE)
-plan-db-safe.sh update-task {id} done "summary"   # → status: submitted
-
-# 3. Independent validation in FRESH context (NOT self-validation)
-task(agent_type="validate", prompt="THOR PER-TASK | Plan:{plan_id} | Task:{task_id} | verify:{criteria}")
-#   → If PASS:  plan-db.sh validate-task {id} {plan_id} thor   (submitted → done)
-#   → If FAIL:  fix, re-submit, re-validate (max 3 rounds)
-```
-
-**Why fresh context matters**: `context_isolation: true` on both `task-executor` and `thor` agents means the validator has NO memory of the implementation phase. It reads files directly, runs verify commands independently, and cannot be biased by the executor's summary framing.
-
-**copilot-worker.sh**: Must use `task(agent_type="validate")` for Thor, never direct `validate-task`. Layer 1 (plan-db-safe.sh) + Layer 3 (SQLite trigger) remain intact regardless.

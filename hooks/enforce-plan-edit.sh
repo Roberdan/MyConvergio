@@ -1,13 +1,23 @@
-#!/bin/bash
-# enforce-plan-edit.sh - PreToolUse hook on Edit/Write/MultiEdit
+#!/usr/bin/env bash
+# enforce-plan-edit.sh — Copilot CLI preToolUse hook
 # Blocks edits on plan-tracked files unless running as task-executor.
-# Exit 0=allow, Exit 2=block
+# Internal filter: only acts on edit/write/multiEdit tool calls.
+# Exit 0=allow, deny via jq JSON output + exit 0
 # Version: 1.0.0
 set -uo pipefail
 
+INPUT=$(cat)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.toolName // ""' 2>/dev/null)
+
+# Only check edit/write tools
+case "$TOOL_NAME" in
+edit | write | multiEdit | editFile | writeFile | multiEditFile) ;;
+*) exit 0 ;;
+esac
+
 PLAN_FILE="${HOME}/.claude/data/active-plan-id.txt"
 
-# C-05: No active plan file -> allow (safe fallback)
+# No active plan file -> allow (safe fallback)
 [ ! -f "$PLAN_FILE" ] && exit 0
 
 # Read plan_id (first non-empty line)
@@ -21,11 +31,8 @@ FILES_CACHE="${HOME}/.claude/data/plan-${PLAN_ID}-files.txt"
 # No files cache for this plan -> allow
 [ ! -f "$FILES_CACHE" ] && exit 0
 
-# Read JSON input from stdin
-INPUT=$(cat)
-
-# Extract file_path from tool_input
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+# Extract file_path from toolArgs
+FILE_PATH=$(echo "$INPUT" | jq -r '.toolArgs.file_path // .toolArgs.filePath // empty' 2>/dev/null)
 
 # No file path in input -> allow
 [ -z "$FILE_PATH" ] && exit 0
@@ -48,8 +55,9 @@ if grep -qxF "$FILE_PATH" "$FILES_CACHE" 2>/dev/null; then
 	if [ "${CLAUDE_TASK_EXECUTOR:-0}" = "1" ]; then
 		exit 0
 	fi
-	echo "BLOCKED: File ${FILE_PATH} is tracked by active plan ${PLAN_ID}. Use Task(subagent_type=\"task-executor\") for plan files." >&2
-	exit 2
+	jq -n --arg f "$FILE_PATH" --arg p "$PLAN_ID" \
+		'{permissionDecision: "deny", permissionDecisionReason: ("BLOCKED: File " + $f + " is tracked by active plan " + $p + ". Use copilot-worker.sh or task-executor for plan files.")}'
+	exit 0
 fi
 
 exit 0

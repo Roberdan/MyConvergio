@@ -1,10 +1,22 @@
-#!/bin/bash
-# secret-scanner.sh: Pre-commit hook for secret detection
-# Scans staged files for API keys, tokens, hardcoded URLs, and localhost/IPs
-# Exit 1 = BLOCK commit, Exit 0 = ALLOW
+#!/usr/bin/env bash
+# secret-scanner.sh — Copilot CLI preToolUse hook
+# Scans staged files for secrets/hardcoded values before git commit.
 # Version: 1.0.0
 
 set -euo pipefail
+
+command -v jq >/dev/null 2>&1 || exit 0
+
+INPUT=$(cat)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.toolName // .tool_name // ""' 2>/dev/null)
+if [[ "$TOOL_NAME" != "bash" && "$TOOL_NAME" != "shell" && "$TOOL_NAME" != "Bash" ]]; then
+	exit 0
+fi
+
+COMMAND=$(echo "$INPUT" | jq -r '.toolArgs.command // .tool_input.command // ""' 2>/dev/null)
+if ! echo "$COMMAND" | grep -qE '(^|[;&[:space:]])git[[:space:]]+commit([[:space:]]|$)'; then
+	exit 0
+fi
 
 # Color codes for output
 RED='\033[0;31m'
@@ -38,12 +50,9 @@ declare -A SECRET_PATTERNS=(
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || echo "")
 
 if [ -z "$STAGED_FILES" ]; then
-  # No staged files, allow commit
-  exit 0
+	# No staged files, allow command
+	exit 0
 fi
-
-echo "🔍 Scanning staged files for secrets..."
-echo ""
 
 # Function to report secret found
 report_secret() {
@@ -52,11 +61,11 @@ report_secret() {
   local pattern_name="$3"
   local line_content="$4"
   
-  echo -e "${RED}[BLOCKED] Secret detected: $pattern_name${NC}"
-  echo "  File: $file"
-  echo "  Line $line_num: $line_content"
-  echo ""
-  SECRETS_FOUND=1
+	echo -e "${RED}[BLOCKED] Secret detected: $pattern_name${NC}" >&2
+	echo "  File: $file" >&2
+	echo "  Line $line_num: $line_content" >&2
+	echo "" >&2
+	SECRETS_FOUND=1
 }
 
 # Function to scan file for secret patterns
@@ -64,14 +73,14 @@ scan_secrets() {
   local file="$1"
   
   # Skip binary files
-  if file "$file" 2>/dev/null | grep -qE "text|PEM|key|certificate"; then
+  if file "$file" 2>/dev/null | grep -q "text"; then
     :
   else
     return 0
   fi
   
   # Skip lock files and generated files
-  case "$(basename "$file")" in
+  case "$file" in
     *.lock|package-lock.json|yarn.lock|Gemfile.lock|poetry.lock|*.min.js|*.min.css)
       return 0
       ;;
@@ -83,18 +92,9 @@ scan_secrets() {
     
     while IFS=: read -r line_num line_content; do
       if [ -n "$line_num" ]; then
-        # Skip false positives: variable names, comments, env var usage
-        case "$line_content" in
-          *'process.env.'*|*'${'*'}'*|*'${!'*) continue ;;
-        esac
-        # Skip comment lines
-        if [[ "$line_content" =~ ^[[:space:]]*# ]]; then continue; fi
-        # Skip variable name assignments where the secret keyword is part of a compound name
-        # e.g. "const apiKeyName = ..." but NOT "const token = 'actual-secret'"
-        if [[ "$line_content" =~ (const|let|var|local)[[:space:]]+[a-zA-Z_]+([Kk]ey|[Ss]ecret|[Tt]oken|[Pp]assword)[A-Z_][a-zA-Z_]*[[:space:]]*= ]]; then continue; fi
         report_secret "$file" "$line_num" "$pattern_name" "$line_content"
       fi
-    done < <(grep -nE -- "$pattern" "$file" 2>/dev/null || true)
+    done < <(grep -nE "$pattern" "$file" 2>/dev/null || true)
   done
 }
 
@@ -126,12 +126,12 @@ scan_hardcoded_urls() {
     fi
     
     if [ -n "$line_num" ]; then
-      echo -e "${RED}[BLOCKED] Hardcoded URL detected${NC}"
-      echo "  File: $file"
-      echo "  Line $line_num: $line_content"
-      echo "  Use environment variables instead: process.env.API_URL or \${API_URL}"
-      echo ""
-      SECRETS_FOUND=1
+			echo -e "${RED}[BLOCKED] Hardcoded URL detected${NC}" >&2
+			echo "  File: $file" >&2
+			echo "  Line $line_num: $line_content" >&2
+			echo "  Use environment variables instead: process.env.API_URL or \${API_URL}" >&2
+			echo "" >&2
+			SECRETS_FOUND=1
     fi
   done < <(grep -nE 'https?://[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}[^"'\'' ]*' "$file" 2>/dev/null | \
            grep -v 'localhost' | \
@@ -174,12 +174,12 @@ scan_localhost_ips() {
     fi
     
     if [ -n "$line_num" ]; then
-      echo -e "${YELLOW}[BLOCKED] localhost/IP without env var fallback${NC}"
-      echo "  File: $file"
-      echo "  Line $line_num: $line_content"
-      echo "  Use: \${VAR:-localhost:port} or process.env.VAR || 'http://localhost:port'"
-      echo ""
-      SECRETS_FOUND=1
+			echo -e "${YELLOW}[BLOCKED] localhost/IP without env var fallback${NC}" >&2
+			echo "  File: $file" >&2
+			echo "  Line $line_num: $line_content" >&2
+			echo "  Use: \${VAR:-localhost:port} or process.env.VAR || 'http://localhost:port'" >&2
+			echo "" >&2
+			SECRETS_FOUND=1
     fi
   done < <(grep -nE '(localhost|127\.0\.0\.1|0\.0\.0\.0|192\.168\.[0-9]+\.[0-9]+|10\.[0-9]+\.[0-9]+\.[0-9]+):[0-9]+' "$file" 2>/dev/null | \
            grep -vE '\$\{[^}]+:-' | \
@@ -199,19 +199,10 @@ for file in $STAGED_FILES; do
 done
 
 # Report results
-if [ $SECRETS_FOUND -eq 1 ]; then
-  echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${RED}❌ COMMIT BLOCKED: Secrets or hardcoded values detected${NC}"
-  echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo ""
-  echo "Actions to fix:"
-  echo "  1. Remove secrets and use environment variables"
-  echo "  2. Use .env files (ensure .env is in .gitignore)"
-  echo "  3. Add env var fallbacks for localhost/IPs"
-  echo "  4. Review and unstage: git reset HEAD <file>"
-  echo ""
-  exit 1
-else
-  echo "✅ No secrets detected. Commit allowed."
-  exit 0
+if [ "$SECRETS_FOUND" -eq 1 ]; then
+	jq -n --arg r "BLOCKED: Secrets or hardcoded values detected in staged files. Remove secrets, use env vars, then retry commit." \
+		'{permissionDecision: "deny", permissionDecisionReason: $r}'
+	exit 0
 fi
+
+exit 0

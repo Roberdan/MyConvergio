@@ -18,10 +18,14 @@ tools:
     "Task",
     "AskUserQuestion",
   ]
-model: sonnet
+model: opus
 version: "1.1.0"
 memory: user
 maxTurns: 50
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — monitors ecosystem"]
 ---
 
 # Sentinel - Ecosystem Guardian

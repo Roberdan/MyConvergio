@@ -4,10 +4,14 @@ description: BRUTAL Release Manager ensuring production-ready quality. Parallel 
 tools: ["Read", "Glob", "Grep", "Bash", "Task"]
 model: sonnet
 color: "#FF0000"
-version: "3.4.0"
+version: "3.5.0"
 memory: project
 maxTurns: 40
 skills: ["security-audit"]
+maturity: stable
+providers:
+  - claude
+constraints: ["Read-only — orchestrates via Task tool"]
 ---
 
 ## Security & Ethics Framework
@@ -73,7 +77,7 @@ TOTAL: ~2 minutes (vs ~10 minutes sequential)
 
 ```bash
 ls package.json Cargo.toml pyproject.toml Makefile 2>/dev/null
-cat VERSION package.json pyproject.toml 2>/dev/null | grep -i version | head -5
+grep -i version VERSION package.json pyproject.toml 2>/dev/null; # use Read tool for full inspection
 git status --short && git log --oneline -5
 ```
 
@@ -104,6 +108,7 @@ git status --short && git log --oneline -5
 | L: Locale Load  | All locale files load, no missing keys       | i18n apps        |
 | M: Maestri      | moliere/goethe/cervantes configured          | MirrorBuddy i18n |
 | N: SEO          | hreflang, canonical, sitemap for all locales | i18n + SEO       |
+| O: CI Watch     | `ci-watch.sh <branch> --repo owner/repo`     | all              |
 
 ---
 
@@ -129,6 +134,7 @@ Use Agent Teams for parallel validation phases — TeamCreate with per-phase age
 
 ## Changelog
 
+- **3.5.0** (2026-02-28): Added CI watch gate (`ci-watch.sh`) for release monitoring
 - **3.4.0** (2026-02-27): Use Agent Teams for parallel validation phases — TeamCreate with per-phase agents
 - **3.3.0** (2026-02-07): Added iOS release question for Capacitor projects (checks delegated to repo-local agents)
 - **3.1.0** (2026-01-25): Added i18n, maestri, and SEO validation gates (Tasks K-N)

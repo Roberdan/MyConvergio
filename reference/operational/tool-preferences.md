@@ -1,4 +1,4 @@
-<!-- v2.1.0 | 01 Mar 2026 | c dispatcher shortcuts (Plan 290) -->
+<!-- v2.1.0 | 28 Feb 2026 | Add branch-protect.sh mapping -->
 
 # Tool Preferences
 
@@ -16,11 +16,6 @@
 | Find symbol by name    | `codegraph_search` (if `.codegraph/`)    | Grep for symbol         |
 | Explore codebase       | `Task(subagent_type='Explore')`          | Multiple grep/glob      |
 | Run project audit      | `project-audit.sh --project-root $(pwd)` | Manual audit scripts    |
-| `sqlite3 dashboard.db` | `db-digest.sh` / **`c db stats`**        | Manual sqlite3 queries  |
-| `custom SQL query`     | `db-query.sh`                            | Ad-hoc SQL statements   |
-| Git/service status     | **`c d git`** / **`c d ci`**             | Full script names       |
-| Plan DB operations     | **`c p ctx {id}`** / **`c p done {id}`** | Raw plan-db.sh          |
-| All digest shortcuts   | **`c [d\|p\|db\|w\|lock\|reap\|ci]`**    | Verbose script names    |
 
 ## Parallel Execution
 
@@ -51,28 +46,24 @@
 
 **MANDATORY**: Use project scripts instead of raw commands when available.
 
-| Raw command (AVOID)      | Optimized alternative             | `c` shortcut       |
-| ------------------------ | --------------------------------- | ------------------ |
-| `npm run lint`           | `./scripts/ci-summary.sh --lint`  | —                  |
-| `npm run typecheck`      | `./scripts/ci-summary.sh --types` | —                  |
-| `npm run build`          | `./scripts/ci-summary.sh --build` | —                  |
-| `npm run test:unit`      | `./scripts/ci-summary.sh --unit`  | —                  |
-| `npx playwright test`    | `./scripts/ci-summary.sh --e2e`   | —                  |
-| A11y/axe-core tests      | `./scripts/ci-summary.sh --a11y`  | —                  |
-| `gh run view --log`      | `ci-digest.sh <id>`               | —                  |
-| `gh pr checks`           | `ci-digest.sh checks <pr>`        | `c ci checks <pr>` |
-| `git status` / `git log` | `git-digest.sh`                   | `c d git`          |
-| CI status (service)      | `service-digest.sh ci`            | `c d ci`           |
-| `git diff file \| head`  | `git diff --stat` + Read tool     | —                  |
-| `git log` (verbose)      | `git log --oneline -N`            | —                  |
-| `gh pr view` (verbose)   | `pr-ops.sh status <pr>`           | —                  |
-| `gh api .../comments -f` | `pr-ops.sh reply <pr> <id> "msg"` | —                  |
-| `gh pr merge`            | `pr-ops.sh merge <pr>`            | —                  |
-| Pattern check (pre-PR)   | `code-pattern-check.sh --json`    | —                  |
-| Copilot review digest    | `copilot-review-digest.sh <pr>`   | —                  |
-| Branch protection audit  | `branch-protect.sh check <repo>`  | —                  |
-| plan-db.sh get-context   | `plan-db.sh get-context {id}`     | `c p ctx {id}`     |
-| CI watch post-merge      | `ci-watch.sh`                     | `c ci watch`       |
+| Raw command (AVOID)      | Optimized alternative             |
+| ------------------------ | --------------------------------- |
+| `npm run lint`           | `./scripts/ci-summary.sh --lint`  |
+| `npm run typecheck`      | `./scripts/ci-summary.sh --types` |
+| `npm run build`          | `./scripts/ci-summary.sh --build` |
+| `npm run test:unit`      | `./scripts/ci-summary.sh --unit`  |
+| `npx playwright test`    | `./scripts/ci-summary.sh --e2e`   |
+| A11y/axe-core tests      | `./scripts/ci-summary.sh --a11y`  |
+| `gh run view --log`      | `ci-digest.sh <id>`               |
+| `gh pr checks`           | `ci-digest.sh checks <pr>`        |
+| `git diff file \| head`  | `git diff --stat` + Read tool     |
+| `git log` (verbose)      | `git log --oneline -N`            |
+| `gh pr view` (verbose)   | `pr-ops.sh status <pr>`           |
+| `gh api .../comments -f` | `pr-ops.sh reply <pr> <id> "msg"` |
+| `gh pr merge`            | `pr-ops.sh merge <pr>`            |
+| Pattern check (pre-PR)   | `code-pattern-check.sh --json`    |
+| Copilot review digest    | `copilot-review-digest.sh <pr>`   |
+| Branch protection checks | `branch-protect.sh check <owner/repo> [branch]` |
 
 Hook `prefer-ci-summary.sh` enforces this automatically.
 

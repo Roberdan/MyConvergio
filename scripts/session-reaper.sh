@@ -127,7 +127,7 @@ while IFS= read -r line; do
 done < <(ps -eo pid,ppid,etime,command | grep 'shell-snapshots/snapshot' | grep -v grep | grep -v "$MY_PID")
 
 # Pass 2: orphaned processes writing to claude temp CWD files
-# Pattern: both Claude Code and Copilot CLI write pwd to ${TMPDIR:-/tmp}/claude-*-cwd or similar
+# Pattern: both Claude Code and Copilot CLI write pwd to /tmp/claude-*-cwd or similar
 # These are shell wrappers that may not reference shell-snapshots
 while IFS= read -r line; do
 	pid=$(echo "$line" | awk '{print $1}')

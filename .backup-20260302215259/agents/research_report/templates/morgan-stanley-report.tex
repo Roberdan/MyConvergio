@@ -1,0 +1,408 @@
+% Convergio Think Tank (CTT) Research Report Template
+% Professional equity research formatting - Morgan Stanley style
+% Version 1.1.0
+
+\documentclass[11pt,a4paper]{article}
+
+% ============================================
+% PACKAGES
+% ============================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{fontspec}
+\usepackage{parskip}
+\usepackage{multicol}
+\usepackage{tikz}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ============================================
+% COLORS - Morgan Stanley Inspired
+% ============================================
+\definecolor{msblue}{RGB}{0,51,102}
+\definecolor{mslightblue}{RGB}{0,102,179}
+\definecolor{msgray}{RGB}{128,128,128}
+\definecolor{mslightgray}{RGB}{240,240,240}
+\definecolor{msgreen}{RGB}{0,128,0}
+\definecolor{msred}{RGB}{192,0,0}
+\definecolor{msorange}{RGB}{255,165,0}
+\definecolor{msdarkgray}{RGB}{64,64,64}
+
+% ============================================
+% PAGE GEOMETRY
+% ============================================
+\geometry{
+    a4paper,
+    left=0.75in,
+    right=0.75in,
+    top=1.25in,
+    bottom=1in,
+    headheight=40pt,
+    headsep=20pt
+}
+
+% ============================================
+% FONTS (requires XeLaTeX or LuaLaTeX)
+% ============================================
+\setmainfont{Helvetica Neue}[
+    UprightFont = *,
+    BoldFont = * Bold,
+    ItalicFont = * Italic,
+]
+\setsansfont{Helvetica Neue}
+
+% ============================================
+% HEADER/FOOTER
+% ============================================
+\pagestyle{fancy}
+\fancyhf{}
+
+% Header
+\fancyhead[L]{%
+    \textcolor{msblue}{\footnotesize\textbf{\VAR{company_name}}}\\
+    \textcolor{msgray}{\scriptsize\VAR{report_date}}
+}
+\fancyhead[R]{%
+    \textcolor{msblue}{\footnotesize\textbf{\VAR{report_type}}}\\
+    \textcolor{msgray}{\scriptsize Page \thepage}
+}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{msblue}\leaders\hrule height \headrulewidth\hfill}}
+
+% Footer
+\fancyfoot[C]{\textcolor{msgray}{\scriptsize Research Report | \VAR{analyst_name} | \VAR{organization}}}
+
+% ============================================
+% SECTION STYLING
+% ============================================
+\titleformat{\section}
+    {\Large\bfseries\color{msblue}}
+    {}
+    {0em}
+    {}
+    [\color{msblue}\titlerule]
+
+\titleformat{\subsection}
+    {\large\bfseries\color{msblue}}
+    {}
+    {0em}
+    {}
+
+\titleformat{\subsubsection}
+    {\normalsize\bfseries\color{msdarkgray}}
+    {}
+    {0em}
+    {}
+
+\titlespacing*{\section}{0pt}{20pt}{10pt}
+\titlespacing*{\subsection}{0pt}{15pt}{8pt}
+\titlespacing*{\subsubsection}{0pt}{10pt}{5pt}
+
+% ============================================
+% CUSTOM COMMANDS
+% ============================================
+
+% Title Block
+\newcommand{\reporttitle}[4]{%
+    \begin{center}
+        {\color{msblue}\LARGE\bfseries #1}\\[8pt]
+        {\color{msdarkgray}\large #2}\\[15pt]
+        \begin{tabular}{ll}
+            \textbf{Rating:} & #3 \\
+            \textbf{Price Target:} & #4 \\
+        \end{tabular}
+    \end{center}
+    \vspace{10pt}
+}
+
+% Quick Metrics Panel
+\newcommand{\quickmetrics}[4]{%
+    \begin{center}
+    \begin{tikzpicture}
+        \node[draw=mslightgray, fill=mslightgray, rounded corners=3pt,
+              minimum width=\textwidth-20pt, minimum height=60pt] at (0,0) {};
+
+        % Four metric boxes
+        \foreach \i/\title/\value in {
+            -5.5/#1,
+            -1.8/#2,
+            1.8/#3,
+            5.5/#4
+        } {
+            \node[anchor=north] at (\i,0.8) {\scriptsize\textcolor{msgray}{\title}};
+            \node[anchor=center] at (\i,0) {\footnotesize\textbf{\value}};
+        }
+    \end{tikzpicture}
+    \end{center}
+}
+
+% Key Takeaway Box
+\newcommand{\keytakeaway}[1]{%
+    \begin{tcolorbox}[
+        colback=mslightgray,
+        colframe=msblue,
+        boxrule=1pt,
+        arc=3pt,
+        left=10pt,
+        right=10pt,
+        top=8pt,
+        bottom=8pt
+    ]
+    \textbf{Key Takeaways}
+    \begin{itemize}[leftmargin=15pt, itemsep=3pt]
+        #1
+    \end{itemize}
+    \end{tcolorbox}
+}
+
+% KPI Table Row with Trend
+\newcommand{\kpiup}{\textcolor{msgreen}{$\uparrow$}}
+\newcommand{\kpidown}{\textcolor{msred}{$\downarrow$}}
+\newcommand{\kpiflat}{\textcolor{msgray}{$\rightarrow$}}
+
+% Highlight Box
+\newcommand{\highlightbox}[2]{%
+    \noindent
+    \colorbox{mslightgray}{%
+        \parbox{\dimexpr\linewidth-2\fboxsep}{%
+            \textbf{\textcolor{msblue}{#1}}\\[5pt]
+            #2
+        }%
+    }
+    \vspace{10pt}
+}
+
+% Rating Badge
+\newcommand{\ratingbadge}[1]{%
+    \ifthenelse{\equal{#1}{Overweight}}{%
+        \colorbox{msgreen}{\textcolor{white}{\textbf{Overweight}}}%
+    }{}%
+    \ifthenelse{\equal{#1}{Equal-weight}}{%
+        \colorbox{msorange}{\textcolor{white}{\textbf{Equal-weight}}}%
+    }{}%
+    \ifthenelse{\equal{#1}{Underweight}}{%
+        \colorbox{msred}{\textcolor{white}{\textbf{Underweight}}}%
+    }{}%
+}
+
+% Source Citation
+\newcommand{\sourcecite}[1]{%
+    \textcolor{msgray}{\scriptsize Source: #1}
+}
+
+% ============================================
+% LIST STYLING
+% ============================================
+\setlist[itemize]{
+    leftmargin=20pt,
+    itemsep=4pt,
+    parsep=0pt,
+    topsep=5pt
+}
+
+\setlist[enumerate]{
+    leftmargin=20pt,
+    itemsep=4pt,
+    parsep=0pt,
+    topsep=5pt
+}
+
+% Custom bullet style
+\renewcommand{\labelitemi}{\textcolor{msblue}{$\blacksquare$}}
+\renewcommand{\labelitemii}{\textcolor{msblue}{$\bullet$}}
+
+% ============================================
+% TABLE STYLING
+% ============================================
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+% KPI Table Environment
+\newenvironment{kpitable}{%
+    \rowcolors{2}{white}{mslightgray}
+    \begin{longtable}{L{4cm}R{2cm}R{2cm}R{2cm}C{1.5cm}}
+    \toprule
+    \rowcolor{msblue}
+    \textcolor{white}{\textbf{KPI}} &
+    \textcolor{white}{\textbf{Current}} &
+    \textcolor{white}{\textbf{Previous}} &
+    \textcolor{white}{\textbf{YoY}} &
+    \textcolor{white}{\textbf{Trend}} \\
+    \midrule
+    \endhead
+    \bottomrule
+    \endfoot
+}{%
+    \end{longtable}
+}
+
+% ============================================
+% HYPERREF SETUP
+% ============================================
+\hypersetup{
+    colorlinks=true,
+    linkcolor=msblue,
+    filecolor=msblue,
+    urlcolor=mslightblue,
+    citecolor=msblue,
+    pdftitle={Research Report},
+    pdfauthor={Research Team}
+}
+
+% ============================================
+% DOCUMENT START
+% ============================================
+\begin{document}
+
+% ============================================
+% COVER/TITLE PAGE
+% ============================================
+\thispagestyle{empty}
+
+\begin{center}
+    \vspace*{2cm}
+
+    % Logo placeholder
+    % \includegraphics[width=3cm]{logo.png}
+
+    \vspace{1cm}
+
+    {\color{msblue}\Huge\bfseries \VAR{subject_name}}
+
+    \vspace{0.5cm}
+
+    {\color{mslightblue}\Large \VAR{ticker_symbol}}
+
+    \vspace{1.5cm}
+
+    {\color{msdarkgray}\LARGE\bfseries \VAR{report_title}}
+
+    \vspace{2cm}
+
+    % Rating and Target Box
+    \begin{tikzpicture}
+        \node[draw=msblue, fill=mslightgray, rounded corners=5pt,
+              minimum width=10cm, minimum height=3cm] at (0,0) {
+            \begin{tabular}{cc}
+                \begin{tabular}{c}
+                    \textcolor{msgray}{\small Stock Rating}\\[5pt]
+                    \ratingbadge{\VAR{rating}}
+                \end{tabular}
+                &
+                \begin{tabular}{c}
+                    \textcolor{msgray}{\small Price Target}\\[5pt]
+                    {\Large\bfseries \$\VAR{price_target}}
+                \end{tabular}
+            \end{tabular}
+        };
+    \end{tikzpicture}
+
+    \vspace{2cm}
+
+    % Analysts
+    {\color{msdarkgray}\textbf{Research Analysts}}\\[10pt]
+    \VAR{analyst_names}
+
+    \vspace{1cm}
+
+    {\color{msgray}\VAR{report_date}}
+
+    \vfill
+
+    {\color{msgray}\footnotesize \VAR{disclaimer_short}}
+
+\end{center}
+
+\newpage
+
+% ============================================
+% EXECUTIVE SUMMARY
+% ============================================
+\section{Executive Summary}
+
+% Quick Metrics Panel
+\quickmetrics{Reaction to Report}{Impact Assessment}{Results vs Consensus}{Forward Outlook}
+
+\vspace{15pt}
+
+\VAR{executive_summary}
+
+\vspace{15pt}
+
+% Key Takeaways
+\keytakeaway{
+    \VAR{key_takeaways}
+}
+
+% ============================================
+% MAIN ANALYSIS SECTIONS
+% ============================================
+\section{Analysis}
+
+\VAR{main_analysis}
+
+% ============================================
+% KPI DASHBOARD
+% ============================================
+\section{Key Performance Indicators}
+
+\begin{kpitable}
+\VAR{kpi_table_rows}
+\end{kpitable}
+
+\sourcecite{\VAR{data_source}}
+
+% ============================================
+% WHAT WORKED / AREAS TO MONITOR
+% ============================================
+\section{Assessment}
+
+\subsection{What Worked Well}
+
+\VAR{what_worked}
+
+\subsection{Areas to Monitor}
+
+\VAR{areas_to_monitor}
+
+% ============================================
+% METHODOLOGY & SOURCES
+% ============================================
+\section{Methodology \& Sources}
+
+\subsection{Research Methodology}
+\VAR{methodology}
+
+\subsection{Data Sources}
+\VAR{sources_list}
+
+\subsection{Limitations}
+\VAR{limitations}
+
+% ============================================
+% DISCLAIMER
+% ============================================
+\vfill
+\hrule
+\vspace{10pt}
+{\scriptsize\color{msgray}
+\textbf{Disclaimer:} \VAR{full_disclaimer}
+
+\textbf{Generated:} \VAR{generation_date} | \textbf{Data Cutoff:} \VAR{data_cutoff_date}
+}
+
+\end{document}

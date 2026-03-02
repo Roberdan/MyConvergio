@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # delegate.sh - Smart routing for delegated task execution
-# Usage: delegate.sh <db_task_id> [--engine <claude|copilot|opencode|gemini>] [--model <model>] [--host <peer-name>]
-# Version: 1.1.0
+# Usage: delegate.sh <db_task_id> [--engine <claude|copilot|opencode|gemini>] [--model <model>]
+# Version: 1.0.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,7 +19,6 @@ TASK_DB_ID="${1:-}"
 shift || true
 FORCE_ENGINE=""
 FORCE_MODEL=""
-FORCE_HOST=""
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -31,50 +30,23 @@ while [[ $# -gt 0 ]]; do
 		FORCE_MODEL="${2:-}"
 		shift 2
 		;;
-	--host)
-		FORCE_HOST="${2:-}"
-		shift 2
-		;;
 	*) shift ;;
 	esac
 done
 
 if [[ -z "$TASK_DB_ID" || ! "$TASK_DB_ID" =~ ^[0-9]+$ ]]; then
-	echo "Usage: delegate.sh <db_task_id> [--engine <agent>] [--model <model>] [--host <peer>]" >&2
+	echo "Usage: delegate.sh <db_task_id> [--engine <agent>] [--model <model>]" >&2
 	exit 1
 fi
 
-# Mesh dispatch: --host routes to a remote peer unless it matches self
-if [[ -n "$FORCE_HOST" ]]; then
-	PEERS_LIB="${SCRIPT_DIR}/lib/peers.sh"
-	[[ ! -f "$PEERS_LIB" ]] && {
-		echo "ERROR: peers.sh not found: $PEERS_LIB" >&2
-		exit 1
-	}
-	source "$PEERS_LIB" # peers_self, peers_load
-	peers_load 2>/dev/null || true
-	SELF="$(peers_self 2>/dev/null || true)"
-	if [[ -z "$SELF" || "$FORCE_HOST" != "$SELF" ]]; then
-		REMOTE_DISPATCH="${SCRIPT_DIR}/remote-dispatch.sh"
-		[[ ! -x "$REMOTE_DISPATCH" ]] && {
-			echo "ERROR: remote-dispatch.sh not found" >&2
-			exit 1
-		}
-		dispatch_args=("$TASK_DB_ID" "$FORCE_HOST")
-		[[ -n "$FORCE_ENGINE" ]] && dispatch_args+=(--engine "$FORCE_ENGINE")
-		[[ -n "$FORCE_MODEL" ]] && dispatch_args+=(--model "$FORCE_MODEL")
-		exec "$REMOTE_DISPATCH" "${dispatch_args[@]}"
-	fi
-fi
-
-[[ ! -f "$DB_FILE" ]] && {
+if [[ ! -f "$DB_FILE" ]]; then
 	echo "ERROR: DB not found: $DB_FILE" >&2
 	exit 1
-}
-[[ ! -f "$ORCHESTRATOR_YAML" ]] && {
+fi
+if [[ ! -f "$ORCHESTRATOR_YAML" ]]; then
 	echo "ERROR: orchestrator.yaml not found: $ORCHESTRATOR_YAML" >&2
 	exit 1
-}
+fi
 
 read_task_row() {
 	sqlite3 "$DB_FILE" "
@@ -169,7 +141,9 @@ fi
 ROUTE_TARGET=""
 WORKER_SCRIPT=""
 case "$TASK_AGENT" in
-claude) ROUTE_TARGET="task-executor" ;;
+claude)
+	ROUTE_TARGET="task-executor"
+	;;
 copilot)
 	ROUTE_TARGET="copilot-worker.sh"
 	WORKER_SCRIPT="${SCRIPT_DIR}/copilot-worker.sh"
@@ -241,7 +215,10 @@ claude)
 	;;
 esac
 
-COST_ESTIMATE=$(is_numeric_nonzero "$MODEL_MULTIPLIER" && echo "$MODEL_MULTIPLIER" || echo 0)
+COST_ESTIMATE=0
+if is_numeric_nonzero "$MODEL_MULTIPLIER"; then
+	COST_ESTIMATE="$MODEL_MULTIPLIER"
+fi
 log_delegation "$TASK_DB_ID" "$PLAN_ID" "$PROJECT_ID" "$TASK_AGENT" "$TASK_MODEL" \
 	0 0 0 "$EXIT_CODE" "ROUTED" "$COST_ESTIMATE" "$PROJECT_PRIVACY"
 

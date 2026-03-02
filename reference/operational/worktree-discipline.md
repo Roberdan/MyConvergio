@@ -1,14 +1,6 @@
-<!-- v3.3.0 | 28 Feb 2026 | Cross-worktree auto-memory sharing (2.1.63) -->
+<!-- v3.3.0 | 28 Feb 2026 | Document merge_mode/theme wave metadata -->
 
 # Worktree Discipline
-
-## Cross-Worktree Auto-Memory (v2.1.63+)
-
-Claude Code resolves worktrees to the main repo via `git-common-dir`. All wave worktree sessions share the same `~/.claude/projects/{main-repo-slug}/memory/`. Decisions from Wave N are available in Wave N+1 without manual injection.
-
-**Verified**: Plan 270 (VirtualBPM) — worktrees at `/GitHub/VirtualBPM-plan-270-W{0,2}` created NO separate project directories. Sessions stored in main `-Users-roberdan-GitHub-VirtualBPM/`. Pre-2.1.63 worktrees (MirrorBuddy) created orphaned separate dirs with no memory access.
-
-**No action needed**: `wave-worktree.sh` and `worktree-setup.sh` require no changes — fix is in Claude Code core.
 
 ## Wave-per-Worktree Model (v2) — Default
 
@@ -51,6 +43,8 @@ create → execute tasks → Thor validate → rebase → PR → squash merge �
 | branch_name   | TEXT    | Git branch name       |
 | pr_number     | INTEGER | PR number             |
 | pr_url        | TEXT    | PR URL                |
+| merge_mode    | TEXT    | `sync` \| `batch` \| `async` \| `none` |
+| theme         | TEXT    | Theme key for batch branch reuse (`plan/{plan_id}-{theme}`) |
 
 ### Commands
 

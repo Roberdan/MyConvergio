@@ -1,7 +1,7 @@
 #!/bin/bash
 # Digest Cache - Shared cache layer for service digest scripts
 # Sourced by ci-digest.sh, pr-digest.sh, deploy-digest.sh
-# Cache dir: ${TMPDIR:-/tmp}/claude-digest-cache/
+# Cache dir: /tmp/claude-digest-cache/
 # TTL: configurable per caller
 
 # Version: 1.2.0

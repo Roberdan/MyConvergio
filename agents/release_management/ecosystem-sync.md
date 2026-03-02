@@ -11,6 +11,10 @@ color: "#00897B"
 version: "1.1.0"
 memory: project
 maxTurns: 30
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 ## Security & Ethics Framework
@@ -42,24 +46,6 @@ Trigger: Manual invocation before a MyConvergio release.
 | `~/.claude/rules/`          | `.claude/rules/`     | All generic rules         |
 | `~/.claude/copilot-agents/` | `copilot-agents/`    | Format already correct    |
 | `~/.claude/reference/`      | `.claude/reference/` | Exclude personal refs     |
-
-### Mesh Scripts (C-07: $CLAUDE_HOME, no hardcoded user/host/path)
-
-| Source                                             | Target                                   | Notes                                                          |
-| -------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------- |
-| `~/.claude/scripts/lib/peers.sh`                   | `scripts/lib/peers.sh`                   | Peer discovery library                                         |
-| `~/.claude/scripts/mesh-dispatcher.sh`             | `scripts/mesh-dispatcher.sh`             | Floating coordinator + scoring                                 |
-| `~/.claude/scripts/remote-dispatch.sh`             | `scripts/remote-dispatch.sh`             | SSH task dispatch                                              |
-| `~/.claude/scripts/bootstrap-peer.sh`              | `scripts/bootstrap-peer.sh`              | Peer initialization                                            |
-| `~/.claude/scripts/mesh-auth-sync.sh`              | `scripts/mesh-auth-sync.sh`              | Credential sync (owned machines only)                          |
-| `~/.claude/scripts/lib/mesh-env-tools.sh`          | `scripts/lib/mesh-env-tools.sh`          | Mesh env utilities (if present)                                |
-| `~/.claude/scripts/lib/mesh-scoring.sh`            | `scripts/lib/mesh-scoring.sh`            | Peer scoring functions                                         |
-| `~/.claude/scripts/peer-sync.sh`                   | `scripts/peer-sync.sh`                   | One-command config+DB sync                                     |
-| `~/.claude/scripts/mesh-heartbeat.sh`              | `scripts/mesh-heartbeat.sh`              | Liveness daemon                                                |
-| `~/.claude/scripts/mesh-load-query.sh`             | `scripts/mesh-load-query.sh`             | Cross-peer load query                                          |
-| `~/.claude/config/peers.conf`                      | `config/peers.conf`                      | Template only — generic hostnames (my-mac, my-linux, my-cloud) |
-| `~/.claude/config/mesh-heartbeat.plist.template`   | `config/mesh-heartbeat.plist.template`   | macOS launchd template                                         |
-| `~/.claude/config/mesh-heartbeat.service.template` | `config/mesh-heartbeat.service.template` | Linux systemd template                                         |
 
 ## Blocklist (NEVER sync these)
 

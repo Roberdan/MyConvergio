@@ -107,8 +107,7 @@ cat <<PROMPT
 plan-db-safe.sh update-task $TASK_ID done "Summary of what was done" --tokens 0 --output-data '{"summary":"what was done","artifacts":["file1.ts"]}'
 \`\`\`
 
-Use \`plan-db-safe.sh\` (NOT \`plan-db.sh\`). This sets task to **submitted** (awaiting Thor validation).
-**Only Thor can set status=done.** You CANNOT set done directly — a SQLite trigger blocks it.
+Use \`plan-db-safe.sh\` (NOT \`plan-db.sh\`). \`plan-db.sh\` will REJECT done status.
 
 ## Setup
 \`\`\`bash
@@ -136,9 +135,9 @@ $(if [[ -n "$PRIOR_OUTPUTS" ]]; then echo "$PRIOR_OUTPUTS"; else echo "None."; f
 
 ## Previous Wave PR Feedback
 $(if [[ -n "$PR_FEEDBACK" ]]; then
-	echo "⚠️ The previous wave's PR had review feedback. Do NOT repeat these issues:"
-	echo ""
-	echo "$PR_FEEDBACK"
+echo "⚠️ The previous wave's PR had review feedback. Do NOT repeat these issues:"
+echo ""
+echo "$PR_FEEDBACK"
 else echo "None."; fi)
 
 ## Test Criteria
@@ -160,12 +159,11 @@ $TC
 Run this BEFORE you finish. If you already ran it above, verify with:
 \`\`\`bash
 sqlite3 ~/.claude/data/dashboard.db "SELECT status FROM tasks WHERE id=$TASK_ID;"
-# Must show: submitted (Thor will transition to done)
+# Must show: done
 \`\`\`
 
-If NOT submitted, run:
+If NOT done, run:
 \`\`\`bash
 plan-db-safe.sh update-task $TASK_ID done "Summary" --tokens 0
-# This sets 'submitted', NOT 'done'. Thor validation is REQUIRED to set done.
 \`\`\`
 PROMPT

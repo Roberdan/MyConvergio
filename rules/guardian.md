@@ -26,7 +26,7 @@ Branch: feature/, fix/, chore/ | Conventional commits | Lint+typecheck+test befo
 
 After every push on a PR, before merge:
 
-1. **CI green**: Wait for full CI. Fix ALL failures in one commit (CI Batch Fix rule). Use `ci-watch.sh` for automated polling.
+1. **CI green**: Wait for full CI. Fix ALL failures in one commit (CI Batch Fix rule)
 2. **Review comments**: `pr-threads.sh {pr} --no-cache` — check unresolved count
 3. **Resolve all threads**: For each unresolved thread — analyze, fix code, commit, reply, resolve. Use `pr-comment-resolver` agent or manual fix. Zero unresolved threads required.
 4. **Readiness check**: `pr-ops.sh ready {pr}` — must show 0 blockers
@@ -59,29 +59,6 @@ When onboarding a new repo or auditing existing ones, verify:
 3. **Required settings**: `required_conversation_resolution: true` + `enforce_admins: true`
 
 Without branch protection, GitHub Web UI allows merging with unresolved review comments.
-
-## Pre-Push Hook Failures — Machine Load Strategy
-
-When `git push` is blocked by a pre-push hook running unit tests:
-
-1. **Check which tests failed**: `./scripts/ci-summary.sh --unit --fail-only`
-2. **Check machine load**: `sysctl -n vm.loadavg` vs `sysctl -n hw.logicalcpu`
-3. **Decision matrix**:
-
-| Failing tests             | My change touches those files? | Load > 1× cores? | Action                                          |
-| ------------------------- | ------------------------------ | ---------------- | ----------------------------------------------- |
-| Timing/crypto/performance | No                             | Yes              | `git push --no-verify` — let GitHub CI validate |
-| Timing/crypto/performance | No                             | No               | Retry once (machine may have cooled)            |
-| Logic tests               | Yes                            | Any              | Fix the tests before pushing                    |
-| Logic tests               | No                             | Any              | Investigate: pre-existing failure or env issue  |
-
-4. **`--no-verify` is authorized when ALL of**:
-   - Failing tests are timing/env-dependent (not logic failures)
-   - My change does NOT touch the failing test files or their dependencies
-   - GitHub CI is expected to pass (same tests passed on main before)
-   - Machine load explains the failure (load > 1× cores in 5-min avg)
-
-5. **Log the bypass**: State explicitly why you used `--no-verify` and confirm CI passes post-push.
 
 ## Guardrails
 

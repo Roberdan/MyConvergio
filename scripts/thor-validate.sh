@@ -44,31 +44,31 @@ fi
 
 # 1. Database validation (bulk — validates already-done tasks)
 echo "[1/5] Database integrity..."
-if "$SCRIPT_DIR/plan-db.sh" validate "$PLAN_ID" >${TMPDIR:-/tmp}/thor_db_$$.log 2>&1; then
+if "$SCRIPT_DIR/plan-db.sh" validate "$PLAN_ID" >/tmp/thor_db_$$.log 2>&1; then
 	echo -e "${GREEN}  PASS${NC}"
 else
-	echo -e "${RED}  FAIL - see ${TMPDIR:-/tmp}/thor_db_$$.log${NC}"
+	echo -e "${RED}  FAIL - see /tmp/thor_db_$$.log${NC}"
 	ERRORS=$((ERRORS + 1))
 fi
 
 # 2. F-xx validation
 echo "[2/5] F-xx requirements..."
-if "$SCRIPT_DIR/plan-db.sh" validate-fxx "$PLAN_ID" >${TMPDIR:-/tmp}/thor_fxx_$$.log 2>&1; then
+if "$SCRIPT_DIR/plan-db.sh" validate-fxx "$PLAN_ID" >/tmp/thor_fxx_$$.log 2>&1; then
 	echo -e "${GREEN}  PASS${NC}"
 else
-	echo -e "${RED}  FAIL - see ${TMPDIR:-/tmp}/thor_fxx_$$.log${NC}"
+	echo -e "${RED}  FAIL - see /tmp/thor_fxx_$$.log${NC}"
 	ERRORS=$((ERRORS + 1))
 fi
 
 # 3. Build check (if --full)
 if [[ "$FULL_CHECK" == "--full" ]]; then
 	echo "[3/5] Build check..."
-	if npm run lint 2>&1 | tail -10 >${TMPDIR:-/tmp}/thor_lint_$$.log &&
-		npm run typecheck 2>&1 | tail -10 >${TMPDIR:-/tmp}/thor_type_$$.log &&
-		npm run build 2>&1 | tail -10 >${TMPDIR:-/tmp}/thor_build_$$.log; then
+	if npm run lint 2>&1 | tail -10 >/tmp/thor_lint_$$.log &&
+		npm run typecheck 2>&1 | tail -10 >/tmp/thor_type_$$.log &&
+		npm run build 2>&1 | tail -10 >/tmp/thor_build_$$.log; then
 		echo -e "${GREEN}  PASS${NC}"
 	else
-		echo -e "${RED}  FAIL - check logs in ${TMPDIR:-/tmp}/thor_*_$$.log${NC}"
+		echo -e "${RED}  FAIL - check logs in /tmp/thor_*_$$.log${NC}"
 		ERRORS=$((ERRORS + 1))
 	fi
 else

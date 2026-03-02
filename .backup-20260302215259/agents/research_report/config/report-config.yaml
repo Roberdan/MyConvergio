@@ -1,0 +1,264 @@
+# Convergio Think Tank (CTT) - Report Configuration
+# This file defines report types and their specific requirements
+
+version: "1.1.0"
+
+# Branding
+branding:
+  name: "Convergio Think Tank"
+  short_name: "CTT"
+  tagline: "Independent Research & Analysis"
+
+# Default settings applied to all reports
+defaults:
+  language: "en"
+  output_format: "latex"
+  pdf_engine: "xelatex"
+  date_format: "MMMM D, YYYY"
+  organization: "Convergio Think Tank"
+  disclaimer: "This report is produced by Convergio Think Tank for informational purposes only and does not constitute investment, legal, or professional advice. The analysis and opinions expressed are those of the research team and are subject to change without notice."
+
+# Report type definitions
+report_types:
+  equity_research:
+    name: "Equity Research Report"
+    description: "Morgan Stanley style company analysis"
+    required_fields:
+      - company_name
+      - ticker
+      - rating  # Overweight, Equal-weight, Underweight
+      - price_target
+      - report_period
+    optional_fields:
+      - comparables
+      - industry_context
+      - management_assessment
+    sections:
+      - executive_summary
+      - key_takeaways
+      - financial_analysis
+      - revenue_breakdown
+      - margin_analysis
+      - guidance_outlook
+      - kpi_dashboard
+      - what_worked
+      - areas_to_monitor
+      - valuation
+      - risks
+      - methodology
+    kpi_categories:
+      - revenue_metrics
+      - profitability_metrics
+      - growth_metrics
+      - efficiency_metrics
+      - balance_sheet_metrics
+
+  industry_analysis:
+    name: "Industry Analysis Report"
+    description: "Sector and market landscape analysis"
+    required_fields:
+      - industry_name
+      - market_size
+      - growth_rate
+      - report_period
+    optional_fields:
+      - key_players
+      - regulatory_environment
+      - technology_trends
+    sections:
+      - executive_summary
+      - key_takeaways
+      - market_overview
+      - competitive_landscape
+      - growth_drivers
+      - challenges_risks
+      - technology_trends
+      - regulatory_outlook
+      - investment_themes
+      - methodology
+    kpi_categories:
+      - market_size_metrics
+      - growth_metrics
+      - concentration_metrics
+      - adoption_metrics
+
+  market_report:
+    name: "Market/Economic Report"
+    description: "Macro-economic and market trend analysis"
+    required_fields:
+      - market_name
+      - region
+      - report_period
+    optional_fields:
+      - benchmark_indices
+      - economic_indicators
+    sections:
+      - executive_summary
+      - key_takeaways
+      - market_conditions
+      - economic_indicators
+      - sector_performance
+      - global_context
+      - outlook
+      - risks
+      - methodology
+    kpi_categories:
+      - economic_indicators
+      - market_indices
+      - sentiment_indicators
+      - flow_metrics
+
+  technology_analysis:
+    name: "Technology Analysis Report"
+    description: "Product, platform, or technology assessment"
+    required_fields:
+      - technology_name
+      - category
+      - report_date
+    optional_fields:
+      - vendors
+      - use_cases
+      - adoption_metrics
+    sections:
+      - executive_summary
+      - key_takeaways
+      - technology_overview
+      - capabilities_assessment
+      - competitive_comparison
+      - adoption_trends
+      - use_cases
+      - roadmap_outlook
+      - risks_limitations
+      - methodology
+    kpi_categories:
+      - adoption_metrics
+      - performance_metrics
+      - capability_metrics
+      - ecosystem_metrics
+
+  general_research:
+    name: "General Research Report"
+    description: "Flexible template for any research topic"
+    required_fields:
+      - topic
+      - scope
+      - report_date
+    optional_fields:
+      - custom_sections
+      - custom_kpis
+    sections:
+      - executive_summary
+      - key_takeaways
+      - background_context
+      - main_analysis
+      - supporting_evidence
+      - implications
+      - recommendations
+      - methodology
+    kpi_categories:
+      - custom  # Defined per report
+
+# Research phases and checkpoints
+research_workflow:
+  phases:
+    intake:
+      description: "Gather requirements and sources"
+      outputs:
+        - topic_definition
+        - source_list
+        - scope_document
+      questions:
+        - "What is the primary subject of analysis?"
+        - "What type of report is needed?"
+        - "Who is the target audience?"
+        - "What time period should this cover?"
+        - "Do you have specific sources to include?"
+        - "Are there comparables or benchmarks to analyze?"
+        - "What are the key questions to answer?"
+
+    research:
+      description: "Collect and verify data"
+      outputs:
+        - raw_data
+        - source_documents
+        - web_research_notes
+      checklist:
+        - "Recent news and developments (30-90 days)"
+        - "Historical data for trend analysis"
+        - "Competitive landscape"
+        - "Expert opinions and analyst coverage"
+        - "Primary source documents"
+        - "Quantitative metrics"
+
+    analysis:
+      description: "Synthesize findings and form thesis"
+      outputs:
+        - thesis_statement
+        - supporting_evidence
+        - counter_arguments
+        - kpi_selection
+      framework:
+        - "Identify patterns and trends"
+        - "Develop central thesis"
+        - "Organize supporting data"
+        - "Address counter-arguments"
+        - "Select 10-15 key metrics"
+
+    structuring:
+      description: "Organize into report format"
+      outputs:
+        - outline
+        - section_drafts
+        - visualization_list
+      tasks:
+        - "Map sections to template"
+        - "Draft each section"
+        - "Plan tables and charts"
+        - "Write executive summary"
+
+    generation:
+      description: "Produce final LaTeX output"
+      outputs:
+        - main_tex_file
+        - data_tables
+        - bibliography
+        - compiled_pdf
+      artifacts:
+        - "report-[topic]-[date].tex"
+        - "tables/*.tex"
+        - "sources.bib"
+        - "compile.sh"
+
+# Quality gates
+quality_standards:
+  content:
+    - "All claims must be sourced"
+    - "Present multiple perspectives"
+    - "Include numeric data where possible"
+    - "Note data freshness and cutoff dates"
+    - "Professional tone throughout"
+
+  formatting:
+    - "Follow Morgan Stanley template"
+    - "Proper typography and spacing"
+    - "Clear section hierarchy"
+    - "Clean data tables"
+
+  citations:
+    - "All data sourced"
+    - "Date stamps included"
+    - "Primary vs secondary noted"
+    - "Full attribution provided"
+
+# Output configuration
+output:
+  latex:
+    engine: "xelatex"
+    bibliography: "biber"
+    passes: 2
+
+  directories:
+    output: "./output"
+    tables: "./output/tables"
+    figures: "./output/figures"
+    bibliography: "./output"

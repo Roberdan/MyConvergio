@@ -26,13 +26,13 @@ BLOCKLIST=(
 	"agents:strategic-planner.md"
 	"scripts:sync-claude-config.sh"
 	"scripts:sync-dashboard-db.sh"
-	"scripts:archive/migrations/migrate-plan-to-linux.sh"
+	"scripts:migrate-plan-to-linux.sh"
 	"scripts:remote-repo-sync.sh"
 )
 
 # Personal path patterns to detect (not actual secrets, but shouldn't be hardcoded)
 PERSONAL_PATTERNS=(
-	"/Users/roberdan"
+	"$HOME"
 	"/home/roberdan"
 	"danieleroberti"
 )

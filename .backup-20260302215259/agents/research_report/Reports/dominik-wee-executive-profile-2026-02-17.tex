@@ -1,0 +1,803 @@
+% Dominik Wee - Executive Research Profile
+% Convergio Think Tank (CTT) - General Research Report
+% Generated: February 17, 2026
+
+\documentclass[11pt,a4paper]{article}
+
+% ============================================
+% PACKAGES
+% ============================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{tcolorbox}
+\usepackage{amssymb}
+\usepackage{tikz}
+
+% ============================================
+% COLORS - Morgan Stanley Inspired
+% ============================================
+\definecolor{msblue}{RGB}{0,51,102}
+\definecolor{mslightblue}{RGB}{0,102,179}
+\definecolor{msgray}{RGB}{128,128,128}
+\definecolor{mslightgray}{RGB}{245,245,245}
+\definecolor{msgreen}{RGB}{0,128,0}
+\definecolor{msred}{RGB}{192,0,0}
+\definecolor{msorange}{RGB}{255,140,0}
+\definecolor{msdarkgray}{RGB}{64,64,64}
+
+% ============================================
+% PAGE GEOMETRY
+% ============================================
+\geometry{
+    a4paper,
+    left=0.75in,
+    right=0.75in,
+    top=1in,
+    bottom=0.75in,
+    headheight=30pt,
+    headsep=15pt
+}
+
+% ============================================
+% HEADER/FOOTER
+% ============================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{msblue}{\footnotesize\textbf{Dominik Wee | Microsoft CVP}} \\ \textcolor{msgray}{\scriptsize February 17, 2026}}
+\fancyhead[R]{\textcolor{msblue}{\footnotesize\textbf{Executive Profile}} \\ \textcolor{msgray}{\scriptsize Page \thepage}}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{msblue}\leaders\hrule height \headrulewidth\hfill}}
+\fancyfoot[C]{\textcolor{msgray}{\scriptsize CTT Research Report | Convergio Think Tank | Data as of February 2026}}
+
+% ============================================
+% SECTION STYLING
+% ============================================
+\titleformat{\section}{\Large\bfseries\color{msblue}}{}{0em}{}[\color{msblue}\titlerule]
+\titleformat{\subsection}{\large\bfseries\color{msblue}}{}{0em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{msdarkgray}}{}{0em}{}
+\titlespacing*{\section}{0pt}{18pt}{10pt}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+
+% ============================================
+% CUSTOM COMMANDS
+% ============================================
+\newcommand{\kpiup}{\textcolor{msgreen}{$\blacktriangle$}}
+\newcommand{\kpidown}{\textcolor{msred}{$\blacktriangledown$}}
+\newcommand{\kpiflat}{\textcolor{msgray}{$\bullet$}}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+% Custom bullet style
+\renewcommand{\labelitemi}{\textcolor{msblue}{$\blacksquare$}}
+\renewcommand{\labelitemii}{\textcolor{mslightblue}{$\bullet$}}
+
+% ============================================
+% HYPERREF SETUP
+% ============================================
+\hypersetup{
+    colorlinks=true,
+    linkcolor=msblue,
+    filecolor=msblue,
+    urlcolor=mslightblue,
+    citecolor=msblue,
+    pdftitle={Dominik Wee - Executive Research Profile},
+    pdfauthor={Convergio Think Tank}
+}
+
+% ============================================
+% LIST STYLING
+% ============================================
+\setlist[itemize]{leftmargin=20pt, itemsep=3pt, parsep=0pt, topsep=5pt}
+\setlist[enumerate]{leftmargin=20pt, itemsep=3pt, parsep=0pt, topsep=5pt}
+
+% ============================================
+% DOCUMENT START
+% ============================================
+\begin{document}
+
+% ============================================
+% COVER PAGE
+% ============================================
+\thispagestyle{empty}
+
+\begin{center}
+    \vspace*{1.5cm}
+
+    {\color{msgray}\large CONVERGIO THINK TANK}
+
+    \vspace{0.3cm}
+
+    {\color{msblue}\rule{8cm}{0.5pt}}
+
+    \vspace{1.5cm}
+
+    {\color{msblue}\Huge\bfseries Dominik Wee}
+
+    \vspace{0.5cm}
+
+    {\color{mslightblue}\Large Corporate Vice President, Microsoft}
+
+    \vspace{0.3cm}
+
+    {\color{msdarkgray}\large Industry Solutions Engineering | EMEA \& Asia}
+
+    \vspace{2cm}
+
+    % Assessment Box
+    \begin{tikzpicture}
+        \node[draw=msblue, fill=mslightgray, rounded corners=5pt,
+              minimum width=12cm, minimum height=3.5cm] at (0,0) {
+            \begin{tabular}{ccc}
+                \begin{tabular}{c}
+                    \textcolor{msgray}{\small Assessment}\\[5pt]
+                    \colorbox{msgreen}{\textcolor{white}{\textbf{~~HIGH IMPACT~~}}}
+                \end{tabular}
+                &
+                \hspace{1cm}
+                \begin{tabular}{c}
+                    \textcolor{msgray}{\small Leadership Style}\\[5pt]
+                    {\large\bfseries Transformational}
+                \end{tabular}
+                &
+                \hspace{1cm}
+                \begin{tabular}{c}
+                    \textcolor{msgray}{\small Experience}\\[5pt]
+                    {\large\bfseries 20+ Years}
+                \end{tabular}
+            \end{tabular}
+        };
+    \end{tikzpicture}
+
+    \vspace{2.5cm}
+
+    {\color{msdarkgray}\textbf{Research Team}}\\[8pt]
+    CTT AI Research Agent\\[5pt]
+    {\color{msgray}\small General Research --- Executive Profile}
+
+    \vspace{1cm}
+
+    {\color{msgray} February 17, 2026}
+
+    \vfill
+
+    {\color{msgray}\footnotesize This report is produced by Convergio Think Tank for informational purposes only.\\
+    All data sourced from publicly available information. Not investment advice.}
+
+\end{center}
+
+\newpage
+
+% ============================================
+% EXECUTIVE SUMMARY
+% ============================================
+\section{Executive Summary}
+
+% Quick Metrics Panel
+\begin{center}
+\begin{tikzpicture}
+    \node[draw=none, fill=mslightgray, rounded corners=3pt,
+          minimum width=\textwidth-20pt, minimum height=50pt] at (0,0) {};
+    
+    \node[anchor=north] at (-5.5,0.7) {\scriptsize\textcolor{msgray}{Career Trajectory}};
+    \node[anchor=center] at (-5.5,-0.1) {\footnotesize\textbf{\textcolor{msgreen}{Elite Path}}};
+    
+    \node[anchor=north] at (-1.8,0.7) {\scriptsize\textcolor{msgray}{Industry Expertise}};
+    \node[anchor=center] at (-1.8,-0.1) {\footnotesize\textbf{Manufacturing \& AI}};
+    
+    \node[anchor=north] at (1.8,0.7) {\scriptsize\textcolor{msgray}{ISE Relevance}};
+    \node[anchor=center] at (1.8,-0.1) {\footnotesize\textbf{\textcolor{msblue}{Direct Leader}}};
+    
+    \node[anchor=north] at (5.5,0.7) {\scriptsize\textcolor{msgray}{Strategic Vision}};
+    \node[anchor=center] at (5.5,-0.1) {\footnotesize\textbf{\textcolor{msgreen}{AI-First}}};
+\end{tikzpicture}
+\end{center}
+
+\vspace{12pt}
+
+Dominik Wee is one of Microsoft's most strategically positioned executives, leading Industry Solutions Engineering (ISE) across EMEA and Asia. His career trajectory is exceptional: approximately 15 years as Senior Partner at McKinsey \& Company---where he led the global ``Digital in Automotive \& Industrial'' initiative and spent two years in the firm's Silicon Valley office---followed by a Managing Director role at Google Cloud overseeing Global Automotive, Manufacturing, and Energy. He joined Microsoft in September 2022 and rapidly ascended to Corporate Vice President.
+
+Wee's leadership style is distinctly \textbf{transformational}: he combines deep strategic consulting roots with hands-on technology execution, leveraging storytelling as a primary tool for organizational alignment. His mantra of ``\textbf{Relentless Renewal}'' encapsulates his belief that continuous reinvention---powered by AI and data---is the only viable strategy for industrial enterprises. He holds a Master of Arts in Computer Science from the University of Cambridge and is based in Munich, Germany.
+
+For ISE teams, Wee represents a leader who deeply understands both the consulting/advisory dimension and the engineering execution dimension of their work. His emphasis on ``no-regret'' AI use cases, IT/OT convergence, and scalable transformation directly shapes ISE's mission and priorities.
+
+\vspace{12pt}
+
+% Key Takeaways
+\begin{tcolorbox}[
+    colback=mslightgray,
+    colframe=msblue,
+    boxrule=1pt,
+    arc=3pt,
+    left=10pt, right=10pt, top=8pt, bottom=8pt
+]
+\textbf{Key Takeaways}
+\begin{itemize}
+    \item \textbf{Elite career path}: McKinsey Senior Partner (15y) $\rightarrow$ Google Cloud MD $\rightarrow$ Microsoft CVP
+    \item \textbf{Cambridge-educated} computer scientist with deep technical grounding
+    \item \textbf{AI-First vision}: Generative AI as ``foundational technology'' --- advocates immediate ``no-regret'' adoption
+    \item \textbf{Storytelling-driven leadership}: ``Relentless Renewal'' podcast and keynote series
+    \item \textbf{Direct ISE leader} for EMEA \& Asia --- his priorities are ISE's priorities
+    \item \textbf{Flagship partnerships}: Lufthansa, Siemens, Schneider Electric, Komatsu
+    \item \textbf{Reports to Judson Althoff} (EVP, Chief Commercial Officer) via MCAPS
+\end{itemize}
+\end{tcolorbox}
+
+\newpage
+
+% ============================================
+% CAREER TRAJECTORY
+% ============================================
+\section{Career Trajectory}
+
+\subsection{McKinsey \& Company (~15 Years)}
+
+Dominik Wee spent approximately 15 years at McKinsey \& Company, one of the world's most prestigious management consulting firms. He reached the level of \textbf{Senior Partner}---the highest partnership tier---and led the firm's global ``\textbf{Digital in Automotive \& Industrial}'' initiative.
+
+\begin{itemize}
+    \item \textbf{Focus areas}: Digital transformation for automotive, industrial, telecommunications, and consumer sectors
+    \item \textbf{Silicon Valley}: Spent 2 years in McKinsey's Palo Alto office, working with high-tech companies and startups
+    \item \textbf{Key themes}: Connected Car, Autonomous Driving, Industry 4.0, digital talent \& culture change
+\end{itemize}
+
+\subsubsection{Notable McKinsey Publications}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{longtable}{L{4.5cm}L{8cm}R{1.5cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Publication}} & \textcolor{white}{\textbf{Focus}} & \textcolor{white}{\textbf{Year}} \\
+\midrule
+Disruptive Trends in Auto Industry & Autonomy, connectivity, electrification, shared mobility (ACES) & 2016 \\
+Manufacturing's Next Act & Industry 4.0 digitization and value creation & 2016 \\
+Getting the Most Out of Industry 4.0 & Pragmatic steps to unlock manufacturing value & 2016 \\
+Blueprint for Digital Transformations & 6 key elements for automotive supplier digital programs & 2017 \\
+Steering IT into Digital Manufacturing Era & CIO interviews (incl. Mattias Ulbrich, Audi) & 2017 \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\textcolor{msgray}{\scriptsize Source: McKinsey \& Company publications, Speakerpedia speaker profile}
+
+\subsection{Google Cloud}
+
+After McKinsey, Wee joined Google Cloud as \textbf{Managing Director for Global Automotive, Manufacturing, and Energy}. In this role, he drove cloud adoption and digital transformation for industrial sectors at global scale, bridging the gap between McKinsey's strategic advisory perspective and hands-on technology execution.
+
+\subsection{Microsoft (September 2022 -- Present)}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{longtable}{L{3.5cm}L{6cm}L{4cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Period}} & \textcolor{white}{\textbf{Role}} & \textcolor{white}{\textbf{Scope}} \\
+\midrule
+Sep 2022 -- 2024 & CVP, Manufacturing \& Mobility & Global M\&M business \\
+2024 -- Present & CVP, Industry Solutions Engineering & ISE EMEA \& Asia \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+ISE is a global engineering organization within Microsoft that partners with the largest enterprises and nonprofits to solve complex technical challenges using AI, ML, IoT, and cloud technologies. ISE reports into \textbf{MCAPS} (Microsoft Customer and Partner Solutions), led by \textbf{Judson Althoff} (EVP, Chief Commercial Officer).
+
+\textcolor{msgray}{\scriptsize Source: Microsoft ISE Developer Blog, Microsoft Engineering Playbook, MSPoweruser}
+
+\newpage
+
+% ============================================
+% LEADERSHIP STYLE
+% ============================================
+\section{Leadership Style \& Philosophy}
+
+\subsection{Transformational \& Strategic}
+
+Wee embodies transformational leadership: inspiring teams, fostering innovation, and embracing digital transformation at scale. He empowers cross-functional teams and drives organizational agility. His approach reflects the classic McKinsey ``structured thinking + bold vision'' combined with Silicon Valley's ``move fast and iterate.''
+
+\subsection{Data-Driven \& AI-First}
+
+Strong emphasis on leveraging AI and analytics for business value creation. Wee advocates rapid adoption of generative AI as a ``foundational technology'' in manufacturing. He pushes organizations to identify immediate ``no-regret'' use cases---those that deliver value quickly with minimal downside risk.
+
+\begin{center}
+\begin{tcolorbox}[
+    colback=mslightgray,
+    colframe=mslightblue,
+    boxrule=0.5pt,
+    arc=3pt,
+    left=10pt, right=10pt, top=8pt, bottom=8pt,
+    width=0.85\textwidth
+]
+\textit{``Generative AI is a foundational and truly transformational technology---manufacturers should embrace `no regret' use cases right now.''}\\[5pt]
+\hfill --- \textbf{Dominik Wee}, Accenture Interview
+\end{tcolorbox}
+\end{center}
+
+\subsection{Collaborative \& Purpose-Driven}
+
+Partnership-centric approach---across teams, customers, and ecosystems. Committed to creating sustainable value. Champions the unification of Operational Technology (OT) and Information Technology (IT) data as the foundation for industrial AI.
+
+\subsection{Storytelling as a Leadership Tool}
+
+One of Wee's most distinctive traits is his use of \textbf{narrative and storytelling} to drive organizational change. His ``\textbf{Relentless Renewal}'' podcast and keynote series exemplify this: each episode pairs Wee with an enterprise leader to explore how continuous reinvention---powered by technology---creates competitive advantage.
+
+\begin{center}
+\begin{tcolorbox}[
+    colback=mslightgray,
+    colframe=mslightblue,
+    boxrule=0.5pt,
+    arc=3pt,
+    left=10pt, right=10pt, top=8pt, bottom=8pt,
+    width=0.85\textwidth
+]
+\textit{``AI should augment, not replace, human roles, particularly in high-skill environments.''}\\[5pt]
+\hfill --- \textbf{Dominik Wee}, AI at Scale Podcast (Schneider Electric)
+\end{tcolorbox}
+\end{center}
+
+\subsection{Silicon Valley DNA}
+
+His 2 years at McKinsey's Silicon Valley office left a lasting imprint:
+\begin{itemize}
+    \item Fast, iterative innovation cycles
+    \item Ecosystem-first thinking and partnership models
+    \item Strong focus on AI, ML, and IoT convergence
+    \item Bias toward scaling beyond pilot projects
+\end{itemize}
+
+\newpage
+
+% ============================================
+% THOUGHT LEADERSHIP
+% ============================================
+\section{Thought Leadership \& Public Presence}
+
+\subsection{Core Themes}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{longtable}{L{4.5cm}L{9cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Theme}} & \textcolor{white}{\textbf{Description}} \\
+\midrule
+Generative AI in Manufacturing & AI as ``no regret'' technology; \$3.5 return per \$1 invested (IDC data) within 14 months \\
+IT/OT Convergence & Unifying operational and information technology data with Microsoft Fabric \\
+Frontline Empowerment & AI copilots for Dynamics 365 Field Service, Microsoft Teams \\
+Human-AI Collaboration & AI augments human capabilities; democratizes technology access \\
+Relentless Renewal & Continuous reinvention as the only sustainable competitive strategy \\
+Supply Chain Resilience & AI-powered optimization and real-time supply chain analytics \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\subsection{Public Appearances \& Media}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{longtable}{L{2.5cm}L{5.5cm}L{5.5cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Type}} & \textcolor{white}{\textbf{Title / Venue}} & \textcolor{white}{\textbf{Key Topic}} \\
+\midrule
+Blog & Microsoft Industry Blog & Manufacturing \& Mobility AI strategy \\
+Blog & Microsoft Official Blog & Enterprise transformation \\
+Interview & Accenture: GenAI in Manufacturing & AI adoption roadmap for manufacturers \\
+Interview & The Technology Record & ``Can't Spell Acceleration Without AI'' \\
+Podcast & AI at Scale (Schneider Electric) & Intelligent manufacturing, human-AI collab \\
+Podcast & Relentless Renewal (Microsoft) & Enterprise reinvention stories \\
+Video & Lufthansa Group (YouTube) & Aviation AI transformation \\
+Video & The Power of Storytelling (YouTube) & Narrative as change driver \\
+Conference & Web Summit Lisbon 2024 & Industry AI trends \\
+Conference & Automobil Elektronik Kongress 2024 & Automotive digital transformation \\
+Video & Microsoft Quantum Innovator \#6 & Quantum computing for industry \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\textcolor{msgray}{\scriptsize Source: Microsoft Industry Blog, Apple Podcasts, YouTube, Speakerpedia, Web Summit, Automobil Elektronik Kongress}
+
+\newpage
+
+% ============================================
+% CUSTOMER STORIES
+% ============================================
+\section{Flagship Customer Partnerships}
+
+\subsection{Lufthansa Group \& Lufthansa Technik}
+
+\begin{itemize}
+    \item \textbf{Partnership type}: Strategic AI collaboration
+    \item \textbf{Focus}: Claims management, employee empowerment, operational efficiency
+    \item \textbf{December 2024}: Lufthansa Technik expanded Microsoft partnership for Azure AI Services
+    \item \textbf{Scale}: 50+ AI use cases, including layover planning optimization (up to 10\% reduced ground time)
+    \item \textbf{Significance}: One of the largest AI-driven MRO (Maintenance, Repair \& Overhaul) operations in aviation
+\end{itemize}
+
+\textcolor{msgray}{\scriptsize Source: Lufthansa Technik press release, YouTube: Relentless Renewal Lufthansa episode}
+
+\subsection{Siemens}
+
+\begin{itemize}
+    \item \textbf{Partnership type}: Deep digital transformation collaboration
+    \item \textbf{2025 Focus}: Integrating Siemens Industrial Edge with Microsoft Azure IoT Operations
+    \item \textbf{Capabilities}: Edge \& cloud AI, virtualized controls, digital twins for real-time factory analytics
+    \item \textbf{Hannover Messe 2024}: Joint presentations with Rainer Brehm (Siemens) on generative AI for industrial automation and the Siemens Industrial Copilot
+\end{itemize}
+
+\textcolor{msgray}{\scriptsize Source: Microsoft TechCommunity, Relentless Renewal podcast}
+
+\subsection{Additional Partners}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{longtable}{L{3.5cm}L{4cm}L{5.5cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Partner}} & \textcolor{white}{\textbf{Industry}} & \textcolor{white}{\textbf{Focus Area}} \\
+\midrule
+Komatsu & Heavy Industry / Construction & Cloud \& AI for operations \\
+KUKA & Industrial Robotics & Smart manufacturing \\
+Lynk \& Co & Automotive / Mobility & Connected vehicle platforms \\
+Schneider Electric & Energy \& Automation & AI for energy management \\
+Adastra & Data Solutions & Enterprise data transformation \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\newpage
+
+% ============================================
+% KPI DASHBOARD
+% ============================================
+\section{Executive Profile KPIs}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{longtable}{L{4.5cm}R{3cm}C{2.5cm}C{1.5cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Dimension}} &
+\textcolor{white}{\textbf{Assessment}} &
+\textcolor{white}{\textbf{Confidence}} &
+\textcolor{white}{\textbf{Trend}} \\
+\midrule
+Career Trajectory & Elite (Top 0.1\%) & Verified & \kpiup \\
+Strategic Vision & AI-First, Industry 4.0 & Verified & \kpiup \\
+Leadership Style & Transformational & Verified & \kpiflat \\
+Industry Expertise & Manufacturing \& Mobility & Verified & \kpiup \\
+ISE Org Relevance & Direct Leader (EMEA/Asia) & Verified & \kpiup \\
+Public Visibility & High (conferences, podcasts) & Verified & \kpiup \\
+Customer Impact & Flagship partnerships & Verified & \kpiup \\
+Storytelling Capability & Distinctive strength & Reported & \kpiflat \\
+McKinsey Network Effect & Very strong & Reported & \kpiflat \\
+Technical Depth & Cambridge CS + hands-on & Verified & \kpiflat \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\textcolor{msgray}{\scriptsize Source: Multiple public sources cross-referenced. See Sources section for full list.}
+
+\newpage
+
+% ============================================
+% ASSESSMENT
+% ============================================
+\section{Assessment}
+
+\subsection{Strengths}
+
+\begin{itemize}
+    \item \textbf{Rare career combination}: Strategy consulting (McKinsey) + tech execution (Google Cloud) + enterprise leadership (Microsoft)---very few executives have this triple background
+    \item \textbf{Deep technical grounding}: Cambridge CS degree means he can engage authentically with engineering teams, not just at the strategy level
+    \item \textbf{Proven transformation leader}: Track record spanning automotive, manufacturing, energy across three of the world's most influential organizations
+    \item \textbf{Storytelling mastery}: Relentless Renewal series demonstrates an ability to inspire and align diverse stakeholders through narrative
+    \item \textbf{AI conviction}: Consistent, vocal advocacy for generative AI as foundational technology---provides clear directional guidance for ISE teams
+    \item \textbf{Global perspective}: Silicon Valley + Munich + global industry experience provides multi-cultural, multi-market strategic thinking
+\end{itemize}
+
+\subsection{Areas to Monitor}
+
+\begin{itemize}
+    \item \textbf{Internal leadership style}: Day-to-day management approach, team feedback, and coaching style not publicly documented
+    \item \textbf{ISE-specific priorities}: While overall vision is clear, specific ISE studio-level priorities and resource allocation strategy not publicly disclosed
+    \item \textbf{Transition from M\&M to ISE}: Role shift from CVP Manufacturing \& Mobility to CVP ISE EMEA \& Asia---organizational adaptation still evolving
+    \item \textbf{Consulting-to-operator balance}: McKinsey background can sometimes favor strategy over execution speed---worth observing in ISE context
+\end{itemize}
+
+\newpage
+
+% ============================================
+% 1:1 MEETING PLAYBOOK
+% ============================================
+\section{One-on-One Meeting Playbook}
+
+This section synthesizes all available public data on Dominik Wee's communication style, values, and professional DNA to provide actionable guidance for a productive 1:1 meeting.
+
+\subsection{His Communication Style --- What to Expect}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{longtable}{L{3.5cm}L{10cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Dimension}} & \textcolor{white}{\textbf{What to Expect}} \\
+\midrule
+Structure & McKinsey-trained: expects \textbf{structured, hypothesis-driven} conversations. Situation $\rightarrow$ Complication $\rightarrow$ Resolution (SCR) format. \\
+Pace & Fast thinker, fast talker. Gets to the point quickly. Values brevity and precision. \\
+Dialogue Style & Conversational and collaborative, not hierarchical monologue. Asks probing questions. \\
+Curiosity & Self-described as ``curious.'' Will dig into \textit{how} things work, not just \textit{what} you did. \\
+Storytelling & Uses narrative to test ideas. May frame feedback as a story or analogy. \\
+Data Orientation & Expects claims backed by evidence. ``Show me the data'' mindset. \\
+Energy & High-energy, forward-looking. Gravitates toward possibility, not problems. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\textcolor{msgray}{\scriptsize Source: Derived from public interviews, podcast style, McKinsey communication methodology, speaker appearances}
+
+\subsection{How to Structure Your 1:1}
+
+\subsubsection{The McKinsey SCR Framework (Recommended)}
+
+Wee spent 15 years at McKinsey. The \textbf{Situation--Complication--Resolution} framework is second nature to him. Structure your talking points this way:
+
+\begin{enumerate}
+    \item \textbf{Situation} (10 seconds): ``Here's where we are...'' --- brief, factual context
+    \item \textbf{Complication} (15 seconds): ``The challenge is...'' --- the core tension or opportunity
+    \item \textbf{Resolution} (30 seconds): ``What I recommend is...'' --- your hypothesis + evidence + ask
+\end{enumerate}
+
+\begin{center}
+\begin{tcolorbox}[
+    colback=mslightgray,
+    colframe=msgreen,
+    boxrule=0.5pt,
+    arc=3pt,
+    left=10pt, right=10pt, top=8pt, bottom=8pt,
+    width=0.9\textwidth
+]
+\textbf{Example:}\\
+``\textit{We're running 26 studios across EMEA with heterogeneous portfolio management practices [Situation]. The biggest friction is data quality---PMs spend 40\% of time on ADO hygiene instead of customer impact [Complication]. We've built an AI-powered quality automation system that reduced manual effort by 70\% and caught 95\% of data issues before review. I'd love your perspective on scaling this across ISE EMEA [Resolution].}''
+\end{tcolorbox}
+\end{center}
+
+\subsubsection{Timing \& Rhythm}
+
+\begin{itemize}
+    \item \textbf{First 2 minutes}: Lead with your strongest insight or result. Don't warm up---he'll be listening most intently at the start.
+    \item \textbf{Middle}: Be ready for his questions. He'll probe. Have data ready but don't dump it---let him pull it.
+    \item \textbf{Last 2 minutes}: Clear ask or next step. ``What I need from you is...'' or ``The decision I'd like your input on is...''
+\end{itemize}
+
+\subsection{Topics That Will Resonate}
+
+Based on his publicly stated values, priorities, and recurring themes:
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{longtable}{L{4cm}L{9.5cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Topic}} & \textcolor{white}{\textbf{Why It Resonates}} \\
+\midrule
+AI delivering real business value & His \#1 theme. Show concrete outcomes, not experiments. \\
+``No-regret'' use cases & Language he uses himself. Frame your work as low-risk, high-return. \\
+Customer transformation stories & He hosts a podcast about exactly this. Bring a customer story with real impact data. \\
+IT/OT convergence & Core to his manufacturing vision. If your work bridges data silos, highlight it. \\
+Frontline empowerment & He cares about technology reaching \textit{everyone}, not just executives. \\
+Scalability beyond pilot & McKinsey DNA: pilots are nice, scale is what matters. Show a path to scale. \\
+Sustainability \& ESG impact & Recurring priority. If your work has sustainability implications, mention them. \\
+Cross-studio collaboration & As ISE EMEA/Asia leader, he cares about consistency and knowledge sharing. \\
+Engineering culture \& open source & ISE's identity. Contributing back to the community matters. \\
+Speed to value & Google Cloud + McKinsey: both cultures obsess about time-to-impact. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\subsection{Questions to Ask Him}
+
+These questions are designed to align with his interests and invite the kind of strategic dialogue he values:
+
+\subsubsection{Strategic Vision Questions}
+\begin{enumerate}
+    \item ``What does ISE's success look like to you in 12 months? What metrics would make you say `we nailed it'?''
+    \item ``Where do you see the biggest gap between where ISE is today and where it needs to be?''
+    \item ``Which customer segments or industries do you think ISE is under-serving right now?''
+\end{enumerate}
+
+\subsubsection{AI \& Innovation Questions}
+\begin{enumerate}
+    \item ``What `no-regret' AI use cases have you seen work best across your customer base?''
+    \item ``How should ISE teams balance building reusable IP vs. custom solutions for specific customers?''
+    \item ``What's your take on AI augmenting ISE's own operations---not just customer-facing work?''
+\end{enumerate}
+
+\subsubsection{Leadership \& Culture Questions}
+\begin{enumerate}
+    \item ``What did you learn at McKinsey that you wish more engineers understood?''
+    \item ``How do you think about the balance between structured process and creative autonomy in engineering teams?''
+    \item ``What's one thing from the Relentless Renewal conversations that surprised you?''
+\end{enumerate}
+
+\subsubsection{Personal Connection Questions}
+\begin{enumerate}
+    \item ``You spent time in Silicon Valley at McKinsey---what was the biggest mindset shift from that experience?''
+    \item ``As someone who moved from consulting to tech execution, what was the hardest adaptation?''
+    \item ``What are you most curious about right now?''
+\end{enumerate}
+
+\subsection{Things to Avoid}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{longtable}{L{4.5cm}L{9cm}}
+\toprule
+\rowcolor{msred}
+\textcolor{white}{\textbf{Don't}} & \textcolor{white}{\textbf{Why}} \\
+\midrule
+Long, unstructured updates & McKinsey-trained mind will lose patience. Structure everything. \\
+Problems without solutions & Never present a problem alone. Always pair it with a hypothesis or recommendation. \\
+Vague claims without data & ``It's going well'' means nothing. Use numbers, percentages, customer names. \\
+Over-focus on internal process & He cares about customer impact, not your Jira board. Lead with outcomes. \\
+Technology for technology's sake & He values tech that \textit{delivers business value}. Don't pitch a cool tool without a business case. \\
+Pessimism or blockers-only framing & He's a ``Relentless Renewal'' person. Frame challenges as opportunities with a path forward. \\
+Ignoring sustainability & It's a core value. If relevant, acknowledge it. If not relevant, don't fake it. \\
+Being unprepared for questions & He will probe. If you don't know something, say ``I'll get back to you with data on that'' --- don't bluff. \\
+Excessive PowerPoint & McKinsey people value substance over slides. A tight narrative beats 40 slides every time. \\
+Treating him as purely strategic & He has a Cambridge CS degree. He can go deep technically. Don't oversimplify. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\subsection{Conversation Tone \& Approach}
+
+\begin{center}
+\begin{tcolorbox}[
+    colback=mslightgray,
+    colframe=msblue,
+    boxrule=1pt,
+    arc=3pt,
+    left=10pt, right=10pt, top=10pt, bottom=10pt,
+    width=0.95\textwidth
+]
+\textbf{The Ideal Tone:}\\[8pt]
+Think of it as a conversation between a \textbf{senior consultant and a strategic peer}, not a status update to a boss. He wants to think together, not be reported to.
+
+\begin{itemize}
+    \item \textbf{Confident but not arrogant}: Have a point of view, but be open to challenge
+    \item \textbf{Concise but not shallow}: Depth is welcome when earned through structure
+    \item \textbf{Curious but not unfocused}: Ask questions, but tie them to actionable outcomes
+    \item \textbf{Data-informed but not data-drowned}: Use numbers to anchor, not overwhelm
+    \item \textbf{Forward-looking but grounded}: Vision matters, but connect it to today's reality
+    \item \textbf{Candid but respectful}: McKinsey culture values ``obligation to dissent''---he respects pushback if well-reasoned
+\end{itemize}
+\end{tcolorbox}
+\end{center}
+
+\subsection{Preparation Checklist}
+
+Before any 1:1 with Dominik Wee, ensure you have:
+
+\begin{enumerate}
+    \item[$\square$] \textbf{One clear objective}: What do you want from this meeting? Decision? Input? Air cover?
+    \item[$\square$] \textbf{SCR-structured talking points}: Max 3 topics, each in Situation--Complication--Resolution format
+    \item[$\square$] \textbf{A customer story}: At least one concrete example of impact with real numbers
+    \item[$\square$] \textbf{Data backup}: Key metrics on a single page (not in slides---in your head or on paper)
+    \item[$\square$] \textbf{A thoughtful question}: Something that shows you've done your homework on his priorities
+    \item[$\square$] \textbf{A clear ask}: What do you need him to do, decide, or unblock?
+    \item[$\square$] \textbf{Knowledge of his recent content}: Skim his latest blog post or Relentless Renewal episode
+    \item[$\square$] \textbf{Sustainability angle} (if applicable): How does your work contribute to ESG/sustainability?
+    \item[$\square$] \textbf{Scale narrative}: How does what you're showing scale beyond your team/studio?
+    \item[$\square$] \textbf{30-second elevator version}: If the meeting gets cut to 5 minutes, what's your one message?
+\end{enumerate}
+
+\textcolor{msgray}{\scriptsize Source: Synthesized from public communication patterns, McKinsey communication methodology, Relentless Renewal podcast style, speaker appearances, and interview analysis}
+
+\newpage
+
+% ============================================
+% RELEVANCE FOR ISE
+% ============================================
+\section{Strategic Relevance for ISE}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{longtable}{L{3.5cm}L{10cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Dimension}} & \textcolor{white}{\textbf{Impact on ISE}} \\
+\midrule
+Vision & Industrial transformation at scale with AI and cloud \\
+Organizational & Directly leads ISE EMEA \& Asia operations \\
+Customer Approach & Deep partnerships, collaborative engineering, open source \\
+Reporting Line & MCAPS $\rightarrow$ Judson Althoff (EVP, CCO) \\
+Decision Style & Data-driven, rapid, ``no-regret'' oriented \\
+Sector Focus & Manufacturing, Automotive, Mobility, Logistics, Aerospace, Energy \\
+AI Strategy & Generative AI as foundational; immediate adoption of proven use cases \\
+Engineering Culture & Values technical depth; Cambridge CS background gives credibility with engineers \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\begin{center}
+\begin{tcolorbox}[
+    colback=mslightgray,
+    colframe=msblue,
+    boxrule=1pt,
+    arc=3pt,
+    left=10pt, right=10pt, top=8pt, bottom=8pt,
+    width=0.9\textwidth
+]
+\textit{``Organizations need to unite IT and OT data to unlock the full potential of AI-driven transformation.''}\\[5pt]
+\hfill --- \textbf{Dominik Wee}, Microsoft Industry Blog
+\end{tcolorbox}
+\end{center}
+
+% ============================================
+% METHODOLOGY & SOURCES
+% ============================================
+\section{Methodology \& Sources}
+
+\subsection{Research Methodology}
+
+This report was compiled using AI-powered web search across multiple independent sources. All factual claims are cross-referenced against at least one reputable source. Confidence levels are assigned to each data point based on source quality and corroboration.
+
+\subsection{Data Sources}
+
+\begin{enumerate}
+    \item Microsoft Industry Blog --- Dominik Wee Author Page
+    \item Microsoft Official Blog --- Author Profile
+    \item Accenture: Manufacturing in the Era of GenAI
+    \item The Technology Record: ``You Can't Spell Acceleration Without AI'' Interview
+    \item AI at Scale Podcast (Schneider Electric) --- EP19
+    \item Relentless Renewal Podcast (Apple Podcasts)
+    \item YouTube: Lufthansa Group Relentless Renewal
+    \item YouTube: The Power of Storytelling
+    \item Web Summit Lisbon 2024 --- Speaker Profile
+    \item Automobil Elektronik Kongress 2024 --- Speaker Bio
+    \item Speakerpedia --- Speaker Profile
+    \item McKinsey \& Company Publications (multiple)
+    \item ISE Developer Blog --- About Page
+    \item Microsoft Engineering Playbook --- Who is ISE
+    \item MSPoweruser --- Microsoft Engineering Groups
+    \item Lufthansa Technik --- AI Collaboration Press Release
+    \item Microsoft TechCommunity --- Siemens Partnership Blog
+\end{enumerate}
+
+\subsection{Limitations}
+
+\begin{itemize}
+    \item Internal Microsoft organizational details (detailed org chart, team composition) not available from public sources
+    \item Day-to-day management style, direct reports' feedback, and internal coaching approach not publicly documented
+    \item ``Relentless Renewal'' keynote transcripts not publicly available in full
+    \item Specific ISE studio-level priorities and resource allocation not disclosed
+    \item LinkedIn profile details not directly accessible for verification
+\end{itemize}
+
+% ============================================
+% DISCLAIMER
+% ============================================
+\vfill
+\hrule
+\vspace{8pt}
+{\scriptsize\color{msgray}
+\textbf{Disclaimer:} This report is produced by Convergio Think Tank (CTT) for informational purposes only. It is based exclusively on publicly available information gathered through web search. No proprietary, confidential, or insider information was used. All statements represent the research team's assessment based on available data and should not be construed as definitive or authoritative. Not investment advice.
+
+\textbf{Generated:} February 17, 2026 | \textbf{Data Cutoff:} February 17, 2026 | \textbf{Report Version:} 1.0
+}
+
+\end{document}

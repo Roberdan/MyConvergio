@@ -3,7 +3,7 @@ set -euo pipefail
 # script-versions.sh — Auto-generated index of all scripts with versions
 # Usage: script-versions.sh [--json|--stale|--category <name>]
 # Resolves scripts dir: ~/.claude/scripts → npm global → script's own dir
-# Version: 1.2.0
+# Version: 1.1.0
 set -euo pipefail
 
 # Resolve scripts directory (supports ~/.claude, npm global install, local clone)
@@ -50,24 +50,6 @@ extract_purpose() {
 	sed -n '2,5p' "$file" | grep -m1 "^#" | sed 's/^#[[:space:]]*//' | cut -c1-60 || echo ""
 }
 
-# Parse ~/.claude/scripts/c for group → script mappings
-# Format in c: "group) # description → script1.sh | script2.sh"
-C_ALIAS_DATA=""
-build_c_aliases() {
-	local c_script="${SCRIPTS_DIR}/c"
-	[[ ! -f "$c_script" ]] && return
-	while IFS= read -r line; do
-		if [[ "$line" =~ ^([a-z]+)\)\ #.*→(.+)$ ]]; then
-			local group="${BASH_REMATCH[1]}"
-			local scripts_part="${BASH_REMATCH[2]}"
-			while IFS= read -r script; do
-				[[ -n "$script" ]] && C_ALIAS_DATA+="${script}:c ${group}"$'\n'
-			done < <(printf '%s' "$scripts_part" | grep -oE '[a-zA-Z0-9_-]+\.sh')
-		fi
-	done <"$c_script"
-}
-get_c_alias() { echo "$C_ALIAS_DATA" | grep "^${1}:" | cut -d: -f2 || true; }
-
 # Collect data
 declare -a NAMES=() VERSIONS=() CATEGORIES=() PURPOSES=()
 for script in "$SCRIPTS_DIR"/*.sh; do
@@ -93,18 +75,6 @@ if [[ "$MODE" == "--json" ]]; then
 			"${NAMES[$i]}" "${VERSIONS[$i]}" "${CATEGORIES[$i]}" "$comma"
 	done
 	echo "]"
-	exit 0
-fi
-
-if [[ "$MODE" == "--c-aliases" ]]; then
-	build_c_aliases
-	printf "%-40s %-12s %s\n" "SCRIPT" "C ALIAS" "VERSION"
-	printf "%-40s %-12s %s\n" "------" "-------" "-------"
-	for i in "${!NAMES[@]}"; do
-		alias=$(get_c_alias "${NAMES[$i]}")
-		[[ -z "$alias" ]] && continue
-		printf "%-40s %-12s %s\n" "${NAMES[$i]}" "$alias" "${VERSIONS[$i]}"
-	done
 	exit 0
 fi
 

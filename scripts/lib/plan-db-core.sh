@@ -43,8 +43,6 @@ init_db() {
 	_migrate_submitted_status 2>/dev/null || true
 	# Migration: ensure task_undone_counter + wave_auto_complete are correct
 	_migrate_counter_triggers 2>/dev/null || true
-	# Ensure optional tables/columns exist (idempotent, safe on every startup)
-	ensure_tables 2>/dev/null || true
 }
 
 # Migration: add 'submitted' status to CHECK constraint + Thor enforcement trigger
@@ -106,29 +104,6 @@ _migrate_submitted_status() {
 	echo "[migration] Added 'submitted' status + enforce_thor_done trigger (v5.0.0)" >&2
 }
 
-# Ensure optional tables and columns exist for running databases (idempotent)
-# Called by init_db() after initial setup; safe to run on every startup.
-ensure_tables() {
-	# peer_heartbeats: distributed peer coordination (F-26)
-	sqlite3 "$DB_FILE" "
-		CREATE TABLE IF NOT EXISTS peer_heartbeats (
-			peer_name TEXT PRIMARY KEY,
-			last_seen INTEGER NOT NULL,
-			load_json TEXT,
-			capabilities TEXT,
-			updated_at TEXT DEFAULT (datetime('now'))
-		);
-	" 2>/dev/null || true
-
-	# privacy_required column on tasks (F-16, F-17): routing decisions for local-only tasks
-	# SQLite does not support IF NOT EXISTS on ALTER TABLE, so we check via PRAGMA first.
-	local has_privacy
-	has_privacy=$(sqlite3 "$DB_FILE" "PRAGMA table_info(tasks);" 2>/dev/null | cut -d'|' -f2 | grep '^privacy_required$' || true)
-	if [[ -z "$has_privacy" ]]; then
-		sqlite3 "$DB_FILE" "ALTER TABLE tasks ADD COLUMN privacy_required BOOLEAN DEFAULT 0;" 2>/dev/null || true
-	fi
-}
-
 # Migration: ensure counter triggers are correct (task_undone_counter + wave_auto_complete with merging)
 _migrate_counter_triggers() {
 	# task_undone_counter: decrement counters when task leaves 'done' (e.g., Thor re-review)
@@ -175,7 +150,7 @@ yaml_to_json_temp() {
 	local spec_file="$1"
 	if [[ "$spec_file" == *.yaml || "$spec_file" == *.yml ]]; then
 		local tmp
-		tmp=$(mktemp ${TMPDIR:-/tmp}/plan-spec-XXXX.json)
+		tmp=$(mktemp /tmp/plan-spec-XXXX.json)
 		python3 -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(open(sys.argv[1]))))" "$spec_file" >"$tmp" || {
 			log_error "Failed to convert YAML to JSON: $spec_file"
 			rm -f "$tmp"

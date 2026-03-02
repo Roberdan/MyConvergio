@@ -1,14 +1,22 @@
 #!/bin/bash
-# Guard settings.json — auto-strip codegraph CLI hooks
-# PostToolUse hook - runs after Edit/Write on settings.json
-# Version: 2.0.0
+# guard-settings.sh — Copilot CLI version
+# PostToolUse hook: auto-strips codegraph CLI hooks from settings.json after Edit/Write.
+# Version: 1.0.0
 set -uo pipefail
 
 INPUT=$(cat)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+
+# Only run after edit/write tools
+case "$TOOL_NAME" in
+Edit | Write | editFile | writeFile) ;;
+*) exit 0 ;;
+esac
 
 FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 [ -z "$FILE" ] && FILE="${CLAUDE_FILE_PATH:-}"
 
+# Only act on settings.json files
 case "$FILE" in
 *settings.json) ;;
 *) exit 0 ;;

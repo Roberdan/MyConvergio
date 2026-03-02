@@ -36,10 +36,10 @@ sync_plans() {
 	local direction=$1
 	if [[ "$direction" == "pull" ]]; then
 		log_info "Syncing: Linux → Mac (full plan data)"
-		scp "$REMOTE_HOST:$REMOTE_DB" "${TMPDIR:-/tmp}/sync_source.db"
+		scp "$REMOTE_HOST:$REMOTE_DB" "/tmp/sync_source.db"
 		local plan_ids
 		plan_ids=$(sqlite3 "$LOCAL_DB" "
-			ATTACH '${TMPDIR:-/tmp}/sync_source.db' AS src;
+			ATTACH '/tmp/sync_source.db' AS src;
 			SELECT src_p.id FROM src.plans src_p
 			LEFT JOIN plans p ON p.id = src_p.id
 			WHERE src_p.status != COALESCE(p.status, '') OR src_p.tasks_done != COALESCE(p.tasks_done, 0) OR p.id IS NULL;
@@ -49,7 +49,7 @@ sync_plans() {
 			[[ -z "$id" ]] && continue
 			log_info "Pull plan $id"
 			sqlite3 "$LOCAL_DB" "
-				ATTACH '${TMPDIR:-/tmp}/sync_source.db' AS src;
+				ATTACH '/tmp/sync_source.db' AS src;
 				INSERT OR REPLACE INTO plans SELECT * FROM src.plans WHERE id=$id;
 				INSERT OR REPLACE INTO waves SELECT * FROM src.waves WHERE plan_id=$id;
 				INSERT OR REPLACE INTO tasks SELECT * FROM src.tasks WHERE plan_id=$id;
@@ -58,15 +58,15 @@ sync_plans() {
 				UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE waves.plan_id = plans.id), tasks_total = (SELECT COALESCE(SUM(tasks_total), 0) FROM waves WHERE waves.plan_id = plans.id) WHERE id = $id;
 			"
 		done
-		rm -f ${TMPDIR:-/tmp}/sync_source.db
+		rm -f /tmp/sync_source.db
 
 	elif [[ "$direction" == "push" ]]; then
 		log_info "Syncing: Mac → Linux (full plan data)"
-		scp "$LOCAL_DB" "$REMOTE_HOST:${TMPDIR:-/tmp}/sync_source.db"
+		scp "$LOCAL_DB" "$REMOTE_HOST:/tmp/sync_source.db"
 		ssh -o ConnectTimeout=10 "$REMOTE_HOST" bash -s -- "$REMOTE_DB" <<'PUSH_SCRIPT'
 DB="$1"
 for id in $(sqlite3 "$DB" "
-	ATTACH '${TMPDIR:-/tmp}/sync_source.db' AS src;
+	ATTACH '/tmp/sync_source.db' AS src;
 	SELECT src_p.id FROM src.plans src_p LEFT JOIN plans p ON p.id = src_p.id
 	WHERE src_p.status != COALESCE(p.status, '') OR src_p.tasks_done != COALESCE(p.tasks_done, 0) OR p.id IS NULL;
 	DETACH src;
@@ -74,7 +74,7 @@ for id in $(sqlite3 "$DB" "
 	[ -z "$id" ] && continue
 	echo "[INFO] Push plan $id"
 	sqlite3 "$DB" "
-		ATTACH '${TMPDIR:-/tmp}/sync_source.db' AS src;
+		ATTACH '/tmp/sync_source.db' AS src;
 		INSERT OR REPLACE INTO plans SELECT * FROM src.plans WHERE id=$id;
 		INSERT OR REPLACE INTO waves SELECT * FROM src.waves WHERE plan_id=$id;
 		INSERT OR REPLACE INTO tasks SELECT * FROM src.tasks WHERE plan_id=$id;
@@ -83,7 +83,7 @@ for id in $(sqlite3 "$DB" "
 		UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE waves.plan_id = plans.id), tasks_total = (SELECT COALESCE(SUM(tasks_total), 0) FROM waves WHERE waves.plan_id = plans.id) WHERE id = $id;
 	"
 done
-rm -f ${TMPDIR:-/tmp}/sync_source.db
+rm -f /tmp/sync_source.db
 PUSH_SCRIPT
 	fi
 }
@@ -119,28 +119,28 @@ copy_plan() {
 
 	if [[ "$direction" == "push" ]]; then
 		log_info "Copying plan $plan_id: Local → Remote"
-		scp "$LOCAL_DB" "$REMOTE_HOST:${TMPDIR:-/tmp}/source_dashboard.db"
+		scp "$LOCAL_DB" "$REMOTE_HOST:/tmp/source_dashboard.db"
 		ssh -o ConnectTimeout=10 "$REMOTE_HOST" "sqlite3 $REMOTE_DB \"
-            ATTACH '${TMPDIR:-/tmp}/source_dashboard.db' AS src;
+            ATTACH '/tmp/source_dashboard.db' AS src;
             INSERT OR REPLACE INTO plans SELECT * FROM src.plans WHERE id=$plan_id;
             INSERT OR REPLACE INTO waves SELECT * FROM src.waves WHERE plan_id=$plan_id;
             INSERT OR REPLACE INTO tasks SELECT * FROM src.tasks WHERE plan_id=$plan_id;
             DETACH src;
             UPDATE waves SET tasks_done = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id AND tasks.status = 'done'), tasks_total = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id) WHERE plan_id = $plan_id;
             UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done), 0) FROM waves WHERE waves.plan_id = plans.id), tasks_total = (SELECT COALESCE(SUM(tasks_total), 0) FROM waves WHERE waves.plan_id = plans.id) WHERE id = $plan_id;
-        \" && rm ${TMPDIR:-/tmp}/source_dashboard.db"
+        \" && rm /tmp/source_dashboard.db"
 		log_info "Plan $plan_id copied to remote (counters resynced)"
 	else
 		log_info "Copying plan $plan_id: Remote → Local"
-		scp "$REMOTE_HOST:$REMOTE_DB" "${TMPDIR:-/tmp}/source_dashboard.db"
+		scp "$REMOTE_HOST:$REMOTE_DB" "/tmp/source_dashboard.db"
 		sqlite3 "$LOCAL_DB" "
-            ATTACH '${TMPDIR:-/tmp}/source_dashboard.db' AS src;
+            ATTACH '/tmp/source_dashboard.db' AS src;
             INSERT OR REPLACE INTO plans SELECT * FROM src.plans WHERE id=$plan_id;
             INSERT OR REPLACE INTO waves SELECT * FROM src.waves WHERE plan_id=$plan_id;
             INSERT OR REPLACE INTO tasks SELECT * FROM src.tasks WHERE plan_id=$plan_id;
             DETACH src;
         "
-		rm ${TMPDIR:-/tmp}/source_dashboard.db
+		rm /tmp/source_dashboard.db
 		# Resync counters (INSERT OR REPLACE bypasses UPDATE triggers)
 		sqlite3 "$LOCAL_DB" "
 			UPDATE waves SET tasks_done = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id AND tasks.status = 'done'), tasks_total = (SELECT COUNT(*) FROM tasks WHERE tasks.wave_id_fk = waves.id) WHERE plan_id = $plan_id;

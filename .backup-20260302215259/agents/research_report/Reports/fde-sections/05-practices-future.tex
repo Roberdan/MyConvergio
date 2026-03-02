@@ -1,0 +1,195 @@
+% ============================================
+% SECTION 7: BEST PRACTICES
+% ============================================
+\section{Best Practices for FDE Programs}
+
+\subsection{Three Conditions for Success (McCardel Framework)}
+
+Barry McCardel, drawing on five years as a Palantir FDE and subsequent
+experience building Hex, identifies three non-negotiable conditions for
+FDE program viability:
+
+\begin{enumerate}
+    \item \textbf{High-value markets}: FDE economics only work for
+        Fortune~500 and government customers. The contract floor is
+        seven figures. Below that threshold, the model destroys value.
+
+    \item \textbf{Epistemological humility about product direction}:
+        The company must genuinely not know what the product should look
+        like for a given market segment, and must use FDEs as the
+        discovery mechanism. If the product roadmap is already clear, FDEs
+        add cost without insight.
+
+    \item \textbf{Extensible platform architecture}: The platform must be
+        designed so that FDE-built solutions can be generalized. If the
+        architecture does not support abstraction, every FDE engagement
+        produces a dead-end custom build.
+\end{enumerate}
+
+\subsection{Platform-First Discipline}
+
+The single most important organizational principle: the company must be a
+product company that uses FDEs, not a consulting company that builds a
+product. The acid test from McCardel: \textit{``If FDEs prefer one-offs
+over your abstraction, it's the wrong abstraction.''}
+
+\subsection{Operational Best Practices}
+
+\begin{itemize}
+    \item \textbf{Feedback loop field-to-product}: Every deployment must
+        leave reusable assets for the next engagement. If an FDE builds
+        something and it dies with the engagement, the program is failing.
+    \item \textbf{Clear client boundaries}: FDEs must know when to say
+        no. Unlimited scope creep transforms FDEs into outsourced staff.
+    \item \textbf{Ethics and compliance from day zero}: FDEs operating
+        inside customer environments handle sensitive data and systems.
+        Compliance cannot be an afterthought.
+    \item \textbf{Rotation cadence}: Prevent burnout by rotating FDEs
+        between field deployments and HQ/platform work. Palantir's
+        Project Frontline was an early attempt at institutionalizing this.
+\end{itemize}
+
+% ============================================
+% SECTION 8: RECRUITMENT
+% ============================================
+\section{Recruiting FDEs: Process \& Pitfalls}
+
+\subsection{Palantir Interview Process (Benchmark)}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{tabular}{C{1cm}L{3.5cm}L{8cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Stage}} &
+\textcolor{white}{\textbf{Format}} &
+\textcolor{white}{\textbf{Focus}} \\
+\midrule
+1 & Online Assessment & Algorithmic problem-solving screen \\
+2 & Phone Screen & Technical communication and fit \\
+3a & Technical Round 1 & Coding / LeetCode-style problems \\
+3b & Technical Round 2 & System Design at scale \\
+3c & Technical Round 3 & Problem Decomposition (ambiguous prompts) \\
+4 & Hiring Manager & Behavioral, 30-60-90 day plan, culture fit \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{4pt}
+\textbf{Process metrics} (Glassdoor, 134 interviews): Average duration
+28 days. Difficulty: 3.4/5. Positive experience: 61\%.
+
+\textbf{Interview panel}: Technical interviewer, client-facing
+interviewer, behavioral interviewer, hiring manager. The multi-faceted
+panel reflects the multi-dimensional nature of the role.
+
+\subsection{Common Hiring Mistakes}
+
+\begin{itemize}
+    \item \textbf{Over-emphasis on coding}: LeetCode performance is
+        necessary but not sufficient. The best coders often make the
+        worst FDEs if they lack client-facing skills.
+    \item \textbf{Not testing for ambiguity tolerance}: FDEs work in
+        environments where requirements are unclear, data is messy, and
+        stakeholders disagree. Interviews must simulate this.
+    \item \textbf{Ignoring soft skills}: Customer fluency, empathy, and
+        business acumen are the true differentiators. A structured
+        client-facing simulation should be part of every FDE interview.
+    \item \textbf{Skipping the 30-60-90 day plan}: Asking candidates to
+        articulate their approach to the first 90 days of a deployment
+        reveals strategic thinking and self-direction.
+\end{itemize}
+
+% ============================================
+% SECTION 9: FUTURE EVOLUTION
+% ============================================
+\section{Future Evolution: From FDE to Agent Deployment Engineer}
+
+\subsection{The Agentic AI Transition}
+
+As AI systems evolve from tools that assist humans to autonomous agents
+that execute tasks independently, the FDE role is undergoing a parallel
+transformation. The emerging role of \textbf{Agent Deployment Engineer}
+reflects this shift:
+
+\begin{itemize}
+    \item \textbf{Traditional FDE}: Builds custom data integrations,
+        writes application code, creates workflows on customer
+        infrastructure.
+    \item \textbf{Agent Deployment Engineer}: Deploys, configures,
+        monitors, and governs autonomous AI agents operating within
+        customer environments.
+\end{itemize}
+
+Celonis's AgentC suite represents the leading edge of this evolution,
+with roles explicitly designed around agent lifecycle management rather
+than traditional software deployment.
+
+\subsection{Industry Endorsement}
+
+Marty Cagan (Silicon Valley Product Group), one of the most influential
+voices in product management, describes himself as ``exceptionally happy''
+about the spread of FDE practices. His advice: \textit{``If you do
+nothing else, consider having your best engineers visit customer
+offices.''}
+
+Gergely Orosz (The Pragmatic Engineer) has published extensive analysis
+of the FDE trend, and a16z has endorsed it as a structural shift in
+how enterprise software companies organize engineering talent.
+
+\subsection{Career Impact}
+
+The data on FDE alumni careers is striking. Across Palantir, OpenAI,
+and other early adopters, FDE alumni have ``disproportionately exceptional
+careers'' (multiple sources). The role accelerates career development by
+compressing exposure to diverse industries, customers, and technical
+challenges into a timeframe that traditional engineering roles cannot
+match.
+
+% ============================================
+% KPI DASHBOARD
+% ============================================
+\section{KPI Dashboard}
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\small
+\begin{tabular}{L{5cm}L{3.5cm}C{1.5cm}L{3cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{KPI}} &
+\textcolor{white}{\textbf{Current Value}} &
+\textcolor{white}{\textbf{Trend}} &
+\textcolor{white}{\textbf{Source}} \\
+\midrule
+Job posting growth (YoY) &
+    +1,165\% & \kpiup & Lightcast \\
+Active postings &
+    922 (Nov 2025) & \kpiup & Lightcast \\
+Median base salary &
+    \$173,816 & \kpiup & Bloomberry (1K jobs) \\
+Talent supply ratio &
+    3:1 (demand:supply) & \kpiup & Addison Group \\
+Salary growth rate &
+    4.2\% avg, 10\% peak & \kpiup & Pave / industry \\
+Top-end TC (Palantir) &
+    \$600K+ & \kpiup & Levels.fyi / reports \\
+Equity mention rate &
+    70\% of postings & \kpiflat & Bloomberry \\
+AI Agent skill demand &
+    35\% of postings & \kpiup & Bloomberry \\
+LLM skill demand &
+    31\% of postings & \kpiup & Bloomberry \\
+Python requirement &
+    66\% of postings & \kpiflat & Bloomberry \\
+On-site expectation &
+    25--50\% (3--4 days) & \kpiflat & Multiple \\
+Burnout indicator &
+    2.7/5 WLB (Palantir) & \kpidown & Glassdoor \\
+Premium vs SWE &
+    25--40\% & \kpiflat & Multiple \\
+Startup-size employers &
+    58\% of postings & \kpiflat & Bloomberry \\
+\bottomrule
+\end{tabular}
+\end{center}

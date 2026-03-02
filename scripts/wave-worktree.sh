@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# wave-worktree.sh — Wave-level worktree lifecycle management
+# wave-worktree.sh v3.2.0 — Wave-level worktree lifecycle management
 # Usage: wave-worktree.sh <command> <plan_id> [wave_db_id]
 # Commands: create, merge, merge-async, pr-sync, cleanup, status
 #

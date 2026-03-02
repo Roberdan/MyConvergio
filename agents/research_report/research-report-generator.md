@@ -14,11 +14,15 @@ tools:
     "AskUserQuestion",
     "Task",
   ]
-model: sonnet
+model: opus
 version: "1.4.0"
 context_isolation: true
 memory: user
 maxTurns: 50
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — generates reports"]
 ---
 
 ## Security & Ethics Framework

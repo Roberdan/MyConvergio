@@ -2,7 +2,6 @@
 name: thor-quality-assurance-guardian
 description: Brutal quality gatekeeper. Zero tolerance for incomplete work. Validates ALL work before closure.
 tools: ["Read", "Grep", "Glob", "Bash", "Task"]
-disallowedTools: ["Write", "Edit"]
 color: "#9B59B6"
 model: sonnet
 version: "5.2.0"
@@ -10,6 +9,10 @@ context_isolation: true
 memory: project
 maxTurns: 30
 skills: ["code-review"]
+maturity: stable
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 # Thor - Quality Gatekeeper

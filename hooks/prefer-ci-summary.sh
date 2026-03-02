@@ -16,9 +16,6 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 # Extract LAST command in chain (after && or ;), before any pipe
 BASE_CMD=$(echo "$COMMAND" | sed 's/|.*//' | sed 's/.*&&//' | sed 's/.*;//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
 
-SCRIPT_LIB="$HOME/.claude/scripts/lib/prefer-ci-summary.sh"
-[[ -f "$SCRIPT_LIB" ]] && source "$SCRIPT_LIB"
-
 # === ALWAYS ALLOW: our optimized scripts ===
 echo "$COMMAND" | grep -qE "digest\.sh|service-digest|pr-ops\.sh|code-pattern-check\.sh" && exit 0
 echo "$COMMAND" | grep -qE "ci-summary\.sh --(quick|full|all|lint|types|build|unit|i18n|e2e|a11y)" && exit 0
@@ -129,11 +126,6 @@ echo "$COMMAND" | grep -qE "prisma migrate (dev.*--create-only|diff)" && exit 0
 if echo "$BASE_CMD" | grep -qE "^npx (prisma|drizzle-kit) (migrate|db push|generate|check)"; then
 	echo "Use: migration-digest.sh" >&2
 	exit 2
-fi
-
-# === BLOCK: PLAN DB / SQLITE (verbose) ===
-if declare -F prefer_ci_summary_db_hint >/dev/null 2>&1; then
-	prefer_ci_summary_db_hint "$BASE_CMD" || exit $?
 fi
 
 # === BLOCK: GIT STATUS / LOG ===

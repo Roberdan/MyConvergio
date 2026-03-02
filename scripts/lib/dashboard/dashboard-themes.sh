@@ -184,6 +184,7 @@ _theme_load() {
 	hal9000 | hal | 2001) _theme_hal9000 ;;
 	*) _theme_muthur ;;
 	esac
+	TH_RST="${NC}"
 }
 
 # --- Themed render helpers ---

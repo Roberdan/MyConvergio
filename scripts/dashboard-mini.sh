@@ -1,6 +1,6 @@
 #!/bin/bash
 # Version: 3.0.0
-set -uo pipefail
+set -o pipefail
 DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
 
 # Source modules in dependency order
@@ -190,7 +190,8 @@ fi
 
 # TUI mode: delegate to Python Textual app
 if [[ "$USE_TUI" -eq 1 ]]; then
-	exec python3 -m dashboard_textual ${PLAN_ID:+--plan "$PLAN_ID"}
+	SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+	PYTHONPATH="$SCRIPTS_DIR:${PYTHONPATH:-}" exec /opt/homebrew/bin/python3 -m dashboard_textual ${PLAN_ID:+--plan "$PLAN_ID"}
 fi
 
 # terminui theme: delegate to TypeScript renderer

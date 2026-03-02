@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Convergio Control Room</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="themes.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>Convergio Control Room</h1>
+  <div class="meta">
+    <span class="status-dot"></span>
+    <span id="clock"></span>
+    &nbsp;·&nbsp; Auto-refresh 30s
+    <div class="theme-switcher">
+      <button class="theme-btn" id="theme-toggle" onclick="toggleThemeDropdown()">🎨 Theme</button>
+      <div class="theme-dropdown" id="theme-dropdown"></div>
+    </div>
+  </div>
+</div>
+
+<div class="kpi-bar" id="kpi-bar"></div>
+
+<!-- Mesh Network Strip -->
+<div class="mesh-strip" id="mesh-strip"></div>
+
+<!-- Row 1: Mission + Token Chart -->
+<div class="grid-2">
+  <div class="panel" id="mission-panel">
+    <div class="panel-title">Active Mission</div>
+    <div id="mission-content"><span style="color:var(--text-dim)">Loading...</span></div>
+  </div>
+  <div>
+    <div class="panel">
+      <div class="panel-title">Token Burn — 30 Days</div>
+      <div class="chart-container"><canvas id="token-chart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 2: Tasks + Model/Dist Charts -->
+<div class="grid-2">
+  <div class="panel" style="max-height:360px; overflow-y:auto">
+    <div class="panel-title">Task Pipeline</div>
+    <table class="task-table" id="task-table">
+      <thead><tr><th>ID</th><th>Task</th><th>Status</th><th>Agent</th><th>Host</th><th>Tokens</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div>
+    <div class="panel">
+      <div class="panel-title">Cost by Model</div>
+      <div class="chart-container chart-container-sm"><canvas id="model-chart"></canvas></div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-title">Task Distribution</div>
+      <div class="chart-container chart-container-sm"><canvas id="dist-chart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 3: Activity + History -->
+<div class="grid-2">
+  <div class="panel" style="max-height:280px; overflow-y:auto">
+    <div class="panel-title">Live Activity</div>
+    <div id="activity-feed"><span style="color:var(--text-dim)">Loading...</span></div>
+  </div>
+  <div class="panel" style="max-height:280px; overflow-y:auto">
+    <div class="panel-title">History</div>
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<!-- Plan Detail Sidebar -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sb-header">
+    <span class="sb-title" id="sb-title">Plan Detail</span>
+    <span class="sb-close" onclick="closeSidebar()">&#x2715;</span>
+  </div>
+  <div class="sb-body" id="sb-body"></div>
+</div>
+
+<div class="footer">
+  <span>Convergio Control Room v3.0</span>
+  <span id="last-update"></span>
+</div>
+
+<script>window.onerror=function(m,s,l,c,e){console.error('JS ERROR:',m,s,l,c,e);}</script>
+<script src="theme-switcher.js"></script>
+<script src="app.js"></script>
+<script src="terminal.js"></script>
+</body>
+</html>

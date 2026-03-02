@@ -308,6 +308,18 @@ def api_task_status_dist() -> list[dict]:
     )
 
 
+def api_tasks_blocked() -> list[dict]:
+    return query(
+        "SELECT t.task_id, t.title, t.status,"
+        " p.id AS plan_id, p.name AS plan_name"
+        " FROM tasks t"
+        " JOIN waves w ON t.wave_id_fk=w.id"
+        " JOIN plans p ON w.plan_id=p.id"
+        " WHERE t.status='blocked'"
+        " AND p.status IN ('doing','todo')"
+    )
+
+
 ROUTES = {
     "/api/overview": api_overview,
     "/api/mission": api_mission,
@@ -316,6 +328,7 @@ ROUTES = {
     "/api/mesh": api_mesh,
     "/api/history": api_history,
     "/api/tasks/distribution": api_task_status_dist,
+    "/api/tasks/blocked": api_tasks_blocked,
     "/api/plans/assignable": api_assignable_plans,
 }
 

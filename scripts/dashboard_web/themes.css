@@ -176,3 +176,24 @@
   --kpi-accent: #b07ee8;
   --header-bg: linear-gradient(180deg, #151838, #0e1025);
 }
+
+[data-theme="neumorph"] {
+  --bg-deep: #1e2030;
+  --bg-panel: #252840;
+  --bg-card: #2a2d48;
+  --border: transparent;
+  --cyan: #7eb8ff;
+  --magenta: #c88aff;
+  --gold: #ffc864;
+  --green: #6ee6a0;
+  --red: #ff6b7a;
+  --text: #d0d4e8;
+  --text-dim: #6a6e88;
+  --font-display: "JetBrains Mono", monospace;
+  --gradient-h1: linear-gradient(90deg, #7eb8ff, #c88aff);
+  --scanline-color: rgba(0, 0, 0, 0.0);
+  --kpi-accent: #7eb8ff;
+  --header-bg: linear-gradient(180deg, #252840, #1e2030);
+  --neu-shadow: 6px 6px 14px rgba(0,0,0,0.4), -6px -6px 14px rgba(60,63,90,0.25);
+  --neu-shadow-inset: inset 3px 3px 8px rgba(0,0,0,0.3), inset -3px -3px 8px rgba(60,63,90,0.15);
+}

@@ -14,6 +14,7 @@ const THEMES = [
   { id: 'tron',      name: 'TRON',      sub: 'Legacy',    color: '#2196f3' },
   { id: 'fallout',   name: 'Fallout',   sub: 'Pip-Boy',   color: '#7ec850' },
   { id: 'convergio', name: 'Convergio', sub: 'Brand',     color: '#b07ee8' },
+  { id: 'neumorph',  name: 'Neumorph',  sub: 'Soft UI',   color: '#7eb8ff' },
 ];
 
 const STORAGE_KEY = 'dashboard-theme';

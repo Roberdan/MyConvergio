@@ -102,8 +102,8 @@ body::after {
 .kpi-bar {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
-  padding: 14px 24px;
+  gap: 16px;
+  padding: 16px 24px;
 }
 .kpi-card {
   background: var(--bg-card);
@@ -531,6 +531,31 @@ body::after {
   }
   100% {
     left: calc(100% - 5px);
+    opacity: 0;
+  }
+}
+.mesh-flow-dot-reverse {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--magenta);
+  box-shadow: 0 0 10px var(--magenta);
+  animation: flowDotReverse 1.8s linear infinite;
+}
+@keyframes flowDotReverse {
+  0% {
+    left: calc(100% - 5px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: 0;
     opacity: 0;
   }
 }
@@ -1017,6 +1042,52 @@ body::after {
 /* Body padding when terminal is docked */
 body.term-open {
   padding-bottom: 340px;
+}
+
+/* Neumorphic theme — soft raised/inset panels */
+[data-theme="neumorph"] .panel {
+  border: none;
+  border-radius: 16px;
+  box-shadow: var(--neu-shadow);
+}
+[data-theme="neumorph"] .kpi-card {
+  border: none;
+  border-radius: 14px;
+  box-shadow: var(--neu-shadow);
+}
+[data-theme="neumorph"] .kpi-card::before {
+  display: none;
+}
+[data-theme="neumorph"] .kpi-card:hover {
+  border: none;
+  box-shadow: var(--neu-shadow-inset);
+}
+[data-theme="neumorph"] .header {
+  border-bottom: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+[data-theme="neumorph"] .task-table th {
+  background: var(--bg-deep);
+  border-radius: 6px;
+}
+[data-theme="neumorph"] .sidebar {
+  border: none;
+  box-shadow: -8px 0 24px rgba(0,0,0,0.4);
+}
+[data-theme="neumorph"] .footer {
+  border-top: none;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
+}
+[data-theme="neumorph"] .mesh-strip {
+  border: none;
+}
+[data-theme="neumorph"] .mesh-node {
+  border: none;
+  border-radius: 12px;
+  box-shadow: var(--neu-shadow);
+}
+[data-theme="neumorph"] body::after {
+  display: none;
 }
 
 /* Theme switcher */

@@ -456,14 +456,14 @@ function renderMeshStrip(peers) {
       </div>
       <div class="mn-role">${p.role.toUpperCase()}${p.is_local ? " \u00B7 LOCAL" : ""}</div>
       <div class="mn-caps">${caps.map((c) => `<span class="mn-cap${c === "ollama" ? " accent" : ""}">${c}</span>`).join("")}</div>
-      ${p.is_online ? `<div class="mn-stats">${p.active_tasks} tasks \u00B7 CPU ${Math.round(p.cpu)}%</div><div class="mn-load-bar"><div class="mn-load-fill" style="width:${loadPct}%;background:${loadColor}"></div></div>` : '<div class="mn-stats offline-text">OFFLINE</div>'}
+      ${p.is_online ? `<div class="mn-stats">${p.active_tasks} tasks \u00B7 CPU ${Math.round(p.cpu)}%</div><div class="mn-load-bar"><div class="mn-load-fill" style="width:${loadPct}%;background:${loadColor}"></div></div>` : '<div class="mn-stats offline-text">No heartbeat</div>'}
       ${planHtml}
     </div>`;
     if (i < ordered.length - 1) {
       const bothOn = p.is_online && ordered[i + 1].is_online;
       html += `<div class="mesh-link ${bothOn ? "active" : ""}">
         <div class="mesh-link-line"></div>
-        ${bothOn ? '<div class="mesh-flow-dot"></div><div class="mesh-flow-dot"></div>' : ""}
+        ${bothOn ? '<div class="mesh-flow-dot"></div><div class="mesh-flow-dot" style="animation-delay:-0.9s"></div><div class="mesh-flow-dot-reverse"></div><div class="mesh-flow-dot-reverse" style="animation-delay:-0.9s"></div>' : ""}
       </div>`;
     }
   });

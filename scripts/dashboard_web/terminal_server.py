@@ -26,14 +26,22 @@ PEERS_CONF = Path.home() / ".claude" / "config" / "peers.conf"
 PORT = 8421
 
 
-def get_ssh_target(peer_name: str) -> str:
+def get_ssh_config(peer_name: str) -> dict:
+    """Return SSH connection config for a peer as {user, host}.
+
+    Reads peers.conf to get the ssh_alias (host) and user fields.
+    Falls back to peer_name as host and current OS user if not found.
+    """
+    fallback_user = os.environ.get("USER") or os.environ.get("LOGNAME") or "root"
     if not PEERS_CONF.exists():
-        return peer_name
+        return {"user": fallback_user, "host": peer_name}
     cp = configparser.ConfigParser()
     cp.read(str(PEERS_CONF))
     if peer_name in cp:
-        return cp[peer_name].get("ssh_alias", peer_name)
-    return peer_name
+        host = cp[peer_name].get("ssh_alias", peer_name)
+        user = cp[peer_name].get("user", fallback_user)
+        return {"user": user, "host": host}
+    return {"user": fallback_user, "host": peer_name}
 
 
 async def terminal_handler(ws):

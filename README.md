@@ -137,6 +137,33 @@ Use the right model for each task. No provider lock-in.
 
 ---
 
+## Mesh Networking
+
+Run MyConvergio across machines without a cloud dependency. The coordinator delegates tasks to peers — local Ollama nodes, remote Claude instances, or cloud VMs — choosing the cheapest available model for each task.
+
+Key benefits: eliminates cloud API costs for bulk tasks by routing to local models, keeps sensitive code off third-party servers, and saturates available GPU/CPU across machines for higher throughput.
+
+```mermaid
+flowchart LR
+    CO[Coordinator] --> CP[claude-peer]
+    CO --> OP[ollama-peer]
+    CO --> VM[cloud-vm]
+    CP --> TH[Thor Validate]
+    OP --> TH
+    VM --> TH
+```
+
+```bash
+# Quick start (3 commands)
+mesh-env-setup.sh --peers "host1,host2"   # replicate environment to peers
+mesh-register.sh --peer host1 --role worker  # register peer nodes
+mesh-delegate.sh --plan 42 --wave W1        # delegate wave to mesh
+```
+
+[Full guide](docs/mesh-networking.md)
+
+---
+
 ## Comparison
 
 | Tool              | Parallel agents | Independent validation     | File isolation           | Merge automation        | Provider agnostic                 |

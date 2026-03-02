@@ -1,6 +1,7 @@
 ---
 name: planner
-version: "v2.6.0"
+version: "v2.6.1"
+model: opus
 ---
 
 <!-- v2.0.0 (2026-02-15): Compact format per ADR 0009 -->

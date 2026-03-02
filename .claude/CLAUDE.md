@@ -74,6 +74,8 @@ Per-task: Gate 1-4, 8, 9 | Per-wave: all 9 gates + build | Max 3 rejection round
 | Thor validation            | `Task(subagent_type="thor")`          | `@validate`     | Self-declaring done        |
 | Single isolated fix        | Direct edit (no plan needed)          | Direct edit     | Creating unnecessary plan  |
 
+**PLANNER MODEL (NON-NEGOTIABLE)**: `/planner` DEVE sempre girare su Opus (`model: opus` nel frontmatter — alias auto-risolto). Se il coordinator è Sonnet, BLOCCA e avvisa l'utente. Sonnet che pianifica = VIOLATION (vedi Plan 289).
+
 ## Pre-Closure Checklist (MANDATORY)
 
 ```bash

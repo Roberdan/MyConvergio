@@ -1,0 +1,45 @@
+# models.yaml v1.0.0
+# Single source of truth for model IDs across Claude Code and Copilot CLI.
+# When a new model is released, update ONLY this file, then run:
+#   model-update.sh [--dry-run]
+
+# Claude Code uses short aliases (auto-resolved by the platform).
+# These NEVER need updating — they always point to the latest version.
+claude_code:
+  planner: opus
+  coordinator: sonnet
+  coordinator_max: opus
+  validator: sonnet
+  utility: haiku
+  task_executor: sonnet
+
+# Copilot CLI requires full model IDs (no alias support).
+# UPDATE THESE when new models are released.
+copilot:
+  opus: claude-opus-4.6
+  opus_1m: claude-opus-4.6-1m
+  opus_fast: claude-opus-4.6-fast
+  sonnet: claude-sonnet-4.6
+  sonnet_prev: claude-sonnet-4.5
+  haiku: claude-haiku-4.5
+  codex: gpt-5.3-codex
+  codex_mini: gpt-5.1-codex-mini
+  gpt5: gpt-5
+  gpt4: gpt-4.1
+  gemini: gemini-3-pro-preview
+
+# Agent-to-model mapping for Copilot agents
+# Key = agent filename (without .agent.md), Value = config key from copilot section
+copilot_agents:
+  planner: opus_1m
+  strategic-planner: opus_1m
+  deep-repo-auditor: opus
+  validate: opus
+  prompt: opus
+  code-reviewer: opus
+  compliance-checker: opus_1m
+  ecosystem-sync: sonnet
+  optimize-project: gpt5
+  execute: gpt5
+  tdd-executor: gpt5
+  check: codex_mini

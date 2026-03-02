@@ -30,9 +30,12 @@ done
 SYNC_FILES=(
 	"config/models.yaml"
 	"config/peers.conf"
+	"config/repos.conf"
 	"scripts/model-update.sh"
 	"scripts/mesh-discover.sh"
 	"scripts/mesh-sync-config.sh"
+	"scripts/mesh-sync-all.sh"
+	"scripts/lib/peers.sh"
 )
 
 # Parse peers.conf for active peers

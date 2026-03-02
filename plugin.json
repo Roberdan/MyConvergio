@@ -4,7 +4,7 @@
   "version": "9.19.0",
   "description": "Production-grade AI development workflow with plan-db, Thor validation, wave-worktree, and multi-agent orchestration",
   "author": "roberdan",
-  "homepage": "https://github.com/roberdan/MyConvergio",
+  "homepage": "https://github.com/Roberdan/MyConvergio",
   "agents": ["agents/"],
   "skills": [".github/skills/"],
   "hooks": ["copilot-config/hooks.json"],

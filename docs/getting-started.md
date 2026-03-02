@@ -45,7 +45,7 @@ Expected output:
 ### Option B: Clone & Make
 
 ```bash
-git clone https://github.com/roberdan/MyConvergio.git && cd MyConvergio
+git clone https://github.com/Roberdan/MyConvergio.git && cd MyConvergio
 make install
 ```
 

@@ -299,6 +299,5 @@
   "language": "italian",
   "autoUpdatesChannel": "latest",
   "plansDirectory": "~/.claude/plans",
-  "skipDangerousModePermissionPrompt": true,
-  "model": "sonnet"
+  "skipDangerousModePermissionPrompt": true
 }

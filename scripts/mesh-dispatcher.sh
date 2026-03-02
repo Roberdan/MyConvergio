@@ -92,7 +92,7 @@ _get_tasks() {
 		"SELECT t.id, t.plan_id, COALESCE(t.title,''), COALESCE(t.privacy_required,0)
 		 FROM tasks t
 		 WHERE t.status IN ('pending','in_progress')
-		   AND (t.execution_host IS NULL OR t.execution_host = '')
+		   AND (t.executor_host IS NULL OR t.executor_host = '')
 		   ${plan_filter}
 		 ORDER BY t.id;" 2>/dev/null || true
 }
@@ -147,7 +147,7 @@ _assign_tasks() {
 		if [[ "$DRY_RUN" == false ]]; then
 			# Write assignment to DB
 			sqlite3 "$DB_PATH" \
-				"UPDATE tasks SET execution_host='$winner' WHERE id=$task_id;" 2>/dev/null || true
+				"UPDATE tasks SET executor_host='$winner' WHERE id=$task_id;" 2>/dev/null || true
 
 			# Step 6: Dispatch
 			if [[ "$winner" == "$self_name" || -z "$self_name" ]]; then

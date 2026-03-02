@@ -1,130 +1,66 @@
 #!/bin/bash
-# Dashboard design system — theme engine
-# Version: 2.1.0
-# Fix: use $'\033[...]' (real ESC bytes) instead of '\033[...]' (literal strings)
+# Dashboard design system — skinnable theme engine
+# Version: 5.0.0
+# Themes loaded from individual files in themes/ directory
 
-_theme_muthur() {
-	TH_NAME="MUTHUR 6000"
-	TH_PRIMARY=$'\033[38;5;46m'
-	TH_SECONDARY=$'\033[38;5;22m'
-	TH_ACCENT=$'\033[1;33m'
-	TH_MUTED=$'\033[0;90m'
-	TH_SUCCESS=$'\033[0;32m'
-	TH_WARNING=$'\033[1;33m'
-	TH_ERROR=$'\033[0;31m'
-	TH_INFO=$'\033[0;36m'
-	TH_BAR_FILL='▓'
-	TH_BAR_EMPTY='░'
-	TH_SCANLINE='░'
-	TH_SECTION_L='▐ '
-	TH_SECTION_R=' ▌'
-	TH_HEADER_TOP="${TH_PRIMARY}${DIM}"
-	TH_HEADER_MID="${TH_PRIMARY}${BOLD}"
-	TH_BORDER_H='─'
-	TH_BORDER_V='│'
-	TH_CORNER_TL='┌'
-	TH_CORNER_TR='┐'
-	TH_CORNER_BL='└'
-	TH_CORNER_BR='┘'
-	TH_INNER_H='─'
-	TH_INNER_V='│'
-	TH_INNER_TL='┌'
-	TH_INNER_TR='┐'
-	TH_INNER_BL='└'
-	TH_INNER_BR='┘'
-	TH_NODE_ONLINE="$TH_PRIMARY"
-	TH_NODE_OFFLINE=$'\033[0;31m'
-	TH_BACKBONE='MESH BACKBONE'
-	TH_FOOTER_L="MUTHUR INTERFACE"
-	TH_FOOTER_R="NOSTROMO-CLASS TERMINAL"
-	TH_STATUS_PREFIX="${TH_PRIMARY}${DIM}"
-	TH_PLAN_BULLET="${TH_MUTED}"
+_THEME_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/themes"
+_THEME_PERSIST="${HOME}/.claude/config/dashboard-theme"
+
+# Source all theme files
+for _tf in "$_THEME_DIR"/theme-*.sh; do
+	[[ -f "$_tf" ]] && . "$_tf"
+done
+unset _tf
+
+# Build THEME_LIST dynamically from discovered _theme_* functions
+THEME_LIST=()
+while IFS= read -r _fn; do
+	_fn="${_fn#_theme_}"
+	[[ -n "$_fn" ]] && THEME_LIST+=("$_fn")
+done < <(declare -F | sed -n 's/^declare -f _theme_//p' | sort)
+unset _fn
+
+# Read persisted theme (if no override set)
+_theme_read_persisted() {
+	[[ -f "$_THEME_PERSIST" ]] && cat "$_THEME_PERSIST" 2>/dev/null || echo ""
 }
 
-_theme_nexus6() {
-	TH_NAME="NEXUS-6"
-	TH_PRIMARY=$'\033[38;5;214m'
-	TH_SECONDARY=$'\033[1;36m'
-	TH_ACCENT=$'\033[38;5;208m'
-	TH_MUTED=$'\033[0;90m'
-	TH_SUCCESS=$'\033[0;32m'
-	TH_WARNING=$'\033[1;33m'
-	TH_ERROR=$'\033[0;31m'
-	TH_INFO=$'\033[0;36m'
-	TH_BAR_FILL='▰'
-	TH_BAR_EMPTY='▱'
-	TH_SCANLINE='═'
-	TH_SECTION_L=''
-	TH_SECTION_R=''
-	TH_HEADER_TOP="${TH_PRIMARY}"
-	TH_HEADER_MID="${TH_PRIMARY}${BOLD}"
-	TH_BORDER_H='═'
-	TH_BORDER_V='║'
-	TH_CORNER_TL='╔'
-	TH_CORNER_TR='╗'
-	TH_CORNER_BL='╚'
-	TH_CORNER_BR='╝'
-	TH_INNER_H='─'
-	TH_INNER_V='│'
-	TH_INNER_TL='┌'
-	TH_INNER_TR='┐'
-	TH_INNER_BL='└'
-	TH_INNER_BR='┘'
-	TH_NODE_ONLINE="${TH_PRIMARY}"
-	TH_NODE_OFFLINE=$'\033[0;31m'
-	TH_BACKBONE='BACKBONE LINK'
-	TH_FOOTER_L="NEXUS-6 INTERFACE"
-	TH_FOOTER_R="VOIGHT-KAMPFF TERMINAL"
-	TH_STATUS_PREFIX="${TH_PRIMARY}"
-	TH_PLAN_BULLET="${TH_PRIMARY}▸${NC}"
+# Save selected theme to persistence file
+_theme_save() {
+	mkdir -p "$(dirname "$_THEME_PERSIST")"
+	echo "$1" > "$_THEME_PERSIST"
 }
 
-_theme_hal9000() {
-	TH_NAME="HAL 9000"
-	TH_PRIMARY=$'\033[38;5;196m'
-	TH_SECONDARY=$'\033[38;5;248m'
-	TH_ACCENT=$'\033[38;5;196m'
-	TH_MUTED=$'\033[38;5;244m'
-	TH_SUCCESS=$'\033[0;32m'
-	TH_WARNING=$'\033[1;33m'
-	TH_ERROR=$'\033[0;31m'
-	TH_INFO=$'\033[0;36m'
-	TH_BAR_FILL='█'
-	TH_BAR_EMPTY='░'
-	TH_SCANLINE='━'
-	TH_SECTION_L=''
-	TH_SECTION_R=''
-	TH_HEADER_TOP="${TH_PRIMARY}"
-	TH_HEADER_MID="${TH_SECONDARY}"
-	TH_BORDER_H='─'
-	TH_BORDER_V='│'
-	TH_CORNER_TL='┌'
-	TH_CORNER_TR='┐'
-	TH_CORNER_BL='└'
-	TH_CORNER_BR='┘'
-	TH_INNER_H='━'
-	TH_INNER_V='┃'
-	TH_INNER_TL='┏'
-	TH_INNER_TR='┓'
-	TH_INNER_BL='┗'
-	TH_INNER_BR='┛'
-	TH_NODE_ONLINE="${TH_SECONDARY}"
-	TH_NODE_OFFLINE=$'\033[38;5;88m'
-	TH_BACKBONE='BBK'
-	TH_FOOTER_L="HAL 9000 INTERFACE"
-	TH_FOOTER_R="DISCOVERY ONE TERMINAL"
-	TH_STATUS_PREFIX="${TH_SECONDARY}"
-	TH_PLAN_BULLET="${TH_PRIMARY}▸${NC}"
-}
-
+# Alias map: friendly names → internal theme function names
 _theme_load() {
-	local name="${1:-muthur}"
+	local name="${1:-neon_grid}"
+	# Check persistence if default
+	if [[ "$name" == "neon_grid" || -z "$name" ]]; then
+		local persisted
+		persisted="$(_theme_read_persisted)"
+		[[ -n "$persisted" ]] && name="$persisted"
+	fi
+	# Resolve aliases to canonical theme names
 	case "$name" in
-	muthur | alien) _theme_muthur ;;
-	nexus6 | nexus | blade*) _theme_nexus6 ;;
-	hal9000 | hal | 2001) _theme_hal9000 ;;
-	*) _theme_muthur ;;
+	neon* | cyber* | grid)   name="neon_grid" ;;
+	synth* | retro* | wave)  name="synthwave" ;;
+	ghost* | gits | shell)   name="ghost" ;;
+	muthur | alien)          name="neon_grid" ;;
+	nexus* | blade*)         name="synthwave" ;;
+	hal* | 2001)             name="ghost" ;;
+	matrix | neo)            name="matrix" ;;
+	dark | minimal)          name="dark" ;;
+	light | clean)           name="light" ;;
+	vintage | crt | vt100 | amber) name="vintage" ;;
+	tron | legacy)           name="tron" ;;
+	fallout | pipboy | vault*) name="fallout" ;;
 	esac
+	# Call the theme function if it exists
+	if declare -f "_theme_${name}" &>/dev/null; then
+		"_theme_${name}"
+	else
+		_theme_neon_grid
+	fi
 	TH_RST="${NC}"
 }
 
@@ -175,20 +111,35 @@ _th_bar() {
 	local filled=$((pct * width / 100)) empty=$((width - filled))
 	local bar="" ebar="" fill_color
 	if [[ $pct -ge 80 ]]; then
-		fill_color="${TH_SUCCESS:-$GREEN}"
+		fill_color="${TH_SUCCESS}"
 	elif [[ $pct -ge 40 ]]; then
-		fill_color="${TH_WARNING:-$YELLOW}"
-	else fill_color="${TH_ERROR:-$RED}"; fi
+		fill_color="${TH_WARNING}"
+	else fill_color="${TH_ERROR}"; fi
 	for ((i = 0; i < filled; i++)); do bar+="$TH_BAR_FILL"; done
 	for ((i = 0; i < empty; i++)); do ebar+="$TH_BAR_EMPTY"; done
 	printf '%s%s%s%s%s\n' "${fill_color}" "${bar}" "${GRAY}" "${ebar}" "${NC}"
+}
+
+_th_sparkline() {
+	local values="$1" color="${2:-$TH_PRIMARY}"
+	local chars="${TH_SPARK_CHARS:-▁▂▃▄▅▆▇█}"
+	local max=1 arr=()
+	IFS=',' read -ra arr <<<"$values"
+	for v in "${arr[@]}"; do [[ ${v:-0} -gt $max ]] && max=$v; done
+	printf '%s' "$color"
+	for v in "${arr[@]}"; do
+		local idx=$((${v:-0} * 7 / max))
+		[[ $idx -gt 7 ]] && idx=7
+		printf '%s' "${chars:$idx:1}"
+	done
+	printf '%s' "${NC}"
 }
 
 _th_footer() {
 	local w=65
 	echo ""
 	_th_scanline $w
-	printf '  %s%s%s  %s|%s  %spiani -h%s  %s|%s  %s%s v2.4%s\n' \
+	printf '  %s%s%s  %s|%s  %spiani -h%s  %s|%s  %s%s%s\n' \
 		"${TH_SECONDARY}" "${TH_FOOTER_L}" "${NC}" "${TH_MUTED}" "${NC}" \
 		"${TH_MUTED}" "${NC}" "${TH_MUTED}" "${NC}" \
 		"${TH_SECONDARY}" "${TH_FOOTER_R}" "${NC}"

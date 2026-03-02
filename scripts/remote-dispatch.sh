@@ -141,13 +141,15 @@ MODEL_FLAG=""
 
 case "$ENGINE" in
 claude)
+	# Pre-resolve plan_id to avoid nested escaping issues in SSH
+	_plan_id="$(sqlite3 "$DB_FILE" "SELECT plan_id FROM tasks WHERE id=$TASK_DB_ID;" 2>/dev/null)"
 	REMOTE_CMD="cd ${WORKTREE_PATH:-\$HOME} && \
-		export PATH=\"\$HOME/.claude/scripts:\$PATH\" && \
-		task-executor-run.sh $TASK_DB_ID ${MODEL_FLAG}"
+		export PATH=\"/opt/homebrew/bin:\$HOME/.local/bin:\$HOME/.claude/scripts:\$PATH\" && \
+		claude --print -p 'Execute task $TASK_DB_ID from plan ${_plan_id}. Get details: plan-db.sh json ${_plan_id} $TASK_DB_ID' ${MODEL_FLAG:+--model ${MODEL}}"
 	;;
 copilot)
 	REMOTE_CMD="cd ${WORKTREE_PATH:-\$HOME} && \
-		export PATH=\"${REMOTE_SCRIPTS}:\$PATH\" && \
+		export PATH=\"/opt/homebrew/bin:\$HOME/.local/bin:${REMOTE_SCRIPTS}:\$PATH\" && \
 		${REMOTE_SCRIPTS}/copilot-worker.sh $TASK_DB_ID ${MODEL_FLAG}"
 	;;
 opencode)

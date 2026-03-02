@@ -104,8 +104,11 @@ PLAN_ID=""
 SHOW_BLOCKED=0
 REFRESH_INTERVAL=300
 EXPAND_COMPLETED=0
-DASHBOARD_THEME="${DASHBOARD_THEME:-muthur}"
+DASHBOARD_THEME="${DASHBOARD_THEME:-neon_grid}"
 USE_TUI=0
+USE_WEB=1
+USE_BASH=0
+WEB_PORT=8420
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -139,6 +142,21 @@ while [[ $# -gt 0 ]]; do
 		;;
 	--tui | --textual)
 		USE_TUI=1
+		USE_WEB=0
+		shift
+		;;
+	--web)
+		USE_WEB=1
+		shift
+		;;
+	--web-port)
+		USE_WEB=1
+		WEB_PORT="$2"
+		shift 2
+		;;
+	--bash | --terminal)
+		USE_WEB=0
+		USE_BASH=1
 		shift
 		;;
 	-h | --help)
@@ -153,13 +171,25 @@ while [[ $# -gt 0 ]]; do
 		echo "  -p, --plan ID        Show specific plan only"
 		echo "  -b, --blocked        Show blocked tasks"
 		echo "  -e, --expand         Expand completed task details"
-		echo "  -t, --theme THEME    Theme: muthur|nexus6|hal9000 (default: muthur)"
+		echo "  -t, --theme THEME    Theme (default: neon_grid, or persisted)"
 		echo "  -r, --refresh SEC    Auto-refresh every SEC seconds (default: 300)"
 		echo "  -n, --no-refresh     Disable auto-refresh (single render)"
 		echo "  --tui                Launch Textual TUI (requires Python)"
+		echo "  --web                Launch web dashboard — DEFAULT (http://localhost:8420)"
+		echo "  --web-port PORT      Web dashboard on custom port"
+		echo "  --bash, --terminal   Classic bash terminal dashboard"
 		echo "  -h, --help           Show this help"
 		echo ""
-		echo "Themes: muthur (Alien 1979) | nexus6 (Blade Runner 1982) | hal9000 (2001)"
+		echo "Themes (9 skins):"
+		echo "  neon_grid (alias: muthur, alien, cyberpunk)  — Cyberpunk neon cyan/magenta"
+		echo "  synthwave (alias: nexus6, blade, retro)      — Synthwave purple/pink"
+		echo "  ghost     (alias: hal9000, gits, 2001)       — Ghost in the Shell green"
+		echo "  matrix    (alias: neo)                       — The Matrix digital rain"
+		echo "  dark      (alias: minimal)                   — Minimal dark mode"
+		echo "  light     (alias: clean)                     — Light mode for bright terminals"
+		echo "  vintage   (alias: crt, vt100, amber)         — Amber CRT 80s terminal"
+		echo "  tron      (alias: legacy)                    — TRON Legacy blue/orange"
+		echo "  fallout   (alias: pipboy, vault)             — Pip-Boy post-apocalyptic"
 		echo ""
 		echo "Navigation:"
 		echo "  R=refresh  C=completed  M=mesh  B=back  Q=quit"
@@ -169,7 +199,11 @@ while [[ $# -gt 0 ]]; do
 		echo "Examples:"
 		echo "  piani                 # Dashboard with auto-refresh"
 		echo "  piani --tui           # Textual TUI mode"
-		echo "  piani -t nexus6       # Blade Runner style"
+		echo "  piani --web           # Web dashboard (browser)"
+		echo "  piani -t matrix       # Matrix digital rain style"
+		echo "  piani -t vintage      # Amber CRT 80s terminal"
+		echo "  piani -t tron         # TRON Legacy style"
+		echo "  piani -t fallout      # Pip-Boy Vault-Tec style"
 		echo "  piani -n              # Single render, no refresh"
 		echo "  piani -p 62           # Plan #62 detail"
 		echo "  piani -r 60           # Refresh every minute"
@@ -192,6 +226,16 @@ fi
 if [[ "$USE_TUI" -eq 1 ]]; then
 	SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 	PYTHONPATH="$SCRIPTS_DIR:${PYTHONPATH:-}" exec /opt/homebrew/bin/python3 -m dashboard_textual ${PLAN_ID:+--plan "$PLAN_ID"}
+fi
+
+# Web mode: launch terminal server + web server + open browser
+if [[ "$USE_WEB" -eq 1 ]]; then
+	SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+	/opt/homebrew/bin/python3 "$SCRIPTS_DIR/dashboard_web/terminal_server.py" --port 8421 &
+	TERM_PID=$!
+	trap "kill $TERM_PID 2>/dev/null" EXIT
+	open "http://localhost:${WEB_PORT}"
+	exec /opt/homebrew/bin/python3 "$SCRIPTS_DIR/dashboard_web/server.py" --port "$WEB_PORT"
 fi
 
 # terminui theme: delegate to TypeScript renderer

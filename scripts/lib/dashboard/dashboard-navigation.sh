@@ -16,7 +16,7 @@ _status_bar() {
 	echo -e "${GRAY}Updated: ${WHITE}$now${NC} ${GRAY}│ Theme: ${TH_PRIMARY:-$CYAN}${TH_NAME:-classic}${NC}"
 	case "$VIEW_MODE" in
 	main | completed | detail)
-		printf "${GRAY}[${WHITE}R${GRAY}]efresh [${WHITE}C${GRAY}]ompleted [${WHITE}M${GRAY}]esh [${WHITE}A${GRAY}]nalytics [${WHITE}T${GRAY}]heme [${WHITE}B${GRAY}]ack [${WHITE}Q${GRAY}]uit [${WHITE}P${GRAY}]ush [${WHITE}L${GRAY}]inux ${GRAY}| ${WHITE}<num>${GRAY}+Enter=plan${NC}"
+		printf "${GRAY}[${WHITE}R${GRAY}]efresh [${WHITE}C${GRAY}]ompleted [${WHITE}M${GRAY}]esh [${WHITE}A${GRAY}]nalytics [${WHITE}T${GRAY}]heme [${WHITE}W${GRAY}]eb [${WHITE}B${GRAY}]ack [${WHITE}Q${GRAY}]uit [${WHITE}P${GRAY}]ush [${WHITE}L${GRAY}]inux ${GRAY}| ${WHITE}<num>${GRAY}+Enter=plan${NC}"
 		;;
 	mesh)
 		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}G${GRAY}]migrate [${WHITE}S${GRAY}]ync [${WHITE}D${GRAY}]ispatch [${WHITE}H${GRAY}]eartbeat [${WHITE}A${GRAY}]uth [${WHITE}E${GRAY}]nv [${WHITE}Q${GRAY}]uit${NC}"
@@ -60,11 +60,10 @@ _render_current_view() {
 	esac
 }
 
-# Theme cycling: muthur → nexus6 → hal9000 → (wrap)
-THEME_LIST=("muthur" "nexus6" "hal9000")
+# Theme cycling: uses dynamic THEME_LIST from dashboard-themes.sh
 _cycle_theme() {
-	local current="${DASHBOARD_THEME:-muthur}"
-	local next="muthur" found=0
+	local current="${DASHBOARD_THEME:-neon_grid}"
+	local next="${THEME_LIST[0]:-neon_grid}" found=0
 	local i
 	for ((i = 0; i < ${#THEME_LIST[@]}; i++)); do
 		if [[ "${THEME_LIST[$i]}" == "$current" ]]; then
@@ -73,9 +72,10 @@ _cycle_theme() {
 			break
 		fi
 	done
-	[[ $found -eq 0 ]] && next="muthur"
+	[[ $found -eq 0 ]] && next="${THEME_LIST[0]:-neon_grid}"
 	DASHBOARD_THEME="$next"
 	_theme_load "$DASHBOARD_THEME"
+	_theme_save "$DASHBOARD_THEME"
 }
 
 _handle_digit_input() {
@@ -163,6 +163,12 @@ _run_interactive_loop() {
 			;;
 		t | T)
 			_cycle_theme
+			;;
+		w | W)
+			local scripts_dir
+			scripts_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+			open "http://localhost:8420"
+			exec /opt/homebrew/bin/python3 "$scripts_dir/dashboard_web/server.py" --port 8420
 			;;
 		r | R) ;;
 		g | G)

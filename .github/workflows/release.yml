@@ -56,7 +56,7 @@ jobs:
 
           \`\`\`bash
           # Clone and install
-          git clone https://github.com/roberdan/MyConvergio.git
+          git clone https://github.com/Roberdan/MyConvergio.git
           cd MyConvergio
           make install
 
@@ -77,7 +77,7 @@ jobs:
 
           ## 📖 Documentation
 
-          - [README](https://github.com/roberdan/MyConvergio#readme)
+          - [README](https://github.com/Roberdan/MyConvergio#readme)
           - [Agentic Manifesto](./AgenticManifesto.md)
           - [Constitution](./claude/agents/core_utility/CONSTITUTION.md)
 

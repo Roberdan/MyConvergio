@@ -116,7 +116,7 @@ MyConvergio ships **83 Copilot CLI agent files** in `copilot-agents/` for GitHub
 #### Option 1: Clone & Use (Recommended)
 
 ```bash
-git clone https://github.com/roberdan/MyConvergio.git
+git clone https://github.com/Roberdan/MyConvergio.git
 cd MyConvergio
 claude --plugin-dir .
 ```

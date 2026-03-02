@@ -49,7 +49,7 @@ ${YELLOW}Options:${NC}
   --full      All 65 agents (~600KB) [default]
   --lean      Optimized agents (~400KB)
 
-${YELLOW}More info:${NC}  https://github.com/roberdan/MyConvergio
+${YELLOW}More info:${NC}  https://github.com/Roberdan/MyConvergio
 EOF
 }
 

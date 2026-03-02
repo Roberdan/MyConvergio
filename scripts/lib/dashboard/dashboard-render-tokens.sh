@@ -55,10 +55,10 @@ _render_token_analytics() {
 			[[ $filled -lt 1 ]] && filled=1
 			local bar="" color=""
 			case "$model" in
-			*opus*) color="${TH_ERROR:-\033[35m}" ;;
-			*sonnet*) color="${TH_INFO:-\033[36m}" ;;
-			*haiku*) color="${TH_SUCCESS:-\033[32m}" ;;
-			*codex* | *gpt*) color="${TH_WARNING:-\033[33m}" ;;
+			*opus*) color="${TH_ERROR}" ;;
+			*sonnet*) color="${TH_INFO}" ;;
+			*haiku*) color="${TH_SUCCESS}" ;;
+			*codex* | *gpt*) color="${TH_WARNING}" ;;
 			*) color="${TH_MUTED}" ;;
 			esac
 			local i

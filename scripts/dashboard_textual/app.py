@@ -1,173 +1,101 @@
-"""Textual TUI App for Claude Control Center Dashboard.
-
-Entry: python3 -m dashboard_textual
-Keybindings:
-    R        — refresh data
-    M        — switch to mesh view
-    T        — cycle theme
-    Q        — quit
-    Tab      — next section
-    Shift+Tab — previous section
-    0-9      — drill into plan by number
-"""
+"""Textual TUI App for Claude Control Center Dashboard."""
 
 from __future__ import annotations
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
-from textual.widgets import Footer, Header, Label, Static
+from textual.containers import ScrollableContainer, Horizontal
+from textual.widgets import Footer, Header, Static, Rule
 from textual.reactive import reactive
 
 from .db import DashboardDB
 
 
-# ---------------------------------------------------------------------------
-# Placeholder screens — filled by W2 tasks
-# ---------------------------------------------------------------------------
+class StatusCard(Static):
+    """Single metric card."""
 
-
-class OverviewScreen(Screen):
-    """Main overview: active plans, counters, recent activity."""
-
-    BINDINGS = [
-        Binding("r", "refresh", "Refresh"),
-        Binding("tab", "focus_next", "Next section"),
-        Binding("shift+tab", "focus_previous", "Prev section"),
-    ]
-
-    def compose(self) -> ComposeResult:
-        yield Header()
-        yield Static(
-            "[bold cyan]Control Center[/bold cyan] — Overview\n\n"
-            "[dim]Loading data…[/dim]",
-            id="overview-content",
-        )
-        yield Footer()
-
-    def action_refresh(self) -> None:
-        self.app.refresh_data()
-
-
-class MeshScreen(Screen):
-    """Mesh networking view: peer status, load, capabilities."""
-
-    BINDINGS = [
-        Binding("r", "refresh", "Refresh"),
-        Binding("escape", "pop_screen", "Back"),
-    ]
-
-    def compose(self) -> ComposeResult:
-        yield Header()
-        yield Static(
-            "[bold cyan]Mesh Peers[/bold cyan]\n\n" "[dim]Loading peers…[/dim]",
-            id="mesh-content",
-        )
-        yield Footer()
-
-    def action_refresh(self) -> None:
-        self.app.refresh_data()
-
-
-class PlanDetailScreen(Screen):
-    """Drill-down into a specific plan: waves, tasks, token usage."""
-
-    def __init__(self, plan_id: int) -> None:
-        super().__init__()
-        self.plan_id = plan_id
-
-    BINDINGS = [
-        Binding("r", "refresh", "Refresh"),
-        Binding("escape", "pop_screen", "Back"),
-        Binding("tab", "focus_next", "Next section"),
-    ]
-
-    def compose(self) -> ComposeResult:
-        yield Header()
-        yield Static(
-            f"[bold cyan]Plan #{self.plan_id}[/bold cyan]\n\n"
-            "[dim]Loading plan details…[/dim]",
-            id="plan-detail-content",
-        )
-        yield Footer()
-
-    def action_refresh(self) -> None:
-        self.app.refresh_data()
-
-
-class TokenScreen(Screen):
-    """Token usage statistics and cost breakdown."""
-
-    BINDINGS = [
-        Binding("r", "refresh", "Refresh"),
-        Binding("escape", "pop_screen", "Back"),
-    ]
-
-    def compose(self) -> ComposeResult:
-        yield Header()
-        yield Static(
-            "[bold cyan]Token Usage[/bold cyan]\n\n" "[dim]Loading token stats…[/dim]",
-            id="token-content",
-        )
-        yield Footer()
-
-
-# ---------------------------------------------------------------------------
-# Main App
-# ---------------------------------------------------------------------------
+    DEFAULT_CSS = """
+    StatusCard {
+        width: 1fr;
+        height: 5;
+        border: solid $accent;
+        text-align: center;
+        content-align: center middle;
+        margin: 0 1;
+    }
+    """
 
 
 class ControlCenterApp(App):
     """Claude Control Center — Textual TUI."""
 
     TITLE = "Claude Control Center"
-    SUB_TITLE = "dashboard-textual v0.1.0"
-    CSS_PATH = None  # W2 will add CSS
+    SUB_TITLE = "v3.0"
+
+    CSS = """
+    Screen {
+        background: $surface;
+    }
+    #cards {
+        height: 7;
+        margin: 1 2;
+    }
+    #content {
+        margin: 0 2;
+    }
+    .section-title {
+        text-style: bold;
+        color: $accent;
+        margin: 1 0 0 0;
+    }
+    .plan-row {
+        margin: 0 0;
+    }
+    .dim {
+        color: $text-muted;
+    }
+    """
 
     BINDINGS = [
         Binding("r", "refresh", "Refresh", show=True),
-        Binding("m", "show_mesh", "Mesh", show=True),
         Binding("t", "cycle_theme", "Theme", show=True),
         Binding("q", "quit", "Quit", show=True),
-        Binding("tab", "focus_next", "Next", show=False),
-        Binding("shift+tab", "focus_previous", "Prev", show=False),
-        Binding("0", "drill_plan_0", "Plan 0", show=False),
-        Binding("1", "drill_plan_1", "Plan 1", show=False),
-        Binding("2", "drill_plan_2", "Plan 2", show=False),
-        Binding("3", "drill_plan_3", "Plan 3", show=False),
-        Binding("4", "drill_plan_4", "Plan 4", show=False),
-        Binding("5", "drill_plan_5", "Plan 5", show=False),
-        Binding("6", "drill_plan_6", "Plan 6", show=False),
-        Binding("7", "drill_plan_7", "Plan 7", show=False),
-        Binding("8", "drill_plan_8", "Plan 8", show=False),
-        Binding("9", "drill_plan_9", "Plan 9", show=False),
     ]
 
     _theme_names = ["textual-dark", "textual-light", "dracula", "tokyo-night"]
     _theme_index: reactive[int] = reactive(0)
-    _active_plan_ids: list[int] = []
 
     def __init__(self, db_path: str | None = None) -> None:
         super().__init__()
         self.db = DashboardDB(db_path)
 
-    def on_mount(self) -> None:
-        self.refresh_data()
-
     def compose(self) -> ComposeResult:
-        yield OverviewScreen()
+        yield Header()
+        with Horizontal(id="cards"):
+            yield StatusCard("...", id="card-total")
+            yield StatusCard("...", id="card-active")
+            yield StatusCard("...", id="card-done")
+            yield StatusCard("...", id="card-pipeline")
+        with ScrollableContainer(id="content"):
+            yield Static("", id="active-plans")
+            yield Rule()
+            yield Static("", id="completed-plans")
+            yield Rule()
+            yield Static("", id="token-stats")
+            yield Rule()
+            yield Static("", id="mesh-peers")
+        yield Footer()
 
-    def refresh_data(self) -> None:
-        """Reload data from DB and update reactive state."""
-        plans = self.db.get_active_plans()
-        self._active_plan_ids = [p.id for p in plans]
+    def on_mount(self) -> None:
+        self.action_refresh()
 
     def action_refresh(self) -> None:
-        self.refresh_data()
+        self._update_overview()
+        self._update_active_plans()
+        self._update_completed_plans()
+        self._update_tokens()
+        self._update_mesh()
         self.notify("Data refreshed", timeout=2)
-
-    def action_show_mesh(self) -> None:
-        self.push_screen(MeshScreen())
 
     def action_cycle_theme(self) -> None:
         self._theme_index = (self._theme_index + 1) % len(self._theme_names)
@@ -177,37 +105,125 @@ class ControlCenterApp(App):
             pass
         self.notify(f"Theme: {self._theme_names[self._theme_index]}", timeout=2)
 
-    def _drill_plan(self, index: int) -> None:
-        if index < len(self._active_plan_ids):
-            plan_id = self._active_plan_ids[index]
-            self.push_screen(PlanDetailScreen(plan_id))
+    def _update_overview(self) -> None:
+        data = self.db.get_overview()
+        total = data.get("total_plans", 0)
+        active = data.get("active_plans", 0)
+        done = data.get("done_plans", 0)
+        cancelled = data.get("cancelled_plans", 0)
+        pipeline = total - active - done - cancelled
 
-    def action_drill_plan_0(self) -> None:
-        self._drill_plan(0)
+        self.query_one("#card-total", StatusCard).update(f"[bold]{total}[/bold]\nPLANS")
+        self.query_one("#card-active", StatusCard).update(
+            f"[bold green]{active}[/bold green]\nACTIVE"
+        )
+        self.query_one("#card-done", StatusCard).update(
+            f"[bold cyan]{done}[/bold cyan]\nDONE"
+        )
+        self.query_one("#card-pipeline", StatusCard).update(
+            f"[bold yellow]{pipeline}[/bold yellow]\nPIPELINE"
+        )
 
-    def action_drill_plan_1(self) -> None:
-        self._drill_plan(1)
+    def _update_active_plans(self) -> None:
+        plans = self.db.get_active_plans()
+        if not plans:
+            self.query_one("#active-plans", Static).update(
+                "[bold cyan]ACTIVE MISSIONS[/bold cyan]\n[dim]No active plans[/dim]"
+            )
+            return
 
-    def action_drill_plan_2(self) -> None:
-        self._drill_plan(2)
+        lines = ["[bold cyan]ACTIVE MISSIONS[/bold cyan]\n"]
+        for p in plans:
+            pct = p.progress_pct
+            bar = self._bar(pct, 20)
+            status_color = "green" if p.status == "doing" else "yellow"
+            host = f" [{p.execution_host}]" if p.execution_host else ""
+            summary = ""
+            if p.human_summary:
+                summary = f"\n    [dim]{p.human_summary[:80]}[/dim]"
+            lines.append(
+                f"  [bold {status_color}]#{p.id}[/bold {status_color}] "
+                f"[bold]{p.name[:40]}[/bold]"
+                f" [{status_color}]{p.status}[/{status_color}]{host}\n"
+                f"    {bar} {pct}%  "
+                f"({p.tasks_done}/{p.tasks_total} tasks)"
+                f"{summary}\n"
+            )
+        self.query_one("#active-plans", Static).update("\n".join(lines))
 
-    def action_drill_plan_3(self) -> None:
-        self._drill_plan(3)
+    def _update_completed_plans(self) -> None:
+        plans = self.db.get_completed_plans(10)
+        if not plans:
+            self.query_one("#completed-plans", Static).update(
+                "[bold cyan]COMPLETED[/bold cyan]\n[dim]No completed plans[/dim]"
+            )
+            return
 
-    def action_drill_plan_4(self) -> None:
-        self._drill_plan(4)
+        lines = ["[bold cyan]COMPLETED (recent)[/bold cyan]\n"]
+        for p in plans:
+            icon = "[green]✓[/green]" if p.status == "done" else "[red]✗[/red]"
+            proj = f"[cyan]{p.project_id}[/cyan] " if p.project_id else ""
+            lines.append(
+                f"  {icon} [bold]#{p.id}[/bold] {proj}{p.name[:45]}"
+                f"  [dim]{p.tasks_done}/{p.tasks_total} tasks[/dim]"
+            )
+        self.query_one("#completed-plans", Static).update("\n".join(lines))
 
-    def action_drill_plan_5(self) -> None:
-        self._drill_plan(5)
+    def _update_tokens(self) -> None:
+        stats = self.db.get_token_stats()
+        total_fmt = self._fmt_tokens(stats.total_tokens)
+        today_fmt = self._fmt_tokens(stats.today_tokens)
+        cost_fmt = f"${stats.total_cost_usd:.2f}"
 
-    def action_drill_plan_6(self) -> None:
-        self._drill_plan(6)
+        lines = [
+            "[bold cyan]TOKEN USAGE[/bold cyan]\n",
+            f"  Total: [bold]{total_fmt}[/bold]  "
+            f"Today: [bold green]{today_fmt}[/bold green]  "
+            f"Cost: [bold yellow]{cost_fmt}[/bold yellow]\n",
+        ]
+        if stats.top_models:
+            lines.append("  [dim]Top models:[/dim]")
+            for m in stats.top_models[:5]:
+                model_name = m.get("model", "?")
+                tokens = self._fmt_tokens(m.get("total_tokens", 0))
+                cost = m.get("cost_usd", 0)
+                lines.append(f"    {model_name}: {tokens} (${cost:.2f})")
+        self.query_one("#token-stats", Static).update("\n".join(lines))
 
-    def action_drill_plan_7(self) -> None:
-        self._drill_plan(7)
+    def _update_mesh(self) -> None:
+        peers = self.db.get_peers()
+        if not peers:
+            self.query_one("#mesh-peers", Static).update(
+                "[bold cyan]MESH PEERS[/bold cyan]\n[dim]No peers configured[/dim]"
+            )
+            return
 
-    def action_drill_plan_8(self) -> None:
-        self._drill_plan(8)
+        lines = ["[bold cyan]MESH PEERS[/bold cyan]\n"]
+        for peer in peers:
+            if peer.is_online:
+                status = "[green]ONLINE[/green]"
+            else:
+                status = "[red]OFFLINE[/red]"
+            caps = ", ".join(peer.capability_list) if peer.capability_list else "none"
+            lines.append(f"  {status} [bold]{peer.peer_name}[/bold]  [dim]{caps}[/dim]")
+        self.query_one("#mesh-peers", Static).update("\n".join(lines))
 
-    def action_drill_plan_9(self) -> None:
-        self._drill_plan(9)
+    @staticmethod
+    def _bar(pct: int, width: int = 20) -> str:
+        filled = pct * width // 100
+        empty = width - filled
+        if pct >= 80:
+            color = "green"
+        elif pct >= 40:
+            color = "yellow"
+        else:
+            color = "red"
+        return f"[{color}]{'█' * filled}[/{color}][dim]{'░' * empty}[/dim]"
+
+    @staticmethod
+    def _fmt_tokens(n: int) -> str:
+        if n >= 1_000_000:
+            return f"{n / 1_000_000:.1f}M"
+        if n >= 1_000:
+            return f"{n / 1_000:.1f}K"
+        return str(n)

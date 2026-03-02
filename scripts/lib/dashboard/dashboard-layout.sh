@@ -40,7 +40,8 @@ _grid_header() {
 	local top_line=$(_grid_repeat "${TH_BORDER_H}" "$inner")
 	printf "${TH_PRIMARY}${TH_CORNER_TL}%s${TH_CORNER_TR}${TH_RST}\n" "$top_line"
 	local title_len=${#title} pad_total=$((inner - title_len - 2))
-	local pad_l=$((pad_total / 2)) pad_r=$((pad_total - pad_l))
+	local pad_l=$((pad_total / 2))
+	local pad_r=$((pad_total - pad_l))
 	printf "${TH_PRIMARY}${TH_BORDER_V}${TH_RST} ${TH_HEADER_MID}${BOLD}"
 	printf "%*s%s%*s" "$pad_l" "" "$title" "$pad_r" ""
 	printf "${TH_RST} ${TH_PRIMARY}${TH_BORDER_V}${TH_RST}\n"
@@ -118,7 +119,8 @@ _grid_box_start() {
 	local label="${1:-}" width="${2:-}"
 	[[ -z "${GRID_W:-}" ]] && _grid_width
 	local w="${width:-$GRID_W}"
-	local inner=$((w - 2)) top=$(_grid_repeat "${TH_INNER_H}" "$inner")
+	local inner=$((w - 2))
+	local top=$(_grid_repeat "${TH_INNER_H}" "$inner")
 	if [[ -n "$label" ]]; then
 		local llen=${#label} after=$((inner - llen - 2))
 		[[ $after -lt 0 ]] && after=0

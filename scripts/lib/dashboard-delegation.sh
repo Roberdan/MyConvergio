@@ -40,8 +40,8 @@ render_delegation_stats() {
 			total=$(awk -F'|' -v m="$model" '$3==m{c++} END{print c+0}' "$DELEGATION_LOG")
 			pass=$(awk -F'|' -v m="$model" '$3==m && $5=="PASS"{c++} END{print c+0}' "$DELEGATION_LOG")
 			rate=$((total > 0 ? pass * 100 / total : 0))
-			local color="${TH_SUCCESS:-\033[0;32m}"
-			[[ $rate -lt 70 ]] && color="${TH_ERROR:-\033[0;31m}"
+			local color="${TH_SUCCESS:-$GREEN}"
+			[[ $rate -lt 70 ]] && color="${TH_ERROR:-$RED}"
 			local bar
 			bar=$(render_bar "$rate" 10 2>/dev/null || printf "%-10s" "")
 			_grid_row "$(printf "${TH_INFO:-}%-20s${NC:-} %s ${color}%3d%%${NC:-} ${TH_MUTED:-}(%d/%d)${NC:-}" \

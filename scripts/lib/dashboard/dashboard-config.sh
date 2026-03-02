@@ -2,16 +2,17 @@
 # Dashboard configuration — paths, colors, constants
 # Version: 2.0.0
 
-# Base colors (ANSI)
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-GRAY='\033[0;90m'
-NC='\033[0m'
-BOLD='\033[1m'
+# Base colors (ANSI) — $'...' = real ESC bytes, works with printf %s
+RED=$'\033[0;31m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+BLUE=$'\033[0;34m'
+CYAN=$'\033[0;36m'
+WHITE=$'\033[1;37m'
+GRAY=$'\033[0;90m'
+NC=$'\033[0m'
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
 
 # Paths
 DB="${DB:-$HOME/.claude/data/dashboard.db}"

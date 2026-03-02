@@ -1,10 +1,10 @@
 #!/bin/bash
 # MyConvergio Universal Installer
-# Usage: curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
 # Version: 1.0.0
 set -euo pipefail
 
-REPO_URL="https://github.com/roberdan/MyConvergio.git"
+REPO_URL="https://github.com/Roberdan/MyConvergio.git"
 INSTALL_DIR="${MYCONVERGIO_HOME:-$HOME/.myconvergio}"
 BIN_DIR="$HOME/.local/bin"
 
@@ -23,7 +23,7 @@ fail() {
 }
 
 # Check dependencies
-for cmd in git make bash jq; do
+for cmd in git make bash; do
 	command -v "$cmd" &>/dev/null || fail "Required: '$cmd' not found. Please install it first."
 done
 
@@ -50,7 +50,7 @@ echo ""
 if [ -d "$INSTALL_DIR/.git" ]; then
 	info "Upgrading MyConvergio from $INSTALL_DIR..."
 	cd "$INSTALL_DIR"
-	git pull --ff-only origin main 2>/dev/null || git pull origin main
+	git pull --ff-only origin master 2>/dev/null || git pull origin master
 	make upgrade --no-print-directory
 else
 	info "Cloning MyConvergio to $INSTALL_DIR..."

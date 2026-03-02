@@ -1,30 +1,44 @@
 # Changelog
 
+## [10.0.1] — 2026-03-02
+
+### Fixed
+
+- install.sh: `git pull origin main` changed to `origin master` (repo default branch is master, not main)
+- install.sh: removed `jq` from required dependencies (unused in base install, only needed by selective-install.sh)
+- All install URLs: corrected GitHub username case (`roberdan` to `Roberdan`) and branch (`main` to `master`)
+- myconvergio.sh: same `origin main` to `origin master` fix for upgrade command
+
 ## [10.0.0] — 2026-02-28
 
 ### Added
+
 - Registered ci-watch.sh plus refreshed plan-db and dashboard helper scripts to keep plan automation aligned with sanitized execution libs.
 - Synced Copilot CLI commands (check, optimize-instructions, planner, prepare, prompt, release, execute, planner modules) for the new release flow.
 - Documented ADR INDEX plus entries 0001-digest-scripts-token-optimization and 0024-overlapping-wave-execution for plan lifecycle guidance.
 - Added sanitized hooks (enforce-standards.sh, session-reaper.sh, worktree-guard.sh) to reinforce guardrails.
 
 ### Changed
+
 - Bumped scripts (plan-db safe/import/validate libs, dashboard renderers, audit scripts, ci-watch) for the v10 automation sweep.
 - Rewrote README for v10, ensuring the new narrative and Mermaid sanity checks reflect the latest release structure.
 - Updated agents (CONSTITUTION, thor-validation-gates, app-release-manager) to align with safety, routing, and release metadata.
 
 ### Fixed
+
 - CLAUDE.md personal path references now sanitized to remove /Users/roberdan dependencies.
 
 ## [9.19.0] — 2026-02-28
 
 ### Added
+
 - 3 new agents: deep-repo-auditor, strategic-planner (core_utility), mirrorbuddy-hardening-checks
 - 10 new scripts: audit-launch, audit-remote-launch, branch-protect, cleanup-bloat, copilot-plan-runner, migrate-plan-to-linux, remote-repo-sync, token-audit, validate-css-vars, audit-remote-launch-copilot
 - token-budget.md rule
 - Config: agent-schema.json, cross-repo-learnings.yaml, sync-db.conf
 
 ### Changed
+
 - CLAUDE.md: Shell Pipe Exceptions, Auto Memory, Slash Commands, expanded Mandatory Routing
 - Updated agents: CONSTITUTION, thor-validation-gates, app-release-manager
 - Updated guardian.md rule
@@ -32,13 +46,14 @@
 - Aligned plan-spec-schema.json, code-pattern-checks.sh
 
 ### Fixed
+
 - wave-worktree.sh and env-vault.sh improvements
 - sync-dashboard-db.sh cleanup
-
 
 ## [9.18.0] - 2026-02-28
 
 ### Security
+
 - Pin all GitHub Actions to SHA hashes (actions/checkout, github-script, gh-release)
 - Upgrade softprops/action-gh-release v1 → v2
 - Add `.github/CODEOWNERS` for critical paths (CONSTITUTION, hooks, install)
@@ -48,6 +63,7 @@
 - Add `MYCONVERGIO_DRY_RUN=1` dry-run mode for hooks
 
 ### Added
+
 - BATS test framework with 21 tests (secret-scanner, worktree-guard, enforce-line-limit, install)
 - `checksums.txt` for install.sh integrity verification
 - ShellCheck CI workflow
@@ -56,6 +72,7 @@
 - `make install` idempotency: backup existing files before overwrite
 
 ### Fixed
+
 - Duplicate TEST 6 → TEST 8 in test-deployment.sh
 - `install-selector.sh` agent count filter excluding all .md files
 - `hooks.json` paths from `~/.copilot/hooks/` → `~/.claude/hooks/`
@@ -63,6 +80,7 @@
 - Consolidated `skills/` as symlink to `.claude/skills/`
 
 ### Changed
+
 - Compress 1.5MB PNG logo to 31KB WebP
 - Promote `git clone` as primary install method (Option A)
 - Add `set -euo pipefail` to 11 scripts missing it
@@ -338,7 +356,7 @@
 npm uninstall -g myconvergio
 
 # 2. Install via curl (clones to ~/.myconvergio, installs CLI)
-curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
 
 # 3. Add CLI to PATH (if not already)
 export PATH="$HOME/.local/bin:$PATH"  # add to ~/.zshrc or ~/.bashrc

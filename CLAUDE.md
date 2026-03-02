@@ -42,7 +42,7 @@ MyConvergio/
 ## Quick Start
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
 make install                                        # Full install (~600KB)
 make install-tier TIER=minimal VARIANT=lean          # 5 core agents (~50KB)
 myconvergio upgrade                                 # Update to latest

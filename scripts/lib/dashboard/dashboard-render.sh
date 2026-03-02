@@ -1,7 +1,6 @@
 #!/bin/bash
-# Dashboard rendering functions
-# Version: 2.0.0
-# This module contains all display/rendering logic
+# Dashboard rendering functions — plan detail view
+# Version: 3.0.0
 
 # Render single plan detail view
 _render_single_plan() {
@@ -31,7 +30,6 @@ _render_single_plan() {
 	plines_added=$(echo "$plan_info" | cut -d'|' -f16)
 	plines_removed=$(echo "$plan_info" | cut -d'|' -f17)
 
-	# Status icon
 	local status_display
 	case $pstatus in
 	done) status_display="${GREEN}DONE${NC}" ;;
@@ -41,9 +39,7 @@ _render_single_plan() {
 	*) status_display="${BLUE}TODO${NC}" ;;
 	esac
 
-	# Pre-compute metrics (single query instead of 5)
-	local task_total task_done task_validated wave_total wave_done
-	local metrics_data
+	local task_total task_done task_validated wave_total wave_done metrics_data
 	metrics_data=$(dbq "
 		SELECT
 			(SELECT COUNT(*) FROM tasks WHERE plan_id = $pid AND status NOT IN ('cancelled', 'skipped')),
@@ -58,7 +54,6 @@ _render_single_plan() {
 	wave_total=$(echo "$metrics_data" | cut -d'|' -f4)
 	wave_done=$(echo "$metrics_data" | cut -d'|' -f5)
 
-	# Elapsed time
 	local elapsed_time=""
 	if [ -n "$pcompleted" ] && [ -n "$pstarted" ]; then
 		local start_ts end_ts
@@ -71,79 +66,52 @@ _render_single_plan() {
 		elapsed_time=$(format_elapsed $(($(date +%s) - start_ts)))
 	fi
 
-	# ─── HEADER ───
-	echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════╗${NC}"
-	echo -e "${BOLD}${CYAN}║${NC}  ${BOLD}${WHITE}Piano #$pid: $pname${NC}  $status_display"
-	echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════╝${NC}"
-	echo ""
+	_grid_width
+	_grid_header "PLAN #${pid}: ${pname}  $(echo -e "$status_display")"
 
-	# ─── DESCRIPTION (full, not truncated) ───
+	# Description box
 	local desc_to_show="${phuman_summary:-$pdescription}"
 	if [ -n "$desc_to_show" ]; then
-		echo -e "${BOLD}${WHITE}Scopo${NC}"
-		echo "$desc_to_show" | fold -s -w 80 | while IFS= read -r line; do
-			echo -e "${GRAY}│${NC}  ${WHITE}$line${NC}"
+		_grid_box_start "SCOPE"
+		echo "$desc_to_show" | fold -s -w $((GRID_W - 6)) | while IFS= read -r line; do
+			_grid_row "  ${WHITE}${line}${NC}"
 		done
+		_grid_box_end
 		echo ""
 	fi
 
-	# ─── AT-A-GLANCE METRICS ───
-	echo -e "${BOLD}${WHITE}Metriche${NC}"
-	echo -e "${GRAY}├─${NC} Status: $status_display  ${GRAY}│${NC}  Project: ${BLUE}$pproject${NC}"
-
-	# Tasks + waves
-	local task_line="${BOLD}${GREEN}${task_done}${NC}/${BOLD}${WHITE}${task_total}${NC} ${GRAY}task${NC}"
-	[ "$task_validated" -lt "$task_done" ] && task_line+="  ${GRAY}(${NC}${GREEN}${task_validated}${NC} ${GRAY}Thor-validated)${NC}"
-	echo -e "${GRAY}├─${NC} $task_line  ${GRAY}│${NC}  ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC} ${GRAY}waves${NC}"
-
-	# Duration + git lines
-	local metrics_line=""
+	# Metadata grid box
+	_grid_box_start "METRICS"
+	_grid_row "  Status: $(echo -e "$status_display")    Project: ${BLUE}${pproject}${NC}"
+	local task_line="${GREEN}${task_done}${NC}/${WHITE}${task_total}${NC} tasks"
+	[ "$task_validated" -lt "$task_done" ] && task_line+="  ${GRAY}(${task_validated} Thor-validated)${NC}"
+	_grid_row "  Tasks: $(echo -e "$task_line")    Waves: ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC}"
 	if [ -n "$elapsed_time" ]; then
-		if [ -n "$pcompleted" ]; then
-			metrics_line="Duration: ${BOLD}${YELLOW}${elapsed_time}${NC}"
-		else
-			metrics_line="Running: ${BOLD}${YELLOW}${elapsed_time}${NC}"
-		fi
+		local dur_label="Duration"
+		[ -z "$pcompleted" ] && dur_label="Running"
+		_grid_row "  ${dur_label}: ${YELLOW}${elapsed_time}${NC}"
 	fi
 	if [ "${plines_added:-0}" -gt 0 ] || [ "${plines_removed:-0}" -gt 0 ]; then
-		[ -n "$metrics_line" ] && metrics_line+="  ${GRAY}│${NC}  "
-		metrics_line+="${GREEN}+$(format_lines ${plines_added:-0})${NC} ${RED}-$(format_lines ${plines_removed:-0})${NC} ${GRAY}lines${NC}"
+		_grid_row "  Git: ${GREEN}+$(format_lines "${plines_added:-0}")${NC}  ${RED}-$(format_lines "${plines_removed:-0}")${NC} lines"
 	fi
-	[ -n "$metrics_line" ] && echo -e "${GRAY}├─${NC} $metrics_line"
-
-	# Tokens
 	local total_tokens tokens_formatted
 	total_tokens=$(dbq "SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
-	tokens_formatted=$(format_tokens $total_tokens)
-	echo -e "${GRAY}├─${NC} Tokens: ${CYAN}$tokens_formatted${NC} ${GRAY}(progetto)${NC}"
-
-	# Thor validation
-	if [ -n "$pvalidated" ]; then
-		echo -e "${GRAY}├─${NC} Thor: ${GREEN}✓ $pvalidator${NC} ${GRAY}($pvalidated)${NC}"
-	fi
-	echo -e "${GRAY}└─${NC} Created: ${GRAY}$pcreated${NC}$([ -n "$pstarted" ] && echo -e "  ${GRAY}│${NC}  Started: ${GRAY}$pstarted${NC}")$([ -n "$pcompleted" ] && echo -e "  ${GRAY}│${NC}  Completed: ${GRAY}$pcompleted${NC}")"
+	tokens_formatted=$(format_tokens "$total_tokens")
+	_grid_row "  Tokens: ${CYAN}${tokens_formatted}${NC} (project)"
+	[ -n "$pvalidated" ] && _grid_row "  Thor: ${GREEN}✓ ${pvalidator}${NC}  ${GRAY}${pvalidated}${NC}"
+	_grid_row "  Created: ${GRAY}${pcreated}${NC}$([ -n "$pstarted" ] && printf '  Started: %s' "${pstarted}")"
+	_grid_box_end
 	echo ""
 
-	# ─── FILES & ADRs ───
 	_render_plan_references "$pmarkdown" "$psource" "$pworktree" "$pparallel" "$pproject"
-
-	# ─── PROGRESS BAR ───
 	_render_plan_progress "$pid" "$task_total" "$task_done" "$task_validated" "$wave_total" "$wave_done"
-
-	# Tree view: Waves with nested tasks
 	_render_plan_waves "$pid"
-
-	# Human action required summary
 	_render_human_actions "$pid"
 
-	# Legend
 	echo ""
-	echo -e "${BOLD}${WHITE}Legenda${NC}"
-	echo -e "${GRAY}├─${NC} ${GREEN}✓${NC} done  ${YELLOW}⚡${NC} in progress  ${GRAY}◯${NC} pending  ${YELLOW}⏸${NC} blocked  ${CYAN}👤${NC} richiede azione tua"
-	echo -e "${GRAY}├─${NC} Effort: ${RED}E3${NC}=alto  ${YELLOW}E2${NC}=medio  ${GRAY}E1${NC}=basso  ${GRAY}-- peso nella progress bar${NC}"
-	echo -e "${GRAY}├─${NC} Thor: ${GREEN}T✓${NC}=validato  ${RED}T!${NC}=non validato  ${GRAY}-- solo T✓ conta come done${NC}"
-	echo -e "${GRAY}└─${NC} Progress pesata: effort x validazione Thor. Task non validati non contano"
-
+	_grid_section "LEGEND"
+	_grid_row "  ${GREEN}✓${NC} done  ${YELLOW}⚡${NC} in_progress  ${GRAY}◯${NC} pending  ${YELLOW}⏸${NC} blocked  ${CYAN}👤${NC} needs action"
+	_grid_row "  Effort: ${RED}E3${NC}=high  ${YELLOW}E2${NC}=med  ${GRAY}E1${NC}=low    Thor: ${GREEN}T✓${NC}=validated  ${RED}T!${NC}=pending"
 	return 0
 }
 
@@ -151,89 +119,69 @@ _render_single_plan() {
 _render_plan_references() {
 	local pmarkdown="$1" psource="$2" pworktree="$3" pparallel="$4" pproject="$5"
 	local has_refs=0
-	if [ -n "$pmarkdown" ] || [ -n "$psource" ]; then
-		has_refs=1
-	fi
-	# Scan plan markdown for ADR references
+	{ [ -n "$pmarkdown" ] || [ -n "$psource" ]; } && has_refs=1
 	local adr_list="" pmarkdown_expanded="$pmarkdown"
 	[ -n "$pmarkdown_expanded" ] && pmarkdown_expanded=$(echo "$pmarkdown_expanded" | sed "s|^~|$HOME|")
 	if [ -n "$pmarkdown_expanded" ] && [ -f "$pmarkdown_expanded" ]; then
 		adr_list=$(grep -oE '(docs/adr/|ADR )([A-Za-z0-9_-]+)' "$pmarkdown_expanded" 2>/dev/null | sed 's/docs\/adr\///; s/ADR //' | sort -u | head -10 || true)
 	fi
 	[ -n "$adr_list" ] && has_refs=1
+	[ "$has_refs" -eq 0 ] && return 0
 
-	if [ "$has_refs" -eq 1 ]; then
-		echo -e "${BOLD}${WHITE}Riferimenti${NC}"
-		[ -n "$pmarkdown" ] && echo -e "${GRAY}├─${NC} Piano: ${CYAN}$pmarkdown${NC}"
-		[ -n "$psource" ] && echo -e "${GRAY}├─${NC} Source: ${CYAN}$psource${NC}"
-		[ -n "$pworktree" ] && echo -e "${GRAY}├─${NC} Worktree: ${CYAN}$pworktree${NC}"
-		[ -n "$pparallel" ] && echo -e "${GRAY}├─${NC} Mode: ${GRAY}$pparallel${NC}"
-		if [ -n "$adr_list" ]; then
-			echo -e "${GRAY}├─${NC} ${BOLD}${WHITE}ADR referenziate:${NC}"
-			echo "$adr_list" | while IFS= read -r adr; do
-				[ -z "$adr" ] && continue
-				local adr_file=""
-				if [ -n "$pproject" ]; then
-					local proj_dir
-					proj_dir=$(find ~/GitHub -maxdepth 1 -iname "$pproject" -type d 2>/dev/null | head -1)
-					if [ -n "$proj_dir" ]; then
-						adr_file=$(find "$proj_dir/docs/adr" -iname "${adr}*" -type f 2>/dev/null | head -1)
-					fi
-				fi
-				if [ -n "$adr_file" ]; then
-					echo -e "${GRAY}│  ├─${NC} ${CYAN}$adr${NC} ${GRAY}→ $adr_file${NC}"
-				else
-					echo -e "${GRAY}│  ├─${NC} ${CYAN}$adr${NC}"
-				fi
-			done
-		fi
-		echo -e "${GRAY}└─${NC}"
-		echo ""
+	_grid_box_start "REFERENCES"
+	[ -n "$pmarkdown" ] && _grid_row "  Plan:     ${CYAN}${pmarkdown}${NC}"
+	[ -n "$psource" ] && _grid_row "  Source:   ${CYAN}${psource}${NC}"
+	[ -n "$pworktree" ] && _grid_row "  Worktree: ${CYAN}${pworktree}${NC}"
+	[ -n "$pparallel" ] && _grid_row "  Mode:     ${GRAY}${pparallel}${NC}"
+	if [ -n "$adr_list" ]; then
+		_grid_row "  ADRs referenced:"
+		echo "$adr_list" | while IFS= read -r adr; do
+			[ -z "$adr" ] && continue
+			local adr_file=""
+			if [ -n "$pproject" ]; then
+				local proj_dir
+				proj_dir=$(find ~/GitHub -maxdepth 1 -iname "$pproject" -type d 2>/dev/null | head -1)
+				[ -n "$proj_dir" ] && adr_file=$(find "$proj_dir/docs/adr" -iname "${adr}*" -type f 2>/dev/null | head -1)
+			fi
+			if [ -n "$adr_file" ]; then
+				_grid_row "    ${CYAN}${adr}${NC}  ${GRAY}→ ${adr_file}${NC}"
+			else
+				_grid_row "    ${CYAN}${adr}${NC}"
+			fi
+		done
 	fi
+	_grid_box_end
+	echo ""
 }
 
-# Render plan progress bar
+# Render full-width weighted progress bar
 _render_plan_progress() {
 	local pid="$1" task_total="$2" task_done="$3" task_validated="$4" wave_total="$5" wave_done="$6"
 	local wp_data wp_done wp_total task_progress
 	wp_data=$(calc_weighted_progress "plan_id = $pid")
 	wp_done=$(echo "$wp_data" | cut -d'|' -f1)
 	wp_total=$(echo "$wp_data" | cut -d'|' -f2)
-	if [ "$wp_total" -gt 0 ]; then
-		task_progress=$((wp_done * 100 / wp_total))
-	else
-		task_progress=0
-	fi
-	local bar
-	bar=$(render_bar "$task_progress" 30)
-
+	task_progress=$((wp_total > 0 ? wp_done * 100 / wp_total : 0))
 	local wave_progress
-	if [ "$wave_total" -gt 0 ]; then
-		wave_progress=$((wave_done * 100 / wave_total))
-	else
-		wave_progress=0
-	fi
-
+	wave_progress=$((wave_total > 0 ? wave_done * 100 / wave_total : 0))
 	local unvalidated=$((task_done - task_validated))
+	[[ -z "${GRID_W:-}" ]] && _grid_width
+	local bar_width=$((GRID_W - 14))
+	[[ $bar_width -lt 10 ]] && bar_width=10
 
-	echo -e "${BOLD}${WHITE}Progress${NC} ${GRAY}(Thor-gated: solo task validati contano)${NC}"
-	echo -e "${GRAY}├─${NC} $bar ${WHITE}${task_progress}%${NC} ${GRAY}(weighted by effort)${NC}"
-	echo -e "${GRAY}├─${NC} Executor: ${GREEN}${task_done}${NC}/${WHITE}${task_total}${NC} done  ${GRAY}│${NC}  Thor: ${GREEN}${task_validated}${NC}/${WHITE}${task_done}${NC} validated"
-	if [ "$unvalidated" -gt 0 ]; then
-		echo -e "${GRAY}│  ${NC}${YELLOW}${unvalidated} task done ma non validati da Thor${NC}"
-	fi
-	echo -e "${GRAY}└─${NC} Waves: ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC} complete ${GRAY}(${wave_progress}%)${NC}"
+	_grid_section "PROGRESS" "(Thor-gated: only validated tasks count)"
+	_grid_progress_bar "$task_progress" "$bar_width" "(weighted by effort)"
+	_grid_row "  Executor: ${GREEN}${task_done}${NC}/${WHITE}${task_total}${NC} done    Thor: ${GREEN}${task_validated}${NC}/${WHITE}${task_done}${NC} validated"
+	[ "$unvalidated" -gt 0 ] && _grid_row "  ${YELLOW}${unvalidated} done but not Thor-validated${NC}"
+	_grid_row "  Waves: ${GREEN}${wave_done}${NC}/${WHITE}${wave_total}${NC} complete ${GRAY}(${wave_progress}%)${NC}"
 	echo ""
 }
 
 # Main dashboard rendering function
 render_dashboard() {
-	# Single plan mode
 	if [ -n "$PLAN_ID" ]; then
 		_render_single_plan
 		return $?
 	fi
-
-	# Multi-plan overview mode
 	_render_dashboard_overview
 }

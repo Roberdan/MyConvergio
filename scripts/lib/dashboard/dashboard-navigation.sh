@@ -1,10 +1,10 @@
 #!/bin/bash
-# Interactive dashboard navigation (view stack + digit input + mesh control center)
-# Version: 2.0.0
+# Interactive dashboard navigation — view stack, digit input, mesh control center
+# Version: 3.0.0
 
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 
-# View state: "main", "completed", "detail", "mesh"
+# View state: "main" | "completed" | "detail" | "mesh" | "analytics"
 VIEW_MODE="main"
 VIEW_PLAN_ID=""
 INPUT_BUF=""
@@ -13,19 +13,16 @@ MESH_REFRESH=10
 _status_bar() {
 	local now
 	now=$(date "+%H:%M:%S")
-	echo -e "${GRAY}Aggiornato: ${WHITE}$now${NC} ${GRAY}│ Tema: ${TH_PRIMARY:-$CYAN}${TH_NAME:-classic}${NC}"
+	echo -e "${GRAY}Updated: ${WHITE}$now${NC} ${GRAY}│ Theme: ${TH_PRIMARY:-$CYAN}${TH_NAME:-classic}${NC}"
 	case "$VIEW_MODE" in
-	main)
-		printf "${GRAY}[${WHITE}R${GRAY}]efresh [${WHITE}C${GRAY}]ompletati [${WHITE}M${GRAY}]esh [${WHITE}T${GRAY}]ema [${WHITE}Q${GRAY}]uit [${WHITE}P${GRAY}]ush [${WHITE}L${GRAY}]inux ${GRAY}| ${WHITE}<num>${GRAY}+Enter=piano${NC}"
-		;;
-	completed)
-		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}Q${GRAY}]uit ${GRAY}| ${WHITE}<num>${GRAY}+Enter=piano${NC}"
-		;;
-	detail)
-		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}Q${GRAY}]uit ${GRAY}| ${WHITE}<num>${GRAY}+Enter=altro piano${NC}"
+	main | completed | detail)
+		printf "${GRAY}[${WHITE}R${GRAY}]efresh [${WHITE}C${GRAY}]ompleted [${WHITE}M${GRAY}]esh [${WHITE}A${GRAY}]nalytics [${WHITE}T${GRAY}]heme [${WHITE}B${GRAY}]ack [${WHITE}Q${GRAY}]uit [${WHITE}P${GRAY}]ush [${WHITE}L${GRAY}]inux ${GRAY}| ${WHITE}<num>${GRAY}+Enter=plan${NC}"
 		;;
 	mesh)
 		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}G${GRAY}]migrate [${WHITE}S${GRAY}]ync [${WHITE}D${GRAY}]ispatch [${WHITE}H${GRAY}]eartbeat [${WHITE}A${GRAY}]uth [${WHITE}E${GRAY}]nv [${WHITE}Q${GRAY}]uit${NC}"
+		;;
+	analytics)
+		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}Q${GRAY}]uit${NC}"
 		;;
 	esac
 }
@@ -39,7 +36,7 @@ _render_current_view() {
 		;;
 	completed)
 		echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════╗${NC}"
-		echo -e "${BOLD}${CYAN}║${NC}          ${BOLD}${WHITE}Piani Completati${NC}                            ${BOLD}${CYAN}║${NC}"
+		echo -e "${BOLD}${CYAN}║${NC}          ${BOLD}${WHITE}Completed Plans${NC}                              ${BOLD}${CYAN}║${NC}"
 		echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════╝${NC}"
 		echo ""
 		EXPAND_COMPLETED=0
@@ -55,17 +52,23 @@ _render_current_view() {
 		_mesh_collect_data
 		_render_mesh_detail
 		;;
+	analytics)
+		_render_token_analytics 2>/dev/null || {
+			echo -e "${YELLOW}Token analytics not available yet (requires dashboard-render-tokens.sh).${NC}"
+		}
+		;;
 	esac
 }
 
-# ─── Theme cycling ───
+# Theme cycling: muthur → nexus6 → hal9000 → (wrap)
 THEME_LIST=("muthur" "nexus6" "hal9000")
 _cycle_theme() {
 	local current="${DASHBOARD_THEME:-muthur}"
 	local next="muthur" found=0
-	for (( i=0; i<${#THEME_LIST[@]}; i++ )); do
+	local i
+	for ((i = 0; i < ${#THEME_LIST[@]}; i++)); do
 		if [[ "${THEME_LIST[$i]}" == "$current" ]]; then
-			next="${THEME_LIST[$(( (i+1) % ${#THEME_LIST[@]} ))]}"
+			next="${THEME_LIST[$(((i + 1) % ${#THEME_LIST[@]}))]}"
 			found=1
 			break
 		fi
@@ -78,21 +81,18 @@ _cycle_theme() {
 _handle_digit_input() {
 	local first_digit="$1"
 	INPUT_BUF="$first_digit"
-	printf "\r${CYAN}Piano #: %s_${NC}%40s" "$INPUT_BUF" " "
+	printf "\r${CYAN}Plan #: %s_${NC}%40s" "$INPUT_BUF" " "
 	while true; do
-		local ch=""
-		local rc=0
+		local ch="" rc=0
 		read -t 5 -n 1 ch 2>/dev/null || rc=$?
 		if [[ $rc -gt 128 ]]; then
-			# Timeout (rc=142 on macOS) — cancel input
 			INPUT_BUF=""
 			return 1
 		elif [[ -z "$ch" ]]; then
-			# Enter pressed (read returns 0, empty string)
 			break
 		elif [[ "$ch" =~ ^[0-9]$ ]]; then
 			INPUT_BUF+="$ch"
-			printf "\r${CYAN}Piano #: %s_${NC}%40s" "$INPUT_BUF" " "
+			printf "\r${CYAN}Plan #: %s_${NC}%40s" "$INPUT_BUF" " "
 		elif [[ "$ch" == $'\x7f' || "$ch" == $'\b' ]]; then
 			if [[ ${#INPUT_BUF} -gt 1 ]]; then
 				INPUT_BUF="${INPUT_BUF:0:${#INPUT_BUF}-1}"
@@ -100,7 +100,7 @@ _handle_digit_input() {
 				INPUT_BUF=""
 				return 1
 			fi
-			printf "\r${CYAN}Piano #: %s_${NC}%40s" "$INPUT_BUF" " "
+			printf "\r${CYAN}Plan #: %s_${NC}%40s" "$INPUT_BUF" " "
 		elif [[ "$ch" == $'\x1b' ]]; then
 			INPUT_BUF=""
 			return 1
@@ -114,7 +114,7 @@ _handle_digit_input() {
 			VIEW_MODE="detail"
 			return 0
 		else
-			printf "\r${RED}Piano #%s non trovato${NC}%40s" "$INPUT_BUF" " "
+			printf "\r${RED}Plan #%s not found${NC}%40s" "$INPUT_BUF" " "
 			sleep 1
 			INPUT_BUF=""
 			return 1
@@ -124,26 +124,24 @@ _handle_digit_input() {
 }
 
 _run_interactive_loop() {
-	# Disable errexit for interactive loop — transient errors must not kill the UI
 	set +e
-	trap 'echo -e "\n${YELLOW}Dashboard terminata.${NC}"; exit 0' INT
+	trap 'echo -e "\n${YELLOW}Dashboard closed.${NC}"; exit 0' INT
 	clear
 	while true; do
 		_render_current_view
 		echo ""
 		_status_bar
 		echo ""
-		key=""
-		local timeout="$REFRESH_INTERVAL"
+		local key="" timeout="$REFRESH_INTERVAL"
 		[[ "$VIEW_MODE" == "mesh" ]] && timeout="$MESH_REFRESH"
 		read -t "$timeout" -n 1 key 2>/dev/null || true
 		case "$key" in
 		q | Q)
-			echo -e "\n${YELLOW}Dashboard terminata.${NC}"
+			echo -e "\n${YELLOW}Dashboard closed.${NC}"
 			exit 0
 			;;
 		b | B)
-			if [[ "$VIEW_MODE" == "detail" || "$VIEW_MODE" == "completed" || "$VIEW_MODE" == "mesh" ]]; then
+			if [[ "$VIEW_MODE" != "main" ]]; then
 				VIEW_MODE="main"
 				VIEW_PLAN_ID=""
 			fi
@@ -154,6 +152,15 @@ _run_interactive_loop() {
 		m | M)
 			[[ "$VIEW_MODE" == "main" ]] && VIEW_MODE="mesh"
 			;;
+		a | A)
+			if [[ "$VIEW_MODE" == "mesh" ]]; then
+				_mesh_action_auth
+				echo -e "\n${GRAY}Press any key to continue...${NC}"
+				read -n 1 -s
+			elif [[ "$VIEW_MODE" == "main" || "$VIEW_MODE" == "completed" || "$VIEW_MODE" == "detail" ]]; then
+				VIEW_MODE="analytics"
+			fi
+			;;
 		t | T)
 			_cycle_theme
 			;;
@@ -161,55 +168,48 @@ _run_interactive_loop() {
 		g | G)
 			if [[ "$VIEW_MODE" == "mesh" ]]; then
 				_mesh_action_migrate
-				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				echo -e "\n${GRAY}Press any key to continue...${NC}"
 				read -n 1 -s
 			fi
 			;;
 		s | S)
 			if [[ "$VIEW_MODE" == "mesh" ]]; then
 				_mesh_action_sync
-				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				echo -e "\n${GRAY}Press any key to continue...${NC}"
 				read -n 1 -s
 			fi
 			;;
 		d | D)
 			if [[ "$VIEW_MODE" == "mesh" ]]; then
 				_mesh_action_dispatch
-				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				echo -e "\n${GRAY}Press any key to continue...${NC}"
 				read -n 1 -s
 			fi
 			;;
 		h | H)
 			if [[ "$VIEW_MODE" == "mesh" ]]; then
 				_mesh_action_heartbeat
-				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
-				read -n 1 -s
-			fi
-			;;
-		a | A)
-			if [[ "$VIEW_MODE" == "mesh" ]]; then
-				_mesh_action_auth
-				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				echo -e "\n${GRAY}Press any key to continue...${NC}"
 				read -n 1 -s
 			fi
 			;;
 		e | E)
 			if [[ "$VIEW_MODE" == "mesh" ]]; then
 				_mesh_action_env
-				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				echo -e "\n${GRAY}Press any key to continue...${NC}"
 				read -n 1 -s
 			fi
 			;;
 		p | P)
 			echo ""
 			_handle_remote_action "push"
-			echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+			echo -e "\n${GRAY}Press any key to continue...${NC}"
 			read -n 1 -s
 			;;
 		l | L)
 			echo ""
 			_handle_remote_action "status"
-			echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+			echo -e "\n${GRAY}Press any key to continue...${NC}"
 			read -n 1 -s
 			;;
 		[0-9])

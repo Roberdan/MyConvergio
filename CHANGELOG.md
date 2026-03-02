@@ -1,5 +1,32 @@
 # Changelog
 
+## [2026-03-02] — Control Center v3.0 Rewrite (Plan 302)
+
+### Added
+
+- **Bash Grid Layout Engine**: `dashboard-layout.sh` — 12 rendering primitives (header, cards, boxes, progress bars, rows, separators) with responsive 3-mode support (compact/standard/expanded)
+- **Token Analytics View**: `dashboard-render-tokens.sh` — per-model breakdown, cost estimates, 14-day sparkline. Access via `A` key
+- **Python Textual TUI**: `scripts/dashboard_textual/` — full-featured alternative UI with real Sparkline charts, DataTable views, animated mesh topology, 4 themes (MUTHUR, NEXUS-6, HAL 9000, Neon Flux). Launch: `piani --tui`
+- **Design System**: unified `dashboard-themes.sh` with semantic colors (TH_SUCCESS/WARNING/ERROR/INFO), inner+outer border chars, 3 retro sci-fi themes
+- Consolidated test suite: `tests/test-dashboard-v3.sh` (62 tests)
+
+### Changed
+
+- All 16 dashboard rendering modules rewritten with grid layout engine
+- `dashboard-mini.sh`: new `--tui` flag, module source chain, analytics view
+- `dashboard-navigation.sh`: `A` key for analytics from all non-mesh views
+- `dashboard-db.sh`: theme-aware `render_bar()`, new `format_cost()`, `db_token_analytics()`
+- `dashboard-layout.sh`: responsive compact mode (2x2 cards for <80 cols)
+
+### How to use
+
+```bash
+piani                    # Bash retro grid dashboard (default)
+piani --tui              # Python Textual TUI (futuristic)
+piani -t nexus6          # Switch theme (muthur/nexus6/hal9000)
+# Inside dashboard: A=analytics, M=mesh, C=completed, T=theme, Q=quit
+```
+
 ## [2026-03-02] — Mesh Dashboard Visualization + Live Plan Migration
 
 ### Added

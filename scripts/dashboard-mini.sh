@@ -1,14 +1,15 @@
 #!/bin/bash
-# Version: 2.3.0
+# Version: 3.0.0
 set -uo pipefail
-# Source all dashboard modules
 DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
 
-# Source delegation module (using BASH_SOURCE-relative path)
+# Source modules in dependency order
 . "$(dirname "${BASH_SOURCE[0]}")/lib/dashboard-delegation.sh"
 . "$DASHBOARD_LIB/dashboard-config.sh"
-. "$DASHBOARD_LIB/dashboard-sync.sh"
+. "$DASHBOARD_LIB/dashboard-themes.sh"
+. "$DASHBOARD_LIB/dashboard-layout.sh"
 . "$DASHBOARD_LIB/dashboard-db.sh"
+. "$DASHBOARD_LIB/dashboard-sync.sh"
 . "$DASHBOARD_LIB/dashboard-render-prs.sh"
 . "$DASHBOARD_LIB/dashboard-render-waves.sh"
 . "$DASHBOARD_LIB/dashboard-render.sh"
@@ -16,10 +17,10 @@ DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
 . "$DASHBOARD_LIB/dashboard-render-pipeline-plans.sh"
 . "$DASHBOARD_LIB/dashboard-render-completed-plans.sh"
 . "$DASHBOARD_LIB/dashboard-render-overview.sh"
-. "$DASHBOARD_LIB/dashboard-themes.sh"
 . "$DASHBOARD_LIB/dashboard-render-mesh.sh"
 . "$DASHBOARD_LIB/dashboard-render-mesh-detail.sh" 2>/dev/null || true
 . "$DASHBOARD_LIB/dashboard-mesh-actions.sh"
+[[ -f "$DASHBOARD_LIB/dashboard-render-tokens.sh" ]] && . "$DASHBOARD_LIB/dashboard-render-tokens.sh"
 . "$DASHBOARD_LIB/dashboard-navigation.sh"
 
 cmd_waves() {
@@ -34,7 +35,6 @@ cmd_waves() {
 	done
 
 	local DB_FILE="$HOME/.claude/data/dashboard.db"
-
 	echo "=== Wave Worktrees — Plan $plan_id ==="
 	echo ""
 
@@ -69,7 +69,6 @@ cmd_waves() {
 			fi
 		fi
 
-		# PR display: plain text with URL (auto-clickable in most terminals)
 		local pr_display="$pr"
 		local pr_extra=""
 		if [[ "$pr" != "-" && "$pr_url" == https://* ]]; then
@@ -90,7 +89,7 @@ cmd_waves() {
 	done <<<"$rows"
 }
 
-# Subcommand dispatch (must come before flag parsing)
+# Subcommand dispatch
 case "${1:-}" in
 waves)
 	shift
@@ -106,6 +105,7 @@ SHOW_BLOCKED=0
 REFRESH_INTERVAL=300
 EXPAND_COMPLETED=0
 DASHBOARD_THEME="${DASHBOARD_THEME:-muthur}"
+USE_TUI=0
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -137,6 +137,10 @@ while [[ $# -gt 0 ]]; do
 		DASHBOARD_THEME="$2"
 		shift 2
 		;;
+	--tui | --textual)
+		USE_TUI=1
+		shift
+		;;
 	-h | --help)
 		echo "Usage: piani [OPTIONS]"
 		echo "       piani waves <plan_id> [--prs]"
@@ -145,40 +149,30 @@ while [[ $# -gt 0 ]]; do
 		echo "  waves <plan_id> [--prs]   Show wave worktrees; --prs fetches live CI state"
 		echo ""
 		echo "Options:"
-		echo "  -v, --verbose        Mostra dettagli extra (wave names, task priorities)"
-		echo "  -p, --plan ID        Mostra solo piano specifico"
-		echo "  -b, --blocked        Mostra task bloccati"
-		echo "  -e, --expand         Espandi dettagli task completati (default: compressi)"
-		echo "  -t, --theme THEME    Tema: muthur|nexus6|hal9000|terminui (default: muthur)"
-		echo "  -r, --refresh SEC    Auto-refresh ogni SEC secondi (default: 300)"
-		echo "  -n, --no-refresh     Disabilita auto-refresh (vista singola)"
-		echo "  -h, --help           Mostra questo help"
+		echo "  -v, --verbose        Show extra details (wave names, task priorities)"
+		echo "  -p, --plan ID        Show specific plan only"
+		echo "  -b, --blocked        Show blocked tasks"
+		echo "  -e, --expand         Expand completed task details"
+		echo "  -t, --theme THEME    Theme: muthur|nexus6|hal9000 (default: muthur)"
+		echo "  -r, --refresh SEC    Auto-refresh every SEC seconds (default: 300)"
+		echo "  -n, --no-refresh     Disable auto-refresh (single render)"
+		echo "  --tui                Launch Textual TUI (requires Python)"
+		echo "  -h, --help           Show this help"
 		echo ""
-		echo "Sezioni mostrate:"
-		echo "  - Overview: conteggi totali (todo/doing/done)"
-		echo "  - Piani Attivi: in esecuzione con progress e PR"
-		echo "  - In Pipeline: piani creati ma non ancora lanciati"
-		echo "  - Completamenti: ultime 24 ore"
+		echo "Themes: muthur (Alien 1979) | nexus6 (Blade Runner 1982) | hal9000 (2001)"
 		echo ""
-		echo "Temi disponibili:"
-		echo "  muthur   — Green phosphor CRT (Alien 1979)"
-		echo "  nexus6   — Amber/cyan neon (Blade Runner 1982)"
-		echo "  hal9000  — Clinical red/steel (2001: A Space Odyssey)"
-		echo "  terminui — Rich TUI via terminui (requires Node.js)"
+		echo "Navigation:"
+		echo "  R=refresh  C=completed  M=mesh  B=back  Q=quit"
+		echo "  T=cycle theme  A=token analytics  P=push  L=linux"
+		echo "  <num>+Enter = drill-down plan"
 		echo ""
-		echo "Navigazione interattiva:"
-		echo "  R=refresh  C=completati  B=back  Q=quit  P=push  L=linux  T=tema"
-		echo "  <numero>+Enter = drill-down piano (input live)"
-		echo ""
-		echo "Esempi:"
-		echo "  piani                 # Dashboard compatta con auto-refresh"
-		echo "  piani -t nexus6       # Stile Blade Runner"
-		echo "  piani -t terminui     # Rich TUI con terminui"
-		echo "  piani -n              # Vista singola, no refresh"
-		echo "  piani -v              # Verbose + auto-refresh"
-		echo "  piani -p 62           # Solo Piano #62 + auto-refresh"
-		echo "  piani -r 60           # Auto-refresh ogni minuto"
-		echo "  piani -v -e -r 120    # Tutto espanso, refresh ogni 2 minuti"
+		echo "Examples:"
+		echo "  piani                 # Dashboard with auto-refresh"
+		echo "  piani --tui           # Textual TUI mode"
+		echo "  piani -t nexus6       # Blade Runner style"
+		echo "  piani -n              # Single render, no refresh"
+		echo "  piani -p 62           # Plan #62 detail"
+		echo "  piani -r 60           # Refresh every minute"
 		exit 0
 		;;
 	*)
@@ -188,14 +182,16 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-# Validate PLAN_ID is numeric (prevent SQL injection)
+# Validate PLAN_ID
 if [ -n "$PLAN_ID" ] && ! [[ "$PLAN_ID" =~ ^[0-9]+$ ]]; then
 	echo "Error: plan ID must be numeric" >&2
 	exit 1
 fi
 
-# Load theme
-_theme_load "$DASHBOARD_THEME"
+# TUI mode: delegate to Python Textual app
+if [[ "$USE_TUI" -eq 1 ]]; then
+	exec python3 -m dashboard_textual ${PLAN_ID:+--plan "$PLAN_ID"}
+fi
 
 # terminui theme: delegate to TypeScript renderer
 if [[ "$DASHBOARD_THEME" == "terminui" ]]; then
@@ -205,12 +201,15 @@ if [[ "$DASHBOARD_THEME" == "terminui" ]]; then
 	exit $?
 fi
 
+# Load theme
+_theme_load "$DASHBOARD_THEME"
+
 # Single plan detail mode: always expand tasks
 if [ -n "$PLAN_ID" ]; then
 	EXPAND_COMPLETED=1
 fi
 
-# Interactive or single-shot mode (navigation functions from dashboard-navigation.sh)
+# Interactive or single-shot
 if [ "$REFRESH_INTERVAL" -gt 0 ]; then
 	_run_interactive_loop
 else

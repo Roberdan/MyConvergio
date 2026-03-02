@@ -1,6 +1,6 @@
 #!/bin/bash
 # Dashboard database operations and utility functions
-# Version: 2.0.0
+# Version: 2.1.0
 
 # Concurrency-safe sqlite3 wrapper: busy_timeout=5000ms, retries on lock
 dbq() {
@@ -176,18 +176,65 @@ calc_weighted_progress() {
 	"
 }
 
-# Render a progress bar from percentage
-# Usage: render_bar <percentage> <bar_length>
+# Render a progress bar from percentage using theme vars
+# Usage: render_bar <percentage> [bar_length]
 render_bar() {
 	local pct="$1" blen="${2:-20}"
+	[[ $pct -lt 0 ]] && pct=0
+	[[ $pct -gt 100 ]] && pct=100
 	local filled=$((pct * blen / 100))
 	local empty=$((blen - filled))
 	local fill_char="${TH_BAR_FILL:-█}"
 	local empty_char="${TH_BAR_EMPTY:-░}"
-	local bar="${GREEN}"
+	local fill_color
+	if [[ $pct -ge 80 ]]; then
+		fill_color="${TH_SUCCESS:-${GREEN}}"
+	elif [[ $pct -ge 40 ]]; then
+		fill_color="${TH_WARNING:-${YELLOW}}"
+	else
+		fill_color="${TH_ERROR:-${RED}}"
+	fi
+	local bar="${fill_color}"
 	for ((i = 0; i < filled; i++)); do bar+="$fill_char"; done
-	bar+="${GRAY}"
+	bar+="${TH_MUTED:-${GRAY}}"
 	for ((i = 0; i < empty; i++)); do bar+="$empty_char"; done
 	bar+="${NC}"
 	echo -e "$bar"
+}
+
+# Format cost in USD from token count + model name
+# Usage: format_cost <tokens> <model>
+# Rates (USD per 1M tokens, combined in/out avg): opus=45, sonnet=9, haiku=2.4, other=0
+format_cost() {
+	local tokens="${1:-0}" model="${2:-}"
+	local rate=0
+	case "$model" in
+	*opus*) rate=45 ;;
+	*sonnet*) rate=9 ;;
+	*haiku*) rate=2 ;;
+	esac
+	# cost = tokens * rate / 1_000_000 — use awk for float
+	awk -v t="$tokens" -v r="$rate" 'BEGIN{
+		c = t * r / 1000000
+		if (c < 0.01) printf "$%.4f", c
+		else if (c < 1) printf "$%.3f", c
+		else printf "$%.2f", c
+	}'
+}
+
+# Token analytics grouped by model and day (last N days)
+# Usage: db_token_analytics [days]
+# Outputs lines: MODEL|DATE|TOKENS
+db_token_analytics() {
+	local days="${1:-7}"
+	dbq "
+		SELECT
+			COALESCE(model, 'unknown') AS model,
+			date(timestamp) AS day,
+			SUM(input_tokens + output_tokens) AS tokens
+		FROM token_usage
+		WHERE date(timestamp) >= date('now', '-${days} days')
+		GROUP BY model, day
+		ORDER BY day DESC, tokens DESC;
+	"
 }

@@ -1,0 +1,180 @@
+/* neon.tcss — Futuristic neon theme. Maximum visual impact.
+ * Deep dark bg (#050510), electric cyan primary, magenta secondary.
+ * Glow effects via text-style: bold + bright saturated colors.
+ */
+
+/* ── Variables ───────────────────────────────────────────────────────────── */
+
+$background: #050510;
+$surface: #080818;
+$primary: #00e5ff;
+$secondary: #ff00ff;
+$accent: #0066ff;
+$text: #88ccff;
+$text-muted: #334466;
+$success: #00ff88;
+$warning: #ffcc00;
+$error: #ff2244;
+
+/* ── Screen ──────────────────────────────────────────────────────────────── */
+
+Screen {
+    background: $background;
+    color: $text;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+Header {
+    background: $background;
+    color: $primary;
+    text-style: bold;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+Footer {
+    background: $background;
+    color: $text-muted;
+}
+
+/* ── Status cards ────────────────────────────────────────────────────────── */
+
+.status-card {
+    background: $surface;
+    border: solid $accent;
+    color: $text;
+}
+
+.card-value {
+    color: $primary;
+    text-style: bold;
+}
+
+.card-label {
+    color: $secondary;
+    text-style: bold;
+}
+
+/* ── Section headers ─────────────────────────────────────────────────────── */
+
+.section-header {
+    color: $secondary;
+    text-style: bold;
+    border-bottom: solid $accent;
+}
+
+/* ── Plan boxes ──────────────────────────────────────────────────────────── */
+
+.plan-box {
+    background: $surface;
+    border: solid $accent;
+}
+
+.plan-title {
+    color: $primary;
+    text-style: bold;
+}
+
+.plan-meta {
+    color: $text-muted;
+}
+
+/* ── DataTable ───────────────────────────────────────────────────────────── */
+
+DataTable {
+    background: $surface;
+    color: $text;
+}
+
+DataTable > .datatable--header {
+    background: $background;
+    color: $secondary;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: $accent;
+    color: $primary;
+    text-style: bold;
+}
+
+DataTable > .datatable--even-row {
+    background: $background;
+}
+
+DataTable > .datatable--odd-row {
+    background: $surface;
+}
+
+/* ── Mesh nodes ──────────────────────────────────────────────────────────── */
+
+.mesh-node {
+    background: $surface;
+    border: solid $accent;
+    color: $text;
+}
+
+.mesh-node.online {
+    border: solid $primary;
+}
+
+.mesh-node.offline {
+    border: solid $error;
+}
+
+.node-name {
+    color: $primary;
+    text-style: bold;
+}
+
+.node-role {
+    color: $secondary;
+    text-style: bold;
+}
+
+/* ── Progress bars ───────────────────────────────────────────────────────── */
+
+ProgressBar > .bar--bar {
+    color: $accent;
+}
+
+ProgressBar > .bar--complete {
+    color: $primary;
+}
+
+/* ── Charts ──────────────────────────────────────────────────────────────── */
+
+.chart-box {
+    background: $surface;
+    border: solid $accent;
+    color: $text;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+
+ScrollBar {
+    background: $background;
+    color: $accent;
+}
+
+/* ── Input ───────────────────────────────────────────────────────────────── */
+
+Input {
+    background: $surface;
+    border: solid $accent;
+    color: $primary;
+}
+
+Input:focus {
+    border: solid $primary;
+}
+
+/* ── Notification ────────────────────────────────────────────────────────── */
+
+Toast {
+    background: $surface;
+    border: solid $secondary;
+    color: $primary;
+    text-style: bold;
+}

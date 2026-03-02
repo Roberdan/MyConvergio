@@ -1,4 +1,4 @@
-<!-- v1.0.0 | 01 Mar 2026 | Mesh networking operational guide -->
+<!-- v1.1.0 | 02 Mar 2026 | Added mesh-sync-all, repos.conf, SSH PATH fix -->
 
 # Mesh Networking
 
@@ -42,14 +42,86 @@ Location: `~/.claude/config/peers.conf` (override: `PEERS_CONF` env var)
 
 **Capabilities reference**: `claude` = Claude Code MCP | `copilot` = Copilot CLI | `ollama` = local LLM | `opencode` = OpenCode agent
 
+## Unified Sync (mesh-sync-all.sh)
+
+One-command sync: dotclaude config + dashboard DB + project repos + non-git files (.env).
+
+```bash
+c mesh sync                        # Full 3-phase sync to all peers
+c mesh sync --dry-run              # Preview without changes
+c mesh sync --peer omarchy         # Single peer
+c mesh sync --phase repos          # Only phase 2 (git pull + SCP)
+c mesh sync --force                # git reset --hard (destructive)
+c mesh status                      # Verification table only
+```
+
+### 3 Phases
+
+| Phase | What | How |
+|---|---|---|
+| 1. Config + DB | dotclaude repo + dashboard.db | `peer-sync.sh push` (git bundle) + `mesh-sync-config.sh` (SCP non-git) |
+| 2. Repo Sync | Project repos + non-git files | `git pull --ff-only` per repo + SCP `sync_files` (.env) |
+| 3. Verify | Alignment table | SSH per peer → `git log --oneline -1` per repo, color-coded |
+
+### repos.conf
+
+Location: `~/.claude/config/repos.conf`
+
+```ini
+[VirtualBPM]
+path=~/GitHub/VirtualBPM
+branch=main
+gh_account=roberdan_microsoft
+sync_files=.env
+
+[MyConvergio]
+path=~/GitHub/MyConvergio
+branch=master
+gh_account=Roberdan
+```
+
+| Field | Required | Purpose |
+|---|---|---|
+| `path` | yes | Repo path on peer (~ expanded remotely) |
+| `branch` | no | Default branch to pull (default: main) |
+| `gh_account` | no | `gh auth switch` before pull (HTTPS auth) |
+| `sync_files` | no | Comma-separated non-git files to SCP after pull |
+
+### SSH PATH Fix (macOS peers)
+
+Non-login SSH shells don't load `/opt/homebrew/bin`. `mesh-sync-all.sh` prepends Homebrew paths to all remote commands automatically:
+
+```bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+```
+
+This ensures `gh`, `claude`, and other Homebrew tools are available in SSH sessions. No manual PATH configuration needed on peers.
+
+### Incremental Git Bundles
+
+Full dotclaude bundle = ~85MB. Use incremental bundles for fast sync:
+
+```bash
+# Coordinator: create small bundle (only missing commits)
+git -C ~/.claude bundle create /tmp/incr.bundle <last_synced_sha>..main
+# SCP + apply on peer
+scp /tmp/incr.bundle peer:/tmp/
+ssh peer "cd ~/.claude && git fetch /tmp/incr.bundle main:refs/remotes/bundle/main && git merge --ff-only refs/remotes/bundle/main"
+```
+
+`mesh-sync-all.sh` Phase 1 uses `peer-sync.sh` (which uses `sync-claude-config.sh` full bundle). For manual fixes, incremental bundles are faster.
+
 ## Commands Reference
 
 | Script                | Usage                                                          | Purpose                                         |
 | --------------------- | -------------------------------------------------------------- | ----------------------------------------------- |
+| `mesh-sync-all.sh`    | `[--dry-run] [--peer NAME] [--phase P] [--force]`             | Unified sync: config + repos + verify           |
+| `mesh-sync-config.sh` | `[--dry-run] [--peer NAME]`                                    | SCP key config files to peers (non-git fallback)|
 | `mesh-dispatcher.sh`  | `--plan ID \| --all-plans [--dry-run] [--force-provider PEER]` | Score peers and dispatch pending tasks          |
 | `mesh-load-query.sh`  | `[--json] [--peer NAME]`                                       | Query CPU load + task state across online peers |
 | `mesh-heartbeat.sh`   | `start \| stop \| status`                                      | Liveness daemon writing heartbeats every 30s    |
 | `mesh-auth-sync.sh`   | `push \| status [--peer NAME \| --all]`                        | Sync credentials from master to peers           |
+| `mesh-discover.sh`    | `[--deep]`                                                     | Discover Tailscale peers, tool versions, repos  |
 | `lib/peers.sh`        | sourced library                                                | Peer discovery, routing, connectivity checks    |
 | `lib/mesh-scoring.sh` | sourced library                                                | Peer scoring functions (cost/load/privacy)      |
 
@@ -203,3 +275,6 @@ Credentials synced (via SSH/SCP, no plaintext temp files):
 | Credentials not found on remote                 | Auth sync not run                           | Run `mesh-auth-sync.sh push --peer NAME`                          |
 | Heartbeat daemon PID stale                      | Crash without cleanup                       | `rm ~/.claude/data/mesh-heartbeat.pid && mesh-heartbeat.sh start` |
 | `cost_tier` not set                             | orchestrator.yaml missing `mesh.cost_tiers` | Add tier config or peer scores 0 (still dispatched)               |
+| `gh: command not found` via SSH                 | Non-login shell missing Homebrew PATH       | `mesh-sync-all.sh` auto-prepends PATH; for manual SSH: `export PATH="/opt/homebrew/bin:$PATH"` |
+| VirtualBPM pull fails on peer                   | `gh auth` wrong account or expired          | SSH into peer: `export PATH=...; gh auth status; gh auth switch --user roberdan_microsoft` |
+| Git bundle merge fails (local changes)          | SCP'd files diverge from git state          | `ssh peer "cd ~/.claude && git checkout -- <file>"` then retry bundle merge |

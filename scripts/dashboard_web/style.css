@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "JetBrainsMono Nerd Font";
+  src: url("fonts/JetBrainsMonoNerdFont-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg-deep: #04060e;
   --bg-panel: #0a0e1a;
@@ -59,7 +67,10 @@ body::after {
   font-weight: 900;
   letter-spacing: 6px;
   text-transform: uppercase;
-  background: var(--gradient-h1, linear-gradient(90deg, var(--cyan), var(--magenta)));
+  background: var(
+    --gradient-h1,
+    linear-gradient(90deg, var(--cyan), var(--magenta))
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -401,8 +412,10 @@ body::after {
   margin-bottom: 4px;
 }
 .mn-os {
-  font-size: 24px;
-  line-height: 1;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  color: inherit;
 }
 .mn-name {
   font-weight: 600;
@@ -1041,9 +1054,11 @@ body.term-open {
   padding: 4px 0;
   z-index: 1000;
   min-width: 180px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
-.theme-dropdown.open { display: block; }
+.theme-dropdown.open {
+  display: block;
+}
 .theme-option {
   display: flex;
   align-items: center;
@@ -1065,5 +1080,5 @@ body.term-open {
   width: 12px;
   height: 12px;
   border-radius: 3px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

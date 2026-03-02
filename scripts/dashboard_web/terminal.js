@@ -85,7 +85,7 @@ class TerminalManager {
         brightCyan: "#44eeff",
         brightWhite: "#e0e4f0",
       },
-      fontFamily: '"JetBrains Mono", monospace',
+      fontFamily: '"JetBrainsMono Nerd Font", "JetBrains Mono", monospace',
       fontSize: 13,
       cursorBlink: true,
       allowProposedApi: true,

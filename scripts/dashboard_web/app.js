@@ -371,11 +371,21 @@ function chartOpts() {
 }
 
 // --- MESH STRIP ---
+const _SVG = (path) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">${path}</svg>`;
 const OS_ICON = {
-  macos: "\uD83C\uDF4E",
-  linux: "\uD83D\uDC27",
-  windows: "\uD83E\uDE9F",
-  unknown: "\uD83D\uDCBB",
+  macos: _SVG(
+    '<path d="M17 3H7a4 4 0 0 0-4 4v10a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4V7a4 4 0 0 0-4-4zm-5 2c1.1 0 2 .9 2 2 0 .4-.1.7-.3 1H14a1 1 0 0 1 0 2h-1v5a1 1 0 0 1-2 0v-5H9a1 1 0 0 1 0-2h1.3c-.2-.3-.3-.6-.3-1 0-1.1.9-2 2-2z"/>',
+  ),
+  linux: _SVG(
+    '<path d="M5 19h14v2H5v-2zm2-2h10a1 1 0 0 0 .7-1.7l-5-5a1 1 0 0 0-1.4 0l-5 5A1 1 0 0 0 7 17zm5-4.6 2.9 2.9H9.1L12 12.4z"/>',
+  ),
+  windows: _SVG(
+    '<path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/>',
+  ),
+  unknown: _SVG(
+    '<path d="M21 17H3V5h18v12zM21 3H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/>',
+  ),
 };
 
 let lastMeshData = null;

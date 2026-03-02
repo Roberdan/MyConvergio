@@ -83,7 +83,7 @@ body::after {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--green);
+  background: #00cc55;
   margin-right: 6px;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -91,11 +91,11 @@ body::after {
   0%,
   100% {
     opacity: 1;
-    box-shadow: 0 0 4px var(--green);
+    box-shadow: 0 0 4px #00cc55;
   }
   50% {
     opacity: 0.4;
-    box-shadow: 0 0 12px var(--green);
+    box-shadow: 0 0 12px #00cc55;
   }
 }
 
@@ -429,12 +429,12 @@ body::after {
   flex-shrink: 0;
 }
 .mn-dot.on {
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
+  background: #00cc55;
+  box-shadow: 0 0 6px #00cc55;
   animation: pulse 2s ease-in-out infinite;
 }
 .mn-dot.off {
-  background: var(--red);
+  background: #ee3344;
 }
 .mn-role {
   font-size: 9px;

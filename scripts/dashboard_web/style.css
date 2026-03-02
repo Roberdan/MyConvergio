@@ -153,7 +153,10 @@ body::after {
   color: var(--gold);
 }
 .kpi-card:nth-child(6) .kpi-value {
-  color: var(--green);
+  color: var(--text-dim);
+}
+.kpi-card.alert .kpi-value {
+  color: var(--red);
 }
 .kpi-sub {
   font-size: 10px;

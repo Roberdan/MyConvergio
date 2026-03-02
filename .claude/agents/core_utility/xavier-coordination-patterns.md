@@ -11,6 +11,10 @@ model: sonnet
 version: "2.2.0"
 memory: user
 maxTurns: 20
+maturity: stable
+providers:
+  - claude
+constraints: ["Reference module — coordination patterns"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

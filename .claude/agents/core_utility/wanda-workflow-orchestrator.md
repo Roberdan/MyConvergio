@@ -11,6 +11,10 @@ model: sonnet
 version: "2.2.0"
 memory: user
 maxTurns: 20
+maturity: stable
+providers:
+  - claude
+constraints: ["Read-only — orchestrates via Task tool"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

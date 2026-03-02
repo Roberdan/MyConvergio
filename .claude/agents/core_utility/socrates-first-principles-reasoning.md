@@ -11,6 +11,10 @@ model: sonnet
 version: "1.2.0"
 memory: user
 maxTurns: 20
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — advisory analysis"]
 ---
 
 <!-- Operates under CONSTITUTION.md | CommonValuesAndPrinciples.md -->

@@ -13,6 +13,10 @@ tools:
   - Task
 maxTurns: 50
 context_isolation: true
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 # Deep Repository Auditor

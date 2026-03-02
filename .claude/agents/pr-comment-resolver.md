@@ -11,6 +11,10 @@ tools:
   - Glob
   - Grep
 maxTurns: 30
+maturity: preview
+providers:
+  - claude
+constraints: ["Modifies files within assigned domain"]
 ---
 
 # PR Comment Resolver

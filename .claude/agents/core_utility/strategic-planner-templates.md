@@ -2,6 +2,10 @@
 name: strategic-planner-templates
 description: Plan document templates for strategic-planner. Reference module.
 version: "2.0.0"
+maturity: stable
+providers:
+  - claude
+constraints: ["Reference module — plan templates"]
 ---
 
 # Strategic Planner Templates
@@ -18,7 +22,7 @@ version: "2.0.0"
 
 ---
 
-## 📊 PROGRESS DASHBOARD
+## PROGRESS DASHBOARD
 
 **Overall**: ████████░░░░░░░░░░░░ **X%** (X/Y tasks)
 **Elapsed**: Xh Xm | **Started**: [HH:MM TZ]
@@ -40,27 +44,17 @@ version: "2.0.0"
 ---
 
 ## OPERATING INSTRUCTIONS
-> Update at every completed step:
-> 1. Update status (`⬜` → `✅✅`)
-> 2. Add completion timestamp
-> 3. Save the file
-> 4. Use shell for time: `date +"%Y-%m-%d %H:%M %Z"`
+> 1. Update status (`⬜` → `✅✅`)  2. Add completion timestamp  3. Save  4. `date +"%Y-%m-%d %H:%M %Z"`
 
 ---
 
 ## PROGRESS STATUS
-**Last update**: [YYYY-MM-DD HH:MM TZ]
-**Current wave**: [WAVE X]
-**Total progress**: [X/Y tasks (Z%)]
+**Last update**: [YYYY-MM-DD HH:MM TZ] | **Current wave**: [WAVE X] | **Total**: [X/Y tasks (Z%)]
 
 ### WAVE 0 - Prerequisites
 | Status | ID | Task | Assignee | Est | Started | Ended | Actual |
 |:------:|-----|------|----------|:---:|---------|-------|:------:|
 | ⬜ | W0A | [Task] | **CLAUDE 2** | 1h | | | |
-
-**Wave 0 Status**: X/Y completed
-
----
 
 ### WAVE FINAL - Documentation & Deployment (MANDATORY)
 | Status | ID | Task | Assignee | Est | Started | Ended | Actual |
@@ -76,23 +70,16 @@ version: "2.0.0"
 
 ---
 
-## 📋 ISSUE TRACKING
-
+## ISSUE TRACKING
 | Issue | Title | Tasks | Progress | Owner | Started | Ended | Time |
 |:-----:|-------|:-----:|----------|:-----:|---------|-------|:----:|
 | #XX | [Issue title] | T-01, T-02 | ████░░░░░░ 40% | C2 | 10:00 | - | 1h+ |
 
----
-
-## 📊 TIME STATISTICS
-
-### Estimated vs Actual
+## TIME STATISTICS
 | Phase | Estimated | Actual | Variance |
 |-------|:---------:|:------:|:--------:|
 | Wave 0 | Xh | Yh | +Z% |
 | **TOTAL** | **Xh** | **Yh** | **+Z%** |
-
----
 
 ## SUMMARY BY WAVE
 | Wave | Description | Tasks | Done | Status |
@@ -100,30 +87,22 @@ version: "2.0.0"
 | W0 | Prerequisites | X | Y | Z% |
 | **TOTAL** | | **X** | **Y** | **Z%** |
 
----
-
 ## ADRs (Architecture Decision Records)
 [Document all significant decisions]
-
----
 
 ## COMMIT HISTORY
 | Date | Commit | Wave | Description |
 |------|--------|:----:|-------------|
-
----
 
 ## RISK REGISTER
 | ID | Risk | Impact | Probability | Mitigation |
 |----|------|:------:|:-----------:|------------|
 ```
 
----
-
-## 🎭 CLAUDE ROLES TABLE
+## Claude Roles Table
 
 ```markdown
-## 🎭 CLAUDE ROLES
+## CLAUDE ROLES
 
 | Claude | Role | Assigned Tasks | Files (NO OVERLAP!) |
 |--------|------|----------------|---------------------|
@@ -135,9 +114,7 @@ version: "2.0.0"
 > **MAX 4 CLAUDE** - Beyond becomes unmanageable
 ```
 
----
-
-## 📊 EXECUTION TRACKER TABLE
+## Execution Tracker Table
 
 ```markdown
 ### Phase X: [Name] — 0/N [BLOCKS/Parallel with...]
@@ -149,11 +126,9 @@ version: "2.0.0"
 | ✅ | T-03 | [Description] | **CLAUDE 2** | #XX | 1h | 2025-01-01 09:00 | 2025-01-01 09:45 | 45m |
 ```
 
----
+## Task Test Criteria (TDD — MANDATORY)
 
-## 🧪 TASK TEST CRITERIA (TDD - MANDATORY)
-
-Every task MUST include test_criteria. Task-executor writes tests BEFORE implementation.
+Every task MUST include test_criteria. Tests written BEFORE implementation.
 
 ```markdown
 ### T-01: [Task Title]
@@ -170,14 +145,9 @@ Every task MUST include test_criteria. Task-executor writes tests BEFORE impleme
 **Acceptance**: All tests GREEN before marking done.
 ```
 
-**Quick Reference - Test Types:**
-- **unit**: Isolated component/function, mock externals
-- **integration**: Multiple units together, real DB/services
-- **e2e**: Full user journey, browser automation
+**Test Types**: unit (isolated, mock externals) | integration (real DB/services) | e2e (browser automation)
 
----
-
-## ADR TEMPLATE
+## ADR Template
 
 ```markdown
 ## ADR-XXX: [Decision Title]
@@ -189,24 +159,15 @@ Every task MUST include test_criteria. Task-executor writes tests BEFORE impleme
 | **Deciders** | [Names] |
 
 **Context**: [Why is this decision needed?]
-
 **Decision**: [What was decided]
-
 **Rationale**: [Why this option was chosen]
-
-**Consequences**:
-- (+) [Positive outcomes]
-- (-) [Trade-offs]
+**Consequences**: (+) [Positive] | (-) [Trade-offs]
 ```
 
----
-
-## 🚨 NON-NEGOTIABLE RULES
-
-Include in every multi-Claude plan:
+## Non-Negotiable Rules
 
 ```markdown
-## 🚨 NON-NEGOTIABLE CODING RULES
+## NON-NEGOTIABLE CODING RULES
 
 ### Zero Tolerance
 Zero tolerance for: bullshit, tech debt, errors, warnings, forgotten TODOs, console.logs, commented code, temp files. If wrong, FIX IT NOW.
@@ -231,8 +192,6 @@ npm run build       # MUST build successfully
 ### Engineering Fundamentals (MANDATORY)
 Apply ISE: https://microsoft.github.io/code-with-engineering-playbook/
 ```
-
----
 
 ## Changelog
 

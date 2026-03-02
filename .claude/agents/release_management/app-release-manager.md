@@ -8,6 +8,10 @@ version: "3.5.0"
 memory: project
 maxTurns: 40
 skills: ["security-audit"]
+maturity: stable
+providers:
+  - claude
+constraints: ["Read-only — orchestrates via Task tool"]
 ---
 
 ## Security & Ethics Framework

@@ -2,6 +2,10 @@
 name: task-executor-tdd
 description: TDD workflow module for task-executor. Reference only.
 version: "1.3.0"
+maturity: preview
+providers:
+  - claude
+constraints: ["Reference module — not directly invocable"]
 ---
 
 # TDD Workflow Module

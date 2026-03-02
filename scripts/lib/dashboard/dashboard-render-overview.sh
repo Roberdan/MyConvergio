@@ -102,4 +102,10 @@ SELECT
 
 	echo -e "${GRAY}Usa ${WHITE}piani -h${GRAY} per opzioni${NC}"
 	echo ""
+
+	# Mesh network mini-preview (if module loaded)
+	if type _render_mesh_mini &>/dev/null; then
+		_render_mesh_mini
+		echo ""
+	fi
 }

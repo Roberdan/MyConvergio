@@ -2,10 +2,11 @@
 # Interactive dashboard navigation (view stack + digit input)
 # Version: 1.1.0
 
-# View state: "main", "completed", "detail"
+# View state: "main", "completed", "detail", "mesh"
 VIEW_MODE="main"
 VIEW_PLAN_ID=""
 INPUT_BUF=""
+MESH_REFRESH=10
 
 _status_bar() {
 	local now
@@ -13,13 +14,16 @@ _status_bar() {
 	echo -e "${GRAY}Aggiornato: ${WHITE}$now${NC}"
 	case "$VIEW_MODE" in
 	main)
-		printf "${GRAY}[${WHITE}R${GRAY}]efresh [${WHITE}C${GRAY}]ompletati [${WHITE}Q${GRAY}]uit [${WHITE}P${GRAY}]ush [${WHITE}L${GRAY}]inux ${GRAY}| ${WHITE}<num>${GRAY}+Enter=piano${NC}"
+		printf "${GRAY}[${WHITE}R${GRAY}]efresh [${WHITE}C${GRAY}]ompletati [${WHITE}M${GRAY}]esh [${WHITE}Q${GRAY}]uit [${WHITE}P${GRAY}]ush [${WHITE}L${GRAY}]inux ${GRAY}| ${WHITE}<num>${GRAY}+Enter=piano${NC}"
 		;;
 	completed)
 		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}Q${GRAY}]uit ${GRAY}| ${WHITE}<num>${GRAY}+Enter=piano${NC}"
 		;;
 	detail)
 		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}Q${GRAY}]uit ${GRAY}| ${WHITE}<num>${GRAY}+Enter=altro piano${NC}"
+		;;
+	mesh)
+		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}Q${GRAY}]uit${NC}"
 		;;
 	esac
 }
@@ -44,6 +48,10 @@ _render_current_view() {
 		PLAN_ID="$VIEW_PLAN_ID"
 		EXPAND_COMPLETED=1
 		_render_single_plan
+		;;
+	mesh)
+		_mesh_collect_data
+		_render_mesh_detail
 		;;
 	esac
 }
@@ -107,20 +115,25 @@ _run_interactive_loop() {
 		_status_bar
 		echo ""
 		key=""
-		read -t "$REFRESH_INTERVAL" -n 1 key 2>/dev/null || true
+		local timeout="$REFRESH_INTERVAL"
+		[[ "$VIEW_MODE" == "mesh" ]] && timeout="$MESH_REFRESH"
+		read -t "$timeout" -n 1 key 2>/dev/null || true
 		case "$key" in
 		q | Q)
 			echo -e "\n${YELLOW}Dashboard terminata.${NC}"
 			exit 0
 			;;
 		b | B)
-			if [[ "$VIEW_MODE" == "detail" || "$VIEW_MODE" == "completed" ]]; then
+			if [[ "$VIEW_MODE" == "detail" || "$VIEW_MODE" == "completed" || "$VIEW_MODE" == "mesh" ]]; then
 				VIEW_MODE="main"
 				VIEW_PLAN_ID=""
 			fi
 			;;
 		c | C)
 			[[ "$VIEW_MODE" == "main" ]] && VIEW_MODE="completed"
+			;;
+		m | M)
+			[[ "$VIEW_MODE" == "main" ]] && VIEW_MODE="mesh"
 			;;
 		r | R) ;;
 		p | P)

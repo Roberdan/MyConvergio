@@ -16,6 +16,8 @@ DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
 . "$DASHBOARD_LIB/dashboard-render-pipeline-plans.sh"
 . "$DASHBOARD_LIB/dashboard-render-completed-plans.sh"
 . "$DASHBOARD_LIB/dashboard-render-overview.sh"
+. "$DASHBOARD_LIB/dashboard-render-mesh.sh"
+. "$DASHBOARD_LIB/dashboard-render-mesh-detail.sh" 2>/dev/null || true
 . "$DASHBOARD_LIB/dashboard-navigation.sh"
 
 cmd_waves() {

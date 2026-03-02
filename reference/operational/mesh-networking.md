@@ -121,6 +121,7 @@ ssh peer "cd ~/.claude && git fetch /tmp/incr.bundle main:refs/remotes/bundle/ma
 | `mesh-load-query.sh`  | `[--json] [--peer NAME]`                                       | Query CPU load + task state across online peers |
 | `mesh-heartbeat.sh`   | `start \| stop \| status`                                      | Liveness daemon writing heartbeats every 30s    |
 | `mesh-auth-sync.sh`   | `push \| status [--peer NAME \| --all]`                        | Sync credentials from master to peers           |
+| `mesh-migrate.sh`     | `<plan_id> <peer> [--dry-run] [--no-launch]`                   | Migrate running plan to another peer (rsync+DB) |
 | `mesh-discover.sh`    | `[--deep]`                                                     | Discover Tailscale peers, tool versions, repos  |
 | `lib/peers.sh`        | sourced library                                                | Peer discovery, routing, connectivity checks    |
 | `lib/mesh-scoring.sh` | sourced library                                                | Peer scoring functions (cost/load/privacy)      |
@@ -278,3 +279,41 @@ Credentials synced (via SSH/SCP, no plaintext temp files):
 | `gh: command not found` via SSH                 | Non-login shell missing Homebrew PATH       | `mesh-sync-all.sh` auto-prepends PATH; for manual SSH: `export PATH="/opt/homebrew/bin:$PATH"` |
 | VirtualBPM pull fails on peer                   | `gh auth` wrong account or expired          | SSH into peer: `export PATH=...; gh auth status; gh auth switch --user roberdan_microsoft` |
 | Git bundle merge fails (local changes)          | SCP'd files diverge from git state          | `ssh peer "cd ~/.claude && git checkout -- <file>"` then retry bundle merge |
+
+## Live Plan Migration
+
+Migrate a running plan to another mesh peer in one command:
+
+```bash
+mesh-migrate.sh <plan_id> <peer_name> [--dry-run] [--no-launch]
+```
+
+**5 phases** (automatic, with rollback on failure):
+
+| Phase | What | Rollback |
+|---|---|---|
+| 1. Pre-flight | Target online, tool versions, disk, plan valid | Abort |
+| 2. rsync | Full-folder sync (~/.claude + repos from repos.conf) | Idempotent |
+| 3. DB migrate | WAL checkpoint → copy → integrity check → path remap → claim transfer | Restore backup |
+| 4. Auto-launch | tmux session on target runs `claude -p "/execute <id>"` | Manual /execute |
+| 5. Report | Summary table | — |
+
+**Prerequisites on target peer:**
+
+1. SSH access configured (Tailscale or direct)
+2. Claude CLI installed + authenticated (`claude setup-token`)
+3. tmux installed (`brew install tmux`)
+4. No-sleep configured (`sudo pmset -a sleep 0` + LaunchDaemon)
+
+**First-time setup for a new peer:**
+
+```bash
+# From coordinator (m3max):
+mesh-env-setup.sh --full           # Install tools on peer
+mesh-auth-sync.sh push --peer NAME # Push credentials
+mesh-sync-all.sh --peer NAME       # Sync config + repos
+# On peer: claude setup-token      # OAuth token (1 year validity)
+# On peer: sudo pmset -a sleep 0 displaysleep 0 standby 0  # No sleep
+```
+
+**Task status during migration**: `done` stays done, `in_progress` resets to `pending`, `pending` unchanged.

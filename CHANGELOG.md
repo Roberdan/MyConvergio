@@ -1,5 +1,36 @@
 # Changelog
 
+## [2026-03-02] — Mesh Dashboard Visualization + Live Plan Migration
+
+### Added
+
+- **Plan 300**: `dashboard-render-mesh.sh` + `dashboard-render-mesh-detail.sh` — htop-style mesh network visualization in mini dashboard (32/32 tests)
+- **Plan 301**: `mesh-migrate.sh` — single-command live plan migration between mesh peers (26/26 tests). Executed remotely on m1mario via Claude Code over SSH/Tailscale as proof-of-concept
+- `config/mesh-rsync-exclude.txt`: rsync exclusion patterns for full-folder sync
+- `scripts/lib/mesh-migrate-sync.sh`: preflight checks + rsync functions
+- `scripts/lib/mesh-migrate-db.sh`: DB WAL checkpoint, copy, path remap, plan claim transfer, rollback
+- `tests/test-mesh-dashboard.sh`, `tests/test-mesh-migrate.sh`: 58 tests total
+- ADR-0030: Mesh Dashboard + Migration architecture decision
+- Permanent no-sleep on m1mario: `pmset` + LaunchDaemon `com.mesh.nosleep`
+- Claude OAuth token on m1mario for headless execution
+
+### Changed
+
+- `dashboard-render-overview.sh`: mesh mini-preview moved above active plans (always visible)
+- `dashboard-navigation.sh`: `M` key for mesh detail view, 10s refresh in mesh mode
+
+### How to use
+
+```bash
+piani                              # Dashboard with mesh preview
+# Press M for full mesh topology, B to go back
+
+mesh-migrate.sh 300 omarchy        # Migrate plan 300 to omarchy
+mesh-migrate.sh 300 m1mario --dry-run  # Preview without executing
+```
+
+---
+
 ## [2026-03-02] — Fix planner model ID + centralized model config
 
 ### Added

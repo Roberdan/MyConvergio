@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-03-02] — Fix planner model ID + centralized model config
+
+### Added
+
+- `config/models.yaml` v1.0.0: single source of truth for all model IDs (Claude Code aliases + Copilot full IDs)
+- `scripts/model-update.sh` v1.0.0: batch-updates all Copilot agent model IDs from `models.yaml` (`--dry-run` supported)
+
+### Fixed
+
+- `commands/planner.md`: `model: claude-opus-4.6` (invalid API ID) → `model: opus` (alias — auto-resolves to latest Opus)
+- `CLAUDE.md`, `AGENTS.md`, `execution-optimization.md`: hardcoded model IDs → alias references
+
+### Notes
+
+Claude Code uses short aliases (`opus`, `sonnet`, `haiku`) that auto-resolve — no update needed on model releases. Copilot agents need full IDs — run `model-update.sh` after editing `models.yaml`.
+
+---
+
 ## [2026-03-01] — Environment + Documentation (Plan 297 W4)
 
 ### Added

@@ -165,7 +165,7 @@ Max 250 lines/file (Thor Gate 3). Why: agents lose context, merge conflicts mult
 
 Mandatory: `/prompt` → F-xx extract → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task → Thor per-wave → closure
 
-**PLANNER MODEL (NON-NEGOTIABLE)**: `/planner` (Claude Code) e `@planner` (Copilot CLI) DEVONO sempre usare `claude-opus-4.6` / `claude-opus-4.6-1m`. Qualsiasi altro modello per la pianificazione = VIOLATION (Plan 289 cancellato per questo motivo).
+**PLANNER MODEL (NON-NEGOTIABLE)**: `/planner` (Claude Code: `model: opus` alias) e `@planner` (Copilot CLI: `claude-opus-4.6-1m` full ID) DEVONO sempre usare Opus. Qualsiasi altro modello per la pianificazione = VIOLATION (Plan 289 cancellato per questo motivo).
 
 **Anti-bypass**: NEVER execute plan tasks via direct file edits. Active plan = tasks through `Task(subagent_type='task-executor')`. Why: Plan 182.
 

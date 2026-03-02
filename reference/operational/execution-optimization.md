@@ -35,10 +35,10 @@ Token tracking is **automatic** at `validate-task` time: `tasks.tokens` is popul
 
 | Agent Type                 | Default                         | Escalation Rule                                          |
 | -------------------------- | ------------------------------- | -------------------------------------------------------- |
-| Task Executor              | `gpt-5.3-codex` (GPT-5.3-Codex) | → `claude-opus-4.6` if cross-cutting or architectural    |
-| Coordinator (Standard)     | `claude-sonnet-4.6` (`sonnet`)  | → `claude-opus-4.6` (`opus`) if >3 concurrent tasks      |
-| Coordinator (Max Parallel) | `claude-opus-4.6` (`opus`)      | Required for unlimited parallelization                   |
-| Coordinator (Agent Teams)  | `claude-sonnet-4.6` (`sonnet`)  | → `claude-opus-4.6` (`opus`) for large team coordination |
+| Task Executor              | `gpt-5.3-codex` (GPT-5.3-Codex) | → `opus` if cross-cutting or architectural               |
+| Coordinator (Standard)     | `sonnet`                         | → `opus` if >3 concurrent tasks                          |
+| Coordinator (Max Parallel) | `opus`                           | Required for unlimited parallelization                   |
+| Coordinator (Agent Teams)  | `sonnet`                         | → `opus` for large team coordination                     |
 | Validator (Thor)           | `claude-sonnet-4.6` (`sonnet`)  | No escalation                                            |
 
 **Model naming note**:

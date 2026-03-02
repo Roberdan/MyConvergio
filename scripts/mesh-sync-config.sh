@@ -128,4 +128,4 @@ while IFS='|' read -r name ssh_alias user; do
 done < <(parse_peers)
 
 echo "Summary: $SYNCED synced, $FAILED offline, $SKIPPED skipped"
-$DRY_RUN && echo "(dry-run — no files transferred)"
+if $DRY_RUN; then echo "(dry-run — no files transferred)"; fi

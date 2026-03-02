@@ -495,22 +495,25 @@ class Handler(SimpleHTTPRequestHandler):
         SCRIPTS = Path.home() / ".claude" / "scripts"
         action = qs.get("action", [""])[0]
         peer = qs.get("peer", [""])[0]
+        is_all = peer == "__all__"
+        peer_flag = "" if is_all else f"--peer {peer}"
         cmds = {
-            "sync": f"{SCRIPTS}/mesh-sync-all.sh --peer {peer}",
+            "sync": f"{SCRIPTS}/mesh-sync-all.sh {peer_flag}",
             "heartbeat": f"{SCRIPTS}/mesh-heartbeat.sh status",
-            "auth": f"{SCRIPTS}/mesh-auth-sync.sh push --peer {peer}",
-            "status": f"{SCRIPTS}/mesh-load-query.sh --peer {peer} --json",
+            "auth": f"{SCRIPTS}/mesh-auth-sync.sh push {'--all' if is_all else f'--peer {peer}'}",
+            "status": f"{SCRIPTS}/mesh-load-query.sh {'--json' if is_all else f'--peer {peer} --json'}",
         }
         cmd = cmds.get(action)
         if not cmd or not peer:
             return {"error": "invalid action or peer", "output": ""}
+        timeout = 120 if is_all else 30
         try:
             r = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=30
+                cmd, shell=True, capture_output=True, text=True, timeout=timeout
             )
             return {"output": r.stdout + r.stderr, "exit_code": r.returncode}
         except subprocess.TimeoutExpired:
-            return {"output": "Timeout (30s)", "exit_code": 1}
+            return {"output": f"Timeout ({timeout}s)", "exit_code": 1}
 
     def _handle_terminal(self, qs: dict) -> dict:
         cmd = qs.get("cmd", [""])[0]

@@ -455,7 +455,17 @@ function renderMeshStrip(peers) {
       });
     }
 
-    html += `<div class="${cls}" data-peer="${esc(p.peer_name)}" onclick="showPeerActions(this,'${esc(p.peer_name)}')">
+    const actionsHtml = p.is_online
+      ? `<div class="mn-actions">
+      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="terminal" title="Terminal">\u25B6</button>
+      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="sync" title="Sync Config">\u27F3</button>
+      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="heartbeat" title="Heartbeat">\u2661</button>
+      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="auth" title="Push Auth">\u26BF</button>
+      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="status" title="Status">\u24D8</button>
+      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="movehere" title="Move Plan Here">\u21E8</button>
+    </div>`
+      : "";
+    html += `<div class="${cls}" data-peer="${esc(p.peer_name)}">
       <div class="mn-top">
         <span class="mn-os">${icon}</span>
         <span class="mn-name">${esc(p.peer_name)}</span>
@@ -465,6 +475,7 @@ function renderMeshStrip(peers) {
       <div class="mn-caps">${caps.map((c) => `<span class="mn-cap${c === "ollama" ? " accent" : ""}">${c}</span>`).join("")}</div>
       ${p.is_online ? `<div class="mn-stats">${p.active_tasks} tasks \u00B7 CPU ${Math.round(p.cpu)}%</div><div class="mn-load-bar"><div class="mn-load-fill" style="width:${loadPct}%;background:${loadColor}"></div></div>` : '<div class="mn-stats offline-text">No heartbeat</div>'}
       ${planHtml}
+      ${actionsHtml}
     </div>`;
     if (i < ordered.length - 1) {
       const bothOn = p.is_online && ordered[i + 1].is_online;

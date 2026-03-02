@@ -81,20 +81,15 @@ def test_css_mn_actions_exists():
     assert ".mn-actions" in src, ".mn-actions must be defined in style.css"
 
 
-def test_css_mn_actions_position_absolute():
+def test_css_mn_actions_horizontal_layout():
+    """User directive: horizontal always-visible icons (not vertical absolute)."""
     src = read("style.css")
-    # Find .mn-actions block
     idx = src.find(".mn-actions")
     assert idx >= 0
     snippet = src[idx : idx + 300]
-    assert "absolute" in snippet, ".mn-actions must use position: absolute"
-
-
-def test_css_mn_actions_flex_column():
-    src = read("style.css")
-    idx = src.find(".mn-actions")
-    snippet = src[idx : idx + 300]
-    assert "column" in snippet, ".mn-actions must use flex-direction: column"
+    assert (
+        "justify-content" in snippet
+    ), ".mn-actions must use justify-content (horizontal)"
 
 
 def test_css_mn_act_btn_exists():
@@ -105,8 +100,8 @@ def test_css_mn_act_btn_exists():
 def test_css_mn_act_btn_size():
     src = read("style.css")
     idx = src.find(".mn-act-btn")
-    snippet = src[idx : idx + 300]
-    assert "22" in snippet, ".mn-act-btn must be 22px wide/high"
+    snippet = src[idx : idx + 200]
+    assert "24px" in snippet, ".mn-act-btn must be 24px wide/high (user directive)"
 
 
 # --- app.js: functions moved out ---

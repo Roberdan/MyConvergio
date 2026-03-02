@@ -267,12 +267,12 @@ class TerminalManager {
       <div class="term-header" id="term-drag-handle">
         <div class="term-tabs" id="term-tabs"></div>
         <div class="term-controls">
-          <button class="term-ctrl-btn" onclick="termMgr.open()" title="New local terminal">+</button>
-          <button class="term-ctrl-btn" onclick="termMgr.setMode('dock')" title="Dock bottom">\u25C1</button>
-          <button class="term-ctrl-btn" onclick="termMgr.setMode('float')" title="Floating window">\u25A1</button>
-          <button class="term-ctrl-btn" onclick="termMgr.setMode('grid')" title="Grid view">\u229E</button>
-          <button class="term-ctrl-btn" onclick="termMgr.setMode('full')" title="Fullscreen">\u2B1C</button>
-          <button class="term-ctrl-btn term-ctrl-close" onclick="termMgr.close()" title="Close all">\u2715</button>
+          <button class="term-ctrl-btn" onclick="termMgr.open()" title="New local terminal"><svg viewBox="0 0 16 16" width="13" height="13"><path d="M8 3v10M3 8h10"/></svg></button>
+          <button class="term-ctrl-btn" onclick="termMgr.setMode('dock')" title="Dock bottom"><svg viewBox="0 0 16 16" width="13" height="13"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 10h12"/></svg></button>
+          <button class="term-ctrl-btn" onclick="termMgr.setMode('float')" title="Floating window"><svg viewBox="0 0 16 16" width="13" height="13"><rect x="1" y="3" width="10" height="10" rx="1.5"/><path d="M5 3V2.5A1.5 1.5 0 016.5 1H13.5A1.5 1.5 0 0115 2.5v7a1.5 1.5 0 01-1.5 1.5H13"/></svg></button>
+          <button class="term-ctrl-btn" onclick="termMgr.setMode('grid')" title="Grid view"><svg viewBox="0 0 16 16" width="13" height="13"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg></button>
+          <button class="term-ctrl-btn" onclick="termMgr.setMode('full')" title="Fullscreen"><svg viewBox="0 0 16 16" width="13" height="13"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
+          <button class="term-ctrl-btn term-ctrl-close" onclick="termMgr.close()" title="Close all"><svg viewBox="0 0 16 16" width="13" height="13"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
         </div>
       </div>
       <div class="term-body" id="term-body"></div>

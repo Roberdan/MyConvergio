@@ -12,6 +12,14 @@ window.meshAction = async function (action, peer) {
     showMovePlanDialog(peer);
     return;
   }
+  if (peer === "__all__") {
+    const res = await fetchJson(
+      `/api/mesh/action?action=${action}&peer=__all__`,
+    );
+    if (res && res.output) showOutputModal("Sync All Peers", res.output);
+    if (typeof refreshAll === "function") refreshAll();
+    return;
+  }
   const res = await fetchJson(
     `/api/mesh/action?action=${action}&peer=${encodeURIComponent(peer)}`,
   );
@@ -77,6 +85,61 @@ window.movePlan = async function (planId, target, overlay) {
   }
 };
 
+function ansiToHtml(raw) {
+  if (!raw) return "";
+  const colorMap = {
+    30: "#0a0e1a",
+    31: "#ff3355",
+    32: "#00ff88",
+    33: "#ffb700",
+    34: "#00e5ff",
+    35: "#ff2daa",
+    36: "#00e5ff",
+    37: "#c8d0e8",
+    90: "#5a6080",
+    91: "#ff5577",
+    92: "#33ff99",
+    93: "#ffd044",
+    94: "#44eeff",
+    95: "#ff55cc",
+    96: "#44eeff",
+    97: "#e0e4f0",
+  };
+  const esc = (s) => {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  };
+  let html = "";
+  let open = false;
+  const parts = raw.split(/(\x1b\[[0-9;]*m)/);
+  for (const part of parts) {
+    const m = part.match(/^\x1b\[([0-9;]*)m$/);
+    if (m) {
+      const codes = m[1].split(";");
+      if (codes.includes("0") || m[1] === "") {
+        if (open) html += "</span>";
+        open = false;
+      } else {
+        if (open) html += "</span>";
+        let color = null;
+        let bold = false;
+        for (const c of codes) {
+          if (c === "1") bold = true;
+          if (colorMap[c]) color = colorMap[c];
+        }
+        if (color) {
+          html += `<span style="color:${color}${bold ? ";font-weight:600" : ""}">`;
+          open = true;
+        }
+      }
+    } else {
+      html += esc(part);
+    }
+  }
+  if (open) html += "</span>";
+  return html;
+}
 window.showOutputModal = function (title, text) {
   const esc = (s) => {
     const d = document.createElement("div");
@@ -85,9 +148,11 @@ window.showOutputModal = function (title, text) {
   };
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
+  const hasAnsi = /\x1b\[/.test(text);
+  const body = hasAnsi ? ansiToHtml(text) : esc(text);
   overlay.innerHTML = `<div class="modal-box">
     <div class="modal-title">${esc(title)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">\u2715</span></div>
-    <pre class="modal-output">${esc(text)}</pre>
+    <pre class="modal-output">${body}</pre>
   </div>`;
   document.body.appendChild(overlay);
   overlay.addEventListener("click", (e) => {

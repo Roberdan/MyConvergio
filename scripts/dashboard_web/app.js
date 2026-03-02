@@ -35,20 +35,19 @@ function statusColor(s) {
   return m[s] || "#5a6080";
 }
 
-function statusIcon(s) {
-  return (
+function statusDot(s) {
+  const cls =
     {
-      done: "✓",
-      in_progress: "⚡",
-      submitted: "◈",
-      blocked: "✗",
-      pending: "○",
-      cancelled: "✗",
-      skipped: "—",
-    }[s] || "?"
-  );
+      done: "dot-done",
+      in_progress: "dot-active",
+      submitted: "dot-submitted",
+      blocked: "dot-blocked",
+      pending: "dot-pending",
+      cancelled: "dot-cancelled",
+      skipped: "dot-skipped",
+    }[s] || "dot-pending";
+  return `<span class="status-dot ${cls}"></span>`;
 }
-
 function thorIcon(validated) {
   const color = validated ? "#00cc55" : "#ee3344";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${color}" style="vertical-align:-2px" title="${validated ? "Thor validated" : "Not validated"}"><path d="M12 1L8 5v3H5l-2 4h4l-3 11h2l7-9H9l3-5h5l3-4h-4l1-4h-5z"/></svg>`;
@@ -72,11 +71,21 @@ async function refreshAll() {
     fetchJson("/api/history"),
     fetchJson("/api/tasks/distribution"),
   ]);
-  if (ov) renderKpi(ov);
+  if (ov) {
+    ov.mesh_online = mesh ? mesh.filter((p) => p.is_online).length : 0;
+    ov.mesh_total = mesh ? mesh.length : 0;
+    renderKpi(ov);
+  }
   renderMission(mission);
   if (daily) renderTokenChart(daily);
   if (models) renderModelChart(models);
-  if (mesh) renderMeshStrip(mesh);
+  if (mesh) {
+    renderMeshStrip(mesh);
+    fetch("/api/mesh/sync-status")
+      .then((r) => r.json())
+      .then(applyMeshSyncBadges)
+      .catch(() => null);
+  }
   if (history) renderHistory(history);
   if (dist) renderDist(dist);
   renderActivity(mission, mesh);
@@ -84,63 +93,95 @@ async function refreshAll() {
 }
 
 // --- KPI ---
-function _kpiCard(label, value, sub, fn, alert) {
-  return `<div class="kpi-card${alert ? " alert" : ""}" onclick="${fn}"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${sub ? `<div class="kpi-sub">${sub}</div>` : ""}</div>`;
+function _kpiCard(label, value, sub, target, alert) {
+  return `<div class="kpi-card${alert ? " alert" : ""}" onclick="scrollToWidget('${target}')"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${sub ? `<div class="kpi-sub">${sub}</div>` : ""}</div>`;
 }
+window.scrollToWidget = function (id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  el.classList.add("widget-flash");
+  setTimeout(() => el.classList.remove("widget-flash"), 1200);
+};
 function renderKpi(d) {
-  const tc =
-    "$" +
-    Number(d.total_cost).toLocaleString(undefined, {
-      maximumFractionDigits: 0,
-    });
+  const online = d.mesh_online || 0;
+  const total = d.mesh_total || 0;
   $("#kpi-bar").innerHTML =
+    _kpiCard("Active", d.plans_active, "plans running", "mission-panel") +
     _kpiCard(
       "Plans",
       d.plans_total,
       `${d.plans_active} active`,
-      "openPlansModal()",
+      "history-widget",
     ) +
-    _kpiCard("Active", d.plans_active, "", "openActiveModal()") +
-    _kpiCard("Agents", d.agents_running, "running", "openAgentsModal()") +
+    _kpiCard("Mesh", `${online}/${total}`, "nodes online", "mesh-panel") +
     _kpiCard(
       "Tokens",
       fmt(d.total_tokens),
       `Today: ${fmt(d.today_tokens)}`,
-      "openTokensModal()",
+      "widget-tokens",
     ) +
-    _kpiCard(
-      "Cost",
-      tc,
-      `Today: $${Number(d.today_cost).toFixed(2)}`,
-      "openCostModal()",
-    ) +
-    _kpiCard("Blocked", d.blocked, "", "openBlockedModal()", d.blocked > 0);
+    _kpiCard("Blocked", d.blocked, "", "task-pipeline-widget", d.blocked > 0);
 }
 
 // --- MISSION ---
-function renderMission(data) {
-  lastMissionData = data;
-  if (!data || !data.plan) {
-    $("#mission-content").innerHTML =
-      '<span style="color:#5a6080">No active mission</span>';
-    $("#task-table tbody").innerHTML = "";
-    return;
-  }
-  const p = data.plan;
+function _progressRing(pct, size, color) {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+  return `<div class="mission-ring" style="width:${size}px;height:${size}px">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle class="mission-ring-bg" cx="${size / 2}" cy="${size / 2}" r="${r}"/>
+      <circle class="mission-ring-fill" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke="${color}" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/>
+    </svg>
+    <div class="mission-ring-pct" style="color:${color}">${pct}%</div>
+  </div>`;
+}
+function _renderOnePlan(m) {
+  const p = m.plan;
   const pct =
     p.tasks_total > 0 ? Math.round((100 * p.tasks_done) / p.tasks_total) : 0;
-  let html = `<div style="margin-bottom:8px">
-    <span class="mission-id">#${p.id}</span>
-    <span class="mission-name">&nbsp;${esc(p.name)}</span>
-    <span class="badge badge-${p.status}">${p.status.toUpperCase()}</span>
-    ${p.parallel_mode ? `<span class="badge badge-doing">${p.parallel_mode}</span>` : ""}
-  </div>
-  <div class="mission-summary">${esc(p.human_summary || "")}</div>
-  <div class="mission-meta">${p.tasks_done}/${p.tasks_total} tasks · ${pct}% · <span class="host-badge" title="Execution host">⬡ ${esc(p.execution_host || "local")}</span></div>`;
-
-  if (data.waves && data.waves.length) {
-    html += '<div style="margin-top:12px">';
-    data.waves.forEach((w) => {
+  const ringColor =
+    pct >= 100
+      ? "var(--green)"
+      : pct >= 50
+        ? "var(--cyan)"
+        : pct >= 25
+          ? "var(--gold)"
+          : "var(--red)";
+  const doneTasks = p.tasks_done || 0;
+  const totalTasks = p.tasks_total || 0;
+  const blockedCount = (m.tasks || []).filter(
+    (t) => t.status === "blocked",
+  ).length;
+  const inProgCount = (m.tasks || []).filter(
+    (t) => t.status === "in_progress",
+  ).length;
+  let html = `<div class="mission-plan" onclick="filterTasks(${p.id})">
+    <div style="margin-bottom:6px">
+      <span class="mission-id">#${p.id}</span>
+      <span class="mission-name">&nbsp;${esc(p.name)}</span>
+      ${statusDot(p.status === "doing" ? "in_progress" : p.status)}
+      ${p.parallel_mode ? `<span class="badge badge-doing">${p.parallel_mode}</span>` : ""}
+    </div>`;
+  if (p.human_summary) {
+    html += `<div class="mission-summary">${esc(p.human_summary)}</div>`;
+  }
+  html += `<div class="mission-progress">
+    ${_progressRing(pct, 56, ringColor)}
+    <div class="mission-progress-bars">
+      <div class="mission-progress-label"><span>Done ${doneTasks}/${totalTasks}</span><span style="color:var(--cyan)">${pct}%</span></div>
+      <div class="mission-progress-track"><div class="mission-progress-fill" style="width:${pct}%;background:linear-gradient(90deg,${ringColor},var(--cyan))"></div></div>
+      <div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);margin-top:2px">
+        <span>${inProgCount > 0 ? `<span style="color:var(--gold)">${inProgCount} running</span>` : ""}</span>
+        <span>${blockedCount > 0 ? `<span style="color:var(--red)">${blockedCount} blocked</span>` : ""}</span>
+        <span class="host-badge" style="font-size:9px;padding:0 6px">${esc(p.execution_host || "local")}</span>
+      </div>
+    </div>
+  </div>`;
+  if (m.waves && m.waves.length) {
+    html += '<div style="margin-top:8px">';
+    m.waves.forEach((w) => {
       const wp =
         w.tasks_total > 0
           ? Math.round((100 * w.tasks_done) / w.tasks_total)
@@ -152,57 +193,196 @@ function renderMission(data) {
             ? "in_progress"
             : "pending";
       html += `<div class="wave-row">
-        <div class="wave-label">${esc(w.wave_id)} ${esc((w.name || "").substring(0, 16))}</div>
+        <div class="wave-label">${statusDot(w.status)} ${esc(w.wave_id)}</div>
         <div class="wave-bar"><div class="wave-fill ${cls}" style="width:${wp}%"></div></div>
         <div class="wave-pct">${wp}%</div>
-        <div style="margin-left:6px">${thorIcon(w.validated_at)}</div>
+        <div style="margin-left:4px">${thorIcon(w.validated_at)}</div>
       </div>`;
     });
     html += "</div>";
   }
-  $("#mission-content").innerHTML = html;
-
-  // Tasks with click-to-expand
-  const tbody = $("#task-table tbody");
-  tbody.innerHTML = (data.tasks || [])
-    .map(
-      (t, i) =>
-        `<tr onclick="toggleTaskDetail(this,${i})" data-idx="${i}">
-      <td style="color:#00e5ff;font-weight:600">${esc(t.task_id)}</td>
-      <td>${esc((t.title || "—").substring(0, 35))}</td>
-      <td><span style="color:${statusColor(t.status)}">${statusIcon(t.status)}</span> ${t.status}</td>
-      <td style="text-align:center">${thorIcon(t.validated_at)}</td>
-      <td style="color:#5a6080">${esc((t.executor_agent || "—").substring(0, 10))}</td>
-      <td style="color:#5a6080">${esc((t.executor_host || "—").substring(0, 10))}</td>
-      <td style="color:#ffb700">${t.tokens ? fmt(t.tokens) : "—"}</td>
-    </tr>`,
-    )
-    .join("");
+  const liveTasks = (m.tasks || []).filter(
+    (t) => t.status === "in_progress" || t.status === "submitted",
+  );
+  if (liveTasks.length) {
+    html += '<div class="live-flow-section">';
+    liveTasks.forEach((t) => {
+      html += _renderTaskFlow(t);
+    });
+    html += "</div>";
+  }
+  html += "</div>";
+  return { html, tasks: m.tasks || [] };
 }
 
-window.toggleTaskDetail = function (tr, idx) {
+function _renderTaskFlow(t) {
+  const model = _shortModel(t.model || t.executor_agent || "");
+  const agent = t.executor_agent || "";
+  const isClaud = /claude|opus|sonnet|haiku/i.test(agent + model);
+  const isCopilot = /copilot|gpt|codex/i.test(agent + model);
+  const agentLabel = isCopilot ? "Copilot" : isClaud ? "Claude" : agent || "?";
+  const agentCls = isCopilot ? "agent-copilot" : "agent-claude";
+  const steps = [
+    { key: "exec", label: "Execute" },
+    { key: "submit", label: "Submit" },
+    { key: "thor", label: "Thor" },
+    { key: "done", label: "Done" },
+  ];
+  let activeStep = "exec";
+  if (t.status === "submitted") activeStep = "thor";
+  if (t.validated_at) activeStep = "done";
+  return `<div class="task-flow">
+    <div class="task-flow-id">${esc(t.task_id || "")}</div>
+    <div class="task-flow-agent ${agentCls}">
+      <span class="task-flow-agent-icon">${isCopilot ? "&#9883;" : "&#9672;"}</span>
+      ${esc(agentLabel)}${model ? ` <span class="task-flow-model">${esc(model)}</span>` : ""}
+    </div>
+    <div class="task-flow-pipe">
+      ${steps
+        .map((s, i) => {
+          const isActive = s.key === activeStep;
+          const isPast = steps.findIndex((x) => x.key === activeStep) > i;
+          const cls = isActive
+            ? "step-active"
+            : isPast
+              ? "step-done"
+              : "step-pending";
+          return `<div class="flow-step ${cls}">
+          <div class="flow-dot"></div>
+          <div class="flow-label">${s.label}</div>
+        </div>${i < steps.length - 1 ? '<div class="flow-conn ' + (isPast ? "conn-done" : isActive ? "conn-active" : "") + '"></div>' : ""}`;
+        })
+        .join("")}
+    </div>
+  </div>`;
+}
+
+function _shortModel(m) {
+  if (!m) return "";
+  return m
+    .replace("claude-", "")
+    .replace("gpt-", "")
+    .replace("-codex", "")
+    .replace("-fast", "F")
+    .replace("opus-4.6", "opus")
+    .replace("sonnet-4.6", "sonnet")
+    .replace("haiku-4.5", "haiku");
+}
+
+let filteredPlanId = null;
+let allMissionPlans = [];
+
+window.filterTasks = function (planId) {
+  filteredPlanId = planId;
+  renderTaskPipeline();
+};
+
+function renderMission(data) {
+  lastMissionData = data;
+  allMissionPlans =
+    data && data.plans ? data.plans : data && data.plan ? [data] : [];
+  if (!allMissionPlans.length) {
+    $("#mission-content").innerHTML =
+      '<span style="color:#5a6080">No active mission</span>';
+    $("#task-table tbody").innerHTML = "";
+    return;
+  }
+  let html = "";
+  allMissionPlans.forEach((m) => {
+    const r = _renderOnePlan(m);
+    html += r.html;
+  });
+  $("#mission-content").innerHTML = html;
+  renderTaskPipeline();
+}
+
+function renderTaskPipeline() {
+  const tbody = $("#task-table tbody");
+  if (!tbody) return;
+  const filterLabel = $("#task-filter-label");
+  const filterBtn = $("#task-filter-clear");
+  const plans = filteredPlanId
+    ? allMissionPlans.filter((m) => m.plan && m.plan.id === filteredPlanId)
+    : allMissionPlans;
+  if (filterLabel) {
+    filterLabel.textContent = filteredPlanId
+      ? `#${filteredPlanId}`
+      : `${allMissionPlans.length} plans`;
+  }
+  if (filterBtn) filterBtn.style.display = filteredPlanId ? "" : "none";
+  let rows = "";
+  plans.forEach((m) => {
+    const p = m.plan;
+    if (!filteredPlanId && allMissionPlans.length > 1) {
+      rows += `<tr class="task-group-header" onclick="filterTasks(${p.id})"><td colspan="5"><span style="color:var(--cyan);font-weight:600">#${p.id}</span> ${esc((p.name || "").substring(0, 30))}</td></tr>`;
+    }
+    const waves = m.waves || [];
+    const tasks = m.tasks || [];
+    if (waves.length > 0) {
+      waves.forEach((w) => {
+        const waveTasks = tasks.filter((t) => t.wave_id === w.wave_id);
+        if (waveTasks.length === 0) return;
+        const wp =
+          w.tasks_total > 0
+            ? Math.round((100 * w.tasks_done) / w.tasks_total)
+            : 0;
+        rows += `<tr class="task-wave-header"><td colspan="5">${statusDot(w.status)} <span style="color:var(--text)">${esc(w.wave_id)}</span> <span style="color:var(--text-dim)">${esc((w.name || "").substring(0, 20))}</span> <span style="color:var(--cyan);font-size:10px">${wp}%</span> ${thorIcon(w.validated_at)}</td></tr>`;
+        waveTasks.forEach((t) => {
+          rows += _taskRow(t);
+        });
+      });
+      const orphanTasks = tasks.filter(
+        (t) => !waves.some((w) => w.wave_id === t.wave_id),
+      );
+      orphanTasks.forEach((t) => {
+        rows += _taskRow(t);
+      });
+    } else {
+      tasks.forEach((t) => {
+        rows += _taskRow(t);
+      });
+    }
+  });
+  tbody.innerHTML = rows;
+}
+
+function _taskRow(t) {
+  return `<tr onclick="toggleTaskDetail(this)" data-task-id="${esc(t.task_id || "")}">
+    <td style="color:var(--cyan);font-weight:600">${esc(t.task_id || "")}</td>
+    <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((t.title || "\u2014").substring(0, 40))}</td>
+    <td>${statusDot(t.status)} ${thorIcon(t.validated_at)}</td>
+    <td style="color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((t.executor_agent || "\u2014").substring(0, 12))}</td>
+    <td style="color:var(--gold)">${t.tokens ? fmt(t.tokens) : "\u2014"}</td>
+  </tr>`;
+}
+
+window.toggleTaskDetail = function (tr) {
   const next = tr.nextElementSibling;
   if (next && next.classList.contains("task-detail-row")) {
     next.remove();
     tr.classList.remove("expanded");
     return;
   }
-  // Close others
   document.querySelectorAll(".task-detail-row").forEach((r) => r.remove());
   document
     .querySelectorAll(".expanded")
     .forEach((r) => r.classList.remove("expanded"));
-
-  if (!lastMissionData || !lastMissionData.tasks[idx]) return;
-  const t = lastMissionData.tasks[idx];
+  const taskId = tr.dataset.taskId;
+  let t = null;
+  for (const m of allMissionPlans) {
+    t = (m.tasks || []).find((tk) => tk.task_id === taskId);
+    if (t) break;
+  }
+  if (!t) return;
   tr.classList.add("expanded");
   const detailRow = document.createElement("tr");
   detailRow.className = "task-detail-row";
-  detailRow.innerHTML = `<td colspan="7"><div class="task-detail">
-    <strong style="color:#00e5ff">${esc(t.task_id)}</strong> — ${esc(t.title || "")}
+  detailRow.innerHTML = `<td colspan="5"><div class="task-detail">
+    <strong style="color:var(--cyan)">${esc(t.task_id)}</strong> — ${esc(t.title || "")}
     <br>Status: <span style="color:${statusColor(t.status)}">${t.status}</span>
-    · Agent: ${esc(t.executor_agent || "—")} · Host: ${esc(t.executor_host || "—")}
+    · Agent: ${esc(t.executor_agent || "\u2014")} · Host: ${esc(t.executor_host || "\u2014")}
     · Tokens: ${fmt(t.tokens)}
+    ${t.validated_at ? ` · ${thorIcon(true)} Validated` : ""}
   </div></td>`;
   tr.after(detailRow);
 };
@@ -247,6 +427,13 @@ function renderTokenChart(daily) {
 }
 
 function renderModelChart(models) {
+  const totalCost = models.reduce((s, m) => s + (m.cost || 0), 0);
+  const costWidget = document.getElementById("widget-cost");
+  if (costWidget) {
+    const hdr = costWidget.querySelector(".widget-title");
+    if (hdr)
+      hdr.innerHTML = `Cost by Model <span style="float:right;color:var(--gold);font-size:11px">Total: $${totalCost.toFixed(2)}</span>`;
+  }
   const colors = [
     "#00e5ff",
     "#ff2daa",
@@ -359,6 +546,14 @@ function chartOpts() {
         bodyFont: { family: "JetBrains Mono" },
         callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.raw)}` },
       },
+      zoom: {
+        pan: { enabled: true, mode: "x" },
+        zoom: {
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          mode: "x",
+        },
+      },
     },
     scales: {
       x: {
@@ -376,6 +571,9 @@ function chartOpts() {
     },
   };
 }
+window.resetTokenZoom = function () {
+  if (tokenChart) tokenChart.resetZoom();
+};
 
 // --- MESH STRIP ---
 const _SVG = (path) =>
@@ -397,6 +595,61 @@ const OS_ICON = {
 
 let lastMeshData = null;
 
+function _meshNodeHtml(p) {
+  const cls = [
+    "mesh-node",
+    p.is_online ? "online" : "offline",
+    p.role === "coordinator" ? "coordinator" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const icon = OS_ICON[p.os] || OS_ICON.unknown;
+  const caps = (p.capabilities || "").split(",").filter(Boolean);
+  const loadPct = Math.min(p.cpu || 0, 100);
+  const loadColor =
+    loadPct < 50 ? "var(--green)" : loadPct < 80 ? "var(--gold)" : "var(--red)";
+  const plans = p.plans || [];
+  let planHtml = "";
+  plans.forEach((pl) => {
+    const pp =
+      pl.tasks_total > 0
+        ? Math.round((100 * pl.tasks_done) / pl.tasks_total)
+        : 0;
+    const barColor = pl.status === "doing" ? "var(--cyan)" : "var(--text-dim)";
+    planHtml += `<div class="mn-plan" onclick="event.stopPropagation();openPlanSidebar(${pl.id})">
+      <div class="mn-plan-head"><span class="mn-plan-id">#${pl.id}</span> ${esc((pl.name || "").substring(0, 18))}</div>
+      <div class="mn-plan-bar"><div class="mn-plan-fill" style="width:${pp}%;background:${barColor}"></div></div>`;
+    (pl.active_tasks || []).forEach((t) => {
+      planHtml += `<div class="mn-task">${statusDot(t.status)} ${esc((t.title || "").substring(0, 22))}</div>`;
+    });
+    planHtml += "</div>";
+  });
+  const _a = (act, ttl, svg) =>
+    `<button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="${act}" title="${ttl}"><svg viewBox="0 0 16 16" width="14" height="14">${svg}</svg></button>`;
+  const actionsHtml = p.is_online
+    ? `<div class="mn-actions">
+    ${_a("terminal", "Terminal", '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.5 7l2 1.5-2 1.5M8 10.5h3"/>')}
+    ${_a("sync", "Sync", '<path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/>')}
+    ${_a("heartbeat", "Heartbeat", '<path d="M2 8h2l1.5-3 2 6 2-4.5 1.5 1.5h3"/>')}
+    ${_a("auth", "Auth", '<rect x="4" y="7" width="8" height="6" rx="1"/><path d="M6 7V5a2 2 0 014 0v2"/><circle cx="8" cy="10" r="0.5"/>')}
+    ${_a("status", "Status", '<circle cx="8" cy="8" r="5.5"/><path d="M8 5v3.5l2.5 1.5"/>')}
+    ${_a("movehere", "Move Here", '<path d="M3 8h10M10 5l3 3-3 3"/>')}
+  </div>`
+    : "";
+  return `<div class="${cls}" data-peer="${esc(p.peer_name)}">
+    <div class="mn-top">
+      <span class="mn-os">${icon}</span>
+      <span class="mn-name">${esc(p.peer_name)}</span>
+      <span class="mn-dot ${p.is_online ? "on" : "off"}"></span>
+    </div>
+    <div class="mn-role">${p.role.toUpperCase()}${p.is_local ? " \u00B7 LOCAL" : ""}</div>
+    <div class="mn-caps">${caps.map((c) => `<span class="mn-cap${c === "ollama" ? " accent" : ""}">${c}</span>`).join("")}</div>
+    ${p.is_online ? `<div class="mn-stats">${p.active_tasks} tasks \u00B7 CPU ${Math.round(p.cpu)}%</div><div class="mn-load-bar"><div class="mn-load-fill" style="width:${loadPct}%;background:${loadColor}"></div></div>` : '<div class="mn-stats offline-text">No heartbeat</div>'}
+    ${planHtml}
+    ${actionsHtml}
+  </div>`;
+}
+
 function renderMeshStrip(peers) {
   const el = $("#mesh-strip");
   if (!el || !peers || !peers.length) {
@@ -405,88 +658,98 @@ function renderMeshStrip(peers) {
   }
   lastMeshData = peers;
   const online = peers.filter((p) => p.is_online).length;
-  const coord = peers.filter((p) => p.role === "coordinator");
+  const coord = peers.find((p) => p.role === "coordinator");
   const workers = peers.filter((p) => p.role !== "coordinator");
-  const half = Math.ceil(workers.length / 2);
-  const ordered = [...workers.slice(0, half), ...coord, ...workers.slice(half)];
+  // Populate widget header actions
+  const bar = $("#mesh-actions-bar");
+  if (bar) {
+    bar.innerHTML = `<span class="mesh-count">${online}/${peers.length} online</span>
+      <button class="widget-action-btn" onclick="meshAction('sync','__all__')" title="Sync all peers">
+        <svg viewBox="0 0 16 16" width="12" height="12"><path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/></svg> Sync All
+      </button>`;
+  }
+  let html = "";
+  if (coord && workers.length > 0) {
+    // Hub-spoke: workers row on top, spoke lines, coordinator below
+    html += '<div class="mesh-hub">';
+    html += '<div class="mesh-hub-workers">';
+    workers.forEach((w) => {
+      html += _meshNodeHtml(w);
+    });
+    html += "</div>";
+    html += '<div class="mesh-hub-spokes" id="mesh-spokes"></div>';
+    html += '<div class="mesh-hub-coord">' + _meshNodeHtml(coord) + "</div>";
+    html += "</div>";
+  } else {
+    // No coordinator or solo: simple row
+    html += '<div class="mesh-nodes">';
+    peers.forEach((p) => {
+      html += _meshNodeHtml(p);
+    });
+    html += "</div>";
+  }
+  el.innerHTML = html;
+  // Draw spoke lines from each worker to coordinator
+  requestAnimationFrame(() => _drawSpokes());
+}
 
-  let html = `<div class="mesh-inner"><div class="mesh-header">
-    <span class="mesh-title-text">\u25C8 MESH NETWORK</span>
-    <span class="mesh-count">${online}/${peers.length} online</span>
-  </div><div class="mesh-nodes">`;
-  ordered.forEach((p, i) => {
-    const cls = [
-      "mesh-node",
-      p.is_online ? "online" : "offline",
-      p.role === "coordinator" ? "coordinator" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-    const icon = OS_ICON[p.os] || OS_ICON.unknown;
-    const caps = (p.capabilities || "").split(",").filter(Boolean);
-    const loadPct = Math.min(p.cpu || 0, 100);
-    const loadColor =
-      loadPct < 50
-        ? "var(--green)"
-        : loadPct < 80
-          ? "var(--gold)"
-          : "var(--red)";
-    // Plan/task info for this peer
-    const plans = p.plans || [];
-    let planHtml = "";
-    if (plans.length > 0) {
-      plans.forEach((pl) => {
-        const pp =
-          pl.tasks_total > 0
-            ? Math.round((100 * pl.tasks_done) / pl.tasks_total)
-            : 0;
-        const barColor =
-          pl.status === "doing" ? "var(--cyan)" : "var(--text-dim)";
-        planHtml += `<div class="mn-plan" onclick="event.stopPropagation();openPlanSidebar(${pl.id})">
-          <div class="mn-plan-head"><span class="mn-plan-id">#${pl.id}</span> ${esc((pl.name || "").substring(0, 18))}</div>
-          <div class="mn-plan-bar"><div class="mn-plan-fill" style="width:${pp}%;background:${barColor}"></div></div>`;
-        if (pl.active_tasks && pl.active_tasks.length) {
-          pl.active_tasks.forEach((t) => {
-            const tc = statusColor(t.status);
-            planHtml += `<div class="mn-task"><span style="color:${tc}">${statusIcon(t.status)}</span> ${esc((t.title || "").substring(0, 22))}</div>`;
-          });
-        }
-        planHtml += "</div>";
-      });
-    }
-
-    const actionsHtml = p.is_online
-      ? `<div class="mn-actions">
-      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="terminal" title="Terminal">\u25B6</button>
-      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="sync" title="Sync Config">\u27F3</button>
-      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="heartbeat" title="Heartbeat">\u2661</button>
-      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="auth" title="Push Auth">\u26BF</button>
-      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="status" title="Status">\u24D8</button>
-      <button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="movehere" title="Move Plan Here">\u21E8</button>
-    </div>`
-      : "";
-    html += `<div class="${cls}" data-peer="${esc(p.peer_name)}">
-      <div class="mn-top">
-        <span class="mn-os">${icon}</span>
-        <span class="mn-name">${esc(p.peer_name)}</span>
-        <span class="mn-dot ${p.is_online ? "on" : "off"}"></span>
-      </div>
-      <div class="mn-role">${p.role.toUpperCase()}${p.is_local ? " \u00B7 LOCAL" : ""}</div>
-      <div class="mn-caps">${caps.map((c) => `<span class="mn-cap${c === "ollama" ? " accent" : ""}">${c}</span>`).join("")}</div>
-      ${p.is_online ? `<div class="mn-stats">${p.active_tasks} tasks \u00B7 CPU ${Math.round(p.cpu)}%</div><div class="mn-load-bar"><div class="mn-load-fill" style="width:${loadPct}%;background:${loadColor}"></div></div>` : '<div class="mn-stats offline-text">No heartbeat</div>'}
-      ${planHtml}
-      ${actionsHtml}
-    </div>`;
-    if (i < ordered.length - 1) {
-      const bothOn = p.is_online && ordered[i + 1].is_online;
-      html += `<div class="mesh-link ${bothOn ? "active" : ""}">
-        <div class="mesh-link-line"></div>
-        ${bothOn ? '<div class="mesh-flow-dot"></div><div class="mesh-flow-dot" style="animation-delay:-0.9s"></div><div class="mesh-flow-dot-reverse"></div><div class="mesh-flow-dot-reverse" style="animation-delay:-0.9s"></div>' : ""}
-      </div>`;
+function _drawSpokes() {
+  const container = document.getElementById("mesh-spokes");
+  if (!container) return;
+  const workerRow = container.previousElementSibling;
+  const coordRow = container.nextElementSibling;
+  if (!workerRow || !coordRow) return;
+  const coordNode = coordRow.querySelector(".mesh-node");
+  const workerNodes = workerRow.querySelectorAll(".mesh-node");
+  if (!coordNode || !workerNodes.length) return;
+  const hubRect = container.parentElement.getBoundingClientRect();
+  const cRect = coordNode.getBoundingClientRect();
+  const cx = cRect.left + cRect.width / 2 - hubRect.left;
+  const spokeH = container.offsetHeight || 32;
+  let svg = `<svg width="100%" height="${spokeH}" style="position:absolute;top:0;left:0;overflow:visible">`;
+  svg +=
+    '<defs><filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+  workerNodes.forEach((w, i) => {
+    const wRect = w.getBoundingClientRect();
+    const wx = wRect.left + wRect.width / 2 - hubRect.left;
+    const online = w.classList.contains("online");
+    const color = online ? "#00e5ff" : "#1a2040";
+    const op = online ? "0.35" : "0.12";
+    const pid = `spoke-${i}`;
+    svg += `<line x1="${wx}" y1="0" x2="${cx}" y2="${spokeH}" stroke="${color}" stroke-width="1.5" opacity="${op}" stroke-dasharray="${online ? "none" : "3,4"}"/>`;
+    if (online) {
+      svg += `<path id="${pid}" d="M${wx},0 L${cx},${spokeH}" fill="none"/>`;
+      svg += `<circle r="2.5" fill="#00e5ff" filter="url(#glow)" opacity="0.9"><animateMotion dur="${1.5 + i * 0.3}s" repeatCount="indefinite"><mpath href="#${pid}"/></animateMotion></circle>`;
+      svg += `<circle r="2" fill="#ff2daa" filter="url(#glow)" opacity="0.7"><animateMotion dur="${2 + i * 0.2}s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#${pid}"/></animateMotion></circle>`;
     }
   });
-  html += "</div></div>";
-  el.innerHTML = html;
+  svg += "</svg>";
+  container.innerHTML = svg;
+}
+
+function applyMeshSyncBadges(items) {
+  if (!items || !items.length) return;
+  items.forEach((s) => {
+    const node = document.querySelector(
+      `.mesh-node[data-peer="${CSS.escape(s.peer_name)}"]`,
+    );
+    if (!node) return;
+    let cls, title;
+    if (!s.reachable) {
+      cls = "mn-sync-red";
+      title = "Unreachable";
+    } else if (s.config_synced) {
+      cls = "mn-sync-green";
+      title = "In sync";
+    } else {
+      cls = "mn-sync-yellow";
+      title = "Out of sync";
+    }
+    const badge = document.createElement("span");
+    badge.className = `mn-sync-dot ${cls}`;
+    badge.title = title;
+    node.querySelector(".mn-top").appendChild(badge);
+  });
 }
 
 // --- HISTORY ---
@@ -529,7 +792,7 @@ window.openPlanSidebar = async function (planId) {
       : "";
 
   let html = `<div class="sb-meta">
-    <strong>Status:</strong> <span style="color:${sColor}">${statusIcon(p.status)} ${p.status}</span>
+    <strong>Status:</strong> ${statusDot(p.status)} <span style="color:${sColor}">${p.status.toUpperCase()}</span>
     <br><strong>Progress:</strong> ${p.tasks_done}/${p.tasks_total} (${pct}%)
     <br><strong>Host:</strong> ${esc(p.execution_host || "local")}
     ${p.parallel_mode ? `<br><strong>Mode:</strong> ${esc(p.parallel_mode)}` : ""}
@@ -578,7 +841,7 @@ window.openPlanSidebar = async function (planId) {
       html += `<div class="sb-task">
         <span class="sb-task-id">${esc(t.task_id)}</span>
         <span>${esc((t.title || "\u2014").substring(0, 40))}</span>
-        <span style="color:${tc}">${statusIcon(t.status)} ${t.status}</span>
+        <span style="color:${tc}">${statusDot(t.status)} ${t.status}</span>
         ${thorIcon(t.validated_at)}
       </div>`;
     });
@@ -672,106 +935,71 @@ function updateClock() {
   });
 }
 
-// --- PEER ACTIONS ---
-window.showPeerActions = function (el, peerName) {
-  document.querySelectorAll(".peer-actions").forEach((e) => e.remove());
-  const rect = el.getBoundingClientRect();
-  const menu = document.createElement("div");
-  menu.className = "peer-actions";
-  menu.style.cssText = `position:fixed;top:${rect.bottom + 4}px;left:${rect.left}px;z-index:1000;`;
-  menu.innerHTML = `
-    <div class="pa-item pa-term" onclick="meshAction('terminal','${peerName}')">\u25B6 Terminal (xterm)</div>
-    <div class="pa-item" onclick="meshAction('sync','${peerName}')">\u21C4 Sync Config</div>
-    <div class="pa-item" onclick="meshAction('heartbeat','${peerName}')">\u2764 Heartbeat</div>
-    <div class="pa-item" onclick="meshAction('auth','${peerName}')">\uD83D\uDD11 Push Auth</div>
-    <div class="pa-item" onclick="meshAction('status','${peerName}')">\u2139 Status</div>
-    <div class="pa-item pa-move" onclick="meshAction('movehere','${peerName}')">\u21E8 Move Plan Here</div>`;
-  document.body.appendChild(menu);
-  setTimeout(
-    () =>
-      document.addEventListener("click", () => menu.remove(), { once: true }),
-    50,
-  );
-};
-
-window.meshAction = async function (action, peer) {
-  document.querySelectorAll(".peer-actions").forEach((e) => e.remove());
-  if (action === "terminal") {
-    if (typeof termMgr !== "undefined") {
-      termMgr.open(peer, peer);
-    }
-    return;
-  }
-  if (action === "movehere") {
-    showMovePlanDialog(peer);
-    return;
-  }
-  const res = await fetchJson(
-    `/api/mesh/action?action=${action}&peer=${encodeURIComponent(peer)}`,
-  );
-  if (res && res.output) {
-    showOutputModal(action + " \u2014 " + peer, res.output);
-  }
-};
-
-window.showMovePlanDialog = async function (targetPeer) {
-  const plans = await fetchJson("/api/plans/assignable");
-  if (!plans || !plans.length) {
-    showOutputModal("Move Plan", "No assignable plans found");
-    return;
-  }
-  const overlay = document.createElement("div");
-  overlay.className = "modal-overlay";
-  let list = plans
-    .map(
-      (p) =>
-        `<div class="move-plan-row" onclick="movePlan(${p.id},'${esc(targetPeer)}',this.closest('.modal-overlay'))">
-      <span style="color:var(--cyan);font-weight:600">#${p.id}</span>
-      <span>${esc((p.name || "").substring(0, 30))}</span>
-      <span style="color:${statusColor(p.status)}">${p.status}</span>
-      <span style="color:var(--text-dim)">${esc(p.execution_host || "unassigned")}</span>
-    </div>`,
-    )
-    .join("");
-  overlay.innerHTML = `<div class="modal-box">
-    <div class="modal-title">Move Plan \u2192 ${esc(targetPeer)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">\u2715</span></div>
-    <div style="padding:12px;max-height:400px;overflow:auto">${list}</div>
-  </div>`;
-  document.body.appendChild(overlay);
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) overlay.remove();
-  });
-};
-
-window.movePlan = async function (planId, target, overlay) {
-  const res = await fetchJson(
-    `/api/plan/move?plan_id=${planId}&target=${encodeURIComponent(target)}`,
-  );
-  if (overlay) overlay.remove();
-  if (res && res.ok) {
-    refreshAll();
-  } else {
-    showOutputModal("Move Error", res ? res.error : "Failed");
-  }
-};
-
-function showOutputModal(title, text) {
-  const overlay = document.createElement("div");
-  overlay.className = "modal-overlay";
-  overlay.innerHTML = `<div class="modal-box">
-    <div class="modal-title">${esc(title)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">\u2715</span></div>
-    <pre class="modal-output">${esc(text)}</pre>
-  </div>`;
-  document.body.appendChild(overlay);
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) overlay.remove();
-  });
-}
+// Peer actions moved to mesh-actions.js (T2-02)
 
 // Old inline terminal removed — replaced by xterm.js TerminalManager in terminal.js
+
+// --- Open all mesh terminals ---
+window.openAllTerminals = function () {
+  if (typeof termMgr === "undefined") return;
+  const peers = lastMeshData || [];
+  const online = peers.filter((p) => p.is_online);
+  if (!online.length) {
+    if (typeof showOutputModal === "function")
+      showOutputModal("Terminals", "No online mesh nodes");
+    return;
+  }
+  online.forEach((p) => {
+    termMgr.open(p.peer_name, p.peer_name);
+  });
+  if (online.length > 1) termMgr.setMode("grid");
+  else termMgr.setMode("dock");
+};
+
+// --- ZOOM ---
+const ZOOM_STEP = 10;
+const ZOOM_MIN = 60;
+const ZOOM_MAX = 160;
+let currentZoom = parseInt(localStorage.getItem("dashZoom") || "100", 10);
+function applyZoom(z) {
+  currentZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+  document.body.style.zoom = currentZoom / 100;
+  const label = document.getElementById("zoom-level");
+  if (label) label.textContent = currentZoom + "%";
+  localStorage.setItem("dashZoom", String(currentZoom));
+}
+window.dashZoom = function (dir) {
+  if (dir === 0) applyZoom(100);
+  else applyZoom(currentZoom + dir * ZOOM_STEP);
+};
+applyZoom(currentZoom);
+
+// --- Refresh stepper ---
+const REFRESH_STEPS = [10, 15, 30, 60, 120];
+let refreshIdx = REFRESH_STEPS.indexOf(
+  parseInt(localStorage.getItem("dashRefresh") || "30", 10),
+);
+if (refreshIdx === -1) refreshIdx = 2;
+let refreshTimer = null;
+
+function applyRefresh() {
+  const sec = REFRESH_STEPS[refreshIdx];
+  localStorage.setItem("dashRefresh", String(sec));
+  const label = document.getElementById("refresh-label");
+  if (label) label.textContent = sec < 60 ? sec + "s" : sec / 60 + "m";
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(refreshAll, sec * 1000);
+}
+window.changeRefresh = function (dir) {
+  refreshIdx = Math.max(
+    0,
+    Math.min(REFRESH_STEPS.length - 1, refreshIdx + dir),
+  );
+  applyRefresh();
+};
 
 // --- INIT ---
 updateClock();
 setInterval(updateClock, 1000);
 refreshAll();
-setInterval(refreshAll, 30000);
+applyRefresh();

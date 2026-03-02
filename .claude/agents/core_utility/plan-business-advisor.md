@@ -8,6 +8,10 @@ version: "1.1.0"
 context_isolation: true
 memory: project
 maxTurns: 20
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — advisory analysis"]
 ---
 
 # Plan Business Advisor

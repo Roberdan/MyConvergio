@@ -5,6 +5,10 @@ tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 version: "1.1.0"
 memory: project
 maxTurns: 20
+maturity: preview
+providers:
+  - claude
+constraints: ["Read-only — never modifies files"]
 ---
 
 # MirrorBuddy Production Hardening Checks

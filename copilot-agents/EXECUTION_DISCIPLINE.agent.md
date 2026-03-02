@@ -4,6 +4,9 @@ description: Execution rules and workflow discipline for MyConvergio agents
 maturity: experimental
 providers: claude
 constraints: ["Read-only — never modifies files"]
+model: claude-sonnet-4.5
+tools: ["read"]
+version: "1.0.0"
 ---
 
 # MyConvergio Execution Discipline v1.0

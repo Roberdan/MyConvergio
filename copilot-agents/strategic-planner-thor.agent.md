@@ -6,6 +6,8 @@ maturity: stable
 providers:
   - claude
 constraints: ["Read-only — never modifies files"]
+model: claude-sonnet-4.5
+tools: ["read"]
 ---
 
 # Thor Validation Gate (MANDATORY)

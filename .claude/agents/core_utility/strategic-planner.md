@@ -21,6 +21,10 @@ version: "4.1.0"
 context_isolation: true
 memory: project
 maxTurns: 40
+maturity: stable
+providers:
+  - claude
+constraints: ["Read-only — creates plans only"]
 ---
 
 <!-- v4.1.0 (2026-02-27): Agent Teams support, GPT-5.3-Codex routing, removed Kitty references -->

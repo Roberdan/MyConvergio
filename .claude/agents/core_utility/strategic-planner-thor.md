@@ -2,6 +2,10 @@
 name: strategic-planner-thor
 description: Thor validation gates for strategic-planner. Reference module.
 version: "2.1.0"
+maturity: stable
+providers:
+  - claude
+constraints: ["Reference module — validation rules"]
 ---
 
 # Thor Validation Gate (MANDATORY)

@@ -6,6 +6,8 @@ maturity: preview
 providers:
   - claude
 constraints: ["Read-only — never modifies files"]
+model: claude-sonnet-4.5
+tools: ["read", "edit", "search", "execute"]
 ---
 
 # TDD Workflow Module

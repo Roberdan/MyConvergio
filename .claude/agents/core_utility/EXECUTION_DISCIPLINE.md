@@ -1,6 +1,10 @@
 ---
 name: execution-discipline
 description: Execution rules and workflow discipline for MyConvergio agents
+maturity: stable
+providers:
+  - claude
+constraints: ["Reference document — execution rules"]
 ---
 
 # MyConvergio Execution Discipline v1.0

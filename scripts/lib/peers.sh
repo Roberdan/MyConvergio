@@ -136,10 +136,11 @@ peers_best_route() {
 	else return 1; fi
 }
 
-# peers_self — detect current machine by matching hostname to peer entries
+# peers_self — detect current machine by matching hostname or Tailscale IP
 peers_self() {
-	local current_host name alias
+	local current_host name alias ts_ip
 	current_host="$(hostname -s 2>/dev/null || hostname)"
+	# Method 1: hostname match
 	for name in $_PEERS_ALL; do
 		alias="$(_peers_get_raw "$name" "ssh_alias")"
 		if [[ "$alias" == "$current_host" || "$name" == "$current_host" ]]; then
@@ -147,6 +148,18 @@ peers_self() {
 			return 0
 		fi
 	done
+	# Method 2: Tailscale IP match (handles macOS hostname mismatch)
+	local local_ts_ip
+	local_ts_ip="$(tailscale ip --4 2>/dev/null || true)"
+	if [[ -n "$local_ts_ip" ]]; then
+		for name in $_PEERS_ALL; do
+			ts_ip="$(_peers_get_raw "$name" "tailscale_ip")"
+			[[ "$ts_ip" == "$local_ts_ip" ]] && {
+				echo "$name"
+				return 0
+			}
+		done
+	fi
 	return 0
 }
 

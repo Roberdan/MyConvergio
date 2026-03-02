@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# mesh-sync-config.sh v1.0.0
+# mesh-sync-config.sh v1.1.0
 # Sync config files and scripts to all online mesh peers.
 # Usage: mesh-sync-config.sh [--dry-run] [--peer NAME]
 set -euo pipefail
@@ -43,7 +43,6 @@ parse_peers() {
 		line="${line// /}"
 		[[ -z "$line" ]] && continue
 		if [[ "$line" =~ ^\[(.+)\]$ ]]; then
-			# Emit previous peer
 			if [[ -n "$name" && "$status" == "active" ]]; then
 				echo "$name|$ssh_alias|$user"
 			fi
@@ -57,7 +56,6 @@ parse_peers() {
 			status="${BASH_REMATCH[1]}"
 		fi
 	done <"$PEERS_CONF"
-	# Emit last peer
 	if [[ -n "$name" && "$status" == "active" ]]; then
 		echo "$name|$ssh_alias|$user"
 	fi
@@ -66,10 +64,10 @@ parse_peers() {
 SYNCED=0
 FAILED=0
 SKIPPED=0
-# Prevent arithmetic exit code 1 when incrementing from 0 under set -e
 inc() { eval "$1=\$(( $1 + 1 ))"; }
 
-while IFS='|' read -r name ssh_alias user; do
+# Read into fd 3 to prevent ssh from consuming stdin
+while IFS='|' read -r name ssh_alias user <&3 || [[ -n "$name" ]]; do
 	[[ -z "$name" ]] && continue
 
 	# Skip self (coordinator)
@@ -84,10 +82,11 @@ while IFS='|' read -r name ssh_alias user; do
 		continue
 	fi
 
-	echo "=== $name ($ssh_alias) ==="
+	REMOTE="${user}@${ssh_alias}"
+	echo "=== $name ($REMOTE) ==="
 
-	# Check connectivity
-	if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "$ssh_alias" true 2>/dev/null; then
+	# Check connectivity (-n: don't read stdin)
+	if ! ssh -n -o ConnectTimeout=5 -o BatchMode=yes "$REMOTE" true 2>/dev/null; then
 		echo "  OFFLINE — skipping"
 		inc FAILED
 		continue
@@ -95,7 +94,7 @@ while IFS='|' read -r name ssh_alias user; do
 
 	# Ensure remote ~/.claude directory structure exists
 	if ! $DRY_RUN; then
-		ssh "$ssh_alias" "mkdir -p ~/.claude/config ~/.claude/scripts" 2>/dev/null
+		ssh -n "$REMOTE" "mkdir -p ~/.claude/config ~/.claude/scripts" 2>/dev/null
 	fi
 
 	for file in "${SYNC_FILES[@]}"; do
@@ -110,7 +109,7 @@ while IFS='|' read -r name ssh_alias user; do
 		if $DRY_RUN; then
 			echo "  WOULD sync: $file"
 		else
-			if scp -o ConnectTimeout=5 "$local_path" "${ssh_alias}:${remote_path}" 2>/dev/null; then
+			if scp -o ConnectTimeout=5 "$local_path" "${REMOTE}:${remote_path}" 2>/dev/null; then
 				echo "  SYNCED: $file"
 			else
 				echo "  FAILED: $file"
@@ -120,12 +119,12 @@ while IFS='|' read -r name ssh_alias user; do
 
 	# Make scripts executable on remote
 	if ! $DRY_RUN; then
-		ssh "$ssh_alias" "chmod +x ~/.claude/scripts/*.sh 2>/dev/null" 2>/dev/null || true
+		ssh -n "$REMOTE" "chmod +x ~/.claude/scripts/*.sh 2>/dev/null" 2>/dev/null || true
 	fi
 
 	inc SYNCED
 	echo ""
-done < <(parse_peers)
+done 3< <(parse_peers)
 
 echo "Summary: $SYNCED synced, $FAILED offline, $SKIPPED skipped"
 if $DRY_RUN; then echo "(dry-run — no files transferred)"; fi

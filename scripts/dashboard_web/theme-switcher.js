@@ -15,6 +15,7 @@ const THEMES = [
   { id: 'fallout',   name: 'Fallout',   sub: 'Pip-Boy',   color: '#7ec850' },
   { id: 'convergio', name: 'Convergio', sub: 'Brand',     color: '#b07ee8' },
   { id: 'neumorph',  name: 'Neumorph',  sub: 'Soft UI',   color: '#7eb8ff' },
+  { id: 'glass',     name: 'Glass',     sub: 'Frosted',   color: '#80b0ff' },
 ];
 
 const STORAGE_KEY = 'dashboard-theme';

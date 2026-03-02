@@ -6,6 +6,7 @@ Reads from ~/.claude/data/dashboard.db.
 Usage: python3 server.py [--port 8420]
 """
 
+import concurrent.futures
 import configparser
 import json
 import os
@@ -85,13 +86,13 @@ def api_mission() -> dict | None:
     if not p:
         return None
     waves = query(
-        "SELECT wave_id,name,status,tasks_done,tasks_total,position"
+        "SELECT wave_id,name,status,tasks_done,tasks_total,position,validated_at"
         " FROM waves WHERE plan_id=? ORDER BY position",
         (p["id"],),
     )
     tasks = query(
         "SELECT task_id,title,status,executor_agent,executor_host,tokens"
-        " FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
+        ",validated_at FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
         (p["id"],),
     )
     return {"plan": p, "waves": waves, "tasks": tasks}
@@ -255,6 +256,117 @@ def api_mesh() -> list[dict]:
     return result
 
 
+_sync_cache: dict = {"data": None, "ts": 0}
+
+
+def _check_peer_sync(peer_name: str, user: str, host: str) -> dict:
+    """SSH to peer and compare ~/.claude git HEAD with local HEAD.
+
+    Returns dict with peer_name, reachable, config_synced, last_heartbeat_age_sec.
+    last_heartbeat_age_sec is -1 here; caller overwrites from DB.
+    """
+    git_cmd = "git -C ~/.claude log --oneline -1"
+
+    # Get local HEAD
+    try:
+        local = subprocess.run(
+            ["git", "-C", str(Path.home() / ".claude"), "log", "--oneline", "-1"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        local_sha = local.stdout.strip()
+    except (subprocess.TimeoutExpired, OSError):
+        local_sha = ""
+
+    # SSH to remote peer
+    ssh_cmd = [
+        "ssh",
+        "-o",
+        "ConnectTimeout=5",
+        "-o",
+        "BatchMode=yes",
+        host,
+        "-l",
+        user,
+        git_cmd,
+    ]
+    try:
+        remote = subprocess.run(
+            ssh_cmd,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if remote.returncode != 0:
+            return {
+                "peer_name": peer_name,
+                "reachable": False,
+                "config_synced": None,
+                "last_heartbeat_age_sec": -1,
+            }
+        remote_sha = remote.stdout.strip()
+        synced = bool(local_sha and remote_sha and local_sha == remote_sha)
+        return {
+            "peer_name": peer_name,
+            "reachable": True,
+            "config_synced": synced,
+            "last_heartbeat_age_sec": -1,
+        }
+    except (subprocess.TimeoutExpired, OSError):
+        return {
+            "peer_name": peer_name,
+            "reachable": False,
+            "config_synced": None,
+            "last_heartbeat_age_sec": -1,
+        }
+
+
+def api_mesh_sync_status() -> list[dict]:
+    """Return per-peer sync status; cached for 60s."""
+    now = time.time()
+    if _sync_cache["data"] is not None and (now - _sync_cache["ts"]) < 60:
+        return _sync_cache["data"]
+
+    if not PEERS_CONF.exists():
+        return []
+
+    cp = configparser.ConfigParser()
+    cp.read(str(PEERS_CONF))
+    active_peers = [
+        {
+            "peer_name": s,
+            "user": cp[s].get("user", ""),
+            "host": cp[s].get("ssh_alias", s),
+            "status": cp[s].get("status", "active"),
+        }
+        for s in cp.sections()
+        if cp[s].get("status", "active") == "active"
+    ]
+
+    # Build heartbeat age map from DB
+    hb_rows = query("SELECT peer_name, last_seen FROM peer_heartbeats")
+    hb_map = {r["peer_name"]: r["last_seen"] for r in hb_rows}
+
+    def _run(peer: dict) -> dict:
+        return _check_peer_sync(peer["peer_name"], peer["user"], peer["host"])
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+        results = list(pool.map(_run, active_peers))
+
+    # Overwrite last_heartbeat_age_sec from DB
+    for entry in results:
+        last_seen = hb_map.get(entry["peer_name"])
+        if last_seen:
+            entry["last_heartbeat_age_sec"] = int(now - last_seen)
+        else:
+            entry["last_heartbeat_age_sec"] = -1
+
+    _sync_cache["data"] = results
+    _sync_cache["ts"] = now
+    return results
+
+
 def api_assignable_plans() -> list[dict]:
     return query(
         "SELECT id,name,status,tasks_done,tasks_total,execution_host,human_summary"
@@ -282,12 +394,12 @@ def api_plan_detail(plan_id: int) -> dict | None:
         return None
     waves = query(
         "SELECT wave_id,name,status,tasks_done,tasks_total,branch_name,"
-        "pr_number,pr_url,position FROM waves WHERE plan_id=? ORDER BY position",
+        "pr_number,pr_url,position,validated_at FROM waves WHERE plan_id=? ORDER BY position",
         (plan_id,),
     )
     tasks = query(
         "SELECT task_id,title,status,executor_agent,executor_host,tokens,"
-        "started_at,completed_at FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
+        "started_at,completed_at,validated_at FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
         (plan_id,),
     )
     cost = query_one(
@@ -326,6 +438,7 @@ ROUTES = {
     "/api/tokens/daily": api_tokens_daily,
     "/api/tokens/models": api_tokens_by_model,
     "/api/mesh": api_mesh,
+    "/api/mesh/sync-status": api_mesh_sync_status,
     "/api/history": api_history,
     "/api/tasks/distribution": api_task_status_dist,
     "/api/tasks/blocked": api_tasks_blocked,

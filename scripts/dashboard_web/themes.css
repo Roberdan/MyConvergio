@@ -197,3 +197,25 @@
   --neu-shadow: 6px 6px 14px rgba(0,0,0,0.4), -6px -6px 14px rgba(60,63,90,0.25);
   --neu-shadow-inset: inset 3px 3px 8px rgba(0,0,0,0.3), inset -3px -3px 8px rgba(60,63,90,0.15);
 }
+
+[data-theme="glass"] {
+  --bg-deep: #0a0a20;
+  --bg-panel: rgba(20, 20, 60, 0.45);
+  --bg-card: rgba(30, 30, 80, 0.35);
+  --border: rgba(255, 255, 255, 0.08);
+  --cyan: #80b0ff;
+  --magenta: #c090ff;
+  --gold: #ffc870;
+  --green: #60e890;
+  --red: #ff6080;
+  --text: #e0e4f0;
+  --text-dim: #606888;
+  --font-display: "JetBrains Mono", monospace;
+  --gradient-h1: linear-gradient(90deg, #80b0ff, #c090ff);
+  --scanline-color: rgba(0, 0, 0, 0.0);
+  --kpi-accent: #80b0ff;
+  --header-bg: rgba(20, 20, 60, 0.5);
+  --glass-blur: 16px;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}

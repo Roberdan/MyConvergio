@@ -24,13 +24,16 @@ class TerminalManager {
   }
 
   open(peer, label) {
+    if (!this.container || !document.body.contains(this.container)) {
+      this._build();
+    }
     if (!this.visible) this.show();
     this.addTab(peer || "local", label || peer || "local");
   }
 
   show() {
     this.visible = true;
-    this.container.style.display = "";
+    this.container.style.display = ""; // show: display before .open to prevent transition race
     this.container.classList.add("open");
     document.body.classList.add("term-open");
     setTimeout(() => this._fitActive(), 100);
@@ -48,8 +51,8 @@ class TerminalManager {
   close() {
     this.tabs.forEach((t) => this._destroyTab(t));
     this.tabs = [];
-    this.activeId = null;
     this.hide();
+    this.activeId = null; // close: reset to prevent stale reference on reopen
     this._renderTabs();
   }
 
@@ -126,6 +129,7 @@ class TerminalManager {
 
     ws.onclose = () => {
       term.write("\r\n\x1b[2m[session ended]\x1b[0m\r\n");
+      this.removeTab(id); // ws.onclose: F-08 auto-clean dead tab
     };
 
     term.onData((data) => {
@@ -177,10 +181,10 @@ class TerminalManager {
     this.mode = mode;
     this.container.className = `term-container term-${mode}`;
     if (mode === "float") {
-      this.container.style.left = "10%";
-      this.container.style.top = "10%";
-      this.container.style.width = "80%";
-      this.container.style.height = "60%";
+      this.container.style.left = Math.round(window.innerWidth * 0.1) + "px";
+      this.container.style.top = Math.round(window.innerHeight * 0.1) + "px";
+      this.container.style.width = Math.round(window.innerWidth * 0.8) + "px";
+      this.container.style.height = Math.round(window.innerHeight * 0.6) + "px";
     } else {
       this.container.style.left = "";
       this.container.style.top = "";
@@ -202,6 +206,7 @@ class TerminalManager {
   }
 
   _destroyTab(tab) {
+    tab.ws.onclose = null;
     if (tab.ws.readyState <= 1) tab.ws.close();
     tab.term.dispose();
     tab.el.remove();

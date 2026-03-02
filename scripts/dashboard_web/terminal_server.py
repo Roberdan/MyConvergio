@@ -53,8 +53,9 @@ async def terminal_handler(ws):
 
     # Determine command
     if peer and peer not in ("local", ""):
-        ssh_target = get_ssh_target(peer)
-        cmd = ["ssh", "-t", "-o", "StrictHostKeyChecking=accept-new", ssh_target]
+        ssh_cfg = get_ssh_config(peer)
+        user, host = ssh_cfg["user"], ssh_cfg["host"]
+        cmd = ["ssh", "-t", "-o", "StrictHostKeyChecking=accept-new", f"{user}@{host}"]
     else:
         shell = os.environ.get("SHELL", "/bin/bash")
         cmd = [shell, "-l"]

@@ -49,6 +49,11 @@ function statusIcon(s) {
   );
 }
 
+function thorIcon(validated) {
+  const color = validated ? "#00cc55" : "#ee3344";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${color}" style="vertical-align:-2px" title="${validated ? "Thor validated" : "Not validated"}"><path d="M12 1L8 5v3H5l-2 4h4l-3 11h2l7-9H9l3-5h5l3-4h-4l1-4h-5z"/></svg>`;
+}
+
 async function fetchJson(url) {
   try {
     return await (await fetch(url)).json();
@@ -79,37 +84,37 @@ async function refreshAll() {
 }
 
 // --- KPI ---
+function _kpiCard(label, value, sub, fn, alert) {
+  return `<div class="kpi-card${alert ? " alert" : ""}" onclick="${fn}"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${sub ? `<div class="kpi-sub">${sub}</div>` : ""}</div>`;
+}
 function renderKpi(d) {
-  const items = [
-    { label: "Plans", value: d.plans_total, sub: `${d.plans_active} active` },
-    { label: "Active", value: d.plans_active },
-    { label: "Agents", value: d.agents_running, sub: "running" },
-    {
-      label: "Tokens",
-      value: fmt(d.total_tokens),
-      sub: `Today: ${fmt(d.today_tokens)}`,
-    },
-    {
-      label: "Cost",
-      value:
-        "$" +
-        Number(d.total_cost).toLocaleString(undefined, {
-          maximumFractionDigits: 0,
-        }),
-      sub: `Today: $${Number(d.today_cost).toFixed(2)}`,
-    },
-    { label: "Blocked", value: d.blocked, alert: d.blocked > 0 },
-  ];
-  $("#kpi-bar").innerHTML = items
-    .map(
-      (i) =>
-        `<div class="kpi-card ${i.alert ? "alert" : ""}">
-      <div class="kpi-label">${i.label}</div>
-      <div class="kpi-value">${i.value}</div>
-      ${i.sub ? `<div class="kpi-sub">${i.sub}</div>` : ""}
-    </div>`,
-    )
-    .join("");
+  const tc =
+    "$" +
+    Number(d.total_cost).toLocaleString(undefined, {
+      maximumFractionDigits: 0,
+    });
+  $("#kpi-bar").innerHTML =
+    _kpiCard(
+      "Plans",
+      d.plans_total,
+      `${d.plans_active} active`,
+      "openPlansModal()",
+    ) +
+    _kpiCard("Active", d.plans_active, "", "openActiveModal()") +
+    _kpiCard("Agents", d.agents_running, "running", "openAgentsModal()") +
+    _kpiCard(
+      "Tokens",
+      fmt(d.total_tokens),
+      `Today: ${fmt(d.today_tokens)}`,
+      "openTokensModal()",
+    ) +
+    _kpiCard(
+      "Cost",
+      tc,
+      `Today: $${Number(d.today_cost).toFixed(2)}`,
+      "openCostModal()",
+    ) +
+    _kpiCard("Blocked", d.blocked, "", "openBlockedModal()", d.blocked > 0);
 }
 
 // --- MISSION ---
@@ -150,6 +155,7 @@ function renderMission(data) {
         <div class="wave-label">${esc(w.wave_id)} ${esc((w.name || "").substring(0, 16))}</div>
         <div class="wave-bar"><div class="wave-fill ${cls}" style="width:${wp}%"></div></div>
         <div class="wave-pct">${wp}%</div>
+        <div style="margin-left:6px">${thorIcon(w.validated_at)}</div>
       </div>`;
     });
     html += "</div>";
@@ -165,6 +171,7 @@ function renderMission(data) {
       <td style="color:#00e5ff;font-weight:600">${esc(t.task_id)}</td>
       <td>${esc((t.title || "—").substring(0, 35))}</td>
       <td><span style="color:${statusColor(t.status)}">${statusIcon(t.status)}</span> ${t.status}</td>
+      <td style="text-align:center">${thorIcon(t.validated_at)}</td>
       <td style="color:#5a6080">${esc((t.executor_agent || "—").substring(0, 10))}</td>
       <td style="color:#5a6080">${esc((t.executor_host || "—").substring(0, 10))}</td>
       <td style="color:#ffb700">${t.tokens ? fmt(t.tokens) : "—"}</td>
@@ -191,7 +198,7 @@ window.toggleTaskDetail = function (tr, idx) {
   tr.classList.add("expanded");
   const detailRow = document.createElement("tr");
   detailRow.className = "task-detail-row";
-  detailRow.innerHTML = `<td colspan="6"><div class="task-detail">
+  detailRow.innerHTML = `<td colspan="7"><div class="task-detail">
     <strong style="color:#00e5ff">${esc(t.task_id)}</strong> — ${esc(t.title || "")}
     <br>Status: <span style="color:${statusColor(t.status)}">${t.status}</span>
     · Agent: ${esc(t.executor_agent || "—")} · Host: ${esc(t.executor_host || "—")}
@@ -544,6 +551,7 @@ window.openPlanSidebar = async function (planId) {
           <span style="color:var(--cyan)">${esc(w.wave_id)}</span>
           <span style="color:var(--text-dim)">${esc((w.name || "").substring(0, 20))}</span>
           <span style="color:${wColor};font-size:10px">${w.status}</span>
+          ${thorIcon(w.validated_at)}
           ${w.pr_number ? `<span style="color:var(--magenta);font-size:10px">PR #${w.pr_number}</span>` : ""}
           <div class="sb-wave-bar"><div class="sb-wave-fill" style="width:${wp}%;background:${wColor}"></div></div>
         </div>
@@ -560,6 +568,7 @@ window.openPlanSidebar = async function (planId) {
         <span class="sb-task-id">${esc(t.task_id)}</span>
         <span>${esc((t.title || "\u2014").substring(0, 40))}</span>
         <span style="color:${tc}">${statusIcon(t.status)} ${t.status}</span>
+        ${thorIcon(t.validated_at)}
       </div>`;
     });
   }

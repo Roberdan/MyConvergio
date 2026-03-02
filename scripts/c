@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# c — unified CLI dispatcher | Version: 2.0.0
+# c — unified CLI dispatcher | Version: 2.1.0
 # Wraps ~/.claude/scripts/* with short subcommands + compact JSON output.
 # All original scripts remain unchanged (C-01 backward compat).
 set -euo pipefail
@@ -171,6 +171,19 @@ branch) # branch group → branch-protect.sh
 model) # model routing → model-router.sh
 	model-router.sh "$@" | c_out ;;
 
+mesh) # mesh networking → mesh-sync-all.sh | mesh-discover.sh | mesh-load-query.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	sync) mesh-sync-all.sh "$@" ;;
+	discover) mesh-discover.sh "$@" ;;
+	status) mesh-sync-all.sh --phase verify "$@" ;;
+	load) mesh-load-query.sh "$@" | c_out ;;
+	--help | -h) echo "c mesh [sync|discover|status|load] [--dry-run] [--peer NAME] [--force]" && echo "  equiv: mesh-sync-all.sh | mesh-discover.sh | mesh-load-query.sh" ;;
+	*) _err_json "mesh" "$SUBCMD" ;;
+	esac
+	;;
+
 --help | -h | "")
 	cat <<'EOF'
 c — unified CLI dispatcher (Version: 2.0.0)
@@ -189,6 +202,7 @@ Groups:
   c audit [project|hard|code]  project-audit/hardening-check/code-pattern-check
   c branch [check|protect]  branch-protect
   c model [--task-type T --effort N --executor-agent A]  model-router
+  c mesh [sync|discover|status|load]  mesh networking
 
 Use `c <group> --help` for original script equivalents.
 EOF

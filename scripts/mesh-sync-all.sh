@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# mesh-sync-all.sh v1.1.0
+# mesh-sync-all.sh v1.2.0
 # Unified mesh sync: dotclaude (git+SCP) + project repos (git+non-git files) + verify.
 # Usage: mesh-sync-all.sh [--dry-run] [--peer NAME] [--phase PHASE] [--force]
 #   Phases: all (default), config, repos, verify
@@ -48,6 +48,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 G='\033[0;32m' R='\033[0;31m' Y='\033[1;33m' C='\033[0;36m' B='\033[1m' N='\033[0m'
+
+# PATH prefix for SSH non-login shells (Homebrew on macOS not in default PATH)
+REMOTE_PATH_PREFIX='export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"; '
 
 SELF_PEER="$(peers_self 2>/dev/null || true)"
 if [[ -z "$SELF_PEER" ]]; then
@@ -159,8 +162,8 @@ phase_repos() {
 				[[ -n "$rsyncfiles" ]] && echo "    WOULD: SCP $rsyncfiles"
 				continue
 			fi
-			local cmd=""
-			[[ -n "$raccount" ]] && cmd="gh auth switch --user $raccount 2>&1; "
+			local cmd="$REMOTE_PATH_PREFIX"
+			[[ -n "$raccount" ]] && cmd+="gh auth switch --user $raccount 2>&1; "
 			if $FORCE; then
 				cmd+="cd $rpath && git fetch origin $rbranch 2>&1 && git reset --hard origin/$rbranch 2>&1"
 			else

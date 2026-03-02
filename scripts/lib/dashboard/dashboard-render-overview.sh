@@ -36,6 +36,11 @@ SELECT
 	[ "${cancelled:-0}" -gt 0 ] && plan_line+=", ${RED}${cancelled}${NC} cancelled"
 	echo -e "${GRAY}├─${NC} Piani: $plan_line ${GRAY}(${total} totali)${NC}"
 	echo -e "${GRAY}└─${NC} Tasks attivi: ${GREEN}${done_tasks}${NC} done, ${YELLOW}${in_progress_tasks}${NC} in progress ${GRAY}(${total_tasks} totali)${NC}"
+
+	# Mesh network mini-preview (right after overview, always visible)
+	if type _render_mesh_mini &>/dev/null; then
+		_render_mesh_mini
+	fi
 	echo ""
 
 	# Active plans
@@ -102,10 +107,4 @@ SELECT
 
 	echo -e "${GRAY}Usa ${WHITE}piani -h${GRAY} per opzioni${NC}"
 	echo ""
-
-	# Mesh network mini-preview (if module loaded)
-	if type _render_mesh_mini &>/dev/null; then
-		_render_mesh_mini
-		echo ""
-	fi
 }

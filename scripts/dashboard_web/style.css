@@ -973,6 +973,21 @@ body::after {
   border-radius: 0;
   border: none;
 }
+/* Grid mode */
+.term-grid {
+  inset: 0;
+  border-radius: 0;
+  border: none;
+}
+.term-grid .term-body {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  overflow: hidden;
+}
+.term-grid .term-pane {
+  height: 100%;
+  overflow: hidden;
+}
 .term-header {
   display: flex;
   align-items: center;

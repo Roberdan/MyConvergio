@@ -168,9 +168,11 @@ class TerminalManager {
 
   switchTab(id) {
     this.activeId = id;
-    this.tabs.forEach((t) => {
-      t.el.style.display = t.id === id ? "" : "none";
-    });
+    if (this.mode !== "grid") {
+      this.tabs.forEach((t) => {
+        t.el.style.display = t.id === id ? "" : "none";
+      });
+    }
     this._renderTabs();
     setTimeout(() => this._fitActive(), 50);
     const tab = this.tabs.find((t) => t.id === id);
@@ -179,7 +181,7 @@ class TerminalManager {
 
   setMode(mode) {
     this.mode = mode;
-    this.container.className = `term-container term-${mode}`;
+    this.container.className = `term-container term-${mode} open`;
     if (mode === "float") {
       this.container.style.left = Math.round(window.innerWidth * 0.1) + "px";
       this.container.style.top = Math.round(window.innerHeight * 0.1) + "px";
@@ -191,7 +193,25 @@ class TerminalManager {
       this.container.style.width = "";
       this.container.style.height = "";
     }
-    setTimeout(() => this._fitActive(), 100);
+    if (mode === "grid") {
+      // Show all panes simultaneously with grid layout
+      const n = this.tabs.length;
+      const cols = n <= 1 ? 1 : n === 2 ? 2 : n <= 4 ? 2 : 3;
+      const body = document.getElementById("term-body");
+      body.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      this.tabs.forEach((t) => {
+        t.el.style.display = "block";
+      });
+      requestAnimationFrame(() => this._fitAll());
+    } else {
+      const body = document.getElementById("term-body");
+      if (body) body.style.gridTemplateColumns = "";
+      // Restore single-pane visibility
+      this.tabs.forEach((t) => {
+        t.el.style.display = t.id === this.activeId ? "" : "none";
+      });
+      setTimeout(() => this._fitActive(), 100);
+    }
   }
 
   _fitActive() {
@@ -203,6 +223,18 @@ class TerminalManager {
         /* ignore fit errors */
       }
     }
+  }
+
+  _fitAll() {
+    this.tabs.forEach((t) => {
+      if (t.fitAddon) {
+        try {
+          t.fitAddon.fit();
+        } catch {
+          /* ignore fit errors */
+        }
+      }
+    });
   }
 
   _destroyTab(tab) {
@@ -238,6 +270,7 @@ class TerminalManager {
           <button class="term-ctrl-btn" onclick="termMgr.open()" title="New local terminal">+</button>
           <button class="term-ctrl-btn" onclick="termMgr.setMode('dock')" title="Dock bottom">\u25C1</button>
           <button class="term-ctrl-btn" onclick="termMgr.setMode('float')" title="Floating window">\u25A1</button>
+          <button class="term-ctrl-btn" onclick="termMgr.setMode('grid')" title="Grid view">\u229E</button>
           <button class="term-ctrl-btn" onclick="termMgr.setMode('full')" title="Fullscreen">\u2B1C</button>
           <button class="term-ctrl-btn term-ctrl-close" onclick="termMgr.close()" title="Close all">\u2715</button>
         </div>

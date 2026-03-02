@@ -41,9 +41,10 @@ _run_all() {
 	rc_cfg=0
 	rc_db=0
 
-	"$CONFIG_SYNC" "$verb" >"$cfg_log" 2>&1 &
+	local base_verb="${verb%-all}"
+	"$CONFIG_SYNC" "$base_verb" >"$cfg_log" 2>&1 &
 	local pid_cfg=$!
-	"$DB_SYNC" "$verb" >"$db_log" 2>&1 &
+	"$DB_SYNC" "$base_verb" >"$db_log" 2>&1 &
 	local pid_db=$!
 
 	wait "$pid_cfg" || rc_cfg=$?
@@ -105,9 +106,9 @@ cmd_status() {
 	cfg_log="${TMPDIR:-/tmp}/peer-sync-cfg-status-$$.log"
 	db_log="${TMPDIR:-/tmp}/peer-sync-db-status-$$.log"
 
-	"$CONFIG_SYNC" status-all >"$cfg_log" 2>&1 &
+	"$CONFIG_SYNC" status >"$cfg_log" 2>&1 &
 	local pid_cfg=$!
-	"$DB_SYNC" status-all >"$db_log" 2>&1 &
+	"$DB_SYNC" status >"$db_log" 2>&1 &
 	local pid_db=$!
 	wait "$pid_cfg" || true
 	wait "$pid_db" || true

@@ -1,7 +1,4 @@
-"""MeshWidget — mesh topology: node boxes, pulse animation, migrate dialog.
-
-Online=green border, offline=red. Animation via set_interval() + CSS class toggle.
-"""
+"""Mesh topology — cyberpunk node visualization with load sparklines."""
 
 from __future__ import annotations
 
@@ -17,6 +14,8 @@ from textual.widgets import Input, Label, Static
 from ..db import DashboardDB
 from ..models import Peer
 
+SPARK_CHARS = "▁▂▃▄▅▆▇█"
+
 
 class MigrateDialog(ModalScreen[str | None]):
     """Input dialog for plan migration target."""
@@ -24,15 +23,10 @@ class MigrateDialog(ModalScreen[str | None]):
     BINDINGS = [Binding("escape", "cancel", "Cancel")]
 
     DEFAULT_CSS = """
-    MigrateDialog {
-        align: center middle;
-    }
+    MigrateDialog { align: center middle; }
     #migrate-box {
-        width: 50;
-        height: auto;
-        padding: 1 2;
-        border: solid cyan;
-        background: $panel;
+        width: 50; height: auto; padding: 1 2;
+        border: solid $secondary; background: $panel;
     }
     """
 
@@ -42,9 +36,9 @@ class MigrateDialog(ModalScreen[str | None]):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="migrate-box"):
-            yield Label(f"[bold cyan]Migrate plan to:[/bold cyan] {self._peer}")
+            yield Label(f"[bold $secondary]Migrate plan to:[/] {self._peer}")
             yield Input(placeholder="Plan ID (e.g. 302)", id="plan-id-input")
-            yield Label("[dim]Enter plan ID then press Enter[/dim]")
+            yield Label("[dim]Enter plan ID then press Enter[/]")
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         self.dismiss(event.value.strip() or None)
@@ -54,26 +48,16 @@ class MigrateDialog(ModalScreen[str | None]):
 
 
 class NodeBox(Static):
-    """A single peer node box — bordered, clickable."""
+    """A single peer node — cyberpunk styled with load bars."""
 
     DEFAULT_CSS = """
     NodeBox {
-        width: 24;
-        height: auto;
-        padding: 1;
-        margin: 0 1;
-        border: solid red;
+        width: 28; height: auto; padding: 1; margin: 0 1;
+        border: solid $error;
     }
-    NodeBox.online {
-        border: solid green;
-    }
-    NodeBox.coordinator {
-        border: double cyan;
-    }
-    NodeBox.pulse {
-        border: solid $accent;
-        opacity: 0.6;
-    }
+    NodeBox.online { border: solid $success; }
+    NodeBox.coordinator { border: double $secondary; }
+    NodeBox.pulse { border: solid $accent; }
     """
 
     pulse_state: reactive[bool] = reactive(False)
@@ -81,7 +65,6 @@ class NodeBox(Static):
     def __init__(self, peer: Peer, index: int) -> None:
         super().__init__(id=f"node-{index}")
         self._peer = peer
-        self._index = index
 
     def on_mount(self) -> None:
         if self._peer.is_online:
@@ -94,34 +77,34 @@ class NodeBox(Static):
 
     def _toggle_pulse(self) -> None:
         self.pulse_state = not self.pulse_state
-        if self.pulse_state:
-            self.add_class("pulse")
-        else:
-            self.remove_class("pulse")
+        self.toggle_class("pulse", self.pulse_state)
 
     def render(self) -> str:
         p = self._peer
         caps = p.capability_list
-        cap_str = " ".join(f"[dim]{c}[/dim]" for c in caps[:3]) or "[dim]—[/dim]"
-        online_label = "[green]ONLINE[/green]" if p.is_online else "[red]OFFLINE[/red]"
+        cap_str = " ".join(f"[dim]{c}[/]" for c in caps[:3]) or "[dim]worker[/]"
+        status = "[$success]ONLINE[/]" if p.is_online else "[$error]OFFLINE[/]"
 
         cpu_str = ""
         task_count = 0
         if p.load_json:
             try:
                 data = json.loads(p.load_json)
-                cpu = data.get("cpu_load_1", data.get("load_1", 0))
-                task_count = data.get("active_tasks", 0)
-                bar_len = min(int(cpu * 10), 10)
-                cpu_bar = "█" * bar_len + "░" * (10 - bar_len)
-                cpu_str = f"\nCPU [{cpu_bar}] {cpu:.1f}"
+                cpu = float(data.get("cpu_load", data.get("cpu_load_1", 0)))
+                task_count = int(
+                    data.get("active_tasks", data.get("tasks_in_progress", 0))
+                )
+                level = min(int(cpu * 8 / 100), 7) if cpu > 0 else 0
+                color = "$success" if cpu < 50 else "$warning" if cpu < 80 else "$error"
+                spark = SPARK_CHARS[level] * 8
+                cpu_str = f"\n[{color}]{spark}[/] {cpu:.0f}%"
             except (json.JSONDecodeError, TypeError, KeyError):
                 pass
 
         return (
-            f"[bold]{p.peer_name}[/bold]\n"
-            f"{online_label}\n"
-            f"Tasks: [cyan]{task_count}[/cyan]{cpu_str}\n"
+            f"[bold]{p.peer_name}[/]\n"
+            f"{status}\n"
+            f"Tasks: [$accent]{task_count}[/]{cpu_str}\n"
             f"{cap_str}"
         )
 
@@ -135,18 +118,18 @@ class NodeBox(Static):
 
 
 class Connector(Static):
-    """Unicode connection line between nodes."""
+    """Cyberpunk connection line between nodes."""
 
     DEFAULT_CSS = """
-    Connector { width: 5; height: auto; content-align: center middle; padding: 1 0; color: $text-muted; }
+    Connector { width: 5; height: auto; content-align: center middle; padding: 1 0; }
     """
 
     def render(self) -> str:
-        return "─────"
+        return "[$secondary]━━━━━[/]"
 
 
 class MeshWidget(ScrollableContainer):
-    """Mesh topology view: node boxes in Horizontal layout with connectors."""
+    """Mesh topology view with cyberpunk node boxes."""
 
     BINDINGS = [
         Binding("b", "go_back", "Back", show=True),
@@ -155,22 +138,10 @@ class MeshWidget(ScrollableContainer):
     ]
 
     DEFAULT_CSS = """
-    MeshWidget {
-        padding: 1 2;
-    }
-    #mesh-header {
-        margin-bottom: 1;
-        color: $text;
-    }
-    #node-row {
-        height: auto;
-        align: left top;
-        margin-bottom: 1;
-    }
-    #mesh-legend {
-        margin-top: 1;
-        color: $text-muted;
-    }
+    MeshWidget { padding: 1 2; }
+    #mesh-header { margin-bottom: 1; }
+    #node-row { height: auto; align: left top; margin-bottom: 1; }
+    #mesh-legend { margin-top: 1; color: $text-muted; }
     """
 
     def __init__(self, db: DashboardDB | None = None) -> None:
@@ -180,21 +151,23 @@ class MeshWidget(ScrollableContainer):
 
     def compose(self) -> ComposeResult:
         self._peers = self._db.get_peers()
+        online = sum(1 for p in self._peers if p.is_online)
         yield Static(
-            "[bold cyan]Mesh Topology[/bold cyan]  "
-            f"[dim]{len(self._peers)} peer(s) registered[/dim]",
+            f"[bold $secondary]◈ MESH TOPOLOGY[/]  "
+            f"[$success]{online}[/][dim]/{len(self._peers)} online[/]",
             id="mesh-header",
         )
         yield from self._build_node_row()
         yield Static(
-            "[dim]Click node for details  |  [bold]G[/bold]=migrate  |  "
-            "[green]■[/green]=online  [red]■[/red]=offline  [cyan]■[/cyan]=coordinator[/dim]",
+            "[dim]Click node for details  |  "
+            "[bold]G[/]=migrate  |  "
+            "[$success]●[/]=online  [$error]●[/]=offline  [$secondary]●[/]=coord[/]",
             id="mesh-legend",
         )
 
     def _build_node_row(self):
         if not self._peers:
-            yield Static("[dim]No mesh peers found. Configure peers.conf.[/dim]")
+            yield Static("[dim]No mesh peers found.[/]")
             return
         with Horizontal(id="node-row"):
             for i, peer in enumerate(self._peers):
@@ -208,16 +181,7 @@ class MeshWidget(ScrollableContainer):
     def action_refresh_mesh(self) -> None:
         self._peers = self._db.get_peers()
         try:
-            row = self.query_one("#node-row")
-            row.remove()
-        except Exception:
-            pass
-        try:
-            hdr = self.query_one("#mesh-header", Static)
-            hdr.update(
-                f"[bold cyan]Mesh Topology[/bold cyan]  "
-                f"[dim]{len(self._peers)} peer(s) registered[/dim]"
-            )
+            self.query_one("#node-row").remove()
         except Exception:
             pass
         self.mount(*list(self._build_node_row()))
@@ -226,15 +190,13 @@ class MeshWidget(ScrollableContainer):
     def action_migrate(self) -> None:
         online = [p for p in self._peers if p.is_online]
         if not online:
-            self.app.notify("[red]No online peers for migration.[/red]", timeout=3)
+            self.app.notify("[$error]No online peers[/]", timeout=3)
             return
-        target = online[0].peer_name
 
         def _on_dismiss(plan_id: str | None) -> None:
             if plan_id:
                 self.app.notify(
-                    f"mesh-migrate.sh {plan_id} {target} —  run in terminal",
-                    timeout=6,
+                    f"Run: mesh-migrate.sh {plan_id} {online[0].peer_name}", timeout=6
                 )
 
-        self.app.push_screen(MigrateDialog(target), _on_dismiss)
+        self.app.push_screen(MigrateDialog(online[0].peer_name), _on_dismiss)

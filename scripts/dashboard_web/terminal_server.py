@@ -1,0 +1,163 @@
+"""WebSocket + PTY terminal server for Convergio Control Room.
+
+Uses `websockets` library for proper browser WebSocket protocol handling.
+Each connection spawns a real pseudo-terminal via pty.fork().
+Supports local shell and SSH to remote mesh peers.
+
+Usage: python3 terminal_server.py [--port 8421]
+"""
+
+import asyncio
+import configparser
+import fcntl
+import json
+import os
+import pty
+import signal
+import struct
+import sys
+import termios
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+import websockets
+
+PEERS_CONF = Path.home() / ".claude" / "config" / "peers.conf"
+PORT = 8421
+
+
+def get_ssh_target(peer_name: str) -> str:
+    if not PEERS_CONF.exists():
+        return peer_name
+    cp = configparser.ConfigParser()
+    cp.read(str(PEERS_CONF))
+    if peer_name in cp:
+        return cp[peer_name].get("ssh_alias", peer_name)
+    return peer_name
+
+
+async def terminal_handler(ws):
+    # Parse peer from request path
+    path = ws.request.path if hasattr(ws.request, "path") else ""
+    parsed = urlparse(path)
+    qs = parse_qs(parsed.query)
+    peer = qs.get("peer", ["local"])[0]
+
+    # Determine command
+    if peer and peer not in ("local", ""):
+        ssh_target = get_ssh_target(peer)
+        cmd = ["ssh", "-t", "-o", "StrictHostKeyChecking=accept-new", ssh_target]
+    else:
+        shell = os.environ.get("SHELL", "/bin/bash")
+        cmd = [shell, "-l"]
+
+    # Fork PTY
+    pid, master_fd = pty.fork()
+    if pid == 0:
+        os.environ["TERM"] = "xterm-256color"
+        os.environ["LANG"] = "en_US.UTF-8"
+        os.execvp(cmd[0], cmd)
+        sys.exit(1)
+
+    # Set initial terminal size
+    winsize = struct.pack("HHHH", 24, 80, 0, 0)
+    fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
+
+    loop = asyncio.get_running_loop()
+    closed = asyncio.Event()
+
+    # PTY → WebSocket (via asyncio reader)
+    async def pty_to_ws():
+        read_queue = asyncio.Queue()
+
+        def on_readable():
+            try:
+                data = os.read(master_fd, 16384)
+                if data:
+                    read_queue.put_nowait(data)
+                else:
+                    closed.set()
+            except OSError:
+                closed.set()
+
+        loop.add_reader(master_fd, on_readable)
+        try:
+            while not closed.is_set():
+                try:
+                    data = await asyncio.wait_for(read_queue.get(), timeout=1)
+                    await ws.send(data)
+                except asyncio.TimeoutError:
+                    continue
+                except (
+                    websockets.exceptions.ConnectionClosed,
+                    BrokenPipeError,
+                ):
+                    break
+        finally:
+            loop.remove_reader(master_fd)
+
+    # WebSocket → PTY
+    async def ws_to_pty():
+        try:
+            async for message in ws:
+                if isinstance(message, str):
+                    try:
+                        msg = json.loads(message)
+                        if msg.get("type") == "resize":
+                            cols = int(msg.get("cols", 80))
+                            rows = int(msg.get("rows", 24))
+                            ws_buf = struct.pack("HHHH", rows, cols, 0, 0)
+                            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, ws_buf)
+                            os.kill(pid, signal.SIGWINCH)
+                    except (json.JSONDecodeError, ValueError, OSError):
+                        pass
+                elif isinstance(message, bytes):
+                    try:
+                        os.write(master_fd, message)
+                    except OSError:
+                        break
+        except websockets.exceptions.ConnectionClosed:
+            pass
+        finally:
+            closed.set()
+
+    try:
+        await asyncio.gather(pty_to_ws(), ws_to_pty())
+    finally:
+        try:
+            os.close(master_fd)
+        except OSError:
+            pass
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+        try:
+            os.waitpid(pid, os.WNOHANG)
+        except ChildProcessError:
+            pass
+
+
+async def main():
+    port = PORT
+    if "--port" in sys.argv:
+        idx = sys.argv.index("--port")
+        port = int(sys.argv[idx + 1])
+
+    async with websockets.serve(
+        terminal_handler,
+        "127.0.0.1",
+        port,
+        origins=None,  # Allow all origins (cross-port)
+    ):
+        print(f"\033[1;35m◈ Terminal Server\033[0m → ws://localhost:{port}")
+        print(f"  Peers: {PEERS_CONF}")
+        print(f"  Press Ctrl+C to stop\n")
+        await asyncio.Future()  # Run forever
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nShutdown.")

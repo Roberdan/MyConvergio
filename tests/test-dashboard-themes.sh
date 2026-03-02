@@ -18,7 +18,7 @@ source "$SCRIPT_DIR/scripts/lib/dashboard/dashboard-themes.sh"
 
 # T1: Theme files exist
 echo "--- Theme files ---"
-for name in neon-grid synthwave ghost matrix dark light vintage tron fallout; do
+for name in neon-grid synthwave ghost matrix dark light vintage tron fallout convergio; do
 	f="$THEME_DIR/theme-${name}.sh"
 	[[ -f "$f" ]] && ok "$f exists" || fail "$f MISSING"
 done
@@ -66,12 +66,12 @@ _check_alias tron "TRON SYSTEM"
 _check_alias legacy "TRON SYSTEM"
 _check_alias fallout "PIP-BOY 3000"
 _check_alias pipboy "PIP-BOY 3000"
-_check_alias vault "PIP-BOY 3000"
+_check_alias convergio "CONVERGIO"
 
-# T4: THEME_LIST has all 9 themes
+# T4: THEME_LIST has all 10 themes
 echo ""
 echo "--- THEME_LIST ---"
-[[ ${#THEME_LIST[@]} -eq 9 ]] && ok "THEME_LIST has 9 themes" || fail "THEME_LIST has ${#THEME_LIST[@]} (expected 9)"
+[[ ${#THEME_LIST[@]} -eq 10 ]] && ok "THEME_LIST has 10 themes" || fail "THEME_LIST has ${#THEME_LIST[@]} (expected 10)"
 
 # T5: Persistence read/write
 echo ""

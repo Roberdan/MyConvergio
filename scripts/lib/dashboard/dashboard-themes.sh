@@ -54,6 +54,7 @@ _theme_load() {
 	vintage | crt | vt100 | amber) name="vintage" ;;
 	tron | legacy)           name="tron" ;;
 	fallout | pipboy | vault*) name="fallout" ;;
+	convergio)               name="convergio" ;;
 	esac
 	# Call the theme function if it exists
 	if declare -f "_theme_${name}" &>/dev/null; then

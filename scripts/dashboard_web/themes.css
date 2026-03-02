@@ -157,3 +157,22 @@
   --kpi-accent: #7ec850;
   --header-bg: linear-gradient(180deg, #0c1400, #050a00);
 }
+
+[data-theme="convergio"] {
+  --bg-deep: #0e1025;
+  --bg-panel: #151838;
+  --bg-card: #1a1e45;
+  --border: #2a2e5a;
+  --cyan: #b07ee8;
+  --magenta: #f06abc;
+  --gold: #f0a050;
+  --green: #f0c030;
+  --red: #f06a8a;
+  --text: #d0c8e8;
+  --text-dim: #6a6890;
+  --font-display: "Orbitron", sans-serif;
+  --gradient-h1: linear-gradient(90deg, #9a6dd7, #e86cb8, #f09060, #f0c030);
+  --scanline-color: rgba(176, 126, 232, 0.01);
+  --kpi-accent: #b07ee8;
+  --header-bg: linear-gradient(180deg, #151838, #0e1025);
+}

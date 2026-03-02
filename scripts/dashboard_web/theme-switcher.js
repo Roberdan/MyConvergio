@@ -13,6 +13,7 @@ const THEMES = [
   { id: 'vintage',   name: 'Vintage',   sub: 'CRT Amber', color: '#d48e00' },
   { id: 'tron',      name: 'TRON',      sub: 'Legacy',    color: '#2196f3' },
   { id: 'fallout',   name: 'Fallout',   sub: 'Pip-Boy',   color: '#7ec850' },
+  { id: 'convergio', name: 'Convergio', sub: 'Brand',     color: '#b07ee8' },
 ];
 
 const STORAGE_KEY = 'dashboard-theme';

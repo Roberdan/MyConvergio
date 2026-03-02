@@ -190,6 +190,7 @@ while [[ $# -gt 0 ]]; do
 		echo "  vintage   (alias: crt, vt100, amber)         — Amber CRT 80s terminal"
 		echo "  tron      (alias: legacy)                    — TRON Legacy blue/orange"
 		echo "  fallout   (alias: pipboy, vault)             — Pip-Boy post-apocalyptic"
+		echo "  convergio                                    — Convergio brand gradient"
 		echo ""
 		echo "Navigation:"
 		echo "  R=refresh  C=completed  M=mesh  B=back  Q=quit"

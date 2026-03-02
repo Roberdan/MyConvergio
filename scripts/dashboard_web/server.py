@@ -1,0 +1,458 @@
+"""Convergio Control Room — Web Dashboard Server.
+
+Zero-dependency Python HTTP server serving the web UI + JSON API.
+Reads from ~/.claude/data/dashboard.db.
+
+Usage: python3 server.py [--port 8420]
+"""
+
+import configparser
+import json
+import os
+import sqlite3
+import subprocess
+import sys
+import time
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
+from socketserver import ThreadingMixIn
+from urllib.parse import urlparse, parse_qs
+
+DB_PATH = Path.home() / ".claude" / "data" / "dashboard.db"
+PEERS_CONF = Path.home() / ".claude" / "config" / "peers.conf"
+STATIC_DIR = Path(__file__).parent
+PORT = 8420
+
+
+def query(sql: str, params: tuple = ()) -> list[dict]:
+    try:
+        conn = sqlite3.connect(str(DB_PATH), timeout=5)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(sql, params).fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+    except (sqlite3.OperationalError, sqlite3.DatabaseError):
+        return []
+
+
+def query_one(sql: str, params: tuple = ()) -> dict | None:
+    rows = query(sql, params)
+    return rows[0] if rows else None
+
+
+def api_overview() -> dict:
+    ov = query_one(
+        "SELECT COUNT(*) FILTER (WHERE status IN ('todo','doing')) AS active,"
+        " COUNT(*) FILTER (WHERE status='done') AS done,"
+        " COUNT(*) AS total FROM plans"
+    ) or {"active": 0, "done": 0, "total": 0}
+    running = query_one(
+        "SELECT COUNT(*) AS c FROM tasks t JOIN waves w ON t.wave_id_fk=w.id"
+        " JOIN plans p ON w.plan_id=p.id WHERE t.status='in_progress' AND p.status='doing'"
+    ) or {"c": 0}
+    blocked = query_one(
+        "SELECT COUNT(*) AS c FROM tasks t JOIN waves w ON t.wave_id_fk=w.id"
+        " JOIN plans p ON w.plan_id=p.id WHERE t.status='blocked' AND p.status='doing'"
+    ) or {"c": 0}
+    ts = query_one(
+        "SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS total_tok,"
+        " COALESCE(SUM(cost_usd),0) AS total_cost FROM token_usage"
+    ) or {"total_tok": 0, "total_cost": 0}
+    today = query_one(
+        "SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS tok,"
+        " COALESCE(SUM(cost_usd),0) AS cost FROM token_usage"
+        " WHERE date(created_at)=date('now')"
+    ) or {"tok": 0, "cost": 0}
+    return {
+        "plans_total": ov["total"],
+        "plans_active": ov["active"],
+        "plans_done": ov["done"],
+        "agents_running": running["c"],
+        "blocked": blocked["c"],
+        "total_tokens": ts["total_tok"],
+        "total_cost": ts["total_cost"],
+        "today_tokens": today["tok"],
+        "today_cost": today["cost"],
+    }
+
+
+def api_mission() -> dict | None:
+    p = query_one(
+        "SELECT id,name,status,tasks_done,tasks_total,human_summary,"
+        "execution_host,parallel_mode,project_id FROM plans"
+        " WHERE status IN ('todo','doing') ORDER BY id DESC LIMIT 1"
+    )
+    if not p:
+        return None
+    waves = query(
+        "SELECT wave_id,name,status,tasks_done,tasks_total,position"
+        " FROM waves WHERE plan_id=? ORDER BY position",
+        (p["id"],),
+    )
+    tasks = query(
+        "SELECT task_id,title,status,executor_agent,executor_host,tokens"
+        " FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
+        (p["id"],),
+    )
+    return {"plan": p, "waves": waves, "tasks": tasks}
+
+
+def api_tokens_daily() -> list[dict]:
+    return query(
+        "SELECT date(created_at) AS day,"
+        " SUM(input_tokens) AS input, SUM(output_tokens) AS output,"
+        " SUM(cost_usd) AS cost FROM token_usage"
+        " WHERE date(created_at)>=date('now','-30 days')"
+        " GROUP BY day ORDER BY day"
+    )
+
+
+def api_tokens_by_model() -> list[dict]:
+    return query(
+        "SELECT model, SUM(input_tokens+output_tokens) AS tokens,"
+        " SUM(cost_usd) AS cost FROM token_usage"
+        " WHERE model IS NOT NULL GROUP BY model ORDER BY tokens DESC LIMIT 8"
+    )
+
+
+def _parse_peers_conf() -> list[dict]:
+    if not PEERS_CONF.exists():
+        return []
+    cp = configparser.ConfigParser()
+    cp.read(str(PEERS_CONF))
+    return [
+        {
+            "peer_name": s,
+            "os": cp[s].get("os", "unknown"),
+            "role": cp[s].get("role", "worker"),
+            "capabilities": cp[s].get("capabilities", ""),
+            "status": cp[s].get("status", "active"),
+            "tailscale_ip": cp[s].get("tailscale_ip", ""),
+        }
+        for s in cp.sections()
+    ]
+
+
+def _extract_heartbeat(hb: dict) -> tuple[float, int]:
+    cpu, tasks = 0.0, 0
+    lj = hb.get("load_json")
+    if lj and lj != "null":
+        try:
+            d = json.loads(lj)
+            if isinstance(d, dict):
+                cpu = float(d.get("cpu_load", d.get("cpu_load_1", 0)))
+                tasks = int(d.get("active_tasks", d.get("tasks_in_progress", 0)))
+        except (json.JSONDecodeError, TypeError, ValueError):
+            pass
+    if cpu == 0:
+        cpu = float(hb.get("cpu_load_1m") or 0)
+    if tasks == 0:
+        tasks = int(hb.get("active_tasks") or 0)
+    return cpu, tasks
+
+
+def _tailscale_online_ips() -> set[str]:
+    """Get set of reachable Tailscale IPs. 'idle'/'active'/'-' = online."""
+    try:
+        r = subprocess.run(
+            ["tailscale", "status"], capture_output=True, text=True, timeout=5
+        )
+        online = set()
+        for line in r.stdout.splitlines():
+            if line.startswith("#") or not line.strip():
+                continue
+            parts = line.split()
+            if len(parts) >= 2 and "offline" not in line:
+                online.add(parts[0])
+        return online
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return set()
+
+
+def _peer_host_match(peer_name: str, host: str) -> bool:
+    pn, eh = peer_name.lower(), host.lower()
+    return pn == eh or pn in eh
+
+
+def _peer_execution_map() -> dict[str, list[dict]]:
+    """Active plans+tasks grouped by execution_host."""
+    plans = query(
+        "SELECT id,name,status,tasks_done,tasks_total,execution_host"
+        " FROM plans WHERE status IN ('doing','todo')"
+        " AND execution_host IS NOT NULL AND execution_host<>''"
+    )
+    result: dict[str, list[dict]] = {}
+    for p in plans:
+        host = p["execution_host"]
+        active = query(
+            "SELECT task_id,title,status,executor_agent FROM tasks"
+            " WHERE plan_id=? AND status IN ('in_progress','submitted','blocked')"
+            " ORDER BY id LIMIT 5",
+            (p["id"],),
+        )
+        entry = {
+            "id": p["id"],
+            "name": p["name"],
+            "status": p["status"],
+            "tasks_done": p["tasks_done"],
+            "tasks_total": p["tasks_total"],
+            "active_tasks": active,
+        }
+        result.setdefault(host, []).append(entry)
+    return result
+
+
+def api_mesh() -> list[dict]:
+    conf = _parse_peers_conf()
+    hb_map = {r["peer_name"]: r for r in query("SELECT * FROM peer_heartbeats")}
+    ts_online = _tailscale_online_ips()
+    exec_map = _peer_execution_map()
+    now = time.time()
+    result = []
+    sources = (
+        conf
+        if conf
+        else [
+            {
+                "peer_name": r["peer_name"],
+                "os": "unknown",
+                "role": "worker",
+                "capabilities": r.get("capabilities", ""),
+                "status": "active",
+                "tailscale_ip": "",
+            }
+            for r in hb_map.values()
+        ]
+    )
+    for p in sources:
+        if p["status"] != "active":
+            continue
+        hb = hb_map.get(p["peer_name"], {})
+        is_local = p["role"] == "coordinator"
+        hb_online = (now - (hb.get("last_seen") or 0)) < 300
+        ts_reachable = p.get("tailscale_ip", "") in ts_online
+        is_online = is_local or hb_online or ts_reachable
+        cpu, tasks = _extract_heartbeat(hb)
+        # Match execution data to this peer
+        plans = []
+        for host, host_plans in exec_map.items():
+            if _peer_host_match(p["peer_name"], host):
+                plans.extend(host_plans)
+        result.append(
+            {
+                "peer_name": p["peer_name"],
+                "os": p["os"],
+                "role": p["role"],
+                "capabilities": p["capabilities"],
+                "tailscale_ip": p["tailscale_ip"],
+                "is_online": is_online,
+                "is_local": is_local,
+                "cpu": cpu,
+                "active_tasks": tasks,
+                "plans": plans,
+            }
+        )
+    return result
+
+
+def api_assignable_plans() -> list[dict]:
+    return query(
+        "SELECT id,name,status,tasks_done,tasks_total,execution_host,human_summary"
+        " FROM plans WHERE status IN ('todo','doing') ORDER BY id"
+    )
+
+
+def api_history() -> list[dict]:
+    return query(
+        "SELECT id,name,status,tasks_done,tasks_total,project_id,"
+        "started_at,completed_at,human_summary,lines_added,lines_removed"
+        " FROM plans WHERE status IN ('done','archived','cancelled')"
+        " ORDER BY id DESC LIMIT 20"
+    )
+
+
+def api_plan_detail(plan_id: int) -> dict | None:
+    p = query_one(
+        "SELECT id,name,status,tasks_done,tasks_total,project_id,"
+        "human_summary,started_at,completed_at,parallel_mode,"
+        "lines_added,lines_removed,execution_host FROM plans WHERE id=?",
+        (plan_id,),
+    )
+    if not p:
+        return None
+    waves = query(
+        "SELECT wave_id,name,status,tasks_done,tasks_total,branch_name,"
+        "pr_number,pr_url,position FROM waves WHERE plan_id=? ORDER BY position",
+        (plan_id,),
+    )
+    tasks = query(
+        "SELECT task_id,title,status,executor_agent,executor_host,tokens,"
+        "started_at,completed_at FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
+        (plan_id,),
+    )
+    cost = query_one(
+        "SELECT COALESCE(SUM(cost_usd),0) AS cost,"
+        "COALESCE(SUM(input_tokens+output_tokens),0) AS tokens"
+        " FROM token_usage WHERE project_id=("
+        "SELECT project_id FROM plans WHERE id=?)",
+        (plan_id,),
+    ) or {"cost": 0, "tokens": 0}
+    return {"plan": p, "waves": waves, "tasks": tasks, "cost": cost}
+
+
+def api_task_status_dist() -> list[dict]:
+    return query(
+        "SELECT t.status, COUNT(*) AS count FROM tasks t"
+        " JOIN waves w ON t.wave_id_fk=w.id JOIN plans p ON w.plan_id=p.id"
+        " WHERE p.status='doing' GROUP BY t.status ORDER BY count DESC"
+    )
+
+
+ROUTES = {
+    "/api/overview": api_overview,
+    "/api/mission": api_mission,
+    "/api/tokens/daily": api_tokens_daily,
+    "/api/tokens/models": api_tokens_by_model,
+    "/api/mesh": api_mesh,
+    "/api/history": api_history,
+    "/api/tasks/distribution": api_task_status_dist,
+    "/api/plans/assignable": api_assignable_plans,
+}
+
+
+class Handler(SimpleHTTPRequestHandler):
+    def __init__(self, *a, **kw):
+        super().__init__(*a, directory=str(STATIC_DIR), **kw)
+
+    def _json_response(self, data, status=200):
+        body = json.dumps(data, default=str).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        qs = parse_qs(parsed.query)
+        if path in ROUTES:
+            self._json_response(ROUTES[path]())
+        elif path == "/api/mesh/action":
+            self._json_response(self._handle_mesh_action(qs))
+        elif path == "/api/terminal":
+            self._json_response(self._handle_terminal(qs))
+        elif path == "/api/plan/move":
+            self._json_response(self._handle_plan_move(qs))
+        elif path.startswith("/api/plan/"):
+            pid = path.split("/")[-1]
+            if pid.isdigit():
+                self._json_response(api_plan_detail(int(pid)))
+            else:
+                self._json_response({"error": "invalid plan id"}, 400)
+        elif path in ("", "/"):
+            self.path = "/index.html"
+            super().do_GET()
+        else:
+            super().do_GET()
+
+    def _handle_mesh_action(self, qs: dict) -> dict:
+        SCRIPTS = Path.home() / ".claude" / "scripts"
+        action = qs.get("action", [""])[0]
+        peer = qs.get("peer", [""])[0]
+        cmds = {
+            "sync": f"{SCRIPTS}/mesh-sync-all.sh --peer {peer}",
+            "heartbeat": f"{SCRIPTS}/mesh-heartbeat.sh status",
+            "auth": f"{SCRIPTS}/mesh-auth-sync.sh push --peer {peer}",
+            "status": f"{SCRIPTS}/mesh-load-query.sh --peer {peer} --json",
+        }
+        cmd = cmds.get(action)
+        if not cmd or not peer:
+            return {"error": "invalid action or peer", "output": ""}
+        try:
+            r = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, timeout=30
+            )
+            return {"output": r.stdout + r.stderr, "exit_code": r.returncode}
+        except subprocess.TimeoutExpired:
+            return {"output": "Timeout (30s)", "exit_code": 1}
+
+    def _handle_terminal(self, qs: dict) -> dict:
+        cmd = qs.get("cmd", [""])[0]
+        peer = qs.get("peer", [""])[0]
+        if not cmd:
+            return {"output": "", "exit_code": 1}
+        if peer and peer != "local":
+            full = f"ssh {peer} '{cmd}'"
+        else:
+            full = cmd
+        try:
+            r = subprocess.run(
+                full,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                env={
+                    **os.environ,
+                    "PATH": "/opt/homebrew/bin:/usr/local/bin:"
+                    + os.environ.get("PATH", ""),
+                },
+            )
+            return {"output": (r.stdout + r.stderr)[:10000], "exit_code": r.returncode}
+        except subprocess.TimeoutExpired:
+            return {"output": "Timeout (60s)", "exit_code": 1}
+
+    def _handle_plan_move(self, qs: dict) -> dict:
+        plan_id = qs.get("plan_id", [""])[0]
+        target = qs.get("target", [""])[0]
+        if not plan_id or not plan_id.isdigit() or not target:
+            return {"error": "missing plan_id or target"}
+        try:
+            conn = sqlite3.connect(str(DB_PATH), timeout=5)
+            conn.execute(
+                "UPDATE plans SET execution_host=? WHERE id=?",
+                (target, int(plan_id)),
+            )
+            conn.execute(
+                "UPDATE tasks SET executor_host=? WHERE plan_id=?"
+                " AND status IN ('pending','in_progress')",
+                (target, int(plan_id)),
+            )
+            conn.commit()
+            conn.close()
+            return {"ok": True, "plan_id": int(plan_id), "target": target}
+        except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+            return {"error": str(e)}
+
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        super().end_headers()
+
+    def log_message(self, fmt, *args):
+        pass
+
+
+def main():
+    port = PORT
+    if "--port" in sys.argv:
+        idx = sys.argv.index("--port")
+        port = int(sys.argv[idx + 1])
+
+    class ThreadedServer(ThreadingMixIn, HTTPServer):
+        daemon_threads = True
+
+    server = ThreadedServer(("127.0.0.1", port), Handler)
+    print(f"\033[1;36m◈ Convergio Control Room\033[0m → http://localhost:{port}")
+    print(f"  DB: {DB_PATH}")
+    print(f"  Press Ctrl+C to stop\n")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nShutdown.")
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,23 +1,22 @@
-"""Textual widget library for dashboard-textual."""
+"""Cyberpunk widget library for Control Center TUI."""
 
-from .overview import OverviewWidget, StatusCard
-from .plans import ActivePlansWidget, CompletedPlansWidget, PipelinePlansWidget
-from .plan_detail import PlanDetailWidget
+from .header_bar import HeaderBar
+from .stats import StatsRow, StatCard
+from .agent_activity import AgentActivity
+from .mission import MissionPanel
+from .token_chart import TokenChart
+from .gantt import GanttTimeline
+from .history import HistoryPanel
 from .mesh import MeshWidget
-from .charts import TokenSparkline, CostGauge, ModelBreakdown, TaskCompletionChart
-from .status_bar import StatusBar
 
 __all__ = [
-    "OverviewWidget",
-    "StatusCard",
-    "ActivePlansWidget",
-    "CompletedPlansWidget",
-    "PipelinePlansWidget",
-    "PlanDetailWidget",
+    "HeaderBar",
+    "StatsRow",
+    "StatCard",
+    "AgentActivity",
+    "MissionPanel",
+    "TokenChart",
+    "GanttTimeline",
+    "HistoryPanel",
     "MeshWidget",
-    "TokenSparkline",
-    "CostGauge",
-    "ModelBreakdown",
-    "TaskCompletionChart",
-    "StatusBar",
 ]

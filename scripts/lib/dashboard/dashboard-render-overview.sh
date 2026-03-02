@@ -3,9 +3,14 @@
 # Version: 2.1.0
 
 _render_dashboard_overview() {
-	echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════╗${NC}"
-	echo -e "${BOLD}${CYAN}║${NC}          ${BOLD}${WHITE}🎯 Convergio.io - Dashboard Piani${NC}          ${BOLD}${CYAN}║${NC}"
-	echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════╝${NC}"
+	# Themed header
+	if [[ -n "${TH_NAME:-}" ]]; then
+		_th_header "CONVERGIO.IO — Dashboard Piani" "${TH_NAME}"
+	else
+		echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════╗${NC}"
+		echo -e "${BOLD}${CYAN}║${NC}          ${BOLD}${WHITE}🎯 Convergio.io - Dashboard Piani${NC}          ${BOLD}${CYAN}║${NC}"
+		echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════╝${NC}"
+	fi
 	echo ""
 
 	# Overview (single query, uses plan_id direct index instead of nested wave subqueries)
@@ -31,7 +36,12 @@ SELECT
 	in_progress_tasks=$(echo "$overview" | cut -d'|' -f7)
 	cancelled=$(echo "$overview" | cut -d'|' -f8)
 
-	echo -e "${BOLD}${WHITE}📊 Overview${NC}"
+	# Overview section (themed)
+	if [[ -n "${TH_SECTION_L:-}" ]]; then
+		_th_section "SYSTEM STATUS"
+	else
+		echo -e "${BOLD}${WHITE}📊 Overview${NC}"
+	fi
 	local plan_line="${GREEN}${plan_done}${NC} done, ${YELLOW}${doing}${NC} doing, ${BLUE}${todo}${NC} todo"
 	[ "${cancelled:-0}" -gt 0 ] && plan_line+=", ${RED}${cancelled}${NC} cancelled"
 	echo -e "${GRAY}├─${NC} Piani: $plan_line ${GRAY}(${total} totali)${NC}"

@@ -1,6 +1,8 @@
 #!/bin/bash
-# Interactive dashboard navigation (view stack + digit input)
-# Version: 1.1.0
+# Interactive dashboard navigation (view stack + digit input + mesh control center)
+# Version: 2.0.0
+
+CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 
 # View state: "main", "completed", "detail", "mesh"
 VIEW_MODE="main"
@@ -11,10 +13,10 @@ MESH_REFRESH=10
 _status_bar() {
 	local now
 	now=$(date "+%H:%M:%S")
-	echo -e "${GRAY}Aggiornato: ${WHITE}$now${NC}"
+	echo -e "${GRAY}Aggiornato: ${WHITE}$now${NC} ${GRAY}│ Tema: ${TH_PRIMARY:-$CYAN}${TH_NAME:-classic}${NC}"
 	case "$VIEW_MODE" in
 	main)
-		printf "${GRAY}[${WHITE}R${GRAY}]efresh [${WHITE}C${GRAY}]ompletati [${WHITE}M${GRAY}]esh [${WHITE}Q${GRAY}]uit [${WHITE}P${GRAY}]ush [${WHITE}L${GRAY}]inux ${GRAY}| ${WHITE}<num>${GRAY}+Enter=piano${NC}"
+		printf "${GRAY}[${WHITE}R${GRAY}]efresh [${WHITE}C${GRAY}]ompletati [${WHITE}M${GRAY}]esh [${WHITE}T${GRAY}]ema [${WHITE}Q${GRAY}]uit [${WHITE}P${GRAY}]ush [${WHITE}L${GRAY}]inux ${GRAY}| ${WHITE}<num>${GRAY}+Enter=piano${NC}"
 		;;
 	completed)
 		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}Q${GRAY}]uit ${GRAY}| ${WHITE}<num>${GRAY}+Enter=piano${NC}"
@@ -23,7 +25,7 @@ _status_bar() {
 		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}Q${GRAY}]uit ${GRAY}| ${WHITE}<num>${GRAY}+Enter=altro piano${NC}"
 		;;
 	mesh)
-		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}Q${GRAY}]uit${NC}"
+		printf "${GRAY}[${WHITE}B${GRAY}]ack [${WHITE}R${GRAY}]efresh [${WHITE}G${GRAY}]migrate [${WHITE}S${GRAY}]ync [${WHITE}D${GRAY}]ispatch [${WHITE}H${GRAY}]eartbeat [${WHITE}A${GRAY}]uth [${WHITE}E${GRAY}]nv [${WHITE}Q${GRAY}]uit${NC}"
 		;;
 	esac
 }
@@ -54,6 +56,23 @@ _render_current_view() {
 		_render_mesh_detail
 		;;
 	esac
+}
+
+# ─── Theme cycling ───
+THEME_LIST=("muthur" "nexus6" "hal9000")
+_cycle_theme() {
+	local current="${DASHBOARD_THEME:-muthur}"
+	local next="muthur" found=0
+	for (( i=0; i<${#THEME_LIST[@]}; i++ )); do
+		if [[ "${THEME_LIST[$i]}" == "$current" ]]; then
+			next="${THEME_LIST[$(( (i+1) % ${#THEME_LIST[@]} ))]}"
+			found=1
+			break
+		fi
+	done
+	[[ $found -eq 0 ]] && next="muthur"
+	DASHBOARD_THEME="$next"
+	_theme_load "$DASHBOARD_THEME"
 }
 
 _handle_digit_input() {
@@ -135,7 +154,52 @@ _run_interactive_loop() {
 		m | M)
 			[[ "$VIEW_MODE" == "main" ]] && VIEW_MODE="mesh"
 			;;
+		t | T)
+			_cycle_theme
+			;;
 		r | R) ;;
+		g | G)
+			if [[ "$VIEW_MODE" == "mesh" ]]; then
+				_mesh_action_migrate
+				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				read -n 1 -s
+			fi
+			;;
+		s | S)
+			if [[ "$VIEW_MODE" == "mesh" ]]; then
+				_mesh_action_sync
+				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				read -n 1 -s
+			fi
+			;;
+		d | D)
+			if [[ "$VIEW_MODE" == "mesh" ]]; then
+				_mesh_action_dispatch
+				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				read -n 1 -s
+			fi
+			;;
+		h | H)
+			if [[ "$VIEW_MODE" == "mesh" ]]; then
+				_mesh_action_heartbeat
+				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				read -n 1 -s
+			fi
+			;;
+		a | A)
+			if [[ "$VIEW_MODE" == "mesh" ]]; then
+				_mesh_action_auth
+				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				read -n 1 -s
+			fi
+			;;
+		e | E)
+			if [[ "$VIEW_MODE" == "mesh" ]]; then
+				_mesh_action_env
+				echo -e "\n${GRAY}Premi un tasto per continuare...${NC}"
+				read -n 1 -s
+			fi
+			;;
 		p | P)
 			echo ""
 			_handle_remote_action "push"

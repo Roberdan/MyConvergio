@@ -3,7 +3,12 @@
 # Version: 2.0.0
 
 _render_active_plans() {
-	echo -e "${BOLD}${WHITE}🚀 Piani Attivi${NC}"
+	# Active plans section (themed)
+	if [[ -n "${TH_SECTION_L:-}" ]]; then
+		_th_section "ACTIVE MISSIONS"
+	else
+		echo -e "${BOLD}${WHITE}🚀 Piani Attivi${NC}"
+	fi
 	dbq "
 		SELECT p.id, p.name, p.status, p.updated_at, p.started_at, p.created_at, p.project_id,
 			(SELECT COUNT(*) FROM waves WHERE plan_id=p.id AND status NOT IN ('cancelled')),

@@ -16,8 +16,10 @@ DASHBOARD_LIB="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
 . "$DASHBOARD_LIB/dashboard-render-pipeline-plans.sh"
 . "$DASHBOARD_LIB/dashboard-render-completed-plans.sh"
 . "$DASHBOARD_LIB/dashboard-render-overview.sh"
+. "$DASHBOARD_LIB/dashboard-themes.sh"
 . "$DASHBOARD_LIB/dashboard-render-mesh.sh"
 . "$DASHBOARD_LIB/dashboard-render-mesh-detail.sh" 2>/dev/null || true
+. "$DASHBOARD_LIB/dashboard-mesh-actions.sh"
 . "$DASHBOARD_LIB/dashboard-navigation.sh"
 
 cmd_waves() {
@@ -103,6 +105,7 @@ PLAN_ID=""
 SHOW_BLOCKED=0
 REFRESH_INTERVAL=300
 EXPAND_COMPLETED=0
+DASHBOARD_THEME="${DASHBOARD_THEME:-muthur}"
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -130,6 +133,10 @@ while [[ $# -gt 0 ]]; do
 		EXPAND_COMPLETED=1
 		shift
 		;;
+	-t | --theme)
+		DASHBOARD_THEME="$2"
+		shift 2
+		;;
 	-h | --help)
 		echo "Usage: piani [OPTIONS]"
 		echo "       piani waves <plan_id> [--prs]"
@@ -142,6 +149,7 @@ while [[ $# -gt 0 ]]; do
 		echo "  -p, --plan ID        Mostra solo piano specifico"
 		echo "  -b, --blocked        Mostra task bloccati"
 		echo "  -e, --expand         Espandi dettagli task completati (default: compressi)"
+		echo "  -t, --theme THEME    Tema: muthur|nexus6|hal9000|terminui (default: muthur)"
 		echo "  -r, --refresh SEC    Auto-refresh ogni SEC secondi (default: 300)"
 		echo "  -n, --no-refresh     Disabilita auto-refresh (vista singola)"
 		echo "  -h, --help           Mostra questo help"
@@ -152,13 +160,20 @@ while [[ $# -gt 0 ]]; do
 		echo "  - In Pipeline: piani creati ma non ancora lanciati"
 		echo "  - Completamenti: ultime 24 ore"
 		echo ""
+		echo "Temi disponibili:"
+		echo "  muthur   — Green phosphor CRT (Alien 1979)"
+		echo "  nexus6   — Amber/cyan neon (Blade Runner 1982)"
+		echo "  hal9000  — Clinical red/steel (2001: A Space Odyssey)"
+		echo "  terminui — Rich TUI via terminui (requires Node.js)"
+		echo ""
 		echo "Navigazione interattiva:"
-		echo "  R=refresh  C=completati  B=back  Q=quit  P=push  L=linux"
+		echo "  R=refresh  C=completati  B=back  Q=quit  P=push  L=linux  T=tema"
 		echo "  <numero>+Enter = drill-down piano (input live)"
 		echo ""
 		echo "Esempi:"
 		echo "  piani                 # Dashboard compatta con auto-refresh"
-		echo "  piani -e              # Con dettagli task completati espansi"
+		echo "  piani -t nexus6       # Stile Blade Runner"
+		echo "  piani -t terminui     # Rich TUI con terminui"
 		echo "  piani -n              # Vista singola, no refresh"
 		echo "  piani -v              # Verbose + auto-refresh"
 		echo "  piani -p 62           # Solo Piano #62 + auto-refresh"
@@ -177,6 +192,17 @@ done
 if [ -n "$PLAN_ID" ] && ! [[ "$PLAN_ID" =~ ^[0-9]+$ ]]; then
 	echo "Error: plan ID must be numeric" >&2
 	exit 1
+fi
+
+# Load theme
+_theme_load "$DASHBOARD_THEME"
+
+# terminui theme: delegate to TypeScript renderer
+if [[ "$DASHBOARD_THEME" == "terminui" ]]; then
+	DASHBOARD_LIB_DIR="$(dirname "${BASH_SOURCE[0]}")/lib/dashboard"
+	. "$DASHBOARD_LIB_DIR/dashboard-data-json.sh"
+	_extract_dashboard_json | npx tsx "$(dirname "${BASH_SOURCE[0]}")/dashboard-terminui.tsx"
+	exit $?
 fi
 
 # Single plan detail mode: always expand tasks

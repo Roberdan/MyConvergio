@@ -1,6 +1,6 @@
 #!/bin/bash
 # Mesh network data collection and mini-preview rendering
-# Version: 1.0.0
+# Version: 2.0.0 — True mesh topology + theme support
 # Sources: peers.conf, peer_heartbeats (SQLite), mesh-load-query.sh
 # Exports: _mesh_collect_data, _render_mesh_mini
 
@@ -110,13 +110,13 @@ _mesh_peer_color() {
 	local status=$(_mesh_get "${name}.status")
 	local online=$(_mesh_get "${name}.online")
 	if [[ "$status" == "inactive" ]]; then printf '%b' "$GRAY"
-	elif [[ "$online" != "1" ]]; then printf '%b' "$RED"
+	elif [[ "$online" != "1" ]]; then printf '%b' "${TH_NODE_OFFLINE:-$RED}"
 	else
 		local cpu_raw=$(_mesh_get "${name}.cpu" "0")
 		local cpu_int="${cpu_raw%%.*}"
 		local ncpu=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 		if [[ ${cpu_int:-0} -ge $(( ncpu * 70 / 100 )) ]]; then printf '%b' "$YELLOW"
-		else printf '%b' "$GREEN"; fi
+		else printf '%b' "${TH_NODE_ONLINE:-$GREEN}"; fi
 	fi
 }
 
@@ -127,33 +127,103 @@ _mesh_peer_icon() {
 	else echo "○"; fi
 }
 
+# Build a themed node label: "icon star name [CAPS] STATUS cpu%"
+_mesh_node_label() {
+	local name="$1"
+	local color=$(_mesh_peer_color "$name")
+	local icon=$(_mesh_peer_icon "$name")
+	local role=$(_mesh_get "${name}.role")
+	local online=$(_mesh_get "${name}.online")
+	local cpu=$(_mesh_get "${name}.cpu" "0") cpu_int="${cpu%%.*}"
+	local caps=$(_mesh_get "${name}.caps") caps_short=""
+	case ",$caps," in *",claude,"*) caps_short+="C" ;; esac
+	case ",$caps," in *",copilot,"*) caps_short+="P" ;; esac
+	case ",$caps," in *",ollama,"*) caps_short+="O" ;; esac
+	local role_badge="●"
+	[[ "$role" == "coordinator" || "$role" == "hybrid" ]] && role_badge="★"
+	local status_str=""
+	if [[ "$online" == "1" ]]; then
+		status_str="${GREEN}ON${NC}"
+	else
+		status_str="${TH_NODE_OFFLINE:-$RED}OFF${NC}"
+	fi
+	# CPU bar (themed)
+	local cpu_bar=""
+	if [[ "$online" == "1" ]]; then
+		local fill=$(( cpu_int * 5 / 100 ))
+		local empty=$(( 5 - fill ))
+		local fb="" eb=""
+		for (( i=0; i<fill; i++ )); do fb+="${TH_BAR_FILL:-▓}"; done
+		for (( i=0; i<empty; i++ )); do eb+="${TH_BAR_EMPTY:-░}"; done
+		cpu_bar="${GREEN}${fb}${GRAY}${eb}${NC}"
+	else
+		cpu_bar="${GRAY}─────${NC}"
+	fi
+	printf "${color}${icon}${NC} ${GRAY}${role_badge}${NC} ${BOLD}${WHITE}%-8s${NC} ${GRAY}[${caps_short}]${NC} ${status_str} ${cpu_bar}" "$name"
+}
+
 _render_mesh_mini() {
 	_mesh_collect_data
-	local total=0
-	for _ in $MESH_PEER_NAMES; do (( total++ )) || true; done
+	local total=0 names_arr=()
+	for n in $MESH_PEER_NAMES; do names_arr+=("$n"); (( total++ )) || true; done
+
 	echo ""
-	echo -e "${BOLD}${WHITE}🌐 Mesh Network${NC} ${GRAY}(${GREEN}${MESH_ONLINE_COUNT}${GRAY}/${total} online, ${CYAN}${MESH_TOTAL_TASKS}${GRAY} tasks)${NC}"
-	local name
-	for name in $MESH_PEER_NAMES; do
-		local color icon role_badge cpu_bar tasks_str
-		color=$(_mesh_peer_color "$name")
-		icon=$(_mesh_peer_icon "$name")
-		local role=$(_mesh_get "${name}.role")
-		[[ "$role" == "coordinator" || "$role" == "hybrid" ]] && role_badge="★" || role_badge="●"
-		local cpu=$(_mesh_get "${name}.cpu" "0") cpu_int="${cpu%%.*}"
-		local online=$(_mesh_get "${name}.online")
-		if [[ "$online" == "1" ]]; then
-			cpu_bar=$(render_bar "${cpu_int:-0}" 5)
-			tasks_str="$(_mesh_get "${name}.tasks" "0")/${MESH_MAX_TASKS}"
+	# Section header (themed)
+	local hdr_extra="${GRAY}(${GREEN}${MESH_ONLINE_COUNT}${GRAY}/${total} online, ${CYAN}${MESH_TOTAL_TASKS}${GRAY} tasks)${NC}"
+	if [[ -n "${TH_SECTION_L:-}" ]]; then
+		echo -e "${TH_PRIMARY}${TH_SECTION_L}${BOLD}${WHITE}MESH NETWORK${NC}${TH_PRIMARY}${TH_SECTION_R}${NC} ${hdr_extra}"
+	else
+		echo -e "${BOLD}${WHITE}🌐 Mesh Network${NC} ${hdr_extra}"
+	fi
+
+	# Draw themed box top
+	_th_box_top 57 "${TH_SECONDARY:-$GRAY}" 2>/dev/null || true
+
+	# Coordinator at top of triangle
+	local coord=""
+	local workers=()
+	for n in "${names_arr[@]}"; do
+		local role=$(_mesh_get "${n}.role")
+		if [[ "$role" == "coordinator" || "$role" == "hybrid" ]]; then
+			coord="$n"
 		else
-			cpu_bar="${GRAY}─────${NC}"
-			tasks_str="─"
+			workers+=("$n")
 		fi
-		local caps=$(_mesh_get "${name}.caps") caps_short=""
-		case ",$caps," in *",claude,"*) caps_short+="C" ;; esac
-		case ",$caps," in *",copilot,"*) caps_short+="P" ;; esac
-		case ",$caps," in *",ollama,"*) caps_short+="O" ;; esac
-		printf "  ${color}${icon}${NC} %-10s ${GRAY}${role_badge}${NC} ${cpu_bar} ${WHITE}%s${NC} ${GRAY}[${caps_short}]${NC}\n" "$name" "$tasks_str"
 	done
-	[[ -n "$MESH_COORDINATOR" ]] && echo -e "${GRAY}  └─ Coordinator: ${WHITE}${MESH_COORDINATOR}${NC}"
+	[[ -z "$coord" ]] && coord="${names_arr[0]}" && workers=("${names_arr[@]:1}")
+
+	# Coordinator node (centered)
+	local coord_label
+	coord_label=$(_mesh_node_label "$coord")
+	local coord_color=$(_mesh_peer_color "$coord")
+	echo -e "  ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}          ${coord_label}          ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}"
+
+	# Connection lines from coordinator to workers
+	if [[ ${#workers[@]} -ge 2 ]]; then
+		echo -e "  ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}              ${coord_color}┌──────┘ └──────┐${NC}              ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}"
+		echo -e "  ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}              ${coord_color}│${NC}                ${coord_color}│${NC}              ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}"
+	elif [[ ${#workers[@]} -eq 1 ]]; then
+		echo -e "  ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}                    ${coord_color}│${NC}                         ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}"
+	fi
+
+	# Worker nodes side by side
+	if [[ ${#workers[@]} -ge 2 ]]; then
+		local w1_label w2_label
+		w1_label=$(_mesh_node_label "${workers[0]}")
+		w2_label=$(_mesh_node_label "${workers[1]}")
+		echo -e "  ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC} ${w1_label}  ${w2_label} ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}"
+		# Backbone (bottom of triangle)
+		local w1_color=$(_mesh_peer_color "${workers[0]}")
+		local w2_color=$(_mesh_peer_color "${workers[1]}")
+		echo -e "  ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}              ${w1_color}└────────${NC}${TH_PRIMARY:-$CYAN}◉${NC}${w2_color}────────┘${NC}              ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}"
+		echo -e "  ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}                ${GRAY}${TH_BACKBONE:-MESH BACKBONE}${NC}                  ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}"
+	elif [[ ${#workers[@]} -eq 1 ]]; then
+		local w1_label
+		w1_label=$(_mesh_node_label "${workers[0]}")
+		echo -e "  ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}     ${w1_label}                    ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}"
+	fi
+
+	# Footer line + box bottom
+	echo -e "  ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC} ${GRAY}coord:${WHITE}${MESH_COORDINATOR:-?}${NC} ${GRAY}│ net:${GREEN}tailscale${NC} ${GRAY}│ stale:${WHITE}${MESH_STALE_WINDOW}s${NC}   ${TH_SECONDARY:-$GRAY}${TH_BORDER_V:-│}${NC}"
+	_th_box_bot 57 "${TH_SECONDARY:-$GRAY}" 2>/dev/null || true
 }

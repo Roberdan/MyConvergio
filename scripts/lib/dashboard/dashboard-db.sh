@@ -182,10 +182,12 @@ render_bar() {
 	local pct="$1" blen="${2:-20}"
 	local filled=$((pct * blen / 100))
 	local empty=$((blen - filled))
+	local fill_char="${TH_BAR_FILL:-█}"
+	local empty_char="${TH_BAR_EMPTY:-░}"
 	local bar="${GREEN}"
-	for ((i = 0; i < filled; i++)); do bar+="█"; done
+	for ((i = 0; i < filled; i++)); do bar+="$fill_char"; done
 	bar+="${GRAY}"
-	for ((i = 0; i < empty; i++)); do bar+="░"; done
+	for ((i = 0; i < empty; i++)); do bar+="$empty_char"; done
 	bar+="${NC}"
 	echo -e "$bar"
 }

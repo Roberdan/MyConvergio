@@ -28,6 +28,10 @@ Claude stores cross-session context in `~/.claude/projects/{project-slug}/memory
 
 `/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task → Thor per-wave → closure (all F-xx verified) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
 
+### Plan DB Continuity (NON-NEGOTIABLE — Plan 298 learning)
+
+**Update plan DB in real-time** — every task completion MUST call `plan-db-safe.sh` immediately, not deferred. Before context compaction, write active plan state to auto-memory (`MEMORY.md`): `ACTIVE_PLAN`, `BRANCH`, `WAVE`, task statuses, PR number. Resumed sessions read this and reconcile with `plan-db.sh execution-tree`. _Why: Plan 298 — tasks executed across compaction boundary with no DB updates = stale DB, user had to remind._
+
 ### Slash Commands & CLI
 
 | Command         | Purpose                                |

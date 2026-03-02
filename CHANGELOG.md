@@ -1,5 +1,11 @@
 # Changelog
 
+## [10.0.2] — 2026-03-02
+
+### Fixed
+
+- All remaining `roberdan` (lowercase) GitHub URLs corrected to `Roberdan` across AGENTS.md, plugin.json, release.yml, docs, and CLI
+
 ## [10.0.1] — 2026-03-02
 
 ### Fixed

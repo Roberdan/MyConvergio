@@ -71,7 +71,7 @@ cmd_install() {
 cmd_upgrade() {
 	echo -e "${BLUE}Upgrading MyConvergio...${NC}"
 	cd "$REPO_ROOT"
-	git pull --ff-only origin main 2>/dev/null || git pull origin main
+	git pull --ff-only origin master 2>/dev/null || git pull origin master
 	make upgrade --no-print-directory
 	echo -e "\n${GREEN}Upgrade complete! $(get_version)${NC}"
 }

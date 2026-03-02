@@ -13,13 +13,13 @@ graph LR
 
 ## Prerequisites
 
-| Tool     | Required | Notes                              |
-| -------- | -------- | ---------------------------------- |
-| `bash`   | Yes      | Preinstalled on macOS/Linux        |
-| `sqlite3`| Yes      | Preinstalled on macOS/Linux        |
-| `git`    | Yes      | For worktree isolation             |
-| `claude` | Yes      | Claude Code CLI                    |
-| `gh`     | Optional | For Copilot CLI + PR automation    |
+| Tool      | Required | Notes                           |
+| --------- | -------- | ------------------------------- |
+| `bash`    | Yes      | Preinstalled on macOS/Linux     |
+| `sqlite3` | Yes      | Preinstalled on macOS/Linux     |
+| `git`     | Yes      | For worktree isolation          |
+| `claude`  | Yes      | Claude Code CLI                 |
+| `gh`      | Optional | For Copilot CLI + PR automation |
 
 **Windows**: Use WSL2. All tools work identically.
 
@@ -30,7 +30,7 @@ graph LR
 ### Option A: One-Line Install
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
 ```
 
 Expected output:
@@ -197,11 +197,11 @@ sequenceDiagram
 
 ## Next Steps
 
-| Goal                    | Document                                |
-| ----------------------- | --------------------------------------- |
-| Understand core concepts | [Concepts & Glossary](./concepts.md)   |
-| Full workflow reference  | [Workflow Guide](./workflow.md)         |
-| See real scenarios       | [Use Cases](./use-cases.md)            |
+| Goal                     | Document                                       |
+| ------------------------ | ---------------------------------------------- |
+| Understand core concepts | [Concepts & Glossary](./concepts.md)           |
+| Full workflow reference  | [Workflow Guide](./workflow.md)                |
+| See real scenarios       | [Use Cases](./use-cases.md)                    |
 | Browse all agents        | [Agent Portfolio](./agents/agent-portfolio.md) |
 
 ---

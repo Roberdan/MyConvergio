@@ -190,12 +190,12 @@ make install
 ### Option B: One line install
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/checksums.txt -o /tmp/mc-checksums.txt
-curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh -o /tmp/mc-install.sh
+curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/checksums.txt -o /tmp/mc-checksums.txt
+curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh -o /tmp/mc-install.sh
 sha256sum -c /tmp/mc-checksums.txt --ignore-missing && bash /tmp/mc-install.sh
 
 # direct install
-curl -sSL https://raw.githubusercontent.com/roberdan/MyConvergio/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
 ```
 
 ### Option C: Modular install

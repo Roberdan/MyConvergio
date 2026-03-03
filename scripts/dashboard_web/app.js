@@ -227,6 +227,8 @@ function _renderOnePlan(m) {
           : "var(--red)";
   const doneTasks = p.tasks_done || 0;
   const totalTasks = p.tasks_total || 0;
+  const hostName = p.execution_peer || _resolveHost(p.execution_host);
+  const isRemote = hostName && hostName !== "local" && hostName !== "m3max";
   const blockedCount = (m.tasks || []).filter(
     (t) => t.status === "blocked",
   ).length;
@@ -255,7 +257,7 @@ function _renderOnePlan(m) {
       <div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);margin-top:2px">
         <span>${inProgCount > 0 ? `<span style="color:var(--gold)">${inProgCount} running</span>` : ""}</span>
         <span>${blockedCount > 0 ? `<span style="color:var(--red)">${blockedCount} blocked</span>` : ""}</span>
-        <span class="host-badge" style="font-size:9px;padding:0 6px">${esc(p.execution_peer || _resolveHost(p.execution_host))}</span>
+        <span class="host-badge" style="font-size:9px;padding:0 6px">${esc(hostName)}</span>${isRemote ? `<button class="host-sync-btn" onclick="event.stopPropagation();syncPlanNode(${p.id},'${esc(hostName)}')" title="Sync status from ${esc(hostName)}">⟳</button>` : ""}
       </div>
     </div>
   </div>`;

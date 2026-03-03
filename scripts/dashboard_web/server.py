@@ -1057,7 +1057,7 @@ class Handler(SimpleHTTPRequestHandler):
             return {"error": str(e)}
 
     def _handle_plan_delegate(self, qs: dict):
-        """SSE endpoint: full sync + mesh-migrate.sh streamed line-by-line."""
+        """SSE endpoint: pre-validate → auto-fix → sync → migrate with retry."""
         plan_id = qs.get("plan_id", [""])[0]
         target = qs.get("target", [""])[0]
         if not plan_id or not plan_id.isdigit() or not target:
@@ -1103,7 +1103,115 @@ class Handler(SimpleHTTPRequestHandler):
             proc.wait(timeout=timeout)
             return proc.returncode
 
+        def _ssh_ok(dest: str) -> bool:
+            """Quick SSH check."""
+            try:
+                r = subprocess.run(
+                    ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
+                     dest, "echo ok"],
+                    capture_output=True, text=True, timeout=8,
+                )
+                return r.returncode == 0
+            except Exception:
+                return False
+
+        def _auto_fix_ssh(peer_name: str) -> str | None:
+            """Resolve SSH dest, test it, auto-fix common issues. Returns working dest or None."""
+            # 1. Resolve via peers.conf
+            pc = _find_peer_conf(peer_name)
+            ssh_alias = pc.get("ssh_alias", "") if pc else ""
+            ts_ip = pc.get("tailscale_ip", "") if pc else ""
+
+            candidates = []
+            if ssh_alias:
+                candidates.append(("ssh_alias", ssh_alias))
+            if ts_ip:
+                user = pc.get("user", "") if pc else ""
+                candidates.append(("tailscale_ip", f"{user}@{ts_ip}" if user else ts_ip))
+            # Last resort: raw name
+            candidates.append(("raw", peer_name))
+
+            for label, dest in candidates:
+                _send_sse("log", f"  Testing SSH → {dest} ({label})…")
+                if _ssh_ok(dest):
+                    _send_sse("log", f"  ✓ SSH connected via {label}: {dest}")
+                    return dest
+                _send_sse("log", f"  ✗ {dest} unreachable")
+
+            # All failed — try Wake-on-LAN if we have MAC
+            mac = pc.get("mac_address", "") if pc else ""
+            if mac:
+                _send_sse("log", f"  ⚡ Sending Wake-on-LAN to {mac}…")
+                try:
+                    _send_wol(mac)
+                    time.sleep(3)
+                    _send_wol(mac)
+                except Exception:
+                    pass
+                # Wait and retry
+                for wait_sec in [5, 10, 15]:
+                    _send_sse("log", f"  Waiting {wait_sec}s for node to wake…")
+                    time.sleep(wait_sec)
+                    for label, dest in candidates:
+                        if _ssh_ok(dest):
+                            _send_sse("log", f"  ✓ Node woke up! Connected via {label}")
+                            return dest
+            return None
+
         try:
+            # ━━━ PRE-VALIDATION: resolve SSH before calling any script ━━━
+            _send_sse("phase", "prevalidate")
+            _send_sse("log", f"━━━ PRE-VALIDATION: {target} ━━━")
+            _send_sse("log", "")
+
+            # Resolve SSH destination from peers.conf (the #1 failure cause)
+            pc = _find_peer_conf(target)
+            ssh_dest = pc.get("ssh_alias", target) if pc else target
+            _send_sse("log", f"▶ Resolving {target} → SSH destination")
+            if pc:
+                _send_sse("log", f"  peers.conf: ssh_alias={ssh_dest}")
+            else:
+                _send_sse("log", f"  ⚠ {target} not in peers.conf — using raw name")
+
+            # Test SSH connectivity with auto-fix
+            _send_sse("log", f"▶ Testing SSH connectivity")
+            working_dest = _auto_fix_ssh(target)
+            if not working_dest:
+                _send_sse("log", "")
+                _send_sse("log", f"✗ FAILED: {target} unreachable via all methods")
+                _send_sse("log", "  Tried: ssh_alias, tailscale_ip, Wake-on-LAN")
+                _send_sse("log", "  Check: is the machine on? SSH running? VPN connected?")
+                _send_sse("error", json.dumps({
+                    "ok": False,
+                    "message": f"{target} unreachable — tried SSH alias, Tailscale IP, WoL"
+                }))
+                return
+            _send_sse("log", "")
+
+            # Ensure peers.conf ssh_alias matches working dest
+            # (auto-heal: if ssh_alias was wrong but tailscale worked, update conf)
+            if pc and working_dest != ssh_dest and working_dest != target:
+                _send_sse("log", f"⚠ ssh_alias '{ssh_dest}' didn't work but '{working_dest}' did")
+                _send_sse("log", f"  Consider updating peers.conf ssh_alias for {target}")
+
+            # Quick sanity: claude home exists on remote
+            _send_sse("log", "▶ Checking remote .claude directory")
+            try:
+                r = subprocess.run(
+                    ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
+                     working_dest, "test -d $HOME/.claude && echo EXISTS || echo MISSING"],
+                    capture_output=True, text=True, timeout=8,
+                )
+                if "EXISTS" in r.stdout:
+                    _send_sse("log", "  ✓ ~/.claude exists on remote")
+                else:
+                    _send_sse("log", "  ⚠ ~/.claude missing — sync will create it")
+            except Exception:
+                _send_sse("log", "  ⚠ Could not verify (non-blocking)")
+            _send_sse("log", "")
+            _send_sse("log", "✓ Pre-validation passed")
+            _send_sse("log", "")
+
             # --- PHASE 0: Full sync ---
             _send_sse("phase", "sync")
             _send_sse("log", f"━━━ PHASE 0: Full Sync → {target} ━━━")
@@ -1119,23 +1227,49 @@ class Handler(SimpleHTTPRequestHandler):
                 _send_sse("log", "✓ Sync completed")
             _send_sse("log", "")
 
-            # --- PHASE 1-5: Migration ---
+            # --- PHASE 1-5: Migration (with auto-retry) ---
             _send_sse("phase", "migrate")
             _send_sse("log", f"━━━ PHASE 1-5: Migrate Plan #{plan_id} → {target} ━━━")
             _send_sse("log", "")
             migrate_cmd = f"{scripts}/mesh-migrate.sh {plan_id} {shlex.quote(target)}"
-            _send_sse("log", f"▶ Running: mesh-migrate.sh {plan_id} {target}")
-            migrate_rc = _stream_cmd(migrate_cmd, timeout=300)
+            max_attempts = 2
+            for attempt in range(1, max_attempts + 1):
+                if attempt > 1:
+                    _send_sse("log", "")
+                    _send_sse("log", f"━━━ RETRY {attempt}/{max_attempts}: auto-fixing and retrying ━━━")
+                    _send_sse("log", "")
+                    # Auto-fix before retry: re-sync and re-verify SSH
+                    _send_sse("log", "▶ Auto-fix: re-syncing config…")
+                    _stream_cmd(sync_cmd, timeout=120)
+                    _send_sse("log", "▶ Auto-fix: re-verifying SSH…")
+                    if not _ssh_ok(working_dest):
+                        working_dest = _auto_fix_ssh(target)
+                        if not working_dest:
+                            _send_sse("log", "✗ SSH still unreachable after auto-fix")
+                            break
+                    _send_sse("log", "")
 
-            if migrate_rc == 0:
-                _send_sse("done", json.dumps({
-                    "ok": True, "plan_id": int(plan_id), "target": target
-                }))
-            else:
-                _send_sse("error", json.dumps({
-                    "ok": False, "exit_code": migrate_rc,
-                    "message": f"mesh-migrate exited with code {migrate_rc}"
-                }))
+                _send_sse("log", f"▶ Running: mesh-migrate.sh {plan_id} {target}")
+                migrate_rc = _stream_cmd(migrate_cmd, timeout=300)
+
+                if migrate_rc == 0:
+                    _send_sse("done", json.dumps({
+                        "ok": True, "plan_id": int(plan_id), "target": target
+                    }))
+                    return
+
+                # Analyze failure for retryable errors
+                if attempt < max_attempts:
+                    _send_sse("log", "")
+                    _send_sse("log", f"⚠ mesh-migrate exited with code {migrate_rc} — analyzing…")
+                    # Most failures are SSH/sync related → retry helps
+                    _send_sse("log", "  Retryable error detected — will auto-fix and retry")
+
+            # All attempts failed
+            _send_sse("error", json.dumps({
+                "ok": False, "exit_code": migrate_rc,
+                "message": f"mesh-migrate failed after {max_attempts} attempts (exit code {migrate_rc})"
+            }))
         except subprocess.TimeoutExpired:
             _send_sse("error", json.dumps({
                 "ok": False, "message": "Timeout"

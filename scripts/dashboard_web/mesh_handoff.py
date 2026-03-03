@@ -445,6 +445,43 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
         pass
     log(f"  ✓ execution_host = {target}")
 
+    # 12. Auto-launch: create tmux window inside Convergio and run /execute
+    log(f"▶ Launching plan #{plan_id} on {target}")
+    window_name = f"plan-{plan_id}"
+    # Detect which CLI is available on target (copilot preferred, claude fallback)
+    try:
+        r = _ssh(ssh_target,
+                 "export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
+                 "command -v copilot >/dev/null 2>&1 && echo COPILOT "
+                 "|| (command -v claude >/dev/null 2>&1 && echo CLAUDE) "
+                 "|| echo NONE", timeout=8)
+        cli = r.stdout.strip().split("\n")[-1]
+    except Exception:
+        cli = "NONE"
+
+    if cli == "NONE":
+        log(f"  ⚠ No CLI found on target — plan transferred but needs manual /execute")
+    else:
+        cli_cmd = "copilot" if cli == "COPILOT" else "claude --model sonnet"
+        launch_cmd = f"cd ~/.claude && {cli_cmd} -p '/execute {plan_id}'"
+        try:
+            # Ensure Convergio session exists, then create plan window
+            _ssh(ssh_target,
+                 f"tmux new-session -A -d -s Convergio 2>/dev/null; "
+                 f"tmux new-window -t Convergio -n '{window_name}' "
+                 f"'{launch_cmd}'",
+                 timeout=10)
+            # Verify window was created
+            r = _ssh(ssh_target,
+                     f"tmux list-windows -t Convergio -F '#{{window_name}}' 2>/dev/null",
+                     timeout=5)
+            if window_name in r.stdout:
+                log(f"  ✓ tmux Convergio:{window_name} → running {cli_cmd}")
+            else:
+                log(f"  ⚠ Window created but not confirmed — check with: tlm / tlx")
+        except Exception as e:
+            log(f"  ⚠ Launch failed: {str(e)[:60]} — run manually: /execute {plan_id}")
+
     return True, f"Plan #{plan_id} handed off to {target}"
 
 

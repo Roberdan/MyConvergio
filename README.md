@@ -395,6 +395,48 @@ Open your terminal with Claude Code or Copilot CLI and type:
 
 MyConvergio extracts requirements, asks clarifying questions, generates a structured plan with parallel tasks, executes each task in isolation with TDD, validates through Thor's 9 quality gates, and auto-merges to main. You approve the plan — the system does the rest.
 
+### Dashboards
+
+MyConvergio includes two dashboards for monitoring plans, agents, and mesh nodes:
+
+| Dashboard | What | How to run |
+|-----------|------|------------|
+| **Control Room** (web) | Full browser UI with plan drill-down, mesh topology, integrated terminals, cost analytics | `python3 ~/.claude/scripts/dashboard_web/server.py` then open `http://localhost:8420` |
+| **pianits** (terminal) | Lightweight TUI for quick checks inside tmux/SSH sessions — auto-refresh, drill-down, quit with `q` | `~/.claude/scripts/pianits` |
+
+#### Recommended aliases
+
+Add these to your shell profile for quick access:
+
+<details>
+<summary><strong>macOS / Linux</strong> (~/.zshrc or ~/.bashrc)</summary>
+
+```bash
+# Convergio dashboards
+alias piani='open http://localhost:8420'           # macOS: opens browser
+# alias piani='xdg-open http://localhost:8420'     # Linux: opens browser
+alias pianits='~/.claude/scripts/pianits'
+```
+</details>
+
+<details>
+<summary><strong>Windows (PowerShell profile)</strong></summary>
+
+```powershell
+# Convergio dashboards
+function piani { Start-Process "http://localhost:8420" }
+Set-Alias pianits "$env:USERPROFILE\.claude\scripts\pianits"
+```
+</details>
+
+> **pianits** interactive keys: `q` quit · `r` refresh · `<number>` + Enter = drill-down · `b` back · auto-refreshes every 10s.
+>
+> To run the Control Room server on startup, add to your shell profile:
+> ```bash
+> # Start Control Room in background (if not already running)
+> pgrep -f "dashboard_web/server.py" >/dev/null || python3 ~/.claude/scripts/dashboard_web/server.py &>/dev/null &
+> ```
+
 ---
 
 ## Documentation

@@ -1,4 +1,4 @@
-<!-- AGENT_COUNTS: claude:79 copilot:83 total:162 -->
+<!-- AGENT_COUNTS: claude:76 copilot:83 total:159 -->
 <div align="center">
 
 # MyConvergio
@@ -6,7 +6,7 @@
 <img src="./CovergioLogoTransparent.webp" alt="MyConvergio Logo" width="180"/>
 
 [![Version](https://img.shields.io/badge/version-10.1.0-0A66C2)](./VERSION)
-[![Agents](https://img.shields.io/badge/agents-162-4C1)](#agent-portfolio)
+[![Agents](https://img.shields.io/badge/agents-159-4C1)](#agent-portfolio)
 [![Skills](https://img.shields.io/badge/skills-20-6A5ACD)](#skills)
 [![Hooks](https://img.shields.io/badge/hooks-31-D97706)](#enforcement-layer)
 [![License](https://img.shields.io/badge/license-CC_BY--NC--SA_4.0-lightgrey)](./LICENSE)
@@ -215,7 +215,7 @@ make install
 # Pick what fits
 make install-tier TIER=minimal   # 9 core agents (~50KB)
 make install-tier TIER=standard  # 20 agents (~200KB)
-make install                     # all 162 agents (~600KB)
+make install                     # all 159 agents (~600KB)
 ```
 
 ### After install
@@ -234,7 +234,7 @@ Without this step, hooks won't run. This is the difference between "AI with guar
 
 ## Agent portfolio
 
-162 agent files across 9 domains, dual-format for Claude Code and Copilot CLI.
+159 agent files across 9 domains, dual-format for Claude Code and Copilot CLI.
 
 | Domain              | Claude | Copilot | Examples                                              |
 | ------------------- | ------ | ------- | ----------------------------------------------------- |
@@ -246,7 +246,7 @@ Without this step, hooks won't run. This is the difference between "AI with guar
 | Compliance          | 5      | 5       | luca (security), elena (legal), dr-enzo (HIPAA)       |
 | Release mgmt        | 5      | 5       | app-release-manager, ecosystem-sync                   |
 | Design & UX         | 3      | 3       | sara (UX), jony (creative), stefano (design thinking) |
-| **Total**           | **79** | **83**  |                                                       |
+| **Total**           | **76** | **83**  |                                                       |
 
 ## Skills
 

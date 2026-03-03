@@ -63,8 +63,11 @@ window.streamMeshAction = function (action, peer) {
 
   es.addEventListener("log", (e) => {
     const line = e.data || "";
-    let html = esc(line);
-    if (line.startsWith("▶")) {
+    const hasAnsi = /\x1b\[/.test(line);
+    let html;
+    if (hasAnsi) {
+      html = ansiToHtml(line);
+    } else if (line.startsWith("▶")) {
       html = `<span style="color:var(--cyan)">${esc(line)}</span>`;
     } else if (/^(OK|PASS|✓|MATCH|synced|pushed|done)/i.test(line)) {
       html = `<span style="color:var(--green)">${esc(line)}</span>`;
@@ -74,6 +77,8 @@ window.streamMeshAction = function (action, peer) {
       html = `<span style="color:var(--red)">${esc(line)}</span>`;
     } else if (line.startsWith("---") || line.startsWith("===")) {
       html = `<span style="color:var(--cyan);font-weight:600">${esc(line)}</span>`;
+    } else {
+      html = esc(line);
     }
     output.innerHTML += html + "\n";
     output.scrollTop = output.scrollHeight;
@@ -432,8 +437,17 @@ window.delegatePlan = function (planId, targetPeer, planName) {
 
   es.addEventListener("log", (e) => {
     const line = e.data || "";
-    let html = esc(line);
-    if (line.startsWith("━━━")) {
+    const hasAnsi = /\x1b\[/.test(line);
+    let html;
+    if (hasAnsi) {
+      // Strip ANSI first to test patterns, then render with colors
+      const stripped = line.replace(/\x1b\[[0-9;]*m/g, "");
+      if (stripped.startsWith("━━━") || stripped.startsWith("--- PHASE") || stripped.startsWith("=== ")) {
+        html = `<div class="delegate-phase-header">${ansiToHtml(line)}</div>`;
+      } else {
+        html = ansiToHtml(line) + "\n";
+      }
+    } else if (line.startsWith("━━━")) {
       html = `<div class="delegate-phase-header">${esc(line)}</div>`;
     } else if (line.startsWith("--- PHASE")) {
       html = `<div class="delegate-phase-header">${esc(line)}</div>`;
@@ -446,7 +460,7 @@ window.delegatePlan = function (planId, targetPeer, planName) {
     } else if (/^(ERROR|FAIL)/.test(line)) {
       html = `<span class="delegate-status-fail">${esc(line)}</span>\n`;
     } else {
-      html += "\n";
+      html = esc(line) + "\n";
     }
     output.innerHTML += html;
     output.scrollTop = output.scrollHeight;

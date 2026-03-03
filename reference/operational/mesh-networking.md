@@ -1,4 +1,4 @@
-<!-- v1.1.0 | 02 Mar 2026 | Added mesh-sync-all, repos.conf, SSH PATH fix -->
+<!-- v1.2.0 | 03 Mar 2026 | Dashboard delegation, auto-sync, WoL, tmux integration -->
 
 # Mesh Networking
 
@@ -39,6 +39,7 @@ Location: `~/.claude/config/peers.conf` (override: `PEERS_CONF` env var)
 | `capabilities` | no       | `claude,copilot,ollama,opencode`           | Comma-separated, no spaces  |
 | `role`         | yes      | `coordinator` \| `worker` \| `hybrid`      | Affects dispatcher scoring  |
 | `status`       | no       | `active` \| `inactive` (default: `active`) | Inactive peers are ignored  |
+| `mac_address`  | no       | `AA:BB:CC:DD:EE:FF`                        | Wake-on-LAN magic packet    |
 
 **Capabilities reference**: `claude` = Claude Code MCP | `copilot` = Copilot CLI | `ollama` = local LLM | `opencode` = OpenCode agent
 
@@ -317,3 +318,58 @@ mesh-sync-all.sh --peer NAME       # Sync config + repos
 ```
 
 **Task status during migration**: `done` stays done, `in_progress` resets to `pending`, `pending` unchanged.
+
+## Dashboard Delegation
+
+Delegate plans to mesh nodes from the web dashboard with full preflight validation.
+
+**Flow**: Plan card → 🚀 Delegate → Select peer → Preflight (auto-fix) → Sync → Migrate → tmux session
+
+### Preflight Checks (SSE streaming, auto-fix)
+
+| Check | Auto-fix | Blocking |
+|---|---|---|
+| Plan status (todo/doing) | — | yes |
+| SSH reachable | — | yes |
+| Heartbeat stale | Restarts daemon via SSH | no |
+| Config out of sync | Runs `mesh-sync-all.sh --peer` | no |
+| Claude CLI | Searches `~/.local/bin`, `/opt/homebrew/bin` | yes |
+| Disk space ≥5GB | — | yes |
+
+### Delegation Process
+
+Phase 0 (auto): `mesh-sync-all.sh --peer <target>` — full config+DB+repo sync
+Phase 1-5: `mesh-migrate.sh <plan_id> <target>` — preflight, sync, DB migrate, tmux launch, verify
+
+All output streamed via SSE to a live modal in the dashboard.
+
+## Power Management
+
+| Action | Trigger | Method |
+|---|---|---|
+| **Wake** | Node offline, has `mac_address` | WoL magic packet (pure Python, broadcast UDP:9), 3 packets + 15s SSH poll |
+| **Reboot** | Node online but unresponsive | `sudo reboot` via SSH (OS-aware), 40s SSH poll for comeback |
+
+Buttons on mesh node cards: Wake (offline nodes), Reboot (online nodes).
+
+## Auto-Sync Protocol
+
+Sync propagates automatically at key lifecycle events:
+
+| Event | Action | Direction |
+|---|---|---|
+| **Plan complete** | `mesh-sync-all.sh` push | Coordinator → all online peers |
+| **Heartbeat start** | `sync-claude-config.sh pull` | Peer → coordinator |
+| **Heartbeat loop** | `sync-claude-config.sh pull` (every ~5min) | Peer → coordinator |
+| **Delegation** | Phase 0 full sync before migrate | Coordinator → target peer |
+
+Conflict resolution: auto-stash remote, force-reset on diverged history, rsync fallback.
+
+## Terminal tmux Integration
+
+Each delegated plan runs in `tmux plan-{ID}` session on the target node.
+
+- **Dashboard terminal icons**: auto-attach to `plan-{ID}` if node has active plan
+- **`openAllTerminals()`**: connects each peer to its active plan tmux session
+- **Remote**: `ssh <peer> -t "tmux attach -t plan-{ID}"`
+- **Local tmux aliases**: `tlm` (Mac M1), `tlx` (Linux) connect to `dev` session

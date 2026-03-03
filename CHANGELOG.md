@@ -1,5 +1,29 @@
 # Changelog
 
+## [2026-03-03] — Mesh Delegation & Auto-Sync
+
+### Added
+
+- **Dashboard Delegation**: Delegate plans to mesh nodes from active mission cards (rocket icon)
+- **SSE Preflight**: 6 streaming checks (plan status, SSH, heartbeat, config sync, Claude CLI, disk space) with auto-fix
+- **Auto-fix Preflight**: Stale heartbeat → restarts daemon; config out of sync → auto `mesh-sync-all`; Claude CLI → extended PATH search
+- **SSE Streaming**: All mesh actions (sync, heartbeat, auth, status) now stream output live instead of blocking
+- **Wake-on-LAN**: Pure Python WoL magic packet for offline nodes (button on mesh node cards)
+- **SSH Reboot**: OS-aware reboot command for online nodes with post-reboot SSH polling
+- **Auto-Sync on Plan Complete**: `mesh-sync-all.sh` push to all online peers when plan finishes
+- **Auto-Sync on Heartbeat Start**: `sync-claude-config.sh pull` on daemon startup + periodic pull every ~5min
+- **Terminal tmux Integration**: Dashboard terminals auto-attach to `plan-{ID}` tmux session on remote nodes
+- **Project Badge**: Active plan cards show project name in purple badge
+- **ANSI → HTML**: Streaming modals render terminal color codes correctly
+- **Cross-platform**: Disk check via Python `shutil`, Claude CLI via extended PATH, Windows subprocess fallback for terminal
+
+### Fixed
+
+- **SSH alias resolution**: All SSH calls resolve `ssh_alias` from `peers.conf` instead of using peer name directly
+- **Disk space check**: Replaced macOS-only `df -g` with cross-platform `python3 shutil.disk_usage`
+- **Modal scroll**: All modals scrollable with sticky title bar (flex layout)
+- **Sync conflicts**: `sync-claude-config.sh` auto-stash remote before merge, force-reset on diverged history
+
 ## [2026-03-03] — Security Hardening (Audit Remediation)
 
 ### Fixed

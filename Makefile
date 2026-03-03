@@ -113,8 +113,14 @@ install:
 	@echo ""
 	@echo "$(GREEN)Installation complete!$(NC)"
 	@echo ""
-	@echo "$(YELLOW)Note:$(NC) Your ~/.claude/CLAUDE.md was NOT modified."
-	@echo "      Copy settings from .claude/settings-templates/ to activate hooks."
+	@echo "$(YELLOW)Next step:$(NC) Activate hooks by copying a settings template to ~/.claude/settings.json"
+	@echo ""
+	@echo "  Pick one based on your hardware:"
+	@echo "    cp .claude/settings-templates/low-spec.json  ~/.claude/settings.json  # 8GB RAM, 4 cores"
+	@echo "    cp .claude/settings-templates/mid-spec.json  ~/.claude/settings.json  # 16GB RAM, 8 cores"
+	@echo "    cp .claude/settings-templates/high-spec.json ~/.claude/settings.json  # 32GB+ RAM, M-series"
+	@echo ""
+	@echo "  $(YELLOW)Note:$(NC) Your existing ~/.claude/CLAUDE.md was NOT modified."
 
 install-local:
 	@echo "$(BLUE)Installing to current project ./.claude/...$(NC)"

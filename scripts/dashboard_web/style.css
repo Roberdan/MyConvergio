@@ -57,18 +57,43 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 24px;
+  padding: 10px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--header-bg, linear-gradient(180deg, #0a0e1a, #04060e));
   position: relative;
   z-index: 100;
+  gap: 12px;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
 }
 .header h1 {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 900;
-  letter-spacing: 6px;
+  letter-spacing: 5px;
   text-transform: uppercase;
+  white-space: nowrap;
+  margin: 0;
   background: var(
     --gradient-h1,
     linear-gradient(90deg, var(--cyan), var(--magenta))
@@ -81,11 +106,9 @@ body::after {
   border: 1px solid rgba(0, 229, 255, 0.25);
   color: var(--cyan);
   border-radius: 6px;
-  width: 30px;
-  height: 26px;
+  width: 28px;
+  height: 24px;
   cursor: pointer;
-  vertical-align: middle;
-  margin-left: 8px;
   transition: all 0.2s;
   display: inline-flex;
   align-items: center;
@@ -99,10 +122,6 @@ body::after {
 }
 .header-term-btn svg {
   stroke: currentColor;
-}
-.header .meta {
-  font-size: 11px;
-  color: var(--text-dim);
 }
 .status-dot {
   display: inline-block;
@@ -972,12 +991,16 @@ body::after {
 }
 @media (max-width: 768px) {
   .header {
-    flex-direction: column;
-    gap: 8px;
-    text-align: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+  .header-left,
+  .header-right {
+    flex: unset;
   }
   .header h1 {
-    font-size: 14px;
+    font-size: 13px;
     letter-spacing: 3px;
   }
   .kpi-card {

@@ -960,7 +960,7 @@ window.openAllTerminals = function () {
     const activePlan = (p.plans || []).find(
       (pl) => pl.status === "doing" || pl.status === "todo",
     );
-    const tmuxSession = activePlan ? `plan-${activePlan.id}` : undefined;
+    const tmuxSession = activePlan ? `plan-${activePlan.id}` : "mesh";
     termMgr.open(p.peer_name, p.peer_name, tmuxSession);
   });
   if (online.length > 1) termMgr.setMode("grid");

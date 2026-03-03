@@ -938,6 +938,32 @@ body::after {
   font-size: 14px;
 }
 
+/* Widget drag-and-drop */
+.widget[draggable="true"] .widget-header {
+  cursor: grab;
+}
+.widget[draggable="true"] .widget-header:active {
+  cursor: grabbing;
+}
+.widget-dragging {
+  opacity: 0.3;
+  border: 1px dashed var(--cyan) !important;
+}
+.widget-drop-placeholder {
+  border: 2px dashed var(--cyan);
+  border-radius: 8px;
+  background: rgba(0, 229, 255, 0.04);
+  margin-bottom: 16px;
+  transition: height 0.15s ease;
+  min-height: 40px;
+}
+.col-drag-over {
+  background: rgba(0, 229, 255, 0.02);
+  border-radius: 8px;
+  outline: 1px dashed rgba(0, 229, 255, 0.15);
+  outline-offset: 4px;
+}
+
 /* Responsive breakpoints */
 @media (max-width: 900px) {
   .dash-columns {

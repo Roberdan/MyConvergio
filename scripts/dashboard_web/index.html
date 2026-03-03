@@ -33,6 +33,7 @@
       <button class="zoom-btn" onclick="dashZoom(1)" title="Zoom in">+</button>
       <button class="zoom-btn zoom-reset" onclick="dashZoom(0)" title="Reset">R</button>
     </div>
+    <button class="zoom-btn" onclick="resetWidgetLayout()" title="Reset widget layout" style="margin-left:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
     <div class="theme-switcher">
       <button class="theme-btn" id="theme-toggle" onclick="toggleThemeDropdown()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> Theme</button>
       <div class="theme-dropdown" id="theme-dropdown"></div>
@@ -72,7 +73,7 @@
         </table>
       </div>
     </div>
-    <div class="widget">
+    <div class="widget" id="widget-dist">
       <div class="widget-header"><span class="widget-title">Task Distribution</span></div>
       <div class="widget-body"><div class="chart-container chart-container-sm"><canvas id="dist-chart"></canvas></div></div>
     </div>
@@ -129,6 +130,7 @@
 <script src="theme-switcher.js"></script>
 <script src="app.js"></script>
 <script src="mesh-actions.js"></script>
+<script src="widget-drag.js"></script>
 <script src="terminal.js"></script>
 </body>
 </html>

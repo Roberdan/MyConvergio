@@ -1,5 +1,22 @@
 # Changelog
 
+## [2026-03-03] — Security Hardening (Audit Remediation)
+
+### Fixed
+
+- **SEC-005**: CORS restricted from `*` to localhost origins only (`server.py`)
+- **SEC-002**: Mesh peer parameter sanitized with regex + `shlex.quote()` (`server.py`)
+- **SEC-001**: Terminal SSH peer validated + command quoted (`server.py`)
+- **CF-001**: `env-vault-guard.sh` hook path fixed (`scripts/` → `hooks/`)
+- **CF-002**: `model-registry-refresh.sh` hook path fixed (`scripts/` → `hooks/`)
+- Codegraph CLI hooks removed from `settings.json` (no binary installed)
+
+### Added
+
+- Security headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`
+- `settings-templates/`: low/mid/high-spec hardware profiles for MyConvergio install
+- `protocols/thor-protocol.md`: Thor validation protocol reference
+
 ## [2026-03-02] — Control Center v3.0 Rewrite (Plan 302)
 
 ### Added

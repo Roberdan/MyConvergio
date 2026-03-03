@@ -60,6 +60,8 @@ body::after {
   padding: 14px 24px;
   border-bottom: 1px solid var(--border);
   background: var(--header-bg, linear-gradient(180deg, #0a0e1a, #04060e));
+  position: relative;
+  z-index: 100;
 }
 .header h1 {
   font-family: var(--font-display);

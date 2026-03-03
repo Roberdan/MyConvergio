@@ -53,6 +53,7 @@ alias bench='hyperfine'
 # === Claude dashboard shortcuts ===
 alias piani='~/.claude/scripts/dashboard-mini.sh'
 alias dashboard='~/.claude/scripts/dashboard-mini.sh'
+alias pianits='~/.claude/scripts/pianits'
 
 # === Repo info (for Claude context) ===
 # Quick repo summary

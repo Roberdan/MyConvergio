@@ -1,0 +1,242 @@
+#!/bin/bash
+# pianits — Lightweight terminal plan dashboard for mesh nodes
+# Single file, zero dependencies beyond sqlite3. Based on the original dashboard-mini v1.
+set -uo pipefail
+
+# Colors
+R='\033[0;31m' G='\033[0;32m' Y='\033[1;33m' B='\033[0;34m'
+C='\033[0;36m' W='\033[1;37m' GR='\033[0;90m' NC='\033[0m' BD='\033[1m'
+
+DB="${PIANITS_DB:-$HOME/.claude/data/dashboard.db}"
+PEERS="${PIANITS_PEERS:-$HOME/.claude/config/peers.conf}"
+
+# Args
+VERBOSE=0; PLAN_ID=""; REFRESH=0; SHOW_MESH=1
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -v|--verbose) VERBOSE=1; shift ;;
+    -p|--plan) PLAN_ID="$2"; shift 2 ;;
+    -r|--refresh) REFRESH="$2"; shift 2 ;;
+    -n|--no-refresh) REFRESH=0; shift ;;
+    -M|--no-mesh) SHOW_MESH=0; shift ;;
+    -h|--help)
+      echo "pianits — lightweight plan dashboard for mesh nodes"
+      echo "Usage: pianits [OPTIONS]"
+      echo "  -v, --verbose     Show wave details, task priorities"
+      echo "  -p, --plan ID     Single plan detail"
+      echo "  -r, --refresh S   Auto-refresh every S seconds"
+      echo "  -n, --no-refresh  Single render (default)"
+      echo "  -M, --no-mesh     Hide mesh section"
+      echo "  -h, --help        This help"
+      echo "Env: PIANITS_DB, PIANITS_PEERS to override paths"
+      exit 0 ;;
+    *) echo "Unknown: $1"; exit 1 ;;
+  esac
+done
+
+[[ -n "$PLAN_ID" ]] && { [[ "$PLAN_ID" =~ ^[0-9]+$ ]] || { echo "plan ID must be numeric" >&2; exit 1; }; }
+[[ -f "$DB" ]] || { echo "DB not found: $DB" >&2; exit 1; }
+
+q() { sqlite3 "$DB" "$1" 2>/dev/null; }
+qs() { sqlite3 -separator '§' "$DB" "$1" 2>/dev/null; }
+
+fmt_elapsed() {
+  local s=$1
+  if (( s < 60 )); then echo "${s}s"
+  elif (( s < 3600 )); then echo "$(( s/60 ))m"
+  elif (( s < 86400 )); then echo "$(( s/3600 ))h $(( (s%3600)/60 ))m"
+  else echo "$(( s/86400 ))d $(( (s%86400)/3600 ))h"; fi
+}
+
+fmt_tokens() {
+  local t=$1
+  if (( t < 1000 )); then echo "$t"
+  elif (( t < 1000000 )); then echo "$(( t/1000 ))K"
+  else echo "$(( t/1000000 ))M"; fi
+}
+
+# Portable epoch conversion (macOS date -j vs GNU date -d)
+to_epoch() {
+  local ts="$1"
+  [[ -z "$ts" ]] && { echo 0; return; }
+  if date -j -f "%Y-%m-%d %H:%M:%S" "$ts" +%s 2>/dev/null; then return; fi
+  date -d "$ts" +%s 2>/dev/null || echo 0
+}
+
+bar() {
+  local pct=$1 len=${2:-20} filled=$(( $1 * $2 / 100 )) empty=$(( $2 - $1 * $2 / 100 ))
+  printf "${G}"; for ((i=0;i<filled;i++)); do printf "█"; done
+  printf "${GR}"; for ((i=0;i<empty;i++)); do printf "░"; done
+  printf "${NC}"
+}
+
+render_mesh() {
+  [[ "$SHOW_MESH" -eq 0 || ! -f "$PEERS" ]] && return
+  local names=() roles=() oss=() caps=() statuses=()
+  local cur_name="" cur_role="" cur_os="" cur_caps="" cur_status=""
+  while IFS= read -r line; do
+    [[ "$line" =~ ^\[(.+)\]$ ]] && {
+      [[ -n "$cur_name" ]] && { names+=("$cur_name"); roles+=("$cur_role"); oss+=("$cur_os"); caps+=("$cur_caps"); statuses+=("$cur_status"); }
+      cur_name="${BASH_REMATCH[1]}"; cur_role=""; cur_os=""; cur_caps=""; cur_status="active"
+      continue
+    }
+    [[ "$line" =~ ^role=(.+)$ ]] && cur_role="${BASH_REMATCH[1]}"
+    [[ "$line" =~ ^os=(.+)$ ]] && cur_os="${BASH_REMATCH[1]}"
+    [[ "$line" =~ ^capabilities=(.+)$ ]] && cur_caps="${BASH_REMATCH[1]}"
+    [[ "$line" =~ ^status=(.+)$ ]] && cur_status="${BASH_REMATCH[1]}"
+  done < "$PEERS"
+  [[ -n "$cur_name" ]] && { names+=("$cur_name"); roles+=("$cur_role"); oss+=("$cur_os"); caps+=("$cur_caps"); statuses+=("$cur_status"); }
+
+  local online=0 total=${#names[@]}
+  local now_ts; now_ts=$(date +%s)
+  echo -e "${BD}${W}🌐 Mesh Network${NC}"
+  for ((i=0;i<total;i++)); do
+    local n="${names[$i]}" r="${roles[$i]}" o="${oss[$i]}" c="${caps[$i]}" s="${statuses[$i]}"
+    local icon="🍎"; [[ "$o" == "linux" ]] && icon="🐧"
+    local role_badge="●"; [[ "$r" == "coordinator" ]] && role_badge="★"
+    local hb; hb=$(q "SELECT last_seen FROM peer_heartbeats WHERE peer_name='$n'")
+    local is_online=0 cpu="--" tasks="0"
+    if [[ -n "$hb" ]]; then
+      local age=$(( now_ts - hb ))
+      (( age < 300 )) && is_online=1
+    fi
+    if [[ "$is_online" -eq 1 ]]; then
+      ((online++))
+      local lj; lj=$(q "SELECT load_json FROM peer_heartbeats WHERE peer_name='$n'")
+      [[ -n "$lj" ]] && {
+        cpu=$(echo "$lj" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f\"{d.get('cpu_load',0):.0f}%\")" 2>/dev/null || echo "--")
+        tasks=$(echo "$lj" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tasks_in_progress',0))" 2>/dev/null || echo "0")
+      }
+    fi
+    # Caps badges
+    local badges=""
+    [[ "$c" == *claude* ]] && badges+="C"
+    [[ "$c" == *copilot* ]] && badges+="P"
+    [[ "$c" == *ollama* ]] && badges+="O"
+    local dot; [[ "$is_online" -eq 1 ]] && dot="${G}●${NC}" || dot="${R}○${NC}"
+    [[ "$s" == "inactive" ]] && dot="${GR}○${NC}"
+    printf "  ${GR}├─${NC} $dot $icon %-12s ${Y}$role_badge${NC} cpu:%-5s tasks:%-2s ${GR}[%s]${NC}\n" "$n" "$cpu" "$tasks" "$badges"
+  done
+  echo -e "  ${GR}└─${NC} ${GR}$online/$total online${NC}"
+  echo ""
+}
+
+render_plan_detail() {
+  local pid=$1
+  local info; info=$(qs "SELECT id, name, status FROM plans WHERE id=$pid")
+  [[ -z "$info" ]] && { echo -e "${R}Piano #$pid non trovato${NC}"; return 1; }
+  local pname; pname=$(echo "$info" | cut -d'§' -f2)
+  local pstatus; pstatus=$(echo "$info" | cut -d'§' -f3)
+  echo -e "${BD}${C}═══ Piano #$pid: $pname [$pstatus] ═══${NC}"
+  echo ""
+  echo -e "${BD}${W}📦 Waves${NC}"
+  qs "SELECT wave_id,name,status,tasks_done,tasks_total FROM waves WHERE plan_id=$pid ORDER BY position" | while IFS='§' read -r wid wn ws wd wt; do
+    local ic="${GR}◯${NC}"; case $ws in done) ic="${G}✓${NC}";; in_progress) ic="${Y}⚡${NC}";; blocked) ic="${R}✗${NC}";; esac
+    echo -e "  ${GR}├─${NC} $ic ${C}$wid${NC} ${W}$wn${NC} ${GR}($wd/$wt)${NC}"
+  done
+  echo -e "  ${GR}└─${NC}"
+  echo ""
+  echo -e "${BD}${W}📋 Tasks${NC}"
+  qs "SELECT task_id,title,status,priority,executor_host FROM tasks WHERE plan_id=$pid ORDER BY task_id" | while IFS='§' read -r tid tt ts tp th; do
+    local ic="${GR}◯${NC}"; case $ts in done) ic="${G}✓${NC}";; in_progress) ic="${Y}⚡${NC}";; blocked) ic="${R}✗${NC}";; esac
+    local host_info=""; [[ -n "$th" ]] && host_info=" ${GR}@$th${NC}"
+    printf "  ${GR}├─${NC} $ic ${C}%-8s${NC} ${W}%.55s${NC} ${GR}[%s]${NC}%b\n" "$tid" "$tt" "$tp" "$host_info"
+  done
+  echo -e "  ${GR}└─${NC}"
+}
+
+render() {
+  local hostname; hostname=$(hostname -s 2>/dev/null || echo "?")
+  echo -e "${BD}${C}╔══════════════════════════════════════════════════╗${NC}"
+  echo -e "${BD}${C}║${NC}  ${BD}${W}🎯 pianits${NC} ${GR}— $hostname — $(date '+%H:%M:%S')${NC}"
+  echo -e "${BD}${C}╚══════════════════════════════════════════════════╝${NC}"
+  echo ""
+
+  # Single plan mode
+  [[ -n "$PLAN_ID" ]] && { render_plan_detail "$PLAN_ID"; return; }
+
+  # Overview
+  local total; total=$(q "SELECT COUNT(*) FROM plans")
+  local done; done=$(q "SELECT COUNT(*) FROM plans WHERE status='done'")
+  local doing; doing=$(q "SELECT COUNT(*) FROM plans WHERE status='doing'")
+  local todo; todo=$(q "SELECT COUNT(*) FROM plans WHERE status='todo'")
+  local at; at=$(q "SELECT COUNT(*) FROM tasks WHERE status='in_progress'")
+  echo -e "${BD}${W}📊 Overview${NC}"
+  echo -e "  ${GR}├─${NC} Piani: ${G}$done${NC} done ${Y}$doing${NC} doing ${B}$todo${NC} todo ${GR}($total)${NC}"
+  echo -e "  ${GR}└─${NC} Tasks attivi: ${Y}$at${NC}"
+  echo ""
+
+  # Mesh
+  render_mesh
+
+  # Active plans
+  echo -e "${BD}${W}🚀 Piani Attivi${NC}"
+  local rows; rows=$(qs "SELECT id,name,project_id,started_at,created_at,execution_host FROM plans WHERE status IN ('doing','in_progress') ORDER BY id")
+  if [[ -z "$rows" ]]; then
+    echo -e "  ${GR}└─ nessuno${NC}"
+  else
+    while IFS='§' read -r pid pname proj pstart pcreated phost; do
+      local ts; ts=$(q "SELECT COUNT(*),SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) FROM tasks WHERE plan_id=$pid")
+      local tt; tt=$(echo "$ts" | cut -d'|' -f1); local td; td=$(echo "$ts" | cut -d'|' -f2)
+      local pct=0; (( tt > 0 )) && pct=$(( td * 100 / tt ))
+      local ws; ws=$(q "SELECT COUNT(*),SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) FROM waves WHERE plan_id=$pid")
+      local wt; wt=$(echo "$ws" | cut -d'|' -f1); local wd; wd=$(echo "$ws" | cut -d'|' -f2)
+      local start="${pstart:-$pcreated}"; local elapsed="?"
+      [[ -n "$start" ]] && { local se; se=$(to_epoch "$start"); local ne; ne=$(date +%s); elapsed=$(fmt_elapsed $(( ne - se ))); }
+      local tok; tok=$(q "SELECT COALESCE(SUM(COALESCE(input_tokens,0)+COALESCE(output_tokens,0)),0) FROM token_usage WHERE project_id='$proj'")
+      local host_info=""; [[ -n "$phost" ]] && host_info=" ${GR}@$phost${NC}"
+      local short; short=$(printf "%.48s" "$pname"); (( ${#pname} > 48 )) && short="${short}…"
+      echo -e "  ${GR}├─${NC} ${Y}[#$pid]${NC} ${W}$short${NC}$host_info"
+      printf "  ${GR}│  ├─${NC} "; bar $pct 20; echo -e " ${W}${pct}%${NC} ${GR}(${td}/${tt} tasks, ${wd}/${wt} waves)${NC}"
+      echo -e "  ${GR}│  └─${NC} ⏱ ${C}$elapsed${NC} │ 🪙 ${C}$(fmt_tokens "$tok")${NC}"
+      if [[ "$VERBOSE" -eq 1 ]]; then
+        qs "SELECT wave_id,name,status FROM waves WHERE plan_id=$pid AND status!='done' ORDER BY position LIMIT 3" | while IFS='§' read -r wid wn wst; do
+          local ic="${GR}◯${NC}"; [[ "$wst" == "in_progress" ]] && ic="${Y}⚡${NC}"; [[ "$wst" == "blocked" ]] && ic="${R}✗${NC}"
+          echo -e "  ${GR}│     └─${NC} $ic ${C}$wid${NC} ${GR}$wn${NC}"
+        done
+      fi
+    done <<< "$rows"
+  fi
+  echo ""
+
+  # Tasks in progress
+  echo -e "${BD}${W}⚡ In Esecuzione${NC}"
+  local trows; trows=$(qs "SELECT t.task_id,t.title,t.plan_id,t.priority,t.executor_host FROM tasks t WHERE t.status='in_progress' ORDER BY t.plan_id")
+  if [[ -z "$trows" ]]; then
+    echo -e "  ${GR}└─ nessuno${NC}"
+  else
+    while IFS='§' read -r tid tt tpid tp th; do
+      local host_info=""; [[ -n "$th" ]] && host_info=" ${GR}@$th${NC}"
+      printf "  ${GR}├─${NC} ${C}%-8s${NC} ${W}%.45s${NC} ${GR}[#$tpid %s]${NC}%b\n" "$tid" "$tt" "$tp" "$host_info"
+    done <<< "$trows"
+    echo -e "  ${GR}└─${NC}"
+  fi
+  echo ""
+
+  # Recent completions (last 3 done plans)
+  echo -e "${BD}${W}✅ Recenti${NC}"
+  qs "SELECT id,name,completed_at,started_at,created_at,validated_by FROM plans WHERE status='done' ORDER BY COALESCE(completed_at,updated_at,created_at) DESC LIMIT 3" | while IFS='§' read -r pid pn pc ps pcr pv; do
+    local thor="${GR}⊘${NC}"; [[ -n "$pv" ]] && thor="${G}✓T${NC}"
+    local tc; tc=$(q "SELECT COUNT(*) FROM tasks WHERE status='done' AND plan_id=$pid")
+    local elapsed="?"
+    if [[ -n "$pc" && -n "${ps:-$pcr}" ]]; then
+      local se; se=$(to_epoch "${ps:-$pcr}"); local ee; ee=$(to_epoch "$pc")
+      (( ee > se && se > 0 )) && elapsed=$(fmt_elapsed $(( ee - se )))
+    fi
+    local short; short=$(printf "%.45s" "$pn")
+    echo -e "  ${GR}├─${NC} ${G}✓${NC} ${Y}[#$pid]${NC} ${W}$short${NC} $thor ${GR}(${tc}t, $elapsed)${NC}"
+  done
+  echo -e "  ${GR}└─${NC}"
+}
+
+# Main
+if [[ "$REFRESH" -gt 0 ]]; then
+  trap 'echo -e "\n${Y}pianits chiuso.${NC}"; exit 0' INT
+  while true; do
+    clear; render
+    echo -e "${GR}Refresh tra ${REFRESH}s — Ctrl+C per uscire${NC}"
+    sleep "$REFRESH"
+  done
+else
+  render
+fi

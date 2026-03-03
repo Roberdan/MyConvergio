@@ -60,6 +60,7 @@ tailscale_ip=100.100.100.1
 capabilities=claude,copilot,ollama
 role=hybrid
 status=active
+mac_address=AA:BB:CC:DD:EE:FF
 
 [my-linux]
 ssh_alias=my-linux
@@ -69,7 +70,43 @@ tailscale_ip=100.100.100.2
 capabilities=claude,copilot
 role=worker
 status=active
+mac_address=
 ```
 
 **Roles**: `coordinator` (planner/validator) | `worker` (executor only) | `hybrid` (both)
 **Capabilities**: `claude` | `copilot` | `ollama` | `opencode`
+
+## Dashboard Delegation (Convergio Control Room)
+
+Delegate plans to mesh nodes from the web dashboard with preflight validation and live SSE streaming.
+
+**Flow**: Plan card → 🚀 Delegate → Select peer → Preflight (auto-fix) → Sync → Migrate → tmux session
+
+### Preflight Checks (auto-fix)
+
+| Check | Auto-fix |
+|---|---|
+| Plan status (todo/doing) | — |
+| SSH reachable | — |
+| Heartbeat stale | Restarts daemon via SSH |
+| Config out of sync | Runs `mesh-sync-all.sh --peer` |
+| Claude CLI | Searches `~/.local/bin`, `/opt/homebrew/bin` |
+| Disk space ≥5GB | — |
+
+### Power Management
+
+- **Wake-on-LAN**: Pure Python magic packet for offline nodes (requires `mac_address` in peers.conf)
+- **SSH Reboot**: OS-aware `sudo reboot` for frozen nodes with post-reboot polling
+
+### Auto-Sync Protocol
+
+| Event | Action |
+|---|---|
+| Plan complete | Push to all online peers |
+| Heartbeat start | Pull from coordinator |
+| Heartbeat loop (~5min) | Pull from coordinator |
+| Delegation | Full sync before migration |
+
+### tmux Integration
+
+Delegated plans run in `tmux plan-{ID}` on target. Dashboard terminals auto-attach.

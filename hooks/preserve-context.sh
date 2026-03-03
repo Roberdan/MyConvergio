@@ -1,51 +1,65 @@
 #!/bin/bash
 # PreCompact hook - preserve critical context before compaction
-# Extracts active plan ID, F-xx requirements, current task
-# Version: 1.1.0
+# v2.0.0: Full plan checkpoint + MEMORY.md update + recovery instructions
 set -euo pipefail
 
 source ~/.claude/hooks/lib/common.sh 2>/dev/null || true
 
-# Escape single quotes for safe SQL interpolation
-sql_escape() { printf '%s' "$1" | sed "s/'/''/g"; }
-
 INPUT=$(cat)
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty')
-
 [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ] && exit 0
 
-# Extract active plan ID from recent messages
-PLAN_ID=""
-PLAN_ID=$(jq -r '
-  [.[] | select(.type == "human") | .message // empty | strings]
-  | reverse | .[:20] | join(" ")
-  | capture("plan[_-]?(?<id>[0-9]+)") | .id // empty
-' "$TRANSCRIPT_PATH" 2>/dev/null || echo "")
-
-# Get current in-progress task from dashboard DB
-CURRENT_TASK=""
-if check_dashboard && [ -n "$PLAN_ID" ]; then
-	SAFE_PLAN_ID=$(sql_escape "$PLAN_ID")
-	CURRENT_TASK=$(sqlite3 "$DASHBOARD_DB" \
-		"SELECT task_id || ': ' || title FROM tasks WHERE plan_id = '${SAFE_PLAN_ID}' AND status = 'in_progress' LIMIT 1;" \
-		2>/dev/null || echo "")
+# 1. Auto-checkpoint active plan (writes to checkpoint file + MEMORY.md)
+CHECKPOINT_RESULT=""
+if command -v plan-checkpoint.sh &>/dev/null; then
+	CHECKPOINT_RESULT=$(plan-checkpoint.sh save-auto 2>/dev/null || echo "")
 fi
 
-# Extract F-xx requirements mentioned in conversation
-FXX_LIST=""
-FXX_LIST=$(jq -r '
-  [.[] | .message // empty | strings] | join(" ")
-' "$TRANSCRIPT_PATH" 2>/dev/null |
-	grep -oE 'F-[0-9]+' | sort -u | tr '\n' ', ' | sed 's/,$//' || echo "")
-
-# Build preserved context
+# 2. Read checkpoint content for injection
 PRESERVED=""
-[ -n "$PLAN_ID" ] && PRESERVED="Active Plan: $PLAN_ID"
-[ -n "$CURRENT_TASK" ] && PRESERVED="${PRESERVED:+$PRESERVED\n}Current Task: $CURRENT_TASK"
-[ -n "$FXX_LIST" ] && PRESERVED="${PRESERVED:+$PRESERVED\n}F-xx Requirements: $FXX_LIST"
+if [[ -n "$CHECKPOINT_RESULT" ]] && [[ -f "$CHECKPOINT_RESULT" ]]; then
+	PRESERVED=$(cat "$CHECKPOINT_RESULT")
+fi
 
-# Nothing to preserve
+# 3. Fallback: extract plan ID from transcript if checkpoint didn't find active plan
+if [[ -z "$PRESERVED" ]]; then
+	PLAN_ID=$(jq -r '
+		[.[] | select(.type == "human") | .message // empty | strings]
+		| reverse | .[:20] | join(" ")
+		| capture("plan[_-]?(?<id>[0-9]+)") | .id // empty
+	' "$TRANSCRIPT_PATH" 2>/dev/null || echo "")
+
+	if [[ -n "$PLAN_ID" ]]; then
+		# Try to generate checkpoint from plan ID
+		CHECKPOINT_RESULT=$(plan-checkpoint.sh save "$PLAN_ID" 2>/dev/null || echo "")
+		if [[ -n "$CHECKPOINT_RESULT" ]] && [[ -f "$CHECKPOINT_RESULT" ]]; then
+			PRESERVED=$(cat "$CHECKPOINT_RESULT")
+		else
+			# Minimal fallback
+			CURRENT_TASK=""
+			if check_dashboard 2>/dev/null; then
+				CURRENT_TASK=$(sqlite3 "$DASHBOARD_DB" \
+					"SELECT task_id || ': ' || title FROM tasks WHERE plan_id = '$PLAN_ID' AND status IN ('in_progress','submitted') LIMIT 3;" \
+					2>/dev/null || echo "")
+			fi
+			PRESERVED="Active Plan: $PLAN_ID"
+			[[ -n "$CURRENT_TASK" ]] && PRESERVED="$PRESERVED\nActive Tasks: $CURRENT_TASK"
+		fi
+	fi
+fi
+
+# 4. Add coordinator protocol reminder
+if [[ -n "$PRESERVED" ]]; then
+	PRESERVED="$PRESERVED
+
+## Post-Compaction Recovery Protocol
+1. Read checkpoint: \`plan-checkpoint.sh restore <plan_id>\`
+2. Verify DB state: \`plan-db.sh execution-tree <plan_id>\`
+3. Check worktree: \`cd <worktree_path> && git status\`
+4. Resume: launch next pending task or run Thor on submitted tasks
+5. DO NOT re-read files already processed — trust task-executor results"
+fi
+
 [ -z "$PRESERVED" ] && exit 0
 
-jq -n --arg ctx "## Preserved Context (pre-compaction)\n$PRESERVED" \
-	'{"additionalContext": $ctx}'
+jq -n --arg ctx "$PRESERVED" '{"additionalContext": $ctx}'

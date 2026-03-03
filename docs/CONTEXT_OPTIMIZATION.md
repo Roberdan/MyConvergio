@@ -173,6 +173,53 @@ myconvergio settings # Apply high-spec
 
 ---
 
+## Anti-Compaction System (Plan Execution)
+
+During plan execution, the coordinator session accumulates context from task results, DB queries, and file reads — often hitting compaction limits mid-wave. The anti-compaction system prevents state loss.
+
+### Components
+
+| Component                | File       | Purpose                                                  |
+| ------------------------ | ---------- | -------------------------------------------------------- |
+| `plan-checkpoint.sh`     | `scripts/` | Save/restore plan state to checkpoint file + auto-memory |
+| `preserve-context.sh` v2 | `hooks/`   | PreCompact hook: auto-saves plan state before compaction |
+
+### How It Works
+
+1. **PreCompact hook** fires automatically when Claude Code is about to compact context
+2. Hook calls `plan-checkpoint.sh save-auto` which detects the active plan from DB
+3. Full plan state (wave, tasks, branch, worktree, PR) written to `~/.claude/data/checkpoints/plan-{id}.md`
+4. Same state appended to project auto-memory (`MEMORY.md`) for cross-session persistence
+5. Post-compaction context includes the full checkpoint + recovery instructions
+
+### Lean Coordinator Protocol
+
+During plan execution, the coordinator MUST minimize context consumption:
+
+- **NEVER** read project files — delegate to task-executor + Thor
+- **NEVER** read task output transcripts — use only the Agent tool summary
+- **After each task**: checkpoint → DB update → launch next. Nothing more.
+- **Max 4 tasks per wave** — prevents coordinator context overflow
+
+### Commands
+
+```bash
+plan-checkpoint.sh save <plan_id>     # Manual checkpoint
+plan-checkpoint.sh save-auto          # Auto-detect active plan
+plan-checkpoint.sh restore <plan_id>  # Print checkpoint for recovery
+plan-checkpoint.sh status             # List all checkpoints
+```
+
+### Post-Compaction Recovery
+
+```bash
+plan-checkpoint.sh restore <plan_id>  # Read saved state
+plan-db.sh execution-tree <plan_id>   # Verify DB matches
+cd <worktree_path>                     # Resume work
+```
+
+---
+
 ## Additional Resources
 
 - [CLAUDE.md](../CLAUDE.md) - Project development guidelines

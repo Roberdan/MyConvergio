@@ -1,5 +1,25 @@
 # Changelog
 
+## [10.2.0] — 2026-03-03
+
+### Added
+
+- **Dashboard Delegation**: Delegate plans to mesh nodes from Convergio Control Room (rocket icon on plan cards)
+- **SSE Preflight with Auto-fix**: 6 streaming checks (SSH, heartbeat, config sync, Claude CLI, disk space) that self-heal
+- **Wake-on-LAN**: Pure Python magic packet for offline nodes (requires `mac_address` in peers.conf)
+- **SSH Reboot**: OS-aware reboot for frozen nodes with post-reboot SSH polling
+- **Auto-Sync Protocol**: Plan complete → push to all peers; heartbeat start → pull from coordinator; periodic pull every ~5min
+- **Terminal tmux Integration**: Dashboard terminals auto-attach to `plan-{ID}` tmux session on remote nodes
+- **SSE Streaming**: All mesh actions (sync, heartbeat, auth, status) stream live output
+- **ANSI → HTML**: Terminal color codes rendered correctly in streaming modals
+- **Cross-platform**: Disk check via Python `shutil`, extended PATH for Claude CLI, Windows subprocess fallback
+
+### Fixed
+
+- SSH alias resolution from `peers.conf` for all connections
+- Modal scroll with sticky title bar
+- Config sync: auto-stash remote, force-reset on diverged history, rsync fallback
+
 ## [10.0.2] — 2026-03-02
 
 ### Fixed

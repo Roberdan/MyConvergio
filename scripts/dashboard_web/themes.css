@@ -1,0 +1,221 @@
+/**
+ * Dashboard Web — Theme definitions (CSS custom properties)
+ * 9 skins matching the bash terminal themes
+ * Usage: <html data-theme="matrix"> applies the theme
+ */
+
+/* Default: Neon Grid (Cyberpunk) — already in style.css :root */
+
+[data-theme="synthwave"] {
+  --bg-deep: #1a0a2e;
+  --bg-panel: #221040;
+  --bg-card: #2a1450;
+  --border: #3d1f6d;
+  --cyan: #e040fb;
+  --magenta: #ff80ab;
+  --gold: #ffe082;
+  --green: #69f0ae;
+  --red: #ff5252;
+  --text: #e8d0f0;
+  --text-dim: #8060a0;
+  --font-display: "Orbitron", sans-serif;
+  --gradient-h1: linear-gradient(90deg, #e040fb, #ff80ab);
+  --scanline-color: rgba(224, 64, 251, 0.012);
+  --kpi-accent: #e040fb;
+  --header-bg: linear-gradient(180deg, #221040, #1a0a2e);
+}
+
+[data-theme="ghost"] {
+  --bg-deep: #040e04;
+  --bg-panel: #0a1a0a;
+  --bg-card: #0f240f;
+  --border: #1a401a;
+  --cyan: #00e550;
+  --magenta: #82ff82;
+  --gold: #e5ff00;
+  --green: #00ff44;
+  --red: #cc2200;
+  --text: #b0d8b0;
+  --text-dim: #4a6a4a;
+  --font-display: "JetBrains Mono", monospace;
+  --gradient-h1: linear-gradient(90deg, #00e550, #82ff82);
+  --scanline-color: rgba(0, 229, 80, 0.015);
+  --kpi-accent: #00e550;
+  --header-bg: linear-gradient(180deg, #0a1a0a, #040e04);
+}
+
+[data-theme="matrix"] {
+  --bg-deep: #000800;
+  --bg-panel: #001200;
+  --bg-card: #001a00;
+  --border: #003300;
+  --cyan: #00ff41;
+  --magenta: #00cc33;
+  --gold: #55ff55;
+  --green: #00ff41;
+  --red: #ff0033;
+  --text: #00dd33;
+  --text-dim: #005500;
+  --font-display: "JetBrains Mono", monospace;
+  --gradient-h1: linear-gradient(90deg, #00ff41, #00cc33);
+  --scanline-color: rgba(0, 255, 65, 0.02);
+  --kpi-accent: #00ff41;
+  --header-bg: linear-gradient(180deg, #001200, #000800);
+}
+
+[data-theme="dark"] {
+  --bg-deep: #101418;
+  --bg-panel: #181c22;
+  --bg-card: #1e2430;
+  --border: #2a3040;
+  --cyan: #6495ed;
+  --magenta: #9a8ec0;
+  --gold: #d4aa70;
+  --green: #6db36d;
+  --red: #b05050;
+  --text: #c0c8d8;
+  --text-dim: #606878;
+  --font-display: "JetBrains Mono", monospace;
+  --gradient-h1: linear-gradient(90deg, #6495ed, #9a8ec0);
+  --scanline-color: rgba(100, 149, 237, 0.005);
+  --kpi-accent: #6495ed;
+  --header-bg: linear-gradient(180deg, #181c22, #101418);
+}
+
+[data-theme="light"] {
+  --bg-deep: #f0f2f5;
+  --bg-panel: #ffffff;
+  --bg-card: #f8f9fb;
+  --border: #d8dce4;
+  --cyan: #1a6baa;
+  --magenta: #2a8a8a;
+  --gold: #c45500;
+  --green: #1a7a1a;
+  --red: #aa2222;
+  --text: #2a2e38;
+  --text-dim: #8890a0;
+  --font-display: "JetBrains Mono", monospace;
+  --gradient-h1: linear-gradient(90deg, #1a6baa, #2a8a8a);
+  --scanline-color: rgba(26, 107, 170, 0.0);
+  --kpi-accent: #1a6baa;
+  --header-bg: linear-gradient(180deg, #ffffff, #f0f2f5);
+}
+
+[data-theme="vintage"] {
+  --bg-deep: #0a0800;
+  --bg-panel: #141000;
+  --bg-card: #1c1600;
+  --border: #3a2e00;
+  --cyan: #d48e00;
+  --magenta: #ff8c00;
+  --gold: #ffa500;
+  --green: #c8a800;
+  --red: #cc2200;
+  --text: #d4a850;
+  --text-dim: #6a5020;
+  --font-display: "JetBrains Mono", monospace;
+  --gradient-h1: linear-gradient(90deg, #d48e00, #ffa500);
+  --scanline-color: rgba(212, 142, 0, 0.02);
+  --kpi-accent: #d48e00;
+  --header-bg: linear-gradient(180deg, #141000, #0a0800);
+}
+
+[data-theme="tron"] {
+  --bg-deep: #020408;
+  --bg-panel: #060c18;
+  --bg-card: #0a1020;
+  --border: #102040;
+  --cyan: #2196f3;
+  --magenta: #ff6d00;
+  --gold: #40c4ff;
+  --green: #2196f3;
+  --red: #ff1744;
+  --text: #b0c8e8;
+  --text-dim: #304060;
+  --font-display: "Orbitron", sans-serif;
+  --gradient-h1: linear-gradient(90deg, #2196f3, #ff6d00);
+  --scanline-color: rgba(33, 150, 243, 0.012);
+  --kpi-accent: #2196f3;
+  --header-bg: linear-gradient(180deg, #060c18, #020408);
+}
+
+[data-theme="fallout"] {
+  --bg-deep: #050a00;
+  --bg-panel: #0c1400;
+  --bg-card: #121e00;
+  --border: #2a3800;
+  --cyan: #7ec850;
+  --magenta: #a0b060;
+  --gold: #c8a030;
+  --green: #7ec850;
+  --red: #cc2200;
+  --text: #90b860;
+  --text-dim: #405020;
+  --font-display: "JetBrains Mono", monospace;
+  --gradient-h1: linear-gradient(90deg, #7ec850, #c8a030);
+  --scanline-color: rgba(126, 200, 80, 0.015);
+  --kpi-accent: #7ec850;
+  --header-bg: linear-gradient(180deg, #0c1400, #050a00);
+}
+
+[data-theme="convergio"] {
+  --bg-deep: #0e1025;
+  --bg-panel: #151838;
+  --bg-card: #1a1e45;
+  --border: #2a2e5a;
+  --cyan: #b07ee8;
+  --magenta: #f06abc;
+  --gold: #f0a050;
+  --green: #f0c030;
+  --red: #f06a8a;
+  --text: #d0c8e8;
+  --text-dim: #6a6890;
+  --font-display: "Orbitron", sans-serif;
+  --gradient-h1: linear-gradient(90deg, #9a6dd7, #e86cb8, #f09060, #f0c030);
+  --scanline-color: rgba(176, 126, 232, 0.01);
+  --kpi-accent: #b07ee8;
+  --header-bg: linear-gradient(180deg, #151838, #0e1025);
+}
+
+[data-theme="neumorph"] {
+  --bg-deep: #1e2030;
+  --bg-panel: #252840;
+  --bg-card: #2a2d48;
+  --border: transparent;
+  --cyan: #7eb8ff;
+  --magenta: #c88aff;
+  --gold: #ffc864;
+  --green: #6ee6a0;
+  --red: #ff6b7a;
+  --text: #d0d4e8;
+  --text-dim: #6a6e88;
+  --font-display: "JetBrains Mono", monospace;
+  --gradient-h1: linear-gradient(90deg, #7eb8ff, #c88aff);
+  --scanline-color: rgba(0, 0, 0, 0.0);
+  --kpi-accent: #7eb8ff;
+  --header-bg: linear-gradient(180deg, #252840, #1e2030);
+  --neu-shadow: 6px 6px 14px rgba(0,0,0,0.4), -6px -6px 14px rgba(60,63,90,0.25);
+  --neu-shadow-inset: inset 3px 3px 8px rgba(0,0,0,0.3), inset -3px -3px 8px rgba(60,63,90,0.15);
+}
+
+[data-theme="glass"] {
+  --bg-deep: #0a0a20;
+  --bg-panel: rgba(20, 20, 60, 0.45);
+  --bg-card: rgba(30, 30, 80, 0.35);
+  --border: rgba(255, 255, 255, 0.08);
+  --cyan: #80b0ff;
+  --magenta: #c090ff;
+  --gold: #ffc870;
+  --green: #60e890;
+  --red: #ff6080;
+  --text: #e0e4f0;
+  --text-dim: #606888;
+  --font-display: "JetBrains Mono", monospace;
+  --gradient-h1: linear-gradient(90deg, #80b0ff, #c090ff);
+  --scanline-color: rgba(0, 0, 0, 0.0);
+  --kpi-accent: #80b0ff;
+  --header-bg: rgba(20, 20, 60, 0.5);
+  --glass-blur: 16px;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}

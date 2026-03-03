@@ -38,14 +38,19 @@ Trigger: Manual invocation before a MyConvergio release.
 
 ## Sync Scope
 
-| Source                      | Target               | Notes                     |
-| --------------------------- | -------------------- | ------------------------- |
-| `~/.claude/agents/`         | `.claude/agents/`    | Exclude blocklist entries |
-| `~/.claude/scripts/`        | `.claude/scripts/`   | Exclude personal helpers  |
-| `~/.claude/skills/`         | `.claude/skills/`    | All generic skills        |
-| `~/.claude/rules/`          | `.claude/rules/`     | All generic rules         |
-| `~/.claude/copilot-agents/` | `copilot-agents/`    | Format already correct    |
-| `~/.claude/reference/`      | `.claude/reference/` | Exclude personal refs     |
+| Source                      | Target                       | Notes                     |
+| --------------------------- | ---------------------------- | ------------------------- |
+| `~/.claude/agents/`         | `.claude/agents/`            | Exclude blocklist entries |
+| `~/.claude/scripts/`        | `.claude/scripts/`           | Exclude personal helpers  |
+| `~/.claude/skills/`         | `.claude/skills/`            | All generic skills        |
+| `~/.claude/rules/`          | `.claude/rules/`             | All generic rules         |
+| `~/.claude/copilot-agents/` | `copilot-agents/`            | Format already correct    |
+| `~/.claude/reference/`      | `.claude/reference/`         | Exclude personal refs     |
+| `~/.claude/scripts/mesh-*`  | `scripts/mesh/`              | Core mesh scripts         |
+| `~/.claude/scripts/lib/`    | `scripts/lib/`               | Mesh libs (peers, scoring)|
+| `~/.claude/scripts/dashboard_web/` | `scripts/dashboard_web/` | Web dashboard (server+UI)|
+| `~/.claude/config/mesh-*`   | `config/`                    | Heartbeat templates       |
+| `~/.claude/config/peers.conf` | `config/peers.conf.example`| Sanitized template        |
 
 ## Blocklist (NEVER sync these)
 
@@ -54,8 +59,9 @@ agents/release_management/mirrorbuddy-hardening-checks.md
 agents/research_report/Reports/
 agents/research_report/output/
 agents/strategic-planner.md  (root-level duplicate)
-scripts/sync-claude-config.sh  (personal)
-scripts/sync-dashboard-db.sh  (personal)
+scripts/migrate-plan-to-linux.sh  (personal)
+scripts/remote-repo-sync.sh  (personal)
+config/peers.conf  (contains real IPs — use peers.conf.example)
 ```
 
 ## Workflow

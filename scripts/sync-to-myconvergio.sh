@@ -24,8 +24,6 @@ BLOCKLIST=(
 	"agents:research_report/Reports"
 	"agents:research_report/output"
 	"agents:strategic-planner.md"
-	"scripts:sync-claude-config.sh"
-	"scripts:sync-dashboard-db.sh"
 	"scripts:migrate-plan-to-linux.sh"
 	"scripts:remote-repo-sync.sh"
 )
@@ -49,7 +47,7 @@ export NEW UPDATED UNCHANGED BLOCKED SANITIZE_WARN DRY_RUN VERBOSE SOURCE_DIR TA
 export BLOCKLIST PERSONAL_PATTERNS
 
 usage() {
-	echo "Usage: $(basename "$0") [--dry-run] [--verbose] [--category agents|scripts|skills|rules|copilot|reference|all]"
+	echo "Usage: $(basename "$0") [--dry-run] [--verbose] [--category agents|scripts|skills|rules|copilot|reference|mesh|dashboard|config|all]"
 	echo "Sync ~/.claude (source of truth) → MyConvergio (public repo, sanitized)"
 }
 
@@ -98,6 +96,10 @@ skills) sync_dir "$SOURCE_DIR/skills" "$TARGET_DIR/skills" "Skills" "skills" ;;
 rules) sync_dir "$SOURCE_DIR/rules" "$TARGET_DIR/rules" "Rules" "rules" ;;
 copilot) sync_copilot ;;
 reference) sync_dir "$SOURCE_DIR/reference" "$TARGET_DIR/reference" "Reference" "reference" ;;
+mesh) sync_dir "$SOURCE_DIR/scripts" "$TARGET_REPO/scripts/mesh" "Mesh Scripts" "mesh" --filter "mesh-*|peer-sync*|sync-claude-config*|sync-dashboard-db*"
+	sync_dir "$SOURCE_DIR/scripts/lib" "$TARGET_REPO/scripts/lib" "Mesh Libs" "mesh-lib" --filter "mesh-*|peers.sh" ;;
+dashboard) sync_dir "$SOURCE_DIR/scripts/dashboard_web" "$TARGET_REPO/scripts/dashboard_web" "Dashboard Web" "dashboard" ;;
+config) sync_dir "$SOURCE_DIR/config" "$TARGET_REPO/config" "Config Templates" "config" --filter "mesh-*|peers.conf*" ;;
 all)
 	sync_dir "$SOURCE_DIR/agents" "$TARGET_DIR/agents" "Agents" "agents"
 	sync_dir "$SOURCE_DIR/scripts" "$TARGET_DIR/scripts" "Scripts" "scripts"
@@ -105,6 +107,11 @@ all)
 	sync_dir "$SOURCE_DIR/rules" "$TARGET_DIR/rules" "Rules" "rules"
 	sync_copilot
 	sync_dir "$SOURCE_DIR/reference" "$TARGET_DIR/reference" "Reference" "reference"
+	# Mesh + Dashboard + Config (root-level targets in MyConvergio)
+	sync_dir "$SOURCE_DIR/scripts" "$TARGET_REPO/scripts/mesh" "Mesh Scripts" "mesh" --filter "mesh-*|peer-sync*|sync-claude-config*|sync-dashboard-db*"
+	sync_dir "$SOURCE_DIR/scripts/lib" "$TARGET_REPO/scripts/lib" "Mesh Libs" "mesh-lib" --filter "mesh-*|peers.sh"
+	sync_dir "$SOURCE_DIR/scripts/dashboard_web" "$TARGET_REPO/scripts/dashboard_web" "Dashboard Web" "dashboard"
+	sync_dir "$SOURCE_DIR/config" "$TARGET_REPO/config" "Config Templates" "config" --filter "mesh-*|peers.conf*"
 	;;
 *)
 	echo -e "${RED}Unknown category: $CATEGORY${NC}"

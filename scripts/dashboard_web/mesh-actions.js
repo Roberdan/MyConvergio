@@ -278,20 +278,55 @@ window.showDelegatePlanDialog = async function (planId, planName) {
     const row = e.target.closest(".delegate-peer-row");
     if (row && !row.classList.contains("offline")) {
       const peer = row.dataset.peer;
-      // Disable row and show preflight
       row.style.opacity = "0.5";
       row.style.pointerEvents = "none";
-      runPreflight(planId, peer, planName, overlay);
+      // Show CLI selector before preflight
+      _showCliSelector(planId, peer, planName, overlay);
       return;
     }
     if (e.target === overlay) overlay.remove();
   });
 };
 
+function _showCliSelector(planId, peer, planName, prevOverlay) {
+  const esc = (s) => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
+  if (prevOverlay) prevOverlay.remove();
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `<div class="modal-box" style="max-width:420px">
+    <div class="modal-title">Execute with → ${esc(peer)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+      <button class="cli-choice-btn" data-cli="copilot" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.25);border-radius:8px;color:var(--cyan);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
+        <span style="font-size:20px">🤖</span>
+        <span><div>GitHub Copilot</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">copilot -p '/execute ${planId}'</div></span>
+      </button>
+      <button class="cli-choice-btn" data-cli="claude" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,160,0,0.06);border:1px solid rgba(255,160,0,0.25);border-radius:8px;color:var(--gold);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
+        <span style="font-size:20px">🧠</span>
+        <span><div>Claude Code</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">claude --model sonnet -p '/execute ${planId}'</div></span>
+      </button>
+      <button class="cli-choice-btn" data-cli="opencode" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(140,140,140,0.06);border:1px solid rgba(140,140,140,0.25);border-radius:8px;color:var(--text-dim);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
+        <span style="font-size:20px">⚡</span>
+        <span><div>OpenCode / Other</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">opencode -p '/execute ${planId}'</div></span>
+      </button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => {
+    const btn = e.target.closest(".cli-choice-btn");
+    if (btn) {
+      const cli = btn.dataset.cli;
+      overlay.remove();
+      runPreflight(planId, peer, planName, null, cli);
+      return;
+    }
+    if (e.target === overlay) overlay.remove();
+  });
+}
+
 /**
  * Pre-delegation checks via SSE — shows each check appearing in real-time.
  */
-window.runPreflight = function (planId, targetPeer, planName, prevOverlay) {
+window.runPreflight = function (planId, targetPeer, planName, prevOverlay, cli) {
   const esc = (s) => {
     const d = document.createElement("div");
     d.textContent = s;
@@ -372,7 +407,7 @@ window.runPreflight = function (planId, targetPeer, planName, prevOverlay) {
         </button>`;
       document.getElementById("preflight-go-btn").addEventListener("click", () => {
         overlay.remove();
-        delegatePlan(planId, targetPeer, planName);
+        delegatePlan(planId, targetPeer, planName, cli);
       });
     } else {
       // Count failures
@@ -386,7 +421,7 @@ window.runPreflight = function (planId, targetPeer, planName, prevOverlay) {
         </div>`;
       document.getElementById("preflight-retry-btn").addEventListener("click", () => {
         overlay.remove();
-        runPreflight(planId, targetPeer, planName, null);
+        runPreflight(planId, targetPeer, planName, null, cli);
       });
       document.getElementById("preflight-sync-btn").addEventListener("click", async () => {
         const btn = document.getElementById("preflight-sync-btn");
@@ -394,7 +429,7 @@ window.runPreflight = function (planId, targetPeer, planName, prevOverlay) {
         btn.disabled = true;
         await fetchJson(`/api/mesh/action?action=sync&peer=${encodeURIComponent(targetPeer)}`);
         overlay.remove();
-        runPreflight(planId, targetPeer, planName, null);
+        runPreflight(planId, targetPeer, planName, null, cli);
       });
     }
   });
@@ -409,7 +444,7 @@ window.runPreflight = function (planId, targetPeer, planName, prevOverlay) {
     actionsEl.innerHTML = `<button id="preflight-retry-btn" class="preflight-action-btn" style="border-color:var(--cyan);color:var(--cyan)">RETRY</button>`;
     document.getElementById("preflight-retry-btn").addEventListener("click", () => {
       overlay.remove();
-      runPreflight(planId, targetPeer, planName, null);
+      runPreflight(planId, targetPeer, planName, null, cli);
     });
   };
 };
@@ -417,7 +452,7 @@ window.runPreflight = function (planId, targetPeer, planName, prevOverlay) {
 /**
  * Execute plan delegation via SSE streaming — shows live progress modal.
  */
-window.delegatePlan = function (planId, targetPeer, planName) {
+window.delegatePlan = function (planId, targetPeer, planName, cli) {
   const esc = (s) => {
     const d = document.createElement("div");
     d.textContent = s;
@@ -435,7 +470,7 @@ window.delegatePlan = function (planId, targetPeer, planName) {
   });
 
   const output = document.getElementById("delegate-output");
-  const url = `/api/plan/delegate?plan_id=${planId}&target=${encodeURIComponent(targetPeer)}`;
+  const url = `/api/plan/delegate?plan_id=${planId}&target=${encodeURIComponent(targetPeer)}&cli=${encodeURIComponent(cli || "copilot")}`;
   const es = new EventSource(url);
 
   es.addEventListener("phase", (e) => {
@@ -501,7 +536,7 @@ window.delegatePlan = function (planId, targetPeer, planName) {
     if (retryBtn) {
       retryBtn.addEventListener("click", () => {
         overlay.remove();
-        delegatePlan(planId, targetPeer, planName);
+        delegatePlan(planId, targetPeer, planName, cli);
       });
     }
     output.scrollTop = output.scrollHeight;
@@ -517,7 +552,7 @@ window.delegatePlan = function (planId, targetPeer, planName) {
     if (retryBtn) {
       retryBtn.addEventListener("click", () => {
         overlay.remove();
-        delegatePlan(planId, targetPeer, planName);
+        delegatePlan(planId, targetPeer, planName, cli);
       });
     }
   };

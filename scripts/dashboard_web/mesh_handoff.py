@@ -260,10 +260,11 @@ def stop_remote_execution(ssh_dest: str, plan_id: int,
 # ─── Full Handoff ────────────────────────────────────────────────
 
 def full_handoff(plan_id: int, target: str, find_peer: callable,
-                 log: callable) -> tuple[bool, str]:
+                 log: callable, cli: str = "copilot") -> tuple[bool, str]:
     """Complete handoff protocol. Returns (ok, summary).
 
     log(msg) is called for each step for SSE streaming.
+    cli: "copilot" | "claude" | "opencode" — which CLI to use on target.
     """
     # 1. Acquire lock
     ok, detail = acquire_lock(plan_id, target)
@@ -272,14 +273,14 @@ def full_handoff(plan_id: int, target: str, find_peer: callable,
     log(f"🔒 Delegation lock acquired")
 
     try:
-        return _do_handoff(plan_id, target, find_peer, log)
+        return _do_handoff(plan_id, target, find_peer, log, cli=cli)
     finally:
         release_lock(plan_id)
         log(f"🔓 Lock released")
 
 
 def _do_handoff(plan_id: int, target: str, find_peer: callable,
-                log: callable) -> tuple[bool, str]:
+                log: callable, cli: str = "copilot") -> tuple[bool, str]:
     """Inner handoff logic (lock already held)."""
 
     # 2. Detect sync direction
@@ -465,21 +466,41 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
         except Exception:
             pass
 
-    # Detect which CLI is available on target (copilot preferred)
+    # Detect which CLI is available on target (use user's choice)
+    cli_map = {
+        "copilot": "copilot",
+        "claude": "claude --model sonnet",
+        "opencode": "opencode",
+    }
+    cli_cmd = cli_map.get(cli, cli)  # fallback: use raw value
+    # Verify chosen CLI exists on target
     try:
+        cli_bin = cli_cmd.split()[0]
         r = _ssh(ssh_target,
-                 "export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
-                 "command -v copilot >/dev/null 2>&1 && echo COPILOT "
-                 "|| (command -v claude >/dev/null 2>&1 && echo CLAUDE) "
-                 "|| echo NONE", timeout=8)
-        cli = r.stdout.strip().split("\n")[-1]
+                 f"export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
+                 f"command -v {cli_bin} >/dev/null 2>&1 && echo FOUND || echo MISSING",
+                 timeout=8)
+        if "MISSING" in r.stdout:
+            log(f"  ⚠ {cli_bin} not found on target — trying fallback")
+            # Fallback chain: copilot → claude → opencode
+            for fb in ["copilot", "claude", "opencode"]:
+                fb_bin = fb.split()[0]
+                r2 = _ssh(ssh_target,
+                          f"export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
+                          f"command -v {fb_bin} >/dev/null 2>&1 && echo FOUND || echo MISSING",
+                          timeout=8)
+                if "FOUND" in r2.stdout:
+                    cli_cmd = cli_map.get(fb, fb)
+                    log(f"  → Using {fb} instead")
+                    break
+            else:
+                cli_cmd = ""
     except Exception:
-        cli = "NONE"
+        pass
 
-    if cli == "NONE":
+    if not cli_cmd:
         log(f"  ⚠ No CLI found on target — plan transferred but needs manual /execute")
     else:
-        cli_cmd = "copilot" if cli == "COPILOT" else "claude --model sonnet"
         launch_cmd = f"cd {work_dir} 2>/dev/null || cd ~/.claude; {cli_cmd} -p '/execute {plan_id}'"
         try:
             # Create window, then send-keys + Enter (reliable via SSH BatchMode)

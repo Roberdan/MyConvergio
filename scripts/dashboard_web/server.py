@@ -93,6 +93,8 @@ def api_mission() -> dict:
         return {"plans": []}
     result = []
     for p in plans:
+        # Resolve hostname to peer_name for frontend display
+        p["execution_peer"] = _resolve_host_to_peer(p.get("execution_host", ""))
         waves = query(
             "SELECT wave_id,name,status,tasks_done,tasks_total,position,validated_at"
             " FROM waves WHERE plan_id=? ORDER BY position",
@@ -218,6 +220,32 @@ def _tailscale_online_ips() -> set[str]:
 def _peer_host_match(peer_name: str, host: str) -> bool:
     pn, eh = peer_name.lower(), host.lower()
     return pn == eh or pn in eh
+
+
+def _resolve_host_to_peer(host: str) -> str:
+    """Map a full hostname or peer_name to the short peer_name from peers.conf."""
+    if not host or host == "None":
+        return ""
+    conf = _parse_peers_conf()
+    # Exact peer_name match first
+    for p in conf:
+        if p["peer_name"] == host:
+            return p["peer_name"]
+    # Fuzzy match on hostname/dns/alias
+    h = host.lower().replace("-", "").replace("_", "")
+    for p in conf:
+        candidates = [
+            p["peer_name"],
+            p.get("ssh_alias", ""),
+            p.get("dns_name", ""),
+        ]
+        for c in candidates:
+            if not c:
+                continue
+            cl = c.lower().replace("-", "").replace("_", "")
+            if cl == h or cl in h or h in cl:
+                return p["peer_name"]
+    return host
 
 
 def _peer_execution_map() -> dict[str, list[dict]]:

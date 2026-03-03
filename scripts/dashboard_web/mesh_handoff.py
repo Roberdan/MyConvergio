@@ -413,24 +413,20 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
         log(f"  ⚠ Remap check failed (non-blocking)")
 
     # 11. Update execution_host on both sides
-    target_hostname = ""
-    try:
-        r = _ssh(ssh_target, "hostname -s", timeout=5)
-        target_hostname = r.stdout.strip()
-    except Exception:
-        target_hostname = target
+    # Use peer_name (target) as execution_host for clean mapping
+    target_hostname = target  # peer_name, not machine hostname
 
-    log(f"▶ Transferring ownership to {target_hostname}")
+    log(f"▶ Transferring ownership to {target}")
     # Target: set execution_host
     try:
         _ssh(ssh_target,
              f"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' "
-             f"\"UPDATE plans SET execution_host='{target_hostname}' "
+             f"\"UPDATE plans SET execution_host='{target}' "
              f"WHERE id={plan_id};\"", timeout=10)
     except Exception:
         pass
-    # Source: release
-    _sql(f"UPDATE plans SET execution_host='' WHERE id={plan_id};")
+    # Source: set to peer_name too (for display consistency)
+    _sql(f"UPDATE plans SET execution_host='{target}' WHERE id={plan_id};")
     # Reset any in_progress tasks (they'll restart on target)
     _sql(f"UPDATE tasks SET status='pending' WHERE status='in_progress' "
          f"AND plan_id={plan_id};")
@@ -442,7 +438,7 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
              timeout=10)
     except Exception:
         pass
-    log(f"  ✓ execution_host = {target_hostname}")
+    log(f"  ✓ execution_host = {target}")
 
     return True, f"Plan #{plan_id} handed off to {target}"
 

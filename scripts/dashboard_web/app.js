@@ -6,6 +6,37 @@
 const $ = (s) => document.querySelector(s);
 let tokenChart, modelChart, distChart;
 let lastMissionData = null;
+let _hostToPeer = {}; // hostname → peer_name mapping
+
+// Build hostname→peer_name map from /api/mesh
+async function _refreshHostMap() {
+  try {
+    const peers = await fetchJson("/api/mesh");
+    if (Array.isArray(peers)) {
+      _hostToPeer = {};
+      const localHost = location.hostname;
+      peers.forEach((p) => {
+        // Map dns_name, tailscale_ip, and peer_name itself
+        _hostToPeer[p.peer_name] = p.peer_name;
+        if (p.dns_name) _hostToPeer[p.dns_name] = p.peer_name;
+        if (p.is_local) _hostToPeer["local"] = p.peer_name;
+      });
+    }
+  } catch (_) {}
+}
+
+function _resolveHost(host) {
+  if (!host) return "local";
+  // Direct match
+  if (_hostToPeer[host]) return _hostToPeer[host];
+  // Partial match (hostname contains peer_name or vice versa)
+  const h = host.toLowerCase();
+  for (const [key, name] of Object.entries(_hostToPeer)) {
+    if (h.includes(key.toLowerCase()) || key.toLowerCase().includes(h)) return name;
+  }
+  // Shorten long hostnames
+  return host.length > 20 ? host.substring(0, 16) + "…" : host;
+}
 
 function fmt(n) {
   if (!n && n !== 0) return "—";
@@ -75,6 +106,14 @@ async function refreshAll() {
     ov.mesh_online = mesh ? mesh.filter((p) => p.is_online).length : 0;
     ov.mesh_total = mesh ? mesh.length : 0;
     renderKpi(ov);
+  }
+  // Update hostname→peer_name map for plan cards
+  if (Array.isArray(mesh)) {
+    _hostToPeer = {};
+    mesh.forEach((p) => {
+      _hostToPeer[p.peer_name] = p.peer_name;
+      if (p.is_local) _hostToPeer["local"] = p.peer_name;
+    });
   }
   renderMission(mission);
   if (daily) renderTokenChart(daily);
@@ -179,7 +218,7 @@ function _renderOnePlan(m) {
       <div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);margin-top:2px">
         <span>${inProgCount > 0 ? `<span style="color:var(--gold)">${inProgCount} running</span>` : ""}</span>
         <span>${blockedCount > 0 ? `<span style="color:var(--red)">${blockedCount} blocked</span>` : ""}</span>
-        <span class="host-badge" style="font-size:9px;padding:0 6px">${esc(p.execution_host || "local")}</span>
+        <span class="host-badge" style="font-size:9px;padding:0 6px">${esc(p.execution_peer || _resolveHost(p.execution_host))}</span>
       </div>
     </div>
   </div>`;
@@ -801,7 +840,7 @@ window.openPlanSidebar = async function (planId) {
   let html = `<div class="sb-meta">
     <strong>Status:</strong> ${statusDot(p.status)} <span style="color:${sColor}">${p.status.toUpperCase()}</span>
     <br><strong>Progress:</strong> ${p.tasks_done}/${p.tasks_total} (${pct}%)
-    <br><strong>Host:</strong> ${esc(p.execution_host || "local")}
+    <br><strong>Host:</strong> ${esc(_resolveHost(p.execution_host))}
     ${p.parallel_mode ? `<br><strong>Mode:</strong> ${esc(p.parallel_mode)}` : ""}
     ${p.started_at ? `<br><strong>Started:</strong> ${p.started_at}` : ""}
     ${p.completed_at ? `<br><strong>Completed:</strong> ${p.completed_at}` : ""}

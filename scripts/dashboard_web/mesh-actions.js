@@ -13,7 +13,7 @@ window.meshAction = async function (action, peer) {
             (pl) => pl.status === "doing" || pl.status === "todo",
           )
         : null;
-      const tmuxSession = activePlan ? `plan-${activePlan.id}` : undefined;
+      const tmuxSession = "Convergio";
       termMgr.open(peer, peer, tmuxSession);
     }
     return;
@@ -479,7 +479,7 @@ window.delegatePlan = function (planId, targetPeer, planName) {
     es.close();
     const data = JSON.parse(e.data);
     if (data.ok) {
-      output.innerHTML += `<div class="delegate-done-banner">✓ Plan #${planId} delegated to ${esc(targetPeer)}<br><span style="font-size:11px;font-weight:400">tmux session: plan-${planId}</span></div>`;
+      output.innerHTML += `<div class="delegate-done-banner">✓ Plan #${planId} delegated to ${esc(targetPeer)}<br><span style="font-size:11px;font-weight:400">tmux session: Convergio</span></div>`;
     }
     output.scrollTop = output.scrollHeight;
     if (typeof refreshAll === "function") refreshAll();

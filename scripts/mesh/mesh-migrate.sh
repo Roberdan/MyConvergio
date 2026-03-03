@@ -111,18 +111,18 @@ fi
 if [[ "$NO_LAUNCH" -eq 0 ]]; then
 	echo ""
 	echo "--- PHASE 4: Auto-launch ---"
-	SESSION="plan-${PLAN_ID}"
+	SESSION="Convergio"
+	WINDOW_NAME="plan-${PLAN_ID}"
 	LAUNCH_CMD="cd ~/.claude && claude --model sonnet -p '/execute ${PLAN_ID}'"
 
-	if ssh $SSH_OPTS "$DEST" \
-		"tmux new-session -d -s '${SESSION}' '${LAUNCH_CMD}'" 2>/dev/null; then
-		if ssh $SSH_OPTS "$DEST" "tmux has-session -t '${SESSION}'" 2>/dev/null; then
-			echo "tmux session '${SESSION}' started on ${TARGET_HOST}"
-		else
-			echo "WARN: tmux session not confirmed — plan transferred but needs manual /execute"
-		fi
+	# Create Convergio session if not exists, then add a window for this plan
+	ssh $SSH_OPTS "$DEST" \
+		"tmux has-session -t '${SESSION}' 2>/dev/null || tmux new-session -d -s '${SESSION}'; \
+		 tmux new-window -t '${SESSION}' -n '${WINDOW_NAME}' '${LAUNCH_CMD}'" 2>/dev/null
+	if ssh $SSH_OPTS "$DEST" "tmux has-session -t '${SESSION}'" 2>/dev/null; then
+		echo "tmux window '${WINDOW_NAME}' created in session '${SESSION}' on ${TARGET_HOST}"
 	else
-		echo "WARN: launch failed — plan transferred but needs manual /execute on target"
+		echo "WARN: tmux session not confirmed — plan transferred but needs manual /execute"
 	fi
 else
 	echo "--- PHASE 4: Skipped (--no-launch) ---"
@@ -136,7 +136,8 @@ printf "%-20s %s\n" "Source released:" "yes"
 printf "%-20s %s\n" "Target host:" "$TARGET_HOST"
 printf "%-20s %s\n" "DB integrity:" "ok"
 if [[ "$NO_LAUNCH" -eq 0 ]]; then
-	printf "%-20s %s\n" "tmux session:" "plan-${PLAN_ID}"
+	printf "%-20s %s\n" "tmux session:" "Convergio"
+	printf "%-20s %s\n" "tmux window:" "plan-${PLAN_ID}"
 fi
 
 echo ""

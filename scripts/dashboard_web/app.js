@@ -957,11 +957,7 @@ window.openAllTerminals = function () {
     return;
   }
   online.forEach((p) => {
-    const activePlan = (p.plans || []).find(
-      (pl) => pl.status === "doing" || pl.status === "todo",
-    );
-    const tmuxSession = activePlan ? `plan-${activePlan.id}` : "mesh";
-    termMgr.open(p.peer_name, p.peer_name, tmuxSession);
+    termMgr.open(p.peer_name, p.peer_name, "Convergio");
   });
   if (online.length > 1) termMgr.setMode("grid");
   else termMgr.setMode("dock");

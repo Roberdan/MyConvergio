@@ -11,6 +11,7 @@ SSH_OPTS="-o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=accept-
 
 # shellcheck source=lib/peers.sh
 source "${SCRIPT_DIR}/lib/peers.sh" 2>/dev/null || true
+peers_load 2>/dev/null || true
 source "${SCRIPT_DIR}/lib/mesh-migrate-sync.sh"
 source "${SCRIPT_DIR}/lib/mesh-migrate-db.sh"
 

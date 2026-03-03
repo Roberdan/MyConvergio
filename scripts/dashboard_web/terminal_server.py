@@ -61,14 +61,12 @@ async def terminal_handler(ws):
         ssh_cfg = get_ssh_config(peer)
         user, host = ssh_cfg["user"], ssh_cfg["host"]
         if tmux_session:
-            tmux_cmd = (
-                f"tmux attach-session -t '{tmux_session}' 2>/dev/null "
-                f"|| tmux new-session -s '{tmux_session}'"
-            )
-            cmd = ["ssh", "-t", "-o", "StrictHostKeyChecking=accept-new",
-                   f"{user}@{host}", tmux_cmd]
+            # -tt forces TTY allocation (needed for tmux over pty+websocket)
+            cmd = ["ssh", "-tt", "-o", "StrictHostKeyChecking=accept-new",
+                   f"{user}@{host}",
+                   f"tmux new-session -A -s '{tmux_session}'"]
         else:
-            cmd = ["ssh", "-t", "-o", "StrictHostKeyChecking=accept-new",
+            cmd = ["ssh", "-tt", "-o", "StrictHostKeyChecking=accept-new",
                    f"{user}@{host}"]
     else:
         if IS_WINDOWS:
@@ -76,8 +74,7 @@ async def terminal_handler(ws):
         elif tmux_session:
             shell = os.environ.get("SHELL", "/bin/bash")
             cmd = [shell, "-l", "-c",
-                   f"tmux attach-session -t '{tmux_session}' 2>/dev/null "
-                   f"|| tmux new-session -s '{tmux_session}'"]
+                   f"tmux new-session -A -s '{tmux_session}'"]
         else:
             shell = os.environ.get("SHELL", "/bin/bash")
             cmd = [shell, "-l"]

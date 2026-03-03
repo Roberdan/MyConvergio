@@ -163,6 +163,7 @@ function _renderOnePlan(m) {
       <span class="mission-name">&nbsp;${esc(p.name)}</span>
       ${statusDot(p.status === "doing" ? "in_progress" : p.status)}
       ${p.parallel_mode ? `<span class="badge badge-doing">${p.parallel_mode}</span>` : ""}
+      ${p.project_name ? `<span class="badge" style="background:var(--panel);color:var(--text-dim);border:1px solid var(--border);font-size:9px">${esc(p.project_name)}</span>` : ""}
     </div>`;
   if (p.human_summary) {
     html += `<div class="mission-summary">${esc(p.human_summary)}</div>`;

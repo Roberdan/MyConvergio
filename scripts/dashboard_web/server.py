@@ -83,9 +83,11 @@ def api_overview() -> dict:
 
 def api_mission() -> dict:
     plans = query(
-        "SELECT id,name,status,tasks_done,tasks_total,human_summary,"
-        "execution_host,parallel_mode,project_id FROM plans"
-        " WHERE status IN ('todo','doing') ORDER BY id DESC"
+        "SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,"
+        "p.human_summary,p.execution_host,p.parallel_mode,p.project_id,"
+        "pr.name AS project_name,pr.path AS project_path"
+        " FROM plans p LEFT JOIN projects pr ON p.project_id=pr.id"
+        " WHERE p.status IN ('todo','doing') ORDER BY p.id DESC"
     )
     if not plans:
         return {"plans": []}

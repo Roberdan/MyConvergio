@@ -205,22 +205,17 @@ def stop_remote_execution(ssh_dest: str, plan_id: int,
     """Stop execution on remote node. Stash WIP, kill tmux session."""
     steps = []
 
-    # 1. Stop plan window in Convergio tmux session (if running)
-    session_name = "Convergio"
-    window_name = f"plan-{plan_id}"
+    # 1. Kill tmux session (if running)
+    session_name = f"plan-{plan_id}"
     try:
-        r = _ssh(ssh_dest,
-                 f"tmux has-session -t {session_name} 2>/dev/null "
-                 f"&& tmux list-windows -t {session_name} -F '#{{window_name}}' 2>/dev/null "
-                 f"| grep -q '{window_name}' "
-                 f"&& tmux send-keys -t {session_name}:{window_name} C-c 2>/dev/null "
-                 f"&& sleep 2 "
-                 f"&& tmux kill-window -t {session_name}:{window_name} 2>/dev/null "
-                 f"&& echo KILLED || echo NO_WINDOW", timeout=10)
+        r = _ssh(ssh_dest, f"tmux has-session -t {session_name} 2>/dev/null "
+                 f"&& tmux send-keys -t {session_name} C-c && sleep 2 "
+                 f"&& tmux kill-session -t {session_name} 2>/dev/null "
+                 f"&& echo KILLED || echo NO_SESSION", timeout=10)
         if "KILLED" in r.stdout:
-            steps.append(f"tmux window '{window_name}' killed")
+            steps.append("tmux session killed")
         else:
-            steps.append("no active plan window in tmux")
+            steps.append("no tmux session")
     except Exception:
         steps.append("tmux check failed (non-blocking)")
 

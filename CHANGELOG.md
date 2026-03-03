@@ -1,5 +1,24 @@
 # Changelog
 
+## [10.4.0] — 2026-03-03
+
+### Added
+
+- **Interactive Setup Script** (`scripts/setup.sh`): Cross-platform installer for macOS/Linux/Windows WSL with 3 levels (minimal/standard/full), dependency auto-install, tmux/Tailscale setup
+- **tmux aliases**: `tlm` (Mac M1), `tlx` (Linux), `tl` (local) — all attach to `Convergio` session
+
+### Changed
+
+- **All tmux uses single `Convergio` session**: Plans run as named windows (`plan-{id}`) inside the same session, not separate sessions
+- `mesh-migrate.sh`: creates window inside `Convergio` session
+- `mesh_handoff.py`: stops specific plan window, preserves session
+- Dashboard terminals always attach to `Convergio`
+
+### Fixed
+
+- `_peer_host_match` normalized (strips hyphens) — m3max now matches hostname
+- Host badge on plan cards resolves to peer_name correctly
+
 ## [10.3.0] — 2026-03-03
 
 ### Added

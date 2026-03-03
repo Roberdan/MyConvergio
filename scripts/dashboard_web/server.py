@@ -218,8 +218,9 @@ def _tailscale_online_ips() -> set[str]:
 
 
 def _peer_host_match(peer_name: str, host: str) -> bool:
-    pn, eh = peer_name.lower(), host.lower()
-    return pn == eh or pn in eh
+    pn = peer_name.lower().replace("-", "").replace("_", "")
+    eh = host.lower().replace("-", "").replace("_", "")
+    return pn == eh or pn in eh or eh in pn
 
 
 def _resolve_host_to_peer(host: str) -> str:

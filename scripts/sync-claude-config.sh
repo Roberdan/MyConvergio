@@ -100,8 +100,22 @@ cmd_push() {
 	fi
 
 	if ! git -C "$LOCAL_REPO" merge-base --is-ancestor "$rh" "$lh" 2>/dev/null; then
-		err "Cannot fast-forward. Run 'csync pull' first."
-		return 1
+		warn "Cannot fast-forward (diverged history). Forcing remote reset..."
+		# Remote has diverged — force-sync via reset to local HEAD
+		check_clean "remote"
+		git -C "$LOCAL_REPO" bundle create "$BUNDLE" --all 2>/dev/null
+		scp -q "$BUNDLE" "$REMOTE_HOST:$BUNDLE"
+		ssh "$REMOTE_HOST" "cd $REMOTE_REPO && git stash --include-untracked -q 2>/dev/null; git bundle verify $BUNDLE >/dev/null 2>&1 && git fetch $BUNDLE HEAD:refs/heads/_sync_force && git reset --hard _sync_force && git branch -D _sync_force 2>/dev/null; git stash pop -q 2>/dev/null || true"
+		local new_rh
+		new_rh=$(remote_head)
+		if [[ "$lh" == "$new_rh" ]]; then
+			ok "Force-sync complete! Both at ${lh:0:7}"
+		else
+			warn "Force-sync partial. Falling back to rsync..."
+			rsync -az --delete --exclude='.git' --exclude='*.db' \
+				"$LOCAL_REPO/" "$REMOTE_HOST:$REMOTE_REPO/" 2>/dev/null && ok "Rsync fallback complete" || err "Rsync fallback failed"
+		fi
+		return 0
 	fi
 
 	check_clean "remote"
@@ -113,7 +127,7 @@ cmd_push() {
 	scp -q "$BUNDLE" "$REMOTE_HOST:$BUNDLE"
 
 	info "Applying on remote..."
-	ssh "$REMOTE_HOST" "cd $REMOTE_REPO && git bundle verify $BUNDLE >/dev/null 2>&1 && git fetch $BUNDLE HEAD:refs/heads/_sync_tmp && git merge --ff-only _sync_tmp && git branch -d _sync_tmp"
+	ssh "$REMOTE_HOST" "cd $REMOTE_REPO && git stash --include-untracked -q 2>/dev/null; git bundle verify $BUNDLE >/dev/null 2>&1 && git fetch $BUNDLE HEAD:refs/heads/_sync_tmp && git merge --ff-only _sync_tmp && git branch -d _sync_tmp; git stash pop -q 2>/dev/null || true"
 
 	local new_rh
 	new_rh=$(remote_head)

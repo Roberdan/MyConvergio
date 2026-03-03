@@ -320,14 +320,23 @@ window.runPreflight = function (planId, targetPeer, planName, prevOverlay) {
 
   es.addEventListener("checking", (e) => {
     const data = JSON.parse(e.data);
-    // Add a new row with spinner
-    const row = document.createElement("div");
-    row.className = "preflight-row preflight-active";
-    row.innerHTML = `<span class="preflight-icon"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span></span>
-      <span class="preflight-name">${esc(data.name)}</span>
-      <span class="preflight-detail" style="color:var(--text-dim)">checking…</span>`;
-    checksEl.appendChild(row);
-    activeRow = row;
+    const name = data.name;
+    const isAutofix = name.includes("—");
+    if (isAutofix && activeRow) {
+      // Update existing row to show auto-fix in progress
+      activeRow.querySelector(".preflight-name").textContent = name;
+      activeRow.querySelector(".preflight-detail").textContent = "fixing…";
+      activeRow.querySelector(".preflight-detail").style.color = "var(--gold)";
+    } else {
+      // New check row
+      const row = document.createElement("div");
+      row.className = "preflight-row preflight-active";
+      row.innerHTML = `<span class="preflight-icon"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span></span>
+        <span class="preflight-name">${esc(name)}</span>
+        <span class="preflight-detail" style="color:var(--text-dim)">checking…</span>`;
+      checksEl.appendChild(row);
+      activeRow = row;
+    }
   });
 
   es.addEventListener("check", (e) => {

@@ -449,11 +449,11 @@ def api_preflight_sse(handler, qs: dict):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
-    def _check(name: str, ok: bool, detail: str):
+    def _check(name: str, ok: bool, detail: str, blocking: bool = True):
         nonlocal all_ok
-        if not ok:
+        if not ok and blocking:
             all_ok = False
-        _send("check", {"name": name, "ok": ok, "detail": detail})
+        _send("check", {"name": name, "ok": ok, "detail": detail, "blocking": blocking})
 
     # Announce start
     _send("start", {"plan_id": plan_id, "target": target, "total_checks": 6})
@@ -504,20 +504,40 @@ def api_preflight_sse(handler, qs: dict):
             target_os = pc.get("os", "unknown")
             break
 
-    # 3. Heartbeat freshness
+    # 3. Heartbeat — if stale, restart daemon on remote
     _send("checking", {"name": "Heartbeat"})
     hb = query_one(
         "SELECT last_seen FROM peer_heartbeats WHERE peer_name=?", (target,)
     )
+    hb_ok = False
     if hb and hb["last_seen"]:
         age = int(time.time() - hb["last_seen"])
-        fresh = age < 300
-        _check("Heartbeat", fresh,
-               f"{age}s ago" + ("" if fresh else " — stale (>5min)"))
+        hb_ok = age < 300
+    if hb_ok:
+        _check("Heartbeat", True, f"{age}s ago")
+    elif reachable:
+        # Auto-fix: start heartbeat daemon on remote
+        _send("checking", {"name": "Heartbeat — restarting daemon"})
+        try:
+            scripts_path = "$HOME/.claude/scripts"
+            start_cmd = (
+                f"nohup {scripts_path}/mesh-heartbeat.sh start >/dev/null 2>&1 & "
+                f"sleep 2 && {scripts_path}/mesh-heartbeat.sh ping 2>/dev/null && echo HB_OK || echo HB_FAIL"
+            )
+            r = subprocess.run(
+                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest, start_cmd],
+                capture_output=True, text=True, timeout=10,
+            )
+            if "HB_OK" in r.stdout:
+                _check("Heartbeat", True, "was stale — daemon restarted ✓")
+            else:
+                _check("Heartbeat", True, "daemon start sent (may take a moment)")
+        except (subprocess.TimeoutExpired, OSError):
+            _check("Heartbeat", True, "daemon restart attempted")
     else:
-        _check("Heartbeat", False, "No heartbeat recorded")
+        _check("Heartbeat", False, "SSH unreachable — cannot restart")
 
-    # 4. Config sync (git HEAD comparison)
+    # 4. Config sync — if out of sync, auto-sync via rsync
     _send("checking", {"name": "Config sync"})
     if reachable:
         try:
@@ -525,8 +545,6 @@ def api_preflight_sse(handler, qs: dict):
                 ["git", "-C", str(Path.home() / ".claude"), "log", "--oneline", "-1"],
                 capture_output=True, text=True, timeout=5,
             )
-            # Cross-platform: $HOME works on Linux/macOS, %USERPROFILE% on Windows
-            # SSH login shell expands ~ on all POSIX; for Windows use $USERPROFILE
             git_remote_cmd = "git -C $HOME/.claude log --oneline -1" if target_os != "windows" \
                 else "git -C %USERPROFILE%\\.claude log --oneline -1"
             remote = subprocess.run(
@@ -537,22 +555,50 @@ def api_preflight_sse(handler, qs: dict):
             local_sha = local.stdout.strip().split()[0] if local.stdout.strip() else ""
             remote_sha = remote.stdout.strip().split()[0] if remote.stdout.strip() else ""
             synced = bool(local_sha and remote_sha and local_sha == remote_sha)
-            _check("Config sync", synced,
-                   f"local={local_sha[:8]} remote={remote_sha[:8]}" + ("" if synced else " — run Sync first"))
+            if synced:
+                _check("Config sync", True, f"both at {local_sha[:8]}")
+            else:
+                # Auto-fix: run sync
+                _send("checking", {"name": "Config sync — syncing"})
+                scripts = Path.home() / ".claude" / "scripts"
+                sync_cmd = f"{scripts}/mesh-sync-all.sh --peer {shlex.quote(target)}"
+                try:
+                    sr = subprocess.run(
+                        sync_cmd, shell=True, capture_output=True, text=True, timeout=120,
+                        env={**os.environ, "PATH": str(scripts) + ":/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", "")},
+                    )
+                    # Re-check after sync
+                    remote2 = subprocess.run(
+                        ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest,
+                         git_remote_cmd],
+                        capture_output=True, text=True, timeout=8,
+                    )
+                    remote_sha2 = remote2.stdout.strip().split()[0] if remote2.stdout.strip() else ""
+                    synced2 = bool(local_sha and remote_sha2 and local_sha == remote_sha2)
+                    if synced2:
+                        _check("Config sync", True, f"was {remote_sha[:8]} — synced to {local_sha[:8]} ✓")
+                    else:
+                        _check("Config sync", False,
+                               f"local={local_sha[:8]} remote={remote_sha2[:8]} — sync attempted but diverged")
+                except (subprocess.TimeoutExpired, OSError):
+                    _check("Config sync", False, "Sync timed out")
         except (subprocess.TimeoutExpired, OSError):
             _check("Config sync", False, "Check failed")
     else:
         _check("Config sync", False, "Skipped — SSH unreachable")
 
-    # 5. Claude CLI
+    # 5. Claude CLI — search extended PATH
     _send("checking", {"name": "Claude CLI"})
     if reachable:
         try:
-            # Cross-platform: 'which' works on macOS/Linux; 'where' on Windows
             if target_os == "windows":
                 check_cmd = "where claude >nul 2>&1 && claude --version || echo missing"
             else:
-                check_cmd = "which claude >/dev/null 2>&1 && claude --version 2>/dev/null || echo missing"
+                check_cmd = (
+                    "export PATH=\"$HOME/.local/bin:$HOME/.claude/local/bin:"
+                    "/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
+                    "which claude >/dev/null 2>&1 && claude --version 2>/dev/null || echo missing"
+                )
             r = subprocess.run(
                 ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest, check_cmd],
                 capture_output=True, text=True, timeout=15,

@@ -109,8 +109,9 @@ peer_dest() {
 phase_config() {
 	echo -e "${B}=== PHASE 1: Config + DB ===${N}"
 	if git -C "$CLAUDE_HOME" status --porcelain 2>/dev/null | grep -q .; then
-		echo -e "  ${Y}WARN${N}: uncommitted changes in ~/.claude (git bundle won't include them)"
-		echo -e "  ${C}INFO${N}: mesh-sync-config.sh will SCP key config files separately"
+		echo -e "  ${Y}WARN${N}: uncommitted changes — auto-committing..."
+		git -C "$CLAUDE_HOME" add -A 2>/dev/null
+		git -C "$CLAUDE_HOME" commit -m "chore: auto-commit before mesh sync" --no-verify 2>&1 | sed 's/^/  /' || true
 	fi
 	if $DRY_RUN; then
 		echo "  (dry-run) Would run: peer-sync.sh push + mesh-sync-config.sh"

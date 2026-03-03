@@ -68,8 +68,17 @@ _write_heartbeat() {
 # --------------------------------------------------------------------------
 
 _daemon_loop() {
+	local pulse=0
 	while true; do
 		_write_heartbeat
+		# Every 10 beats (~5 min): pull config updates from coordinator
+		pulse=$((pulse + 1))
+		if (( pulse % 10 == 0 )); then
+			local sync_script="$SCRIPT_DIR/sync-claude-config.sh"
+			if [[ -x "$sync_script" ]]; then
+				"$sync_script" pull >>"$CLAUDE_HOME/data/mesh-heartbeat.log" 2>&1 &
+			fi
+		fi
 		sleep "$INTERVAL"
 	done
 }
@@ -105,6 +114,13 @@ cmd_start() {
 
 	ok "Started (PID $pid). Writing heartbeat every ${INTERVAL}s."
 	ok "Log: $CLAUDE_HOME/data/mesh-heartbeat.log"
+
+	# Auto-sync: pull latest config from coordinator on startup
+	local sync_script="$SCRIPT_DIR/sync-claude-config.sh"
+	if [[ -x "$sync_script" ]]; then
+		info "Pulling latest config from coordinator..."
+		"$sync_script" pull >>"$CLAUDE_HOME/data/mesh-heartbeat.log" 2>&1 &
+	fi
 }
 
 cmd_stop() {

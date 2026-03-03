@@ -654,6 +654,13 @@ cmd_complete() {
 		git -C "$project_path" worktree prune 2>/dev/null || true
 		git -C "$project_path" fetch --prune 2>/dev/null || true
 	fi
+
+	# Auto-sync results to all online mesh peers
+	local sync_script="${SCRIPT_DIR}/../mesh-sync-all.sh"
+	if [[ -x "$sync_script" ]]; then
+		log_info "Syncing plan results to mesh peers..."
+		"$sync_script" 2>&1 | sed 's/^/  [sync] /' || log_warn "Mesh sync failed (non-fatal)"
+	fi
 }
 
 # Calculate git lines added/removed for a completed plan

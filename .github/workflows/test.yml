@@ -30,7 +30,7 @@ jobs:
           echo "$COUNTS"
           CLAUDE_COUNT=$(echo "$COUNTS" | sed -E 's/.*claude:([0-9]+).*/\1/')
           COPILOT_COUNT=$(echo "$COUNTS" | sed -E 's/.*copilot:([0-9]+).*/\1/')
-          EXPECTED_CLAUDE_COUNT=$(sed -nE 's/^<!-- AGENT_COUNTS: claude:([0-9]+) .*/\1/p' README.md)
+          EXPECTED_CLAUDE_COUNT=$(sed -nE 's/.*claude:([0-9]+).*/\1/p' README.md)
           if [ -z "$EXPECTED_CLAUDE_COUNT" ]; then
             echo "❌ Unable to read expected Claude count from README.md AGENT_COUNTS template"
             exit 1

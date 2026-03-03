@@ -1,8 +1,8 @@
 # MyConvergio Agents
 
-**v9.19.0** | 76 Claude Agent Files + 83 Copilot Agent Files | Multi-Provider Orchestrator
+**v10.1.0** | 85 Unique Agents (76 Claude + 83 Copilot files) | Multi-Provider Orchestrator
 
-<!-- AGENT_COUNTS: claude:76 copilot:83 total:159 -->
+<!-- AGENT_COUNTS: unique:85 claude:76 copilot:83 -->
 
 > _"Intent is human, momentum is agent"_ — [The Agentic Manifesto](./AgenticManifesto.md)
 

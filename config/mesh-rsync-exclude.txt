@@ -35,6 +35,19 @@ image-cache/
 debug/
 telemetry/
 statsig/
+stats-cache.json
+
+# Machine-local data — DB synced separately via SCP
+data/
+projects/
+file-history/
+plugins/
+plans/
+todos/
+history.jsonl
+plan.db
+plans.db
+plan-db.sqlite
 
 # Test and build artifacts
 backups/

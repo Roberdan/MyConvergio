@@ -656,8 +656,47 @@ cmd_complete() {
 	fi
 
 	# Auto-sync results to all online mesh peers
+	# Direction-aware: if we're a worker, reverse-sync TO coordinator first
 	local sync_script="${SCRIPT_DIR}/../mesh-sync-all.sh"
 	if [[ -x "$sync_script" ]]; then
+		local my_role=""
+		my_role=$(sqlite3 "$DB_FILE" \
+			"SELECT role FROM peer_heartbeats WHERE host='${PLAN_DB_HOST}' LIMIT 1;" \
+			2>/dev/null || echo "")
+
+		if [[ "$my_role" == "worker" ]]; then
+			# Worker: push worktree changes to coordinator via rsync
+			log_info "Worker node — reverse-syncing to coordinator..."
+			local coordinator_alias=""
+			coordinator_alias=$(awk -F= '
+				/^\[/{section=$0; gsub(/[\[\]]/,"",section)}
+				/^role=coordinator/{print section}
+			' "${CLAUDE_HOME:-$HOME/.claude}/config/peers.conf" 2>/dev/null || true)
+			if [[ -n "$coordinator_alias" ]]; then
+				local coord_ssh
+				coord_ssh=$(awk -F= -v s="[$coordinator_alias]" '
+					$0==s{found=1} found && /^ssh_alias=/{print $2; exit}
+				' "${CLAUDE_HOME:-$HOME/.claude}/config/peers.conf" 2>/dev/null || echo "$coordinator_alias")
+				# Sync worktree back if it exists
+				local wt_path
+				wt_path=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM plans WHERE id=$plan_id;" 2>/dev/null || true)
+				wt_path="${wt_path/#\~/$HOME}"
+				if [[ -n "$wt_path" && -d "$wt_path" ]]; then
+					log_info "Reverse-syncing worktree: $wt_path → $coord_ssh"
+					rsync -az -e "ssh -o ConnectTimeout=10 -o BatchMode=yes" \
+						"${wt_path}/" "${coord_ssh}:${wt_path}/" 2>&1 \
+						| sed 's/^/  [rsync] /' || log_warn "Worktree reverse-sync failed"
+				fi
+				# Sync DB (task statuses) back
+				log_info "Reverse-syncing DB to coordinator"
+				sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(TRUNCATE);" 2>/dev/null || true
+				scp -o ConnectTimeout=10 -o BatchMode=yes \
+					"$DB_FILE" "${coord_ssh}:~/.claude/data/dashboard.db" 2>&1 \
+					| sed 's/^/  [scp] /' || log_warn "DB reverse-sync failed"
+			fi
+		fi
+
+		# All nodes: propagate to online peers
 		log_info "Syncing plan results to mesh peers..."
 		"$sync_script" 2>&1 | sed 's/^/  [sync] /' || log_warn "Mesh sync failed (non-fatal)"
 	fi

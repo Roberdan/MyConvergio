@@ -61,11 +61,12 @@ async def terminal_handler(ws):
         ssh_cfg = get_ssh_config(peer)
         user, host = ssh_cfg["user"], ssh_cfg["host"]
         if tmux_session:
-            cmd = ["ssh", "-t", "-o", "StrictHostKeyChecking=accept-new",
+            # -tt forces TTY allocation (needed for tmux over pty+websocket)
+            cmd = ["ssh", "-tt", "-o", "StrictHostKeyChecking=accept-new",
                    f"{user}@{host}",
                    f"tmux new-session -A -s '{tmux_session}'"]
         else:
-            cmd = ["ssh", "-t", "-o", "StrictHostKeyChecking=accept-new",
+            cmd = ["ssh", "-tt", "-o", "StrictHostKeyChecking=accept-new",
                    f"{user}@{host}"]
     else:
         if IS_WINDOWS:

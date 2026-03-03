@@ -100,7 +100,8 @@ def api_mission() -> dict:
         )
         tasks = query(
             "SELECT task_id,title,status,executor_agent,executor_host,tokens"
-            ",validated_at FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
+            ",validated_at,model,wave_id"
+            " FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
             (p["id"],),
         )
         result.append({"plan": p, "waves": waves, "tasks": tasks})
@@ -414,7 +415,8 @@ def api_plan_detail(plan_id: int) -> dict | None:
     )
     tasks = query(
         "SELECT task_id,title,status,executor_agent,executor_host,tokens,"
-        "started_at,completed_at,validated_at FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
+        "started_at,completed_at,validated_at,model,wave_id"
+        " FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
         (plan_id,),
     )
     cost = query_one(

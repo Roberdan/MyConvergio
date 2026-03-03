@@ -87,7 +87,7 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/scripts/env-vault-guard.sh",
+            "command": "~/.claude/hooks/env-vault-guard.sh",
             "timeout": 15
           }
         ]
@@ -142,16 +142,6 @@
             "prompt": "~/.claude/hooks/advisory-suggest-alternatives.sh"
           }
         ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "codegraph mark-dirty",
-            "async": true
-          }
-        ]
       }
     ],
     "SubagentStart": [
@@ -199,7 +189,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/model-registry-refresh.sh",
+            "command": "~/.claude/hooks/model-registry-refresh.sh",
             "timeout": 20
           }
         ]
@@ -230,15 +220,6 @@
             "type": "command",
             "command": "~/.claude/hooks/session-reaper.sh",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "codegraph sync-if-dirty"
           }
         ]
       }

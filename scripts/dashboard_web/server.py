@@ -10,6 +10,8 @@ import concurrent.futures
 import configparser
 import json
 import os
+import re
+import shlex
 import sqlite3
 import subprocess
 import sys
@@ -23,6 +25,8 @@ DB_PATH = Path.home() / ".claude" / "data" / "dashboard.db"
 PEERS_CONF = Path.home() / ".claude" / "config" / "peers.conf"
 STATIC_DIR = Path(__file__).parent
 PORT = 8420
+ALLOWED_ORIGINS = {f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"}
+_SAFE_NAME = re.compile(r"^[a-zA-Z0-9_.-]+$")
 
 
 def query(sql: str, params: tuple = ()) -> list[dict]:
@@ -463,7 +467,9 @@ class Handler(SimpleHTTPRequestHandler):
         body = json.dumps(data, default=str).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin", "")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
         self.end_headers()
         self.wfile.write(body)
 
@@ -495,17 +501,21 @@ class Handler(SimpleHTTPRequestHandler):
         SCRIPTS = Path.home() / ".claude" / "scripts"
         action = qs.get("action", [""])[0]
         peer = qs.get("peer", [""])[0]
+        if not peer:
+            return {"error": "missing peer", "output": ""}
         is_all = peer == "__all__"
-        peer_flag = "" if is_all else f"--peer {peer}"
+        if not is_all and not _SAFE_NAME.match(peer):
+            return {"error": "invalid peer name", "output": ""}
+        peer_flag = "" if is_all else f"--peer {shlex.quote(peer)}"
         cmds = {
             "sync": f"{SCRIPTS}/mesh-sync-all.sh {peer_flag}",
             "heartbeat": f"{SCRIPTS}/mesh-heartbeat.sh status",
-            "auth": f"{SCRIPTS}/mesh-auth-sync.sh push {'--all' if is_all else f'--peer {peer}'}",
-            "status": f"{SCRIPTS}/mesh-load-query.sh {'--json' if is_all else f'--peer {peer} --json'}",
+            "auth": f"{SCRIPTS}/mesh-auth-sync.sh push {'--all' if is_all else f'--peer {shlex.quote(peer)}'}",
+            "status": f"{SCRIPTS}/mesh-load-query.sh {'--json' if is_all else f'--peer {shlex.quote(peer)} --json'}",
         }
         cmd = cmds.get(action)
-        if not cmd or not peer:
-            return {"error": "invalid action or peer", "output": ""}
+        if not cmd:
+            return {"error": "invalid action", "output": ""}
         timeout = 120 if is_all else 30
         try:
             r = subprocess.run(
@@ -521,7 +531,9 @@ class Handler(SimpleHTTPRequestHandler):
         if not cmd:
             return {"output": "", "exit_code": 1}
         if peer and peer != "local":
-            full = f"ssh {peer} '{cmd}'"
+            if not _SAFE_NAME.match(peer):
+                return {"output": "Invalid peer name", "exit_code": 1}
+            full = f"ssh {shlex.quote(peer)} {shlex.quote(cmd)}"
         else:
             full = cmd
         try:
@@ -566,6 +578,8 @@ class Handler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
         self.send_header("Pragma", "no-cache")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
         super().end_headers()
 
     def log_message(self, fmt, *args):

@@ -60,11 +60,12 @@ async def terminal_handler(ws):
     if peer and peer not in ("local", ""):
         ssh_cfg = get_ssh_config(peer)
         user, host = ssh_cfg["user"], ssh_cfg["host"]
+        # Prepend common paths (SSH BatchMode has minimal PATH)
+        path_prefix = "export PATH=/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH; "
         if tmux_session:
-            # -tt forces TTY allocation (needed for tmux over pty+websocket)
             cmd = ["ssh", "-tt", "-o", "StrictHostKeyChecking=accept-new",
                    f"{user}@{host}",
-                   f"tmux new-session -A -s '{tmux_session}'"]
+                   f"{path_prefix}tmux new-session -A -s '{tmux_session}'"]
         else:
             cmd = ["ssh", "-tt", "-o", "StrictHostKeyChecking=accept-new",
                    f"{user}@{host}"]

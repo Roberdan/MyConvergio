@@ -40,7 +40,7 @@ done
 # Create monitor window (5th tab)
 tmux new-window -t "$SESSION" -n "Monitor" -c "/home/roberdan"
 tmux send-keys -t "$SESSION:Monitor" \
-	"export PATH=\"\$HOME/.claude/scripts:\$PATH\" && dashboard-mini.sh -r 30" Enter
+	"export PATH=\"\$HOME/.claude/scripts:\$PATH\" && pianits" Enter
 
 # Select first window
 tmux select-window -t "$SESSION:1"
@@ -50,6 +50,6 @@ echo "  0: MirrorBuddy   (Plan #265) — GH: Roberdan"
 echo "  1: VirtualBPM    (Plan #266) — GH: roberdan_microsoft"
 echo "  2: MyConvergio   (Plan #267) — GH: Roberdan"
 echo "  3: Claude-Global (Plan #268) — GH: Roberdan"
-echo "  4: Monitor       (dashboard-mini auto-refresh 30s)"
+echo "  4: Monitor       (pianits terminal dashboard)"
 echo ""
 echo "Attach: tmux attach -t $SESSION"

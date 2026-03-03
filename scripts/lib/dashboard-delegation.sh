@@ -1,6 +1,6 @@
 #!/bin/bash
 # Dashboard delegation stats module
-# Provides render_delegation_stats() for dashboard-mini.sh
+# Provides render_delegation_stats() for dashboard rendering
 
 # Source delegation_log (assume path is set by caller)
 

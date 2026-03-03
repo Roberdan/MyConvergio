@@ -145,9 +145,38 @@ def _parse_peers_conf() -> list[dict]:
             "capabilities": cp[s].get("capabilities", ""),
             "status": cp[s].get("status", "active"),
             "tailscale_ip": cp[s].get("tailscale_ip", ""),
+            "mac_address": cp[s].get("mac_address", ""),
+            "ssh_alias": cp[s].get("ssh_alias", s),
+            "user": cp[s].get("user", ""),
         }
         for s in cp.sections()
     ]
+
+
+def _send_wol(mac: str, broadcast: str = "255.255.255.255", port: int = 9) -> bool:
+    """Send Wake-on-LAN magic packet. Pure Python, no external tools."""
+    import socket
+    mac_clean = mac.replace(":", "").replace("-", "")
+    if len(mac_clean) != 12:
+        return False
+    mac_bytes = bytes.fromhex(mac_clean)
+    magic = b"\xff" * 6 + mac_bytes * 16
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.sendto(magic, (broadcast, port))
+        sock.close()
+        return True
+    except OSError:
+        return False
+
+
+def _find_peer_conf(peer_name: str) -> dict | None:
+    conf = _parse_peers_conf()
+    for p in conf:
+        if p["peer_name"] == peer_name:
+            return p
+    return None
 
 
 def _extract_heartbeat(hb: dict) -> tuple[float, int]:
@@ -709,13 +738,19 @@ class Handler(SimpleHTTPRequestHandler):
             return {"output": f"Timeout ({timeout}s)", "exit_code": 1}
 
     def _handle_mesh_action_sse(self, qs: dict):
-        """SSE streaming endpoint for mesh actions."""
+        """SSE streaming endpoint for mesh actions incl. wake/reboot."""
         SCRIPTS = Path.home() / ".claude" / "scripts"
         action = qs.get("action", [""])[0]
         peer = qs.get("peer", [""])[0]
         if not peer or (peer != "__all__" and not _SAFE_NAME.match(peer)):
             self._json_response({"error": "invalid peer"}, 400)
             return
+
+        # Handle wake/reboot separately (not shell scripts)
+        if action in ("wake", "reboot"):
+            self._handle_power_action_sse(action, peer)
+            return
+
         is_all = peer == "__all__"
         peer_flag = "" if is_all else f"--peer {shlex.quote(peer)}"
         action_labels = {
@@ -777,6 +812,147 @@ class Handler(SimpleHTTPRequestHandler):
             _send("done", json.dumps({"ok": False, "exit_code": 1, "message": f"Timeout ({timeout}s)"}))
         except Exception as e:
             _send("done", json.dumps({"ok": False, "message": str(e)}))
+
+    def _handle_power_action_sse(self, action: str, peer: str):
+        """SSE endpoint for wake (WoL) and reboot (SSH) actions."""
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        origin = self.headers.get("Origin", "")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+        self.end_headers()
+
+        def _send(event: str, data: str):
+            try:
+                msg = f"event: {event}\ndata: {data}\n\n"
+                self.wfile.write(msg.encode())
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        pc = _find_peer_conf(peer)
+        if not pc:
+            _send("log", f"✗ Peer '{peer}' not found in peers.conf")
+            _send("done", json.dumps({"ok": False, "message": "Peer not found"}))
+            return
+
+        if action == "wake":
+            label = "Wake-on-LAN"
+            _send("log", f"▶ {label} — {peer}")
+            mac = pc.get("mac_address", "")
+            if not mac:
+                _send("log", f"✗ No mac_address configured for {peer} in peers.conf")
+                _send("done", json.dumps({"ok": False, "message": "No MAC address configured"}))
+                return
+            _send("log", f"  MAC: {mac}")
+            _send("log", f"  Sending magic packet (broadcast 255.255.255.255:9)…")
+            # Send 3 packets for reliability
+            sent = 0
+            for i in range(3):
+                if _send_wol(mac):
+                    sent += 1
+                time.sleep(0.3)
+            if sent > 0:
+                _send("log", f"✓ {sent}/3 magic packets sent")
+                _send("log", "")
+                _send("log", "  Waiting 15s for node to boot…")
+                # Poll SSH reachability
+                for attempt in range(3):
+                    time.sleep(5)
+                    _send("log", f"  Ping attempt {attempt + 1}/3…")
+                    try:
+                        r = subprocess.run(
+                            ["ssh", "-o", "ConnectTimeout=3", "-o", "BatchMode=yes",
+                             peer, "echo ok"],
+                            capture_output=True, text=True, timeout=5,
+                        )
+                        if r.returncode == 0:
+                            _send("log", f"✓ {peer} is online!")
+                            _send("done", json.dumps({"ok": True}))
+                            return
+                    except (subprocess.TimeoutExpired, OSError):
+                        pass
+                _send("log", f"⚠ Node not responding yet — may need more time to boot")
+                _send("done", json.dumps({"ok": True, "message": "WoL sent, node still booting"}))
+            else:
+                _send("log", "✗ Failed to send magic packet")
+                _send("done", json.dumps({"ok": False, "message": "WoL send failed"}))
+
+        elif action == "reboot":
+            label = "SSH Reboot"
+            _send("log", f"▶ {label} — {peer}")
+            ssh_target = pc.get("ssh_alias", peer)
+            user = pc.get("user", "")
+            dest = f"{user}@{ssh_target}" if user else ssh_target
+            _send("log", f"  Target: {dest}")
+            # First check if reachable
+            _send("log", "  Checking SSH connectivity…")
+            try:
+                r = subprocess.run(
+                    ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
+                     peer, "echo ok"],
+                    capture_output=True, text=True, timeout=8,
+                )
+                if r.returncode != 0:
+                    err = r.stderr.strip().split("\n")[-1][:60] if r.stderr.strip() else "unreachable"
+                    _send("log", f"✗ Cannot reach {peer}: {err}")
+                    _send("log", "  Try Wake-on-LAN first if the node is powered off")
+                    _send("done", json.dumps({"ok": False, "message": f"SSH unreachable: {err}"}))
+                    return
+            except (subprocess.TimeoutExpired, OSError):
+                _send("log", f"✗ SSH connection timed out")
+                _send("log", "  Try Wake-on-LAN first if the node is powered off")
+                _send("done", json.dumps({"ok": False, "message": "SSH timed out"}))
+                return
+
+            _send("log", "  ✓ Node reachable")
+            _send("log", "  Sending reboot command…")
+            # Detect OS for reboot command
+            target_os = pc.get("os", "unknown")
+            if target_os == "macos":
+                reboot_cmd = "sudo shutdown -r now 2>&1 || sudo reboot 2>&1"
+            elif target_os == "windows":
+                reboot_cmd = "shutdown /r /t 5 /f 2>&1"
+            else:
+                reboot_cmd = "sudo reboot 2>&1 || sudo shutdown -r now 2>&1"
+
+            try:
+                r = subprocess.run(
+                    ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
+                     peer, reboot_cmd],
+                    capture_output=True, text=True, timeout=10,
+                )
+                output = (r.stdout + r.stderr).strip()
+                if output:
+                    _send("log", f"  {output}")
+                # SSH may return error because connection drops during reboot — that's OK
+                _send("log", "✓ Reboot command sent")
+                _send("log", "")
+                _send("log", "  Waiting 30s for node to come back…")
+                time.sleep(20)
+                for attempt in range(4):
+                    time.sleep(5)
+                    _send("log", f"  Ping attempt {attempt + 1}/4…")
+                    try:
+                        r2 = subprocess.run(
+                            ["ssh", "-o", "ConnectTimeout=3", "-o", "BatchMode=yes",
+                             peer, "echo ok"],
+                            capture_output=True, text=True, timeout=5,
+                        )
+                        if r2.returncode == 0:
+                            _send("log", f"✓ {peer} is back online!")
+                            _send("done", json.dumps({"ok": True}))
+                            return
+                    except (subprocess.TimeoutExpired, OSError):
+                        pass
+                _send("log", f"⚠ Node not back yet — may need more time")
+                _send("done", json.dumps({"ok": True, "message": "Reboot sent, still booting"}))
+            except (subprocess.TimeoutExpired, OSError) as e:
+                _send("log", f"  Connection dropped (expected during reboot)")
+                _send("log", "✓ Reboot likely in progress")
+                _send("done", json.dumps({"ok": True, "message": "Reboot in progress"}))
 
     def _handle_terminal(self, qs: dict) -> dict:
         cmd = qs.get("cmd", [""])[0]

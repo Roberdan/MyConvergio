@@ -638,8 +638,11 @@ function _meshNodeHtml(p) {
     ${_a("auth", "Auth", '<rect x="4" y="7" width="8" height="6" rx="1"/><path d="M6 7V5a2 2 0 014 0v2"/><circle cx="8" cy="10" r="0.5"/>')}
     ${_a("status", "Status", '<circle cx="8" cy="8" r="5.5"/><path d="M8 5v3.5l2.5 1.5"/>')}
     ${_a("movehere", "Move Here", '<path d="M3 8h10M10 5l3 3-3 3"/>')}
+    ${_a("reboot", "Reboot", '<path d="M8 2v4M4.5 4.2A5.5 5.5 0 108 2.5"/>')}
   </div>`
-    : "";
+    : `<div class="mn-actions">
+    ${_a("wake", "Wake (WoL)", '<circle cx="8" cy="8" r="5.5" fill="none"/><path d="M8 5v3M8 10v0.5"/>')}
+  </div>`;
   return `<div class="${cls}" data-peer="${esc(p.peer_name)}">
     <div class="mn-top">
       <span class="mn-os">${icon}</span>

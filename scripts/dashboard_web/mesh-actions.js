@@ -40,6 +40,8 @@ window.streamMeshAction = function (action, peer) {
     heartbeat: "Heartbeat Status",
     auth: "Auth Sync",
     status: "Load Status",
+    wake: "Wake-on-LAN",
+    reboot: "SSH Reboot",
   };
   const target = peer === "__all__" ? "All Peers" : peer;
   const title = `${actionLabels[action] || action} — ${target}`;

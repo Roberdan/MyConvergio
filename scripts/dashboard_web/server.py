@@ -1232,10 +1232,8 @@ class Handler(SimpleHTTPRequestHandler):
 
     def _handle_pull_remote_db(self, qs: dict):
         """Pull task statuses from remote nodes that have active plans."""
-        from mesh_handoff import _ssh, _merge_plan_status
-        SSH_OPTS = ["-o", "ConnectTimeout=10", "-o", "BatchMode=yes"]
+        from mesh_handoff import pull_db_from_peer
 
-        # Find plans on remote nodes
         plans = query(
             "SELECT id, execution_host FROM plans "
             "WHERE status IN ('todo','doing') "
@@ -1245,7 +1243,7 @@ class Handler(SimpleHTTPRequestHandler):
             ["hostname", "-s"], capture_output=True, text=True, timeout=5,
         ).stdout.strip()
 
-        # Group plans by peer (one SCP per node, not per plan)
+        # Group plans by peer (one SCP per node)
         peer_plans: dict[str, list[int]] = {}
         for p in plans:
             host = p["execution_host"]
@@ -1257,27 +1255,9 @@ class Handler(SimpleHTTPRequestHandler):
 
         results = []
         for ssh_dest, plan_ids in peer_plans.items():
-            try:
-                _ssh(ssh_dest,
-                     "sqlite3 ~/.claude/data/dashboard.db "
-                     "'PRAGMA wal_checkpoint(TRUNCATE);'", timeout=8)
-                tmp = f"/tmp/remote-db-{ssh_dest}.db"
-                r = subprocess.run(
-                    ["scp"] + SSH_OPTS +
-                    [f"{ssh_dest}:~/.claude/data/dashboard.db", tmp],
-                    capture_output=True, text=True, timeout=60,
-                )
-                if r.returncode == 0:
-                    for pid in plan_ids:
-                        _merge_plan_status(pid, tmp)
-                    os.unlink(tmp)
-                    results.append({"peer": ssh_dest, "plans": plan_ids, "ok": True})
-                else:
-                    results.append({"peer": ssh_dest, "plans": plan_ids, "ok": False,
-                                    "error": "scp failed"})
-            except Exception as e:
-                results.append({"peer": ssh_dest, "plans": plan_ids, "ok": False,
-                                "error": str(e)[:60]})
+            ok, detail = pull_db_from_peer(ssh_dest, plan_ids)
+            results.append({"peer": ssh_dest, "plans": plan_ids,
+                            "ok": ok, "detail": detail})
 
         self._json_response({"synced": results, "count": len(results)})
 

@@ -159,13 +159,15 @@ async function _pullRemoteDb() {
   _pullInProgress = false;
 }
 
-// Manual sync button handler
-window.pullRemoteDb = async function () {
-  const btn = document.getElementById("pull-db-btn");
-  if (btn) { btn.textContent = "⟳ Syncing…"; btn.disabled = true; }
-  await _pullRemoteDb();
-  if (btn) { btn.textContent = "⟳ Sync Nodes"; btn.disabled = false; }
-  refreshAll();
+// Sync DB from a specific remote node (called from plan card button)
+window.syncPlanNode = async function (planId, peerName) {
+  const btn = event?.target?.closest(".host-sync-btn");
+  if (btn) { btn.textContent = "⏳"; btn.disabled = true; }
+  try {
+    await _pullRemoteDb();
+    await refreshAll();
+  } catch (_) {}
+  if (btn) { btn.textContent = "⟳"; btn.disabled = false; }
 };
 
 // --- KPI ---

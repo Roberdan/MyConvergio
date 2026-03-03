@@ -525,6 +525,49 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
     return True, f"Plan #{plan_id} handed off to {target}"
 
 
+# ─── DB Sync Engine (single source of truth for all DB pulls) ────
+
+def pull_db_from_peer(ssh_dest: str, plan_ids: list[int],
+                      timeout: int = 60) -> tuple[bool, str]:
+    """Pull dashboard.db from remote peer, merge task statuses.
+
+    This is THE ONLY function that pulls DB from remote nodes.
+    Used by: pull-db API, reverse_sync, auto-refresh.
+
+    Rules:
+    - Only merges task/wave/plan STATUS fields (never overwrites other data)
+    - Status only upgrades (pending→done), never downgrades (done→pending)
+    - One SCP per peer (grouped), not per plan
+    - WAL checkpoint before copy for consistency
+    """
+    import tempfile
+    tmp = tempfile.mktemp(suffix=".db")
+    try:
+        # 1. Checkpoint remote WAL
+        _ssh(ssh_dest,
+             "sqlite3 ~/.claude/data/dashboard.db "
+             "'PRAGMA wal_checkpoint(TRUNCATE);'", timeout=10)
+        # 2. SCP the DB
+        r = subprocess.run(
+            ["scp", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
+             f"{ssh_dest}:~/.claude/data/dashboard.db", tmp],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        if r.returncode != 0:
+            return False, f"scp failed: {r.stderr.strip()[:60]}"
+        # 3. Merge each plan's statuses
+        for pid in plan_ids:
+            _merge_plan_status(pid, tmp)
+        return True, f"{len(plan_ids)} plan(s) synced from {ssh_dest}"
+    except subprocess.TimeoutExpired:
+        return False, f"timeout ({timeout}s)"
+    except Exception as e:
+        return False, str(e)[:60]
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
 # ─── Reverse Sync (worker→coordinator after completion) ──────────
 
 def reverse_sync(ssh_source: str, plan_id: int,
@@ -534,7 +577,7 @@ def reverse_sync(ssh_source: str, plan_id: int,
         f"SELECT COALESCE(worktree_path,'') FROM plans WHERE id={plan_id};"
     )
 
-    # 1. Pull worktree changes
+    # 1. Pull worktree changes (only on plan completion, not status checks)
     if worktree:
         wt_local = worktree.replace("~", str(Path.home()))
         log(f"▶ Pulling worktree from {ssh_source}")
@@ -545,28 +588,10 @@ def reverse_sync(ssh_source: str, plan_id: int,
         )
         log(f"  → {detail}")
 
-    # 2. Pull DB updates (task statuses, etc.)
+    # 2. Pull DB via unified engine
     log(f"▶ Pulling DB from {ssh_source}")
-    try:
-        # Checkpoint remote first
-        _ssh(ssh_source,
-             "sqlite3 ~/.claude/data/dashboard.db "
-             "'PRAGMA wal_checkpoint(TRUNCATE);'", timeout=10)
-        r = subprocess.run(
-            ["scp"] + SSH_OPTS +
-            [f"{ssh_source}:~/.claude/data/dashboard.db",
-             "/tmp/remote-dashboard.db"],
-            capture_output=True, text=True, timeout=30,
-        )
-        if r.returncode == 0:
-            # Merge: only update task/wave statuses for THIS plan
-            _merge_plan_status(plan_id, "/tmp/remote-dashboard.db")
-            os.unlink("/tmp/remote-dashboard.db")
-            log(f"  ✓ Plan #{plan_id} status merged")
-        else:
-            log(f"  ⚠ DB pull failed")
-    except Exception as e:
-        log(f"  ⚠ DB pull error: {str(e)[:60]}")
+    ok, detail = pull_db_from_peer(ssh_source, [plan_id])
+    log(f"  → {detail}")
 
     # 3. Update execution_host back to coordinator
     local_host = subprocess.run(

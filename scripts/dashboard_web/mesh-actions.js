@@ -493,12 +493,33 @@ window.delegatePlan = function (planId, targetPeer, planName) {
       msg = data.message || msg;
     } catch (_) {}
     output.innerHTML += `<div class="delegate-status-fail" style="padding:12px;margin-top:8px;border:1px solid var(--red);border-radius:4px">✗ ${esc(msg)}</div>`;
+    // Add retry button on failure
+    output.innerHTML += `<div style="text-align:center;margin-top:12px">
+      <button id="delegate-retry-btn" style="background:transparent;border:1px solid var(--cyan);color:var(--cyan);padding:8px 24px;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;letter-spacing:0.5px">RETRY DELEGATION</button>
+    </div>`;
+    const retryBtn = document.getElementById("delegate-retry-btn");
+    if (retryBtn) {
+      retryBtn.addEventListener("click", () => {
+        overlay.remove();
+        delegatePlan(planId, targetPeer, planName);
+      });
+    }
     output.scrollTop = output.scrollHeight;
   });
 
   es.onerror = () => {
     es.close();
     output.innerHTML += `<span class="delegate-status-fail">\n✗ Connection lost\n</span>`;
+    output.innerHTML += `<div style="text-align:center;margin-top:12px">
+      <button id="delegate-retry-btn2" style="background:transparent;border:1px solid var(--cyan);color:var(--cyan);padding:8px 24px;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;letter-spacing:0.5px">RETRY</button>
+    </div>`;
+    const retryBtn = document.getElementById("delegate-retry-btn2");
+    if (retryBtn) {
+      retryBtn.addEventListener("click", () => {
+        overlay.remove();
+        delegatePlan(planId, targetPeer, planName);
+      });
+    }
   };
 };
 

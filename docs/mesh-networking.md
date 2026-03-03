@@ -240,4 +240,87 @@ sqlite3 ~/.claude/data/dashboard.db \
 
 ---
 
+## Dashboard Delegation
+
+Delegate plans to mesh nodes from the Convergio Control Room web dashboard.
+
+### Workflow
+
+```
+Plan Card → 🚀 Delegate → Select Peer → Preflight (auto-fix) → Sync → Migrate → tmux session
+```
+
+### Preflight Checks
+
+All checks stream via SSE (Server-Sent Events) — you see each one appear in real-time. Failures are auto-fixed when possible:
+
+| Check | Auto-Fix | Blocking |
+|-------|----------|----------|
+| Plan status (todo/doing) | — | Yes |
+| SSH reachable via `ssh_alias` | — | Yes |
+| Heartbeat stale | Restarts daemon via SSH | No (auto-fixed) |
+| Config out of sync | Runs `mesh-sync-all.sh --peer` | No (auto-fixed) |
+| Claude CLI available | Searches `~/.local/bin`, `/opt/homebrew/bin` | Yes |
+| Disk space ≥ 5GB | — | Yes |
+
+### Delegation Process
+
+1. **Phase 0 (auto-sync)**: `mesh-sync-all.sh --peer <target>` — config, DB, repos
+2. **Phase 1-5**: `mesh-migrate.sh` — preflight, file sync, DB migration, tmux launch, verify
+
+All output streams live to the browser modal.
+
+### tmux Sessions
+
+Each delegated plan runs in `tmux plan-{ID}` on the target node:
+- Dashboard terminal icons auto-attach to the plan's tmux session
+- `openAllTerminals()` connects each peer to its active plan session
+- Manual: `ssh <peer> -t "tmux attach -t plan-{ID}"`
+
+---
+
+## Power Management
+
+Control node power from the dashboard:
+
+| Action | When to use | How it works |
+|--------|-------------|-------------|
+| **⚡ Wake** | Node is offline/sleeping | Sends 3x Wake-on-LAN magic packets (pure Python, broadcast UDP:9). Polls SSH for 15s. Requires `mac_address` in `peers.conf`. |
+| **🔄 Reboot** | Node is online but frozen | Sends `sudo reboot` via SSH (OS-aware: macOS/Linux/Windows). Polls SSH for 40s to confirm comeback. |
+
+Wake button appears on **offline** nodes. Reboot button on **online** nodes.
+
+---
+
+## Auto-Sync Protocol
+
+Sync happens automatically — no manual intervention needed:
+
+| Trigger | Direction | What syncs |
+|---------|-----------|-----------|
+| **Plan completes** | Coordinator → all online peers | Config + DB + repo changes |
+| **Heartbeat starts** | Peer → coordinator | Pulls latest config (git bundle) |
+| **Every ~5 minutes** | Peer → coordinator | Heartbeat loop pulls updates |
+| **Before delegation** | Coordinator → target peer | Full sync (Phase 0) |
+
+**Conflict resolution**: Remote dirty files → auto-stash before merge. Diverged git history → force-reset + rsync fallback. GitHub token expired → git bundle over SSH.
+
+---
+
+## peers.conf Reference
+
+```ini
+[my-node]
+ssh_alias=my-node.tailnet.ts.net   # SSH config alias (required)
+user=myuser                         # SSH username (required)
+os=macos                            # macos | linux | windows (required)
+tailscale_ip=100.x.x.x             # Tailscale IP (optional)
+capabilities=claude,copilot,ollama  # Comma-separated (optional)
+role=worker                         # coordinator | worker | hybrid (required)
+status=active                       # active | inactive (default: active)
+mac_address=AA:BB:CC:DD:EE:FF      # For Wake-on-LAN (optional)
+```
+
+---
+
 [README](../README.md) | [Getting Started](getting-started.md) | [Infrastructure](infrastructure.md) | [Concepts](concepts.md) | [Workflow](workflow.md)

@@ -93,6 +93,8 @@ def api_mission() -> dict:
         return {"plans": []}
     result = []
     for p in plans:
+        # Resolve hostname to peer_name for frontend display
+        p["execution_peer"] = _resolve_host_to_peer(p.get("execution_host", ""))
         waves = query(
             "SELECT wave_id,name,status,tasks_done,tasks_total,position,validated_at"
             " FROM waves WHERE plan_id=? ORDER BY position",
@@ -218,6 +220,32 @@ def _tailscale_online_ips() -> set[str]:
 def _peer_host_match(peer_name: str, host: str) -> bool:
     pn, eh = peer_name.lower(), host.lower()
     return pn == eh or pn in eh
+
+
+def _resolve_host_to_peer(host: str) -> str:
+    """Map a full hostname or peer_name to the short peer_name from peers.conf."""
+    if not host or host == "None":
+        return ""
+    conf = _parse_peers_conf()
+    # Exact peer_name match first
+    for p in conf:
+        if p["peer_name"] == host:
+            return p["peer_name"]
+    # Fuzzy match on hostname/dns/alias
+    h = host.lower().replace("-", "").replace("_", "")
+    for p in conf:
+        candidates = [
+            p["peer_name"],
+            p.get("ssh_alias", ""),
+            p.get("dns_name", ""),
+        ]
+        for c in candidates:
+            if not c:
+                continue
+            cl = c.lower().replace("-", "").replace("_", "")
+            if cl == h or cl in h or h in cl:
+                return p["peer_name"]
+    return host
 
 
 def _peer_execution_map() -> dict[str, list[dict]]:
@@ -420,7 +448,7 @@ def api_assignable_plans() -> list[dict]:
 
 
 def api_preflight_sse(handler, qs: dict):
-    """SSE endpoint: stream pre-delegation checks one by one."""
+    """SSE endpoint: stream pre-delegation checks with auto-fix via rsync."""
     plan_id = qs.get("plan_id", [""])[0]
     target = qs.get("target", [""])[0]
     if not plan_id or not target:
@@ -455,14 +483,117 @@ def api_preflight_sse(handler, qs: dict):
             all_ok = False
         _send("check", {"name": name, "ok": ok, "detail": detail, "blocking": blocking})
 
-    # Announce start
-    _send("start", {"plan_id": plan_id, "target": target, "total_checks": 6})
+    def _ssh_run(dest: str, cmd: str, timeout: int = 10) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", dest, cmd],
+            capture_output=True, text=True, timeout=timeout,
+        )
 
-    # Resolve SSH alias from peers.conf (peer_name → ssh_alias)
+    _send("start", {"plan_id": plan_id, "target": target, "total_checks": 8})
+
+    # Resolve SSH destination — try ssh_alias, then tailscale IP, then raw
     pc = _find_peer_conf(target)
-    ssh_dest = pc.get("ssh_alias", target) if pc else target
+    ssh_dest = None
+    tried = []
 
-    # 1. Plan exists and is active
+    candidates = []
+    if pc:
+        if pc.get("ssh_alias"):
+            candidates.append(("ssh_alias", pc["ssh_alias"]))
+        if pc.get("tailscale_ip"):
+            user = pc.get("user", "")
+            ip_dest = f"{user}@{pc['tailscale_ip']}" if user else pc["tailscale_ip"]
+            candidates.append(("tailscale_ip", ip_dest))
+    candidates.append(("raw", target))
+
+    # 1. SSH reachability (with auto-resolution)
+    _send("checking", {"name": "SSH reachable"})
+    for label, dest in candidates:
+        try:
+            r = subprocess.run(
+                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", dest, "echo ok"],
+                capture_output=True, text=True, timeout=8,
+            )
+            if r.returncode == 0:
+                ssh_dest = dest
+                break
+            tried.append(f"{dest}({label})")
+        except (subprocess.TimeoutExpired, OSError):
+            tried.append(f"{dest}({label}:timeout)")
+
+    if not ssh_dest and pc and pc.get("mac_address"):
+        # WoL fallback
+        _send("checking", {"name": "SSH reachable — Wake-on-LAN"})
+        try:
+            _send_wol(pc["mac_address"])
+            time.sleep(3)
+            _send_wol(pc["mac_address"])
+        except Exception:
+            pass
+        for wait in [5, 10, 15]:
+            time.sleep(wait)
+            for label, dest in candidates:
+                try:
+                    r = subprocess.run(
+                        ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", dest, "echo ok"],
+                        capture_output=True, text=True, timeout=8,
+                    )
+                    if r.returncode == 0:
+                        ssh_dest = dest
+                        break
+                except Exception:
+                    pass
+                if ssh_dest:
+                    break
+            if ssh_dest:
+                break
+
+    reachable = ssh_dest is not None
+    if reachable:
+        label_used = next((l for l, d in candidates if d == ssh_dest), "?")
+        _check("SSH reachable", True, f"{target} via {ssh_dest} ({label_used}) ✓")
+    else:
+        _check("SSH reachable", False, f"tried {', '.join(tried)} — all unreachable")
+        _send("done", {"ok": False})
+        return
+
+    # Detect target OS
+    target_os = pc.get("os", "unknown") if pc else "unknown"
+
+    # 2. rsync available (local + remote) — auto-install if missing
+    _send("checking", {"name": "rsync"})
+    rsync_ok = True
+    # Local
+    try:
+        subprocess.run(["rsync", "--version"], capture_output=True, timeout=5)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        rsync_ok = False
+        _check("rsync", False, "rsync not found locally — install with: brew install rsync (mac) / apt install rsync (linux)")
+    if rsync_ok:
+        # Remote
+        try:
+            r = _ssh_run(ssh_dest, "which rsync 2>/dev/null && echo RSYNC_OK || echo RSYNC_MISSING", timeout=8)
+            if "RSYNC_MISSING" in r.stdout:
+                # Auto-install
+                _send("checking", {"name": "rsync — installing on remote"})
+                if target_os == "linux":
+                    install_cmd = "sudo apt-get install -y rsync 2>/dev/null || sudo yum install -y rsync 2>/dev/null || sudo pacman -S --noconfirm rsync 2>/dev/null"
+                else:
+                    install_cmd = "brew install rsync 2>/dev/null || true"
+                r2 = _ssh_run(ssh_dest, install_cmd, timeout=60)
+                # Re-check
+                r3 = _ssh_run(ssh_dest, "which rsync && echo RSYNC_OK || echo RSYNC_MISSING", timeout=8)
+                if "RSYNC_OK" in r3.stdout:
+                    _check("rsync", True, "was missing — installed on remote ✓")
+                else:
+                    rsync_ok = False
+                    _check("rsync", False, "not found on remote — install manually")
+            else:
+                _check("rsync", True, "available on both sides ✓")
+        except (subprocess.TimeoutExpired, OSError):
+            _check("rsync", True, "local ok, remote check skipped")
+
+    # 3. Plan exists and is active
     _send("checking", {"name": "Plan status"})
     plan = query_one(
         "SELECT id,name,status,execution_host FROM plans WHERE id=?",
@@ -476,35 +607,7 @@ def api_preflight_sse(handler, qs: dict):
     _check("Plan status", active,
            f"#{plan_id} is '{plan['status']}'" + ("" if active else " — must be todo/doing"))
 
-    # 2. SSH reachability
-    _send("checking", {"name": "SSH reachable"})
-    reachable = False
-    ssh_err = ""
-    try:
-        r = subprocess.run(
-            ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest, "echo ok"],
-            capture_output=True, text=True, timeout=8,
-        )
-        reachable = r.returncode == 0
-        if not reachable:
-            ssh_err = (r.stderr.strip().split("\n")[-1] or f"exit code {r.returncode}")[:80]
-    except subprocess.TimeoutExpired:
-        ssh_err = "Connection timed out after 8s"
-    except OSError as e:
-        ssh_err = str(e)[:80]
-    ssh_label = f"{target} via {ssh_dest}" if ssh_dest != target else target
-    _check("SSH reachable", reachable,
-           f"{ssh_label} ✓" if reachable else f"{ssh_label} — {ssh_err}")
-
-    # Detect target OS from peers.conf for cross-platform commands
-    target_os = "unknown"
-    conf = _parse_peers_conf()
-    for pc in conf:
-        if pc["peer_name"] == target:
-            target_os = pc.get("os", "unknown")
-            break
-
-    # 3. Heartbeat — if stale, restart daemon on remote
+    # 4. Heartbeat — if stale, restart daemon on remote
     _send("checking", {"name": "Heartbeat"})
     hb = query_one(
         "SELECT last_seen FROM peer_heartbeats WHERE peer_name=?", (target,)
@@ -515,128 +618,119 @@ def api_preflight_sse(handler, qs: dict):
         hb_ok = age < 300
     if hb_ok:
         _check("Heartbeat", True, f"{age}s ago")
-    elif reachable:
-        # Auto-fix: start heartbeat daemon on remote
+    else:
         _send("checking", {"name": "Heartbeat — restarting daemon"})
         try:
-            scripts_path = "$HOME/.claude/scripts"
             start_cmd = (
-                f"nohup {scripts_path}/mesh-heartbeat.sh start >/dev/null 2>&1 & "
-                f"sleep 2 && {scripts_path}/mesh-heartbeat.sh ping 2>/dev/null && echo HB_OK || echo HB_FAIL"
+                "nohup $HOME/.claude/scripts/mesh-heartbeat.sh start >/dev/null 2>&1 & "
+                "sleep 2 && $HOME/.claude/scripts/mesh-heartbeat.sh ping 2>/dev/null && echo HB_OK || echo HB_FAIL"
             )
-            r = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest, start_cmd],
-                capture_output=True, text=True, timeout=10,
-            )
+            r = _ssh_run(ssh_dest, start_cmd, timeout=12)
             if "HB_OK" in r.stdout:
                 _check("Heartbeat", True, "was stale — daemon restarted ✓")
             else:
                 _check("Heartbeat", True, "daemon start sent (may take a moment)")
         except (subprocess.TimeoutExpired, OSError):
             _check("Heartbeat", True, "daemon restart attempted")
-    else:
-        _check("Heartbeat", False, "SSH unreachable — cannot restart")
 
-    # 4. Config sync — if out of sync, auto-sync via rsync
-    _send("checking", {"name": "Config sync"})
-    if reachable:
-        try:
-            local = subprocess.run(
-                ["git", "-C", str(Path.home() / ".claude"), "log", "--oneline", "-1"],
-                capture_output=True, text=True, timeout=5,
-            )
-            git_remote_cmd = "git -C $HOME/.claude log --oneline -1" if target_os != "windows" \
-                else "git -C %USERPROFILE%\\.claude log --oneline -1"
-            remote = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest,
-                 git_remote_cmd],
-                capture_output=True, text=True, timeout=8,
-            )
-            local_sha = local.stdout.strip().split()[0] if local.stdout.strip() else ""
-            remote_sha = remote.stdout.strip().split()[0] if remote.stdout.strip() else ""
-            synced = bool(local_sha and remote_sha and local_sha == remote_sha)
-            if synced:
-                _check("Config sync", True, f"both at {local_sha[:8]}")
+    # 4. Config rsync — fast incremental copy (replaces git-based sync)
+    _send("checking", {"name": "Config rsync"})
+    claude_home = str(Path.home() / ".claude") + "/"
+    exclude_file = str(Path.home() / ".claude" / "config" / "mesh-rsync-exclude.txt")
+    user = pc.get("user", "") if pc else ""
+    remote_home = f"{ssh_dest}:~/.claude/"
+    try:
+        # Dry-run first to count changes
+        dry_cmd = [
+            "rsync", "-az", "--delete", "--stats", "--dry-run",
+            "-e", "ssh -o ConnectTimeout=10 -o BatchMode=yes",
+        ]
+        if os.path.isfile(exclude_file):
+            dry_cmd += ["--exclude-from", exclude_file]
+        dry_cmd += [claude_home, remote_home]
+        r = subprocess.run(dry_cmd, capture_output=True, text=True, timeout=30)
+        # Parse stats: "Number of regular files transferred: N"
+        xfer_match = re.search(r"Number of regular files transferred:\s*(\d+)", r.stdout)
+        n_files = int(xfer_match.group(1)) if xfer_match else 0
+
+        if n_files == 0:
+            _check("Config rsync", True, "already in sync ✓")
+        else:
+            # Actually sync
+            _send("checking", {"name": f"Config rsync — syncing {n_files} files"})
+            sync_cmd = [
+                "rsync", "-az", "--delete",
+                "-e", "ssh -o ConnectTimeout=10 -o BatchMode=yes",
+            ]
+            if os.path.isfile(exclude_file):
+                sync_cmd += ["--exclude-from", exclude_file]
+            sync_cmd += [claude_home, remote_home]
+            sr = subprocess.run(sync_cmd, capture_output=True, text=True, timeout=120)
+            if sr.returncode == 0:
+                _check("Config rsync", True, f"synced {n_files} files ✓")
             else:
-                # Auto-fix: run sync
-                _send("checking", {"name": "Config sync — syncing"})
-                scripts = Path.home() / ".claude" / "scripts"
-                sync_cmd = f"{scripts}/mesh-sync-all.sh --peer {shlex.quote(target)}"
-                try:
-                    sr = subprocess.run(
-                        sync_cmd, shell=True, capture_output=True, text=True, timeout=120,
-                        env={**os.environ, "PATH": str(scripts) + ":/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", "")},
-                    )
-                    # Re-check after sync
-                    remote2 = subprocess.run(
-                        ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest,
-                         git_remote_cmd],
-                        capture_output=True, text=True, timeout=8,
-                    )
-                    remote_sha2 = remote2.stdout.strip().split()[0] if remote2.stdout.strip() else ""
-                    synced2 = bool(local_sha and remote_sha2 and local_sha == remote_sha2)
-                    if synced2:
-                        _check("Config sync", True, f"was {remote_sha[:8]} — synced to {local_sha[:8]} ✓")
-                    else:
-                        _check("Config sync", False,
-                               f"local={local_sha[:8]} remote={remote_sha2[:8]} — sync attempted but diverged")
-                except (subprocess.TimeoutExpired, OSError):
-                    _check("Config sync", False, "Sync timed out")
-        except (subprocess.TimeoutExpired, OSError):
-            _check("Config sync", False, "Check failed")
-    else:
-        _check("Config sync", False, "Skipped — SSH unreachable")
+                err = sr.stderr.strip().split("\n")[-1][:60] if sr.stderr.strip() else f"exit {sr.returncode}"
+                _check("Config rsync", False, f"rsync failed: {err}")
+    except subprocess.TimeoutExpired:
+        _check("Config rsync", False, "rsync timed out (>120s)")
+    except OSError as e:
+        _check("Config rsync", False, f"rsync error: {str(e)[:60]}")
 
-    # 5. Claude CLI — search extended PATH
+    # 5. DB sync — copy dashboard.db separately (excluded from rsync)
+    _send("checking", {"name": "DB sync"})
+    db_path = str(Path.home() / ".claude" / "data" / "dashboard.db")
+    try:
+        # Checkpoint WAL first
+        subprocess.run(
+            ["sqlite3", db_path, "PRAGMA wal_checkpoint(TRUNCATE);"],
+            capture_output=True, timeout=5,
+        )
+        scp_cmd = [
+            "scp", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
+            db_path, f"{ssh_dest}:~/.claude/data/dashboard.db"
+        ]
+        r = subprocess.run(scp_cmd, capture_output=True, text=True, timeout=30)
+        if r.returncode == 0:
+            _check("DB sync", True, "dashboard.db transferred ✓")
+        else:
+            _check("DB sync", False, f"scp failed: {r.stderr.strip()[:60]}")
+    except (subprocess.TimeoutExpired, OSError) as e:
+        _check("DB sync", False, f"DB transfer error: {str(e)[:60]}")
+
+    # 6. Claude CLI
     _send("checking", {"name": "Claude CLI"})
-    if reachable:
-        try:
-            if target_os == "windows":
-                check_cmd = "where claude >nul 2>&1 && claude --version || echo missing"
-            else:
-                check_cmd = (
-                    "export PATH=\"$HOME/.local/bin:$HOME/.claude/local/bin:"
-                    "/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
-                    "which claude >/dev/null 2>&1 && claude --version 2>/dev/null || echo missing"
-                )
-            r = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest, check_cmd],
-                capture_output=True, text=True, timeout=15,
-            )
-            has_claude = "missing" not in r.stdout and r.returncode == 0
-            ver = r.stdout.strip().split("\n")[-1][:40] if has_claude else "not found"
-            _check("Claude CLI", has_claude, ver)
-        except (subprocess.TimeoutExpired, OSError):
-            _check("Claude CLI", False, "Check timeout")
-    else:
-        _check("Claude CLI", False, "Skipped — SSH unreachable")
+    try:
+        check_cmd = (
+            "export PATH=\"$HOME/.local/bin:$HOME/.claude/local/bin:"
+            "/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
+            "which claude >/dev/null 2>&1 && claude --version 2>/dev/null || echo missing"
+        )
+        r = _ssh_run(ssh_dest, check_cmd, timeout=15)
+        has_claude = "missing" not in r.stdout and r.returncode == 0
+        ver = r.stdout.strip().split("\n")[-1][:40] if has_claude else "not found"
+        _check("Claude CLI", has_claude, ver)
+    except (subprocess.TimeoutExpired, OSError):
+        _check("Claude CLI", False, "Check timeout")
 
-    # 6. Disk space
+    # 7. Disk space
     _send("checking", {"name": "Disk space"})
-    if reachable:
-        try:
-            # Cross-platform disk check: Python one-liner works everywhere
-            disk_cmd = (
-                "python3 -c \"import shutil; u=shutil.disk_usage('.'); "
-                "print(u.free//(1024**3))\" 2>/dev/null || "
-                "python -c \"import shutil; u=shutil.disk_usage('.'); "
-                "print(u.free//(1024**3))\" 2>/dev/null || echo -1"
-            )
-            r = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest, disk_cmd],
-                capture_output=True, text=True, timeout=10,
-            )
-            free_gb = int(r.stdout.strip().split("\n")[-1])
-            if free_gb < 0:
-                _check("Disk space", False, "Could not detect (python missing?)")
-            else:
-                enough = free_gb >= 5
-                _check("Disk space", enough,
-                       f"{free_gb}GB free" + ("" if enough else " — need ≥5GB"))
-        except (subprocess.TimeoutExpired, OSError, ValueError):
-            _check("Disk space", False, "Check skipped")
-    else:
-        _check("Disk space", False, "Skipped — SSH unreachable")
+    try:
+        disk_cmd = (
+            "python3 -c \"import shutil; u=shutil.disk_usage('.'); "
+            "print(u.free//(1024**3))\" 2>/dev/null || "
+            "python -c \"import shutil; u=shutil.disk_usage('.'); "
+            "print(u.free//(1024**3))\" 2>/dev/null || echo -1"
+        )
+        r = _ssh_run(ssh_dest, disk_cmd, timeout=10)
+        free_gb = int(r.stdout.strip().split("\n")[-1])
+        if free_gb < 0:
+            _check("Disk space", False, "Could not detect")
+        else:
+            enough = free_gb >= 5
+            _check("Disk space", enough,
+                   f"{free_gb}GB free" + ("" if enough else " — need ≥5GB"))
+    except (subprocess.TimeoutExpired, OSError, ValueError):
+        _check("Disk space", False, "Check skipped")
 
     # Final result
     _send("done", {"ok": all_ok})
@@ -1057,7 +1151,7 @@ class Handler(SimpleHTTPRequestHandler):
             return {"error": str(e)}
 
     def _handle_plan_delegate(self, qs: dict):
-        """SSE endpoint: full sync + mesh-migrate.sh streamed line-by-line."""
+        """SSE endpoint: full handoff protocol with direction-aware sync."""
         plan_id = qs.get("plan_id", [""])[0]
         target = qs.get("target", [""])[0]
         if not plan_id or not plan_id.isdigit() or not target:
@@ -1066,13 +1160,6 @@ class Handler(SimpleHTTPRequestHandler):
         if not _SAFE_NAME.match(target):
             self._json_response({"error": "invalid target name"}, 400)
             return
-
-        scripts = Path.home() / ".claude" / "scripts"
-        env = {
-            **os.environ,
-            "PATH": str(scripts) + ":/opt/homebrew/bin:/usr/local/bin:"
-            + os.environ.get("PATH", ""),
-        }
 
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
@@ -1091,54 +1178,47 @@ class Handler(SimpleHTTPRequestHandler):
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
-        def _stream_cmd(cmd: str, timeout: int = 300) -> int:
-            """Run cmd, stream stdout line-by-line. Return exit code."""
-            proc = subprocess.Popen(
-                cmd, shell=True,
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, env=env,
-            )
-            for line in iter(proc.stdout.readline, ""):
-                _send_sse("log", line.rstrip())
-            proc.wait(timeout=timeout)
-            return proc.returncode
+        def _log(msg: str):
+            _send_sse("log", msg)
 
         try:
-            # --- PHASE 0: Full sync ---
-            _send_sse("phase", "sync")
-            _send_sse("log", f"━━━ PHASE 0: Full Sync → {target} ━━━")
-            _send_sse("log", "")
-            sync_cmd = f"{scripts}/mesh-sync-all.sh --peer {shlex.quote(target)}"
-            _send_sse("log", f"▶ Running: mesh-sync-all.sh --peer {target}")
-            sync_rc = _stream_cmd(sync_cmd, timeout=120)
-            if sync_rc != 0:
-                _send_sse("log", "")
-                _send_sse("log", f"⚠ Sync exited with code {sync_rc} — continuing with migration")
-            else:
-                _send_sse("log", "")
-                _send_sse("log", "✓ Sync completed")
+            from mesh_handoff import (
+                full_handoff, check_stale_host, acquire_lock, release_lock
+            )
+
+            _send_sse("phase", "handoff")
+            _send_sse("log", f"━━━ HANDOFF: Plan #{plan_id} → {target} ━━━")
             _send_sse("log", "")
 
-            # --- PHASE 1-5: Migration ---
-            _send_sse("phase", "migrate")
-            _send_sse("log", f"━━━ PHASE 1-5: Migrate Plan #{plan_id} → {target} ━━━")
-            _send_sse("log", "")
-            migrate_cmd = f"{scripts}/mesh-migrate.sh {plan_id} {shlex.quote(target)}"
-            _send_sse("log", f"▶ Running: mesh-migrate.sh {plan_id} {target}")
-            migrate_rc = _stream_cmd(migrate_cmd, timeout=300)
+            # Check if execution_host is stale (crash recovery)
+            stale = check_stale_host(int(plan_id), _find_peer_conf)
+            if stale["stale"]:
+                _log(f"⚠ Previous host '{stale['host']}' is stale: {stale['reason']}")
+                if stale["can_recover"]:
+                    _log(f"  → Will recover and re-delegate")
+                else:
+                    _log(f"  → Host unreachable — forcing re-delegation")
+                _log("")
 
-            if migrate_rc == 0:
+            # Run full handoff protocol
+            ok, summary = full_handoff(
+                int(plan_id), target, _find_peer_conf, _log
+            )
+
+            _send_sse("log", "")
+            if ok:
+                _send_sse("log", f"✓ {summary}")
                 _send_sse("done", json.dumps({
                     "ok": True, "plan_id": int(plan_id), "target": target
                 }))
             else:
+                _send_sse("log", f"✗ {summary}")
                 _send_sse("error", json.dumps({
-                    "ok": False, "exit_code": migrate_rc,
-                    "message": f"mesh-migrate exited with code {migrate_rc}"
+                    "ok": False, "message": summary
                 }))
-        except subprocess.TimeoutExpired:
+        except ImportError as e:
             _send_sse("error", json.dumps({
-                "ok": False, "message": "Timeout"
+                "ok": False, "message": f"Handoff module error: {e}"
             }))
         except Exception as e:
             _send_sse("error", json.dumps({

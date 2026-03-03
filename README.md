@@ -240,6 +240,58 @@ The coordinator scores peers by cost, load, and privacy constraints, then routes
 
 All peers sync via SSH/Tailscale. Config, repos, credentials, and the plan DB stay aligned across machines with one command: `mesh-sync-all.sh`. Live migration moves a running plan to another peer mid-execution.
 
+### Dashboard Delegation
+
+Delegate plans directly from the Control Room — click the 🚀 icon on any active mission:
+
+1. **Select target node** — see OS, CPU load, active tasks, online status
+2. **Auto preflight** — 6 streaming checks run and self-heal:
+   - SSH reachability, heartbeat (auto-restarts if stale), config sync (auto-syncs if diverged), Claude CLI, disk space
+3. **One-click delegate** — full sync (Phase 0) + migration (Phase 1-5) streamed live to a modal
+4. **tmux session** — plan runs in `plan-{ID}` on target; terminal icons auto-attach
+
+### Node Power Management
+
+| Button | When | What it does |
+|--------|------|-------------|
+| ⚡ Wake | Node offline | Sends Wake-on-LAN magic packet (needs `mac_address` in peers.conf) |
+| 🔄 Reboot | Node frozen | SSH `sudo reboot` with post-reboot polling |
+
+### Auto-Sync Protocol
+
+No manual sync needed — everything propagates automatically:
+
+| Event | Action |
+|-------|--------|
+| **Plan completes** | Results pushed to all online peers |
+| **Node boots / reconnects** | Heartbeat daemon pulls latest from coordinator |
+| **Every ~5 minutes** | Heartbeat loop checks for updates |
+| **Before delegation** | Full sync (config + DB + repos) to target |
+
+### Quick Start: Mesh Setup
+
+```bash
+# 1. Install MyConvergio on each machine
+curl -fsSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
+
+# 2. Configure peers (edit with your real hosts)
+cp config/peers.conf.example ~/.claude/config/peers.conf
+# Set: ssh_alias, user, os, tailscale_ip, capabilities, role, mac_address
+
+# 3. Bootstrap remote peer
+scripts/mesh/bootstrap-peer.sh my-linux
+
+# 4. Push credentials
+scripts/mesh/mesh-auth-sync.sh push --peer my-linux
+
+# 5. Start heartbeat daemon (auto-syncs on start)
+scripts/mesh/mesh-heartbeat.sh start
+
+# 6. Launch Control Room
+python3 scripts/dashboard_web/server.py --port 8420
+# Open http://localhost:8420
+```
+
 ---
 
 ## Enforcement layer
@@ -342,6 +394,48 @@ Open your terminal with Claude Code or Copilot CLI and type:
 ```
 
 MyConvergio extracts requirements, asks clarifying questions, generates a structured plan with parallel tasks, executes each task in isolation with TDD, validates through Thor's 9 quality gates, and auto-merges to main. You approve the plan — the system does the rest.
+
+### Dashboards
+
+MyConvergio includes two dashboards for monitoring plans, agents, and mesh nodes:
+
+| Dashboard | What | How to run |
+|-----------|------|------------|
+| **Control Room** (web) | Full browser UI with plan drill-down, mesh topology, integrated terminals, cost analytics | `python3 ~/.claude/scripts/dashboard_web/server.py` then open `http://localhost:8420` |
+| **pianits** (terminal) | Lightweight TUI for quick checks inside tmux/SSH sessions — auto-refresh, drill-down, quit with `q` | `~/.claude/scripts/pianits` |
+
+#### Recommended aliases
+
+Add these to your shell profile for quick access:
+
+<details>
+<summary><strong>macOS / Linux</strong> (~/.zshrc or ~/.bashrc)</summary>
+
+```bash
+# Convergio dashboards
+alias piani='open http://localhost:8420'           # macOS: opens browser
+# alias piani='xdg-open http://localhost:8420'     # Linux: opens browser
+alias pianits='~/.claude/scripts/pianits'
+```
+</details>
+
+<details>
+<summary><strong>Windows (PowerShell profile)</strong></summary>
+
+```powershell
+# Convergio dashboards
+function piani { Start-Process "http://localhost:8420" }
+Set-Alias pianits "$env:USERPROFILE\.claude\scripts\pianits"
+```
+</details>
+
+> **pianits** interactive keys: `q` quit · `r` refresh · `<number>` + Enter = drill-down · `b` back · auto-refreshes every 10s.
+>
+> To run the Control Room server on startup, add to your shell profile:
+> ```bash
+> # Start Control Room in background (if not already running)
+> pgrep -f "dashboard_web/server.py" >/dev/null || python3 ~/.claude/scripts/dashboard_web/server.py &>/dev/null &
+> ```
 
 ---
 

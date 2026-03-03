@@ -1,5 +1,19 @@
 # Changelog
 
+## [10.3.0] — 2026-03-03
+
+### Added
+
+- **Handoff Protocol**: Direction-aware sync with delegation lock and crash recovery
+- **Rsync-based Config Sync**: Replaces git-based sync (3.6GB→10MB, <5s)
+- **Preflight Auto-fix**: SSH resolution, WoL fallback, rsync check, DB sync
+
+### Fixed
+
+- `execution_host` now uses `peer_name` for clean dashboard display
+- `mesh-migrate.sh` missing `peers_load()` call
+- Rsync exclude updated (skip `projects/`, `data/`, `file-history/`)
+
 ## [10.2.0] — 2026-03-03
 
 ### Added

@@ -1,0 +1,65 @@
+# mesh-rsync-exclude.txt — rsync exclude patterns for mesh-migrate.sh
+# Used by: _migrate_rsync() in lib/mesh-migrate-sync.sh
+# Purpose: skip files that should not be transferred or are managed separately
+
+# Git internals — use git pull on target instead of syncing objects
+.git/objects/**
+.git/lfs/**
+.git/refs/**
+.git/logs/**
+
+# Node dependencies — run npm ci on target after sync
+node_modules/
+.npm/
+
+# macOS and Windows cruft
+.DS_Store
+Thumbs.db
+._*
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# SQLite WAL files — DB is synced separately via SCP + integrity_check
+*.db-wal
+*.db-shm
+*.db-journal
+
+# Local caches — not portable across machines
+.cache/
+paste-cache/
+image-cache/
+debug/
+telemetry/
+statsig/
+stats-cache.json
+
+# Machine-local data — DB synced separately via SCP
+data/
+projects/
+file-history/
+plugins/
+plans/
+todos/
+history.jsonl
+plan.db
+plans.db
+plan-db.sqlite
+
+# Test and build artifacts
+backups/
+test-results/
+playwright-report/
+.next/
+dist/
+build/
+
+# Machine-specific shell history snapshots
+shell-snapshots/
+
+# Log files
+*.log
+logs/

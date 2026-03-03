@@ -130,12 +130,8 @@ async function refreshAll() {
   renderActivity(mission, mesh);
   $("#last-update").textContent = "Updated: " + new Date().toLocaleTimeString();
 
-  // Auto-pull DB from remote nodes with active plans (every 3rd refresh)
-  if (!window._syncCounter) window._syncCounter = 0;
-  window._syncCounter++;
-  if (window._syncCounter % 3 === 1) {
-    _pullRemoteDb();
-  }
+  // Auto-pull DB from remote nodes with active plans (every refresh, transparent)
+  _pullRemoteDb();
 }
 
 let _pullInProgress = false;
@@ -158,17 +154,6 @@ async function _pullRemoteDb() {
   } catch (_) {}
   _pullInProgress = false;
 }
-
-// Sync DB from a specific remote node (called from plan card button)
-window.syncPlanNode = async function (planId, peerName) {
-  const btn = event?.target?.closest(".host-sync-btn");
-  if (btn) { btn.textContent = "⏳"; btn.disabled = true; }
-  try {
-    await _pullRemoteDb();
-    await refreshAll();
-  } catch (_) {}
-  if (btn) { btn.textContent = "⟳"; btn.disabled = false; }
-};
 
 // --- KPI ---
 function _kpiCard(label, value, sub, target, alert) {
@@ -237,11 +222,17 @@ function _renderOnePlan(m) {
   const inProgCount = (m.tasks || []).filter(
     (t) => t.status === "in_progress",
   ).length;
+  const nodeLabel = isRemote
+    ? `<span class="host-badge-prominent">${esc(hostName)}</span>`
+    : hostName && hostName !== "local"
+      ? `<span class="host-badge-local">${esc(hostName)}</span>`
+      : "";
   let html = `<div class="mission-plan" onclick="filterTasks(${p.id})">
     <div style="margin-bottom:6px">
       <span class="mission-id">#${p.id}</span>
       <span class="mission-name">&nbsp;${esc(p.name)}</span>
       ${statusDot(p.status === "doing" ? "in_progress" : p.status)}
+      ${nodeLabel}
       ${p.parallel_mode ? `<span class="badge badge-doing">${p.parallel_mode}</span>` : ""}
       ${p.project_name ? `<span class="badge badge-project">${esc(p.project_name)}</span>` : ""}
       <button class="mission-delegate-btn" onclick="event.stopPropagation();showDelegatePlanDialog(${p.id},'${esc(p.name)}')" title="Delegate to mesh node">
@@ -259,7 +250,6 @@ function _renderOnePlan(m) {
       <div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);margin-top:2px">
         <span>${inProgCount > 0 ? `<span style="color:var(--gold)">${inProgCount} running</span>` : ""}</span>
         <span>${blockedCount > 0 ? `<span style="color:var(--red)">${blockedCount} blocked</span>` : ""}</span>
-        <span class="host-badge" style="font-size:9px;padding:0 6px">${esc(hostName)}</span>${isRemote ? `<button class="host-sync-btn" onclick="event.stopPropagation();syncPlanNode(${p.id},'${esc(hostName)}')" title="Sync status from ${esc(hostName)}">⟳</button>` : ""}
       </div>
     </div>
   </div>`;

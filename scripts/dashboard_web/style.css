@@ -452,6 +452,30 @@ body::after {
   color: var(--text-dim);
   margin-top: 4px;
 }
+.host-badge-prominent {
+  display: inline-block;
+  background: rgba(255,160,0,0.15);
+  color: #ffb700;
+  border: 1px solid rgba(255,160,0,0.4);
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  margin-left: 6px;
+}
+.host-badge-local {
+  display: inline-block;
+  background: rgba(0,229,255,0.08);
+  color: var(--text-dim);
+  border: 1px solid rgba(0,229,255,0.15);
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  margin-left: 6px;
+}
 .host-badge {
   display: inline-block;
   background: rgba(0, 229, 255, 0.12);
@@ -463,19 +487,6 @@ body::after {
   font-size: 11px;
   letter-spacing: 0.5px;
 }
-.host-sync-btn {
-  background: none;
-  border: 1px solid rgba(0,229,255,0.3);
-  color: var(--cyan);
-  font-size: 11px;
-  border-radius: 4px;
-  padding: 0 5px;
-  margin-left: 4px;
-  cursor: pointer;
-  vertical-align: middle;
-  line-height: 1.4;
-}
-.host-sync-btn:hover { background: rgba(0,229,255,0.15); }
 .mission-summary {
   font-size: 12px;
   color: var(--text-dim);

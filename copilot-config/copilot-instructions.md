@@ -83,9 +83,15 @@ plan-db.sh drift-check $PLAN_ID
 #    (copilot-worker.sh is for BACKGROUND delegation only)
 ```
 
-### Per-Task Protocol (6 steps — NEVER skip)
+### Per-Task Protocol (7 steps — NEVER skip)
 
 ```bash
+# STEP 0: Environment preflight (MANDATORY before first task)
+cd "$WORKTREE_PATH"
+git fetch origin && git pull --rebase origin $(git branch --show-current) 2>/dev/null || true
+git status --short  # must be clean or stash first
+# Verify dependencies: npm ci / pip install / etc (if package.json/requirements.txt changed)
+
 # STEP 1: Mark started
 plan-db.sh update-task ${db_id} in_progress "Started"
 
@@ -135,10 +141,24 @@ If ANY check fails → fix first, re-submit, re-validate. Max 3 rounds.
 ```bash
 # After ALL tasks in wave are done:
 plan-db.sh validate-wave ${wave_db_id}
+
+# If wave has a PR: WAIT for CI to pass before completing
+# gh pr checks {pr_number} --watch --fail-fast
+# If CI fails → fix, push, wait again. PR not merged = wave not done.
+
 # After ALL waves: complete plan
 plan-db.sh sync $PLAN_ID
 plan-db.sh complete $PLAN_ID
 ```
+
+### CI Gate (NON-NEGOTIABLE)
+
+A wave/plan is **NOT done** until CI passes on its PR. Steps:
+1. Push branch, create PR
+2. `gh pr checks {pr_number} --watch` — wait for all checks
+3. If CI fails → read logs (`gh run view --log-failed`), fix, push, re-check
+4. Only after CI green → `plan-db.sh validate-wave` → merge PR
+5. A plan with a failing PR is **blocked**, not done
 
 ### When to use copilot-worker.sh (BACKGROUND only)
 

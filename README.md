@@ -1,58 +1,81 @@
-<!-- AGENT_COUNTS: claude:76 copilot:83 total:159 -->
+<!-- AGENT_COUNTS: claude:79 copilot:83 total:162 -->
 <div align="center">
 
-# MyConvergio v10
+# MyConvergio
 
-<img src="./CovergioLogoTransparent.webp" alt="MyConvergio Logo" width="200"/>
+<img src="./CovergioLogoTransparent.webp" alt="MyConvergio Logo" width="180"/>
 
-[![Version](https://img.shields.io/badge/version-v10.0.0-0A66C2)](./VERSION)
-[![Agent Files](https://img.shields.io/badge/agent_files-159-4C1)](#agent-portfolio)
-[![Claude Catalog](https://img.shields.io/badge/claude_catalog-76-6A5ACD)](#agent-portfolio)
-[![Copilot Agents](https://img.shields.io/badge/copilot_agents-83-111827)](#agent-portfolio)
+[![Version](https://img.shields.io/badge/version-10.1.0-0A66C2)](./VERSION)
+[![Agents](https://img.shields.io/badge/agents-162-4C1)](#agent-portfolio)
+[![Skills](https://img.shields.io/badge/skills-20-6A5ACD)](#skills)
+[![Hooks](https://img.shields.io/badge/hooks-31-D97706)](#enforcement-layer)
 [![License](https://img.shields.io/badge/license-CC_BY--NC--SA_4.0-lightgrey)](./LICENSE)
 
-**A trust layer between AI agents and your codebase.**
+**Your AI agents are fast. They are also lying to you about being done.**
 
 </div>
 
 ---
 
-## The problem no one is solving
+## The problem
 
-AI coding agents are fast. They are also unreliable at scale.
+AI coding agents ship broken code at scale. The data is clear:
 
-| Finding                                                                                                 | Source                                                                                                                                            |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AI-assisted code produces **1.7x more logical bugs** than human code                                    | [CodeRabbit 2026 Report](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report)                                              |
-| 90% AI adoption increase correlates with **+9% bug rate**, **+91% code review time**, **+154% PR size** | [Google DORA Report 2025](https://dora.dev)                                                                                                       |
-| Cognitive complexity rises **39%** in agent-assisted repositories                                       | [Faros AI 2026 Review](https://www.faros.ai/blog/best-ai-coding-agents-2026)                                                                      |
-| Change failure rate **+30%**, incidents per PR **+23.5%** with AI-generated code                        | [TFIR AI Code Quality 2026](https://tfir.io/ai-code-quality-2026-guardrails/)                                                                     |
-| Cursor's multi-agent approach with equal-status agents and file locking **failed**                      | [Codebridge Orchestration Guide](https://www.codebridge.tech/articles/mastering-multi-agent-orchestration-coordination-is-the-new-scale-frontier) |
-
-The pattern that works is **Planner, Worker, Judge** — not equal-status agents hoping for the best.
+| Finding                                                                   | Source                                                                                                                             |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| AI-assisted code produces **1.7x more logical bugs** than human code      | [CodeRabbit 2026](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report)                                      |
+| 90% AI adoption → **+9% bugs**, **+91% review time**, **+154% PR size**   | [Google DORA 2025](https://dora.dev)                                                                                               |
+| Cognitive complexity rises **39%** in agent-assisted repos                | [Faros AI 2026](https://www.faros.ai/blog/best-ai-coding-agents-2026)                                                              |
+| Change failure rate **+30%**, incidents per PR **+23.5%**                 | [TFIR 2026](https://tfir.io/ai-code-quality-2026-guardrails/)                                                                      |
+| Cursor's multi-agent with equal-status agents and file locking **failed** | [Codebridge 2026](https://www.codebridge.tech/articles/mastering-multi-agent-orchestration-coordination-is-the-new-scale-frontier) |
 
 Three things break when you scale AI coding without guardrails:
 
-1. **Agents self-report as done when they are not.** No independent check, broken code reaches main.
-2. **Parallel agents overwrite each other silently.** Last write wins, no conflict, no error, just lost work.
-3. **Context windows fill with noise.** A single CI log is 2000+ lines. Agents waste 30% of their reasoning capacity on irrelevant output.
+1. **Agents self-report as done when they are not.** No independent check — broken code reaches main.
+2. **Parallel agents overwrite each other.** Last write wins. No conflict, no error, just lost work.
+3. **Context windows fill with noise.** A single CI log is 2000+ lines. Agents burn 30% of reasoning on irrelevant output.
+
+The pattern that works is **Planner → Worker → Judge**. Not equal-status agents hoping for the best.
 
 ---
 
 ## What MyConvergio does
 
-MyConvergio adds independent validation, file isolation, and merge automation to any AI coding workflow. It works with Claude Code, GitHub Copilot CLI, Gemini, and OpenCode.
+MyConvergio is an open-source trust layer for AI coding agents. It adds independent validation, file isolation, and merge automation to Claude Code, GitHub Copilot CLI, Gemini, and OpenCode.
 
-### Before and after
+| Without trust layer                  | With MyConvergio                                              |
+| ------------------------------------ | ------------------------------------------------------------- |
+| Agent says "done" and you trust it   | Thor validator checks 9 quality gates independently           |
+| Two agents edit the same file        | File locking blocks the second agent — zero silent overwrites |
+| CI dumps 2000 lines into context     | Digest scripts compress to 50-line JSON — 10x less tokens     |
+| "How many tasks are done?" — no idea | SQLite plan DB + real-time Control Room dashboard             |
+| Manual merge, pray nothing breaks    | Wave-based auto merge: rebase → CI → squash → cleanup         |
+| Locked into one AI provider          | Route each task to the best model across providers            |
 
-| Without trust layer                          | With MyConvergio                                                                               |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Agent says "done" and you trust it           | Thor validator independently checks 9 quality gates before merge                               |
-| Two agents edit the same file, last one wins | File locking blocks the second agent, zero silent overwrites                                   |
-| CI log dumps 2000 lines into agent context   | Digest scripts compress to 50-line JSON, 10x less token waste                                  |
-| "How many tasks are done?" — no idea         | SQLite plan state with CLI dashboard, real-time execution tree                                 |
-| Manual merge, pray nothing breaks            | Wave-based auto merge: rebase, CI, squash, cleanup                                             |
-| Locked into one model provider               | Route each task to the best model: Opus for architecture, Codex for code, Haiku for bulk fixes |
+---
+
+## Who is this for
+
+- **Solo devs using AI coding tools** who want quality gates without a team
+- **Tech leads** who need visibility into what AI agents are actually shipping
+- **Teams running Claude Code or Copilot CLI** at scale and hitting reliability issues
+- **Anyone who has merged AI-generated code and found bugs in production**
+
+You don't need to change your editor or workflow. MyConvergio installs as a layer on top of what you already use.
+
+---
+
+## The Control Room
+
+Real-time visibility into plans, agents, mesh peers, costs, and execution — from your browser or terminal.
+
+<img src="./docs/images/dashboard-overview.png" alt="Convergio Control Room — Overview with mesh network, active missions, and integrated terminal" width="100%"/>
+
+The Control Room shows active missions with progress tracking, mesh network topology across machines, task pipeline status, token burn analytics, and an **integrated terminal** — you can execute commands, SSH into mesh peers, and manage plans directly from the browser.
+
+<img src="./docs/images/dashboard-drilldown.png" alt="Convergio Control Room — Cost analytics, token burn, and plan history" width="100%"/>
+
+Drill down into cost-per-model breakdown, token burn over time, and full plan execution history. Every dollar spent on AI is tracked and attributed.
 
 ---
 
@@ -62,232 +85,213 @@ MyConvergio adds independent validation, file isolation, and merge automation to
 
 ```mermaid
 flowchart LR
-    A[User Prompt] --> B[Prompt]
-    B --> C[Plan]
-    C --> D[Execute]
-    D --> E[Thor Validate]
-    E -->|pass| F[Ship]
-    E -->|fail| D
-    D --> R[Provider Router]
-    R --> P1[Claude]
-    R --> P2[Copilot]
-    R --> P3[Gemini]
-    R --> P4[OpenCode]
-    P1 --> E
-    P2 --> E
-    P3 --> E
-    P4 --> E
+    A["/prompt"] --> B["/plan"]
+    B --> C["/execute"]
+    C --> D{"Thor\n9 Gates"}
+    D -->|fail| C
+    D -->|pass| E["Auto Merge"]
+    E --> F["main ✓"]
+
+    C --> R{Router}
+    R --> P1["Claude"]
+    R --> P2["Copilot"]
+    R --> P3["Gemini"]
+    R --> P4["OpenCode"]
 ```
 
-**Prompt** extracts requirements into structured features. **Plan** decomposes into waves of parallel tasks with dependency tracking. **Execute** runs isolated agents per task with file locking and TDD. **Thor** validates each task against 9 gates before allowing merge. **Ship** merges via wave-based PR strategy with CI verification.
+**`/prompt`** extracts structured requirements (F-xx). **`/plan`** decomposes into waves of parallel tasks with file-level dependency tracking. **`/execute`** runs isolated agents per task with TDD, file locking, and worktree isolation. **Thor** validates each task against 9 gates before allowing merge. **Auto Merge** rebases, runs CI, resolves review comments, squash merges, and cleans up.
 
 ### Thor: the agent that says no
 
-The industry consensus for 2026 is clear: [generation without verification is a net negative](https://vadim.blog/verification-gate-research-to-practice). Thor is the independent validator that rejects incomplete work.
+[Generation without verification is a net negative](https://vadim.blog/verification-gate-research-to-practice). Thor is the independent validator that rejects incomplete work.
 
 ```mermaid
 flowchart LR
-    subgraph TL[Task Level]
-        G1[Scope] --> G2[Code Quality] --> G3[Standards]
-        G3 --> G4[Repo Compliance] --> G8[TDD Evidence] --> G9[ADR Check]
+    subgraph Per-Task
+        G1["Scope"] --> G2["Quality"] --> G3["Standards"]
+        G3 --> G4["Repo"] --> G8["TDD"] --> G9["ADR"]
     end
-    subgraph WL[Wave Level]
-        G5[Docs] --> G6[Git Standards] --> G7[Performance] --> GB[Build Pass]
+    subgraph Per-Wave
+        G5["Docs"] --> G6["Git"] --> G7["Perf"] --> GB["Build"]
     end
     G9 --> G5
-    GB --> RR[Release Ready]
+    GB --> R["Release Ready"]
 ```
 
-Thor runs as a **separate agent with fresh context** — no assumptions inherited from the executor. It checks scope compliance, code quality, engineering standards, repo conventions, TDD evidence, documentation, git hygiene, performance, and build pass. Tasks move from `submitted` to `done` **only** through Thor. A SQLite trigger enforces this at the database level — even raw SQL cannot bypass it.
+Thor runs as a **separate agent with fresh context** — zero assumptions from the executor. Tasks move from `submitted` → `done` **only** through Thor. A SQLite trigger enforces this — even raw SQL cannot bypass it.
 
 ### Wave merge strategy
 
 ```mermaid
 flowchart LR
-    subgraph T1[Theme: Security]
-        W1[W1 Batch] --> W2[W2 Sync]
+    subgraph "Theme: Auth"
+        W1["W1 batch"] --> W2["W2 sync"]
     end
-    subgraph T2[Theme: Reliability]
-        W3[W3 Batch] --> W4[W4 Batch] --> W5[W5 Sync]
+    subgraph "Theme: UI"
+        W3["W3 batch"] --> W4["W4 sync"]
     end
-    W2 --> PR1[PR: Security]
-    W5 --> PR2[PR: Reliability]
-    PR1 --> MAIN[main]
-    PR2 --> MAIN
+    W2 --> PR1["PR #1"]
+    W4 --> PR2["PR #2"]
+    PR1 --> M["main"]
+    PR2 --> M
 ```
 
-Tasks are grouped into waves by theme. Each wave gets its own git worktree and PR. Merge is automated: rebase onto main, push, CI check, review comment resolution, squash merge, worktree cleanup. Fewer PRs, cleaner git history, no manual coordination.
+Tasks group into waves by theme. Each wave gets its own git worktree. Merge is fully automated: rebase → push → CI → review comment resolution → squash merge → cleanup.
 
 ---
 
 ## Model routing
 
-Use the right model for each task. No provider lock-in.
+Use the right model for each job. No provider lock-in.
 
-| Task            | Primary | Model                | Fallback       |
-| --------------- | ------- | -------------------- | -------------- |
-| Requirements    | Claude  | claude-opus-4.6      | Gemini Pro     |
-| Planning        | Claude  | claude-opus-4.6-1m   | Gemini Pro     |
-| Code generation | Copilot | gpt-5.3-codex        | Claude Sonnet  |
-| Validation      | Claude  | claude-opus-4.6      | Copilot review |
-| Bulk fixes      | Copilot | gpt-5-mini           | Claude Haiku   |
-| Research        | Gemini  | gemini-3-pro-preview | Claude Sonnet  |
+| Task            | Primary | Model             | Fallback      |
+| --------------- | ------- | ----------------- | ------------- |
+| Requirements    | Claude  | claude-opus-4.6   | Gemini Pro    |
+| Planning        | Claude  | claude-opus-4.6   | Gemini Pro    |
+| Code generation | Copilot | gpt-5.3-codex     | Claude Sonnet |
+| Validation      | Claude  | claude-sonnet-4.6 | Copilot       |
+| Bulk fixes      | Copilot | gpt-5-mini        | Claude Haiku  |
+| Research        | Gemini  | gemini-3-pro      | Claude Sonnet |
 
-> Frontier models for reasoning, fast models for execution. [The Plan-and-Execute pattern can reduce costs by 90%](https://www.pulumi.com/blog/ai-predictions-2026-devops-guide/) compared to using frontier models for everything.
+> Frontier models for reasoning, fast models for execution. [Plan-and-Execute reduces costs by 90%](https://www.pulumi.com/blog/ai-predictions-2026-devops-guide/) vs frontier models for everything.
 
 ---
 
-## Mesh Networking
+## Mesh networking
 
-Run MyConvergio across machines without a cloud dependency. The coordinator delegates tasks to peers — local Ollama nodes, remote Claude instances, or cloud VMs — choosing the cheapest available model for each task.
-
-Key benefits: eliminates cloud API costs for bulk tasks by routing to local models, keeps sensitive code off third-party servers, and saturates available GPU/CPU across machines for higher throughput.
+Distribute work across machines. The coordinator routes tasks to the cheapest capable peer — local Ollama for privacy-sensitive code, cloud VMs for throughput, remote machines for parallel execution.
 
 ```mermaid
 flowchart LR
-    CO[Coordinator] --> CP[claude-peer]
-    CO --> OP[ollama-peer]
-    CO --> VM[cloud-vm]
-    CP --> TH[Thor Validate]
-    OP --> TH
+    CO["Coordinator"] --> |"privacy:local"| OL["Ollama Peer"]
+    CO --> |"code:fast"| CP["Claude Peer"]
+    CO --> |"bulk:cheap"| VM["Cloud VM"]
+    OL --> TH["Thor"]
+    CP --> TH
     VM --> TH
+    TH --> M["main"]
 ```
 
-```bash
-# Quick start (3 commands)
-mesh-env-setup.sh --peers "host1,host2"   # replicate environment to peers
-mesh-register.sh --peer host1 --role worker  # register peer nodes
-mesh-delegate.sh --plan 42 --wave W1        # delegate wave to mesh
-```
-
-[Full guide](docs/mesh-networking.md)
+All peers sync via SSH/Tailscale. Credentials, config, repos, and DB stay aligned across machines with one command: `mesh-sync-all.sh`.
 
 ---
 
-## Comparison
+## Enforcement layer
 
-| Tool              | Parallel agents | Independent validation     | File isolation           | Merge automation        | Provider agnostic                 |
-| ----------------- | --------------- | -------------------------- | ------------------------ | ----------------------- | --------------------------------- |
-| **MyConvergio**   | Yes, wave-based | Thor 9 gates               | File locking + worktrees | Auto rebase, CI, squash | Claude, Copilot, Gemini, OpenCode |
-| Cursor, Windsurf  | Limited         | None                       | None                     | None                    | Single provider                   |
-| Devin             | Single agent    | Self-reported              | N/A                      | Manual                  | Single provider                   |
-| Copilot Workspace | Single agent    | Self-reported              | N/A                      | Manual                  | GitHub only                       |
-| CrewAI, AutoGen   | Yes             | Custom (build it yourself) | Custom                   | Custom                  | Yes                               |
+31 hooks that run automatically on every tool call — no discipline required.
 
-The [Codebridge 2026 analysis](https://www.codebridge.tech/articles/mastering-multi-agent-orchestration-coordination-is-the-new-scale-frontier) found that the successful multi-agent architecture requires three distinct roles: **Planners** that explore and create tasks, **Workers** that execute without coordinating with each other, and **Judges** that determine quality at each cycle. MyConvergio implements exactly this pattern.
+| Hook                   | Trigger         | What it does                                    |
+| ---------------------- | --------------- | ----------------------------------------------- |
+| `worktree-guard`       | git ops         | Blocks commits on main when worktrees exist     |
+| `enforce-plan-db-safe` | task completion | Forces Thor validation before marking done      |
+| `enforce-plan-edit`    | file edits      | Blocks direct edits outside task-executor       |
+| `secret-scanner`       | pre-commit      | Detects API keys, tokens, credentials           |
+| `enforce-line-limit`   | post-edit       | Rejects files over 250 lines                    |
+| `session-file-lock`    | file edits      | Prevents parallel agents overwriting each other |
+| `prefer-ci-summary`    | bash commands   | Forces digest scripts over raw CI output        |
+
+Hooks work on both Claude Code and Copilot CLI. Zero config after install.
 
 ---
 
 ## Quick start
 
-### Option A: Clone and make
+### One-line install
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
+```
+
+### Clone and make
 
 ```bash
 git clone https://github.com/Roberdan/MyConvergio.git && cd MyConvergio
 make install
 ```
 
-### Option B: One line install
+### Modular install
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/checksums.txt -o /tmp/mc-checksums.txt
-curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh -o /tmp/mc-install.sh
-sha256sum -c /tmp/mc-checksums.txt --ignore-missing && bash /tmp/mc-install.sh
-
-# direct install
-curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
+# Pick what fits
+make install-tier TIER=minimal   # 9 core agents (~50KB)
+make install-tier TIER=standard  # 20 agents (~200KB)
+make install                     # all 162 agents (~600KB)
 ```
 
-### Option C: Modular install
+### After install
+
+Pick a settings template based on your hardware:
 
 ```bash
-myconvergio install --minimal    # core pipeline only
-myconvergio install --standard   # pipeline + agents + dashboard
-myconvergio install --lean       # standard without Copilot agents
+cp ~/.myconvergio/.claude/settings-templates/high-spec.json ~/.claude/settings.json  # 32GB+ RAM
+cp ~/.myconvergio/.claude/settings-templates/mid-spec.json  ~/.claude/settings.json  # 16GB RAM
+cp ~/.myconvergio/.claude/settings-templates/low-spec.json  ~/.claude/settings.json  # 8GB RAM
 ```
 
-### Option D: GitHub Copilot CLI only
-
-```bash
-cp copilot-agents/*.agent.md ~/.copilot/agents/
-```
-
----
-
-## CLI dashboard
-
-Terminal-first visibility into plans, waves, quality gates, and token usage.
-
-```bash
-dashboard-mini.sh            # interactive overview
-dashboard-mini.sh -n         # single-shot, no interaction
-dashboard-mini.sh -p 281     # drill into a specific plan
-dashboard-mini.sh -v         # verbose token tracking
-```
-
-```mermaid
-flowchart LR
-    DB[SQLite Plan State] --> CLI[Dashboard CLI]
-    CLI --> OV[Overview]
-    CLI --> WV[Wave View]
-    CLI --> TV[Token View]
-```
-
-<img src="./docs/images/dashboard-overview.png" alt="Dashboard overview" width="800"/>
+Without this step, hooks won't run. This is the difference between "AI with guardrails" and "AI hoping for the best."
 
 ---
 
 ## Agent portfolio
 
-159 agent files covering the full delivery lifecycle.
+162 agent files across 9 domains, dual-format for Claude Code and Copilot CLI.
 
-| Area                    | Claude | Copilot |
-| ----------------------- | ------ | ------- |
-| Leadership and strategy | 7      | 7       |
-| Technical development   | 11     | 11      |
-| Business operations     | 11     | 11      |
-| Core utility            | 23     | 23      |
-| Compliance and legal    | 5      | 5       |
-| Specialized experts     | 14     | 14      |
-| Design and UX           | 3      | 3       |
-| Release management      | 5      | 5       |
-| Research                | 1      | 1       |
-| Orchestrators           | 1      | 3       |
-| **Total**               | **76** | **83**  |
+| Domain              | Claude | Copilot | Examples                                              |
+| ------------------- | ------ | ------- | ----------------------------------------------------- |
+| Core utility        | 23     | 23      | Thor, strategic-planner, task-executor, socrates      |
+| Technical           | 11     | 11      | baccio (architect), dario (debug), rex (review)       |
+| Specialized experts | 14     | 14      | angela (decisions), fiona (markets), omri (data)      |
+| Business ops        | 11     | 11      | marcello (PM), sofia (marketing), fabio (sales)       |
+| Leadership          | 7      | 7       | ali (chief of staff), amy (CFO), dan (eng GM)         |
+| Compliance          | 5      | 5       | luca (security), elena (legal), dr-enzo (HIPAA)       |
+| Release mgmt        | 5      | 5       | app-release-manager, ecosystem-sync                   |
+| Design & UX         | 3      | 3       | sara (UX), jony (creative), stefano (design thinking) |
+| **Total**           | **79** | **83**  |                                                       |
 
 ## Skills
 
-23 reusable workflows for recurring engineering tasks: architecture, debugging, code-review, security-audit, performance, orchestration, review-pr, design-systems, ui-design, release, planner, execute, validate, and more.
+20 reusable workflows: `/planner`, `/execute`, `/prompt`, `/code-review`, `/security-audit`, `/architecture`, `/debugging`, `/performance`, `/hardening`, `/release`, `/review-pr`, `/ui-design`, `/design-systems`, `/brand-identity`, `/creative-strategy`, `/documentation`, `/optimize-project`, `/presentation-builder`, `/design-quality`, `/optimize-instructions`.
+
+---
+
+## Comparison
+
+| Capability             | MyConvergio                       | Cursor/Windsurf | Devin         | CrewAI/AutoGen |
+| ---------------------- | --------------------------------- | --------------- | ------------- | -------------- |
+| Parallel agents        | Wave-based                        | Limited         | Single        | Yes            |
+| Independent validation | Thor 9 gates                      | None            | Self-reported | Build yourself |
+| File isolation         | Locking + worktrees               | None            | N/A           | Build yourself |
+| Merge automation       | Auto rebase+CI+squash             | None            | Manual        | Build yourself |
+| Provider agnostic      | Claude, Copilot, Gemini, OpenCode | Single          | Single        | Yes            |
+| Cost tracking          | Per-model, per-task               | None            | Opaque        | None           |
+| Mesh networking        | Multi-machine                     | No              | No            | No             |
 
 ---
 
 ## Documentation
 
-| Guide                                               | Description                                   |
-| --------------------------------------------------- | --------------------------------------------- |
-| [Getting Started](./docs/getting-started.md)        | Installation, first plan, first execution     |
-| [Core Concepts](./docs/concepts.md)                 | Plans, waves, Thor, file locking, merge queue |
-| [Workflow Guide](./docs/workflow.md)                | End-to-end delivery flow                      |
-| [Infrastructure](./docs/infrastructure.md)          | SQLite schema, scripts, hooks                 |
-| [Use Cases](./docs/use-cases.md)                    | Real-world examples                           |
-| [Agent Portfolio](./docs/agents/agent-portfolio.md) | Full agent catalog                            |
-| [Comparison](./docs/agents/comparison.md)           | Detailed tool comparison                      |
-| [Architecture](./docs/agents/architecture.md)       | Design decisions                              |
-| [ADRs](./docs/adr/INDEX.md)                         | Architecture Decision Records                 |
+| Guide                                               | Description                          |
+| --------------------------------------------------- | ------------------------------------ |
+| [Getting Started](./docs/getting-started.md)        | Install, first plan, first execution |
+| [Core Concepts](./docs/concepts.md)                 | Plans, waves, Thor, file locking     |
+| [Workflow Guide](./docs/workflow.md)                | End-to-end delivery flow             |
+| [Infrastructure](./docs/infrastructure.md)          | SQLite schema, scripts, hooks        |
+| [Agent Portfolio](./docs/agents/agent-portfolio.md) | Full catalog                         |
+| [ADRs](./docs/adr/INDEX.md)                         | Architecture Decision Records        |
 
 ---
 
 ## License
 
-Licensed under [CC BY-NC-SA 4.0](./LICENSE).
+[CC BY-NC-SA 4.0](./LICENSE)
 
 ---
 
 <div align="center">
 
-**MyConvergio v10.0.0** | **28 Feb 2026**
+**MyConvergio 10.1.0** | **3 Mar 2026**
 
-_The industry is shifting from a race for bigger models to a race for better coordination._
-_Competitive advantage comes from how effectively you orchestrate agents into a reliable system._
+_Your AI agents are writing code 10x faster. Nobody is checking if it works._
+_MyConvergio checks._
 
 </div>

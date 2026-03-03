@@ -11,7 +11,7 @@ DB="${PIANITS_DB:-$HOME/.claude/data/dashboard.db}"
 PEERS="${PIANITS_PEERS:-$HOME/.claude/config/peers.conf}"
 
 # Args
-VERBOSE=0; PLAN_ID=""; REFRESH=0; SHOW_MESH=1
+VERBOSE=0; PLAN_ID=""; REFRESH=10; SHOW_MESH=1
 while [[ $# -gt 0 ]]; do
   case $1 in
     -v|--verbose) VERBOSE=1; shift ;;
@@ -23,16 +23,28 @@ while [[ $# -gt 0 ]]; do
       echo "pianits — lightweight plan dashboard for mesh nodes"
       echo "Usage: pianits [OPTIONS]"
       echo "  -v, --verbose     Show wave details, task priorities"
-      echo "  -p, --plan ID     Single plan detail"
-      echo "  -r, --refresh S   Auto-refresh every S seconds"
-      echo "  -n, --no-refresh  Single render (default)"
+      echo "  -p, --plan ID     Single plan detail (or type number interactively)"
+      echo "  -r, --refresh S   Auto-refresh every S seconds (default: 10)"
+      echo "  -n, --no-refresh  Single render, no interactive loop"
       echo "  -M, --no-mesh     Hide mesh section"
       echo "  -h, --help        This help"
+      echo ""
+      echo "Interactive keys:"
+      echo "  q/Q         Quit"
+      echo "  b/B         Back to main view (from plan detail)"
+      echo "  r/R         Force refresh"
+      echo "  <num>+Enter Drill down into plan #<num>"
+      echo ""
       echo "Env: PIANITS_DB, PIANITS_PEERS to override paths"
       exit 0 ;;
     *) echo "Unknown: $1"; exit 1 ;;
   esac
 done
+
+# View state for interactive navigation
+VIEW_MODE="main"
+VIEW_PLAN_ID="$PLAN_ID"
+[[ -n "$VIEW_PLAN_ID" ]] && VIEW_MODE="detail"
 
 [[ -n "$PLAN_ID" ]] && { [[ "$PLAN_ID" =~ ^[0-9]+$ ]] || { echo "plan ID must be numeric" >&2; exit 1; }; }
 [[ -f "$DB" ]] || { echo "DB not found: $DB" >&2; exit 1; }
@@ -145,15 +157,72 @@ render_plan_detail() {
   echo -e "  ${GR}└─${NC}"
 }
 
-render() {
+render_header() {
   local hostname; hostname=$(hostname -s 2>/dev/null || echo "?")
   echo -e "${BD}${C}╔══════════════════════════════════════════════════╗${NC}"
   echo -e "${BD}${C}║${NC}  ${BD}${W}🎯 pianits${NC} ${GR}— $hostname — $(date '+%H:%M:%S')${NC}"
   echo -e "${BD}${C}╚══════════════════════════════════════════════════╝${NC}"
   echo ""
+}
 
-  # Single plan mode
-  [[ -n "$PLAN_ID" ]] && { render_plan_detail "$PLAN_ID"; return; }
+render_status_bar() {
+  case "$VIEW_MODE" in
+    main)
+      echo -e "${GR}[${W}R${GR}]efresh [${W}Q${GR}]uit ${GR}| ${W}<num>${GR}+Enter=drill down piano${NC}"
+      ;;
+    detail)
+      echo -e "${GR}[${W}B${GR}]ack [${W}R${GR}]efresh [${W}Q${GR}]uit ${GR}| ${W}<num>${GR}+Enter=altro piano${NC}"
+      ;;
+  esac
+}
+
+handle_digit_input() {
+  local buf="$1"
+  printf "\r${C}Piano #: %s_${NC}%40s" "$buf" " "
+  while true; do
+    local ch="" rc=0
+    read -t 5 -n 1 ch 2>/dev/null || rc=$?
+    if [[ $rc -gt 128 ]]; then
+      return 1
+    elif [[ -z "$ch" ]]; then
+      break
+    elif [[ "$ch" =~ ^[0-9]$ ]]; then
+      buf+="$ch"
+      printf "\r${C}Piano #: %s_${NC}%40s" "$buf" " "
+    elif [[ "$ch" == $'\x7f' || "$ch" == $'\b' ]]; then
+      if [[ ${#buf} -gt 1 ]]; then
+        buf="${buf:0:${#buf}-1}"
+      else
+        return 1
+      fi
+      printf "\r${C}Piano #: %s_${NC}%40s" "$buf" " "
+    elif [[ "$ch" == $'\x1b' ]]; then
+      return 1
+    fi
+  done
+  if [[ -n "$buf" ]]; then
+    local exists; exists=$(q "SELECT COUNT(*) FROM plans WHERE id=$buf")
+    if [[ "$exists" -gt 0 ]]; then
+      VIEW_PLAN_ID="$buf"
+      VIEW_MODE="detail"
+      return 0
+    else
+      printf "\r${R}Piano #%s non trovato${NC}%40s" "$buf" " "
+      sleep 1
+      return 1
+    fi
+  fi
+  return 1
+}
+
+render() {
+  render_header
+
+  # Detail mode
+  if [[ "$VIEW_MODE" == "detail" && -n "$VIEW_PLAN_ID" ]]; then
+    render_plan_detail "$VIEW_PLAN_ID"
+    return
+  fi
 
   # Overview
   local total; total=$(q "SELECT COUNT(*) FROM plans")
@@ -171,7 +240,7 @@ render() {
 
   # Active plans
   echo -e "${BD}${W}🚀 Piani Attivi${NC}"
-  local rows; rows=$(qs "SELECT id,name,project_id,started_at,created_at,execution_host FROM plans WHERE status IN ('doing','in_progress') ORDER BY id")
+  local rows; rows=$(qs "SELECT id,name,project_id,started_at,created_at,execution_host FROM plans WHERE status IN ('doing','in_progress','todo') ORDER BY id")
   if [[ -z "$rows" ]]; then
     echo -e "  ${GR}└─ nessuno${NC}"
   else
@@ -231,11 +300,34 @@ render() {
 
 # Main
 if [[ "$REFRESH" -gt 0 ]]; then
+  set +e
   trap 'echo -e "\n${Y}pianits chiuso.${NC}"; exit 0' INT
+  clear
   while true; do
-    clear; render
-    echo -e "${GR}Refresh tra ${REFRESH}s — Ctrl+C per uscire${NC}"
-    sleep "$REFRESH"
+    render
+    echo ""
+    render_status_bar
+    echo ""
+    key=""
+    read -t "$REFRESH" -n 1 key 2>/dev/null || true
+    case "$key" in
+      q|Q)
+        echo -e "\n${Y}pianits chiuso.${NC}"
+        exit 0
+        ;;
+      b|B)
+        if [[ "$VIEW_MODE" == "detail" ]]; then
+          VIEW_MODE="main"
+          VIEW_PLAN_ID=""
+        fi
+        ;;
+      r|R) ;;
+      [0-9])
+        handle_digit_input "$key" || true
+        ;;
+      "") ;;
+    esac
+    clear
   done
 else
   render

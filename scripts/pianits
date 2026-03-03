@@ -149,8 +149,13 @@ render_plan_detail() {
   echo -e "  ${GR}└─${NC}"
   echo ""
   echo -e "${BD}${W}📋 Tasks${NC}"
-  qs "SELECT task_id,title,status,priority,executor_host FROM tasks WHERE plan_id=$pid ORDER BY task_id" | while IFS='§' read -r tid tt ts tp th; do
-    local ic="${GR}◯${NC}"; case $ts in done) ic="${G}✓${NC}";; in_progress) ic="${Y}⚡${NC}";; blocked) ic="${R}✗${NC}";; esac
+  qs "SELECT task_id,title,status,priority,executor_host,validated_at FROM tasks WHERE plan_id=$pid ORDER BY task_id" | while IFS='§' read -r tid tt ts tp th tv; do
+    local ic="${GR}◯${NC}"
+    case $ts in
+      done) [[ -n "$tv" ]] && ic="${G}✓T${NC}" || ic="${Y}✓${NC}" ;;
+      in_progress) ic="${Y}⚡${NC}" ;;
+      blocked) ic="${R}✗${NC}" ;;
+    esac
     local host_info=""; [[ -n "$th" ]] && host_info=" ${GR}@$th${NC}"
     printf "  ${GR}├─${NC} $ic ${C}%-8s${NC} ${W}%.55s${NC} ${GR}[%s]${NC}%b\n" "$tid" "$tt" "$tp" "$host_info"
   done
@@ -245,7 +250,7 @@ render() {
     echo -e "  ${GR}└─ nessuno${NC}"
   else
     while IFS='§' read -r pid pname proj pstart pcreated phost; do
-      local ts; ts=$(q "SELECT COUNT(*),SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) FROM tasks WHERE plan_id=$pid")
+      local ts; ts=$(q "SELECT COUNT(*),SUM(CASE WHEN status='done' AND validated_at IS NOT NULL THEN 1 ELSE 0 END) FROM tasks WHERE plan_id=$pid AND status NOT IN ('cancelled','skipped')")
       local tt; tt=$(echo "$ts" | cut -d'|' -f1); local td; td=$(echo "$ts" | cut -d'|' -f2)
       local pct=0; (( tt > 0 )) && pct=$(( td * 100 / tt ))
       local ws; ws=$(q "SELECT COUNT(*),SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) FROM waves WHERE plan_id=$pid")

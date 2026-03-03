@@ -91,6 +91,20 @@ alias psync='~/.claude/scripts/peer-sync.sh'
 alias csync='~/.claude/scripts/sync-claude-config.sh'
 alias dbsync='~/.claude/scripts/sync-dashboard-db.sh'
 
+# === Convergio tmux — one session per node, always ===
+# tlm: attach to Convergio tmux on Mac M1 (mario)
+tlm() {
+  local host="${1:-mac-dev-ts}"
+  ssh -t "$host" "tmux new-session -A -s Convergio"
+}
+# tlx: attach to Convergio tmux on Linux (omarchy)
+tlx() {
+  local host="${1:-omarchy-ts}"
+  ssh -t "$host" "tmux new-session -A -s Convergio"
+}
+# tl: attach to local Convergio tmux
+alias tl='tmux new-session -A -s Convergio'
+
 # === GitHub account switch ===
 # Usage: ghs           → toggle between accounts
 #        ghs ms        → switch to roberdan_microsoft

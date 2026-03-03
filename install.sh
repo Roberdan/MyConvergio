@@ -80,8 +80,25 @@ if ! echo "$PATH" | tr ':' '\n' | grep -q "^${BIN_DIR}$"; then
 	echo ""
 fi
 
+# Settings template guidance (critical for hook activation)
+if [ ! -f "$HOME/.claude/settings.json" ]; then
+	warn "Next step: Activate hooks by copying a settings template:"
+	echo ""
+	echo "  Pick one based on your hardware:"
+	echo "    cp ~/.myconvergio/.claude/settings-templates/low-spec.json  ~/.claude/settings.json  # 8GB RAM"
+	echo "    cp ~/.myconvergio/.claude/settings-templates/mid-spec.json  ~/.claude/settings.json  # 16GB RAM"
+	echo "    cp ~/.myconvergio/.claude/settings-templates/high-spec.json ~/.claude/settings.json  # 32GB+ RAM"
+	echo ""
+	echo "  Without this step, hooks (linting, security scanning, etc.) won't run."
+	echo ""
+else
+	info "Existing ~/.claude/settings.json preserved. Review settings-templates/ for updates."
+	echo ""
+fi
+
 echo "Commands:"
 echo "  myconvergio help      Show all commands"
 echo "  myconvergio agents    List installed agents"
 echo "  myconvergio upgrade   Update to latest version"
+echo "  myconvergio doctor    Verify installation health"
 echo ""

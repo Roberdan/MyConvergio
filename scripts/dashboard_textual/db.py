@@ -62,9 +62,20 @@ class DashboardDB:
         return dict(row)
 
     def get_active_plans(self) -> list[Plan]:
-        """Plans with status todo or doing, ordered by id desc."""
-        sql = f"SELECT {_PLAN_COLS} FROM plans WHERE status IN ('todo','doing') ORDER BY id DESC"
-        return [self._row_to_plan(r) for r in self._query(sql)]
+        """Plans with status todo or doing, ordered by id desc.
+        Computes tasks_done/tasks_total live from tasks table (Thor-validated only)."""
+        sql = f"""SELECT p.*,
+            (SELECT COUNT(*) FROM tasks t WHERE t.plan_id=p.id AND t.status='done' AND t.validated_at IS NOT NULL) AS live_done,
+            (SELECT COUNT(*) FROM tasks t WHERE t.plan_id=p.id AND t.status NOT IN ('cancelled','skipped')) AS live_total
+            FROM plans p WHERE p.status IN ('todo','doing') ORDER BY p.id DESC"""
+        rows = self._query(sql)
+        plans = []
+        for r in rows:
+            plan = self._row_to_plan(r)
+            plan.tasks_done = r["live_done"] or 0
+            plan.tasks_total = r["live_total"] or 0
+            plans.append(plan)
+        return plans
 
     def get_completed_plans(self, limit: int = 20) -> list[Plan]:
         """Recently completed plans."""

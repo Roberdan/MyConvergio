@@ -1,5 +1,34 @@
 # Changelog
 
+## [10.5.0] — 2026-03-03
+
+### Added
+
+- **CLI Selector**: Choose Copilot, Claude Code, or OpenCode when delegating a plan
+- **Auto-launch**: Plans automatically start in tmux `Convergio:plan-{id}` window after delegation
+- Fallback chain: if chosen CLI not found, tries copilot → claude → opencode
+
+### Changed
+
+- All tmux commands use `send-keys + Enter` (reliable via SSH BatchMode)
+- `terminal_server.py`: `-tt` flag for SSH tmux, `tmux new-session -A` everywhere
+- `mesh-migrate.sh`: detects copilot/claude on target, uses worktree path
+- Worker reverse-sync on plan completion (worktree + DB → coordinator)
+
+### Fixed
+
+- `_peer_host_match`: strips hyphens for normalized matching
+- execution_host uses peer_name for clean dashboard display
+- Terminal always attaches to `Convergio` tmux session
+
+## [10.4.0] — 2026-03-03
+
+### Added
+
+- **Interactive Setup Script** (`scripts/setup.sh`): macOS/Linux/WSL, 3 levels
+- **tmux aliases**: `tlm`, `tlx`, `tl` — all → `Convergio` session
+- Unified single `Convergio` tmux session with plan windows
+
 ## [10.3.0] — 2026-03-03
 
 ### Added

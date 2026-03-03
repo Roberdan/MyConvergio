@@ -113,14 +113,33 @@ if [[ "$NO_LAUNCH" -eq 0 ]]; then
 	echo "--- PHASE 4: Auto-launch ---"
 	SESSION="Convergio"
 	WINDOW_NAME="plan-${PLAN_ID}"
-	LAUNCH_CMD="cd ~/.claude && claude --model sonnet -p '/execute ${PLAN_ID}'"
 
-	# Create Convergio session if not exists, then add a window for this plan
+	# Get worktree path from DB, resolve to target home
+	local wt_path
+	wt_path=$(sqlite3 "${CLAUDE_HOME}/data/dashboard.db" \
+		"SELECT worktree_path FROM plans WHERE id=${PLAN_ID};" 2>/dev/null || echo "")
+	wt_path="${wt_path/#\~/$TARGET_HOME}"
+
+	# Detect CLI on target (copilot preferred)
+	local cli_bin="claude --model sonnet"
+	if ssh $SSH_OPTS "$DEST" "command -v copilot" >/dev/null 2>&1; then
+		cli_bin="copilot"
+	fi
+
+	# Build launch command: cd to worktree (or ~/.claude), then /execute
+	local work_dir="${wt_path:-\$HOME/.claude}"
+	LAUNCH_CMD="cd ${work_dir} 2>/dev/null || cd ~/.claude; ${cli_bin} -p '/execute ${PLAN_ID}'"
+
+	# Create Convergio session if not exists, then add a window and send command
 	ssh $SSH_OPTS "$DEST" \
 		"tmux has-session -t '${SESSION}' 2>/dev/null || tmux new-session -d -s '${SESSION}'; \
-		 tmux new-window -t '${SESSION}' -n '${WINDOW_NAME}' '${LAUNCH_CMD}'" 2>/dev/null
+		 tmux new-window -t '${SESSION}' -n '${WINDOW_NAME}'; \
+		 sleep 0.5; \
+		 tmux send-keys -t '${SESSION}:${WINDOW_NAME}' '${LAUNCH_CMD}' Enter" 2>/dev/null
 	if ssh $SSH_OPTS "$DEST" "tmux has-session -t '${SESSION}'" 2>/dev/null; then
 		echo "tmux window '${WINDOW_NAME}' created in session '${SESSION}' on ${TARGET_HOST}"
+		echo "  CLI: ${cli_bin}"
+		echo "  Dir: ${work_dir}"
 	else
 		echo "WARN: tmux session not confirmed — plan transferred but needs manual /execute"
 	fi

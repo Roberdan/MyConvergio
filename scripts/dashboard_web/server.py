@@ -1155,6 +1155,7 @@ class Handler(SimpleHTTPRequestHandler):
         """SSE endpoint: full handoff protocol with direction-aware sync."""
         plan_id = qs.get("plan_id", [""])[0]
         target = qs.get("target", [""])[0]
+        cli_choice = qs.get("cli", ["copilot"])[0]
         if not plan_id or not plan_id.isdigit() or not target:
             self._json_response({"error": "missing plan_id or target"}, 400)
             return
@@ -1203,7 +1204,8 @@ class Handler(SimpleHTTPRequestHandler):
 
             # Run full handoff protocol
             ok, summary = full_handoff(
-                int(plan_id), target, _find_peer_conf, _log
+                int(plan_id), target, _find_peer_conf, _log,
+                cli=cli_choice
             )
 
             _send_sse("log", "")

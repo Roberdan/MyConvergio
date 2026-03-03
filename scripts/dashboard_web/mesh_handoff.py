@@ -260,10 +260,11 @@ def stop_remote_execution(ssh_dest: str, plan_id: int,
 # ─── Full Handoff ────────────────────────────────────────────────
 
 def full_handoff(plan_id: int, target: str, find_peer: callable,
-                 log: callable) -> tuple[bool, str]:
+                 log: callable, cli: str = "copilot") -> tuple[bool, str]:
     """Complete handoff protocol. Returns (ok, summary).
 
     log(msg) is called for each step for SSE streaming.
+    cli: "copilot" | "claude" | "opencode" — which CLI to use on target.
     """
     # 1. Acquire lock
     ok, detail = acquire_lock(plan_id, target)
@@ -272,14 +273,14 @@ def full_handoff(plan_id: int, target: str, find_peer: callable,
     log(f"🔒 Delegation lock acquired")
 
     try:
-        return _do_handoff(plan_id, target, find_peer, log)
+        return _do_handoff(plan_id, target, find_peer, log, cli=cli)
     finally:
         release_lock(plan_id)
         log(f"🔓 Lock released")
 
 
 def _do_handoff(plan_id: int, target: str, find_peer: callable,
-                log: callable) -> tuple[bool, str]:
+                log: callable, cli: str = "copilot") -> tuple[bool, str]:
     """Inner handoff logic (lock already held)."""
 
     # 2. Detect sync direction
@@ -444,6 +445,82 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
     except Exception:
         pass
     log(f"  ✓ execution_host = {target}")
+
+    # 12. Auto-launch: create tmux window inside Convergio and run /execute
+    log(f"▶ Launching plan #{plan_id} on {target}")
+    window_name = f"plan-{plan_id}"
+
+    # Get worktree path for the plan
+    worktree = _sql(
+        f"SELECT COALESCE(worktree_path,'') FROM plans WHERE id={plan_id};"
+    )
+    # Resolve ~ to remote home
+    work_dir = worktree or "~/.claude"
+    if work_dir.startswith("~") and info.get("worktree"):
+        # Use remapped path if available
+        try:
+            r = _ssh(ssh_target, "echo $HOME", timeout=5)
+            remote_home = r.stdout.strip()
+            if remote_home:
+                work_dir = work_dir.replace("~", remote_home)
+        except Exception:
+            pass
+
+    # Detect which CLI is available on target (use user's choice)
+    cli_map = {
+        "copilot": "copilot",
+        "claude": "claude --model sonnet",
+        "opencode": "opencode",
+    }
+    cli_cmd = cli_map.get(cli, cli)  # fallback: use raw value
+    # Verify chosen CLI exists on target
+    try:
+        cli_bin = cli_cmd.split()[0]
+        r = _ssh(ssh_target,
+                 f"export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
+                 f"command -v {cli_bin} >/dev/null 2>&1 && echo FOUND || echo MISSING",
+                 timeout=8)
+        if "MISSING" in r.stdout:
+            log(f"  ⚠ {cli_bin} not found on target — trying fallback")
+            # Fallback chain: copilot → claude → opencode
+            for fb in ["copilot", "claude", "opencode"]:
+                fb_bin = fb.split()[0]
+                r2 = _ssh(ssh_target,
+                          f"export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
+                          f"command -v {fb_bin} >/dev/null 2>&1 && echo FOUND || echo MISSING",
+                          timeout=8)
+                if "FOUND" in r2.stdout:
+                    cli_cmd = cli_map.get(fb, fb)
+                    log(f"  → Using {fb} instead")
+                    break
+            else:
+                cli_cmd = ""
+    except Exception:
+        pass
+
+    if not cli_cmd:
+        log(f"  ⚠ No CLI found on target — plan transferred but needs manual /execute")
+    else:
+        launch_cmd = f"cd {work_dir} 2>/dev/null || cd ~/.claude; {cli_cmd} -p '/execute {plan_id}'"
+        try:
+            # Create window, then send-keys + Enter (reliable via SSH BatchMode)
+            _ssh(ssh_target,
+                 f"tmux new-session -A -d -s Convergio 2>/dev/null; "
+                 f"tmux new-window -t Convergio -n '{window_name}'; "
+                 f"sleep 0.5; "
+                 f"tmux send-keys -t Convergio:{window_name} "
+                 f"'{launch_cmd}' Enter",
+                 timeout=10)
+            r = _ssh(ssh_target,
+                     f"tmux list-windows -t Convergio -F '#{{window_name}}' 2>/dev/null",
+                     timeout=5)
+            if window_name in r.stdout:
+                log(f"  ✓ Convergio:{window_name} → {cli_cmd}")
+                log(f"  ✓ Working dir: {work_dir}")
+            else:
+                log(f"  ⚠ Window not confirmed — check with: tlm / tlx")
+        except Exception as e:
+            log(f"  ⚠ Launch failed: {str(e)[:60]}")
 
     return True, f"Plan #{plan_id} handed off to {target}"
 

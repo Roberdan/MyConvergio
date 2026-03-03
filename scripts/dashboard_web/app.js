@@ -998,7 +998,7 @@ window.openAllTerminals = function () {
   online.forEach((p) => {
     // If node has an active plan, attach to its tmux session
     const activePlan = (p.plans || []).find((pl) => pl.status === "doing");
-    const tmux = activePlan ? `plan-${activePlan.id}` : "Convergio";
+    const tmux = "Convergio";
     termMgr.open(p.peer_name, p.peer_name, tmux);
   });
   if (online.length > 1) termMgr.setMode("grid");

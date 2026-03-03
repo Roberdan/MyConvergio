@@ -390,6 +390,178 @@ def api_assignable_plans() -> list[dict]:
     )
 
 
+def api_preflight_sse(handler, qs: dict):
+    """SSE endpoint: stream pre-delegation checks one by one."""
+    plan_id = qs.get("plan_id", [""])[0]
+    target = qs.get("target", [""])[0]
+    if not plan_id or not target:
+        handler.send_response(400)
+        handler.send_header("Content-Type", "application/json")
+        handler.end_headers()
+        handler.wfile.write(json.dumps({"error": "missing plan_id or target"}).encode())
+        return
+
+    handler.send_response(200)
+    handler.send_header("Content-Type", "text/event-stream")
+    handler.send_header("Cache-Control", "no-cache")
+    handler.send_header("Connection", "keep-alive")
+    origin = handler.headers.get("Origin", "")
+    if origin in ALLOWED_ORIGINS:
+        handler.send_header("Access-Control-Allow-Origin", origin)
+    handler.end_headers()
+
+    all_ok = True
+
+    def _send(event: str, data):
+        try:
+            msg = f"event: {event}\ndata: {json.dumps(data, default=str)}\n\n"
+            handler.wfile.write(msg.encode())
+            handler.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def _check(name: str, ok: bool, detail: str):
+        nonlocal all_ok
+        if not ok:
+            all_ok = False
+        _send("check", {"name": name, "ok": ok, "detail": detail})
+
+    # Announce start
+    _send("start", {"plan_id": plan_id, "target": target, "total_checks": 6})
+
+    # 1. Plan exists and is active
+    _send("checking", {"name": "Plan status"})
+    plan = query_one(
+        "SELECT id,name,status,execution_host FROM plans WHERE id=?",
+        (int(plan_id),),
+    )
+    if not plan:
+        _check("Plan status", False, "Not found in DB")
+        _send("done", {"ok": False})
+        return
+    active = plan["status"] in ("todo", "doing")
+    _check("Plan status", active,
+           f"#{plan_id} is '{plan['status']}'" + ("" if active else " — must be todo/doing"))
+
+    # 2. SSH reachability
+    _send("checking", {"name": "SSH reachable"})
+    reachable = False
+    ssh_err = ""
+    try:
+        r = subprocess.run(
+            ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", target, "echo ok"],
+            capture_output=True, text=True, timeout=8,
+        )
+        reachable = r.returncode == 0
+        if not reachable:
+            ssh_err = (r.stderr.strip().split("\n")[-1] or f"exit code {r.returncode}")[:80]
+    except subprocess.TimeoutExpired:
+        ssh_err = "Connection timed out after 8s"
+    except OSError as e:
+        ssh_err = str(e)[:80]
+    _check("SSH reachable", reachable,
+           f"{target} ✓" if reachable else f"{target} — {ssh_err}")
+
+    # Detect target OS from peers.conf for cross-platform commands
+    target_os = "unknown"
+    conf = _parse_peers_conf()
+    for pc in conf:
+        if pc["peer_name"] == target:
+            target_os = pc.get("os", "unknown")
+            break
+
+    # 3. Heartbeat freshness
+    _send("checking", {"name": "Heartbeat"})
+    hb = query_one(
+        "SELECT last_seen FROM peer_heartbeats WHERE peer_name=?", (target,)
+    )
+    if hb and hb["last_seen"]:
+        age = int(time.time() - hb["last_seen"])
+        fresh = age < 300
+        _check("Heartbeat", fresh,
+               f"{age}s ago" + ("" if fresh else " — stale (>5min)"))
+    else:
+        _check("Heartbeat", False, "No heartbeat recorded")
+
+    # 4. Config sync (git HEAD comparison)
+    _send("checking", {"name": "Config sync"})
+    if reachable:
+        try:
+            local = subprocess.run(
+                ["git", "-C", str(Path.home() / ".claude"), "log", "--oneline", "-1"],
+                capture_output=True, text=True, timeout=5,
+            )
+            # Cross-platform: $HOME works on Linux/macOS, %USERPROFILE% on Windows
+            # SSH login shell expands ~ on all POSIX; for Windows use $USERPROFILE
+            git_remote_cmd = "git -C $HOME/.claude log --oneline -1" if target_os != "windows" \
+                else "git -C %USERPROFILE%\\.claude log --oneline -1"
+            remote = subprocess.run(
+                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", target,
+                 git_remote_cmd],
+                capture_output=True, text=True, timeout=8,
+            )
+            local_sha = local.stdout.strip().split()[0] if local.stdout.strip() else ""
+            remote_sha = remote.stdout.strip().split()[0] if remote.stdout.strip() else ""
+            synced = bool(local_sha and remote_sha and local_sha == remote_sha)
+            _check("Config sync", synced,
+                   f"local={local_sha[:8]} remote={remote_sha[:8]}" + ("" if synced else " — run Sync first"))
+        except (subprocess.TimeoutExpired, OSError):
+            _check("Config sync", False, "Check failed")
+    else:
+        _check("Config sync", False, "Skipped — SSH unreachable")
+
+    # 5. Claude CLI
+    _send("checking", {"name": "Claude CLI"})
+    if reachable:
+        try:
+            # Cross-platform: 'which' works on macOS/Linux; 'where' on Windows
+            if target_os == "windows":
+                check_cmd = "where claude >nul 2>&1 && claude --version || echo missing"
+            else:
+                check_cmd = "which claude >/dev/null 2>&1 && claude --version 2>/dev/null || echo missing"
+            r = subprocess.run(
+                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", target, check_cmd],
+                capture_output=True, text=True, timeout=15,
+            )
+            has_claude = "missing" not in r.stdout and r.returncode == 0
+            ver = r.stdout.strip().split("\n")[-1][:40] if has_claude else "not found"
+            _check("Claude CLI", has_claude, ver)
+        except (subprocess.TimeoutExpired, OSError):
+            _check("Claude CLI", False, "Check timeout")
+    else:
+        _check("Claude CLI", False, "Skipped — SSH unreachable")
+
+    # 6. Disk space
+    _send("checking", {"name": "Disk space"})
+    if reachable:
+        try:
+            # Cross-platform disk check: Python one-liner works everywhere
+            disk_cmd = (
+                "python3 -c \"import shutil; u=shutil.disk_usage('.'); "
+                "print(u.free//(1024**3))\" 2>/dev/null || "
+                "python -c \"import shutil; u=shutil.disk_usage('.'); "
+                "print(u.free//(1024**3))\" 2>/dev/null || echo -1"
+            )
+            r = subprocess.run(
+                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", target, disk_cmd],
+                capture_output=True, text=True, timeout=10,
+            )
+            free_gb = int(r.stdout.strip().split("\n")[-1])
+            if free_gb < 0:
+                _check("Disk space", False, "Could not detect (python missing?)")
+            else:
+                enough = free_gb >= 5
+                _check("Disk space", enough,
+                       f"{free_gb}GB free" + ("" if enough else " — need ≥5GB"))
+        except (subprocess.TimeoutExpired, OSError, ValueError):
+            _check("Disk space", False, "Check skipped")
+    else:
+        _check("Disk space", False, "Skipped — SSH unreachable")
+
+    # Final result
+    _send("done", {"ok": all_ok})
+
+
 def api_history() -> list[dict]:
     return query(
         "SELECT id,name,status,tasks_done,tasks_total,project_id,"
@@ -485,10 +657,16 @@ class Handler(SimpleHTTPRequestHandler):
             self._json_response(ROUTES[path]())
         elif path == "/api/mesh/action":
             self._json_response(self._handle_mesh_action(qs))
+        elif path == "/api/mesh/action/stream":
+            self._handle_mesh_action_sse(qs)
         elif path == "/api/terminal":
             self._json_response(self._handle_terminal(qs))
         elif path == "/api/plan/move":
             self._json_response(self._handle_plan_move(qs))
+        elif path == "/api/plan/preflight":
+            api_preflight_sse(self, qs)
+        elif path == "/api/plan/delegate":
+            self._handle_plan_delegate(qs)
         elif path.startswith("/api/plan/"):
             pid = path.split("/")[-1]
             if pid.isdigit():
@@ -502,6 +680,7 @@ class Handler(SimpleHTTPRequestHandler):
             super().do_GET()
 
     def _handle_mesh_action(self, qs: dict) -> dict:
+        """Fallback JSON endpoint (used by sync-btn in preflight)."""
         SCRIPTS = Path.home() / ".claude" / "scripts"
         action = qs.get("action", [""])[0]
         peer = qs.get("peer", [""])[0]
@@ -528,6 +707,76 @@ class Handler(SimpleHTTPRequestHandler):
             return {"output": r.stdout + r.stderr, "exit_code": r.returncode}
         except subprocess.TimeoutExpired:
             return {"output": f"Timeout ({timeout}s)", "exit_code": 1}
+
+    def _handle_mesh_action_sse(self, qs: dict):
+        """SSE streaming endpoint for mesh actions."""
+        SCRIPTS = Path.home() / ".claude" / "scripts"
+        action = qs.get("action", [""])[0]
+        peer = qs.get("peer", [""])[0]
+        if not peer or (peer != "__all__" and not _SAFE_NAME.match(peer)):
+            self._json_response({"error": "invalid peer"}, 400)
+            return
+        is_all = peer == "__all__"
+        peer_flag = "" if is_all else f"--peer {shlex.quote(peer)}"
+        action_labels = {
+            "sync": "Sync Config",
+            "heartbeat": "Heartbeat Status",
+            "auth": "Auth Sync",
+            "status": "Load Status",
+        }
+        cmds = {
+            "sync": f"{SCRIPTS}/mesh-sync-all.sh {peer_flag}",
+            "heartbeat": f"{SCRIPTS}/mesh-heartbeat.sh status",
+            "auth": f"{SCRIPTS}/mesh-auth-sync.sh push {'--all' if is_all else f'--peer {shlex.quote(peer)}'}",
+            "status": f"{SCRIPTS}/mesh-load-query.sh {'--json' if is_all else f'--peer {shlex.quote(peer)} --json'}",
+        }
+        cmd = cmds.get(action)
+        if not cmd:
+            self._json_response({"error": "invalid action"}, 400)
+            return
+
+        label = action_labels.get(action, action)
+        target = "All Peers" if is_all else peer
+        timeout = 120 if is_all else 60
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        origin = self.headers.get("Origin", "")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+        self.end_headers()
+
+        def _send(event: str, data: str):
+            try:
+                msg = f"event: {event}\ndata: {data}\n\n"
+                self.wfile.write(msg.encode())
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        _send("log", f"▶ {label} — {target}")
+        _send("log", f"▶ Running: {cmd.split('/')[-1]}")
+
+        try:
+            proc = subprocess.Popen(
+                cmd, shell=True,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                env={**os.environ, "PATH": str(SCRIPTS) + ":/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", "")},
+            )
+            for line in iter(proc.stdout.readline, ""):
+                _send("log", line.rstrip())
+            proc.wait(timeout=timeout)
+            if proc.returncode == 0:
+                _send("done", json.dumps({"ok": True, "exit_code": 0}))
+            else:
+                _send("done", json.dumps({"ok": False, "exit_code": proc.returncode}))
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            _send("done", json.dumps({"ok": False, "exit_code": 1, "message": f"Timeout ({timeout}s)"}))
+        except Exception as e:
+            _send("done", json.dumps({"ok": False, "message": str(e)}))
 
     def _handle_terminal(self, qs: dict) -> dict:
         cmd = qs.get("cmd", [""])[0]
@@ -578,6 +827,95 @@ class Handler(SimpleHTTPRequestHandler):
             return {"ok": True, "plan_id": int(plan_id), "target": target}
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
             return {"error": str(e)}
+
+    def _handle_plan_delegate(self, qs: dict):
+        """SSE endpoint: full sync + mesh-migrate.sh streamed line-by-line."""
+        plan_id = qs.get("plan_id", [""])[0]
+        target = qs.get("target", [""])[0]
+        if not plan_id or not plan_id.isdigit() or not target:
+            self._json_response({"error": "missing plan_id or target"}, 400)
+            return
+        if not _SAFE_NAME.match(target):
+            self._json_response({"error": "invalid target name"}, 400)
+            return
+
+        scripts = Path.home() / ".claude" / "scripts"
+        env = {
+            **os.environ,
+            "PATH": str(scripts) + ":/opt/homebrew/bin:/usr/local/bin:"
+            + os.environ.get("PATH", ""),
+        }
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        origin = self.headers.get("Origin", "")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+        self.end_headers()
+
+        def _send_sse(event: str, data: str):
+            try:
+                msg = f"event: {event}\ndata: {data}\n\n"
+                self.wfile.write(msg.encode())
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        def _stream_cmd(cmd: str, timeout: int = 300) -> int:
+            """Run cmd, stream stdout line-by-line. Return exit code."""
+            proc = subprocess.Popen(
+                cmd, shell=True,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, env=env,
+            )
+            for line in iter(proc.stdout.readline, ""):
+                _send_sse("log", line.rstrip())
+            proc.wait(timeout=timeout)
+            return proc.returncode
+
+        try:
+            # --- PHASE 0: Full sync ---
+            _send_sse("phase", "sync")
+            _send_sse("log", f"━━━ PHASE 0: Full Sync → {target} ━━━")
+            _send_sse("log", "")
+            sync_cmd = f"{scripts}/mesh-sync-all.sh --peer {shlex.quote(target)}"
+            _send_sse("log", f"▶ Running: mesh-sync-all.sh --peer {target}")
+            sync_rc = _stream_cmd(sync_cmd, timeout=120)
+            if sync_rc != 0:
+                _send_sse("log", "")
+                _send_sse("log", f"⚠ Sync exited with code {sync_rc} — continuing with migration")
+            else:
+                _send_sse("log", "")
+                _send_sse("log", "✓ Sync completed")
+            _send_sse("log", "")
+
+            # --- PHASE 1-5: Migration ---
+            _send_sse("phase", "migrate")
+            _send_sse("log", f"━━━ PHASE 1-5: Migrate Plan #{plan_id} → {target} ━━━")
+            _send_sse("log", "")
+            migrate_cmd = f"{scripts}/mesh-migrate.sh {plan_id} {shlex.quote(target)}"
+            _send_sse("log", f"▶ Running: mesh-migrate.sh {plan_id} {target}")
+            migrate_rc = _stream_cmd(migrate_cmd, timeout=300)
+
+            if migrate_rc == 0:
+                _send_sse("done", json.dumps({
+                    "ok": True, "plan_id": int(plan_id), "target": target
+                }))
+            else:
+                _send_sse("error", json.dumps({
+                    "ok": False, "exit_code": migrate_rc,
+                    "message": f"mesh-migrate exited with code {migrate_rc}"
+                }))
+        except subprocess.TimeoutExpired:
+            _send_sse("error", json.dumps({
+                "ok": False, "message": "Timeout"
+            }))
+        except Exception as e:
+            _send_sse("error", json.dumps({
+                "ok": False, "message": str(e)
+            }))
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")

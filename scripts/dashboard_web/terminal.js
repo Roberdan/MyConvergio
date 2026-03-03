@@ -23,12 +23,12 @@ class TerminalManager {
     window.addEventListener("resize", () => this._fitActive());
   }
 
-  open(peer, label) {
+  open(peer, label, tmuxSession) {
     if (!this.container || !document.body.contains(this.container)) {
       this._build();
     }
     if (!this.visible) this.show();
-    this.addTab(peer || "local", label || peer || "local");
+    this.addTab(peer || "local", label || peer || "local", tmuxSession);
   }
 
   show() {
@@ -56,7 +56,7 @@ class TerminalManager {
     this._renderTabs();
   }
 
-  addTab(peer, label) {
+  addTab(peer, label, tmuxSession) {
     const id = this.nextId++;
     const el = document.createElement("div");
     el.className = "term-pane";
@@ -98,11 +98,13 @@ class TerminalManager {
     const fitAddon = new FitAddon.FitAddon();
     term.loadAddon(fitAddon);
 
-    const wsUrl = `ws://localhost:${TERM_WS_PORT}/ws?peer=${encodeURIComponent(peer)}`;
+    const wsParams = `peer=${encodeURIComponent(peer)}${tmuxSession ? `&tmux_session=${encodeURIComponent(tmuxSession)}` : ""}`;
+    const wsUrl = `ws://localhost:${TERM_WS_PORT}/ws?${wsParams}`;
     const ws = new WebSocket(wsUrl);
     ws.binaryType = "arraybuffer";
 
-    const tab = { id, label, peer, term, ws, fitAddon, el };
+    const tabLabel = tmuxSession ? `${label} [${tmuxSession}]` : label;
+    const tab = { id, label: tabLabel, peer, term, ws, fitAddon, el };
 
     ws.onopen = () => {
       term.open(el);

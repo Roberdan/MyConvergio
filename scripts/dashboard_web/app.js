@@ -163,7 +163,10 @@ function _renderOnePlan(m) {
       <span class="mission-name">&nbsp;${esc(p.name)}</span>
       ${statusDot(p.status === "doing" ? "in_progress" : p.status)}
       ${p.parallel_mode ? `<span class="badge badge-doing">${p.parallel_mode}</span>` : ""}
-      ${p.project_name ? `<span class="badge" style="background:var(--panel);color:var(--text-dim);border:1px solid var(--border);font-size:9px">${esc(p.project_name)}</span>` : ""}
+      ${p.project_name ? `<span class="badge badge-project">${esc(p.project_name)}</span>` : ""}
+      <button class="mission-delegate-btn" onclick="event.stopPropagation();showDelegatePlanDialog(${p.id},'${esc(p.name)}')" title="Delegate to mesh node">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+      </button>
     </div>`;
   if (p.human_summary) {
     html += `<div class="mission-summary">${esc(p.human_summary)}</div>`;
@@ -951,7 +954,11 @@ window.openAllTerminals = function () {
     return;
   }
   online.forEach((p) => {
-    termMgr.open(p.peer_name, p.peer_name);
+    const activePlan = (p.plans || []).find(
+      (pl) => pl.status === "doing" || pl.status === "todo",
+    );
+    const tmuxSession = activePlan ? `plan-${activePlan.id}` : undefined;
+    termMgr.open(p.peer_name, p.peer_name, tmuxSession);
   });
   if (online.length > 1) termMgr.setMode("grid");
   else termMgr.setMode("dock");

@@ -9,16 +9,20 @@ Usage: python3 terminal_server.py [--port 8421]
 
 import asyncio
 import configparser
-import fcntl
 import json
 import os
-import pty
 import signal
 import struct
 import sys
-import termios
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+
+# Platform-specific imports: pty/fcntl/termios only on POSIX
+IS_WINDOWS = sys.platform == "win32"
+if not IS_WINDOWS:
+    import fcntl
+    import pty
+    import termios
 
 import websockets
 
@@ -50,17 +54,42 @@ async def terminal_handler(ws):
     parsed = urlparse(path)
     qs = parse_qs(parsed.query)
     peer = qs.get("peer", ["local"])[0]
+    tmux_session = qs.get("tmux_session", [""])[0]
 
     # Determine command
     if peer and peer not in ("local", ""):
         ssh_cfg = get_ssh_config(peer)
         user, host = ssh_cfg["user"], ssh_cfg["host"]
-        cmd = ["ssh", "-t", "-o", "StrictHostKeyChecking=accept-new", f"{user}@{host}"]
+        if tmux_session:
+            tmux_cmd = (
+                f"tmux attach-session -t '{tmux_session}' 2>/dev/null "
+                f"|| tmux new-session -s '{tmux_session}'"
+            )
+            cmd = ["ssh", "-t", "-o", "StrictHostKeyChecking=accept-new",
+                   f"{user}@{host}", tmux_cmd]
+        else:
+            cmd = ["ssh", "-t", "-o", "StrictHostKeyChecking=accept-new",
+                   f"{user}@{host}"]
     else:
-        shell = os.environ.get("SHELL", "/bin/bash")
-        cmd = [shell, "-l"]
+        if IS_WINDOWS:
+            cmd = [os.environ.get("COMSPEC", "cmd.exe")]
+        elif tmux_session:
+            shell = os.environ.get("SHELL", "/bin/bash")
+            cmd = [shell, "-l", "-c",
+                   f"tmux attach-session -t '{tmux_session}' 2>/dev/null "
+                   f"|| tmux new-session -s '{tmux_session}'"]
+        else:
+            shell = os.environ.get("SHELL", "/bin/bash")
+            cmd = [shell, "-l"]
 
-    # Fork PTY
+    if IS_WINDOWS:
+        await _terminal_handler_subprocess(ws, cmd)
+    else:
+        await _terminal_handler_pty(ws, cmd)
+
+
+async def _terminal_handler_pty(ws, cmd):
+    """POSIX PTY-based terminal handler."""
     pid, master_fd = pty.fork()
     if pid == 0:
         os.environ["TERM"] = "xterm-256color"
@@ -68,14 +97,12 @@ async def terminal_handler(ws):
         os.execvp(cmd[0], cmd)
         sys.exit(1)
 
-    # Set initial terminal size
     winsize = struct.pack("HHHH", 24, 80, 0, 0)
     fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
 
     loop = asyncio.get_running_loop()
     closed = asyncio.Event()
 
-    # PTY → WebSocket (via asyncio reader)
     async def pty_to_ws():
         read_queue = asyncio.Queue()
 
@@ -105,7 +132,6 @@ async def terminal_handler(ws):
         finally:
             loop.remove_reader(master_fd)
 
-    # WebSocket → PTY
     async def ws_to_pty():
         try:
             async for message in ws:
@@ -144,6 +170,49 @@ async def terminal_handler(ws):
         try:
             os.waitpid(pid, os.WNOHANG)
         except ChildProcessError:
+            pass
+
+
+async def _terminal_handler_subprocess(ws, cmd):
+    """Windows fallback: subprocess pipes (no PTY)."""
+    import subprocess
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    closed = asyncio.Event()
+
+    async def proc_to_ws():
+        try:
+            while not closed.is_set():
+                data = await proc.stdout.read(4096)
+                if not data:
+                    break
+                await ws.send(data)
+        except (websockets.exceptions.ConnectionClosed, BrokenPipeError):
+            pass
+        finally:
+            closed.set()
+
+    async def ws_to_proc():
+        try:
+            async for message in ws:
+                if isinstance(message, bytes) and proc.stdin:
+                    proc.stdin.write(message)
+                    await proc.stdin.drain()
+        except (websockets.exceptions.ConnectionClosed, BrokenPipeError):
+            pass
+        finally:
+            closed.set()
+
+    try:
+        await asyncio.gather(proc_to_ws(), ws_to_proc())
+    finally:
+        try:
+            proc.kill()
+        except OSError:
             pass
 
 

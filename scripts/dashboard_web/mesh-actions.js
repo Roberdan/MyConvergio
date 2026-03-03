@@ -5,26 +5,95 @@
 
 window.meshAction = async function (action, peer) {
   if (action === "terminal") {
-    if (typeof termMgr !== "undefined") termMgr.open(peer, peer);
+    if (typeof termMgr !== "undefined") {
+      const peers = (typeof lastMeshData !== "undefined" && lastMeshData) || [];
+      const peerData = peers.find((p) => p.peer_name === peer);
+      const activePlan = peerData
+        ? (peerData.plans || []).find(
+            (pl) => pl.status === "doing" || pl.status === "todo",
+          )
+        : null;
+      const tmuxSession = activePlan ? `plan-${activePlan.id}` : undefined;
+      termMgr.open(peer, peer, tmuxSession);
+    }
     return;
   }
   if (action === "movehere") {
     showMovePlanDialog(peer);
     return;
   }
-  if (peer === "__all__") {
-    const res = await fetchJson(
-      `/api/mesh/action?action=${action}&peer=__all__`,
-    );
-    if (res && res.output) showOutputModal("Sync All Peers", res.output);
+  // Stream all other actions via SSE
+  streamMeshAction(action, peer);
+};
+
+/**
+ * Stream a mesh action via SSE with live output modal.
+ */
+window.streamMeshAction = function (action, peer) {
+  const esc = (s) => {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  };
+  const actionLabels = {
+    sync: "Sync Config",
+    heartbeat: "Heartbeat Status",
+    auth: "Auth Sync",
+    status: "Load Status",
+  };
+  const target = peer === "__all__" ? "All Peers" : peer;
+  const title = `${actionLabels[action] || action} — ${target}`;
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `<div class="modal-box" style="max-width:650px">
+    <div class="modal-title">${esc(title)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
+    <pre class="modal-output" id="mesh-action-output" style="min-height:150px"></pre>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  const output = document.getElementById("mesh-action-output");
+  const url = `/api/mesh/action/stream?action=${encodeURIComponent(action)}&peer=${encodeURIComponent(peer)}`;
+  const es = new EventSource(url);
+
+  es.addEventListener("log", (e) => {
+    const line = e.data || "";
+    let html = esc(line);
+    if (line.startsWith("▶")) {
+      html = `<span style="color:var(--cyan)">${esc(line)}</span>`;
+    } else if (/^(OK|PASS|✓|MATCH|synced|pushed|done)/i.test(line)) {
+      html = `<span style="color:var(--green)">${esc(line)}</span>`;
+    } else if (/^(WARN|SKIP|MISMATCH)/i.test(line)) {
+      html = `<span style="color:var(--gold)">${esc(line)}</span>`;
+    } else if (/^(ERROR|FAIL|✗)/i.test(line)) {
+      html = `<span style="color:var(--red)">${esc(line)}</span>`;
+    } else if (line.startsWith("---") || line.startsWith("===")) {
+      html = `<span style="color:var(--cyan);font-weight:600">${esc(line)}</span>`;
+    }
+    output.innerHTML += html + "\n";
+    output.scrollTop = output.scrollHeight;
+  });
+
+  es.addEventListener("done", (e) => {
+    es.close();
+    const data = JSON.parse(e.data);
+    if (data.ok) {
+      output.innerHTML += `\n<span style="color:var(--green);font-weight:600">✓ Completed successfully</span>\n`;
+    } else {
+      const msg = data.message || `Exit code ${data.exit_code || "?"}`;
+      output.innerHTML += `\n<span style="color:var(--red);font-weight:600">✗ ${esc(msg)}</span>\n`;
+    }
+    output.scrollTop = output.scrollHeight;
     if (typeof refreshAll === "function") refreshAll();
-    return;
-  }
-  const res = await fetchJson(
-    `/api/mesh/action?action=${action}&peer=${encodeURIComponent(peer)}`,
-  );
-  if (res && res.output)
-    showOutputModal(action + " \u2014 " + peer, res.output);
+  });
+
+  es.onerror = () => {
+    es.close();
+    output.innerHTML += `\n<span style="color:var(--red)">✗ Connection lost</span>\n`;
+  };
 };
 
 window.showMovePlanDialog = async function (targetPeer) {
@@ -158,6 +227,254 @@ window.showOutputModal = function (title, text) {
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) overlay.remove();
   });
+};
+
+/**
+ * Delegate Plan Dialog — select a mesh peer to delegate plan execution.
+ * Triggered from the rocket icon on active mission cards.
+ */
+window.showDelegatePlanDialog = async function (planId, planName) {
+  const peers = await fetchJson("/api/mesh");
+  if (!peers || !peers.length) {
+    showOutputModal("Delegate Plan", "No mesh nodes configured");
+    return;
+  }
+  const esc = (s) => {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  };
+  const rows = peers
+    .map((p) => {
+      const off = !p.is_online ? " offline" : "";
+      const cpu = p.cpu ? p.cpu.toFixed(0) + "%" : "—";
+      const osIcon = p.os === "macos" ? "🍎" : p.os === "linux" ? "🐧" : "💻";
+      return `<div class="delegate-peer-row${off}" data-peer="${esc(p.peer_name)}">
+        <span><span style="margin-right:6px">${osIcon}</span><strong>${esc(p.peer_name)}</strong>
+        ${p.role === "coordinator" ? '<span style="color:var(--gold);font-size:9px;margin-left:4px">COORD</span>' : ""}
+        ${!p.is_online ? '<span style="color:var(--red);font-size:9px;margin-left:4px">OFFLINE</span>' : ""}</span>
+        <span style="color:var(--text-dim);font-size:11px">CPU ${cpu}</span>
+        <span style="color:var(--text-dim);font-size:11px">${p.active_tasks || 0} tasks</span>
+        <span style="color:var(--cyan);font-size:11px">${p.plans ? p.plans.length : 0} plans</span>
+      </div>`;
+    })
+    .join("");
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `<div class="modal-box" style="max-width:520px">
+    <div class="modal-title">Delegate #${planId} ${esc((planName || "").substring(0, 25))} → Mesh Node<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
+    <div style="padding:8px 0">${rows}</div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => {
+    const row = e.target.closest(".delegate-peer-row");
+    if (row && !row.classList.contains("offline")) {
+      const peer = row.dataset.peer;
+      // Disable row and show preflight
+      row.style.opacity = "0.5";
+      row.style.pointerEvents = "none";
+      runPreflight(planId, peer, planName, overlay);
+      return;
+    }
+    if (e.target === overlay) overlay.remove();
+  });
+};
+
+/**
+ * Pre-delegation checks via SSE — shows each check appearing in real-time.
+ */
+window.runPreflight = function (planId, targetPeer, planName, prevOverlay) {
+  const esc = (s) => {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  };
+  if (prevOverlay) prevOverlay.remove();
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `<div class="modal-box" style="max-width:600px">
+    <div class="modal-title">Pre-flight: #${planId} → ${esc(targetPeer)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
+    <div id="preflight-checks" style="padding:14px;overflow-y:auto;flex:1;min-height:0"></div>
+    <div id="preflight-actions" style="padding:10px 14px 14px;text-align:center;display:none;flex-shrink:0"></div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  const checksEl = document.getElementById("preflight-checks");
+  const actionsEl = document.getElementById("preflight-actions");
+  let activeRow = null;
+
+  const url = `/api/plan/preflight?plan_id=${planId}&target=${encodeURIComponent(targetPeer)}`;
+  const es = new EventSource(url);
+
+  es.addEventListener("checking", (e) => {
+    const data = JSON.parse(e.data);
+    // Add a new row with spinner
+    const row = document.createElement("div");
+    row.className = "preflight-row preflight-active";
+    row.innerHTML = `<span class="preflight-icon"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span></span>
+      <span class="preflight-name">${esc(data.name)}</span>
+      <span class="preflight-detail" style="color:var(--text-dim)">checking…</span>`;
+    checksEl.appendChild(row);
+    activeRow = row;
+  });
+
+  es.addEventListener("check", (e) => {
+    const data = JSON.parse(e.data);
+    if (activeRow) {
+      activeRow.classList.remove("preflight-active");
+      const ok = data.ok;
+      const icon = ok ? "✓" : "✗";
+      const cls = ok ? "delegate-status-ok" : "delegate-status-fail";
+      activeRow.classList.add(ok ? "preflight-pass" : "preflight-fail");
+      activeRow.querySelector(".preflight-icon").innerHTML = `<span class="${cls}" style="font-size:16px;font-weight:700">${icon}</span>`;
+      activeRow.querySelector(".preflight-name").textContent = data.name;
+      const detailEl = activeRow.querySelector(".preflight-detail");
+      detailEl.textContent = data.detail;
+      detailEl.style.color = ok ? "var(--green)" : "var(--red)";
+      if (!ok) {
+        detailEl.style.fontWeight = "600";
+      }
+      activeRow = null;
+    }
+  });
+
+  es.addEventListener("done", (e) => {
+    es.close();
+    const data = JSON.parse(e.data);
+    actionsEl.style.display = "block";
+    if (data.ok) {
+      actionsEl.innerHTML = `<div class="delegate-done-banner" style="background:rgba(0,229,255,0.08);border-color:rgba(0,229,255,0.3);color:var(--cyan);margin-bottom:12px">
+          ✓ All checks passed
+        </div>
+        <button id="preflight-go-btn" style="background:linear-gradient(135deg,var(--cyan),#00ff88);color:#0a0e1a;border:none;padding:10px 32px;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:1px">
+          DELEGATE NOW
+        </button>`;
+      document.getElementById("preflight-go-btn").addEventListener("click", () => {
+        overlay.remove();
+        delegatePlan(planId, targetPeer, planName);
+      });
+    } else {
+      // Count failures
+      const failCount = checksEl.querySelectorAll(".preflight-fail").length;
+      actionsEl.innerHTML = `<div class="delegate-status-fail" style="padding:10px;border:1px solid var(--red);border-radius:6px;margin-bottom:12px">
+          ✗ ${failCount} check${failCount > 1 ? "s" : ""} failed — fix before delegating
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button id="preflight-retry-btn" class="preflight-action-btn" style="border-color:var(--cyan);color:var(--cyan)">RETRY CHECKS</button>
+          <button id="preflight-sync-btn" class="preflight-action-btn" style="border-color:var(--gold);color:var(--gold)">SYNC &amp; RETRY</button>
+        </div>`;
+      document.getElementById("preflight-retry-btn").addEventListener("click", () => {
+        overlay.remove();
+        runPreflight(planId, targetPeer, planName, null);
+      });
+      document.getElementById("preflight-sync-btn").addEventListener("click", async () => {
+        const btn = document.getElementById("preflight-sync-btn");
+        btn.textContent = "Syncing…";
+        btn.disabled = true;
+        await fetchJson(`/api/mesh/action?action=sync&peer=${encodeURIComponent(targetPeer)}`);
+        overlay.remove();
+        runPreflight(planId, targetPeer, planName, null);
+      });
+    }
+  });
+
+  es.onerror = () => {
+    es.close();
+    if (activeRow) {
+      activeRow.querySelector(".preflight-icon").innerHTML = '<span class="delegate-status-fail" style="font-size:16px;font-weight:700">✗</span>';
+      activeRow.querySelector(".preflight-detail").textContent = "Connection lost";
+    }
+    actionsEl.style.display = "block";
+    actionsEl.innerHTML = `<button id="preflight-retry-btn" class="preflight-action-btn" style="border-color:var(--cyan);color:var(--cyan)">RETRY</button>`;
+    document.getElementById("preflight-retry-btn").addEventListener("click", () => {
+      overlay.remove();
+      runPreflight(planId, targetPeer, planName, null);
+    });
+  };
+};
+
+/**
+ * Execute plan delegation via SSE streaming — shows live progress modal.
+ */
+window.delegatePlan = function (planId, targetPeer, planName) {
+  const esc = (s) => {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  };
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `<div class="modal-box" style="max-width:650px">
+    <div class="modal-title">Delegating #${planId} → ${esc(targetPeer)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
+    <pre class="modal-output" id="delegate-output" style="max-height:450px;overflow:auto;font-size:12px;min-height:200px"></pre>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  const output = document.getElementById("delegate-output");
+  const url = `/api/plan/delegate?plan_id=${planId}&target=${encodeURIComponent(targetPeer)}`;
+  const es = new EventSource(url);
+
+  es.addEventListener("phase", (e) => {
+    const phase = JSON.parse(e.data);
+    // Visual separator between major phases
+    output.innerHTML += `<div style="margin:4px 0;border-top:1px solid var(--border)"></div>`;
+  });
+
+  es.addEventListener("log", (e) => {
+    const line = e.data || "";
+    let html = esc(line);
+    if (line.startsWith("━━━")) {
+      html = `<div class="delegate-phase-header">${esc(line)}</div>`;
+    } else if (line.startsWith("--- PHASE")) {
+      html = `<div class="delegate-phase-header">${esc(line)}</div>`;
+    } else if (line.startsWith("▶")) {
+      html = `<span style="color:var(--cyan)">${esc(line)}</span>\n`;
+    } else if (/^(OK|PASS|✓|✓ )/.test(line) || line.includes("started on") || line.includes("Sync completed")) {
+      html = `<span class="delegate-status-ok">${esc(line)}</span>\n`;
+    } else if (/^(WARN|⚠)/.test(line)) {
+      html = `<span class="delegate-status-warn">${esc(line)}</span>\n`;
+    } else if (/^(ERROR|FAIL)/.test(line)) {
+      html = `<span class="delegate-status-fail">${esc(line)}</span>\n`;
+    } else {
+      html += "\n";
+    }
+    output.innerHTML += html;
+    output.scrollTop = output.scrollHeight;
+  });
+
+  es.addEventListener("done", (e) => {
+    es.close();
+    const data = JSON.parse(e.data);
+    if (data.ok) {
+      output.innerHTML += `<div class="delegate-done-banner">✓ Plan #${planId} delegated to ${esc(targetPeer)}<br><span style="font-size:11px;font-weight:400">tmux session: plan-${planId}</span></div>`;
+    }
+    output.scrollTop = output.scrollHeight;
+    if (typeof refreshAll === "function") refreshAll();
+  });
+
+  es.addEventListener("error", (e) => {
+    es.close();
+    let msg = "Delegation failed";
+    try {
+      const data = JSON.parse(e.data);
+      msg = data.message || msg;
+    } catch (_) {}
+    output.innerHTML += `<div class="delegate-status-fail" style="padding:12px;margin-top:8px;border:1px solid var(--red);border-radius:4px">✗ ${esc(msg)}</div>`;
+    output.scrollTop = output.scrollHeight;
+  });
+
+  es.onerror = () => {
+    es.close();
+    output.innerHTML += `<span class="delegate-status-fail">\n✗ Connection lost\n</span>`;
+  };
 };
 
 // Event delegation for .mn-act-btn — uses data-peer / data-action (XSS-safe)

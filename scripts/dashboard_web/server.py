@@ -249,32 +249,6 @@ def _resolve_host_to_peer(host: str) -> str:
     return host
 
 
-def _resolve_host_to_peer(host: str) -> str:
-    """Map a full hostname or peer_name to the short peer_name from peers.conf."""
-    if not host or host == "None":
-        return ""
-    conf = _parse_peers_conf()
-    # Exact peer_name match first
-    for p in conf:
-        if p["peer_name"] == host:
-            return p["peer_name"]
-    # Fuzzy match on hostname/dns/alias
-    h = host.lower().replace("-", "").replace("_", "")
-    for p in conf:
-        candidates = [
-            p["peer_name"],
-            p.get("ssh_alias", ""),
-            p.get("dns_name", ""),
-        ]
-        for c in candidates:
-            if not c:
-                continue
-            cl = c.lower().replace("-", "").replace("_", "")
-            if cl == h or cl in h or h in cl:
-                return p["peer_name"]
-    return host
-
-
 def _peer_execution_map() -> dict[str, list[dict]]:
     """Active plans+tasks grouped by execution_host."""
     plans = query(

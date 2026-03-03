@@ -996,7 +996,10 @@ window.openAllTerminals = function () {
     return;
   }
   online.forEach((p) => {
-    termMgr.open(p.peer_name, p.peer_name, "Convergio");
+    // If node has an active plan, attach to its tmux session
+    const activePlan = (p.plans || []).find((pl) => pl.status === "doing");
+    const tmux = "Convergio";
+    termMgr.open(p.peer_name, p.peer_name, tmux);
   });
   if (online.length > 1) termMgr.setMode("grid");
   else termMgr.setMode("dock");

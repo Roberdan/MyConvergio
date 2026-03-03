@@ -129,7 +129,44 @@ async function refreshAll() {
   if (dist) renderDist(dist);
   renderActivity(mission, mesh);
   $("#last-update").textContent = "Updated: " + new Date().toLocaleTimeString();
+
+  // Auto-pull DB from remote nodes with active plans (every 3rd refresh)
+  if (!window._syncCounter) window._syncCounter = 0;
+  window._syncCounter++;
+  if (window._syncCounter % 3 === 1) {
+    _pullRemoteDb();
+  }
 }
+
+let _pullInProgress = false;
+async function _pullRemoteDb() {
+  if (_pullInProgress) return;
+  _pullInProgress = true;
+  try {
+    const r = await fetchJson("/api/mesh/pull-db");
+    if (r && r.count > 0) {
+      const ok = r.synced.filter((s) => s.ok).length;
+      if (ok > 0) {
+        const badge = document.getElementById("sync-badge");
+        if (badge) {
+          badge.textContent = `↓ ${ok} synced`;
+          badge.style.display = "inline";
+          setTimeout(() => { badge.style.display = "none"; }, 3000);
+        }
+      }
+    }
+  } catch (_) {}
+  _pullInProgress = false;
+}
+
+// Manual sync button handler
+window.pullRemoteDb = async function () {
+  const btn = document.getElementById("pull-db-btn");
+  if (btn) { btn.textContent = "⟳ Syncing…"; btn.disabled = true; }
+  await _pullRemoteDb();
+  if (btn) { btn.textContent = "⟳ Sync Nodes"; btn.disabled = false; }
+  refreshAll();
+};
 
 // --- KPI ---
 function _kpiCard(label, value, sub, target, alert) {

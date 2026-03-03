@@ -842,6 +842,8 @@ class Handler(SimpleHTTPRequestHandler):
             api_preflight_sse(self, qs)
         elif path == "/api/plan/delegate":
             self._handle_plan_delegate(qs)
+        elif path == "/api/mesh/pull-db":
+            self._handle_pull_remote_db(qs)
         elif path.startswith("/api/plan/"):
             pid = path.split("/")[-1]
             if pid.isdigit():
@@ -1227,6 +1229,57 @@ class Handler(SimpleHTTPRequestHandler):
             _send_sse("error", json.dumps({
                 "ok": False, "message": str(e)
             }))
+
+    def _handle_pull_remote_db(self, qs: dict):
+        """Pull task statuses from remote nodes that have active plans."""
+        from mesh_handoff import _ssh, _merge_plan_status
+        SSH_OPTS = ["-o", "ConnectTimeout=10", "-o", "BatchMode=yes"]
+
+        # Find plans on remote nodes
+        plans = query(
+            "SELECT id, execution_host FROM plans "
+            "WHERE status IN ('todo','doing') "
+            "AND execution_host IS NOT NULL AND execution_host <> ''"
+        )
+        local_host = subprocess.run(
+            ["hostname", "-s"], capture_output=True, text=True, timeout=5,
+        ).stdout.strip()
+
+        # Group plans by peer (one SCP per node, not per plan)
+        peer_plans: dict[str, list[int]] = {}
+        for p in plans:
+            host = p["execution_host"]
+            if _peer_host_match("m3max", host) or host == local_host:
+                continue
+            pc = _find_peer_conf(host)
+            ssh_dest = pc.get("ssh_alias", host) if pc else host
+            peer_plans.setdefault(ssh_dest, []).append(p["id"])
+
+        results = []
+        for ssh_dest, plan_ids in peer_plans.items():
+            try:
+                _ssh(ssh_dest,
+                     "sqlite3 ~/.claude/data/dashboard.db "
+                     "'PRAGMA wal_checkpoint(TRUNCATE);'", timeout=8)
+                tmp = f"/tmp/remote-db-{ssh_dest}.db"
+                r = subprocess.run(
+                    ["scp"] + SSH_OPTS +
+                    [f"{ssh_dest}:~/.claude/data/dashboard.db", tmp],
+                    capture_output=True, text=True, timeout=60,
+                )
+                if r.returncode == 0:
+                    for pid in plan_ids:
+                        _merge_plan_status(pid, tmp)
+                    os.unlink(tmp)
+                    results.append({"peer": ssh_dest, "plans": plan_ids, "ok": True})
+                else:
+                    results.append({"peer": ssh_dest, "plans": plan_ids, "ok": False,
+                                    "error": "scp failed"})
+            except Exception as e:
+                results.append({"peer": ssh_dest, "plans": plan_ids, "ok": False,
+                                "error": str(e)[:60]})
+
+        self._json_response({"synced": results, "count": len(results)})
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")

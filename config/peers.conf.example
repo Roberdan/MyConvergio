@@ -1,0 +1,22 @@
+# Peer Registry Configuration
+# Copy to ~/.claude/config/peers.conf and populate with your hosts.
+
+[my-coordinator]
+ssh_alias=my-mac.tailnet.ts.net
+user=myuser
+os=macos
+tailscale_ip=100.x.x.x
+capabilities=claude,copilot,ollama
+role=coordinator
+status=active
+mac_address=
+
+[my-worker-linux]
+ssh_alias=my-linux.tailnet.ts.net
+user=ubuntu
+os=linux
+tailscale_ip=100.x.x.x
+capabilities=claude,copilot
+role=worker
+status=active
+mac_address=

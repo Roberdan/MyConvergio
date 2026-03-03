@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  mesh-heartbeat.plist.template — launchd service for mesh-heartbeat daemon (macOS)
+
+  Installation:
+    export CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
+    envsubst < config/mesh-heartbeat.plist.template \
+      > ~/Library/LaunchAgents/com.claude.mesh-heartbeat.plist
+    launchctl load ~/Library/LaunchAgents/com.claude.mesh-heartbeat.plist
+
+  Variables (set before envsubst or edit manually):
+    CLAUDE_HOME   — path to .claude directory (default: $HOME/.claude)
+    USER          — your macOS username (set by shell automatically)
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.claude.mesh-heartbeat</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>${CLAUDE_HOME}/scripts/mesh-heartbeat.sh</string>
+    <string>start</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CLAUDE_HOME</key>
+    <string>${CLAUDE_HOME}</string>
+    <key>HOME</key>
+    <string>/Users/${USER}</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>${CLAUDE_HOME}/data/mesh-heartbeat-launchd.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>${CLAUDE_HOME}/data/mesh-heartbeat-launchd.log</string>
+
+  <key>StartInterval</key>
+  <integer>30</integer>
+</dict>
+</plist>

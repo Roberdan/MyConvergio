@@ -458,6 +458,10 @@ def api_preflight_sse(handler, qs: dict):
     # Announce start
     _send("start", {"plan_id": plan_id, "target": target, "total_checks": 6})
 
+    # Resolve SSH alias from peers.conf (peer_name → ssh_alias)
+    pc = _find_peer_conf(target)
+    ssh_dest = pc.get("ssh_alias", target) if pc else target
+
     # 1. Plan exists and is active
     _send("checking", {"name": "Plan status"})
     plan = query_one(
@@ -478,7 +482,7 @@ def api_preflight_sse(handler, qs: dict):
     ssh_err = ""
     try:
         r = subprocess.run(
-            ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", target, "echo ok"],
+            ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest, "echo ok"],
             capture_output=True, text=True, timeout=8,
         )
         reachable = r.returncode == 0
@@ -488,8 +492,9 @@ def api_preflight_sse(handler, qs: dict):
         ssh_err = "Connection timed out after 8s"
     except OSError as e:
         ssh_err = str(e)[:80]
+    ssh_label = f"{target} via {ssh_dest}" if ssh_dest != target else target
     _check("SSH reachable", reachable,
-           f"{target} ✓" if reachable else f"{target} — {ssh_err}")
+           f"{ssh_label} ✓" if reachable else f"{ssh_label} — {ssh_err}")
 
     # Detect target OS from peers.conf for cross-platform commands
     target_os = "unknown"
@@ -525,7 +530,7 @@ def api_preflight_sse(handler, qs: dict):
             git_remote_cmd = "git -C $HOME/.claude log --oneline -1" if target_os != "windows" \
                 else "git -C %USERPROFILE%\\.claude log --oneline -1"
             remote = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", target,
+                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest,
                  git_remote_cmd],
                 capture_output=True, text=True, timeout=8,
             )
@@ -549,7 +554,7 @@ def api_preflight_sse(handler, qs: dict):
             else:
                 check_cmd = "which claude >/dev/null 2>&1 && claude --version 2>/dev/null || echo missing"
             r = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", target, check_cmd],
+                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest, check_cmd],
                 capture_output=True, text=True, timeout=15,
             )
             has_claude = "missing" not in r.stdout and r.returncode == 0
@@ -572,7 +577,7 @@ def api_preflight_sse(handler, qs: dict):
                 "print(u.free//(1024**3))\" 2>/dev/null || echo -1"
             )
             r = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", target, disk_cmd],
+                ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", ssh_dest, disk_cmd],
                 capture_output=True, text=True, timeout=10,
             )
             free_gb = int(r.stdout.strip().split("\n")[-1])
@@ -837,6 +842,7 @@ class Handler(SimpleHTTPRequestHandler):
             _send("log", f"✗ Peer '{peer}' not found in peers.conf")
             _send("done", json.dumps({"ok": False, "message": "Peer not found"}))
             return
+        ssh_dest = pc.get("ssh_alias", peer)
 
         if action == "wake":
             label = "Wake-on-LAN"
@@ -865,7 +871,7 @@ class Handler(SimpleHTTPRequestHandler):
                     try:
                         r = subprocess.run(
                             ["ssh", "-o", "ConnectTimeout=3", "-o", "BatchMode=yes",
-                             peer, "echo ok"],
+                             ssh_dest, "echo ok"],
                             capture_output=True, text=True, timeout=5,
                         )
                         if r.returncode == 0:
@@ -892,7 +898,7 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 r = subprocess.run(
                     ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
-                     peer, "echo ok"],
+                     ssh_dest, "echo ok"],
                     capture_output=True, text=True, timeout=8,
                 )
                 if r.returncode != 0:
@@ -921,7 +927,7 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 r = subprocess.run(
                     ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
-                     peer, reboot_cmd],
+                     ssh_dest, reboot_cmd],
                     capture_output=True, text=True, timeout=10,
                 )
                 output = (r.stdout + r.stderr).strip()
@@ -938,7 +944,7 @@ class Handler(SimpleHTTPRequestHandler):
                     try:
                         r2 = subprocess.run(
                             ["ssh", "-o", "ConnectTimeout=3", "-o", "BatchMode=yes",
-                             peer, "echo ok"],
+                             ssh_dest, "echo ok"],
                             capture_output=True, text=True, timeout=5,
                         )
                         if r2.returncode == 0:

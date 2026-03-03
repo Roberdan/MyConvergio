@@ -448,7 +448,24 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
     # 12. Auto-launch: create tmux window inside Convergio and run /execute
     log(f"▶ Launching plan #{plan_id} on {target}")
     window_name = f"plan-{plan_id}"
-    # Detect which CLI is available on target (copilot preferred, claude fallback)
+
+    # Get worktree path for the plan
+    worktree = _sql(
+        f"SELECT COALESCE(worktree_path,'') FROM plans WHERE id={plan_id};"
+    )
+    # Resolve ~ to remote home
+    work_dir = worktree or "~/.claude"
+    if work_dir.startswith("~") and info.get("worktree"):
+        # Use remapped path if available
+        try:
+            r = _ssh(ssh_target, "echo $HOME", timeout=5)
+            remote_home = r.stdout.strip()
+            if remote_home:
+                work_dir = work_dir.replace("~", remote_home)
+        except Exception:
+            pass
+
+    # Detect which CLI is available on target (copilot preferred)
     try:
         r = _ssh(ssh_target,
                  "export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
@@ -463,24 +480,26 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
         log(f"  ⚠ No CLI found on target — plan transferred but needs manual /execute")
     else:
         cli_cmd = "copilot" if cli == "COPILOT" else "claude --model sonnet"
-        launch_cmd = f"cd ~/.claude && {cli_cmd} -p '/execute {plan_id}'"
+        launch_cmd = f"cd {work_dir} 2>/dev/null || cd ~/.claude; {cli_cmd} -p '/execute {plan_id}'"
         try:
-            # Ensure Convergio session exists, then create plan window
+            # Create window, then send-keys + Enter (reliable via SSH BatchMode)
             _ssh(ssh_target,
                  f"tmux new-session -A -d -s Convergio 2>/dev/null; "
-                 f"tmux new-window -t Convergio -n '{window_name}' "
-                 f"'{launch_cmd}'",
+                 f"tmux new-window -t Convergio -n '{window_name}'; "
+                 f"sleep 0.5; "
+                 f"tmux send-keys -t Convergio:{window_name} "
+                 f"'{launch_cmd}' Enter",
                  timeout=10)
-            # Verify window was created
             r = _ssh(ssh_target,
                      f"tmux list-windows -t Convergio -F '#{{window_name}}' 2>/dev/null",
                      timeout=5)
             if window_name in r.stdout:
-                log(f"  ✓ tmux Convergio:{window_name} → running {cli_cmd}")
+                log(f"  ✓ Convergio:{window_name} → {cli_cmd}")
+                log(f"  ✓ Working dir: {work_dir}")
             else:
-                log(f"  ⚠ Window created but not confirmed — check with: tlm / tlx")
+                log(f"  ⚠ Window not confirmed — check with: tlm / tlx")
         except Exception as e:
-            log(f"  ⚠ Launch failed: {str(e)[:60]} — run manually: /execute {plan_id}")
+            log(f"  ⚠ Launch failed: {str(e)[:60]}")
 
     return True, f"Plan #{plan_id} handed off to {target}"
 

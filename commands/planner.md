@@ -1,6 +1,6 @@
 ---
 name: planner
-version: "2.6.1"
+version: "v2.6.1"
 model: opus
 ---
 

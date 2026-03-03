@@ -51,8 +51,8 @@ alias lines='tokei'
 alias bench='hyperfine'
 
 # === Claude dashboard shortcuts ===
-alias piani='~/.claude/scripts/dashboard-mini.sh'
-alias dashboard='~/.claude/scripts/dashboard-mini.sh'
+alias piani='open http://localhost:8420'
+alias dashboard='open http://localhost:8420'
 alias pianits='~/.claude/scripts/pianits'
 
 # === Repo info (for Claude context) ===

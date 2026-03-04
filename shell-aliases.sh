@@ -35,7 +35,7 @@ alias ccw='claude --dangerously-skip-permissions'
 
 # === Copilot CLI shortcuts ===
 alias cop='copilot'
-alias copy='copilot --yolo'
+alias cpy='copilot --yolo'
 alias copr='copilot --resume'
 
 # === Quick search functions ===
@@ -56,8 +56,15 @@ alias lines='tokei'
 alias bench='hyperfine'
 
 # === Claude dashboard shortcuts ===
-alias piani='open http://localhost:8420'
-alias dashboard='open http://localhost:8420'
+unalias piani 2>/dev/null; unalias dashboard 2>/dev/null
+piani() {
+  if ! lsof -i :8420 -sTCP:LISTEN &>/dev/null; then
+    nohup python3 ~/.claude/scripts/dashboard_web/server.py &>/dev/null &
+    sleep 1
+  fi
+  open http://localhost:8420
+}
+alias dashboard='piani'
 alias pianits='~/.claude/scripts/pianits'
 
 # === Repo info (for Claude context) ===

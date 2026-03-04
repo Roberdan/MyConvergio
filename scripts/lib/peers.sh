@@ -93,7 +93,7 @@ peers_check() {
 	[[ -z "$target" ]] && return 1
 	user="$(_peers_get_raw "$name" "user")"
 	dest="${user:+${user}@}${target}"
-	ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+	ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
 		-o BatchMode=yes -o LogLevel=quiet "$dest" true >/dev/null 2>&1
 }
 

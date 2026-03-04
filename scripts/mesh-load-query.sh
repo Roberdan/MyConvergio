@@ -159,7 +159,7 @@ _query_peer() {
 	dest="${user:+${user}@}${target}"
 
 	local raw
-	if ! raw="$(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+	if ! raw="$(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
 		-o BatchMode=yes -o LogLevel=quiet \
 		"$dest" "bash -s" <<<"$(_remote_cmd)" 2>/dev/null)"; then
 		_write_offline "$name" "$caps" "$cost_tier" "$privacy_safe" "$result_file"

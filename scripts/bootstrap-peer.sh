@@ -71,7 +71,7 @@ PEER_HOST="$(peers_best_route "$PEER_NAME" 2>/dev/null)" || {
 PEER_USER="$(peers_get "$PEER_NAME" "user" 2>/dev/null || true)"
 PEER_DEST="${PEER_USER:+${PEER_USER}@}${PEER_HOST}"
 
-_ssh() { ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$PEER_DEST" "$@"; }
+_ssh() { ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$PEER_DEST" "$@"; }
 
 # ---- step 1: verify SSH reachability ----------------------------------------
 _log "Step 1: Checking SSH connectivity to $PEER_DEST..."

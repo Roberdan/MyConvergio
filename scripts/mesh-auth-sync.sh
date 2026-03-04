@@ -109,7 +109,7 @@ push_peer() {
 	local dest
 	dest="$(peer_dest "$name")" || return 1
 
-	if ! ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+	if ! ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
 		-o LogLevel=quiet "$dest" true &>/dev/null; then
 		err "[$name] Peer unreachable"
 		return 1
@@ -155,7 +155,7 @@ status_peer() {
 		return
 	}
 
-	if ! ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+	if ! ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
 		-o LogLevel=quiet "$dest" true &>/dev/null; then
 		printf "%-20s OFFLINE\n" "$name"
 		return

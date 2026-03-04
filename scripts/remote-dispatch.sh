@@ -111,7 +111,7 @@ fi
 PEER_HOST="$(peers_best_route "$PEER_NAME")" || _die "No route to peer '$PEER_NAME'"
 PEER_USER="$(_peers_get_raw "$PEER_NAME" "user")"
 SSH_DEST="${PEER_USER:+${PEER_USER}@}${PEER_HOST}"
-SSH_OPTS=(-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10)
+SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=10)
 
 # ── Step 3: Record start in local DB ─────────────────────────────────────────
 START_TS="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"

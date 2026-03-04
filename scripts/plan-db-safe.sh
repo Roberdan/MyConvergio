@@ -262,7 +262,7 @@ except: pass
 				# Skip non-executable verify criteria (prose descriptions)
 				[[ "$vcmd" != *"/"* && "$vcmd" != *"."* && "$vcmd" != *"$"* ]] && continue
 				echo "[plan-db-safe] Running verify: $vcmd" >&2
-				if ! eval "$vcmd" >/dev/null 2>&1; then
+				if ! bash -c "$vcmd" >/dev/null 2>&1; then
 					echo "REJECTED: Verify command failed: $vcmd" >&2
 					verify_failures=$((verify_failures + 1))
 				fi

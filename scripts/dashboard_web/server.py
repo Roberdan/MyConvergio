@@ -28,6 +28,21 @@ PORT = 8420
 ALLOWED_ORIGINS = {f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"}
 _SAFE_NAME = re.compile(r"^[a-zA-Z0-9_.-]+$")
 
+# Allowlisted base commands for the terminal API (SEC-001)
+_TERMINAL_ALLOWED_CMDS = {
+    "ls", "cat", "head", "tail", "grep", "find", "df", "du", "free", "uptime",
+    "ps", "top", "uname", "hostname", "whoami", "date", "wc", "sort", "uniq",
+    "echo", "pwd", "id", "which", "file", "stat", "mount", "env", "printenv",
+    "journalctl", "systemctl", "docker", "git", "sqlite3",
+    "python3", "python", "node", "npm", "npx", "pip",
+    "plan-db.sh", "plan-db-safe.sh", "git-digest.sh", "diff-digest.sh",
+    "test-digest.sh", "build-digest.sh", "service-digest.sh", "db-digest.sh",
+    "mesh-sync-all.sh", "mesh-heartbeat.sh", "mesh-auth-sync.sh",
+    "mesh-load-query.sh", "copilot-worker.sh", "claude", "copilot",
+    "ssh", "scp", "rsync", "ping", "curl", "wget", "dig", "nslookup",
+    "brew", "apt", "htop", "lsof", "netstat", "ss", "ip",
+}
+
 
 def query(sql: str, params: tuple = ()) -> list[dict]:
     try:
@@ -1165,16 +1180,22 @@ class Handler(SimpleHTTPRequestHandler):
         peer = qs.get("peer", [""])[0]
         if not cmd:
             return {"output": "", "exit_code": 1}
+        try:
+            args = shlex.split(cmd)
+        except ValueError as e:
+            return {"output": f"Invalid command syntax: {e}", "exit_code": 1}
+        if not args:
+            return {"output": "", "exit_code": 1}
+        base_cmd = Path(args[0]).name
+        if base_cmd not in _TERMINAL_ALLOWED_CMDS:
+            return {"output": f"Command not allowed: {base_cmd}", "exit_code": 1}
         if peer and peer != "local":
             if not _SAFE_NAME.match(peer):
                 return {"output": "Invalid peer name", "exit_code": 1}
-            full = f"ssh {shlex.quote(peer)} {shlex.quote(cmd)}"
-        else:
-            full = cmd
+            args = ["ssh", peer] + args
         try:
             r = subprocess.run(
-                full,
-                shell=True,
+                args,
                 capture_output=True,
                 text=True,
                 timeout=60,
@@ -1187,6 +1208,8 @@ class Handler(SimpleHTTPRequestHandler):
             return {"output": (r.stdout + r.stderr)[:10000], "exit_code": r.returncode}
         except subprocess.TimeoutExpired:
             return {"output": "Timeout (60s)", "exit_code": 1}
+        except FileNotFoundError:
+            return {"output": f"Command not found: {args[0]}", "exit_code": 1}
 
     def _handle_plan_move(self, qs: dict) -> dict:
         plan_id = qs.get("plan_id", [""])[0]
@@ -1456,6 +1479,13 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Pragma", "no-cache")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+            "connect-src 'self' ws://localhost:* ws://127.0.0.1:*; "
+            "font-src 'self'; frame-ancestors 'none'",
+        )
         super().end_headers()
 
     def log_message(self, fmt, *args):

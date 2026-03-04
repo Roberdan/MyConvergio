@@ -40,6 +40,8 @@ source "$SCRIPT_DIR/lib/plan-db-cluster.sh"
 source "$SCRIPT_DIR/lib/plan-db-remote.sh"
 source "$SCRIPT_DIR/lib/plan-db-delegate.sh"
 source "$SCRIPT_DIR/lib/plan-db-intelligence.sh"
+# Knowledge Base module
+[[ -f "$SCRIPT_DIR/lib/plan-db-knowledge.sh" ]] && source "$SCRIPT_DIR/lib/plan-db-knowledge.sh"
 
 # Host identification for cross-machine tracking
 export PLAN_DB_HOST="${PLAN_DB_HOST:-$(hostname -s 2>/dev/null || hostname)}"
@@ -124,6 +126,13 @@ add-actuals) cmd_add_actuals "${2:?plan_id required}" "${@:3}" ;;
 estimate-tokens) cmd_estimate_tokens "${2:?plan_id required}" "${3:?scope required}" "${4:?scope_id required}" "${5:?est_tokens required}" "${@:6}" ;;
 update-token-actuals) cmd_update_token_actuals "${2:?estimate_id required}" "${3:?actual_tokens required}" "${@:4}" ;;
 calibrate-estimates) cmd_calibrate_estimates "${2:-}" ;;
+    kb-write) shift; kb_write "$@" ;;
+    kb-search) shift; kb_search "$@" ;;
+    kb-hit) shift; kb_hit "$@" ;;
+    skill-earn) shift; skill_earn "$@" ;;
+    skill-list) shift; skill_list "$@" ;;
+    skill-promote) shift; skill_promote "$@" ;;
+    skill-bump) shift; skill_bump "$@" ;;
 *)
 	echo "[ERROR] Unknown command: '${1:-}'" >&2
 	echo "" >&2
@@ -185,6 +194,15 @@ calibrate-estimates) cmd_calibrate_estimates "${2:-}" ;;
 	echo "  json <plan_id>                 Plan as JSON"
 	echo "  kanban-json                    Kanban as JSON"
 	echo "  execution-tree <plan_id>       Show execution tree with statuses"
+echo ""
+echo "Knowledge Base:"
+echo "  kb-write <domain> <title> <content> [opts]  Write to KB"
+echo "  kb-search <query> [--domain] [--limit N]    Search KB (LIKE)"
+echo "  kb-hit <id>                                  Record KB hit"
+echo "  skill-earn <name> <domain> <content> [opts]  Earn a skill"
+echo "  skill-list [--domain] [--min-confidence lvl]  List skills"
+echo "  skill-promote <name>                          Promote to SKILL.md"
+echo "  skill-bump <name>                             Increase confidence"
 	echo ""
 	echo "Concurrency:"
 	echo "  lock acquire|release|check|list|cleanup  File-level locking"

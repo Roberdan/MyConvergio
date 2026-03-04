@@ -120,6 +120,7 @@ async function refreshAll() {
   if (models) renderModelChart(models);
   if (mesh) {
     renderMeshStrip(mesh);
+    renderEventFeed();
     fetch("/api/mesh/sync-status")
       .then((r) => r.json())
       .then(applyMeshSyncBadges)
@@ -835,6 +836,42 @@ function applyMeshSyncBadges(items) {
   });
 }
 
+// Event Feed Widget
+async function renderEventFeed() {
+  const el = $('#event-feed-content');
+  if (!el) return;
+  try {
+    const events = await fetchJson('/api/events');
+    if (!events || !events.length) {
+      el.innerHTML = '<span style="color:var(--text-dim);font-size:11px">No events yet</span>';
+      return;
+    }
+    const icons = {plan_completed:'✓',wave_completed:'◈',human_needed:'⚠',node_offline:'✗',task_status_changed:'◉'};
+    const colors = {plan_completed:'var(--green)',wave_completed:'var(--cyan)',human_needed:'var(--gold)',node_offline:'var(--red)',task_status_changed:'var(--text-dim)'};
+    el.innerHTML = events.slice(0, 15).map(e => {
+      const icon = icons[e.event_type] || '•';
+      const color = colors[e.event_type] || 'var(--text-dim)';
+      const age = e.created_at ? _timeAgo(e.created_at) : '';
+      const click = e.plan_id ? ` onclick="location.hash='#plan/${e.plan_id}'"` : '';
+      return `<div class="event-row"${click} style="cursor:${e.plan_id ? 'pointer' : 'default'}">
+        <span style="color:${color};font-weight:600;width:16px">${icon}</span>
+        <span class="event-type">${esc(e.event_type.replace(/_/g,' '))}</span>
+        <span class="event-peer">${esc(e.source_peer || '')}</span>
+        ${e.plan_id ? `<span class="event-plan">#${e.plan_id}</span>` : ''}
+        <span class="event-age">${age}</span>
+      </div>`;
+    }).join('');
+  } catch(_) { el.innerHTML = '<span style="color:var(--text-dim)">Error loading events</span>'; }
+}
+function _timeAgo(ts) {
+  const now = Math.floor(Date.now()/1000);
+  const d = now - ts;
+  if (d < 60) return d + 's';
+  if (d < 3600) return Math.floor(d/60) + 'm';
+  if (d < 86400) return Math.floor(d/3600) + 'h';
+  return Math.floor(d/86400) + 'd';
+}
+
 // --- HISTORY ---
 function renderHistory(plans) {
   $("#history-list").innerHTML = plans
@@ -1083,6 +1120,57 @@ window.changeRefresh = function (dir) {
   );
   applyRefresh();
 };
+
+// Deep link hash router
+function handleHashRoute() {
+  const hash = location.hash;
+  if (!hash) return;
+  const planMatch = hash.match(/^#plan\/(\d+)/);
+  if (planMatch) {
+    const planId = parseInt(planMatch[1]);
+    filterTasks(planId);
+    const card = document.querySelector(`.mission-plan[onclick*="${planId}"]`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('highlight-pulse');
+      setTimeout(() => card.classList.remove('highlight-pulse'), 3000);
+    }
+  }
+}
+window.addEventListener('hashchange', handleHashRoute);
+setTimeout(handleHashRoute, 1500);
+
+// Notification polling + toasts
+let _notifLastId = 0;
+async function pollNotifications() {
+  try {
+    const data = await fetchJson('/api/notifications');
+    if (!data || !data.length) return;
+    data.forEach(n => {
+      if (n.id > _notifLastId) {
+        _notifLastId = n.id;
+        showToast(n.title, n.message, n.link, n.type);
+      }
+    });
+  } catch (_) {}
+}
+function showToast(title, msg, link, type) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type || 'info'}`;
+  const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+  toast.innerHTML = `<div class="toast-title">${esc(title)}</div><div class="toast-msg">${esc(msg || '')}</div>`;
+  if (link) toast.style.cursor = 'pointer';
+  toast.addEventListener('click', () => { if (link) location.hash = link.replace(/.*#/, '#'); toast.remove(); });
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 8000);
+}
+setInterval(pollNotifications, 30000);
 
 // --- INIT ---
 updateClock();

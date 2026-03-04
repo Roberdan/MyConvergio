@@ -448,6 +448,13 @@ def api_assignable_plans() -> list[dict]:
     )
 
 
+def api_notifications() -> list[dict]:
+    return query(
+        "SELECT id, type, title, message, link, link_type, is_read, created_at"
+        " FROM notifications WHERE is_read=0 ORDER BY created_at DESC LIMIT 20"
+    )
+
+
 def api_preflight_sse(handler, qs: dict):
     """SSE endpoint: stream pre-delegation checks with auto-fix via rsync."""
     plan_id = qs.get("plan_id", [""])[0]
@@ -796,6 +803,44 @@ def api_tasks_blocked() -> list[dict]:
     )
 
 
+def api_events() -> list[dict]:
+    return query(
+        "SELECT id, event_type, plan_id, source_peer, payload, status, created_at"
+        " FROM mesh_events ORDER BY created_at DESC LIMIT 50"
+    )
+
+
+def api_coordinator_status() -> dict:
+    pid_file = Path.home() / ".claude" / "data" / "mesh-coordinator.pid"
+    running = False
+    pid = ""
+    if pid_file.exists():
+        pid = pid_file.read_text().strip()
+        if pid:
+            try:
+                os.kill(int(pid), 0)
+                running = True
+            except (OSError, ValueError):
+                pass
+    pending = query_one(
+        "SELECT COUNT(*) AS c FROM mesh_events WHERE status='pending'"
+    ) or {"c": 0}
+    return {"running": running, "pid": pid, "pending_events": pending["c"]}
+
+
+def api_coordinator_toggle() -> dict:
+    scripts = Path.home() / ".claude" / "scripts"
+    status = api_coordinator_status()
+    if status["running"]:
+        subprocess.run([str(scripts / "mesh-coordinator.sh"), "stop"],
+                      capture_output=True, timeout=10)
+        return {"action": "stopped", "ok": True}
+    else:
+        subprocess.run([str(scripts / "mesh-coordinator.sh"), "start"],
+                      capture_output=True, timeout=10)
+        return {"action": "started", "ok": True}
+
+
 ROUTES = {
     "/api/overview": api_overview,
     "/api/mission": api_mission,
@@ -807,6 +852,10 @@ ROUTES = {
     "/api/tasks/distribution": api_task_status_dist,
     "/api/tasks/blocked": api_tasks_blocked,
     "/api/plans/assignable": api_assignable_plans,
+    "/api/notifications": api_notifications,
+    "/api/events": api_events,
+    "/api/coordinator/status": api_coordinator_status,
+    "/api/coordinator/toggle": api_coordinator_toggle,
 }
 
 
@@ -830,6 +879,10 @@ class Handler(SimpleHTTPRequestHandler):
         qs = parse_qs(parsed.query)
         if path in ROUTES:
             self._json_response(ROUTES[path]())
+        elif path == "/api/coordinator/status":
+            self._json_response(api_coordinator_status())
+        elif path == "/api/coordinator/toggle":
+            self._json_response(api_coordinator_toggle())
         elif path == "/api/mesh/action":
             self._json_response(self._handle_mesh_action(qs))
         elif path == "/api/mesh/action/stream":

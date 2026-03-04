@@ -180,6 +180,28 @@ else
 	log_info "plans.worktree_path already exists"
 fi
 
+# Migration 7: Add mesh_events table
+if ! table_exists "mesh_events"; then
+	log_info "Adding mesh_events table..."
+	sqlite3 "$DB_PATH" <<'SQL'
+CREATE TABLE IF NOT EXISTS mesh_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_type TEXT NOT NULL,
+  plan_id INTEGER,
+  source_peer TEXT NOT NULL,
+  payload TEXT,
+  status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'delivered', 'acknowledged')),
+  created_at INTEGER DEFAULT (unixepoch()),
+  delivered_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_mesh_events_pending ON mesh_events(status, created_at) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_mesh_events_plan ON mesh_events(plan_id, event_type);
+SQL
+	log_info "mesh_events table created"
+else
+	log_info "mesh_events table already exists"
+fi
+
 # Verify database integrity
 log_info "Verifying database integrity..."
 integrity=$(sqlite3 "$DB_PATH" "PRAGMA integrity_check;")

@@ -239,6 +239,20 @@ CREATE TABLE IF NOT EXISTS notifications (
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
+-- Mesh event queue for worker→coordinator communication
+CREATE TABLE IF NOT EXISTS mesh_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_type TEXT NOT NULL,
+  plan_id INTEGER,
+  source_peer TEXT NOT NULL,
+  payload TEXT,
+  status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'delivered', 'acknowledged')),
+  created_at INTEGER DEFAULT (unixepoch()),
+  delivered_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_mesh_events_pending ON mesh_events(status, created_at) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_mesh_events_plan ON mesh_events(plan_id, event_type);
+
 -- Conversation logs for tracking agent interactions
 CREATE TABLE IF NOT EXISTS conversation_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

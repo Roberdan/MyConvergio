@@ -33,6 +33,11 @@ alias ccc='claude --continue'
 alias ccr='claude --resume'
 alias ccw='claude --dangerously-skip-permissions'
 
+# === Copilot CLI shortcuts ===
+alias cop='copilot'
+alias copy='copilot --yolo'
+alias copr='copilot --resume'
+
 # === Quick search functions ===
 # fd + fzf for interactive file finding
 ff() {

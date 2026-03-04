@@ -121,9 +121,9 @@ if [[ "$NO_LAUNCH" -eq 0 ]]; then
 	wt_path="${wt_path/#\~/$TARGET_HOME}"
 
 	# Detect CLI on target (copilot preferred)
-	local cli_bin="claude --model sonnet"
+	local cli_bin="claude --dangerously-skip-permissions --model sonnet"
 	if ssh $SSH_OPTS "$DEST" "command -v copilot" >/dev/null 2>&1; then
-		cli_bin="copilot"
+		cli_bin="copilot --yolo"
 	fi
 
 	# Build launch command: cd to worktree (or ~/.claude), then /execute

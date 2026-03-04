@@ -129,6 +129,30 @@ async function refreshAll() {
   if (dist) renderDist(dist);
   renderActivity(mission, mesh);
   $("#last-update").textContent = "Updated: " + new Date().toLocaleTimeString();
+
+  // Auto-pull DB from remote nodes with active plans (every refresh, transparent)
+  _pullRemoteDb();
+}
+
+let _pullInProgress = false;
+async function _pullRemoteDb() {
+  if (_pullInProgress) return;
+  _pullInProgress = true;
+  try {
+    const r = await fetchJson("/api/mesh/pull-db");
+    if (r && r.count > 0) {
+      const ok = r.synced.filter((s) => s.ok).length;
+      if (ok > 0) {
+        const badge = document.getElementById("sync-badge");
+        if (badge) {
+          badge.textContent = `↓ ${ok} synced`;
+          badge.style.display = "inline";
+          setTimeout(() => { badge.style.display = "none"; }, 3000);
+        }
+      }
+    }
+  } catch (_) {}
+  _pullInProgress = false;
 }
 
 // --- KPI ---
@@ -190,17 +214,25 @@ function _renderOnePlan(m) {
           : "var(--red)";
   const doneTasks = p.tasks_done || 0;
   const totalTasks = p.tasks_total || 0;
+  const hostName = p.execution_peer || _resolveHost(p.execution_host);
+  const isRemote = hostName && hostName !== "local" && hostName !== "m3max";
   const blockedCount = (m.tasks || []).filter(
     (t) => t.status === "blocked",
   ).length;
   const inProgCount = (m.tasks || []).filter(
     (t) => t.status === "in_progress",
   ).length;
+  const nodeLabel = isRemote
+    ? `<span class="host-badge-prominent">${esc(hostName)}</span>`
+    : hostName && hostName !== "local"
+      ? `<span class="host-badge-local">${esc(hostName)}</span>`
+      : "";
   let html = `<div class="mission-plan" onclick="filterTasks(${p.id})">
     <div style="margin-bottom:6px">
       <span class="mission-id">#${p.id}</span>
       <span class="mission-name">&nbsp;${esc(p.name)}</span>
       ${statusDot(p.status === "doing" ? "in_progress" : p.status)}
+      ${nodeLabel}
       ${p.parallel_mode ? `<span class="badge badge-doing">${p.parallel_mode}</span>` : ""}
       ${p.project_name ? `<span class="badge badge-project">${esc(p.project_name)}</span>` : ""}
       <button class="mission-delegate-btn" onclick="event.stopPropagation();showDelegatePlanDialog(${p.id},'${esc(p.name)}')" title="Delegate to mesh node">
@@ -218,7 +250,6 @@ function _renderOnePlan(m) {
       <div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);margin-top:2px">
         <span>${inProgCount > 0 ? `<span style="color:var(--gold)">${inProgCount} running</span>` : ""}</span>
         <span>${blockedCount > 0 ? `<span style="color:var(--red)">${blockedCount} blocked</span>` : ""}</span>
-        <span class="host-badge" style="font-size:9px;padding:0 6px">${esc(p.execution_peer || _resolveHost(p.execution_host))}</span>
       </div>
     </div>
   </div>`;

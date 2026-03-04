@@ -1,0 +1,241 @@
+  position: relative;
+}
+.mission-progress-fill::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2));
+  animation: progressShine 2s ease-in-out infinite;
+}
+@keyframes progressShine {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Live task flow */
+.live-flow-section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(26, 32, 64, 0.5);
+}
+.task-flow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 10px;
+}
+.task-flow-id {
+  color: var(--cyan);
+  font-weight: 600;
+  min-width: 48px;
+}
+.task-flow-agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 80px;
+}
+.agent-claude {
+  background: rgba(255, 45, 170, 0.12);
+  color: var(--magenta);
+  border: 1px solid rgba(255, 45, 170, 0.3);
+}
+.agent-copilot {
+  background: rgba(0, 229, 255, 0.1);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+}
+.task-flow-agent-icon {
+  font-size: 11px;
+}
+.task-flow-model {
+  opacity: 0.6;
+  font-size: 10px;
+  font-weight: 400;
+}
+.task-flow-pipe {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+.flow-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.flow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1.5px solid var(--text-dim);
+  transition: all 0.3s;
+}
+.step-done .flow-dot {
+  background: var(--green);
+  border-color: var(--green);
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.4);
+}
+.step-active .flow-dot {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(255, 183, 0, 0.5);
+  animation: flowPulse 1.2s ease-in-out infinite;
+}
+.step-pending .flow-dot {
+  opacity: 0.4;
+}
+.flow-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.step-active .flow-label {
+  color: var(--gold);
+  font-weight: 600;
+}
+.step-done .flow-label {
+  color: var(--green);
+}
+.flow-conn {
+  flex: 1;
+  height: 2px;
+  min-width: 12px;
+  max-width: 40px;
+  background: var(--border);
+  margin: 0 2px;
+  margin-bottom: 12px;
+  border-radius: 1px;
+  position: relative;
+}
+.conn-done {
+  background: var(--green);
+  box-shadow: 0 0 4px rgba(0, 255, 136, 0.3);
+}
+.conn-active {
+  background: linear-gradient(90deg, var(--green), var(--gold));
+  overflow: hidden;
+}
+.conn-active::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -100%;
+  width: 60%;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 183, 0, 0.6),
+    transparent
+  );
+  animation: flowStream 1.5s linear infinite;
+}
+@keyframes flowPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.4);
+  }
+}
+@keyframes flowStream {
+  0% {
+    left: -60%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.footer {
+  padding: 10px 24px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-deep);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cyan);
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* Peer Actions Dropdown */
+.peer-actions {
+  background: var(--bg-card);
+  border: 1px solid var(--cyan);
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 160px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 16px rgba(0, 229, 255, 0.1);
+  animation: fadeIn 0.15s ease-out;
+}
+.pa-item {
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.pa-item:hover {
+  background: rgba(0, 229, 255, 0.1);
+  color: var(--cyan);
+}
+

@@ -5,13 +5,13 @@ set -euo pipefail
 # VALIDATE-THEN-DONE: Validation runs BEFORE marking done (blocking, no bypass flags).
 # CIRCUIT BREAKER: Auto-blocks tasks after MAX_REJECTIONS consecutive Thor rejections.
 # Version: 4.0.0
-set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_FILE="$HOME/.claude/data/dashboard.db"
 DATA_DIR="$HOME/.claude/data"
 AUDIT_LOG="$DATA_DIR/thor-audit.jsonl"
 REJECTION_COUNTER_DIR="$DATA_DIR/rejection-counters"
+source "$SCRIPT_DIR/plan-db-verify.sh"
 
 # Circuit breaker configuration
 MAX_REJECTIONS="${MAX_REJECTIONS:-3}"
@@ -132,147 +132,11 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 
 	# ======================================================================
 	# PROOF-OF-WORK GATE (v3.4.0): Verify ACTUAL changes before marking done
-	# Without this, agents can call plan-db-safe.sh done without doing work.
 	# ======================================================================
-	task_id_str=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
-		"SELECT task_id FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "unknown")
-	task_files=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
-		"SELECT files FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
-	task_effort=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
-		"SELECT COALESCE(effort, 2) FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "2")
-	task_verify=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
-		"SELECT test_criteria FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
-	task_type=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
-		"SELECT COALESCE(type, 'code') FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "code")
-	task_title=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
-		"SELECT COALESCE(title, '') FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
-	task_started=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
-		"SELECT started_at FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
-
-	# --- Guard 1: Time-based sanity check ---
-	if [[ -n "$task_started" ]]; then
-		started_epoch=$(date -d "$task_started" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "$task_started" +%s 2>/dev/null || echo "0")
-		now_epoch=$(date +%s)
-		elapsed=$((now_epoch - started_epoch))
-		min_seconds=60
-		[[ "$task_effort" -ge 2 ]] && min_seconds=120
-		[[ "$task_effort" -ge 3 ]] && min_seconds=300
-		if [[ "$elapsed" -lt "$min_seconds" ]]; then
-			echo "REJECTED: Task $task_id_str completed in ${elapsed}s (min ${min_seconds}s for effort=$task_effort). Suspiciously fast." >&2
-			echo "  If this is a genuine quick fix, wait and retry, or use --force-time flag." >&2
-			# Check for --force-time flag in remaining args
-			force_time=false
-			for arg in "$@"; do [[ "$arg" == "--force-time" ]] && force_time=true; done
-			if [[ "$force_time" == false ]]; then
-				exit 1
-			else
-				echo "WARN: --force-time used, proceeding despite fast completion" >&2
-			fi
-		fi
+	if ! plan_db_safe_verify_task "$TASK_ID" "$plan_id" "$@"; then
+		exit 1
 	fi
-
-	# --- Guard 2: Git-diff proof (code/test/chore tasks must modify files) ---
-	proof_of_work=false
-	if [[ "$task_type" == "doc" || "$task_type" == "docs" ]]; then
-		proof_of_work=true # Doc tasks may not touch code
-	fi
-	# Verification/closure tasks don't produce file changes
-	task_title_lower=$(echo "$task_title" | tr '[:upper:]' '[:lower:]')
-	if [[ "$task_type" == "chore" && "$task_title_lower" == create\ pr* ]]; then
-		proof_of_work=true # PR creation/merge tasks
-	fi
-	if [[ "$task_type" == "test" ]] && [[ "$task_title_lower" == verify* || "$task_title_lower" == consolidate\ and\ verify* || "$task_title_lower" == run\ full\ validation* ]]; then
-		proof_of_work=true # Verification-only tasks
-	fi
-
-	if [[ "$proof_of_work" == false && -n "$plan_id" ]]; then
-		resolve_worktree() {
-			# Try wave worktree first, then plan worktree, then pwd
-			local wt=""
-			local wave_fk=$(sqlite3 "$DB_FILE" "SELECT wave_id_fk FROM tasks WHERE id = $TASK_ID;" 2>/dev/null || echo "")
-			if [[ -n "$wave_fk" ]]; then
-				wt=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM waves WHERE id = $wave_fk;" 2>/dev/null || echo "")
-			fi
-			[[ -z "$wt" || ! -d "$wt" ]] && wt=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM plans WHERE id = $plan_id;" 2>/dev/null || echo "")
-			[[ -z "$wt" || ! -d "$wt" ]] && wt="$(pwd)"
-			echo "$wt"
-		}
-		work_dir=$(resolve_worktree)
-
-		if [[ -d "$work_dir/.git" || -f "$work_dir/.git" ]]; then
-			# Check: uncommitted changes OR recent commits (last 10 min)
-			uncommitted=$(git -C "$work_dir" diff --name-only 2>/dev/null | head -20)
-			staged=$(git -C "$work_dir" diff --cached --name-only 2>/dev/null | head -20)
-			recent_commits=$(git -C "$work_dir" log --since="10 minutes ago" --name-only --pretty=format: 2>/dev/null | sort -u | head -20)
-			all_changed="$uncommitted"$'\n'"$staged"$'\n'"$recent_commits"
-			all_changed=$(echo "$all_changed" | sort -u | grep -v '^$' || true)
-
-			if [[ -z "$all_changed" ]]; then
-				echo "REJECTED: Task $task_id_str has ZERO file changes (no uncommitted, staged, or recent commits in $work_dir)." >&2
-				echo "  You must modify at least one file before marking done." >&2
-				exit 1
-			fi
-
-			# If task has specific files, verify at least one was touched
-			if [[ -n "$task_files" && "$task_files" != "[]" && "$task_files" != "null" ]]; then
-				file_match=false
-				# Parse task_files (JSON array or pipe-separated)
-				file_list=$(echo "$task_files" | tr -d '[]"' | tr ',' '\n' | tr '|' '\n' | sed 's/^ *//;s/ *$//' | grep -v '^$')
-				while IFS= read -r expected_file; do
-					[[ -z "$expected_file" ]] && continue
-					# Check if any changed file matches (partial match for directory patterns)
-					if echo "$all_changed" | grep -q "$expected_file"; then
-						file_match=true
-						break
-					fi
-				done <<<"$file_list"
-				if [[ "$file_match" == false ]]; then
-					echo "REJECTED: Task $task_id_str modified files but NONE match task spec files: $task_files" >&2
-					echo "  Changed: $(echo "$all_changed" | head -5 | tr '\n' ', ')" >&2
-					echo "  Expected: $task_files" >&2
-					exit 1
-				fi
-			fi
-			proof_of_work=true
-			echo "[plan-db-safe] Proof-of-work: $(echo "$all_changed" | wc -l | tr -d ' ') file(s) changed" >&2
-		fi
-	fi
-
-	# --- Guard 3: Run verify commands from test_criteria ---
-	if [[ -n "$task_verify" && "$task_verify" != "[]" && "$task_verify" != "null" ]]; then
-		verify_cmds=$(echo "$task_verify" | python3 -c "
-import json,sys
-try:
-    data = json.load(sys.stdin)
-    if isinstance(data, list):
-        for item in data:
-            if isinstance(item, str) and not item.startswith('No '):
-                print(item)
-    elif isinstance(data, dict):
-        for v in data.get('verify', data.values()):
-            if isinstance(v, str) and not v.startswith('No '):
-                print(v)
-except: pass
-" 2>/dev/null || true)
-
-		if [[ -n "$verify_cmds" ]]; then
-			verify_failures=0
-			while IFS= read -r vcmd; do
-				[[ -z "$vcmd" ]] && continue
-				# Skip non-executable verify criteria (prose descriptions)
-				[[ "$vcmd" != *"/"* && "$vcmd" != *"."* && "$vcmd" != *"$"* ]] && continue
-				echo "[plan-db-safe] Running verify: $vcmd" >&2
-				if ! bash -c "$vcmd" >/dev/null 2>&1; then
-					echo "REJECTED: Verify command failed: $vcmd" >&2
-					verify_failures=$((verify_failures + 1))
-				fi
-			done <<<"$verify_cmds"
-			if [[ "$verify_failures" -gt 0 ]]; then
-				echo "REJECTED: $verify_failures verify command(s) failed for task $task_id_str" >&2
-				exit 1
-			fi
-		fi
-	fi
+	task_id_str="${PLAN_DB_SAFE_TASK_ID_STR:-unknown}"
 
 	# --- DELEGATE: set task to 'submitted' (NOT done) ---
 	# plan-db-safe.sh NEVER sets 'done'. It sets 'submitted' = executor finished, Thor pending.

@@ -65,7 +65,7 @@ plan-db.sh skill-bump <name>
 
 ## Thor Gate (NON-NEGOTIABLE)
 
-Per-task: Gate 1-4, 8, 9 | Per-wave: all 9 gates + build | Max 3 rejection rounds | **Commit before Thor = VIOLATION** | **`plan-db.sh update-task X done` is BLOCKED — use `plan-db-safe.sh` which auto-validates** | **Subagents MUST include Thor in prompt or use task-executor (which has built-in Thor Phase 4.9)**
+See AGENTS.md for Thor validation rules.
 
 ## Anti-Bypass (NON-NEGOTIABLE)
 

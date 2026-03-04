@@ -34,11 +34,6 @@ window.meshAction = async function (action, peer) {
  * Stream a mesh action via SSE with live output modal.
  */
 window.streamMeshAction = function (action, peer) {
-  const esc = (s) => {
-    const d = document.createElement("div");
-    d.textContent = s;
-    return d.innerHTML;
-  };
   const actionLabels = {
     sync: "Sync Config",
     fullsync: "Full Bidirectional Sync",
@@ -116,11 +111,6 @@ window.showMovePlanDialog = async function (targetPeer) {
   }
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
-  const esc = (s) => {
-    const d = document.createElement("div");
-    d.textContent = s;
-    return d.innerHTML;
-  };
   const statusColor = (s) =>
     ({
       done: "#00cc55",
@@ -186,11 +176,6 @@ function ansiToHtml(raw) {
     96: "#44eeff",
     97: "#e0e4f0",
   };
-  const esc = (s) => {
-    const d = document.createElement("div");
-    d.textContent = s;
-    return d.innerHTML;
-  };
   let html = "";
   let open = false;
   const parts = raw.split(/(\x1b\[[0-9;]*m)/);
@@ -222,11 +207,6 @@ function ansiToHtml(raw) {
   return html;
 }
 window.showOutputModal = function (title, text) {
-  const esc = (s) => {
-    const d = document.createElement("div");
-    d.textContent = s;
-    return d.innerHTML;
-  };
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   const hasAnsi = /\x1b\[/.test(text);
@@ -251,11 +231,6 @@ window.showDelegatePlanDialog = async function (planId, planName) {
     showOutputModal("Delegate Plan", "No mesh nodes configured");
     return;
   }
-  const esc = (s) => {
-    const d = document.createElement("div");
-    d.textContent = s;
-    return d.innerHTML;
-  };
   const rows = peers
     .map((p) => {
       const off = !p.is_online ? " offline" : "";
@@ -294,7 +269,6 @@ window.showDelegatePlanDialog = async function (planId, planName) {
 };
 
 function _showCliSelector(planId, peer, planName, prevOverlay) {
-  const esc = (s) => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
   if (prevOverlay) prevOverlay.remove();
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
@@ -332,11 +306,6 @@ function _showCliSelector(planId, peer, planName, prevOverlay) {
  * Pre-delegation checks via SSE — shows each check appearing in real-time.
  */
 window.runPreflight = function (planId, targetPeer, planName, prevOverlay, cli) {
-  const esc = (s) => {
-    const d = document.createElement("div");
-    d.textContent = s;
-    return d.innerHTML;
-  };
   if (prevOverlay) prevOverlay.remove();
 
   const overlay = document.createElement("div");
@@ -458,11 +427,6 @@ window.runPreflight = function (planId, targetPeer, planName, prevOverlay, cli) 
  * Execute plan delegation via SSE streaming — shows live progress modal.
  */
 window.delegatePlan = function (planId, targetPeer, planName, cli) {
-  const esc = (s) => {
-    const d = document.createElement("div");
-    d.textContent = s;
-    return d.innerHTML;
-  };
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   overlay.innerHTML = `<div class="modal-box" style="max-width:650px">
@@ -567,7 +531,6 @@ window.delegatePlan = function (planId, targetPeer, planName, cli) {
  * Start Plan Dialog — choose CLI and execute locally or delegate.
  */
 window.showStartPlanDialog = function (planId, planName) {
-  const esc = (s) => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   overlay.innerHTML = `<div class="modal-box" style="max-width:420px">
@@ -611,7 +574,6 @@ window.showStartPlanDialog = function (planId, planName) {
  * Execute plan start via SSE — shows live progress.
  */
 window.startPlanExecution = function (planId, planName, cli, target) {
-  const esc = (s) => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   overlay.innerHTML = `<div class="modal-box" style="max-width:650px">
@@ -669,7 +631,6 @@ window.startPlanExecution = function (planId, planName, cli, target) {
  * Full Sync action — bidirectional mesh sync via SSE.
  */
 window.runFullSync = function (peer) {
-  const esc = (s) => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
   const target = peer || "all nodes";
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";

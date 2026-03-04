@@ -36,11 +36,8 @@ CSS Modules or BEM | `rem` (type), `px` (borders) | Mobile-first | Max 3 nesting
 4. **Guessing = hallucination = VIOLATION**
 
 ## Quality Gates - Thor Validation
-
 **Per-task** (gates 1-4, 8, 9): DB integrity, F-xx coverage, file size <250, test criteria, no debt (TODO/FIXME/@ts-ignore), git clean
-
 **Per-wave**: All 9 gates + build
-
 **Commands**:
 
 ```bash
@@ -49,8 +46,7 @@ plan-db.sh validate-wave {wave_db_id}  # Wave
 plan-db.sh validate {plan_id}          # Full plan
 thor-validate.sh {plan_id} [--full]    # Quick/full validation
 ```
-
-**Rules**: NEVER commit before Thor | Use `plan-db-safe.sh update-task` (auto-validates) | Max 3 rejection rounds
+**Rules**: NEVER commit before Thor | Use `plan-db-safe.sh update-task` (auto-validates) | Max 3 rejection rounds | Subagents must include Thor validation or use task-executor with built-in Thor phase
 
 ### Testing
 

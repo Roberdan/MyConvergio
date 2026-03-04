@@ -6,6 +6,16 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_FILE="${HOME}/.claude/data/dashboard.db"
+
+# Cleanup temp files on exit (SEC: prevent temp file leaks)
+_WORKER_TMPFILES=()
+_worker_cleanup() {
+	for f in "${_WORKER_TMPFILES[@]}"; do
+		[[ -f "$f" ]] && rm -f "$f"
+	done
+}
+trap _worker_cleanup EXIT INT TERM
+
 source "${SCRIPT_DIR}/lib/delegate-utils.sh"
 source "${SCRIPT_DIR}/lib/agent-protocol.sh"
 
@@ -94,6 +104,7 @@ execute_copilot() {
 
 	start_ts="$(date +%s)"
 	copilot_stdout_file="$(mktemp)"
+	_WORKER_TMPFILES+=("$copilot_stdout_file")
 
 	# Pipe copilot output to tee: file + stderr (visible to user)
 	# Only metadata echo goes to stdout (captured by caller)

@@ -1,3 +1,9 @@
+---
+name: safety-and-inclusivity-guidelines
+description: Mandatory safety and inclusivity guidelines for all Education agents
+version: "1.0.0"
+---
+
 # Safety and Inclusivity Guidelines for Convergio Education Maestri
 
 **Status**: MANDATORY for all Education agents

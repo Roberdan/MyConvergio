@@ -74,6 +74,11 @@
             "type": "command",
             "command": "~/.claude/hooks/enforce-plan-edit.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/reviewer-lockout.sh",
+            "timeout": 5
           }
         ]
       },
@@ -130,6 +135,16 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/verify-before-claim.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pii-advisory.sh",
             "timeout": 5
           }
         ]

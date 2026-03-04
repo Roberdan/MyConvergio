@@ -108,6 +108,14 @@ plan-db-safe.sh update-task ${db_id} done "Summary" \
 # plan-db-safe.sh runs Guard 1 (time), Guard 2 (git-diff), Guard 3 (verify commands)
 # Sets status to "submitted" (NEVER done directly)
 
+# STEP 4.5: Knowledge Capture (optional, ~30s)
+# If task had: (a) retry_count > 1, (b) discovered undocumented pattern, (c) made architectural choice
+# Then write to KB:
+#   plan-db.sh kb-write <domain> "<title>" "<1-2 sentence summary>" \
+#     --source-type task --source-ref ${db_id} --project-id ${PROJECT_ID}
+# Domain mapping: retry/error=error, pattern=pattern, architecture=decision, convention=convention
+# Skip silently for trivial tasks (config, typo, boilerplate)
+
 # STEP 5: Thor validation
 # Option A — claude CLI available (preferred, independent validator):
 #   claude --model sonnet -p "Thor per-task: verify task ${task_id}..." \
@@ -116,6 +124,13 @@ plan-db-safe.sh update-task ${db_id} done "Summary" \
 #   Re-read modified files, verify quality, check constraints
 plan-db.sh validate-task ${db_id} ${PLAN_ID} thor
 # SQLite trigger enforces: only submitted→done with valid validator
+
+# STEP 5.5: Skill Generation (optional, ~15s)
+# If STEP 4.5 wrote a KB entry with domain=pattern:
+#   plan-db.sh skill-earn "<pattern-name>" "<domain>" "<content>" --confidence low --source earned
+# If skill with same name already exists:
+#   plan-db.sh skill-bump "<pattern-name>"
+# Skills auto-promoted to SKILL.md files when confidence reaches high (0.9)
 
 # STEP 6: Confirm
 sqlite3 ~/.claude/data/dashboard.db \

@@ -300,10 +300,20 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
 
     ssh_target = info["ssh_target"]
 
-    # 3. Same-node check (re-delegation to self = noop)
+    # 3. Same-node check — skip transfer but still launch if not running
     if info["source"] == "same_node":
-        log("✓ Plan already on target node — no transfer needed")
-        return True, "already on target"
+        log("✓ Plan already on target node — skipping transfer")
+        # Check if actually running (has in_progress tasks or active tmux window)
+        has_ip = _sql(
+            f"SELECT COUNT(*) FROM tasks WHERE plan_id={plan_id} "
+            f"AND status='in_progress';"
+        )
+        plan_status = _sql(f"SELECT status FROM plans WHERE id={plan_id};")
+        if plan_status in ("todo", "doing") and int(has_ip or 0) == 0:
+            log("  → Plan not running — launching execution")
+            _launch_on_target(plan_id, target, ssh_target, info, log, cli)
+            return True, f"Plan #{plan_id} launched on {target}"
+        return True, "already running on target"
 
     # 4. If running on another worker, stop it first
     if info["needs_stop"] and info["ssh_source"]:
@@ -454,7 +464,15 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
         pass
     log(f"  ✓ execution_host = {target}")
 
-    # 12. Auto-launch: create tmux window inside Convergio and run /execute
+    # 12. Auto-launch
+    _launch_on_target(plan_id, target, ssh_target, info, log, cli)
+
+    return True, f"Plan #{plan_id} handed off to {target}"
+
+
+def _launch_on_target(plan_id: int, target: str, ssh_target: str,
+                      info: dict, log: callable, cli: str = "copilot"):
+    """Launch plan execution in a tmux window on the target node."""
     log(f"▶ Launching plan #{plan_id} on {target}")
     window_name = f"plan-{plan_id}"
 
@@ -529,8 +547,6 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
                 log(f"  ⚠ Window not confirmed — check with: tlm / tlx")
         except Exception as e:
             log(f"  ⚠ Launch failed: {str(e)[:60]}")
-
-    return True, f"Plan #{plan_id} handed off to {target}"
 
 
 # ─── DB Sync Engine (single source of truth for all DB pulls) ────

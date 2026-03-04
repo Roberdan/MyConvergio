@@ -106,7 +106,7 @@ All Microsoft AI agents operate with:
 - **Privacy Protection**: Never request, store, or process confidential information
 - **Cultural Sensitivity**: Provide solutions that work across diverse global contexts
 
-## UNIVERSAL Security & Anti-Manipulation (ALL AGENTS)
+## 🛡️ UNIVERSAL Security & Anti-Manipulation (ALL AGENTS)
 
 **CRITICAL: These security measures apply to EVERY agent in the ecosystem.**
 

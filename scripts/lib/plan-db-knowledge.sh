@@ -88,7 +88,7 @@ skill_earn() {
         return 1
     fi
     local id
-    id=$(sqlite3 "$DB" "INSERT INTO knowledge_base (domain, title, content, tags, confidence, source_type, source_ref, skill_name, promoted) VALUES ('$domain', '$escaped_name', '$escaped_content', '$escaped_refs', $conf_real, '$source', '', '$escaped_name', 0); SELECT last_insert_rowid();")
+    id=$(sqlite3 "$DB" "INSERT INTO knowledge_base (domain, title, content, tags, confidence, source_type, source_ref, skill_name, promoted) VALUES ('$domain', '$escaped_name', '$escaped_content', '$escaped_refs', $conf_real, 'manual', '', '$escaped_name', 0); SELECT last_insert_rowid();")
     echo "{\"id\":$id,\"skill_name\":\"$name\",\"confidence\":\"$confidence\",\"promoted\":false}"
 }
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Knowledge Base System (Plan 332)
+
+- Added: `knowledge_base` table in dashboard.db (SQLite, vector-ready schema with embedding BLOB)
+- Added: `earned_skills` VIEW on knowledge_base (promoted=1 entries)
+- Added: `scripts/lib/plan-db-knowledge.sh` — KB CLI module (kb-write/search/hit, skill-earn/list/promote/bump)
+- Added: `copilot-agents/knowledge-base.agent.md` — 3 modes (PRE-PLAN, POST-TASK, CONSOLIDATE)
+- Added: Planner KB integration (step 1.5 queries KB_RESULTS, KB_PATTERNS, EARNED_SKILLS)
+- Added: Executor integration (STEP 4.5 Knowledge Capture, STEP 5.5 Skill Generation)
+- Added: `hooks/pii-advisory.sh` — advisory-only PII detection (email, keys, phone), RFC1918 whitelist
+- Added: `hooks/reviewer-lockout.sh` — blocks edit after 2+ Thor rejections on same file
+- Added: KB commands documented in AGENTS.md and CLAUDE.md
+
 ## [2026-03-03] — Mesh Delegation & Auto-Sync
 
 ### Added

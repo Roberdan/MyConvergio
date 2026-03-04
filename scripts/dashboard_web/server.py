@@ -842,6 +842,8 @@ class Handler(SimpleHTTPRequestHandler):
             api_preflight_sse(self, qs)
         elif path == "/api/plan/delegate":
             self._handle_plan_delegate(qs)
+        elif path == "/api/mesh/pull-db":
+            self._handle_pull_remote_db(qs)
         elif path.startswith("/api/plan/"):
             pid = path.split("/")[-1]
             if pid.isdigit():
@@ -1227,6 +1229,37 @@ class Handler(SimpleHTTPRequestHandler):
             _send_sse("error", json.dumps({
                 "ok": False, "message": str(e)
             }))
+
+    def _handle_pull_remote_db(self, qs: dict):
+        """Pull task statuses from remote nodes that have active plans."""
+        from mesh_handoff import pull_db_from_peer
+
+        plans = query(
+            "SELECT id, execution_host FROM plans "
+            "WHERE status IN ('todo','doing') "
+            "AND execution_host IS NOT NULL AND execution_host <> ''"
+        )
+        local_host = subprocess.run(
+            ["hostname", "-s"], capture_output=True, text=True, timeout=5,
+        ).stdout.strip()
+
+        # Group plans by peer (one SCP per node)
+        peer_plans: dict[str, list[int]] = {}
+        for p in plans:
+            host = p["execution_host"]
+            if _peer_host_match("m3max", host) or host == local_host:
+                continue
+            pc = _find_peer_conf(host)
+            ssh_dest = pc.get("ssh_alias", host) if pc else host
+            peer_plans.setdefault(ssh_dest, []).append(p["id"])
+
+        results = []
+        for ssh_dest, plan_ids in peer_plans.items():
+            ok, detail = pull_db_from_peer(ssh_dest, plan_ids)
+            results.append({"peer": ssh_dest, "plans": plan_ids,
+                            "ok": ok, "detail": detail})
+
+        self._json_response({"synced": results, "count": len(results)})
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")

@@ -97,6 +97,9 @@ class TerminalManager {
 
     const fitAddon = new FitAddon.FitAddon();
     term.loadAddon(fitAddon);
+    if (typeof WebLinksAddon !== "undefined") {
+      term.loadAddon(new WebLinksAddon.WebLinksAddon());
+    }
 
     const wsParams = `peer=${encodeURIComponent(peer)}${tmuxSession ? `&tmux_session=${encodeURIComponent(tmuxSession)}` : ""}`;
     const wsUrl = `ws://localhost:${TERM_WS_PORT}/ws?${wsParams}`;
@@ -138,6 +141,15 @@ class TerminalManager {
       if (ws.readyState === WebSocket.OPEN) {
         const enc = new TextEncoder();
         ws.send(enc.encode(data));
+      }
+    });
+
+    // Forward mouse events (scroll, click) to remote tmux
+    term.onBinary((data) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        const buf = new Uint8Array(data.length);
+        for (let i = 0; i < data.length; i++) buf[i] = data.charCodeAt(i);
+        ws.send(buf);
       }
     });
 

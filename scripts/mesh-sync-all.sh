@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# mesh-sync-all.sh v1.2.0
+# mesh-sync-all.sh v2.0.0
 # Unified mesh sync: dotclaude (git+SCP) + project repos (git+non-git files) + verify.
+# v2.0: Bidirectional sync — finds newest commit per repo, pulls from ahead peer, pushes to all.
 # Usage: mesh-sync-all.sh [--dry-run] [--peer NAME] [--phase PHASE] [--force]
 #   Phases: all (default), config, repos, verify
 #   --force: git reset --hard instead of pull --ff-only (destructive)
@@ -105,29 +106,85 @@ peer_dest() {
 	echo "${user:+${user}@}${route}"
 }
 
-# Phase 1: Push dotclaude config (git bundle + SCP non-git) + dashboard DB
+# Phase 1: Bidirectional dotclaude sync (git bundle + SCP non-git) + dashboard DB
 phase_config() {
-	echo -e "${B}=== PHASE 1: Config + DB ===${N}"
+	echo -e "${B}=== PHASE 1: Config + DB (bidirectional) ===${N}"
 	if git -C "$CLAUDE_HOME" status --porcelain 2>/dev/null | grep -q .; then
 		echo -e "  ${Y}WARN${N}: uncommitted changes — auto-committing..."
 		git -C "$CLAUDE_HOME" add -A 2>/dev/null
 		git -C "$CLAUDE_HOME" commit -m "chore: auto-commit before mesh sync" --no-verify 2>&1 | sed 's/^/  /' || true
 	fi
 	if $DRY_RUN; then
-		echo "  (dry-run) Would run: peer-sync.sh push + mesh-sync-config.sh"
-	else
-		# Git bundle + DB sync (may partially fail — non-fatal)
-		"$SCRIPT_DIR/peer-sync.sh" push 2>&1 | sed 's/^/  /' || true
-		# SCP non-git config files (models.yaml, peers.conf, scripts)
-		echo -e "  ${C}SCP config files...${N}"
-		"$SCRIPT_DIR/mesh-sync-config.sh" ${TARGET_PEER:+--peer "$TARGET_PEER"} 2>&1 | sed 's/^/  /' || true
+		echo "  (dry-run) Would run: bidirectional peer-sync + mesh-sync-config"
+		return
 	fi
+
+	# Check if any peer is ahead for dotclaude
+	local local_ts
+	local_ts=$(_local_commit_ts "$CLAUDE_HOME")
+	local newest_ts="$local_ts" newest_src="local" newest_dest=""
+
+	while IFS= read -r peer <&3 || [[ -n "$peer" ]]; do
+		[[ -z "$peer" ]] && continue
+		local dest
+		dest="$(peer_dest "$peer" 2>/dev/null)" || continue
+		if ! ssh -n -o ConnectTimeout=5 -o BatchMode=yes "$dest" true 2>/dev/null; then
+			continue
+		fi
+		local rts
+		rts=$(_remote_commit_ts "$dest" "~/.claude")
+		if [[ "$rts" -gt "$newest_ts" ]]; then
+			newest_ts="$rts"
+			newest_src="$peer"
+			newest_dest="$dest"
+		fi
+	done 3< <(get_targets)
+
+	if [[ "$newest_src" != "local" && -n "$newest_dest" ]]; then
+		echo -e "  ${Y}⟵ Pulling dotclaude from $newest_src (ahead)${N}"
+		local bundle_file="/tmp/mesh-sync-dotclaude-$$.bundle"
+		local remote_bundle="/tmp/mesh-sync-dotclaude-$$.bundle"
+		ssh -n -o ConnectTimeout=15 "$newest_dest" \
+			"${REMOTE_PATH_PREFIX}cd ~/.claude && git bundle create $remote_bundle HEAD 2>/dev/null && echo BUNDLE_OK" 2>/dev/null | grep -q 'BUNDLE_OK' && \
+		scp -o ConnectTimeout=15 "$newest_dest:$remote_bundle" "$bundle_file" 2>/dev/null && {
+			if git -C "$CLAUDE_HOME" fetch "$bundle_file" HEAD 2>/dev/null; then
+				if $FORCE; then
+					git -C "$CLAUDE_HOME" reset --hard FETCH_HEAD 2>/dev/null
+				else
+					git -C "$CLAUDE_HOME" merge --ff-only FETCH_HEAD 2>/dev/null || \
+					echo -e "  ${Y}WARN${N}: ff-only merge failed, use --force to override"
+				fi
+				echo -e "  ${G}OK${N}: pulled dotclaude from $newest_src"
+			fi
+		}
+		ssh -n "$newest_dest" "rm -f $remote_bundle" 2>/dev/null || true
+		rm -f "$bundle_file" 2>/dev/null || true
+	else
+		echo -e "  ${G}✓ dotclaude: local is newest${N}"
+	fi
+
+	# Push to all peers
+	"$SCRIPT_DIR/peer-sync.sh" push 2>&1 | sed 's/^/  /' || true
+	echo -e "  ${C}SCP config files...${N}"
+	"$SCRIPT_DIR/mesh-sync-config.sh" ${TARGET_PEER:+--peer "$TARGET_PEER"} 2>&1 | sed 's/^/  /' || true
 	echo ""
 }
 
-# Phase 2: Pull repos + SCP non-git files (sync_files from repos.conf)
+# Get commit timestamp (unix epoch) for a local repo
+_local_commit_ts() {
+	git -C "$1" log -1 --format='%ct' 2>/dev/null || echo "0"
+}
+
+# Get commit timestamp from a remote peer via SSH
+_remote_commit_ts() {
+	local dest="$1" rpath="$2"
+	ssh -n -o ConnectTimeout=10 -o BatchMode=yes "$dest" \
+		"${REMOTE_PATH_PREFIX}git -C $rpath log -1 --format='%ct' 2>/dev/null || echo 0" 2>/dev/null || echo "0"
+}
+
+# Phase 2: Bidirectional repo sync — find newest, pull if behind, push to all
 phase_repos() {
-	echo -e "${B}=== PHASE 2: Repo Sync ===${N}"
+	echo -e "${B}=== PHASE 2: Repo Sync (bidirectional) ===${N}"
 	local repos
 	repos="$(parse_repos)"
 	if [[ -z "$repos" ]]; then
@@ -136,33 +193,110 @@ phase_repos() {
 		return
 	fi
 
-	local synced=0 failed=0 offline=0
-
+	# Build list of online peers with their SSH destinations
+	local -a online_peers=() online_dests=()
+	local offline=0
 	while IFS= read -r peer <&3 || [[ -n "$peer" ]]; do
 		[[ -z "$peer" ]] && continue
 		local dest
 		dest="$(peer_dest "$peer" 2>/dev/null)" || {
-			echo "  $peer: no route"
+			echo -e "  ${Y}$peer${N}: no route"
 			continue
 		}
-
-		echo -e "  ${C}--- $peer ---${N}"
-		if ! ssh -n -o ConnectTimeout=5 -o BatchMode=yes "$dest" true 2>/dev/null; then
-			echo -e "    ${R}OFFLINE${N}"
+		if ssh -n -o ConnectTimeout=5 -o BatchMode=yes "$dest" true 2>/dev/null; then
+			online_peers+=("$peer")
+			online_dests+=("$dest")
+		else
+			echo -e "  ${Y}$peer${N}: OFFLINE"
 			((offline++)) || true
+		fi
+	done 3< <(get_targets)
+
+	if [[ ${#online_peers[@]} -eq 0 ]]; then
+		echo -e "  ${Y}No online peers — nothing to sync${N}\n"
+		return
+	fi
+
+	local synced=0 failed=0 pulled=0
+
+	# For each repo: find newest commit, pull if behind, push to all
+	while IFS='|' read -r rname rpath rbranch raccount rsyncfiles <&4 || [[ -n "$rname" ]]; do
+		[[ -z "$rname" ]] && continue
+		local local_repo="${rpath/#\~/$HOME}"
+
+		echo -e "\n  ${C}▸ $rname${N} ($rpath @ $rbranch)"
+
+		if $DRY_RUN; then
+			echo "    WOULD: compare timestamps and sync bidirectionally"
 			continue
 		fi
 
-		local peer_ok=true
-		while IFS='|' read -r rname rpath rbranch raccount rsyncfiles <&4 || [[ -n "$rname" ]]; do
-			[[ -z "$rname" ]] && continue
+		# Collect HEAD timestamps: local + all online peers
+		local local_ts
+		local_ts=$(_local_commit_ts "$local_repo")
+		local newest_ts="$local_ts" newest_src="local" newest_dest=""
+		local local_sha
+		local_sha=$(git -C "$local_repo" log --oneline -1 2>/dev/null | cut -c1-7)
+		echo -e "    local: ${G}${local_sha:-???}${N} (ts=$local_ts)"
 
-			# Step A: Git pull
-			if $DRY_RUN; then
-				echo "    WOULD: $rname → pull origin $rbranch"
-				[[ -n "$rsyncfiles" ]] && echo "    WOULD: SCP $rsyncfiles"
-				continue
+		for idx in "${!online_peers[@]}"; do
+			local p="${online_peers[$idx]}" d="${online_dests[$idx]}"
+			local rts
+			rts=$(_remote_commit_ts "$d" "$rpath")
+			local rsha
+			rsha=$(ssh -n -o ConnectTimeout=10 -o BatchMode=yes "$d" \
+				"${REMOTE_PATH_PREFIX}git -C $rpath log --oneline -1 2>/dev/null | cut -c1-7" 2>/dev/null) || rsha="???"
+			echo -e "    $p: ${G}${rsha}${N} (ts=$rts)"
+			if [[ "$rts" -gt "$newest_ts" ]]; then
+				newest_ts="$rts"
+				newest_src="$p"
+				newest_dest="$d"
 			fi
+		done
+
+		# If a peer is ahead, pull from it first
+		if [[ "$newest_src" != "local" && -n "$newest_dest" ]]; then
+			echo -e "    ${Y}⟵ PULL from $newest_src (ahead)${N}"
+			local pull_cmd="$REMOTE_PATH_PREFIX"
+			[[ -n "$raccount" ]] && pull_cmd+="gh auth switch --user $raccount 2>&1; "
+			# Create a bundle on the ahead peer and fetch it locally
+			local bundle_file="/tmp/mesh-sync-${rname}-$$.bundle"
+			local remote_bundle="/tmp/mesh-sync-${rname}-$$.bundle"
+			local bundle_ok=false
+
+			# Try 1: git bundle from remote peer
+			ssh -n -o ConnectTimeout=15 "$newest_dest" \
+				"${REMOTE_PATH_PREFIX}cd $rpath && git bundle create $remote_bundle $rbranch 2>/dev/null && echo BUNDLE_OK" 2>/dev/null | grep -q 'BUNDLE_OK' && \
+			scp -o ConnectTimeout=15 "$newest_dest:$remote_bundle" "$bundle_file" 2>/dev/null && \
+			bundle_ok=true
+			ssh -n "$newest_dest" "rm -f $remote_bundle" 2>/dev/null || true
+
+			if $bundle_ok && [[ -f "$bundle_file" ]]; then
+				if git -C "$local_repo" fetch "$bundle_file" "$rbranch" 2>/dev/null; then
+					if $FORCE; then
+						git -C "$local_repo" reset --hard FETCH_HEAD 2>/dev/null
+					else
+						git -C "$local_repo" merge --ff-only FETCH_HEAD 2>/dev/null
+					fi
+					local new_sha
+					new_sha=$(git -C "$local_repo" log --oneline -1 2>/dev/null | cut -c1-7)
+					echo -e "    ${G}OK${N}: pulled → ${new_sha}"
+					((pulled++)) || true
+				else
+					echo -e "    ${R}FAIL${N}: git fetch from bundle"
+				fi
+				rm -f "$bundle_file"
+			else
+				echo -e "    ${R}FAIL${N}: could not create/transfer bundle from $newest_src"
+				rm -f "$bundle_file" 2>/dev/null || true
+			fi
+		else
+			echo -e "    ${G}✓ local is newest${N}"
+		fi
+
+		# Now push updated state to all peers (via git pull on remote)
+		for idx in "${!online_peers[@]}"; do
+			local p="${online_peers[$idx]}" d="${online_dests[$idx]}"
 			local cmd="$REMOTE_PATH_PREFIX"
 			[[ -n "$raccount" ]] && cmd+="gh auth switch --user $raccount 2>&1; "
 			if $FORCE; then
@@ -173,38 +307,33 @@ phase_repos() {
 			cmd+=" && echo 'SYNC_OK:'\$(git log --oneline -1)"
 
 			local result
-			result=$(ssh -n -o ConnectTimeout=30 "$dest" "$cmd" 2>/dev/null) || true
+			result=$(ssh -n -o ConnectTimeout=30 "$d" "$cmd" 2>/dev/null) || true
 			if echo "$result" | grep -q '^SYNC_OK:'; then
-				echo -e "    ${G}OK${N}: $rname → $(echo "$result" | grep '^SYNC_OK:' | sed 's/^SYNC_OK://')"
+				echo -e "    ${G}→ $p${N}: $(echo "$result" | grep '^SYNC_OK:' | sed 's/^SYNC_OK://')"
 			else
-				echo -e "    ${R}FAIL${N}: $rname (git)"
-				echo "$result" | tail -2 | sed 's/^/      /'
+				echo -e "    ${R}→ $p FAIL${N}"
 				peer_ok=false
 			fi
 
-			# Step B: SCP non-git files (sync_files from repos.conf)
-			if [[ -n "$rsyncfiles" ]] && ! $DRY_RUN; then
-				local local_repo="${rpath/#\~/$HOME}"
+			# SCP non-git files (sync_files from repos.conf)
+			if [[ -n "$rsyncfiles" ]]; then
 				IFS=',' read -ra files <<<"$rsyncfiles"
 				for sf in "${files[@]}"; do
 					sf="${sf// /}"
 					if [[ -f "$local_repo/$sf" ]]; then
-						if scp -o ConnectTimeout=5 "$local_repo/$sf" "$dest:$rpath/$sf" 2>/dev/null; then
-							echo -e "    ${G}SCP${N}: $sf"
+						if scp -o ConnectTimeout=5 "$local_repo/$sf" "$d:$rpath/$sf" 2>/dev/null; then
+							echo -e "    ${G}SCP${N}: $sf → $p"
 						else
-							echo -e "    ${R}SCP FAIL${N}: $sf"
+							echo -e "    ${R}SCP FAIL${N}: $sf → $p"
 						fi
-					else
-						echo -e "    ${Y}SKIP${N}: $sf (not found locally)"
 					fi
 				done
 			fi
-		done 4< <(echo "$repos")
+		done
+		((synced++)) || true
+	done 4< <(echo "$repos")
 
-		if $peer_ok; then ((synced++)) || true; else ((failed++)) || true; fi
-	done 3< <(get_targets)
-
-	echo -e "\n  Summary: ${G}$synced synced${N} | ${R}$failed failed${N} | ${Y}$offline offline${N}\n"
+	echo -e "\n  Summary: ${G}$synced repos synced${N} | ${Y}$pulled pulled from peers${N} | ${R}$failed failed${N} | ${Y}$offline offline${N}\n"
 }
 
 # Phase 3: Verify alignment

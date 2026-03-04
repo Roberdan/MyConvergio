@@ -238,6 +238,9 @@ function _renderOnePlan(m) {
       <button class="mission-delegate-btn" onclick="event.stopPropagation();showDelegatePlanDialog(${p.id},'${esc(p.name)}')" title="Delegate to mesh node">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
       </button>
+      ${p.status === "todo" ? `<button class="mission-start-btn" onclick="event.stopPropagation();showStartPlanDialog(${p.id},'${esc(p.name)}')" title="Start plan execution">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+      </button>` : ""}
     </div>`;
   if (p.human_summary) {
     html += `<div class="mission-summary">${esc(p.human_summary)}</div>`;
@@ -741,8 +744,11 @@ function renderMeshStrip(peers) {
   const bar = $("#mesh-actions-bar");
   if (bar) {
     bar.innerHTML = `<span class="mesh-count">${online}/${peers.length} online</span>
-      <button class="widget-action-btn" onclick="meshAction('sync','__all__')" title="Sync all peers">
-        <svg viewBox="0 0 16 16" width="12" height="12"><path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/></svg> Sync All
+      <button class="widget-action-btn" onclick="meshAction('fullsync','__all__')" title="Bidirectional sync all repos + config">
+        <svg viewBox="0 0 16 16" width="12" height="12"><path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/></svg> Full Sync
+      </button>
+      <button class="widget-action-btn" onclick="meshAction('sync','__all__')" title="Push config to all peers">
+        <svg viewBox="0 0 16 16" width="12" height="12"><path d="M8 2v12M2 8l6-6 6 6"/></svg> Push
       </button>`;
   }
   let html = "";

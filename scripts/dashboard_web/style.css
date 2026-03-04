@@ -541,6 +541,23 @@ body::after {
   border-color: var(--cyan);
   box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
 }
+.mission-start-btn {
+  background: none;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 4px;
+  color: var(--green);
+  cursor: pointer;
+  padding: 2px 6px;
+  margin-left: 4px;
+  vertical-align: middle;
+  transition: all 0.2s;
+  line-height: 1;
+}
+.mission-start-btn:hover {
+  background: rgba(0, 255, 136, 0.15);
+  border-color: var(--green);
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+}
 .delegate-peer-row {
   display: grid;
   grid-template-columns: 1fr auto auto auto;

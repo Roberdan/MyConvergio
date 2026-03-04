@@ -842,6 +842,10 @@ class Handler(SimpleHTTPRequestHandler):
             api_preflight_sse(self, qs)
         elif path == "/api/plan/delegate":
             self._handle_plan_delegate(qs)
+        elif path == "/api/plan/start":
+            self._handle_plan_start_sse(qs)
+        elif path == "/api/mesh/fullsync":
+            self._handle_fullsync_sse(qs)
         elif path == "/api/mesh/pull-db":
             self._handle_pull_remote_db(qs)
         elif path.startswith("/api/plan/"):
@@ -1260,6 +1264,139 @@ class Handler(SimpleHTTPRequestHandler):
                             "ok": ok, "detail": detail})
 
         self._json_response({"synced": results, "count": len(results)})
+
+    def _handle_plan_start_sse(self, qs: dict):
+        """SSE: Start plan execution locally or on a remote peer."""
+        plan_id = qs.get("plan_id", [""])[0]
+        cli = qs.get("cli", ["copilot"])[0]
+        target = qs.get("target", ["local"])[0]
+        if not plan_id or not plan_id.isdigit():
+            self._json_response({"error": "missing plan_id"}, 400)
+            return
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        origin = self.headers.get("Origin", "")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+        self.end_headers()
+
+        def _send(event: str, data: str):
+            try:
+                msg = f"event: {event}\ndata: {data}\n\n"
+                self.wfile.write(msg.encode())
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        SCRIPTS = Path.home() / ".claude" / "scripts"
+        _send("log", f"▶ Starting plan #{plan_id} with {cli}")
+
+        # Claim plan in DB
+        try:
+            hostname = subprocess.run(
+                ["hostname", "-s"], capture_output=True, text=True, timeout=5,
+            ).stdout.strip()
+            conn = sqlite3.connect(str(DB_PATH), timeout=5)
+            conn.execute(
+                "UPDATE plans SET status='doing', execution_host=? WHERE id=? AND status IN ('todo','doing')",
+                (target if target != "local" else hostname, int(plan_id)),
+            )
+            conn.commit()
+            conn.close()
+            _send("log", f"✓ Plan claimed by {target if target != 'local' else hostname}")
+        except Exception as e:
+            _send("log", f"✗ DB update failed: {e}")
+            _send("done", json.dumps({"ok": False, "message": str(e)}))
+            return
+
+        # Determine execution command
+        if target == "local" or _peer_host_match("m3max", target):
+            if cli == "claude":
+                cmd = f'claude --model sonnet -p "/execute {plan_id}"'
+            else:
+                cmd = f'copilot -p "/execute {plan_id}"'
+            _send("log", f"▶ Running locally: {cmd}")
+            try:
+                proc = subprocess.Popen(
+                    cmd, shell=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                    env={**os.environ, "PATH": str(SCRIPTS) + ":/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", "")},
+                    cwd=str(Path.home() / ".claude"),
+                )
+                for line in iter(proc.stdout.readline, ""):
+                    _send("log", line.rstrip())
+                proc.wait(timeout=600)
+                ok = proc.returncode == 0
+                _send("done", json.dumps({"ok": ok, "exit_code": proc.returncode}))
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                _send("done", json.dumps({"ok": False, "message": "Timeout (600s)"}))
+            except Exception as e:
+                _send("done", json.dumps({"ok": False, "message": str(e)}))
+        else:
+            # Remote execution — delegate to the target peer
+            _send("log", f"▶ Delegating to {target}")
+            try:
+                from mesh_handoff import full_handoff
+                ok, summary = full_handoff(
+                    int(plan_id), target, _find_peer_conf,
+                    lambda msg: _send("log", msg), cli=cli
+                )
+                _send("done", json.dumps({"ok": ok, "message": summary}))
+            except Exception as e:
+                _send("done", json.dumps({"ok": False, "message": str(e)}))
+
+    def _handle_fullsync_sse(self, qs: dict):
+        """SSE: Run bidirectional mesh-sync-all.sh and stream output."""
+        peer = qs.get("peer", [""])[0]
+        force = qs.get("force", [""])[0] == "1"
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        origin = self.headers.get("Origin", "")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+        self.end_headers()
+
+        def _send(event: str, data: str):
+            try:
+                msg = f"event: {event}\ndata: {data}\n\n"
+                self.wfile.write(msg.encode())
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        SCRIPTS = Path.home() / ".claude" / "scripts"
+        cmd = f"{SCRIPTS}/mesh-sync-all.sh"
+        if peer:
+            cmd += f" --peer {shlex.quote(peer)}"
+        if force:
+            cmd += " --force"
+
+        _send("log", f"▶ Full Bidirectional Sync")
+        _send("log", f"▶ Running: {cmd.split('/')[-1]}")
+
+        try:
+            proc = subprocess.Popen(
+                cmd, shell=True,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                env={**os.environ, "PATH": str(SCRIPTS) + ":/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", "")},
+            )
+            for line in iter(proc.stdout.readline, ""):
+                _send("log", line.rstrip())
+            proc.wait(timeout=180)
+            ok = proc.returncode == 0
+            _send("done", json.dumps({"ok": ok, "exit_code": proc.returncode}))
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            _send("done", json.dumps({"ok": False, "message": "Timeout (180s)"}))
+        except Exception as e:
+            _send("done", json.dumps({"ok": False, "message": str(e)}))
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")

@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.6.1] — 2026-03-04
+
+### Fixed
+
+- Include .git in rsync so nodes stay git-synced automatically
+- DB merge now uses Python sqlite3 module with Thor trigger bypass
+
 ## [10.5.0] — 2026-03-03
 
 ### Added

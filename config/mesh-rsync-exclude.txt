@@ -1,12 +1,9 @@
-# mesh-rsync-exclude.txt — rsync exclude patterns for mesh-migrate.sh
-# Used by: _migrate_rsync() in lib/mesh-migrate-sync.sh
-# Purpose: skip files that should not be transferred or are managed separately
+# mesh-rsync-exclude.txt — rsync exclude patterns for mesh config sync
+# Used by: rsync in preflight, mesh-migrate, auto-sync
+# Purpose: skip files that are machine-local or managed separately
 
-# Git internals — use git pull on target instead of syncing objects
-.git/objects/**
+# Git LFS (large binary objects — not needed on workers)
 .git/lfs/**
-.git/refs/**
-.git/logs/**
 
 # Node dependencies — run npm ci on target after sync
 node_modules/

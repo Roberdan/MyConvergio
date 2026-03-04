@@ -117,6 +117,19 @@ plan-db.sh complete {plan_id}                                         # Complete
 plan-db.sh get-worktree {plan_id}                                     # Get worktree path
 ```
 
+
+### Knowledge Base Commands
+
+```bash
+plan-db.sh kb-write <domain> <title> <content> [--tags json] [--confidence 0.5] [--source-type plan|task|manual] [--source-ref id] [--project-id id]
+plan-db.sh kb-search <query> [--domain] [--limit 10]
+plan-db.sh kb-hit <id>
+plan-db.sh skill-earn <name> <domain> <content> [--confidence low|medium|high]
+plan-db.sh skill-list [--domain] [--min-confidence medium]
+plan-db.sh skill-promote <name>
+plan-db.sh skill-bump <name>
+```
+
 ## Worktree Discipline
 
 **Principle**: Every plan = dedicated worktree. Auto-created: `plan/{plan_id}-{slug}` branch, path in DB.

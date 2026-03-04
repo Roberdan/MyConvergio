@@ -32,6 +32,20 @@ Claude stores cross-session context in `~/.claude/projects/{project-slug}/memory
 
 **Update plan DB in real-time** — every task completion MUST call `plan-db-safe.sh` immediately, not deferred. Before context compaction, write active plan state to auto-memory (`MEMORY.md`): `ACTIVE_PLAN`, `BRANCH`, `WAVE`, task statuses, PR number. Resumed sessions read this and reconcile with `plan-db.sh execution-tree`. _Why: Plan 298 — tasks executed across compaction boundary with no DB updates = stale DB, user had to remind._
 
+### Plan DB Commands
+
+### Knowledge Base Commands
+
+```bash
+plan-db.sh kb-write <domain> <title> <content> [--tags json] [--confidence 0.5] [--source-type plan|task|manual] [--source-ref id] [--project-id id]
+plan-db.sh kb-search <query> [--domain] [--limit 10]
+plan-db.sh kb-hit <id>
+plan-db.sh skill-earn <name> <domain> <content> [--confidence low|medium|high]
+plan-db.sh skill-list [--domain] [--min-confidence medium]
+plan-db.sh skill-promote <name>
+plan-db.sh skill-bump <name>
+```
+
 ### Slash Commands & CLI
 
 | Command         | Purpose                                |

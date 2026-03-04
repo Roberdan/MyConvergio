@@ -66,9 +66,15 @@ LEARNINGS=$(plan-db.sh get-actionable-learnings $PROJECT_ID)
 CALIBRATED=$(plan-db.sh calibrate-estimates $PROJECT_ID)
 # Recurring patterns: same category+title in 3+ plans = codify as reusable
 PATTERNS=$(plan-db.sh get-actionable-learnings $PROJECT_ID | jq '[.[] | select(.occurrences >= 3)]')
+# Knowledge Base context (skip if empty)
+KB_RESULTS=$(plan-db.sh kb-search "$USER_REQUEST_KEYWORDS" --limit 5 2>/dev/null || echo "[]")
+KB_PATTERNS=$(plan-db.sh kb-search "" --domain pattern --limit 5 2>/dev/null || echo "[]")
+EARNED_SKILLS=$(plan-db.sh skill-list --min-confidence medium 2>/dev/null || echo "[]")
 ```
 
 Apply learnings: adjust effort estimates using `CALIBRATED` data, cite recurring patterns in task `do` fields ("Per learning L-xx: use approach Y"), flag anti-patterns from `LEARNINGS` with severity=high.
+
+**Knowledge Base**: If KB_RESULTS/KB_PATTERNS/EARNED_SKILLS are non-empty, cite relevant entries in task `do` fields: "Per KB#xx: use approach Y" or "Earned skill 'name' applies here". If all empty, skip silently — do NOT mention empty KB.
 
 ### 1.6 Constraint Extraction (MANDATORY — ADR-054)
 

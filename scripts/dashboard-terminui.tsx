@@ -134,6 +134,31 @@ const onlineCount = peers.filter(p => p.online).length;
 const totalTasks = peers.reduce((s, p) => s + p.tasks, 0);
 const meshTitle = `Mesh Network (${onlineCount}/${peers.length} online, ${totalTasks} tasks)`;
 
+// ─── Build peer table items ───
+const peerTableItems = peers.map(p => {
+  const eng = (p as any).default_engine || '—';
+  const st = p.online ? 'ON ' : 'OFF';
+  return `${st} ${p.name.padEnd(12)} ${p.os.padEnd(6)} ${p.role.padEnd(12)} ${p.status.padEnd(8)} ${eng}`;
+});
+const peerHeader = `${'ST'.padEnd(4)}${'NAME'.padEnd(12)} ${'OS'.padEnd(6)} ${'ROLE'.padEnd(12)} ${'STATUS'.padEnd(8)} ENGINE`;
+const PeerTable = () => (
+  <Panel title={`Mesh Peers (${peers.length}) │ [a]dd [e]dit [d]elete [r]efresh`}>
+    <Label text={peerHeader} fg={Color.DarkGray} />
+    {peerTableItems.length > 0
+      ? <List items={peerTableItems} highlightSymbol="▸ " />
+      : <Label text="No peers configured" fg={Color.DarkGray} />
+    }
+  </Panel>
+);
+
+// Peer CRUD actions — invoked by interactive wrapper via keyboard bindings
+const addPeer = (name: string, ssh_alias: string, user: string, os: string, role: string) =>
+  fetch(`http://localhost:8420/api/peers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ peer_name: name, ssh_alias, user, os, role, status: 'active' }) });
+const editPeer = (name: string, data: Record<string, string>) =>
+  fetch(`http://localhost:8420/api/peers/${name}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+const deletePeer = (name: string) =>
+  fetch(`http://localhost:8420/api/peers/${name}?mode=soft`, { method: 'DELETE' });
+
 // ─── Render ───
 terminalDrawJsx(
   terminal,
@@ -141,6 +166,7 @@ terminalDrawJsx(
     lengthConstraint(3),  // header
     lengthConstraint(5),  // overview
     lengthConstraint(12), // mesh
+    lengthConstraint(peers.length + 4), // peer table
     fillConstraint(1),    // plans
     lengthConstraint(3),  // footer
   ]}>
@@ -175,6 +201,9 @@ terminalDrawJsx(
     <Panel title={meshTitle}>
       <Label text={meshTopology()} fg={Color.Green} />
     </Panel>
+
+    {/* Peer Table */}
+    <PeerTable />
 
     {/* Active Plans */}
     <Panel title={`Active Missions (${plans.length})`}>

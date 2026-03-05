@@ -81,6 +81,11 @@ peers_get() {
 	[[ -n "$val" ]] && echo "$val" || return 1
 }
 
+# peers_engine name — return default_engine for peer (empty if not set)
+peers_engine() {
+	_peers_get_raw "${1:-}" "default_engine"
+}
+
 # peers_check name — SSH connectivity check; returns 0=reachable, 1=not
 peers_check() {
 	local name="${1:-}"

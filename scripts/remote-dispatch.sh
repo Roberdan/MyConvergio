@@ -96,15 +96,21 @@ if [[ -n "$ENGINE" ]]; then
 	[[ "$ENGINE" == "ollama" ]] && local_cap="ollama"
 	_peer_has_cap "$local_cap" || _die "Peer '$PEER_NAME' lacks capability '$local_cap' (has: $PEER_CAPS)"
 else
-	# Auto-detect: pick first recognized capability
-	for cap in claude copilot opencode ollama; do
-		if _peer_has_cap "$cap"; then
-			ENGINE="$cap"
-			break
-		fi
-	done
-	[[ -z "$ENGINE" ]] && _die "No recognized engine in peer capabilities: $PEER_CAPS"
-	_info "Auto-selected engine: $ENGINE"
+	# Auto-detect: check default_engine first, then first recognized capability
+	DEFAULT_ENG="$(_peers_get_raw "$PEER_NAME" "default_engine")"
+	if [[ -n "$DEFAULT_ENG" ]] && _peer_has_cap "$DEFAULT_ENG"; then
+		ENGINE="$DEFAULT_ENG"
+		_info "Using peer default_engine: $ENGINE"
+	else
+		for cap in copilot claude opencode ollama; do
+			if _peer_has_cap "$cap"; then
+				ENGINE="$cap"
+				break
+			fi
+		done
+		[[ -z "$ENGINE" ]] && _die "No recognized engine in peer capabilities: $PEER_CAPS"
+		_info "Auto-selected engine: $ENGINE"
+	fi
 fi
 
 # ── Resolve SSH destination ───────────────────────────────────────────────────

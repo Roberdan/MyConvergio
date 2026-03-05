@@ -30,9 +30,10 @@ def _ssh_run(dest: str, cmd: str, timeout: int = 10) -> subprocess.CompletedProc
 
 def api_preflight_sse(handler, qs: dict):
     plan_id, target = qs.get("plan_id", [""])[0], qs.get("target", [""])[0]
+    cli_engine = qs.get("cli", [""])[0]
     if not plan_id or not target:
         handler._json_response({"error": "missing plan_id or target"}, 400); return
-    all_ok = True; handler._start_sse(); handler._sse_send("start", {"plan_id": plan_id, "target": target, "total_checks": 8})
+    all_ok = True; handler._start_sse(); handler._sse_send("start", {"plan_id": plan_id, "target": target, "total_checks": 9})
 
     def _check(name: str, ok: bool, detail: str, blocking: bool = True):
         nonlocal all_ok
@@ -137,6 +138,23 @@ def api_preflight_sse(handler, qs: dict):
         has_claude = "missing" not in r.stdout and r.returncode == 0; _check("Claude CLI", has_claude, r.stdout.strip().split("\n")[-1][:40] if has_claude else "not found")
     except Exception:
         _check("Claude CLI", False, "Check timeout")
+
+    engine = cli_engine or (pc.get("default_engine") if pc else "") or "copilot"
+    if engine == "claude":
+        handler._sse_send("checking", {"name": "Claude Auth Type"})
+        try:
+            r = _ssh_run(ssh_dest, "cat ~/.claude/.credentials.json 2>/dev/null || echo MISSING", timeout=10)
+            cred = r.stdout.strip()
+            if "MISSING" in cred or not cred:
+                _check("Claude Auth Type", False, "credentials.json not found — Claude login required")
+            elif "refreshToken" in cred:
+                _check("Claude Auth Type", True, "OAuth / Max subscription ✓", blocking=False)
+            elif "apiKey" in cred:
+                _check("Claude Auth Type", True, "API key detected — Max subscription recommended", blocking=False)
+            else:
+                _check("Claude Auth Type", True, "credentials present (type unknown)", blocking=False)
+        except Exception:
+            _check("Claude Auth Type", False, "Auth check timeout")
 
     handler._sse_send("checking", {"name": "Disk space"})
     try:

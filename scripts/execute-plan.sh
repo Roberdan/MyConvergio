@@ -15,8 +15,8 @@ set -euo pipefail
 # Version: 2.1.0 - PATH hardening, process cleanup, wave-stop-on-fail
 set -euo pipefail
 
-# PATH hardening: ensure copilot/gh/claude are findable in non-login SSH shells
-export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$HOME/.claude/scripts:$PATH"
+# PATH hardening: ensure all tools are findable in non-login SSH shells
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$HOME/.claude/scripts:$PATH"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_FILE="${HOME}/.claude/data/dashboard.db"
@@ -225,6 +225,32 @@ check_engine() {
 }
 
 check_engine
+
+# ============================================================================
+# Preflight: verify required tools, auto-install if possible
+# ============================================================================
+_preflight_check() {
+	local missing=() fixed=()
+	for cmd in git sqlite3 node; do
+		command -v "$cmd" &>/dev/null || missing+=("$cmd")
+	done
+	if ! command -v pnpm &>/dev/null; then
+		warn "pnpm missing — auto-installing..."
+		npm install -g pnpm &>/dev/null && fixed+=("pnpm") || missing+=("pnpm")
+		export PATH="$HOME/.npm-global/bin:$PATH"
+	fi
+	if ! command -v ruff &>/dev/null; then
+		warn "ruff missing — auto-installing..."
+		(curl -LsSf https://astral.sh/ruff/install.sh | sh) &>/dev/null && fixed+=("ruff") || missing+=("ruff")
+		export PATH="$HOME/.local/bin:$PATH"
+	fi
+	[[ ${#fixed[@]} -gt 0 ]] && log "Auto-installed: ${fixed[*]}"
+	if [[ ${#missing[@]} -gt 0 ]]; then
+		error "Missing required tools: ${missing[*]}"
+		exit 1
+	fi
+}
+_preflight_check
 
 # ============================================================================
 # Setup logging

@@ -334,9 +334,14 @@ execute_plan_waves() {
 				wave_wt_check=$(db_query "$DB_FILE" "SELECT COALESCE(worktree_path,'') FROM waves WHERE id=$wave_db_id;")
 				if [[ -n "$wave_wt_check" ]]; then
 					step "Wave $wave_code: merging via PR..."
-					"${SCRIPT_DIR}/wave-worktree.sh" merge "$PLAN_ID" "$wave_db_id" 2>&1 || {
-						warn "Wave $wave_code merge failed — manual intervention needed"
-					}
+					if ! "${SCRIPT_DIR}/wave-worktree.sh" merge "$PLAN_ID" "$wave_db_id" 2>&1; then
+						warn "Wave $wave_code merge failed — attempting auto-fix..."
+						# Auto-fix: install missing tools, retry
+						_preflight_check 2>/dev/null || true
+						if ! "${SCRIPT_DIR}/wave-worktree.sh" merge "$PLAN_ID" "$wave_db_id" 2>&1; then
+							warn "Wave $wave_code merge still failing — continuing to next wave"
+						fi
+					fi
 				fi
 			fi
 

@@ -1,0 +1,231 @@
+/* base.tcss — Shared layout rules for Claude Control Center TUI.
+ * All theme-specific files override these defaults.
+ */
+
+/* ── App shell ────────────────────────────────────────────────────────────── */
+
+Screen {
+    layout: vertical;
+    overflow: hidden;
+}
+
+Header {
+    height: 1;
+    dock: top;
+}
+
+Footer {
+    height: 1;
+    dock: bottom;
+}
+
+/* ── Scrollable body ─────────────────────────────────────────────────────── */
+
+#main-body {
+    layout: vertical;
+    overflow-y: scroll;
+    height: 1fr;
+    padding: 0 1;
+}
+
+/* ── Status cards row ────────────────────────────────────────────────────── */
+
+#status-cards {
+    layout: horizontal;
+    height: 5;
+    margin-bottom: 1;
+}
+
+.status-card {
+    layout: vertical;
+    width: 1fr;
+    height: 5;
+    border: solid $primary;
+    padding: 0 1;
+    margin-right: 1;
+    content-align: center middle;
+}
+
+.status-card:last-of-type {
+    margin-right: 0;
+}
+
+.card-value {
+    text-style: bold;
+    text-align: center;
+}
+
+.card-label {
+    color: $text-muted;
+    text-align: center;
+}
+
+/* ── Section headers ─────────────────────────────────────────────────────── */
+
+.section-header {
+    height: 1;
+    color: $accent;
+    text-style: bold;
+    margin-top: 1;
+    margin-bottom: 0;
+    padding: 0 1;
+}
+
+/* ── Plan boxes ──────────────────────────────────────────────────────────── */
+
+.plan-box {
+    layout: vertical;
+    border: solid $primary;
+    margin-bottom: 1;
+    padding: 0 1;
+    height: auto;
+}
+
+.plan-title {
+    text-style: bold;
+    color: $text;
+}
+
+.plan-meta {
+    color: $text-muted;
+}
+
+.plan-progress {
+    height: 1;
+    margin: 0;
+}
+
+/* ── DataTable ───────────────────────────────────────────────────────────── */
+
+DataTable {
+    height: auto;
+    max-height: 20;
+    overflow-y: auto;
+}
+
+DataTable > .datatable--header {
+    text-style: bold;
+    color: $accent;
+}
+
+DataTable > .datatable--cursor {
+    background: $primary;
+    color: $background;
+}
+
+/* ── Mesh topology ───────────────────────────────────────────────────────── */
+
+#mesh-nodes {
+    layout: horizontal;
+    height: auto;
+    overflow-x: auto;
+    margin: 1 0;
+}
+
+.mesh-node {
+    layout: vertical;
+    width: 22;
+    height: 8;
+    border: solid $secondary;
+    margin-right: 2;
+    padding: 0 1;
+}
+
+.mesh-node.online {
+    border: solid $success;
+}
+
+.mesh-node.offline {
+    border: solid $error;
+}
+
+.node-name {
+    text-style: bold;
+    color: $text;
+}
+
+.node-role {
+    color: $text-muted;
+}
+
+.node-cpu {
+    height: 1;
+    margin: 0;
+}
+
+/* ── Charts area ─────────────────────────────────────────────────────────── */
+
+#charts-area {
+    layout: horizontal;
+    height: auto;
+    margin-top: 1;
+}
+
+.chart-box {
+    width: 1fr;
+    border: solid $secondary;
+    margin-right: 1;
+    padding: 0 1;
+    height: auto;
+}
+
+.chart-box:last-of-type {
+    margin-right: 0;
+}
+
+/* ── Status bar ──────────────────────────────────────────────────────────── */
+
+#status-bar {
+    layout: horizontal;
+    height: 1;
+    dock: bottom;
+    padding: 0 1;
+}
+
+/* ── Progress bars ───────────────────────────────────────────────────────── */
+
+ProgressBar {
+    height: 1;
+}
+
+ProgressBar > .bar--bar {
+    color: $primary;
+}
+
+ProgressBar > .bar--complete {
+    color: $success;
+}
+
+/* ── Utility classes ─────────────────────────────────────────────────────── */
+
+.text-success {
+    color: $success;
+}
+
+.text-warning {
+    color: $warning;
+}
+
+.text-error {
+    color: $error;
+}
+
+.text-muted {
+    color: $text-muted;
+}
+
+.text-accent {
+    color: $accent;
+}
+
+.text-primary {
+    color: $primary;
+}
+
+.bold {
+    text-style: bold;
+}
+
+.hidden {
+    display: none;
+}

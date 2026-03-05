@@ -1,0 +1,55 @@
+@font-face {
+  font-family: "JetBrainsMono Nerd Font";
+  src: url("fonts/JetBrainsMonoNerdFont-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg-deep: #04060e;
+  --bg-panel: #0a0e1a;
+  --bg-card: #0f1424;
+  --border: #1a2040;
+  --cyan: #00e5ff;
+  --magenta: #ff2daa;
+  --gold: #ffb700;
+  --green: #00ff88;
+  --red: #ff3355;
+  --text: #c8d0e8;
+  --text-dim: #5a6080;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-display: "Orbitron", sans-serif;
+  --gradient-h1: linear-gradient(90deg, var(--cyan), var(--magenta));
+  --scanline-color: rgba(0, 229, 255, 0.012);
+  --kpi-accent: var(--cyan);
+  --header-bg: linear-gradient(180deg, #0a0e1a, #04060e);
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 229, 255, 0.012) 2px,
+    rgba(0, 229, 255, 0.012) 4px
+  );
+}
+

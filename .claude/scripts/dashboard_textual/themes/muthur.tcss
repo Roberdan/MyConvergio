@@ -1,0 +1,173 @@
+/* muthur.tcss — Green phosphor CRT theme.
+ * MUTHUR 9000 — the shipboard AI from Alien (1979).
+ * Black background, green primary, dark green borders, yellow accent.
+ */
+
+/* ── Variables (Textual design tokens) ──────────────────────────────────── */
+
+$background: #0a0a0a;
+$surface: #0f0f0f;
+$primary: #00ff00;
+$secondary: #006600;
+$accent: #ffff00;
+$text: #00cc00;
+$text-muted: #004400;
+$success: #00ff00;
+$warning: #ffff00;
+$error: #ff4444;
+
+/* ── Screen ──────────────────────────────────────────────────────────────── */
+
+Screen {
+    background: $background;
+    color: $text;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+Header {
+    background: $background;
+    color: $primary;
+    text-style: bold;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+Footer {
+    background: $background;
+    color: $text-muted;
+}
+
+/* ── Status cards ────────────────────────────────────────────────────────── */
+
+.status-card {
+    background: $surface;
+    border: solid $secondary;
+    color: $text;
+}
+
+.card-value {
+    color: $primary;
+    text-style: bold;
+}
+
+.card-label {
+    color: $text-muted;
+}
+
+/* ── Section headers ─────────────────────────────────────────────────────── */
+
+.section-header {
+    color: $accent;
+    text-style: bold;
+    border-bottom: solid $secondary;
+}
+
+/* ── Plan boxes ──────────────────────────────────────────────────────────── */
+
+.plan-box {
+    background: $surface;
+    border: solid $secondary;
+}
+
+.plan-title {
+    color: $primary;
+    text-style: bold;
+}
+
+.plan-meta {
+    color: $text-muted;
+}
+
+/* ── DataTable ───────────────────────────────────────────────────────────── */
+
+DataTable {
+    background: $surface;
+    color: $text;
+}
+
+DataTable > .datatable--header {
+    background: $background;
+    color: $accent;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: $secondary;
+    color: $primary;
+    text-style: bold;
+}
+
+DataTable > .datatable--even-row {
+    background: $background;
+}
+
+DataTable > .datatable--odd-row {
+    background: $surface;
+}
+
+/* ── Mesh nodes ──────────────────────────────────────────────────────────── */
+
+.mesh-node {
+    background: $surface;
+    border: solid $secondary;
+    color: $text;
+}
+
+.mesh-node.online {
+    border: solid $primary;
+}
+
+.mesh-node.offline {
+    border: solid $error;
+}
+
+.node-name {
+    color: $primary;
+    text-style: bold;
+}
+
+/* ── Progress bars ───────────────────────────────────────────────────────── */
+
+ProgressBar > .bar--bar {
+    color: $secondary;
+}
+
+ProgressBar > .bar--complete {
+    color: $primary;
+}
+
+/* ── Charts ──────────────────────────────────────────────────────────────── */
+
+.chart-box {
+    background: $surface;
+    border: solid $secondary;
+    color: $text;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+
+ScrollBar {
+    background: $background;
+    color: $secondary;
+}
+
+/* ── Input ───────────────────────────────────────────────────────────────── */
+
+Input {
+    background: $surface;
+    border: solid $secondary;
+    color: $primary;
+}
+
+Input:focus {
+    border: solid $primary;
+}
+
+/* ── Notification / toast ────────────────────────────────────────────────── */
+
+Toast {
+    background: $surface;
+    border: solid $primary;
+    color: $text;
+}

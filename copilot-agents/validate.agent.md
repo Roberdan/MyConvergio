@@ -1,12 +1,12 @@
 ---
 name: validate
-description: Thor quality validation - verify completed wave meets all F-xx requirements and quality gates.
+description: Thor quality validation - verify completed tasks/waves meet all F-xx requirements and quality gates.
 tools: ["read", "search", "execute"]
 model: claude-opus-4.6
-version: "3.0.0"
+version: "4.0.0"
 ---
 
-<!-- v3.0.0 (2026-02-15): Compact format per ADR 0009 - 40% token reduction, all 9 gates preserved -->
+<!-- v4.0.0 (2026-02-28): submitted status flow, per-task validate-task with thor validator -->
 
 # Thor Quality Validation
 
@@ -24,7 +24,7 @@ Works with ANY repository - auto-detects project context and test framework.
 | Rule | Requirement                                              |
 | ---- | -------------------------------------------------------- |
 | 1    | Read files directly - verify code, not claims            |
-| 2    | All 9 gates must PASS - any failure = REJECTED           |
+| 2    | All 10 gates must PASS - any failure = REJECTED          |
 | 3    | Max 3 rounds - after 3 rejections, ESCALATE              |
 | 4    | Zero tolerance - no TODO, FIXME, @ts-ignore, empty catch |
 
@@ -52,7 +52,7 @@ cd "$WORKTREE"
 | Go           | go.mod                  | go test ./... | golangci-lint run    |
 | Java         | pom.xml                 | mvn test      | mvn checkstyle:check |
 
-## 9 Validation Gates
+## 10 Validation Gates
 
 | Gate | Name                     | Requirements                                                                                        | Evidence                   |
 | ---- | ------------------------ | --------------------------------------------------------------------------------------------------- | -------------------------- |
@@ -65,6 +65,7 @@ cd "$WORKTREE"
 | 7    | Performance              | No N+1 queries, heavy deps lazy-loaded                                                              | Code inspection            |
 | 8    | TDD Verification         | Tests written BEFORE implementation, all pass, coverage >= 80% new files                            | Test timestamps, coverage  |
 | 9    | Constitution & ADR       | CLAUDE.md followed, coding-standards.md respected, active ADRs not contradicted, max 250 lines/file | File reads, ADR compliance |
+| 10   | Integration Reachability | Every new file/export has ≥1 import site (excl. tests, entry points). Orphan = REJECT               | `grep -r ExportName .`     |
 
 ### Gate 9 - ADR-Smart Exception
 
@@ -97,20 +98,36 @@ REJECTED (round X/3):
       fix: "How to fix it"
 ```
 
+## CRITICAL: Status Flow (v5.0.0)
+
+```
+pending → in_progress → submitted (executor) → done (ONLY Thor)
+```
+
+**Executors set `submitted`.** Only this agent (Thor) can transition `submitted → done`.
+A SQLite trigger `enforce_thor_done` blocks ANY attempt to set `done` without Thor validation.
+
 ## After Validation
 
 ```bash
-# Per-task (after validating a single task)
-plan-db.sh validate-task {task_id} $PLAN_ID
+# Per-task: APPROVED → transition submitted → done
+plan-db.sh validate-task {task_db_id} $PLAN_ID thor
+# 'thor' is the validator name. MUST be passed explicitly.
+# This atomically: sets status=done, validated_at=now, validated_by=thor
 
-# Per-wave (after validating all tasks in wave)
+# Per-task: REJECTED → task stays submitted, executor fixes
+plan-db.sh update-task {task_db_id} in_progress "Thor rejection: reason"
+# Executor fixes → re-submits → re-validate
+
+# Per-wave (after ALL tasks in wave are done via per-task validation)
 plan-db.sh validate-wave {wave_db_id}
 
-# Bulk (all done tasks in plan)
+# Bulk (all submitted tasks in plan)
 plan-db.sh validate $PLAN_ID
 ```
 
 ## Changelog
 
+- **4.0.0** (2026-02-28): submitted status flow, per-task validate-task with explicit thor validator
+- **3.1.0** (2026-02-27): Gate 10 Integration Reachability
 - **3.0.0** (2026-02-15): Compact format per ADR 0009 - 40% token reduction
-- **2.0.0** (Previous version): 9 gates documented

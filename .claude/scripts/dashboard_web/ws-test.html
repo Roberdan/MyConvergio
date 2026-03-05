@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><head><title>WS Test</title></head>
+<body>
+<pre id="log"></pre>
+<script>
+var log = document.getElementById('log');
+function l(msg) { log.textContent += msg + '\n'; console.log(msg); }
+l('Connecting to ws://localhost:8421/ws?peer=local ...');
+var ws = new WebSocket('ws://localhost:8421/ws?peer=local');
+ws.binaryType = 'arraybuffer';
+ws.onopen = function() { l('OPEN!'); document.title = 'OPEN'; };
+ws.onerror = function(e) { l('ERROR: ' + JSON.stringify(e)); document.title = 'ERR'; };
+ws.onclose = function(e) { l('CLOSE: code=' + e.code + ' reason=' + e.reason + ' wasClean=' + e.wasClean); document.title = 'CL:'+e.code; };
+ws.onmessage = function(e) {
+  if (e.data instanceof ArrayBuffer) {
+    var arr = new Uint8Array(e.data);
+    var txt = new TextDecoder().decode(arr);
+    l('MSG (' + e.data.byteLength + 'b): ' + txt.substring(0, 100));
+  } else {
+    l('MSG (text): ' + e.data.substring(0, 100));
+  }
+  document.title = 'MSG';
+};
+</script>
+</body>
+</html>

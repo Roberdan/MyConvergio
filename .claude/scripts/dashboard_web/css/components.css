@@ -1,0 +1,228 @@
+/* Legacy .panel — keep for compat */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  position: relative;
+}
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--magenta);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-title::before {
+  content: "\25C8";
+  color: var(--cyan);
+}
+
+/* Unified Widget System */
+.widget {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  animation: widgetFadeIn 0.4s ease-out both;
+}
+.widget::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.4;
+}
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(26, 32, 64, 0.6);
+}
+.widget-title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--magenta);
+  text-transform: uppercase;
+}
+.widget-title::before {
+  content: "\25C8  ";
+  color: var(--cyan);
+}
+.widget-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.widget-action-btn {
+  background: rgba(0, 229, 255, 0.06);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  color: var(--cyan);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+.widget-action-btn svg {
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.widget-action-btn:hover {
+  background: rgba(0, 229, 255, 0.15);
+  border-color: var(--cyan);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.15);
+}
+.widget-body {
+  padding: 12px 16px;
+}
+@keyframes widgetFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.dash-col-left .widget:nth-child(1) {
+  animation-delay: 0s;
+}
+.dash-col-left .widget:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.dash-col-left .widget:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.dash-col-right .widget:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.dash-col-right .widget:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.dash-col-right .widget:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.dash-col-right .widget:nth-child(4) {
+  animation-delay: 0.28s;
+}
+.dash-col-right .widget:nth-child(5) {
+  animation-delay: 0.36s;
+}
+
+/* Global breathing animations */
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+.widget::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.02), transparent);
+  pointer-events: none;
+  animation: breathe 4s ease-in-out infinite;
+}
+/* KPI scroll-to flash */
+@keyframes widgetFlash {
+  0% {
+    box-shadow: 0 0 0 2px var(--cyan);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.widget-flash {
+  animation: widgetFlash 1.2s ease-out !important;
+}
+/* Mesh count in widget header */
+.mesh-count {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.mission-plan {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: rgba(10, 14, 26, 0.6);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.mission-plan:hover {
+  border-color: var(--cyan);
+  background: rgba(0, 229, 255, 0.04);
+}
+.mission-plan:last-child {
+  margin-bottom: 0;
+}
+.mission-id {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--cyan);
+  font-weight: 700;
+}
+.mission-name {
+  font-weight: 600;
+  color: #e0e4f0;
+  font-size: 14px;
+}
+.mission-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.host-badge-prominent {
+  display: inline-block;
+  background: rgba(255,160,0,0.15);
+  color: #ffb700;
+  border: 1px solid rgba(255,160,0,0.4);
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  margin-left: 6px;
+}
+.host-badge-local {
+  display: inline-block;
+  background: rgba(0,229,255,0.08);
+  color: var(--text-dim);

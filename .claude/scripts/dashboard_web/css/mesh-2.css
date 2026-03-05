@@ -1,0 +1,229 @@
+.mesh-link {
+  display: flex;
+  align-items: center;
+  width: 36px;
+  position: relative;
+  flex-shrink: 0;
+}
+.mesh-link-line {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+}
+.mesh-link.active .mesh-link-line {
+  height: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--magenta));
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+}
+.mesh-flow-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  animation: flowDot 1.8s linear infinite;
+}
+.mesh-flow-dot:nth-child(3) {
+  animation-delay: -0.9s;
+  background: var(--magenta);
+  box-shadow: 0 0 10px var(--magenta);
+}
+@keyframes flowDot {
+  0% {
+    left: 0;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 5px);
+    opacity: 0;
+  }
+}
+.mesh-flow-dot-reverse {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--magenta);
+  box-shadow: 0 0 10px var(--magenta);
+  animation: flowDotReverse 1.8s linear infinite;
+}
+@keyframes flowDotReverse {
+  0% {
+    left: calc(100% - 5px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: 0;
+    opacity: 0;
+  }
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 60px 80px;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #0d1228;
+  font-size: 12px;
+  align-items: center;
+  cursor: pointer;
+}
+.history-row:hover {
+  background: rgba(0, 229, 255, 0.03);
+}
+
+.activity-item {
+  display: flex;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #0d1228;
+  font-size: 11px;
+  align-items: center;
+}
+.activity-time {
+  color: var(--text-dim);
+  min-width: 50px;
+}
+.activity-icon {
+  font-size: 14px;
+}
+
+/* Widget drag-and-drop */
+.widget[draggable="true"] .widget-header {
+  cursor: grab;
+}
+.widget[draggable="true"] .widget-header:active {
+  cursor: grabbing;
+}
+.widget-dragging {
+  opacity: 0.3;
+  border: 1px dashed var(--cyan) !important;
+}
+.widget-drop-placeholder {
+  border: 2px dashed var(--cyan);
+  border-radius: 8px;
+  background: rgba(0, 229, 255, 0.04);
+  margin-bottom: 16px;
+  transition: height 0.15s ease;
+  min-height: 40px;
+}
+.col-drag-over {
+  background: rgba(0, 229, 255, 0.02);
+  border-radius: 8px;
+  outline: 1px dashed rgba(0, 229, 255, 0.15);
+  outline-offset: 4px;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 900px) {
+  .dash-columns {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 768px) {
+  .header {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+  .header-left,
+  .header-right {
+    flex: unset;
+  }
+  .header h1 {
+    font-size: 13px;
+    letter-spacing: 3px;
+  }
+  .kpi-card {
+    flex: 1 1 80px;
+    min-width: 80px;
+    padding: 8px 10px;
+  }
+  .kpi-value {
+    font-size: 18px;
+  }
+  .mesh-hub-workers {
+    flex-wrap: wrap;
+  }
+  .mesh-node {
+    min-width: 150px;
+    min-height: auto;
+  }
+  .task-table th:nth-child(n + 5),
+  .task-table td:nth-child(n + 5) {
+    display: none;
+  }
+}
+/* Mission progress ring */
+.mission-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0;
+}
+.mission-ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+.mission-ring svg {
+  transform: rotate(-90deg);
+}
+.mission-ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 4;
+}
+.mission-ring-fill {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mission-ring-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+.mission-progress-bars {
+  flex: 1;
+  min-width: 0;
+}
+.mission-progress-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+.mission-progress-track {
+  height: 6px;
+  background: var(--bg-deep);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.mission-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);

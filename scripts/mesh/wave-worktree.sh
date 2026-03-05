@@ -1,0 +1,587 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# wave-worktree.sh v3.2.0 — Wave-level worktree lifecycle management
+# Usage: wave-worktree.sh <command> <plan_id> [wave_db_id]
+# Commands: create, merge, merge-async, pr-sync, cleanup, status
+#
+# merge-async: Push + create PR + return immediately (non-blocking).
+#   Next wave can start while PR is in review. Use pr-sync to reconcile.
+# pr-sync: Check previous wave's async PR, rebase current wave, extract feedback.
+#
+# Version: 3.2.0
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/plan-db-core.sh"
+source "$SCRIPT_DIR/lib/wave-worktree-core.sh"
+
+# ---------------------------------------------------------------------------
+# cmd_create plan_id wave_db_id
+# ---------------------------------------------------------------------------
+cmd_create() {
+	local plan_id="$1" wave_db_id="$2"
+
+	# 1. Get project path from DB
+	local project_path
+	project_path=$(db_query \
+		"SELECT p2.path FROM plans p JOIN projects p2 ON p.project_id = p2.id WHERE p.id = ${plan_id};" \
+		2>/dev/null || true)
+	[[ -n "$project_path" ]] && project_path=$(_expand_path "$project_path")
+	if [[ -z "$project_path" ]]; then
+		project_path=$(git rev-parse --show-toplevel 2>/dev/null || true)
+	fi
+	if [[ -z "$project_path" ]]; then
+		log_error "Cannot determine project path for plan $plan_id"
+		exit 1
+	fi
+
+	# 2. Get wave_id and theme
+	local wave_id wave_theme
+	wave_id=$(db_query "SELECT wave_id FROM waves WHERE id = ${wave_db_id};" 2>/dev/null || true)
+	wave_theme=$(db_query "SELECT COALESCE(theme, '') FROM waves WHERE id = ${wave_db_id};" 2>/dev/null || true)
+	if [[ -z "$wave_id" ]]; then
+		log_error "Wave not found: db_id=${wave_db_id}"
+		exit 1
+	fi
+
+	# 3. Check for existing theme worktree (batch reuse)
+	local reused=false
+	if [[ -n "$wave_theme" ]]; then
+		local prev_wt prev_branch
+		prev_wt=$(db_query "SELECT worktree_path FROM waves WHERE plan_id=${plan_id} AND theme='$(sql_escape "$wave_theme")' AND id <> ${wave_db_id} AND worktree_path IS NOT NULL AND worktree_path <> '' ORDER BY position DESC LIMIT 1;" 2>/dev/null || true)
+		if [[ -n "$prev_wt" ]]; then
+			prev_wt=$(_expand_path "$prev_wt")
+			if [[ -d "$prev_wt" ]]; then
+				prev_branch=$(db_query "SELECT branch_name FROM waves WHERE plan_id=${plan_id} AND theme='$(sql_escape "$wave_theme")' AND worktree_path IS NOT NULL AND worktree_path <> '' ORDER BY position DESC LIMIT 1;" 2>/dev/null || true)
+				log_info "Reusing theme worktree from ${wave_theme}: $prev_wt (branch: $prev_branch)"
+				wave_set_db "$wave_db_id" "$(_normalize_path "$prev_wt")" "$prev_branch"
+				reused=true
+			fi
+		fi
+	fi
+
+	# 4. Create new worktree if not reused
+	if [[ "$reused" == "false" ]]; then
+		local branch wt_path
+		if [[ -n "$wave_theme" ]]; then
+			branch="plan/${plan_id}-${wave_theme}"
+			wt_path="${project_path%/}-plan-${plan_id}-${wave_theme}"
+		else
+			branch=$(wave_branch_name "$plan_id" "$wave_id")
+			wt_path=$(wave_worktree_path "$project_path" "$plan_id" "$wave_id")
+		fi
+
+		local expanded_wt
+		expanded_wt=$(_expand_path "$wt_path")
+		if [[ -d "$expanded_wt" ]]; then
+			log_info "Worktree already exists: $expanded_wt (skipping creation)"
+		else
+			local remote
+			remote=$(resolve_github_remote "$project_path")
+			git -C "$project_path" fetch "${remote:-origin}" main 2>/dev/null || true
+			(cd "$project_path" && "$SCRIPT_DIR/worktree-create.sh" "$branch" "$wt_path")
+		fi
+
+		wave_set_db "$wave_db_id" "$wt_path" "$branch"
+	fi
+
+	local norm_wt
+	norm_wt=$(db_query "SELECT worktree_path FROM waves WHERE id=${wave_db_id};" 2>/dev/null || true)
+	db_query "UPDATE plans SET worktree_path = '$(sql_escape "$norm_wt")' WHERE id = ${plan_id};"
+	db_query "UPDATE waves SET status = 'in_progress', started_at = COALESCE(started_at, datetime('now')) WHERE id = ${wave_db_id};"
+	log_info "Wave ${wave_db_id} -> in_progress"
+	wave_get_db "$wave_db_id"
+}
+
+# ---------------------------------------------------------------------------
+# cmd_status plan_id
+# ---------------------------------------------------------------------------
+cmd_status() {
+	local plan_id="$1"
+
+	local rows
+	rows=$(db_query -separator '|' \
+		"SELECT w.id, w.wave_id, w.name, w.status, COALESCE(w.worktree_path,''), COALESCE(w.branch_name,''), COALESCE(CAST(w.pr_number AS TEXT),'-'), w.tasks_done, w.tasks_total, COALESCE(w.merge_mode,'sync'), COALESCE(w.theme,'')
+		 FROM waves w WHERE w.plan_id = ${plan_id} ORDER BY w.position;" \
+		2>/dev/null || true)
+
+	if [[ -z "$rows" ]]; then
+		echo "No waves found for plan $plan_id"
+		return 0
+	fi
+
+	printf "%-6s %-12s %-6s %-6s %-10s %-24s %-5s %s\n" "Wave" "Status" "Tasks" "Mode" "Theme" "Branch" "PR" "Worktree"
+	printf "%-6s %-12s %-6s %-6s %-10s %-24s %-5s %s\n" "------" "------------" "------" "------" "----------" "------------------------" "-----" "--------"
+
+	while IFS='|' read -r id wid name status wt_path branch pr_num done total merge_mode theme; do
+		local clean="-"
+		if [[ -n "$wt_path" ]]; then
+			local expanded
+			expanded=$(_expand_path "$wt_path")
+			if [[ -d "$expanded" ]]; then
+				local dirty
+				dirty=$(git -C "$expanded" status --porcelain 2>/dev/null | head -1 || true)
+				[[ -z "$dirty" ]] && clean="Clean" || clean="Dirty"
+			else
+				clean="Missing"
+			fi
+		fi
+		local disp_wt="${wt_path:-"-"}"
+		printf "%-6s %-12s %-6s %-6s %-10s %-24s %-5s %s [%s]\n" \
+			"$wid" "$status" "${done}/${total}" "$merge_mode" "${theme:-"-"}" "${branch:-"-"}" "${pr_num}" "$disp_wt" "$clean"
+	done <<<"$rows"
+}
+
+# ---------------------------------------------------------------------------
+# cmd_batch plan_id wave_db_id
+# Commit changes, mark wave done, keep worktree for next wave in theme.
+# No PR, no merge to main. Used for intermediate waves in a theme group.
+# ---------------------------------------------------------------------------
+cmd_batch() {
+	local plan_id="$1" wave_db_id="$2"
+
+	local db_json wt_path wave_name
+	db_json=$(wave_get_db "$wave_db_id" 2>/dev/null || true)
+	if echo "$db_json" | grep -q '"error"'; then
+		log_error "Wave not found: db_id=${wave_db_id}"
+		exit 1
+	fi
+	wt_path=$(echo "$db_json" | sed 's/.*"worktree_path":"\([^"]*\)".*/\1/')
+	wave_name=$(db_query "SELECT COALESCE(name, wave_id) FROM waves WHERE id = ${wave_db_id};" 2>/dev/null || true)
+
+	if [[ -z "$wt_path" ]] || [[ ! -d "$wt_path" ]]; then
+		log_error "Worktree not found for wave ${wave_db_id}: '${wt_path}'"
+		exit 1
+	fi
+
+	# Commit if dirty
+	local dirty
+	dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null || true)
+	if [[ -n "$dirty" ]]; then
+		git -C "$wt_path" add -A
+		git -C "$wt_path" commit -m "feat(plan-${plan_id}): ${wave_name}"
+		log_info "Wave ${wave_db_id} committed (batch — no PR)"
+	else
+		log_info "Wave ${wave_db_id} clean — nothing to commit"
+	fi
+
+	# Mark wave done but keep worktree (next wave in theme will reuse it)
+	db_query "UPDATE waves SET status='done', merge_mode='batch', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+	log_info "Wave ${wave_db_id} -> done (batch, worktree kept for theme)"
+}
+
+# ---------------------------------------------------------------------------
+# cmd_merge plan_id wave_db_id
+# ---------------------------------------------------------------------------
+cmd_merge() {
+	local plan_id="$1" wave_db_id="$2"
+
+	# 1. Read worktree_path + branch from DB
+	local db_json wt_path branch wave_name
+	db_json=$(wave_get_db "$wave_db_id" 2>/dev/null || true)
+	if echo "$db_json" | grep -q '"error"'; then
+		log_error "Wave not found: db_id=${wave_db_id}"
+		exit 1
+	fi
+	wt_path=$(echo "$db_json" | sed 's/.*"worktree_path":"\([^"]*\)".*/\1/')
+	branch=$(echo "$db_json" | sed 's/.*"branch_name":"\([^"]*\)".*/\1/')
+	wave_name=$(db_query "SELECT COALESCE(name, wave_id) FROM waves WHERE id = ${wave_db_id};" 2>/dev/null || true)
+
+	# 2. Verify worktree exists
+	if [[ -z "$wt_path" ]] || [[ ! -d "$wt_path" ]]; then
+		log_error "Worktree not found for wave ${wave_db_id}: '${wt_path}'"
+		exit 1
+	fi
+
+	# 3. Resolve remote (auto-detect, not hardcoded 'origin')
+	local remote
+	remote=$(resolve_github_remote "$wt_path")
+	if [[ -z "$remote" ]]; then
+		log_warn "No git remote found — skipping merge, marking wave done"
+		db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+		cmd_cleanup "$plan_id" "$wave_db_id"
+		return 0
+	fi
+
+	# 4. Pre-flight: check if branch has commits beyond main
+	local main_branch="main"
+	if ! git -C "$wt_path" rev-parse --verify "$main_branch" >/dev/null 2>&1; then
+		main_branch="master"
+	fi
+	local diff_count
+	diff_count=$(git -C "$wt_path" log "${main_branch}..HEAD" --oneline 2>/dev/null | wc -l | tr -d ' ')
+	if [[ "${diff_count:-0}" -eq 0 ]]; then
+		log_info "No changes in wave worktree vs $main_branch — skipping merge"
+		db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+		cmd_cleanup "$plan_id" "$wave_db_id"
+		return 0
+	fi
+
+	# 5. Commit if dirty
+	local dirty
+	dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null || true)
+	if [[ -n "$dirty" ]]; then
+		git -C "$wt_path" add -A
+		git -C "$wt_path" commit -m "feat(plan-${plan_id}): ${wave_db_id} — ${wave_name}"
+	fi
+
+	# 5b. Rebase onto main (clean graph: removes merge commits from forward-merges)
+	git -C "$wt_path" fetch "$remote" "$main_branch" 2>/dev/null || true
+	if ! git -C "$wt_path" rebase "$remote/$main_branch" 2>/dev/null; then
+		log_warn "Rebase failed (conflicts) — aborting rebase, will push with merge history"
+		git -C "$wt_path" rebase --abort 2>/dev/null || true
+	fi
+
+	# 6. Push (force-with-lease: safe after rebase, allows history rewrite on wave branch only)
+	if ! git -C "$wt_path" push --force-with-lease -u "$remote" "$branch" 2>&1; then
+		log_error "Push failed for wave ${wave_db_id} — rolling back to in_progress"
+		db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 1
+	fi
+
+	# 7. DRY_RUN: skip PR creation, CI, merge
+	if [[ "${WAVE_DRY_RUN:-0}" == "1" ]]; then
+		log_info "DRY_RUN: skipping PR creation and merge for wave ${wave_db_id}"
+		db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 0
+	fi
+
+	# 8. Create PR (use resolved remote)
+	local remote_repo pr_url pr_number
+	remote_repo=$(git -C "$wt_path" remote get-url "$remote" 2>/dev/null | sed 's|.*github.com[:/]||;s|\.git$||' || true)
+	if [[ -z "$remote_repo" ]] || ! command -v gh >/dev/null 2>&1; then
+		log_warn "gh not installed or no GitHub remote — skipping PR creation"
+		db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+		cmd_cleanup "$plan_id" "$wave_db_id"
+		return 0
+	fi
+	pr_url=$(gh pr create --repo "$remote_repo" --base "$main_branch" --head "$branch" \
+		--title "Plan ${plan_id}: ${wave_db_id} — ${wave_name}" \
+		--body "Auto-generated by wave-worktree.sh for plan ${plan_id}, wave ${wave_db_id}" 2>&1 || true)
+	pr_number=$(basename "$pr_url")
+	db_query "UPDATE waves SET pr_number=${pr_number:-0}, pr_url='$(sql_escape "$pr_url")' WHERE id=${wave_db_id};" 2>/dev/null || true
+
+	# 9. Wait for CI (--watch --fail-fast)
+	gh pr checks "$pr_number" --repo "$remote_repo" --watch --fail-fast 2>&1 || true
+
+	# 10. Readiness gate (BLOCKING)
+	if [[ -x "$SCRIPT_DIR/pr-ops.sh" ]]; then
+		local ready_output blockers
+		ready_output=$("$SCRIPT_DIR/pr-ops.sh" ready "$pr_number" 2>&1 || true)
+		blockers=$(echo "$ready_output" | grep -c "BLOCKER:" || true)
+		if [[ "$blockers" -gt 0 ]]; then
+			if echo "$ready_output" | grep -qi "unresolved thread"; then
+				log_error "PR #$pr_number has unresolved review comments. Resolve before merge."
+				log_error "Run: pr-comment-resolver agent or pr-threads.sh $pr_number to inspect"
+				log_error "Then retry: wave-worktree.sh merge $plan_id $wave_db_id"
+			else
+				log_error "PR #$pr_number not ready to merge:"
+				echo "$ready_output" | grep "BLOCKER:" >&2
+			fi
+			db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
+			return 1
+		fi
+	else
+		log_error "pr-ops.sh not found or not executable — cannot verify merge readiness"
+		log_error "Install pr-ops.sh or fix permissions: chmod +x $SCRIPT_DIR/pr-ops.sh"
+		db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 1
+	fi
+
+	# 11. Merge (always via pr-ops.sh — no fallback to raw gh pr merge)
+	if ! "$SCRIPT_DIR/pr-ops.sh" merge "$pr_number"; then
+		log_error "Merge failed for wave ${wave_db_id} — rolling back to in_progress"
+		db_query "UPDATE waves SET status='in_progress' WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 1
+	fi
+
+	# 11b. Post-merge CI watch on main (non-blocking — merge already happened)
+	if [[ -x "$SCRIPT_DIR/ci-watch.sh" ]]; then
+		log_info "Monitoring CI on $main_branch after merge..."
+		local merge_sha ci_result ci_status
+		merge_sha=$(git -C "$wt_path" rev-parse "$remote/$main_branch" 2>/dev/null || echo "")
+		if [[ -n "$merge_sha" ]]; then
+			ci_result=$("$SCRIPT_DIR/ci-watch.sh" "$main_branch" --repo "$remote_repo" --sha "$merge_sha" --timeout 120 2>/dev/null || echo '{"status":"error"}')
+			ci_status=$(echo "$ci_result" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")
+			if [[ "$ci_status" == "fail" ]]; then
+				log_warn "CI on $main_branch FAILED after merge of wave ${wave_db_id}. Review immediately."
+				log_warn "Failed checks: $(echo "$ci_result" | jq -r '[.checks[]? | select(.conclusion=="fail") | .name] | join(", ")' 2>/dev/null || echo "unknown")"
+			elif [[ "$ci_status" == "pass" ]]; then
+				log_info "CI on $main_branch passed after merge"
+			else
+				log_info "CI on $main_branch: $ci_status (non-blocking)"
+			fi
+		fi
+	fi
+
+	# 12. Mark done + cleanup
+	db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+	cmd_cleanup "$plan_id" "$wave_db_id"
+}
+
+# ---------------------------------------------------------------------------
+# cmd_merge_async plan_id wave_db_id
+# Push + create PR + return immediately (no CI wait, no merge)
+# ---------------------------------------------------------------------------
+cmd_merge_async() {
+	local plan_id="$1" wave_db_id="$2"
+
+	local db_json wt_path branch wave_name
+	db_json=$(wave_get_db "$wave_db_id" 2>/dev/null || true)
+	if echo "$db_json" | grep -q '"error"'; then
+		log_error "Wave not found: db_id=${wave_db_id}"
+		exit 1
+	fi
+	wt_path=$(echo "$db_json" | sed 's/.*"worktree_path":"\([^"]*\)".*/\1/')
+	branch=$(echo "$db_json" | sed 's/.*"branch_name":"\([^"]*\)".*/\1/')
+	wave_name=$(db_query "SELECT COALESCE(name, wave_id) FROM waves WHERE id = ${wave_db_id};" 2>/dev/null || true)
+
+	if [[ -z "$wt_path" ]] || [[ ! -d "$wt_path" ]]; then
+		log_error "Worktree not found for wave ${wave_db_id}: '${wt_path}'"
+		exit 1
+	fi
+
+	local remote
+	remote=$(resolve_github_remote "$wt_path")
+	if [[ -z "$remote" ]]; then
+		log_warn "No git remote — marking wave done (no PR)"
+		db_query "UPDATE waves SET status='done', merge_mode='none', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 0
+	fi
+
+	local main_branch="main"
+	git -C "$wt_path" rev-parse --verify "$main_branch" >/dev/null 2>&1 || main_branch="master"
+
+	local diff_count
+	diff_count=$(git -C "$wt_path" log "${main_branch}..HEAD" --oneline 2>/dev/null | wc -l | tr -d ' ')
+	if [[ "${diff_count:-0}" -eq 0 ]]; then
+		log_info "No changes vs $main_branch — marking done"
+		db_query "UPDATE waves SET status='done', merge_mode='none', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 0
+	fi
+
+	# Commit if dirty
+	local dirty
+	dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null || true)
+	if [[ -n "$dirty" ]]; then
+		git -C "$wt_path" add -A
+		git -C "$wt_path" commit -m "feat(plan-${plan_id}): ${wave_db_id} — ${wave_name}"
+	fi
+
+	# Rebase onto main
+	git -C "$wt_path" fetch "$remote" "$main_branch" 2>/dev/null || true
+	if ! git -C "$wt_path" rebase "$remote/$main_branch" 2>/dev/null; then
+		log_warn "Rebase failed — pushing with merge history"
+		git -C "$wt_path" rebase --abort 2>/dev/null || true
+	fi
+
+	# Push
+	if ! git -C "$wt_path" push --force-with-lease -u "$remote" "$branch" 2>&1; then
+		log_error "Push failed for wave ${wave_db_id}"
+		return 1
+	fi
+
+	# Create PR (non-blocking — no --watch)
+	local remote_repo pr_url pr_number
+	remote_repo=$(git -C "$wt_path" remote get-url "$remote" 2>/dev/null | sed 's|.*github.com[:/]||;s|\.git$||' || true)
+	if [[ -z "$remote_repo" ]] || ! command -v gh >/dev/null 2>&1; then
+		log_warn "gh not available — marking done (no PR)"
+		db_query "UPDATE waves SET status='done', merge_mode='none', completed_at=datetime('now') WHERE id=${wave_db_id};" 2>/dev/null || true
+		return 0
+	fi
+	pr_url=$(gh pr create --repo "$remote_repo" --base "$main_branch" --head "$branch" \
+		--title "Plan ${plan_id}: ${wave_db_id} — ${wave_name}" \
+		--body "Auto-generated by wave-worktree.sh (merge-async) for plan ${plan_id}, wave ${wave_db_id}" 2>&1 || true)
+	pr_number=$(basename "$pr_url")
+	db_query "UPDATE waves SET pr_number=${pr_number:-0}, pr_url='$(sql_escape "$pr_url")', merge_mode='async' WHERE id=${wave_db_id};" 2>/dev/null || true
+
+	log_info "PR #${pr_number} created for wave ${wave_db_id} — NOT waiting for CI/merge"
+	log_info "Next wave can start immediately. Run pr-sync before closing next wave."
+	echo "{\"pr_number\":${pr_number:-0},\"pr_url\":\"${pr_url}\",\"merge_mode\":\"async\"}"
+}
+
+# ---------------------------------------------------------------------------
+# cmd_pr_sync plan_id current_wave_db_id
+# Sync with previous wave's async PR: verify merged, rebase, extract feedback
+# ---------------------------------------------------------------------------
+cmd_pr_sync() {
+	local plan_id="$1" current_wave_db_id="$2"
+
+	# Find previous wave (by position)
+	local prev_wave_id prev_pr prev_status prev_merge_mode
+	read -r prev_wave_id prev_pr prev_status prev_merge_mode < <(db_query -separator ' ' \
+		"SELECT w.id, COALESCE(w.pr_number,0), w.status, COALESCE(w.merge_mode,'sync')
+		 FROM waves w
+		 WHERE w.plan_id=${plan_id}
+		   AND w.position < (SELECT position FROM waves WHERE id=${current_wave_db_id})
+		 ORDER BY w.position DESC LIMIT 1;" 2>/dev/null || echo "0 0 done sync")
+
+	if [[ "$prev_merge_mode" != "async" ]]; then
+		log_info "Previous wave not async — no pr-sync needed"
+		echo '{"sync":"skip","reason":"previous wave not async"}'
+		return 0
+	fi
+
+	if [[ "$prev_status" == "done" ]]; then
+		log_info "Previous wave already done — no sync needed"
+		echo '{"sync":"skip","reason":"already done"}'
+		return 0
+	fi
+
+	if [[ "${prev_pr:-0}" -eq 0 ]]; then
+		log_warn "Previous wave has no PR number — marking done"
+		db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${prev_wave_id};" 2>/dev/null || true
+		echo '{"sync":"done","reason":"no PR"}'
+		return 0
+	fi
+
+	# Check PR status via gh
+	local pr_state
+	pr_state=$(gh pr view "$prev_pr" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
+
+	local feedback=""
+	case "$pr_state" in
+	MERGED)
+		log_info "Previous wave PR #${prev_pr} is MERGED"
+		# Retroactive check: warn if merged with unresolved threads
+		if [[ -f "$SCRIPT_DIR/lib/pr-ops-api.sh" ]]; then
+			source "$SCRIPT_DIR/lib/pr-ops-api.sh"
+			local merged_threads
+			merged_threads=$(gql_review_threads "$prev_pr" 2>/dev/null | jq '[.[]? | select(.isResolved == false)] | length' 2>/dev/null || echo "0")
+			if [[ "${merged_threads:-0}" -gt 0 ]]; then
+				log_warn "PR #${prev_pr} was merged with ${merged_threads} unresolved thread(s) — review before proceeding"
+			fi
+		fi
+		db_query "UPDATE waves SET status='done', completed_at=datetime('now') WHERE id=${prev_wave_id};" 2>/dev/null || true
+
+		# Rebase current wave onto main
+		local cur_wt
+		cur_wt=$(db_query "SELECT worktree_path FROM waves WHERE id=${current_wave_db_id};" 2>/dev/null || true)
+		cur_wt="${cur_wt/#\~/$HOME}"
+		if [[ -n "$cur_wt" ]] && [[ -d "$cur_wt" ]]; then
+			local remote
+			remote=$(resolve_github_remote "$cur_wt")
+			git -C "$cur_wt" fetch "${remote:-origin}" main 2>/dev/null || true
+			if git -C "$cur_wt" rebase "${remote:-origin}/main" 2>/dev/null; then
+				log_info "Rebased current wave onto main (post-merge)"
+			else
+				log_warn "Rebase conflict — aborting, manual resolution needed"
+				git -C "$cur_wt" rebase --abort 2>/dev/null || true
+				echo '{"sync":"conflict","pr_state":"MERGED","action":"manual rebase needed"}'
+				return 1
+			fi
+		fi
+
+		# Extract PR review feedback
+		feedback=$(gh pr view "$prev_pr" --json reviews,comments --jq '
+			[.reviews[]? | select(.state != "APPROVED") | .body] +
+			[.comments[]? | .body] | map(select(. != null and . != "")) | join("\n---\n")
+		' 2>/dev/null || true)
+		;;
+	OPEN)
+		log_info "Previous wave PR #${prev_pr} still OPEN — checking CI + threads"
+		local checks_ok
+		checks_ok=$(gh pr checks "$prev_pr" 2>/dev/null | grep -c "fail" || true)
+		if [[ "${checks_ok:-0}" -gt 0 ]]; then
+			log_warn "PR #${prev_pr} has CI failures — continue but note"
+		fi
+		# Check unresolved threads on open PR
+		if [[ -f "$SCRIPT_DIR/lib/pr-ops-api.sh" ]]; then
+			source "$SCRIPT_DIR/lib/pr-ops-api.sh"
+			local open_threads
+			open_threads=$(gql_review_threads "$prev_pr" 2>/dev/null | jq '[.[]? | select(.isResolved == false)] | length' 2>/dev/null || echo "0")
+			if [[ "${open_threads:-0}" -gt 0 ]]; then
+				log_warn "PR #${prev_pr} has ${open_threads} unresolved thread(s) — resolve before merge"
+			fi
+		fi
+		echo "{\"sync\":\"pending\",\"pr_state\":\"OPEN\",\"pr_number\":${prev_pr}}"
+		return 0
+		;;
+	CLOSED)
+		log_error "Previous wave PR #${prev_pr} was CLOSED (not merged)"
+		echo '{"sync":"error","pr_state":"CLOSED","action":"investigate"}'
+		return 1
+		;;
+	*)
+		log_warn "Cannot determine PR state for #${prev_pr}: ${pr_state}"
+		echo "{\"sync\":\"unknown\",\"pr_state\":\"${pr_state}\"}"
+		return 0
+		;;
+	esac
+
+	# Save feedback for injection
+	if [[ -n "$feedback" ]]; then
+		local feedback_file="${HOME}/.claude/data/pr-feedback-wave-${prev_wave_id}.txt"
+		echo "$feedback" >"$feedback_file"
+		log_info "PR feedback saved: ${feedback_file}"
+		echo "{\"sync\":\"done\",\"pr_state\":\"MERGED\",\"feedback_file\":\"${feedback_file}\"}"
+	else
+		echo '{"sync":"done","pr_state":"MERGED","feedback":"none"}'
+	fi
+}
+
+# ---------------------------------------------------------------------------
+# cmd_cleanup plan_id wave_db_id [--force]
+# ---------------------------------------------------------------------------
+cmd_cleanup() {
+	local plan_id="$1" wave_db_id="$2" force="${3:-}"
+
+	# 1. Read worktree_path + branch from DB
+	local db_json wt_path branch
+	db_json=$(wave_get_db "$wave_db_id" 2>/dev/null || true)
+	if echo "$db_json" | grep -q '"error"'; then
+		log_error "Wave not found: db_id=${wave_db_id}"
+		exit 1
+	fi
+	wt_path=$(echo "$db_json" | sed 's/.*"worktree_path":"\([^"]*\)".*/\1/')
+	branch=$(echo "$db_json" | sed 's/.*"branch_name":"\([^"]*\)".*/\1/')
+
+	# 2. Check for dirty worktree
+	if [[ -d "$wt_path" ]]; then
+		local dirty
+		dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null || true)
+		if [[ -n "$dirty" ]] && [[ "$force" != "--force" ]]; then
+			log_error "Worktree has uncommitted changes. Use --force or commit first."
+			exit 1
+		fi
+	fi
+
+	# 3. Get project path for git operations
+	local project_path
+	project_path=$(db_query "SELECT p2.path FROM plans p JOIN projects p2 ON p.project_id=p2.id WHERE p.id=${plan_id};" 2>/dev/null | sed "s|^~|${HOME}|" || true)
+	[[ -z "$project_path" ]] && project_path=$(git rev-parse --show-toplevel 2>/dev/null || true)
+
+	# 4. Remove worktree
+	if [[ -n "$project_path" ]] && [[ -d "$wt_path" ]]; then
+		git -C "$project_path" worktree remove "$wt_path" --force 2>/dev/null || true
+	fi
+
+	# 5. Delete local branch
+	if [[ -n "$project_path" ]] && [[ -n "$branch" ]]; then
+		git -C "$project_path" branch -d "$branch" 2>/dev/null || true
+	fi
+
+	# 6. Prune stale worktree metadata + remote refs
+	if [[ -n "$project_path" ]]; then
+		git -C "$project_path" worktree prune 2>/dev/null || true
+		git -C "$project_path" fetch --prune 2>/dev/null || true
+	fi
+
+	# 7. Clear worktree + branch in DB
+	db_query "UPDATE waves SET worktree_path=NULL, branch_name=NULL WHERE id=${wave_db_id};" 2>/dev/null || true
+	log_info "Cleaned up wave ${wave_db_id} worktree"
+}
+
+# ---------------------------------------------------------------------------
+# Dispatch
+# ---------------------------------------------------------------------------
+case "${1:-help}" in
+create) cmd_create "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
+batch) cmd_batch "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
+status) cmd_status "${2:?plan_id required}" ;;
+merge) cmd_merge "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
+merge-async) cmd_merge_async "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
+pr-sync) cmd_pr_sync "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
+cleanup) cmd_cleanup "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
+*) echo "Usage: wave-worktree.sh <create|batch|merge|merge-async|pr-sync|cleanup|status> <plan_id> [wave_db_id]" ;;
+esac

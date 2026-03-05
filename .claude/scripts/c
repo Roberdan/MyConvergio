@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+# c — unified CLI dispatcher | Version: 2.1.0
+# Wraps ~/.claude/scripts/* with short subcommands + compact JSON output.
+# All original scripts remain unchanged (C-01 backward compat).
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/c-compact.sh
+source "$SCRIPT_DIR/lib/c-compact.sh"
+
+_err_json() {
+	printf '{"err":"unknown","group":"%s","sub":"%s"}\n' "${1:-}" "${2:-}" >&2
+	exit 1
+}
+
+GROUP="${1:-}"
+shift || true
+
+case "$GROUP" in
+
+d) # digest group → service-digest.sh | git-digest.sh | diff-digest.sh | build-digest.sh | test-digest.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	ci) service-digest.sh ci "$@" | c_out ;;
+	pr) service-digest.sh pr "$@" | c_out ;;
+	deploy) service-digest.sh deploy "$@" | c_out ;;
+	git) git-digest.sh "$@" | c_out ;;
+	build) build-digest.sh "$@" | c_out ;;
+	test) test-digest.sh "$@" | c_out ;;
+	diff) diff-digest.sh "$@" | c_out ;;
+	--help | -h) echo "c d [ci|pr|deploy|git|build|test|diff [args]]" && echo "  equiv: service-digest.sh ci | git-digest.sh | diff-digest.sh <a> <b>" ;;
+	*) _err_json "d" "$SUBCMD" ;;
+	esac
+	;;
+
+p) # plan group → plan-db.sh | plan-db-safe.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	ctx) plan-db.sh get-context "$@" | c_out ;;
+	start) plan-db.sh start "$@" ;;
+	done) plan-db-safe.sh update-task "$@" ;;
+	val) plan-db.sh validate-task "$@" ;;
+	wave) plan-db.sh validate-wave "$@" ;;
+	import) plan-db.sh import "$@" ;;
+	complete) plan-db.sh complete "$@" ;;
+	tree) plan-db.sh execution-tree "$@" ;;
+	create) plan-db.sh create "$@" ;;
+	cancel) plan-db.sh cancel "$@" ;;
+	check) plan-db.sh check-readiness "$@" ;;
+	stale) plan-db.sh stale-check "$@" | c_out ;;
+	fail) plan-db.sh get-failures "$@" | c_out ;;
+	--help | -h) echo "c p [ctx|start|done|val|wave|import|complete|tree|create|cancel|check|stale|fail] [args]" && echo "  equiv: plan-db.sh get-context | plan-db-safe.sh update-task | plan-db.sh create|cancel|check-readiness" ;;
+	*) _err_json "p" "$SUBCMD" ;;
+	esac
+	;;
+
+db) # db-digest group → db-digest.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	stats | token-stats | monthly) db-digest.sh "$SUBCMD" "$@" | c_out ;;
+	tasks | waves) db-digest.sh "$SUBCMD" "$@" | c_compact_array ;;
+	cost-report) db-digest.sh cost-report "$@" | c_out ;;
+	--help | -h) echo "c db [stats|token-stats|monthly|tasks <plan_id>|waves <plan_id>|cost-report <plan_id>]" && echo "  equiv: db-digest.sh stats | db-digest.sh tasks <pid> | db-digest.sh cost-report <pid>" ;;
+	*) _err_json "db" "$SUBCMD" ;;
+	esac
+	;;
+
+w) # wave-worktree group → wave-worktree.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	create | merge | status | cleanup | batch) wave-worktree.sh "$SUBCMD" "$@" ;;
+	--help | -h) echo "c w [create|merge|status|cleanup|batch] <plan_id> [wave_db_id]" && echo "  equiv: wave-worktree.sh create|merge|status" ;;
+	*) _err_json "w" "$SUBCMD" ;;
+	esac
+	;;
+
+lock) # file-lock group → file-lock.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	acq) file-lock.sh acquire "$@" | c_out ;;
+	rel) file-lock.sh release "$@" ;;
+	list) file-lock.sh list "$@" | c_compact_array ;;
+	--help | -h) echo "c lock [acq <file> <task_id> | rel <file> | list]" && echo "  equiv: file-lock.sh acquire|release|list" ;;
+	*) _err_json "lock" "$SUBCMD" ;;
+	esac
+	;;
+
+reap) # session-reaper group → session-reaper.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	pre) session-reaper.sh --pre-spawn ;;
+	post) session-reaper.sh --max-age 0 ;;
+	all) session-reaper.sh --all ;;
+	--help | -h) echo "c reap [pre|post|all]" && echo "  equiv: session-reaper.sh --pre-spawn | --max-age 0 | --all" ;;
+	*) _err_json "reap" "$SUBCMD" ;;
+	esac
+	;;
+
+ci) # CI group → ci-watch.sh | ci-digest.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	watch) ci-watch.sh "$@" | c_out ;;
+	checks) ci-digest.sh checks "$@" | c_out ;;
+	--help | -h) echo "c ci [watch [branch] | checks <pr>]" && echo "  equiv: ci-watch.sh | ci-digest.sh checks <pr>" ;;
+	*) _err_json "ci" "$SUBCMD" ;;
+	esac
+	;;
+
+git) # git utility group → worktree-check.sh | worktree-guard.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	check) worktree-check.sh "$@" ;;      # outputs ANSI text — no c_out
+	guard) worktree-guard.sh "$@" ;;
+	--help | -h) echo "c git [check | guard <path>]" && echo "  equiv: worktree-check.sh | worktree-guard.sh" ;;
+	*) _err_json "git" "$SUBCMD" ;;
+	esac
+	;;
+
+pr) # PR group → pr-ops.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	status | ready | merge | ci) pr-ops.sh "$SUBCMD" "$@" | c_out ;;
+	reply | comment | resolve) pr-ops.sh "$SUBCMD" "$@" ;;
+	--help | -h) echo "c pr [status|reply|comment|resolve|ready|merge|ci] [args]" && echo "  equiv: pr-ops.sh status|reply|comment|resolve|ready|merge|ci" ;;
+	*) _err_json "pr" "$SUBCMD" ;;
+	esac
+	;;
+
+tok) # token group → token-estimator.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	estimate | reconcile) token-estimator.sh "$SUBCMD" "$@" | c_out ;;
+	--help | -h) echo "c tok [estimate|reconcile] [args]" && echo "  equiv: token-estimator.sh estimate|reconcile" ;;
+	*) _err_json "tok" "$SUBCMD" ;;
+	esac
+	;;
+
+audit) # audit group → project-audit.sh | hardening-check.sh | code-pattern-check.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	project) project-audit.sh --json ${1:+--project-root "$1"} | c_out ;;
+	hard) hardening-check.sh "${1:-.}" | c_out ;;
+	code) code-pattern-check.sh --json "$@" | c_out ;;
+	--help | -h) echo "c audit [project|hard|code] [args]" && echo "  equiv: project-audit.sh --json | hardening-check.sh <path> | code-pattern-check.sh --json" ;;
+	*) _err_json "audit" "$SUBCMD" ;;
+	esac
+	;;
+
+branch) # branch group → branch-protect.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	check) branch-protect.sh check "$@" | c_out ;;
+	protect) branch-protect.sh apply "$@" ;;
+	--help | -h) echo "c branch [check|protect] [args]" && echo "  equiv: branch-protect.sh check|apply" ;;
+	*) _err_json "branch" "$SUBCMD" ;;
+	esac
+	;;
+
+model) # model routing → model-router.sh
+	model-router.sh "$@" | c_out ;;
+
+mesh) # mesh networking → mesh-sync-all.sh | mesh-discover.sh | mesh-load-query.sh
+	SUBCMD="${1:-}"
+	shift || true
+	case "$SUBCMD" in
+	sync) mesh-sync-all.sh "$@" ;;
+	discover) mesh-discover.sh "$@" ;;
+	status) mesh-sync-all.sh --phase verify "$@" ;;
+	load) mesh-load-query.sh "$@" | c_out ;;
+	--help | -h) echo "c mesh [sync|discover|status|load] [--dry-run] [--peer NAME] [--force]" && echo "  equiv: mesh-sync-all.sh | mesh-discover.sh | mesh-load-query.sh" ;;
+	*) _err_json "mesh" "$SUBCMD" ;;
+	esac
+	;;
+
+--help | -h | "")
+	cat <<'EOF'
+c — unified CLI dispatcher (Version: 2.0.0)
+
+Groups:
+  c d  [ci|pr|deploy|git|build|test|diff]  digest scripts
+  c p  [ctx|start|done|val|wave|import|complete|tree|create|cancel|check|stale|fail]  plan-db
+  c db [stats|token-stats|monthly|tasks|waves|cost-report]  db-digest
+  c w  [create|merge|status|cleanup|batch]  wave-worktree
+  c lock [acq|rel|list]  file-lock
+  c reap [pre|post|all]  session-reaper
+  c ci  [watch|checks]  ci-watch/ci-digest
+  c git [check|guard]  worktree utils
+  c pr  [status|reply|comment|resolve|ready|merge|ci]  pr-ops
+  c tok [estimate|reconcile]  token-estimator
+  c audit [project|hard|code]  project-audit/hardening-check/code-pattern-check
+  c branch [check|protect]  branch-protect
+  c model [--task-type T --effort N --executor-agent A]  model-router
+  c mesh [sync|discover|status|load]  mesh networking
+
+Use `c <group> --help` for original script equivalents.
+EOF
+	;;
+
+*)
+	_err_json "$GROUP" ""
+	;;
+esac

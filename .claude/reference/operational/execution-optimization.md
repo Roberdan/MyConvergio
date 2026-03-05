@@ -69,11 +69,28 @@ session-reaper.sh --pre-spawn
 
 This: (1) kills orphans older than 1 min, (2) checks swap. If swap > 10GB → **exit 1, BLOCKED**. Coordinator must wait or reduce parallelism. Launchd periodic reaper runs every 120s as safety net.
 
+## Context Preservation (Anti-Compaction)
+
+**Problem**: Coordinator accumulates context during execution → compaction loses plan state → session stalls.
+
+**Solution**: Lean coordinator + automatic checkpoints + enriched PreCompact hook.
+
+| Component | File | Purpose |
+|---|---|---|
+| Checkpoint script | `plan-checkpoint.sh save <id>` | Saves plan state to file + MEMORY.md |
+| PreCompact hook | `preserve-context.sh` v2 | Auto-calls checkpoint before compaction |
+| Lean rules | `rules/lean-coordinator.md` | Coordinator NEVER reads project files |
+| Wave size cap | Planner constraint | Max 4 tasks per wave |
+
+**Coordinator context budget**: dispatch + DB + checkpoint only. NEVER Read project files, NEVER read transcript files, NEVER run tests. All verification delegated to Thor.
+
+**Checkpoint cadence**: after EVERY task-executor completes → `plan-checkpoint.sh save <plan_id>`.
+
 ## Coordinator Post-Task Protocol (MANDATORY)
 
 After each task-executor completes, the coordinator MUST:
 
-0. **Reap orphans**: `session-reaper.sh --max-age 0` (kill any orphaned subprocesses immediately)
+0. **Checkpoint**: `plan-checkpoint.sh save {plan_id}` (before anything else)
 1. **Verify DB update**: `sqlite3 ~/.claude/data/dashboard.db "SELECT status FROM tasks WHERE id={db_task_id};"` — if not `done`, run `plan-db.sh update-task {db_task_id} done "notes"`
 2. **Thor per-task**: `plan-db.sh validate-task {db_task_id} {plan_id}`
 3. **If Thor FAILS**: fix issue, re-validate (max 3 rounds)

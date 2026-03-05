@@ -348,6 +348,29 @@ AI tokens are money. Every wasted token is a wasted dollar. MyConvergio is obses
 
 ---
 
+## Squad vs MyConvergio
+
+[Squad](https://github.com/bradygaster/squad) by Brady Gaster is a programmable multi-agent runtime for GitHub Copilot. MyConvergio is a workflow engine for rigorous AI-assisted development.
+
+They solve different problems. Here's a direct comparison:
+
+| Dimension | Squad | MyConvergio |
+|-----------|-------|-------------|
+| **What it is** | Installable SDK/CLI (`npm install`) | Personal workflow config + orchestration engine |
+| **Agent identity** | Casting system with named agents and persistent personality | Functional agents (planner, executor, Thor validator) |
+| **Knowledge** | `history.md` per agent + `decisions.md` (markdown) | Knowledge Base in SQLite with LIKE search, vector-ready schema |
+| **Quality gates** | Hook pipeline (file-write guards, PII scrubbing, reviewer lockout) | Thor 9-gate validation, plan-db-safe proof-of-work, CI gate |
+| **Execution model** | Parallel agent sessions via @github/copilot-sdk | Wave-based plans with dependency tracking, worktree isolation |
+| **Multi-model** | Fallback chains (3 tiers) | 18-model routing with cost optimization (free → premium) |
+| **Ecosystem** | Plugin marketplace, community skills | Closed config repo, cross-tool (Claude Code + Copilot CLI) |
+| **DX** | `squad init` → team ready | Structured workflow: `/prompt` → `/planner` → `/execute` → Thor |
+
+In short: Squad provides an installable AI team runtime, while MyConvergio focuses on execution governance and delivery discipline.
+
+Squad's casting system and knowledge compounding are strong innovations. MyConvergio's rigor (Thor validation, plan-db, worktree isolation) focuses on making AI output verifiable and production-ready. Both projects reflect the same core insight: single-agent AI needs structure, memory, and governance.
+
+---
+
 ## Quick start
 
 **Platforms:** macOS and Linux natively. Windows via [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install) (Ubuntu recommended).

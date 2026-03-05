@@ -1,10 +1,10 @@
-<!-- v2.0.0 | 15 Feb 2026 | Token-optimized per ADR 0009 -->
+<!-- v2.1.0 | 05 Mar 2026 | Token-optimized per ADR 0009 -->
 
 # CodeGraph
 
 CodeGraph builds semantic knowledge graph for faster code exploration.
 
-**NEVER add `codegraph` CLI hooks to settings.json.** There is NO `codegraph` binary installed. CodeGraph runs ONLY as MCP server (via mcp.json + npx). Do NOT add `codegraph mark-dirty`, `codegraph sync-if-dirty`, or any `codegraph` CLI command anywhere in hooks, scripts, or settings.
+**ADR-0017 update:** settings.json CodeGraph hooks were removed because there is NO `codegraph` CLI binary installed. CodeGraph runs ONLY as MCP server (via mcp.json + npx). Do NOT add `codegraph mark-dirty`, `codegraph sync-if-dirty`, or any `codegraph` CLI command anywhere in hooks, scripts, or settings.
 
 ## If `.codegraph/` exists in the project
 
@@ -32,3 +32,9 @@ Tell the Explore agent to use codegraph tools for faster exploration.
 ## If `.codegraph/` does NOT exist
 
 Skip codegraph. Use Glob/Grep/Read instead. Do NOT suggest running `codegraph init` — there is no CLI binary.
+
+## Verification
+
+```bash
+grep -q 'removed' reference/operational/codegraph.md
+```

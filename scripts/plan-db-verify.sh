@@ -11,6 +11,9 @@ plan_db_safe_resolve_worktree() {
 		wt=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM waves WHERE id = $wave_fk;" 2>/dev/null || echo "")
 	fi
 	[[ -z "$wt" || ! -d "$wt" ]] && wt=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM plans WHERE id = $plan_id;" 2>/dev/null || echo "")
+	# Expand tilde to $HOME (tilde not expanded inside double quotes)
+	[[ "$wt" == "~/"* ]] && wt="$HOME/${wt:2}"
+	[[ "$wt" == "~" ]] && wt="$HOME"
 	[[ -z "$wt" || ! -d "$wt" ]] && wt="$(pwd)"
 	echo "$wt"
 }

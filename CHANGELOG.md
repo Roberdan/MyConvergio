@@ -1,5 +1,23 @@
 # Changelog
 
+## [v9.21.0] - 05 Mar 2026
+
+### Workflow Hardening — Single Source of Truth (Plan 363)
+
+- Removed: CodeGraph CLI hooks from settings.json (ADR-0017 compliance)
+- Removed: Duplicate root-level agents (strategic-planner.md, deep-repo-auditor.md)
+- Added: `hooks/enforce-thor-completion.sh` — blocks `plan-db.sh complete` without Thor validation
+- Added: 5 missing Copilot CLI skills (.github/skills/: prompt, check, prepare, release, research)
+- Added: `tests/test-enforce-thor-completion.sh` — 6 scenarios, 15 assertions
+- Changed: `agents/core_utility/strategic-planner.md` — lean wrapper referencing commands/planner.md
+- Changed: CLAUDE.md — consolidated Anti-Bypass and Thor Gate to reference hooks
+- Changed: `reference/operational/codegraph.md` — ADR-0017 note, no CLI binary warning
+- Fixed: `scripts/plan-db-verify.sh` — tilde expansion in worktree path resolution
+- Fixed: `scripts/worktree-cleanup.sh` — active session + process safety checks before removal
+- Changed: `hooks/worktree-guard.sh` — blocks bare branch creation (git branch/checkout -b/switch -c)
+- Changed: `reference/operational/worktree-discipline.md` — "No Bare Branches" rule (NON-NEGOTIABLE)
+- Added: ADR-0032 — Workflow Hardening SSOT architecture decision
+
 ## [v9.20.0] - 05 Mar 2026
 
 ### Mesh Peer CRUD + Delegation Engine (Plan 335)
@@ -11,7 +29,7 @@
 - Added: `peer-crud.js` — modal form for add/edit peer, delete dialog, discovery overlay (F-01..F-07)
 - Added: `css/peer-crud.css` — peer CRUD modal styles
 - Added: `default_engine`, `default_model` fields in peers.conf (F-12)
-- Changed: `server.py` — POST/PUT/DELETE method dispatching for /api/peers/* (F-01..F-06)
+- Changed: `server.py` — POST/PUT/DELETE method dispatching for /api/peers/\* (F-01..F-06)
 - Changed: `remote-dispatch.sh` — reads `default_engine`, copilot-first fallback for mesh (F-09)
 - Changed: `api_plans.py` — Claude Auth Type check in preflight (OAuth/Max detection) (F-10)
 - Changed: `mesh-actions.js` — edit/delete peer actions, engine pre-fill in delegate dialog (F-04, F-12)

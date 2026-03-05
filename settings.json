@@ -11,16 +11,8 @@
   },
   "permissions": {
     "allow": [
-      "mcp__codegraph__*",
       "Bash(npm *)",
-      "Bash(git *)",
-      "mcp__codegraph__codegraph_search",
-      "mcp__codegraph__codegraph_context",
-      "mcp__codegraph__codegraph_callers",
-      "mcp__codegraph__codegraph_callees",
-      "mcp__codegraph__codegraph_impact",
-      "mcp__codegraph__codegraph_node",
-      "mcp__codegraph__codegraph_status"
+      "Bash(git *)"
     ],
     "deny": [],
     "defaultMode": "bypassPermissions"
@@ -58,6 +50,11 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/enforce-plan-db-safe.sh",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/enforce-thor-completion.sh",
             "timeout": 3
           }
         ]
@@ -157,16 +154,6 @@
             "prompt": "~/.claude/hooks/advisory-suggest-alternatives.sh"
           }
         ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "codegraph mark-dirty",
-            "async": true
-          }
-        ]
       }
     ],
     "SubagentStart": [
@@ -245,15 +232,6 @@
             "type": "command",
             "command": "~/.claude/hooks/session-reaper.sh",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "codegraph sync-if-dirty"
           }
         ]
       }

@@ -26,7 +26,7 @@ Claude stores cross-session context in `~/.claude/projects/{project-slug}/memory
 
 ## Workflow (MANDATORY)
 
-`/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task → Thor per-wave → closure (all F-xx verified) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
+`/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → thor per-task → thor per-wave → closure (all F-xx verified) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
 
 ### Plan DB Continuity (NON-NEGOTIABLE — Plan 298 learning)
 
@@ -69,13 +69,7 @@ See AGENTS.md for Thor validation rules.
 
 ## Anti-Bypass (NON-NEGOTIABLE)
 
-**Plan creation**: NEVER use `EnterPlanMode` to create plans. ALWAYS invoke `Skill(skill="planner")` (Claude Code) or `@planner` (Copilot CLI). EnterPlanMode + manual text = no DB registration = Thor/execute/tracking all break. _Why: Plan 225._
-
-**Task execution**: NEVER edit files directly while a plan is active. EVERY task through `Task(subagent_type='task-executor')` (Claude) or `copilot-worker.sh` (Copilot). Direct edit = VIOLATION. _Why: Plan 182._
-
-**Enforcement**: No `plan_id` in DB = `/execute` BLOCKED. `plan-db.sh check-readiness` validates before execution.
-
-**Hook enforcement**: `guard-plan-mode.sh` (blocks EnterPlanMode), `enforce-plan-db-safe.sh` (blocks direct plan-db.sh done), `enforce-plan-edit.sh` (blocks edit on plan-tracked files without task-executor).
+Follow the Workflow above. Bypasses are enforced by hooks: `guard-plan-mode.sh` (blocks EnterPlanMode), `enforce-plan-db-safe.sh` (blocks direct plan-db.sh done), `enforce-plan-edit.sh` (blocks direct edits on plan-tracked files). No `plan_id` in DB = `/execute` BLOCKED.
 
 ## Mandatory Routing (NON-NEGOTIABLE)
 
@@ -118,6 +112,7 @@ LSP (if available) → Glob/Grep/Read/Edit → Subagents → Bash (git/npm only)
 @reference/operational/codegraph.md
 
 <!-- CODEGRAPH_START -->
+
 ## CodeGraph
 
 CodeGraph builds a semantic knowledge graph of codebases for faster, smarter code exploration.
@@ -126,20 +121,21 @@ CodeGraph builds a semantic knowledge graph of codebases for faster, smarter cod
 
 **Use codegraph tools for faster exploration.** These tools provide instant lookups via the code graph instead of scanning files:
 
-| Tool | Use For |
-|------|---------|
-| `codegraph_search` | Find symbols by name (functions, classes, types) |
-| `codegraph_context` | Get relevant code context for a task |
-| `codegraph_callers` | Find what calls a function |
-| `codegraph_callees` | Find what a function calls |
-| `codegraph_impact` | See what's affected by changing a symbol |
-| `codegraph_node` | Get details + source code for a symbol |
+| Tool                | Use For                                          |
+| ------------------- | ------------------------------------------------ |
+| `codegraph_search`  | Find symbols by name (functions, classes, types) |
+| `codegraph_context` | Get relevant code context for a task             |
+| `codegraph_callers` | Find what calls a function                       |
+| `codegraph_callees` | Find what a function calls                       |
+| `codegraph_impact`  | See what's affected by changing a symbol         |
+| `codegraph_node`    | Get details + source code for a symbol           |
 
 **When spawning Explore agents in a codegraph-enabled project:**
 
 Tell the Explore agent to use codegraph tools for faster exploration.
 
 **For quick lookups in the main session:**
+
 - Use `codegraph_search` instead of grep for finding symbols
 - Use `codegraph_callers`/`codegraph_callees` to trace code flow
 - Use `codegraph_impact` before making changes to see what's affected
@@ -149,4 +145,5 @@ Tell the Explore agent to use codegraph tools for faster exploration.
 At the start of a session, ask the user if they'd like to initialize CodeGraph:
 
 "I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
+
 <!-- CODEGRAPH_END -->

@@ -1,6 +1,19 @@
-<!-- v3.3.0 | 28 Feb 2026 | Document merge_mode/theme wave metadata -->
+<!-- v3.4.0 | 05 Mar 2026 | No bare branches — worktrees only -->
 
 # Worktree Discipline
+
+## No Bare Branches (NON-NEGOTIABLE)
+
+**NEVER use `git branch`, `git checkout -b`, or `git switch -c` to create branches.** All branch creation MUST go through worktree scripts. A branch without a worktree = orphan risk + no isolation.
+
+| Need              | Use                                     | NEVER                      |
+| ----------------- | --------------------------------------- | -------------------------- |
+| Plan work         | `wave-worktree.sh create <plan> <wave>` | `git checkout -b plan/xxx` |
+| Feature branch    | `worktree-create.sh <branch> [path]`    | `git branch feature/xxx`   |
+| Task isolation    | `Task(..., isolation="worktree")`       | `git checkout -b task-xxx` |
+| Quick fix on main | Direct edit on main (no branch needed)  | `git checkout -b fix/xxx`  |
+
+**Enforcement**: `worktree-guard.sh` blocks git write ops on main when worktrees exist. Agents creating bare branches = VIOLATION.
 
 ## Wave-per-Worktree Model (v2) — Default
 
@@ -37,13 +50,13 @@ create → execute tasks → Thor validate → rebase → PR → squash merge �
 
 ### DB Columns (waves table)
 
-| Column        | Type    | Purpose               |
-| ------------- | ------- | --------------------- |
-| worktree_path | TEXT    | Path to wave worktree |
-| branch_name   | TEXT    | Git branch name       |
-| pr_number     | INTEGER | PR number             |
-| pr_url        | TEXT    | PR URL                |
-| merge_mode    | TEXT    | `sync` \| `batch` \| `async` \| `none` |
+| Column        | Type    | Purpose                                                     |
+| ------------- | ------- | ----------------------------------------------------------- |
+| worktree_path | TEXT    | Path to wave worktree                                       |
+| branch_name   | TEXT    | Git branch name                                             |
+| pr_number     | INTEGER | PR number                                                   |
+| pr_url        | TEXT    | PR URL                                                      |
+| merge_mode    | TEXT    | `sync` \| `batch` \| `async` \| `none`                      |
 | theme         | TEXT    | Theme key for batch branch reuse (`plan/{plan_id}-{theme}`) |
 
 ### Commands

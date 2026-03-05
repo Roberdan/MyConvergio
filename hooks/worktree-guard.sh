@@ -31,6 +31,15 @@ if echo "$COMMAND" | grep -qE 'git worktree add'; then
 	exit 0
 fi
 
+# BLOCK: bare branch creation (must use worktree scripts)
+if echo "$COMMAND" | grep -qE 'git (branch [^-]|checkout -b|switch -c)'; then
+	# Allow git branch -d/-D (deletion) and git branch --list/--show-current
+	if ! echo "$COMMAND" | grep -qE 'git branch (-d|-D|--list|--show|--merged|--no-merged|--contains)'; then
+		jq -n '{permissionDecision: "deny", permissionDecisionReason: "BLOCKED: Never create bare branches. Use worktree-create.sh or wave-worktree.sh create instead. See worktree-discipline.md § No Bare Branches."}'
+		exit 0
+	fi
+fi
+
 # Only check git commands that modify state
 if ! echo "$COMMAND" | grep -qE '^git (commit|push|add|checkout|merge|rebase|reset|stash)'; then
 	exit 0

@@ -68,6 +68,22 @@ cleanup_worktree() {
 	local wt_path="$1"
 	local branch="$2"
 
+	# Safety: check for active sessions using this worktree
+	if [[ -f "$DB_FILE" ]]; then
+		local active_locks
+		active_locks=$(sqlite3 "$DB_FILE" \
+			"SELECT COUNT(*) FROM file_locks WHERE file_path LIKE '${wt_path}%';" 2>/dev/null || echo "0")
+		if [[ "$active_locks" -gt 0 ]]; then
+			echo -e "${RED}  BLOCK: $wt_path has $active_locks active file lock(s) — another agent is using it${NC}"
+			return 1
+		fi
+	fi
+	# Safety: check for running processes in the worktree
+	if pgrep -f "$wt_path" >/dev/null 2>&1; then
+		echo -e "${RED}  BLOCK: Active process(es) found using $wt_path${NC}"
+		return 1
+	fi
+
 	# Verify branch is merged into main
 	local merge_base
 	merge_base=$(git merge-base main "$branch" 2>/dev/null || echo "")

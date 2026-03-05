@@ -25,9 +25,12 @@ LOG_DIR="${HOME}/.claude/logs/execute-plan"
 # Track child processes for cleanup on exit/signal
 _EXEC_CHILD_PIDS=()
 _exec_cleanup() {
-	for pid in "${_EXEC_CHILD_PIDS[@]}"; do
-		kill -9 "$pid" 2>/dev/null || true
-	done
+	if [[ ${#_EXEC_CHILD_PIDS[@]} -gt 0 ]]; then
+		for pid in "${_EXEC_CHILD_PIDS[@]}"; do
+			kill -9 "$pid" 2>/dev/null || true
+			pkill -9 -P "$pid" 2>/dev/null || true
+		done
+	fi
 	# Kill any remaining copilot processes spawned by this executor
 	pkill -9 -P $$ 2>/dev/null || true
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 # copilot-worker.sh - Launch Copilot CLI worker for a plan task
 # Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]
-# Version: 3.1.0 - Fix wave worktree resolution, child process cleanup, PATH hardening
+# Version: 3.2.0 - Fix unbound array with set -u, recursive child kill
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,12 +14,18 @@ export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$HOME/.c
 _WORKER_TMPFILES=()
 _WORKER_CHILD_PIDS=()
 _worker_cleanup() {
-	for pid in "${_WORKER_CHILD_PIDS[@]}"; do
-		kill -9 "$pid" 2>/dev/null || true
-	done
+	if [[ ${#_WORKER_CHILD_PIDS[@]} -gt 0 ]]; then
+		for pid in "${_WORKER_CHILD_PIDS[@]}"; do
+			kill -9 "$pid" 2>/dev/null || true
+			# Kill children of children (recursive)
+			pkill -9 -P "$pid" 2>/dev/null || true
+		done
+	fi
 	for f in "${_WORKER_TMPFILES[@]}"; do
 		[[ -f "$f" ]] && rm -f "$f"
 	done
+	# Kill any remaining children of this process
+	pkill -9 -P $$ 2>/dev/null || true
 }
 trap _worker_cleanup EXIT INT TERM
 

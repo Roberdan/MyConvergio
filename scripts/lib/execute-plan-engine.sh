@@ -1,7 +1,7 @@
 #!/bin/bash
 # execute-plan-engine.sh - Task execution and validation logic
 # Extracted from execute-plan.sh for modularization
-# Version: 1.1.0 - Fix: Thor for submitted, stop on wave fail, DB sync after wave
+# Version: 1.2.0 - Fix: task-level stop on fail, Thor for submitted, DB sync after wave
 
 # ============================================================================
 # DB helpers
@@ -283,6 +283,7 @@ execute_plan_waves() {
 					warn "Task $task_code failed Thor validation — marked as needs-fix"
 					FAILED_TASKS=$((FAILED_TASKS + 1))
 					wave_failed=$((wave_failed + 1))
+					break
 				else
 					success "Task $task_code complete and validated"
 					DONE_TASKS=$((DONE_TASKS + 1))
@@ -297,6 +298,7 @@ execute_plan_waves() {
 					warn "Task $task_code failed Thor validation after submitted"
 					FAILED_TASKS=$((FAILED_TASKS + 1))
 					wave_failed=$((wave_failed + 1))
+					break
 				else
 					success "Task $task_code validated (submitted → done)"
 					DONE_TASKS=$((DONE_TASKS + 1))
@@ -305,6 +307,8 @@ execute_plan_waves() {
 				warn "Task $task_code ended with status=$new_status (exit=$task_exit)"
 				FAILED_TASKS=$((FAILED_TASKS + 1))
 				wave_failed=$((wave_failed + 1))
+				warn "Stopping wave — fix task $task_code before continuing"
+				break
 			fi
 
 		done < <(get_wave_tasks "$wave_db_id")

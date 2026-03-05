@@ -63,6 +63,17 @@ cmd_update_task() {
 		;;
 	esac
 	local old_status=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id = $task_id;")
+
+	# GATE: Cannot start task if plan is not 'doing' (enforces plan-db.sh start prerequisite)
+	if [[ "$status" == "in_progress" && "$old_status" == "pending" ]]; then
+		local plan_status
+		plan_status=$(sqlite3 "$DB_FILE" "SELECT p.status FROM tasks t JOIN plans p ON t.plan_id = p.id WHERE t.id = $task_id;")
+		if [[ "$plan_status" != "doing" ]]; then
+			log_error "Cannot start task: plan status is '$plan_status' (must be 'doing'). Run: plan-db.sh start <plan_id>"
+			exit 1
+		fi
+	fi
+
 	if [[ "$status" == "done" && "$old_status" == "pending" ]]; then
 		log_error "Cannot transition pending→done directly. Mark as in_progress first."
 		exit 1
@@ -131,6 +142,36 @@ cmd_update_wave() {
 		sqlite3 "$DB_FILE" "UPDATE waves SET status = '$status' WHERE id = $wave_id;"
 	fi
 	log_info "Wave $wave_id -> $status"
+}
+# Record user approval for plan (required by planner process gates)
+cmd_approve() {
+	local plan_id="$1"
+	local notes="${2:-User approved plan}"
+	local plan_name
+	plan_name=$(sqlite3 "$DB_FILE" "SELECT name FROM plans WHERE id=$plan_id;")
+	if [[ -z "$plan_name" ]]; then
+		log_error "Plan $plan_id not found"
+		return 1
+	fi
+	local review_count biz_count challenger_count
+	review_count=$(sqlite3 "$DB_FILE" \
+		"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent LIKE '%reviewer%' AND reviewer_agent NOT LIKE '%challenger%';" 2>/dev/null || echo "0")
+	biz_count=$(sqlite3 "$DB_FILE" \
+		"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND (reviewer_agent LIKE '%business%' OR reviewer_agent LIKE '%advisor%');" 2>/dev/null || echo "0")
+	challenger_count=$(sqlite3 "$DB_FILE" \
+		"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent LIKE '%challenger%';" 2>/dev/null || echo "0")
+	if [[ "$review_count" -eq 0 || "$biz_count" -eq 0 || "$challenger_count" -eq 0 ]]; then
+		log_error "Cannot approve: missing reviews (reviewer=$review_count, business=$biz_count, challenger=$challenger_count)"
+		log_error "Run plan-reviewer, plan-business-advisor, and plan-challenger FIRST"
+		return 1
+	fi
+	local safe_notes
+	safe_notes=$(sql_escape "$notes")
+	sqlite3 "$DB_FILE" "
+		INSERT INTO plan_reviews (plan_id, reviewer_agent, verdict, suggestions, reviewed_at)
+		VALUES ($plan_id, 'user-approval', 'approved', '$safe_notes', datetime('now'));
+	"
+	log_info "Plan #$plan_id ($plan_name) approved by user"
 }
 cmd_complete() {
 	local plan_id="$1"

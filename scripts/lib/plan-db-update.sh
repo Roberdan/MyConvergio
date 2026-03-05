@@ -2,6 +2,15 @@
 cmd_start() {
 	local plan_id="$1"
 	local force_flag="${2:-}"
+
+	# GATE: Readiness check BLOCKS start if planner process incomplete
+	if [[ "$force_flag" != "--force" ]]; then
+		if ! cmd_check_readiness "$plan_id"; then
+			log_error "Plan $plan_id failed readiness check. Fix issues above or use --force to override (audited)."
+			return 1
+		fi
+	fi
+
 	if ! cmd_claim "$plan_id" "$force_flag"; then
 		log_error "Failed to claim plan $plan_id. Use --force to override."
 		return 1

@@ -150,6 +150,14 @@ cmd_start() {
 	local plan_id="$1"
 	local force_flag="${2:-}"
 
+	# GATE: Readiness check BLOCKS start if planner process incomplete
+	if [[ "$force_flag" != "--force" ]]; then
+		if ! cmd_check_readiness "$plan_id"; then
+			log_error "Plan $plan_id failed readiness check. Fix issues above or use --force to override."
+			return 1
+		fi
+	fi
+
 	# Atomic claim via cmd_claim (from plan-db-cluster.sh)
 	if ! cmd_claim "$plan_id" "$force_flag"; then
 		log_error "Failed to claim plan $plan_id. Use --force to override."
@@ -173,6 +181,45 @@ cmd_start() {
 	fi
 
 	log_info "Started plan ID: $plan_id (host: $PLAN_DB_HOST)"
+}
+
+# Record user approval for plan (required by planner process gates)
+# Usage: approve <plan_id> [notes]
+cmd_approve() {
+	local plan_id="$1"
+	local notes="${2:-User approved plan}"
+
+	# Verify plan exists
+	local plan_name
+	plan_name=$(sqlite3 "$DB_FILE" "SELECT name FROM plans WHERE id=$plan_id;")
+	if [[ -z "$plan_name" ]]; then
+		log_error "Plan $plan_id not found"
+		return 1
+	fi
+
+	# Check that review + business + challenger exist before allowing approval
+	local review_count biz_count challenger_count
+	review_count=$(sqlite3 "$DB_FILE" \
+		"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent LIKE '%reviewer%' AND reviewer_agent NOT LIKE '%challenger%';" 2>/dev/null || echo "0")
+	biz_count=$(sqlite3 "$DB_FILE" \
+		"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND (reviewer_agent LIKE '%business%' OR reviewer_agent LIKE '%advisor%');" 2>/dev/null || echo "0")
+	challenger_count=$(sqlite3 "$DB_FILE" \
+		"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent LIKE '%challenger%';" 2>/dev/null || echo "0")
+
+	if [[ "$review_count" -eq 0 || "$biz_count" -eq 0 || "$challenger_count" -eq 0 ]]; then
+		log_error "Cannot approve: missing reviews (reviewer=$review_count, business=$biz_count, challenger=$challenger_count)"
+		log_error "Run plan-reviewer, plan-business-advisor, and plan-challenger first"
+		return 1
+	fi
+
+	# Record approval
+	local safe_notes
+	safe_notes=$(sql_escape "$notes")
+	sqlite3 "$DB_FILE" "
+		INSERT INTO plan_reviews (plan_id, reviewer_agent, verdict, suggestions, reviewed_at)
+		VALUES ($plan_id, 'user-approval', 'approved', '$safe_notes', datetime('now'));
+	"
+	log_info "Plan #$plan_id ($plan_name) approved by user"
 }
 
 cmd_get_worktree() {

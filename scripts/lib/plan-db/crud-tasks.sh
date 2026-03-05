@@ -157,6 +157,16 @@ cmd_update_task() {
 	esac
 	local old_status=$(sqlite3 "$DB_FILE" "SELECT status FROM tasks WHERE id = $task_id;")
 
+	# GATE: Cannot start task if plan is not 'doing' (enforces plan-db.sh start prerequisite)
+	if [[ "$status" == "in_progress" && "$old_status" == "pending" ]]; then
+		local plan_status
+		plan_status=$(sqlite3 "$DB_FILE" "SELECT p.status FROM tasks t JOIN plans p ON t.plan_id = p.id WHERE t.id = $task_id;")
+		if [[ "$plan_status" != "doing" ]]; then
+			log_error "Cannot start task: plan status is '$plan_status' (must be 'doing'). Run: plan-db.sh start <plan_id>"
+			exit 1
+		fi
+	fi
+
 	# Strict: cannot go directly from pending to done or submitted
 	if [[ "$status" == "done" && "$old_status" == "pending" ]]; then
 		log_error "Cannot transition pending→done directly. Mark as in_progress first."

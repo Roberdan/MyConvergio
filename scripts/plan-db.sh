@@ -91,6 +91,7 @@ json) cmd_json "${2:?plan_id required}" ;;
 execution-tree) cmd_execution_tree "${2:?plan_id required}" ;;
 status) cmd_status "${2:-}" ;;
 check-readiness) cmd_check_readiness "${2:?plan_id required}" ;;
+approve) cmd_approve "${2:?plan_id required}" "${3:-}" ;;
 evaluate-wave) cmd_evaluate_wave "${2:?wave_db_id required}" ;;
 sync) cmd_sync "${2:?plan_id required}" ;;
 update-desc) sqlite3 "$DB_FILE" "UPDATE plans SET description = '$(sql_escape "${3:?description required}")' WHERE id = ${2:?plan_id required};" && echo "Description updated for plan #$2" ;;
@@ -160,7 +161,8 @@ calibrate-estimates) cmd_calibrate_estimates "${2:-}" ;;
 	echo "  set-wave-worktree <wave_db_id> <path>  Set worktree path for wave"
 	echo ""
 	echo "Validation:"
-	echo "  check-readiness <plan_id>      BLOCKS if metadata missing (run before /execute)"
+	echo "  check-readiness <plan_id>      BLOCKS if metadata or process gates missing"
+	echo "  approve <plan_id> [notes]      Record user approval (requires review+business+challenger)"
 	echo "  evaluate-wave <wave_db_id>     Check wave preconditions (returns JSON)"
 	echo "  validate <plan_id> [by]        Thor validates plan (counters, orphans, bulk)"
 	echo "  validate-task <task_id> [plan_id] [by]  Validate single task (per-task Thor gate)"

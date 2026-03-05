@@ -227,6 +227,54 @@ cmd_check_readiness() {
 		echo -e "${GREEN}  OK: all tasks have test_criteria${NC}"
 	fi
 
+	# ── Planner Process Gates (Rule 14: MANDATORY for 3+ tasks) ──
+	local task_count
+	task_count=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM tasks WHERE plan_id=$plan_id;")
+	if [[ "$task_count" -ge 3 ]]; then
+		local gate_errors=0
+		echo -e "${YELLOW}[P] Planner Process Gates (Rule 14, $task_count tasks)...${NC}"
+
+		local review_count biz_count challenger_count approval_count
+		review_count=$(sqlite3 "$DB_FILE" \
+			"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent LIKE '%reviewer%' AND reviewer_agent NOT LIKE '%challenger%';" 2>/dev/null || echo "0")
+		biz_count=$(sqlite3 "$DB_FILE" \
+			"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND (reviewer_agent LIKE '%business%' OR reviewer_agent LIKE '%advisor%');" 2>/dev/null || echo "0")
+		challenger_count=$(sqlite3 "$DB_FILE" \
+			"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent LIKE '%challenger%';" 2>/dev/null || echo "0")
+		approval_count=$(sqlite3 "$DB_FILE" \
+			"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent='user-approval';" 2>/dev/null || echo "0")
+
+		if [[ "$review_count" -eq 0 ]]; then
+			echo -e "${RED}  FAIL: No plan-reviewer record. Run Step 3.1 (plan intelligence review).${NC}"
+			gate_errors=$((gate_errors + 1))
+		else
+			local rv
+			rv=$(sqlite3 "$DB_FILE" "SELECT verdict FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent LIKE '%reviewer%' AND reviewer_agent NOT LIKE '%challenger%' ORDER BY id DESC LIMIT 1;")
+			echo -e "${GREEN}  OK: plan-reviewer (verdict: $rv)${NC}"
+		fi
+		if [[ "$biz_count" -eq 0 ]]; then
+			echo -e "${RED}  FAIL: No business-advisor record. Run Step 3.1 (business assessment).${NC}"
+			gate_errors=$((gate_errors + 1))
+		else
+			echo -e "${GREEN}  OK: plan-business-advisor${NC}"
+		fi
+		if [[ "$challenger_count" -eq 0 ]]; then
+			echo -e "${RED}  FAIL: No challenger-review record. Run Step 3.3 (challenger review).${NC}"
+			gate_errors=$((gate_errors + 1))
+		else
+			local cv
+			cv=$(sqlite3 "$DB_FILE" "SELECT verdict FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent LIKE '%challenger%' ORDER BY id DESC LIMIT 1;")
+			echo -e "${GREEN}  OK: plan-challenger (verdict: $cv)${NC}"
+		fi
+		if [[ "$approval_count" -eq 0 ]]; then
+			echo -e "${RED}  FAIL: No user-approval record. Run: plan-db.sh approve $plan_id${NC}"
+			gate_errors=$((gate_errors + 1))
+		else
+			echo -e "${GREEN}  OK: user-approval${NC}"
+		fi
+		errors=$((errors + gate_errors))
+	fi
+
 	if [[ $errors -gt 0 ]]; then
 		echo -e "${RED}BLOCKED: $errors issues. Fix before /execute.${NC}"
 		return 1

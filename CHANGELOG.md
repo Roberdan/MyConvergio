@@ -1,5 +1,24 @@
 # Changelog
 
+## [10.7.0] — 2026-03-05
+
+### Added
+
+- Event-driven mesh orchestration: `mesh-coordinator.sh` daemon with auto-finish, offline detection, auto-reassign
+- Multi-channel notifications: `mesh-notify.sh` (macOS native, ntfy.sh, dashboard, Telegram)
+- `config/notifications.conf` — opt-in notification channel config
+- Bidirectional mesh sync: `mesh-sync-all.sh` v2.0 — pulls from ahead peers before pushing
+- Dashboard: event feed widget, toast notifications, deep link hash router
+- Dashboard: ▶ START button on mission cards, Full Sync button
+- Dashboard: coordinator status/toggle, `/api/events`, `/api/notifications` endpoints
+- Enhanced heartbeat: emits plan_completed, wave_completed, human_needed events
+
+### Fixed
+
+- CSP blocking Chart.js/xterm CDN (cdn.jsdelivr.net now allowed in middleware.py)
+- Plan handoff same_node skipping launch when plan not running
+
+
 ## [10.6.1] — 2026-03-04
 
 ### Fixed

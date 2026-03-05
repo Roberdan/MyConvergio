@@ -1,7 +1,71 @@
+import json
 import os
 import subprocess
+import time
+from collections import defaultdict
+from pathlib import Path
 
 from middleware import query, query_one
+
+
+# --- JSONL Token Scraper ---
+# Claude Code sessions store token usage in ~/.claude/projects/*/session.jsonl
+# This scraper reads those files and merges the data into the daily token view.
+
+_jsonl_cache: dict = {"data": {}, "ts": 0}
+_JSONL_CACHE_TTL = 120  # seconds
+
+
+def _scrape_jsonl_tokens() -> dict[str, dict]:
+    """Scrape token usage from Claude JSONL session files.
+
+    Returns dict keyed by date string: {"2026-03-05": {"input": N, "output": N}}
+    Results are cached for _JSONL_CACHE_TTL seconds.
+    """
+    now = time.time()
+    if _jsonl_cache["data"] and (now - _jsonl_cache["ts"]) < _JSONL_CACHE_TTL:
+        return _jsonl_cache["data"]
+
+    daily: dict[str, dict] = defaultdict(lambda: {"input": 0, "output": 0})
+    base = Path.home() / ".claude" / "projects"
+    if not base.exists():
+        return {}
+
+    cutoff = now - 35 * 86400  # Look back ~35 days
+    for jsonl_path in base.rglob("*.jsonl"):
+        try:
+            if jsonl_path.stat().st_mtime < cutoff:
+                continue
+            with open(jsonl_path, "r", encoding="utf-8", errors="ignore") as fh:
+                for line in fh:
+                    try:
+                        obj = json.loads(line)
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+                    if obj.get("type") != "assistant":
+                        continue
+                    msg = obj.get("message")
+                    if not isinstance(msg, dict):
+                        continue
+                    usage = msg.get("usage")
+                    if not usage:
+                        continue
+                    ts = obj.get("timestamp", "")
+                    if len(ts) < 10:
+                        continue
+                    day = ts[:10]
+                    inp = (usage.get("input_tokens", 0)
+                           + usage.get("cache_creation_input_tokens", 0)
+                           + usage.get("cache_read_input_tokens", 0))
+                    out = usage.get("output_tokens", 0)
+                    daily[day]["input"] += inp
+                    daily[day]["output"] += out
+        except (OSError, PermissionError):
+            continue
+
+    result = dict(daily)
+    _jsonl_cache.update({"data": result, "ts": now})
+    return result
 
 
 def api_overview() -> dict:
@@ -9,8 +73,19 @@ def api_overview() -> dict:
     running = query_one("SELECT COUNT(*) AS c FROM tasks t JOIN waves w ON t.wave_id_fk=w.id JOIN plans p ON w.plan_id=p.id WHERE t.status='in_progress' AND p.status='doing'") or {"c": 0}
     blocked = query_one("SELECT COUNT(*) AS c FROM tasks t JOIN waves w ON t.wave_id_fk=w.id JOIN plans p ON w.plan_id=p.id WHERE t.status='blocked' AND p.status='doing'") or {"c": 0}
     ts = query_one("SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS total_tok, COALESCE(SUM(cost_usd),0) AS total_cost FROM token_usage") or {"total_tok": 0, "total_cost": 0}
-    today = query_one("SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS tok, COALESCE(SUM(cost_usd),0) AS cost FROM token_usage WHERE date(created_at)=date('now')") or {"tok": 0, "cost": 0}
-    return {"plans_total": ov["total"], "plans_active": ov["active"], "plans_done": ov["done"], "agents_running": running["c"], "blocked": blocked["c"], "total_tokens": ts["total_tok"], "total_cost": ts["total_cost"], "today_tokens": today["tok"], "today_cost": today["cost"]}
+    today_str = time.strftime("%Y-%m-%d")
+    today_db = query_one("SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS tok, COALESCE(SUM(cost_usd),0) AS cost FROM token_usage WHERE date(created_at)=date('now')") or {"tok": 0, "cost": 0}
+
+    # Supplement with JSONL session data
+    jsonl = _scrape_jsonl_tokens()
+    jsonl_total = sum(d["input"] + d["output"] for d in jsonl.values())
+    jsonl_today = jsonl.get(today_str, {})
+    jsonl_today_tok = jsonl_today.get("input", 0) + jsonl_today.get("output", 0)
+
+    total_tokens = max(ts["total_tok"], jsonl_total)
+    today_tokens = max(today_db["tok"], jsonl_today_tok)
+
+    return {"plans_total": ov["total"], "plans_active": ov["active"], "plans_done": ov["done"], "agents_running": running["c"], "blocked": blocked["c"], "total_tokens": total_tokens, "total_cost": ts["total_cost"], "today_tokens": today_tokens, "today_cost": today_db["cost"]}
 
 
 def api_mission(resolve_host_to_peer) -> dict:
@@ -27,7 +102,24 @@ def api_mission(resolve_host_to_peer) -> dict:
 
 
 def api_tokens_daily() -> list[dict]:
-    return query("SELECT date(created_at) AS day, SUM(input_tokens) AS input, SUM(output_tokens) AS output, SUM(cost_usd) AS cost FROM token_usage WHERE date(created_at)>=date('now','-30 days') GROUP BY day ORDER BY day")
+    db_rows = query("SELECT date(created_at) AS day, SUM(input_tokens) AS input, SUM(output_tokens) AS output, SUM(cost_usd) AS cost FROM token_usage WHERE date(created_at)>=date('now','-30 days') GROUP BY day ORDER BY day")
+    db_map: dict[str, dict] = {r["day"]: r for r in db_rows}
+
+    jsonl_data = _scrape_jsonl_tokens()
+
+    # Merge: for each day, use the higher of DB vs JSONL values
+    all_days = sorted(set(db_map.keys()) | set(jsonl_data.keys()))
+    result = []
+    for day in all_days:
+        db = db_map.get(day, {})
+        jl = jsonl_data.get(day, {})
+        result.append({
+            "day": day,
+            "input": max(db.get("input") or 0, jl.get("input", 0)),
+            "output": max(db.get("output") or 0, jl.get("output", 0)),
+            "cost": db.get("cost") or 0,
+        })
+    return result
 
 
 def api_tokens_by_model() -> list[dict]:

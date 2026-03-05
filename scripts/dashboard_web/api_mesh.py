@@ -119,7 +119,7 @@ def _tailscale_online_ips() -> set[str]:
 
 
 def _local_active_plan_ids() -> set[int]:
-    """Detect locally running plan executor processes."""
+    """Detect locally running plan executor processes (execute-plan.sh only)."""
     import re
     try:
         r = subprocess.run(
@@ -128,10 +128,10 @@ def _local_active_plan_ids() -> set[int]:
         )
         ids: set[int] = set()
         for line in r.stdout.splitlines():
+            # Only match actual executor processes, not tmux/ssh/editors
+            if "execute-plan" not in line:
+                continue
             m = re.search(r"execute-plan\.sh\s+(\d+)", line)
-            if m:
-                ids.add(int(m.group(1)))
-            m = re.search(r"plan-(\d+)", line)
             if m:
                 ids.add(int(m.group(1)))
         return ids

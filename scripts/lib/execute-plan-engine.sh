@@ -62,11 +62,28 @@ run_task() {
 
 	local exit_code=0
 
+	# Resolve model: per-task model from DB, or global override, with engine compatibility
+	local effective_model="${MODEL:-}"
+	if [[ -z "$effective_model" ]]; then
+		effective_model=$(db_query "$DB_FILE" "SELECT COALESCE(model,'') FROM tasks WHERE id=$task_db_id;")
+	fi
+	# Engine-model compatibility: remap incompatible models
+	case "$ENGINE" in
+		claude)
+			if [[ "$effective_model" == gpt-* ]]; then
+				effective_model="claude-sonnet-4-6"  # safe default for Claude engine
+			fi
+			;;
+		copilot)
+			# Copilot supports both claude-* and gpt-* models — no remapping needed
+			;;
+	esac
+
 	# --- Strategy 1: delegate.sh (preferred) ---
 	if [[ -x "$DELEGATE_SH" ]]; then
 		step "Executing via delegate.sh (engine: $ENGINE)"
 		local model_flag=""
-		[[ -n "$MODEL" ]] && model_flag="--model $MODEL"
+		[[ -n "$effective_model" ]] && model_flag="--model $effective_model"
 		# delegate.sh accepts: delegate.sh <task_db_id> [--engine <e>] [--model <m>]
 		timeout "$TASK_TIMEOUT" "$DELEGATE_SH" "$task_db_id" \
 			--engine "$ENGINE" $model_flag || exit_code=$?
@@ -78,7 +95,7 @@ run_task() {
 
 	copilot)
 		step "Executing via copilot-worker.sh"
-		local model_arg="${MODEL:-}"
+		local model_arg="${effective_model:-}"
 		if [[ -x "$COPILOT_WORKER" ]]; then
 			local worker_args=("$task_db_id")
 			[[ -n "$model_arg" ]] && worker_args+=(--model "$model_arg")

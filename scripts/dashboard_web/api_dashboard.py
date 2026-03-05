@@ -217,7 +217,7 @@ def api_mission(resolve_host_to_peer) -> dict:
     for p in plans:
         p["execution_peer"] = resolve_host_to_peer(p.get("execution_host", ""))
         waves = query(
-            "SELECT wave_id,name,status,tasks_done,tasks_total,position,validated_at FROM waves WHERE plan_id=? ORDER BY position",
+            "SELECT wave_id,name,status,tasks_done,tasks_total,position FROM waves WHERE plan_id=? ORDER BY position",
             (p["id"],),
         )
         tasks = query(
@@ -279,7 +279,7 @@ def api_plan_detail(plan_id: int) -> dict | None:
     if not p:
         return None
     waves = query(
-        "SELECT wave_id,name,status,tasks_done,tasks_total,branch_name,pr_number,pr_url,position,validated_at FROM waves WHERE plan_id=? ORDER BY position",
+        "SELECT wave_id,name,status,tasks_done,tasks_total,branch_name,pr_number,pr_url,position FROM waves WHERE plan_id=? ORDER BY position",
         (plan_id,),
     )
     tasks = query(

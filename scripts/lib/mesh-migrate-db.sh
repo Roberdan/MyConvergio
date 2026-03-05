@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # mesh-migrate-db.sh — DB migration helpers for mesh-migrate.sh
-# Bash 3.2 compatible | v1.0.0
+# Bash 3.2 compatible | v2.0.0
 
 set -euo pipefail
 
@@ -9,28 +9,107 @@ DB="${CLAUDE_HOME}/data/dashboard.db"
 SSH_OPTS="-o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
 REMOTE_DB="~/.claude/data/dashboard.db"
 
-# Flush WAL before copy to ensure consistent DB state (C-04)
-_migrate_db_checkpoint() {
-	echo "==> Checkpointing local DB"
-	sqlite3 "$DB" ".timeout 5000" "PRAGMA wal_checkpoint(TRUNCATE);"
+# Stop local services holding DB connections (heartbeat, dashboard)
+_migrate_db_quiesce() {
+	echo "==> Quiescing local DB connections"
 
-	# Verify WAL/SHM gone or empty
-	local wal="${DB}-wal" shm="${DB}-shm"
-	if [[ -f "$wal" ]] && [[ -s "$wal" ]]; then
-		echo "WARN: -wal file still has content after checkpoint" >&2
+	# Stop heartbeat daemon if running
+	if [[ -f "${CLAUDE_HOME}/data/mesh-heartbeat.pid" ]]; then
+		local hb_pid
+		hb_pid=$(cat "${CLAUDE_HOME}/data/mesh-heartbeat.pid" 2>/dev/null || echo "")
+		if [[ -n "$hb_pid" ]] && kill -0 "$hb_pid" 2>/dev/null; then
+			echo "  Stopping heartbeat daemon (PID ${hb_pid})"
+			"${CLAUDE_HOME}/scripts/mesh-heartbeat.sh" stop 2>/dev/null || kill "$hb_pid" 2>/dev/null || true
+		fi
 	fi
-	if [[ -f "$shm" ]] && [[ -s "$shm" ]]; then
-		echo "WARN: -shm file still has content after checkpoint" >&2
+
+	# Find and report active DB connections (informational)
+	local db_pids
+	db_pids=$(lsof "$DB" 2>/dev/null | awk 'NR>1{print $2}' | sort -u || echo "")
+	if [[ -n "$db_pids" ]]; then
+		echo "  Active DB connections: $(echo "$db_pids" | tr '\n' ' ')"
+		echo "  Waiting 2s for connections to release..."
+		sleep 2
+	else
+		echo "  No active DB connections"
 	fi
-	echo "Checkpoint complete"
 }
 
-# Copy DB to target and verify integrity (C-04)
+# Restart services stopped by quiesce
+_migrate_db_resume() {
+	echo "==> Resuming local services"
+	"${CLAUDE_HOME}/scripts/mesh-heartbeat.sh" start 2>/dev/null || true
+}
+
+# Flush WAL before copy with retry + quiesce protocol (C-04)
+_migrate_db_checkpoint() {
+	local wal="${DB}-wal" shm="${DB}-shm"
+	local max_retries=3 attempt=0
+
+	_migrate_db_quiesce
+
+	while [[ $attempt -lt $max_retries ]]; do
+		attempt=$((attempt + 1))
+		echo "==> Checkpointing local DB (attempt ${attempt}/${max_retries})"
+		sqlite3 "$DB" ".timeout 10000" "PRAGMA wal_checkpoint(TRUNCATE);" 2>/dev/null || true
+
+		# Verify WAL is empty or gone
+		if [[ ! -f "$wal" ]] || [[ ! -s "$wal" ]]; then
+			echo "Checkpoint complete — WAL clean"
+			return 0
+		fi
+
+		if [[ $attempt -lt $max_retries ]]; then
+			echo "  WAL still has content, retrying in 3s..."
+			sleep 3
+		fi
+	done
+
+	# WAL not empty after retries — warn but don't block (copy will include WAL files)
+	echo "WARN: WAL not fully flushed after ${max_retries} attempts — will copy WAL files too" >&2
+}
+
+# Stop remote DB connections before overwriting (C-04)
+# Args: target_dest
+_migrate_db_quiesce_remote() {
+	local dest="$1"
+	echo "==> Quiescing remote DB connections on ${dest}"
+
+	# Stop remote heartbeat daemon
+	ssh $SSH_OPTS "$dest" \
+		"~/.claude/scripts/mesh-heartbeat.sh stop 2>/dev/null || true" 2>/dev/null || true
+
+	# Checkpoint remote WAL (prevent corruption on overwrite)
+	ssh $SSH_OPTS "$dest" \
+		"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' 'PRAGMA wal_checkpoint(TRUNCATE);' 2>/dev/null || true" \
+		2>/dev/null || true
+
+	# Brief pause for connections to close
+	sleep 1
+}
+
+# Copy DB (+ WAL/SHM if present) to target and verify integrity (C-04)
 # Args: target_dest
 _migrate_db_copy() {
 	local dest="$1"
+	local wal="${DB}-wal" shm="${DB}-shm"
+
+	_migrate_db_quiesce_remote "$dest"
+
 	echo "==> Copying DB to ${dest}:${REMOTE_DB}"
 	scp -o ConnectTimeout=10 -o BatchMode=yes "$DB" "${dest}:${REMOTE_DB}"
+
+	# Copy WAL/SHM files if they exist and have content (belt-and-suspenders)
+	if [[ -f "$wal" ]] && [[ -s "$wal" ]]; then
+		echo "  Copying WAL file ($(wc -c <"$wal") bytes)"
+		scp -o ConnectTimeout=10 -o BatchMode=yes "$wal" "${dest}:${REMOTE_DB}-wal"
+	else
+		# Clean up remote WAL/SHM if local is clean
+		ssh $SSH_OPTS "$dest" "rm -f ~/.claude/data/dashboard.db-wal ~/.claude/data/dashboard.db-shm" 2>/dev/null || true
+	fi
+	if [[ -f "$shm" ]] && [[ -s "$shm" ]]; then
+		scp -o ConnectTimeout=10 -o BatchMode=yes "$shm" "${dest}:${REMOTE_DB}-shm"
+	fi
 
 	echo "==> Verifying integrity on target"
 	local result

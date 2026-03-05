@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # mesh-migrate-sync.sh — rsync helpers for mesh-migrate.sh
 # Requires: lib/peers.sh sourced by caller | Bash 3.2 compatible
-# v1.0.0
+# v2.0.0
 
 set -euo pipefail
 
@@ -114,22 +114,54 @@ _migrate_sync_all() {
 	t0=$(date +%s)
 
 	echo "==> Syncing ~/.claude to ${dest}:~/.claude"
-	# Exclude DB files — synced separately
-	rsync -avz --progress --delete \
-		--exclude-from="$EXCLUDE_FILE" \
-		--exclude="data/*.db" --exclude="data/*.db-*" \
-		-e "ssh $SSH_OPTS" \
-		"${CLAUDE_HOME}/" "${dest}:${CLAUDE_HOME}/"
 
-	# Repos from repos.conf
+	# ~/.claude is a git repo — use git pull for clean sync (no rsync permission issues)
+	echo "  Phase 2a: git pull on remote ~/.claude"
+	ssh $SSH_OPTS "$dest" \
+		"export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH; \
+		 cd ~/.claude && \
+		 REMOTE=\$(git remote | head -1) && \
+		 BRANCH=\$(git symbolic-ref --short HEAD 2>/dev/null || echo main) && \
+		 git stash -q 2>/dev/null; \
+		 git fetch \$REMOTE \$BRANCH 2>&1 && \
+		 git reset --hard \$REMOTE/\$BRANCH 2>&1" \
+		2>/dev/null || echo "WARN: git sync failed for ~/.claude — falling back to SCP"
+
+	# SCP non-git config files that may differ per-machine
+	echo "  Phase 2b: SCP non-git config files"
+	local non_git_files="settings.json settings.local.json mcp.json policy-limits.json"
+	for f in $non_git_files; do
+		if [[ -f "${CLAUDE_HOME}/${f}" ]]; then
+			scp -o ConnectTimeout=10 -o BatchMode=yes \
+				"${CLAUDE_HOME}/${f}" "${dest}:${CLAUDE_HOME}/${f}" 2>/dev/null || true
+		fi
+	done
+
+	# Repos from repos.conf — use git pull on remote (not rsync)
 	if [[ -f "$repos_conf" ]]; then
+		local section="" branch="" gh_account=""
 		while IFS= read -r line; do
-			[[ "$line" =~ ^\[.*\]$ ]] && section="${line//[\[\]]/}" && continue
+			[[ "$line" =~ ^#.*$ ]] && continue
+			[[ -z "$line" ]] && continue
+			if [[ "$line" =~ ^\[.*\]$ ]]; then
+				section="${line//[\[\]]/}"
+				branch=""
+				gh_account=""
+				continue
+			fi
+			[[ "$line" =~ ^branch=(.+)$ ]] && branch="${BASH_REMATCH[1]}" && continue
+			[[ "$line" =~ ^gh_account=(.+)$ ]] && gh_account="${BASH_REMATCH[1]}" && continue
 			[[ "$line" =~ ^path=(.+)$ ]] || continue
-			local repo_path="${BASH_REMATCH[1]/#\~/$HOME}"
-			if [[ -d "$repo_path" ]]; then
-				echo "==> Syncing repo ${section}: ${repo_path}"
-				_migrate_rsync "$dest" "${repo_path}/" "${repo_path}/"
+			local repo_path="${BASH_REMATCH[1]}"
+			local resolved="${repo_path/#\~/$HOME}"
+			if [[ -d "$resolved" ]]; then
+				echo "==> Syncing repo ${section}: git pull on remote"
+				local pull_branch="${branch:-main}"
+				local auth_cmd=""
+				[[ -n "$gh_account" ]] && auth_cmd="export PATH=/opt/homebrew/bin:\$PATH; gh auth switch --user ${gh_account} 2>/dev/null; "
+				ssh $SSH_OPTS "$dest" \
+					"${auth_cmd}cd ${repo_path} 2>/dev/null && git pull --ff-only origin ${pull_branch} 2>&1 || echo 'WARN: git pull failed (repo may not exist)'" \
+					2>/dev/null || echo "WARN: repo sync failed for ${section}"
 			fi
 		done <"$repos_conf"
 	fi

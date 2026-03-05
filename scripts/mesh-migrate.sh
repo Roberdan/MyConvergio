@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # mesh-migrate.sh — migrate a live plan to another peer
 # Usage: mesh-migrate.sh <plan_id> <target_peer> [--dry-run] [--no-launch]
-# Bash 3.2 compatible | v1.0.0 | C-01,C-03,C-04,C-05,C-07
+# Bash 3.2 compatible | v2.0.0 | C-01,C-03,C-04,C-05,C-07
 
 set -euo pipefail
 
@@ -92,20 +92,26 @@ TARGET_HOST=$(ssh $SSH_OPTS "$DEST" 'hostname -s' 2>/dev/null || echo "$TARGET")
 if ! _migrate_db_copy "$DEST"; then
 	echo "==> DB copy failed — rolling back" >&2
 	_migrate_db_rollback "$DEST" "$BACKUP_PATH" || true
+	_migrate_db_resume
 	exit 1
 fi
 
 if ! _migrate_db_remap_paths "$DEST" "$HOME" "$TARGET_HOME"; then
 	echo "==> Path remap failed — rolling back" >&2
 	_migrate_db_rollback "$DEST" "$BACKUP_PATH" || true
+	_migrate_db_resume
 	exit 1
 fi
 
 if ! _migrate_transfer_plan "$PLAN_ID" "$DEST" "$TARGET_HOST"; then
 	echo "==> Plan transfer failed — rolling back" >&2
 	_migrate_db_rollback "$DEST" "$BACKUP_PATH" || true
+	_migrate_db_resume
 	exit 1
 fi
+
+# Resume local services (heartbeat) stopped during quiesce
+_migrate_db_resume
 
 # --- PHASE 4: Auto-launch ---
 if [[ "$NO_LAUNCH" -eq 0 ]]; then

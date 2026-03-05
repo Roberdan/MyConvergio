@@ -4,7 +4,10 @@ set -euo pipefail
 # Auto-releases file locks, checks staleness, warns about uncommitted changes.
 # VALIDATE-THEN-DONE: Validation runs BEFORE marking done (blocking, no bypass flags).
 # CIRCUIT BREAKER: Auto-blocks tasks after MAX_REJECTIONS consecutive Thor rejections.
-# Version: 4.0.0
+# Version: 4.1.0 - PATH hardening for remote machines
+
+# PATH hardening: ensure pnpm/node/python tools are findable
+export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_FILE="$HOME/.claude/data/dashboard.db"

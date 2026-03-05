@@ -130,11 +130,13 @@ except: pass
 
 		if [[ -n "$verify_cmds" ]]; then
 			local verify_failures=0
+			local verify_work_dir
+			verify_work_dir=$(plan_db_safe_resolve_worktree "$task_db_id" "$plan_id")
 			while IFS= read -r vcmd; do
 				[[ -z "$vcmd" ]] && continue
 				[[ "$vcmd" != *"/"* && "$vcmd" != *"."* && "$vcmd" != *"$"* ]] && continue
-				echo "[plan-db-safe] Running verify: $vcmd" >&2
-				if ! bash -c "$vcmd" >/dev/null 2>&1; then
+				echo "[plan-db-safe] Running verify: $vcmd (in $verify_work_dir)" >&2
+				if ! (cd "$verify_work_dir" && export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH" && bash -c "$vcmd") >/dev/null 2>&1; then
 					echo "REJECTED: Verify command failed: $vcmd" >&2
 					verify_failures=$((verify_failures + 1))
 				fi

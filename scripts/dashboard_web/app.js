@@ -162,40 +162,6 @@ function handleHashRoute() {
   setTimeout(() => card.classList.remove("highlight-pulse"), 3000);
 }
 
-// Event Feed Widget
-async function renderEventFeed() {
-  const el = $("#event-feed-content");
-  if (!el) return;
-  try {
-    const events = await fetchJson("/api/events");
-    if (!events || !events.length) {
-      el.innerHTML = '<span style="color:var(--text-dim);font-size:11px">No events yet</span>';
-      return;
-    }
-    const icons = { plan_completed: "✓", wave_completed: "◈", human_needed: "⚠", node_offline: "✗" };
-    const colors = { plan_completed: "var(--green)", wave_completed: "var(--cyan)", human_needed: "var(--gold)", node_offline: "var(--red)" };
-    el.innerHTML = events.slice(0, 15).map((e) => {
-      const icon = icons[e.event_type] || "•";
-      const color = colors[e.event_type] || "var(--text-dim)";
-      const age = e.created_at ? _timeAgo(e.created_at) : "";
-      const click = e.plan_id ? ` onclick="location.hash='#plan/${e.plan_id}'"` : "";
-      return `<div class="event-row"${click} style="cursor:${e.plan_id ? "pointer" : "default"}">
-        <span style="color:${color};font-weight:600;width:16px">${icon}</span>
-        <span class="event-type">${e.event_type.replace(/_/g, " ")}</span>
-        <span class="event-peer">${e.source_peer || ""}</span>
-        ${e.plan_id ? `<span class="event-plan">#${e.plan_id}</span>` : ""}
-        <span class="event-age">${age}</span></div>`;
-    }).join("");
-  } catch (_) {}
-}
-function _timeAgo(ts) {
-  const d = Math.floor(Date.now() / 1000) - ts;
-  if (d < 60) return d + "s";
-  if (d < 3600) return Math.floor(d / 60) + "m";
-  if (d < 86400) return Math.floor(d / 3600) + "h";
-  return Math.floor(d / 86400) + "d";
-}
-
 window.$ = $;
 window.fetchJson = fetchJson;
 window.refreshAll = refreshAll;

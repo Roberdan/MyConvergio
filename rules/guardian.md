@@ -1,4 +1,4 @@
-<!-- v2.4.0 -->
+<!-- v2.5.0 -->
 
 # Process Guardian
 
@@ -18,9 +18,13 @@ See CLAUDE.md Thor Gate section for commands and gates.
 
 See CLAUDE.md Anti-Bypass + Mandatory Routing sections. Plan creation = `/planner` only (Plan 225). Task execution = task-executor only (Plan 182).
 
+## Plan Closure = Merged (NON-NEGOTIABLE)
+
+A plan is NOT done until ALL changes are merged to main. `plan-db.sh complete` enforces: all wave PRs must be `MERGED` on GitHub (live check via `gh pr view`). Worktrees must be clean. No unmerged branches allowed at plan closure. Bypassing with `--force` requires explicit user approval.
+
 ## Git & PR
 
-Branch: feature/, fix/, chore/ | Conventional commits | Lint+typecheck+test before commit | Build passes | ZERO debt (no TODO, FIXME, @ts-ignore) | **NEVER `git merge main` into wave branch** — use `git rebase origin/main` (see worktree-discipline.md § Git Graph Hygiene)
+**NEVER create bare branches** — use `worktree-create.sh` or `wave-worktree.sh`. Hook `worktree-guard.sh` blocks `git branch`, `git checkout -b`, `git switch -c`. | Conventional commits | Lint+typecheck+test before commit | Build passes | ZERO debt (no TODO, FIXME, @ts-ignore) | **NEVER `git merge main` into wave branch** — use `git rebase origin/main` (see worktree-discipline.md)
 
 ## PR Post-Push Protocol (NON-NEGOTIABLE)
 

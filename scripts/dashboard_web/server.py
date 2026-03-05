@@ -36,6 +36,14 @@ from api_mesh import (
     handle_mesh_action_sse,
     resolve_host_to_peer,
 )
+from api_peers import (
+    api_peer_create,
+    api_peer_delete,
+    api_peer_discover,
+    api_peer_list,
+    api_peer_ssh_check,
+    api_peer_update,
+)
 from api_plans import (
     api_preflight_sse,
     handle_plan_delegate,
@@ -219,6 +227,8 @@ ROUTES = {
     "/api/events": api_events,
     "/api/coordinator/status": api_coordinator_status,
     "/api/coordinator/toggle": api_coordinator_toggle,
+    "/api/peers": api_peer_list,
+    "/api/peers/discover": api_peer_discover,
 }
 
 
@@ -276,6 +286,44 @@ class Handler(MiddlewareMixin, SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        if path == "/api/peers":
+            data, code = api_peer_create(self)
+            self._json_response(data, code)
+            return
+        if path == "/api/peers/ssh-check":
+            data, code = api_peer_ssh_check(self)
+            self._json_response(data, code)
+            return
+        self.send_error(405, "Method Not Allowed")
+
+    def do_PUT(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        if path.startswith("/api/peers/"):
+            name = path.split("/")[-1]
+            if not _SAFE_NAME.match(name):
+                self._json_response({"error": "invalid peer name"}, 400)
+                return
+            data, code = api_peer_update(self, name)
+            self._json_response(data, code)
+            return
+        self.send_error(405, "Method Not Allowed")
+
+    def do_DELETE(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        qs = parse_qs(parsed.query)
+        if path.startswith("/api/peers/"):
+            name = path.split("/")[-1]
+            if not _SAFE_NAME.match(name):
+                self._json_response({"error": "invalid peer name"}, 400)
+                return
+            mode = qs.get("mode", ["soft"])[0]
+            data, code = api_peer_delete(name, mode)
+            self._json_response(data, code)
+            return
         self.send_error(405, "Method Not Allowed")
 
     def log_message(self, fmt, *args):

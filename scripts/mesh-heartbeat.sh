@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # mesh-heartbeat.sh — Liveness daemon: writes heartbeat to peer_heartbeats every 30s
-# Version: 1.0.0
+# Version: 1.1.0
 # Usage: mesh-heartbeat.sh [start|stop|status]
 set -euo pipefail
 
@@ -101,21 +101,23 @@ _check_plan_events() {
 _daemon_loop() {
 	local pulse=0
 	while true; do
-		_write_heartbeat
+		_write_heartbeat || warn "heartbeat write failed (will retry)"
 		# Check for plan/wave/task events (non-fatal)
 		_check_plan_events 2>/dev/null || true
 		pulse=$((pulse + 1))
 		# Every 4 beats (~2 min): pull task updates from peers
-		if (( pulse % 4 == 0 )); then
+		if ((pulse % 4 == 0)); then
 			local dbsync_script="$SCRIPT_DIR/mesh-db-sync-tasks.sh"
 			if [[ -x "$dbsync_script" ]]; then
 				"$dbsync_script" >>"$CLAUDE_HOME/data/mesh-dbsync.log" 2>&1 &
 			fi
 		fi
-		# Every 10 beats (~5 min): pull config + cleanup
-		if (( pulse % 10 == 0 )); then
+		# Every 10 beats (~5 min): pull config (Mac only — Linux peers are push targets) + cleanup
+		if ((pulse % 10 == 0)); then
 			local sync_script="$SCRIPT_DIR/sync-claude-config.sh"
-			if [[ -x "$sync_script" ]]; then
+			local current_os
+			current_os="$(uname -s 2>/dev/null || echo "Unknown")"
+			if [[ -x "$sync_script" && "$current_os" == "Darwin" ]]; then
 				"$sync_script" pull >>"$CLAUDE_HOME/data/mesh-heartbeat.log" 2>&1 &
 			fi
 			local cleanup_script="$SCRIPT_DIR/mesh-cleanup.sh"

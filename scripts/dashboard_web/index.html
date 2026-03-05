@@ -95,6 +95,8 @@
           <span class="legend-item"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);vertical-align:middle"></span>Sync</span>
           <span class="legend-item"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--gold);vertical-align:middle"></span>Drift</span>
           <span class="legend-item"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--red);vertical-align:middle"></span>Down</span>
+          <button class="mesh-toolbar-btn" onclick="showPeerForm('create')" title="Add Peer">+ Add Peer</button>
+          <button class="mesh-toolbar-btn" onclick="showDiscoverOverlay()" title="Discover">🔍 Discover</button>
         </div>
         <div class="widget-actions" id="mesh-actions-bar"></div>
       </div>
@@ -149,6 +151,7 @@
 <script src="mesh.js"></script>
 <script src="mesh-animation.js"></script>
 <script src="mesh-actions.js"></script>
+<script src="peer-crud.js"></script>
 <script src="widget-drag.js"></script>
 <script src="terminal.js"></script>
 </body>

@@ -1,0 +1,38 @@
+/* Peer CRUD modal styles */
+.peer-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; z-index: 10000;
+}
+.peer-modal {
+  background: var(--bg-card, #1a1a2e); border: 1px solid var(--border, #333);
+  border-radius: 12px; padding: 20px; min-width: 380px; max-width: 500px;
+  max-height: 80vh; overflow-y: auto; color: var(--text, #eee);
+}
+.peer-modal-sm { min-width: 300px; max-width: 380px; }
+.peer-modal h3 { margin: 0 0 14px; font-size: 15px; color: var(--cyan, #0ef); }
+.peer-modal label { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; font-size: 11px; color: var(--text-dim, #888); }
+.peer-modal input, .peer-modal select {
+  background: var(--bg-input, #0d0d1a); border: 1px solid var(--border, #333);
+  border-radius: 6px; padding: 6px 10px; color: var(--text, #eee); font-size: 13px;
+}
+.peer-modal input:invalid { border-color: var(--red, #e33); }
+.peer-form-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.peer-form-actions .spacer { flex: 1; }
+.peer-form-actions button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border, #333); background: var(--bg-input, #0d0d1a); color: var(--text, #eee); cursor: pointer; font-size: 12px; }
+.btn-primary { background: var(--cyan, #0ef) !important; color: #000 !important; font-weight: 600; }
+.btn-secondary { background: transparent !important; border-color: var(--cyan, #0ef) !important; color: var(--cyan, #0ef) !important; }
+.btn-danger { background: var(--red, #e33) !important; color: #fff !important; }
+.ssh-ok { color: var(--green, #0c5); font-size: 12px; }
+.ssh-fail { color: var(--red, #e33); font-size: 12px; }
+.delete-options { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.delete-options label { flex-direction: row; gap: 8px; font-size: 13px; color: var(--text, #eee); }
+#hard-confirm input { width: 100%; margin-top: 6px; }
+.discover-list { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.discover-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; background: rgba(255,255,255,0.03); font-size: 13px; }
+.mesh-toolbar-btn {
+  padding: 2px 8px; font-size: 10px; border-radius: 4px; cursor: pointer;
+  background: rgba(0,238,255,0.08); border: 1px solid rgba(0,238,255,0.3);
+  color: var(--cyan, #0ef); margin-left: 6px;
+}
+.mesh-toolbar-btn:hover { background: rgba(0,238,255,0.15); }
+.cli-default { box-shadow: 0 0 0 2px var(--cyan, #0ef); }

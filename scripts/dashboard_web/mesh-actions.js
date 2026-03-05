@@ -4,6 +4,16 @@
  */
 
 window.meshAction = async function (action, peer) {
+  if (action === "edit") {
+    const peers = (typeof lastMeshData !== "undefined" && lastMeshData) || [];
+    const peerData = peers.find((p) => p.peer_name === peer);
+    if (peerData && typeof showPeerForm === "function") showPeerForm("edit", peerData);
+    return;
+  }
+  if (action === "delete") {
+    if (typeof showDeleteDialog === "function") showDeleteDialog(peer);
+    return;
+  }
   if (action === "terminal") {
     if (typeof termMgr !== "undefined") {
       const peers = (typeof lastMeshData !== "undefined" && lastMeshData) || [];
@@ -270,22 +280,25 @@ window.showDelegatePlanDialog = async function (planId, planName) {
 
 function _showCliSelector(planId, peer, planName, prevOverlay) {
   if (prevOverlay) prevOverlay.remove();
+  const peers = (typeof lastMeshData !== "undefined" && lastMeshData) || [];
+  const peerData = peers.find((p) => p.peer_name === peer);
+  const defaultEngine = (peerData && peerData.default_engine) || "copilot";
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   overlay.innerHTML = `<div class="modal-box" style="max-width:420px">
     <div class="modal-title">Execute with → ${esc(peer)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
-      <button class="cli-choice-btn" data-cli="copilot" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.25);border-radius:8px;color:var(--cyan);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
+      <button class="cli-choice-btn${defaultEngine === 'copilot' ? ' cli-default' : ''}" data-cli="copilot" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.25);border-radius:8px;color:var(--cyan);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
         <span style="font-size:20px">🤖</span>
-        <span><div>GitHub Copilot</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">copilot -p '/execute ${planId}'</div></span>
+        <span><div>GitHub Copilot${defaultEngine === 'copilot' ? ' ★' : ''}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">copilot -p '/execute ${planId}'</div></span>
       </button>
-      <button class="cli-choice-btn" data-cli="claude" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,160,0,0.06);border:1px solid rgba(255,160,0,0.25);border-radius:8px;color:var(--gold);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
+      <button class="cli-choice-btn${defaultEngine === 'claude' ? ' cli-default' : ''}" data-cli="claude" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,160,0,0.06);border:1px solid rgba(255,160,0,0.25);border-radius:8px;color:var(--gold);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
         <span style="font-size:20px">🧠</span>
-        <span><div>Claude Code</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">claude --model sonnet -p '/execute ${planId}'</div></span>
+        <span><div>Claude Code${defaultEngine === 'claude' ? ' ★' : ''}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">claude --model sonnet -p '/execute ${planId}'</div></span>
       </button>
-      <button class="cli-choice-btn" data-cli="opencode" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(140,140,140,0.06);border:1px solid rgba(140,140,140,0.25);border-radius:8px;color:var(--text-dim);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
+      <button class="cli-choice-btn${defaultEngine === 'opencode' ? ' cli-default' : ''}" data-cli="opencode" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(140,140,140,0.06);border:1px solid rgba(140,140,140,0.25);border-radius:8px;color:var(--text-dim);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
         <span style="font-size:20px">⚡</span>
-        <span><div>OpenCode / Other</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">opencode -p '/execute ${planId}'</div></span>
+        <span><div>OpenCode / Other${defaultEngine === 'opencode' ? ' ★' : ''}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">opencode -p '/execute ${planId}'</div></span>
       </button>
     </div>
   </div>`;

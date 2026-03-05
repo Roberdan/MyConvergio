@@ -14,14 +14,14 @@ export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$HOME/.c
 _WORKER_TMPFILES=()
 _WORKER_CHILD_PIDS=()
 _worker_cleanup() {
-	if [[ ${#_WORKER_CHILD_PIDS[@]} -gt 0 ]]; then
-		for pid in "${_WORKER_CHILD_PIDS[@]}"; do
+	if [[ ${#_WORKER_CHILD_PIDS[@]:-0} -gt 0 ]]; then
+		for pid in "${_WORKER_CHILD_PIDS[@]:-}"; do
 			kill -9 "$pid" 2>/dev/null || true
 			# Kill children of children (recursive)
 			pkill -9 -P "$pid" 2>/dev/null || true
 		done
 	fi
-	for f in "${_WORKER_TMPFILES[@]}"; do
+	for f in "${_WORKER_TMPFILES[@]:-}"; do
 		[[ -f "$f" ]] && rm -f "$f"
 	done
 	# Kill any remaining children of this process

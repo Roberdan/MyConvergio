@@ -146,6 +146,23 @@ if [[ -z "$PLAN_NAME" ]]; then
 	exit 1
 fi
 
+# Enforce execution_host: one plan = one machine
+PLAN_HOST=$(sqlite3 "$DB_FILE" "SELECT execution_host FROM plans WHERE id=$PLAN_ID;" 2>/dev/null || echo "")
+if [[ -n "$PLAN_HOST" && "$PLAN_HOST" != "$(hostname -s)" ]]; then
+	# Check peer name from peers.conf
+	local_peer=""
+	if [[ -f "${CLAUDE_HOME:-$HOME/.claude}/config/peers.conf" ]]; then
+		source "${SCRIPT_DIR}/lib/peers.sh" 2>/dev/null || true
+		peers_load 2>/dev/null || true
+		local_peer="$(peers_self 2>/dev/null || echo "")"
+	fi
+	if [[ "$PLAN_HOST" != "$local_peer" && "$PLAN_HOST" != "local" ]]; then
+		error "Plan $PLAN_ID is assigned to '$PLAN_HOST', not this machine ('${local_peer:-$(hostname -s)}')"
+		error "Use: ssh $PLAN_HOST 'execute-plan.sh $PLAN_ID'"
+		exit 1
+	fi
+fi
+
 # ============================================================================
 # Engine availability checks
 # ============================================================================

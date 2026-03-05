@@ -19,13 +19,20 @@ DB_PATH = Path.home() / ".claude" / "data" / "dashboard.db"
 CLAUDE_HOME = Path.home() / ".claude"
 LOCK_DIR = CLAUDE_HOME / "data" / "locks"
 EXCLUDE_FILE = CLAUDE_HOME / "config" / "mesh-rsync-exclude.txt"
-SSH_OPTS = ["-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
-            "-o", "StrictHostKeyChecking=accept-new"]
+SSH_OPTS = [
+    "-o",
+    "ConnectTimeout=10",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "StrictHostKeyChecking=accept-new",
+]
 
 
 def _sql(query: str, db: str | None = None) -> str:
     """Run sqlite3 query via Python module (not CLI). Returns pipe-delimited rows."""
     import sqlite3 as _sqlite3
+
     db = db or str(DB_PATH)
     try:
         conn = _sqlite3.connect(db, timeout=5)
@@ -34,7 +41,9 @@ def _sql(query: str, db: str | None = None) -> str:
         if query.strip().upper().startswith("SELECT"):
             rows = cur.fetchall()
             conn.close()
-            return "\n".join("|".join(str(c) if c is not None else "" for c in r) for r in rows)
+            return "\n".join(
+                "|".join(str(c) if c is not None else "" for c in r) for r in rows
+            )
         else:
             conn.commit()
             conn.close()
@@ -47,15 +56,17 @@ def _sql(query: str, db: str | None = None) -> str:
 def _ssh(dest: str, cmd: str, timeout: int = 15) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["ssh"] + SSH_OPTS + [dest, cmd],
-        capture_output=True, text=True, timeout=timeout,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
     )
 
 
-def _rsync(src: str, dest_remote: str, delete: bool = False,
-           timeout: int = 120) -> tuple[bool, str]:
+def _rsync(
+    src: str, dest_remote: str, delete: bool = False, timeout: int = 120
+) -> tuple[bool, str]:
     """rsync with optional --delete. Returns (ok, detail)."""
-    cmd = ["rsync", "-az", "--stats",
-           "-e", "ssh " + " ".join(SSH_OPTS)]
+    cmd = ["rsync", "-az", "--stats", "-e", "ssh " + " ".join(SSH_OPTS)]
     if delete:
         cmd.append("--delete")
     if EXCLUDE_FILE.is_file():
@@ -76,6 +87,7 @@ def _rsync(src: str, dest_remote: str, delete: bool = False,
 
 # ─── Delegation Lock ──────────────────────────────────────────────
 
+
 def acquire_lock(plan_id: int, peer: str, ttl: int = 600) -> tuple[bool, str]:
     """Acquire delegation lock. Returns (ok, holder_info)."""
     LOCK_DIR.mkdir(parents=True, exist_ok=True)
@@ -93,9 +105,7 @@ def acquire_lock(plan_id: int, peer: str, ttl: int = 600) -> tuple[bool, str]:
         except (json.JSONDecodeError, KeyError):
             pass
 
-    lock_file.write_text(json.dumps({
-        "peer": peer, "ts": now, "pid": os.getpid()
-    }))
+    lock_file.write_text(json.dumps({"peer": peer, "ts": now, "pid": os.getpid()}))
     return True, "acquired"
 
 
@@ -106,13 +116,13 @@ def release_lock(plan_id: int):
 
 # ─── Sync Direction ──────────────────────────────────────────────
 
+
 def get_execution_host(plan_id: int) -> str:
     """Who currently owns this plan's code. Empty = no one (coordinator)."""
     return _sql(f"SELECT COALESCE(execution_host,'') FROM plans WHERE id={plan_id};")
 
 
-def detect_sync_source(plan_id: int, target: str,
-                       find_peer: callable) -> dict:
+def detect_sync_source(plan_id: int, target: str, find_peer: callable) -> dict:
     """Determine where to sync FROM and what needs to happen.
 
     Returns dict with keys:
@@ -124,18 +134,23 @@ def detect_sync_source(plan_id: int, target: str,
       needs_stash: whether WIP might exist on source
     """
     host = get_execution_host(plan_id)
-    worktree = _sql(
-        f"SELECT COALESCE(worktree_path,'') FROM plans WHERE id={plan_id};"
-    )
+    worktree = _sql(f"SELECT COALESCE(worktree_path,'') FROM plans WHERE id={plan_id};")
     local_hostname = subprocess.run(
-        ["hostname", "-s"], capture_output=True, text=True, timeout=5,
+        ["hostname", "-s"],
+        capture_output=True,
+        text=True,
+        timeout=5,
     ).stdout.strip()
 
     pc_target = find_peer(target)
     ssh_target = pc_target.get("ssh_alias", target) if pc_target else target
 
     # No execution_host or it's the local machine → source is coordinator
-    if not host or host == local_hostname or host.lower().startswith(local_hostname.lower()):
+    if (
+        not host
+        or host == local_hostname
+        or host.lower().startswith(local_hostname.lower())
+    ):
         return {
             "source": "coordinator",
             "ssh_source": None,
@@ -188,6 +203,7 @@ def detect_sync_source(plan_id: int, target: str,
 def _parse_all_peers(find_peer: callable) -> dict:
     """Build {name: conf} from peers.conf via the find_peer helper."""
     from pathlib import Path
+
     peers = {}
     conf_path = CLAUDE_HOME / "config" / "peers.conf"
     if not conf_path.exists():
@@ -208,8 +224,10 @@ def _parse_all_peers(find_peer: callable) -> dict:
 
 # ─── Stop Remote Execution ───────────────────────────────────────
 
-def stop_remote_execution(ssh_dest: str, plan_id: int,
-                          worktree: str) -> tuple[bool, str]:
+
+def stop_remote_execution(
+    ssh_dest: str, plan_id: int, worktree: str
+) -> tuple[bool, str]:
     """Stop execution on remote node. Stash WIP, kill tmux session."""
     steps = []
 
@@ -217,14 +235,17 @@ def stop_remote_execution(ssh_dest: str, plan_id: int,
     session_name = "Convergio"
     window_name = f"plan-{plan_id}"
     try:
-        r = _ssh(ssh_dest,
-                 f"tmux has-session -t {session_name} 2>/dev/null "
-                 f"&& tmux list-windows -t {session_name} -F '#{{window_name}}' 2>/dev/null "
-                 f"| grep -q '{window_name}' "
-                 f"&& tmux send-keys -t {session_name}:{window_name} C-c 2>/dev/null "
-                 f"&& sleep 2 "
-                 f"&& tmux kill-window -t {session_name}:{window_name} 2>/dev/null "
-                 f"&& echo KILLED || echo NO_WINDOW", timeout=10)
+        r = _ssh(
+            ssh_dest,
+            f"tmux has-session -t {session_name} 2>/dev/null "
+            f"&& tmux list-windows -t {session_name} -F '#{{window_name}}' 2>/dev/null "
+            f"| grep -q '{window_name}' "
+            f"&& tmux send-keys -t {session_name}:{window_name} C-c 2>/dev/null "
+            f"&& sleep 2 "
+            f"&& tmux kill-window -t {session_name}:{window_name} 2>/dev/null "
+            f"&& echo KILLED || echo NO_WINDOW",
+            timeout=10,
+        )
         if "KILLED" in r.stdout:
             steps.append(f"tmux window '{window_name}' killed")
         else:
@@ -255,7 +276,7 @@ def stop_remote_execution(ssh_dest: str, plan_id: int,
         reset_cmd = (
             f"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' "
             f"\"UPDATE tasks SET status='pending' WHERE status='in_progress' "
-            f"AND plan_id={plan_id};\""
+            f'AND plan_id={plan_id};"'
         )
         _ssh(ssh_dest, reset_cmd, timeout=10)
         steps.append("in_progress tasks reset to pending")
@@ -267,8 +288,10 @@ def stop_remote_execution(ssh_dest: str, plan_id: int,
 
 # ─── Full Handoff ────────────────────────────────────────────────
 
-def full_handoff(plan_id: int, target: str, find_peer: callable,
-                 log: callable, cli: str = "copilot") -> tuple[bool, str]:
+
+def full_handoff(
+    plan_id: int, target: str, find_peer: callable, log: callable, cli: str = "copilot"
+) -> tuple[bool, str]:
     """Complete handoff protocol. Returns (ok, summary).
 
     log(msg) is called for each step for SSE streaming.
@@ -287,8 +310,9 @@ def full_handoff(plan_id: int, target: str, find_peer: callable,
         log(f"🔓 Lock released")
 
 
-def _do_handoff(plan_id: int, target: str, find_peer: callable,
-                log: callable, cli: str = "copilot") -> tuple[bool, str]:
+def _do_handoff(
+    plan_id: int, target: str, find_peer: callable, log: callable, cli: str = "copilot"
+) -> tuple[bool, str]:
     """Inner handoff logic (lock already held)."""
 
     # 2. Detect sync direction
@@ -398,12 +422,16 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
     try:
         subprocess.run(
             ["sqlite3", str(DB_PATH), "PRAGMA wal_checkpoint(TRUNCATE);"],
-            capture_output=True, timeout=5,
+            capture_output=True,
+            timeout=5,
         )
         r = subprocess.run(
-            ["scp"] + SSH_OPTS + [str(DB_PATH),
-                                  f"{ssh_target}:~/.claude/data/dashboard.db"],
-            capture_output=True, text=True, timeout=30,
+            ["scp"]
+            + SSH_OPTS
+            + [str(DB_PATH), f"{ssh_target}:~/.claude/data/dashboard.db"],
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if r.returncode == 0:
             log(f"  ✓ dashboard.db transferred")
@@ -427,9 +455,12 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
                 f"REPLACE(worktree_path,'{local_home}','{remote_home}') "
                 f"WHERE worktree_path LIKE '{local_home}%';"
             )
-            _ssh(ssh_target,
-                 f"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' "
-                 f"\"{remap_sql}\"", timeout=10)
+            _ssh(
+                ssh_target,
+                f"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' "
+                f'"{remap_sql}"',
+                timeout=10,
+            )
             log(f"  ✓ {local_home} → {remote_home}")
         else:
             log(f"  ✓ Same home dir — no remap needed")
@@ -443,23 +474,30 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
     log(f"▶ Transferring ownership to {target}")
     # Target: set execution_host
     try:
-        _ssh(ssh_target,
-             f"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' "
-             f"\"UPDATE plans SET execution_host='{target}' "
-             f"WHERE id={plan_id};\"", timeout=10)
+        _ssh(
+            ssh_target,
+            f"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' "
+            f"\"UPDATE plans SET execution_host='{target}' "
+            f'WHERE id={plan_id};"',
+            timeout=10,
+        )
     except Exception:
         pass
     # Source: set to peer_name too (for display consistency)
     _sql(f"UPDATE plans SET execution_host='{target}' WHERE id={plan_id};")
     # Reset any in_progress tasks (they'll restart on target)
-    _sql(f"UPDATE tasks SET status='pending' WHERE status='in_progress' "
-         f"AND plan_id={plan_id};")
+    _sql(
+        f"UPDATE tasks SET status='pending' WHERE status='in_progress' "
+        f"AND plan_id={plan_id};"
+    )
     try:
-        _ssh(ssh_target,
-             f"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' "
-             f"\"UPDATE tasks SET status='pending' "
-             f"WHERE status='in_progress' AND plan_id={plan_id};\"",
-             timeout=10)
+        _ssh(
+            ssh_target,
+            f"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' "
+            f"\"UPDATE tasks SET status='pending' "
+            f"WHERE status='in_progress' AND plan_id={plan_id};\"",
+            timeout=10,
+        )
     except Exception:
         pass
     log(f"  ✓ execution_host = {target}")
@@ -470,16 +508,20 @@ def _do_handoff(plan_id: int, target: str, find_peer: callable,
     return True, f"Plan #{plan_id} handed off to {target}"
 
 
-def _launch_on_target(plan_id: int, target: str, ssh_target: str,
-                      info: dict, log: callable, cli: str = "copilot"):
+def _launch_on_target(
+    plan_id: int,
+    target: str,
+    ssh_target: str,
+    info: dict,
+    log: callable,
+    cli: str = "copilot",
+):
     """Launch plan execution in a tmux window on the target node."""
     log(f"▶ Launching plan #{plan_id} on {target}")
     window_name = f"plan-{plan_id}"
 
     # Get worktree path for the plan
-    worktree = _sql(
-        f"SELECT COALESCE(worktree_path,'') FROM plans WHERE id={plan_id};"
-    )
+    worktree = _sql(f"SELECT COALESCE(worktree_path,'') FROM plans WHERE id={plan_id};")
     # Resolve ~ to remote home
     work_dir = worktree or "~/.claude"
     if work_dir.startswith("~") and info.get("worktree"):
@@ -502,19 +544,23 @@ def _launch_on_target(plan_id: int, target: str, ssh_target: str,
     # Verify chosen CLI exists on target
     try:
         cli_bin = cli_cmd.split()[0]
-        r = _ssh(ssh_target,
-                 f"export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
-                 f"command -v {cli_bin} >/dev/null 2>&1 && echo FOUND || echo MISSING",
-                 timeout=8)
+        r = _ssh(
+            ssh_target,
+            f'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; '
+            f"command -v {cli_bin} >/dev/null 2>&1 && echo FOUND || echo MISSING",
+            timeout=8,
+        )
         if "MISSING" in r.stdout:
             log(f"  ⚠ {cli_bin} not found on target — trying fallback")
             # Fallback chain: copilot → claude → opencode
             for fb in ["copilot", "claude", "opencode"]:
                 fb_bin = fb.split()[0]
-                r2 = _ssh(ssh_target,
-                          f"export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; "
-                          f"command -v {fb_bin} >/dev/null 2>&1 && echo FOUND || echo MISSING",
-                          timeout=8)
+                r2 = _ssh(
+                    ssh_target,
+                    f'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; '
+                    f"command -v {fb_bin} >/dev/null 2>&1 && echo FOUND || echo MISSING",
+                    timeout=8,
+                )
                 if "FOUND" in r2.stdout:
                     cli_cmd = cli_map.get(fb, fb)
                     log(f"  → Using {fb} instead")
@@ -530,16 +576,20 @@ def _launch_on_target(plan_id: int, target: str, ssh_target: str,
         launch_cmd = f"cd {work_dir} 2>/dev/null || cd ~/.claude; {cli_cmd} -p '/execute {plan_id}'"
         try:
             # Create window, then send-keys + Enter (reliable via SSH BatchMode)
-            _ssh(ssh_target,
-                 f"tmux new-session -A -d -s Convergio 2>/dev/null; "
-                 f"tmux new-window -t Convergio -n '{window_name}'; "
-                 f"sleep 0.5; "
-                 f"tmux send-keys -t Convergio:{window_name} "
-                 f"'{launch_cmd}' Enter",
-                 timeout=10)
-            r = _ssh(ssh_target,
-                     f"tmux list-windows -t Convergio -F '#{{window_name}}' 2>/dev/null",
-                     timeout=5)
+            _ssh(
+                ssh_target,
+                f"tmux new-session -A -d -s Convergio 2>/dev/null; "
+                f"tmux new-window -t Convergio -n '{window_name}'; "
+                f"sleep 0.5; "
+                f"tmux send-keys -t Convergio:{window_name} "
+                f"'{launch_cmd}' Enter",
+                timeout=10,
+            )
+            r = _ssh(
+                ssh_target,
+                f"tmux list-windows -t Convergio -F '#{{window_name}}' 2>/dev/null",
+                timeout=5,
+            )
             if window_name in r.stdout:
                 log(f"  ✓ Convergio:{window_name} → {cli_cmd}")
                 log(f"  ✓ Working dir: {work_dir}")
@@ -551,8 +601,10 @@ def _launch_on_target(plan_id: int, target: str, ssh_target: str,
 
 # ─── DB Sync Engine (single source of truth for all DB pulls) ────
 
-def pull_db_from_peer(ssh_dest: str, plan_ids: list[int],
-                      timeout: int = 60) -> tuple[bool, str]:
+
+def pull_db_from_peer(
+    ssh_dest: str, plan_ids: list[int], timeout: int = 60
+) -> tuple[bool, str]:
     """Pull dashboard.db from remote peer, merge task statuses.
 
     This is THE ONLY function that pulls DB from remote nodes.
@@ -565,17 +617,29 @@ def pull_db_from_peer(ssh_dest: str, plan_ids: list[int],
     - WAL checkpoint before copy for consistency
     """
     import tempfile
+
     tmp = tempfile.mktemp(suffix=".db")
     try:
         # 1. Checkpoint remote WAL
-        _ssh(ssh_dest,
-             "sqlite3 ~/.claude/data/dashboard.db "
-             "'PRAGMA wal_checkpoint(TRUNCATE);'", timeout=10)
+        _ssh(
+            ssh_dest,
+            "sqlite3 ~/.claude/data/dashboard.db " "'PRAGMA wal_checkpoint(TRUNCATE);'",
+            timeout=10,
+        )
         # 2. SCP the DB
         r = subprocess.run(
-            ["scp", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
-             f"{ssh_dest}:~/.claude/data/dashboard.db", tmp],
-            capture_output=True, text=True, timeout=timeout,
+            [
+                "scp",
+                "-o",
+                "ConnectTimeout=10",
+                "-o",
+                "BatchMode=yes",
+                f"{ssh_dest}:~/.claude/data/dashboard.db",
+                tmp,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
         if r.returncode != 0:
             return False, f"scp failed: {r.stderr.strip()[:60]}"
@@ -594,12 +658,10 @@ def pull_db_from_peer(ssh_dest: str, plan_ids: list[int],
 
 # ─── Reverse Sync (worker→coordinator after completion) ──────────
 
-def reverse_sync(ssh_source: str, plan_id: int,
-                 log: callable) -> tuple[bool, str]:
+
+def reverse_sync(ssh_source: str, plan_id: int, log: callable) -> tuple[bool, str]:
     """Pull completed work FROM worker back to coordinator."""
-    worktree = _sql(
-        f"SELECT COALESCE(worktree_path,'') FROM plans WHERE id={plan_id};"
-    )
+    worktree = _sql(f"SELECT COALESCE(worktree_path,'') FROM plans WHERE id={plan_id};")
 
     # 1. Pull worktree changes (only on plan completion, not status checks)
     if worktree:
@@ -619,7 +681,10 @@ def reverse_sync(ssh_source: str, plan_id: int,
 
     # 3. Update execution_host back to coordinator
     local_host = subprocess.run(
-        ["hostname", "-s"], capture_output=True, text=True, timeout=5,
+        ["hostname", "-s"],
+        capture_output=True,
+        text=True,
+        timeout=5,
     ).stdout.strip()
     _sql(f"UPDATE plans SET execution_host='{local_host}' WHERE id={plan_id};")
     log(f"  ✓ execution_host returned to coordinator")
@@ -640,14 +705,21 @@ def _merge_plan_status(plan_id: int, remote_db: str):
     local = _sqlite3.connect(str(DB_PATH), timeout=10)
     local.execute("PRAGMA journal_mode=WAL;")
 
-    status_rank = {"pending": 0, "in_progress": 1, "blocked": 1,
-                   "submitted": 2, "done": 3, "skipped": 3}
+    status_rank = {
+        "pending": 0,
+        "in_progress": 1,
+        "blocked": 1,
+        "submitted": 2,
+        "done": 3,
+        "skipped": 3,
+    }
     updated = 0
 
     try:
         remote_tasks = remote.execute(
             "SELECT id, status, completed_at, validated_at, validated_by "
-            "FROM tasks WHERE plan_id=?", (plan_id,)
+            "FROM tasks WHERE plan_id=?",
+            (plan_id,),
         ).fetchall()
 
         for rt in remote_tasks:
@@ -665,9 +737,7 @@ def _merge_plan_status(plan_id: int, remote_db: str):
 
             # For done: must go through submitted first (Thor trigger)
             if r_status == "done" and l_status not in ("submitted", "done"):
-                local.execute(
-                    "UPDATE tasks SET status='submitted' WHERE id=?", (tid,)
-                )
+                local.execute("UPDATE tasks SET status='submitted' WHERE id=?", (tid,))
 
             sets = ["status=?"]
             vals = [r_status]
@@ -689,12 +759,14 @@ def _merge_plan_status(plan_id: int, remote_db: str):
         local.execute(
             "UPDATE waves SET tasks_done="
             "(SELECT COUNT(*) FROM tasks WHERE wave_id_fk=waves.id AND status='done') "
-            "WHERE plan_id=?", (plan_id,)
+            "WHERE plan_id=?",
+            (plan_id,),
         )
         local.execute(
             "UPDATE plans SET tasks_done="
             "(SELECT COUNT(*) FROM tasks WHERE plan_id=? AND status='done') "
-            "WHERE id=?", (plan_id, plan_id)
+            "WHERE id=?",
+            (plan_id, plan_id),
         )
         local.commit()
     finally:
@@ -706,8 +778,10 @@ def _merge_plan_status(plan_id: int, remote_db: str):
 
 # ─── Crash Recovery ──────────────────────────────────────────────
 
-def check_stale_host(plan_id: int, find_peer: callable,
-                     stale_threshold: int = 600) -> dict:
+
+def check_stale_host(
+    plan_id: int, find_peer: callable, stale_threshold: int = 600
+) -> dict:
     """Check if execution_host is stale (offline/crashed).
 
     Returns: {stale: bool, host: str, reason: str, can_recover: bool}
@@ -719,14 +793,18 @@ def check_stale_host(plan_id: int, find_peer: callable,
     # Check heartbeat
     last_seen = _sql(
         f"SELECT CAST(last_seen AS INTEGER) FROM peer_heartbeats "
-        f"WHERE host='{host}' OR peer_name='{host}';"
+        f"WHERE peer_name='{host}';"
     )
     now = int(time.time())
     if last_seen:
         age = now - int(last_seen)
         if age < stale_threshold:
-            return {"stale": False, "host": host,
-                    "reason": f"heartbeat {age}s ago", "can_recover": False}
+            return {
+                "stale": False,
+                "host": host,
+                "reason": f"heartbeat {age}s ago",
+                "can_recover": False,
+            }
 
     # Host is stale — check if SSH reachable
     peers = _parse_all_peers(find_peer)
@@ -741,12 +819,20 @@ def check_stale_host(plan_id: int, find_peer: callable,
         try:
             r = _ssh(ssh_dest, "echo ok", timeout=8)
             if r.returncode == 0:
-                return {"stale": True, "host": host,
-                        "reason": "heartbeat stale but SSH ok",
-                        "can_recover": True, "ssh_dest": ssh_dest}
+                return {
+                    "stale": True,
+                    "host": host,
+                    "reason": "heartbeat stale but SSH ok",
+                    "can_recover": True,
+                    "ssh_dest": ssh_dest,
+                }
         except Exception:
             pass
 
-    return {"stale": True, "host": host,
-            "reason": "heartbeat stale and SSH unreachable",
-            "can_recover": False, "ssh_dest": ssh_dest}
+    return {
+        "stale": True,
+        "host": host,
+        "reason": "heartbeat stale and SSH unreachable",
+        "can_recover": False,
+        "ssh_dest": ssh_dest,
+    }

@@ -107,9 +107,11 @@ class TerminalManager {
     ws.binaryType = "arraybuffer";
 
     const tabLabel = tmuxSession ? `${label} [${tmuxSession}]` : label;
+    let opened = false;
     const tab = { id, label: tabLabel, peer, term, ws, fitAddon, el };
 
     ws.onopen = () => {
+      opened = true;
       term.open(el);
       fitAddon.fit();
       ws.send(
@@ -127,14 +129,24 @@ class TerminalManager {
     };
 
     ws.onerror = () => {
+      if (!opened) {
+        term.open(el);
+        fitAddon.fit();
+      }
       term.write(
         "\x1b[1;31m✗ WebSocket error — is terminal_server.py running?\x1b[0m\r\n",
       );
     };
 
     ws.onclose = () => {
+      if (!opened) {
+        // Connection never succeeded — keep tab open so user sees the error
+        term.write("\r\n\x1b[33m⚠ Could not connect. Start terminal_server.py on port 8421.\x1b[0m\r\n");
+        term.write("\x1b[2m  python3 ~/.claude/scripts/dashboard_web/terminal_server.py\x1b[0m\r\n");
+        return;
+      }
       term.write("\r\n\x1b[2m[session ended]\x1b[0m\r\n");
-      this.removeTab(id); // ws.onclose: F-08 auto-clean dead tab
+      this.removeTab(id);
     };
 
     term.onData((data) => {

@@ -17,7 +17,7 @@ Primary plan tracking table.
 | source_file | TEXT | - | NULL |
 | is_master | BOOLEAN | - | 0 |
 | parent_plan_id | INTEGER | FK→plans(id) | NULL |
-| status | TEXT | NOT NULL, CHECK(status IN ('todo', 'doing', 'done')) | 'todo' |
+| status | TEXT | NOT NULL, CHECK(status IN ('todo', 'doing', 'done', 'cancelled')) | 'todo' |
 | tasks_total | INTEGER | - | 0 |
 | tasks_done | INTEGER | - | 0 |
 | created_at | DATETIME | - | CURRENT_TIMESTAMP |
@@ -38,6 +38,9 @@ Primary plan tracking table.
 | human_summary | TEXT | - | NULL |
 | lines_added | INTEGER | - | NULL |
 | lines_removed | INTEGER | - | NULL |
+| constraints_json | TEXT | - | NULL |
+| cancelled_at | DATETIME | - | NULL |
+| cancelled_reason | TEXT | - | NULL |
 
 **UNIQUE**: (project_id, name)
 
@@ -50,7 +53,7 @@ Wave groupings within plans.
 | project_id | TEXT | NOT NULL, FK→projects(id) | - |
 | wave_id | TEXT | NOT NULL | - |
 | name | TEXT | NOT NULL | - |
-| status | TEXT | NOT NULL, CHECK(status IN ('pending', 'in_progress', 'done', 'blocked')) | - |
+| status | TEXT | NOT NULL, CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'merging', 'cancelled')) | - |
 | assignee | TEXT | - | NULL |
 | tasks_done | INTEGER | - | 0 |
 | tasks_total | INTEGER | - | 0 |
@@ -64,8 +67,16 @@ Wave groupings within plans.
 | estimated_hours | INTEGER | - | 8 |
 | markdown_path | TEXT | - | NULL |
 | precondition | TEXT | - | NULL |
+| worktree_path | TEXT | - | NULL |
+| branch_name | TEXT | - | NULL |
+| pr_number | INTEGER | - | NULL |
+| pr_url | TEXT | - | NULL |
+| cancelled_at | DATETIME | - | NULL |
+| cancelled_reason | TEXT | - | NULL |
+| merge_mode | TEXT | - | 'sync' |
+| theme | TEXT | - | NULL |
 
-**Trigger**: `wave_auto_complete` - Auto-completes wave when tasks_done = tasks_total
+**Trigger**: `wave_auto_complete` - Transitions wave to 'merging' when tasks_done = tasks_total
 
 ### tasks
 Individual task tracking (references waves via wave_id_fk).
@@ -77,10 +88,10 @@ Individual task tracking (references waves via wave_id_fk).
 | wave_id | TEXT | NOT NULL | - |
 | task_id | TEXT | NOT NULL | - |
 | title | TEXT | NOT NULL | - |
-| status | TEXT | NOT NULL, CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'skipped')) | - |
+| status | TEXT | NOT NULL, CHECK(status IN ('pending', 'in_progress', 'submitted', 'done', 'blocked', 'skipped', 'cancelled')) | - |
 | assignee | TEXT | - | NULL |
 | priority | TEXT | CHECK(priority IN ('P0', 'P1', 'P2', 'P3')) | NULL |
-| type | TEXT | CHECK(type IN ('bug', 'feature', 'chore', 'doc', 'test')) | NULL |
+| type | TEXT | CHECK(type IN ('bug', 'feature', 'fix', 'refactor', 'test', 'config', 'documentation', 'chore', 'doc')) | NULL |
 | duration_minutes | INTEGER | - | NULL |
 | started_at | DATETIME | - | NULL |
 | completed_at | DATETIME | - | NULL |
@@ -103,8 +114,12 @@ Individual task tracking (references waves via wave_id_fk).
 | executor_host | TEXT | - | NULL |
 | effort_level | INTEGER | CHECK(effort_level IN (1, 2, 3)) | 1 |
 | validation_report | TEXT | - | NULL |
+| cancelled_at | DATETIME | - | NULL |
+| cancelled_reason | TEXT | - | NULL |
+| privacy_required | BOOLEAN | - | 0 |
 
 **Triggers**:
+- `enforce_thor_done` - BLOCKS status→done unless OLD.status='submitted' AND validated_by IN ('thor','thor-quality-assurance-guardian','thor-per-wave','forced-admin')
 - `task_done_counter` - Increments waves.tasks_done and plans.tasks_done on status→done
 - `task_undone_counter` - Decrements counters on done→other status
 
@@ -112,17 +127,17 @@ Individual task tracking (references waves via wave_id_fk).
 
 ### plans.status
 ```sql
-CHECK(status IN ('todo', 'doing', 'done'))
+CHECK(status IN ('todo', 'doing', 'done', 'cancelled'))
 ```
 
 ### waves.status
 ```sql
-CHECK(status IN ('pending', 'in_progress', 'done', 'blocked'))
+CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'merging', 'cancelled'))
 ```
 
 ### tasks.status
 ```sql
-CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'skipped'))
+CHECK(status IN ('pending', 'in_progress', 'submitted', 'done', 'blocked', 'skipped', 'cancelled'))
 ```
 
 ### tasks.priority
@@ -132,7 +147,7 @@ CHECK(priority IN ('P0', 'P1', 'P2', 'P3'))
 
 ### tasks.type
 ```sql
-CHECK(type IN ('bug', 'feature', 'chore', 'doc', 'test'))
+CHECK(type IN ('bug', 'feature', 'fix', 'refactor', 'test', 'config', 'documentation', 'chore', 'doc'))
 ```
 
 ### tasks.executor_status

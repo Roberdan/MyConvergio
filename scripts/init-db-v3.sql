@@ -120,14 +120,22 @@ SELECT
   p.created_at,
   p.started_at,
   p.completed_at,
+  p.validated_by,
+  p.validated_at,
   pr.id as project_id,
   pr.name as project_name,
   pr.path as project_path
 FROM plans p
 JOIN projects pr ON p.project_id = pr.id
 ORDER BY
-  CASE p.status WHEN 'doing' THEN 1 WHEN 'todo' THEN 2 WHEN 'done' THEN 3 END,
-  p.updated_at DESC;
+  CASE p.status
+    WHEN 'doing' THEN 1
+    WHEN 'todo' THEN 2
+    WHEN 'blocked' THEN 3
+    WHEN 'done' THEN 4
+    WHEN 'cancelled' THEN 5
+  END,
+  p.created_at DESC;
 
 -- View: Plan details with waves and tasks
 CREATE VIEW IF NOT EXISTS v_plan_details AS

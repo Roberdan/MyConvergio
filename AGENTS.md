@@ -98,9 +98,9 @@ plan-db.sh validate-wave {wave_db_id}   # Wave validation
 
 **Valid Statuses**:
 
-- Task: `pending` | `in_progress` | `done` | `blocked` | `skipped`
-- Plan: `todo` | `doing` | `done` | `archived`
-- Wave: `pending` | `in_progress` | `done` | `blocked`
+- Task: `pending` | `in_progress` | `submitted` | `done` | `blocked` | `skipped` | `cancelled`
+- Plan: `todo` | `doing` | `done` | `cancelled`
+- Wave: `pending` | `in_progress` | `done` | `blocked` | `merging` | `cancelled`
 
 **Common Operations**:
 
@@ -173,6 +173,8 @@ Max 250 lines/file (Thor Gate 3). Why: agents lose context, merge conflicts mult
 ### Workflow Enforcement
 
 Mandatory: `/prompt` → F-xx extract → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task → Thor per-wave → closure
+
+**Task status chain**: `pending` → `in_progress` → `submitted` (via plan-db-safe.sh) → `done` (via validate-task, Thor only). SQLite trigger `enforce_thor_done` blocks shortcuts.
 
 **PLANNER MODEL (NON-NEGOTIABLE)**: `/planner` (Claude Code: `model: opus` alias) e `@planner` (Copilot CLI: `claude-opus-4.6-1m` full ID) DEVONO sempre usare Opus. Qualsiasi altro modello per la pianificazione = VIOLATION (Plan 289 cancellato per questo motivo).
 

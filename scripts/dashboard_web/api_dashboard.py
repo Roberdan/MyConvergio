@@ -356,7 +356,7 @@ def api_tokens_by_model() -> list[dict]:
 
 def api_history() -> list[dict]:
     return query(
-        "SELECT id,name,status,tasks_done,tasks_total,project_id,started_at,completed_at,human_summary,lines_added,lines_removed FROM plans WHERE status IN ('done','archived','cancelled') ORDER BY id DESC LIMIT 20"
+        "SELECT id,name,status,tasks_done,tasks_total,project_id,started_at,completed_at,human_summary,lines_added,lines_removed FROM plans WHERE status IN ('done','cancelled') ORDER BY id DESC LIMIT 20"
     )
 
 

@@ -62,7 +62,7 @@ cmd_add_task() {
 			priority="$1"
 			shift
 			;;
-		bug | feature | chore | doc | test)
+		bug | feature | fix | refactor | test | config | documentation | chore | doc)
 			type="$1"
 			shift
 			;;

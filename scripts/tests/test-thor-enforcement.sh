@@ -31,15 +31,45 @@ fail() {
 }
 section() { echo -e "\n${YELLOW}=== $1 ===${NC}"; }
 
-# Setup: create a temporary test task
+# Setup: create a temporary test plan + wave + task (self-contained)
+_THOR_TEST_PLAN=""
+_THOR_TEST_WAVE=""
+_THOR_RUN_ID="$$-$(date +%s)"
+_setup_test_infra() {
+	if [[ -n "$_THOR_TEST_PLAN" ]]; then return; fi
+	sq "INSERT OR IGNORE INTO projects (id, name, path) VALUES ('test-thor', 'Thor Test', '.');"
+	_THOR_TEST_PLAN=$(sq "
+		INSERT INTO plans (project_id, name, status) VALUES ('test-thor', 'ThorTest-$_THOR_RUN_ID', 'doing');
+		SELECT last_insert_rowid();
+	")
+	_THOR_TEST_WAVE=$(sq "
+		INSERT INTO waves (project_id, wave_id, name, status, plan_id, tasks_total)
+		VALUES ('test-thor', 'W-thor-$_THOR_RUN_ID', 'Test Wave', 'in_progress', $_THOR_TEST_PLAN, 100);
+		SELECT last_insert_rowid();
+	")
+}
+_cleanup_test_infra() {
+	[[ -z "$_THOR_TEST_PLAN" ]] && return
+	sq "DELETE FROM tasks WHERE plan_id = $_THOR_TEST_PLAN;" 2>/dev/null || true
+	sq "DELETE FROM waves WHERE plan_id = $_THOR_TEST_PLAN;" 2>/dev/null || true
+	sq "DELETE FROM plans WHERE id = $_THOR_TEST_PLAN;" 2>/dev/null || true
+	_THOR_TEST_PLAN=""
+	_THOR_TEST_WAVE=""
+}
+trap _cleanup_test_infra EXIT
+
+# CRITICAL: Initialize infra in main shell BEFORE any $(setup_test_task) calls.
+# setup_test_task runs in a subshell due to $(), so _setup_test_infra called
+# from there would set variables only in the subshell (lost on return).
+_setup_test_infra
+
 setup_test_task() {
 	local status="${1:-in_progress}"
 	local task_id
 	task_id=$(sq "
 		INSERT INTO tasks (project_id, wave_id, task_id, title, status, plan_id, wave_id_fk)
-		VALUES ('test-project', 'W-test', 'T-test-$(date +%s)', 'Test task', '$status',
-			(SELECT id FROM plans LIMIT 1),
-			(SELECT id FROM waves LIMIT 1));
+		VALUES ('test-thor', 'W-thor-$_THOR_RUN_ID', 'T-test-$(date +%s)-$RANDOM', 'Test task', '$status',
+			$_THOR_TEST_PLAN, $_THOR_TEST_WAVE);
 		SELECT last_insert_rowid();
 	")
 	echo "$task_id"
@@ -182,7 +212,7 @@ else
 fi
 
 # Test 2.2: plan-db.sh update-task X submitted without PLAN_DB_SAFE_CALLER (must REJECT)
-if "$SCRIPT_DIR/plan-db.sh" update-task 99999 submitted "test" 2>&1 | grep -q "Use plan-db-safe.sh"; then
+if "$SCRIPT_DIR/plan-db.sh" update-task 99999 submitted "test" 2>&1 | grep -q "plan-db-safe.sh"; then
 	pass "2.2 plan-db.sh update-task X submitted: REJECTED (needs plan-db-safe.sh)"
 else
 	fail "2.2 plan-db.sh update-task X submitted: NOT rejected"

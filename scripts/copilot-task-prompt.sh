@@ -159,10 +159,10 @@ $TC
 Run this BEFORE you finish. If you already ran it above, verify with:
 \`\`\`bash
 sqlite3 ~/.claude/data/dashboard.db "SELECT status FROM tasks WHERE id=$TASK_ID;"
-# Must show: done
+# Must show: submitted (Thor will validate to done)
 \`\`\`
 
-If NOT done, run:
+If NOT submitted, run:
 \`\`\`bash
 plan-db-safe.sh update-task $TASK_ID done "Summary" --tokens 0
 \`\`\`

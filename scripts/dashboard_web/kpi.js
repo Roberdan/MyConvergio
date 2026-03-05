@@ -16,6 +16,7 @@ function statusColor(s) {
       skipped: "#5a6080",
       doing: "#00b8d4",
       todo: "#5a6080",
+      merging: "#9c27b0",
     }[s] || "#5a6080"
   );
 }
@@ -29,6 +30,7 @@ function statusDot(s) {
       pending: "dot-pending",
       cancelled: "dot-cancelled",
       skipped: "dot-skipped",
+      merging: "dot-submitted",
     }[s] || "dot-pending";
   return `<span class="status-dot ${cls}"></span>`;
 }

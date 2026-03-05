@@ -62,9 +62,14 @@ add-task) cmd_add_task "${2:?wave_id required}" "${3:?task_id required}" "${4:?t
 update-task)
 	# GUARD: block direct 'done' — must use plan-db-safe.sh for auto-validation
 	if [[ "${3:-}" == "done" && "${PLAN_DB_SAFE_CALLER:-}" != "1" ]]; then
-		echo "ERROR: Use plan-db-safe.sh (not plan-db.sh) to mark tasks done." >&2
+		echo "ERROR: Cannot set status=done directly. Use plan-db-safe.sh for auto-validation." >&2
 		echo "       plan-db-safe.sh auto-validates with Thor. Direct done = skipped Thor." >&2
 		echo "       Override: PLAN_DB_SAFE_CALLER=1 plan-db.sh update-task $2 done ..." >&2
+		exit 1
+	fi
+	# GUARD: block direct 'submitted' — must come through plan-db-safe.sh
+	if [[ "${3:-}" == "submitted" && "${PLAN_DB_SAFE_CALLER:-}" != "1" ]]; then
+		echo "ERROR: Use plan-db-safe.sh to set submitted status (not plan-db.sh directly)." >&2
 		exit 1
 	fi
 	cmd_update_task "${2:?task_id required}" "${3:?status required}" "${@:4}"

@@ -79,7 +79,7 @@ class DashboardDB:
 
     def get_completed_plans(self, limit: int = 20) -> list[Plan]:
         """Recently completed plans."""
-        sql = f"SELECT {_PLAN_COLS} FROM plans WHERE status IN ('done','archived','cancelled') ORDER BY completed_at DESC NULLS LAST LIMIT ?"
+        sql = f"SELECT {_PLAN_COLS} FROM plans WHERE status IN ('done','cancelled') ORDER BY completed_at DESC NULLS LAST LIMIT ?"
         return [self._row_to_plan(r) for r in self._query(sql, (limit,))]
 
     def get_peers(self) -> list[Peer]:

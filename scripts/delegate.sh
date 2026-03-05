@@ -129,7 +129,10 @@ PROJECT_PRIVACY="$(echo "$POLICY_JSON" | jq -r '.privacy // "public"')"
 ENFORCE_BUDGET="$(echo "$POLICY_JSON" | jq -r '.enforce_budget // false')"
 MAX_PREMIUM_PER_DAY="$(echo "$POLICY_JSON" | jq -r '.max_premium_per_day // 0')"
 MODEL_MULTIPLIER="$(echo "$POLICY_JSON" | jq -r '.model_multiplier // "null"')"
-mapfile -t PREMIUM_PROVIDERS < <(echo "$POLICY_JSON" | jq -r '.premium_providers[]?')
+PREMIUM_PROVIDERS=()
+while IFS= read -r _pp; do
+	[[ -n "$_pp" ]] && PREMIUM_PROVIDERS+=("$_pp")
+done < <(echo "$POLICY_JSON" | jq -r '.premium_providers[]?' 2>/dev/null)
 
 if [[ "$PROJECT_PRIVACY" == "sensitive" && "$MODEL_MULTIPLIER" =~ ^0([.]0+)?$ ]]; then
 	log_delegation "$TASK_DB_ID" "$PLAN_ID" "$PROJECT_ID" "$TASK_AGENT" "$TASK_MODEL" \

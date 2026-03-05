@@ -1,0 +1,65 @@
+name: Dashboard E2E
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/dashboard_web/**'
+  push:
+    branches: [master, main]
+    paths:
+      - 'scripts/dashboard_web/**'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python deps
+        run: pip install websockets
+
+      - name: Install Playwright
+        working-directory: scripts/dashboard_web
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Create test DB
+        run: |
+          mkdir -p $HOME/.claude/data $HOME/.claude/config
+          sqlite3 $HOME/.claude/data/dashboard.db <<'SQL'
+          CREATE TABLE IF NOT EXISTS plans (id INTEGER PRIMARY KEY, name TEXT, status TEXT DEFAULT 'todo', tasks_done INTEGER DEFAULT 0, tasks_total INTEGER DEFAULT 0, human_summary TEXT, execution_host TEXT, parallel_mode TEXT, project_id TEXT, started_at TEXT, completed_at TEXT, lines_added INTEGER DEFAULT 0, lines_removed INTEGER DEFAULT 0, worktree_path TEXT);
+          CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, name TEXT, path TEXT);
+          CREATE TABLE IF NOT EXISTS waves (id INTEGER PRIMARY KEY AUTOINCREMENT, wave_id TEXT, plan_id INTEGER, name TEXT, status TEXT DEFAULT 'pending', tasks_done INTEGER DEFAULT 0, tasks_total INTEGER DEFAULT 0, position INTEGER DEFAULT 0, branch_name TEXT, pr_number INTEGER, pr_url TEXT, validated_at TEXT);
+          CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT, plan_id INTEGER, wave_id TEXT, wave_id_fk INTEGER, title TEXT, status TEXT DEFAULT 'pending', executor_agent TEXT, executor_host TEXT, tokens INTEGER, started_at TEXT, completed_at TEXT, validated_at TEXT, model TEXT, notes TEXT, output_data TEXT);
+          CREATE TABLE IF NOT EXISTS token_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT, plan_id INTEGER, wave_id TEXT, task_id TEXT, agent TEXT, model TEXT, input_tokens INTEGER DEFAULT 0, output_tokens INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0, created_at TEXT DEFAULT (datetime('now')), execution_host TEXT);
+          CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, title TEXT, message TEXT, link TEXT, link_type TEXT, is_read INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')));
+          CREATE TABLE IF NOT EXISTS mesh_events (id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT, plan_id INTEGER, source_peer TEXT, payload TEXT, status TEXT DEFAULT 'pending', created_at INTEGER DEFAULT (strftime('%s','now')));
+          CREATE TABLE IF NOT EXISTS host_heartbeats (host TEXT PRIMARY KEY, last_seen TEXT, plan_count INTEGER DEFAULT 0, os TEXT);
+          CREATE TABLE IF NOT EXISTS peer_heartbeats (peer_name TEXT PRIMARY KEY, last_seen REAL);
+          SQL
+
+      - name: Run E2E tests
+        working-directory: scripts/dashboard_web
+        run: npx playwright test --reporter=list
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: scripts/dashboard_web/playwright-report/
+          retention-days: 7

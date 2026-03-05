@@ -96,3 +96,11 @@ SCRATCH.md
 pdf-local-only/
 docs/pdf-local-only/
 tests/
+!scripts/dashboard_web/tests/
+
+# Playwright / Node.js (dashboard E2E tests)
+node_modules/
+playwright-report/
+test-results/
+package-lock.json
+__pycache__/

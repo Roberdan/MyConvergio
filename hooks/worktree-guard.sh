@@ -22,12 +22,20 @@ if echo "$COMMAND" | grep -qE 'git worktree add'; then
 	GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
 	WT_PATH=$(echo "$COMMAND" | sed -E 's/.*git worktree add (-b [^ ]+ )?//' | awk '{print $1}')
 	if [ -n "$WT_PATH" ] && [ -n "$GIT_ROOT" ]; then
-		RESOLVED=$(cd "$(dirname "$WT_PATH")" 2>/dev/null && pwd)/$(basename "$WT_PATH") 2>/dev/null || true
-		if [[ "$RESOLVED" == "$GIT_ROOT"/* ]]; then
+		# Use realpath -m to resolve symlinks (macOS /var -> /private/var)
+		RESOLVED=$(python3 -c "import os,sys; p=sys.argv[1]; print(os.path.realpath(os.path.join(os.getcwd(), p)))" "$WT_PATH" 2>/dev/null || echo "")
+		REAL_ROOT=$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$GIT_ROOT" 2>/dev/null || echo "$GIT_ROOT")
+		if [ -n "$RESOLVED" ] && [[ "$RESOLVED" == "$REAL_ROOT"/* ]]; then
 			jq -n '{permissionDecision: "deny", permissionDecisionReason: "WORKTREE GUARD: Path is INSIDE the repo. Use a SIBLING path instead."}'
 			exit 0
 		fi
 	fi
+	exit 0
+fi
+
+# BLOCK: git worktree remove (must use worktree-cleanup.sh)
+if echo "$COMMAND" | grep -qE 'git worktree remove'; then
+	jq -n '{permissionDecision: "deny", permissionDecisionReason: "Use worktree-cleanup.sh instead of direct git worktree remove."}'
 	exit 0
 fi
 
@@ -49,12 +57,6 @@ GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
 [ -z "$GIT_ROOT" ] && exit 0
 
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "DETACHED")
-
-# BLOCK: git worktree remove (must use worktree-cleanup.sh)
-if echo "$COMMAND" | grep -qE 'git worktree remove'; then
-	jq -n '{permissionDecision: "deny", permissionDecisionReason: "Use worktree-cleanup.sh instead of direct git worktree remove."}'
-	exit 0
-fi
 
 # BLOCK: ANY git write on main/master unless explicitly allowed
 if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then

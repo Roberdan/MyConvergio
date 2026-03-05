@@ -6,6 +6,8 @@ maturity: stable
 providers:
   - claude
 constraints: ["Reference module — not directly invocable"]
+model: sonnet
+tools: "All tools"
 ---
 
 # Self-Healing Module

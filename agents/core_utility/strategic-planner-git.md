@@ -6,6 +6,8 @@ maturity: stable
 providers:
   - claude
 constraints: ["Read-only — never modifies files"]
+model: sonnet
+tools: "All tools"
 ---
 
 # Git Worktree Workflow (MANDATORY)

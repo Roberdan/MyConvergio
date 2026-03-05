@@ -99,21 +99,23 @@ section_guard_plan_mode_claude() {
 	echo ""
 	echo "=== 1. guard-plan-mode.sh (Claude Code) ==="
 
-	# EnterPlanMode -> exit 2
+	# EnterPlanMode -> exit 0 + deny output (JSON deny protocol)
+	local output=""
 	local exit_code=0
-	echo '{"tool_name":"EnterPlanMode","tool_input":{}}' | "$hook" 2>/dev/null
+	output=$(echo '{"toolName":"EnterPlanMode","toolArgs":{}}' | "$hook" 2>/dev/null)
 	exit_code=$?
-	assert_exit "EnterPlanMode -> exit 2 (blocked)" 2 "$exit_code"
+	assert_exit "EnterPlanMode -> exit 0 (blocked)" 0 "$exit_code"
+	assert_output_contains "EnterPlanMode -> output contains 'deny'" "deny" "$output"
 
 	# Edit tool -> exit 0
 	exit_code=0
-	echo '{"tool_name":"Edit","tool_input":{"file_path":"/some/file.ts"}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"edit","toolArgs":{"file_path":"/some/file.ts"}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "Edit tool -> exit 0 (allowed)" 0 "$exit_code"
 
 	# Bash tool -> exit 0
 	exit_code=0
-	echo '{"tool_name":"Bash","tool_input":{"command":"echo hello"}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"bash","toolArgs":{"command":"echo hello"}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "Bash tool -> exit 0 (allowed)" 0 "$exit_code"
 
@@ -123,11 +125,11 @@ section_guard_plan_mode_claude() {
 	exit_code=$?
 	assert_exit "Empty input -> exit 0 (allowed)" 0 "$exit_code"
 
-	# tool_name missing -> exit 0
+	# toolName missing -> exit 0
 	exit_code=0
 	echo '{}' | "$hook" 2>/dev/null
 	exit_code=$?
-	assert_exit "No tool_name -> exit 0 (allowed)" 0 "$exit_code"
+	assert_exit "No toolName -> exit 0 (allowed)" 0 "$exit_code"
 }
 
 # ============================================================================
@@ -139,47 +141,51 @@ section_enforce_plan_db_safe_claude() {
 	echo ""
 	echo "=== 2. enforce-plan-db-safe.sh (Claude Code) ==="
 
-	# plan-db.sh update-task 42 done -> exit 2
+	# plan-db.sh update-task 42 done -> exit 0 + deny output (JSON deny protocol)
+	local output=""
 	local exit_code=0
-	echo '{"tool_input":{"command":"plan-db.sh update-task 42 done"}}' | "$hook" 2>/dev/null
+	output=$(echo '{"toolName":"bash","toolArgs":{"command":"plan-db.sh update-task 42 done"}}' | "$hook" 2>/dev/null)
 	exit_code=$?
-	assert_exit "plan-db.sh update-task 42 done -> exit 2 (blocked)" 2 "$exit_code"
+	assert_exit "plan-db.sh update-task 42 done -> exit 0 (blocked)" 0 "$exit_code"
+	assert_output_contains "plan-db.sh update-task 42 done -> output contains 'deny'" "deny" "$output"
 
 	# plan-db-safe.sh update-task 42 done notes -> exit 0
 	exit_code=0
-	echo '{"tool_input":{"command":"plan-db-safe.sh update-task 42 done notes"}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"bash","toolArgs":{"command":"plan-db-safe.sh update-task 42 done notes"}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "plan-db-safe.sh update-task 42 done -> exit 0 (allowed)" 0 "$exit_code"
 
 	# plan-db.sh status -> exit 0 (not an update-task done)
 	exit_code=0
-	echo '{"tool_input":{"command":"plan-db.sh status"}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"bash","toolArgs":{"command":"plan-db.sh status"}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "plan-db.sh status -> exit 0 (allowed)" 0 "$exit_code"
 
 	# plan-db.sh update-task 42 in_progress -> exit 0
 	exit_code=0
-	echo '{"tool_input":{"command":"plan-db.sh update-task 42 in_progress"}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"bash","toolArgs":{"command":"plan-db.sh update-task 42 in_progress"}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "plan-db.sh update-task 42 in_progress -> exit 0 (allowed)" 0 "$exit_code"
 
-	# plan-db.sh update-task 100 done "with notes" -> exit 2
+	# plan-db.sh update-task 100 done "with notes" -> exit 0 + deny output (JSON deny protocol)
+	output=""
 	exit_code=0
-	echo '{"tool_input":{"command":"plan-db.sh update-task 100 done \"with notes\""}}' | "$hook" 2>/dev/null
+	output=$(echo '{"toolName":"bash","toolArgs":{"command":"plan-db.sh update-task 100 done \"with notes\""}}' | "$hook" 2>/dev/null)
 	exit_code=$?
-	assert_exit "plan-db.sh update-task 100 done with notes -> exit 2 (blocked)" 2 "$exit_code"
+	assert_exit "plan-db.sh update-task 100 done with notes -> exit 0 (blocked)" 0 "$exit_code"
+	assert_output_contains "plan-db.sh update-task 100 done with notes -> output contains 'deny'" "deny" "$output"
 
 	# Empty command -> exit 0
 	exit_code=0
-	echo '{"tool_input":{"command":""}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"bash","toolArgs":{"command":""}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "Empty command -> exit 0 (allowed)" 0 "$exit_code"
 
-	# No tool_input -> exit 0
+	# No toolArgs -> exit 0
 	exit_code=0
-	echo '{}' | "$hook" 2>/dev/null
+	echo '{"toolName":"bash"}' | "$hook" 2>/dev/null
 	exit_code=$?
-	assert_exit "No tool_input -> exit 0 (allowed)" 0 "$exit_code"
+	assert_exit "No toolArgs -> exit 0 (allowed)" 0 "$exit_code"
 }
 
 # ============================================================================
@@ -196,7 +202,7 @@ section_enforce_plan_edit_claude() {
 	# No active-plan-id.txt -> exit 0
 	rm -f "$PLAN_FILE"
 	local exit_code=0
-	echo '{"tool_input":{"file_path":"/any/file.ts"}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"edit","toolArgs":{"file_path":"/any/file.ts"}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "No active-plan-id.txt -> exit 0 (allowed)" 0 "$exit_code"
 
@@ -204,7 +210,7 @@ section_enforce_plan_edit_claude() {
 	echo "$TEST_PLAN_ID" >"$PLAN_FILE"
 	rm -f "$FILES_CACHE"
 	exit_code=0
-	echo '{"tool_input":{"file_path":"/any/file.ts"}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"edit","toolArgs":{"file_path":"/any/file.ts"}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "Plan active, no files cache -> exit 0 (allowed)" 0 "$exit_code"
 
@@ -212,48 +218,52 @@ section_enforce_plan_edit_claude() {
 	echo "$TEST_PLAN_ID" >"$PLAN_FILE"
 	echo "/some/other/file.ts" >"$FILES_CACHE"
 	exit_code=0
-	echo '{"tool_input":{"file_path":"/some/unrelated/file.ts"}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"edit","toolArgs":{"file_path":"/some/unrelated/file.ts"}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "Untracked file -> exit 0 (allowed)" 0 "$exit_code"
 
-	# Active plan, tracked file, no CLAUDE_TASK_EXECUTOR -> exit 2
+	# Active plan, tracked file, no CLAUDE_TASK_EXECUTOR -> exit 0 + deny output (JSON deny protocol)
 	echo "$TEST_PLAN_ID" >"$PLAN_FILE"
 	echo "/tracked/file.ts" >"$FILES_CACHE"
 	unset CLAUDE_TASK_EXECUTOR 2>/dev/null || true
+	local output=""
 	exit_code=0
-	echo '{"tool_input":{"file_path":"/tracked/file.ts"}}' | "$hook" 2>/dev/null
+	output=$(echo '{"toolName":"edit","toolArgs":{"file_path":"/tracked/file.ts"}}' | "$hook" 2>/dev/null)
 	exit_code=$?
-	assert_exit "Tracked file without CLAUDE_TASK_EXECUTOR -> exit 2 (blocked)" 2 "$exit_code"
+	assert_exit "Tracked file without CLAUDE_TASK_EXECUTOR -> exit 0 (blocked)" 0 "$exit_code"
+	assert_output_contains "Tracked file without CLAUDE_TASK_EXECUTOR -> output contains 'deny'" "deny" "$output"
 
 	# Active plan, tracked file, WITH CLAUDE_TASK_EXECUTOR=1 -> exit 0
 	echo "$TEST_PLAN_ID" >"$PLAN_FILE"
 	echo "/tracked/file.ts" >"$FILES_CACHE"
 	exit_code=0
-	CLAUDE_TASK_EXECUTOR=1 bash -c "echo '{\"tool_input\":{\"file_path\":\"/tracked/file.ts\"}}' | '$hook'" 2>/dev/null
+	CLAUDE_TASK_EXECUTOR=1 bash -c "echo '{\"toolName\":\"edit\",\"toolArgs\":{\"file_path\":\"/tracked/file.ts\"}}' | '$hook'" 2>/dev/null
 	exit_code=$?
 	assert_exit "Tracked file WITH CLAUDE_TASK_EXECUTOR=1 -> exit 0 (allowed)" 0 "$exit_code"
 
 	# Active plan, empty plan_id in file -> exit 0
 	echo "" >"$PLAN_FILE"
 	exit_code=0
-	echo '{"tool_input":{"file_path":"/tracked/file.ts"}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"edit","toolArgs":{"file_path":"/tracked/file.ts"}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "Empty plan_id in file -> exit 0 (allowed)" 0 "$exit_code"
 
-	# Active plan, tracked file via ~/ path -> exit 2
+	# Active plan, tracked file via ~/ path -> exit 0 + deny output (JSON deny protocol)
 	echo "$TEST_PLAN_ID" >"$PLAN_FILE"
 	echo "${HOME}/.claude/some-config.sh" >"$FILES_CACHE"
 	unset CLAUDE_TASK_EXECUTOR 2>/dev/null || true
+	output=""
 	exit_code=0
-	echo '{"tool_input":{"file_path":"~/.claude/some-config.sh"}}' | "$hook" 2>/dev/null
+	output=$(echo '{"toolName":"edit","toolArgs":{"file_path":"~/.claude/some-config.sh"}}' | "$hook" 2>/dev/null)
 	exit_code=$?
-	assert_exit "Tracked file via ~/ path expansion -> exit 2 (blocked)" 2 "$exit_code"
+	assert_exit "Tracked file via ~/ path expansion -> exit 0 (blocked)" 0 "$exit_code"
+	assert_output_contains "Tracked file via ~/ path expansion -> output contains 'deny'" "deny" "$output"
 
 	# No file_path in input -> exit 0
 	echo "$TEST_PLAN_ID" >"$PLAN_FILE"
 	echo "/tracked/file.ts" >"$FILES_CACHE"
 	exit_code=0
-	echo '{"tool_input":{}}' | "$hook" 2>/dev/null
+	echo '{"toolName":"edit","toolArgs":{}}' | "$hook" 2>/dev/null
 	exit_code=$?
 	assert_exit "No file_path in input -> exit 0 (allowed)" 0 "$exit_code"
 

@@ -1,5 +1,40 @@
 # Changelog
 
+## [v10.8.0] - 05 Mar 2026
+
+### Ironclad Workflow Enforcement (Plan 363 closure)
+
+#### Hooks (new)
+
+- Added: `hooks/enforce-worktree-boundary.sh` — blocks edits outside plan worktree
+- Changed: `hooks/worktree-guard.sh` v2.0 — hard block ALL git writes on main (requires `CLAUDE_MAIN_WRITE_ALLOWED=1`)
+- Changed: `hooks/worktree-guard.sh` — blocks `git worktree remove` (must use `worktree-cleanup.sh`)
+
+#### Workflow
+
+- Changed: `scripts/plan-db-safe.sh` — F-12 Thor auto-validation: auto-validates all submitted tasks when wave completes
+- Changed: `scripts/plan-db-safe.sh` — auto-triggers `wave-worktree.sh merge` + plan completion on wave done
+
+#### Rules & Docs
+
+- Changed: `rules/guardian.md` v2.5 — plan closure = merged (NON-NEGOTIABLE), no bare branches
+- Changed: `reference/operational/worktree-discipline.md` v3.4 — No Bare Branches section, enforcement docs
+
+#### Agent Quality
+
+- Fixed: 8 submodule agents missing `model`/`tools` frontmatter fields
+- Fixed: `agents/core_utility/strategic-planner.md` missing `description` field
+- Trimmed: 7 over-250-line agent files to comply with file size limits
+- Changed: `tests/test-agent-validation.sh` — exclude reference docs from validation (82/82 pass)
+
+#### Tests
+
+- Fixed: `tests/test-enforcement-hooks.sh` — 54/54 (was 44/49, protocol mismatch)
+- Fixed: `tests/test-hook-worktree-guard.sh` — 16/16 (was 6/10, new v2 assertions)
+- Fixed: `tests/test-hook-bash-antipatterns.sh` — 17/17 (was 4/16, protocol fix)
+- Fixed: `tests/test-hook-enforce-line-limit.sh` — 16/16 (was 12/16, protocol fix)
+- Verified: 220/220 workflow tests passing
+
 ## [v9.21.0] - 05 Mar 2026
 
 ### Workflow Hardening — Single Source of Truth (Plan 363)

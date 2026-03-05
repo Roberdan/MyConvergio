@@ -9,6 +9,7 @@ maturity: preview
 providers:
   - claude
 constraints: ["Read-only — never modifies files"]
+model: sonnet
 ---
 
 # MirrorBuddy Production Hardening Checks

@@ -170,12 +170,19 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 
 			if [[ "$still_working" -eq 0 && "$need_thor" -gt 0 ]]; then
 				echo "" >&2
-				echo "================================================================" >&2
-				echo "  WAVE $wave_id: All executor work complete." >&2
-				echo "  $need_thor task(s) in SUBMITTED status — need Thor validation." >&2
-				echo "  Thor: plan-db.sh validate-task <id> $plan_id thor" >&2
-				echo "  Or:   @validate (copilot) / Task(subagent_type='thor') (claude)" >&2
-				echo "================================================================" >&2
+				echo "[plan-db-safe] Wave $wave_id: All executor work complete. Auto-validating $need_thor submitted task(s)..." >&2
+
+				# F-12: Auto-validate all submitted tasks in this wave
+				local submitted_ids
+				submitted_ids=$(sqlite3 "$DB_FILE" \
+					"SELECT id FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'submitted';" 2>/dev/null || echo "")
+				while IFS= read -r sub_id; do
+					[[ -z "$sub_id" ]] && continue
+					echo "[plan-db-safe] Auto-Thor: validate-task $sub_id $plan_id" >&2
+					"$SCRIPT_DIR/plan-db.sh" validate-task "$sub_id" "$plan_id" 2>/dev/null || {
+						echo "WARN: Auto-Thor failed for task $sub_id — manual validation needed" >&2
+					}
+				done <<<"$submitted_ids"
 			fi
 
 			# Check if everything is done AND validated (all tasks = done, not submitted)

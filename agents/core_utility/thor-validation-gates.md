@@ -6,6 +6,8 @@ maturity: stable
 providers:
   - claude
 constraints: ["Reference module — validation rules"]
+model: sonnet
+tools: "All tools"
 ---
 
 # Thor Validation Gates

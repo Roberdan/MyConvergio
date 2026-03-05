@@ -1,6 +1,20 @@
 ---
 name: strategic-planner
-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task", "TaskCreate", "TaskList", "TaskGet", "TaskUpdate"]
+description: "Strategic planner for execution plans with wave-based task decomposition"
+tools:
+  [
+    "Read",
+    "Write",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Bash",
+    "Task",
+    "TaskCreate",
+    "TaskList",
+    "TaskGet",
+    "TaskUpdate",
+  ]
 model: opus
 version: "4.1.0"
 constraints: ["Read-only — creates plans only"]

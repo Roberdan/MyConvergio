@@ -6,6 +6,8 @@ maturity: stable
 providers:
   - claude
 constraints: ["Reference module — plan templates"]
+model: sonnet
+tools: "All tools"
 ---
 
 # Strategic Planner Templates

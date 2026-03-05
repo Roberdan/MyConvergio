@@ -23,7 +23,7 @@ FILE=$(echo "$INPUT" | jq -r '.toolArgs.file_path // .toolArgs.filePath // empty
 
 # Skip non-code files
 case "$FILE" in
-*.lock | *.sum | *.min.js | *.min.css | package-lock.json | yarn.lock) exit 0 ;;
+*.lock | *.sum | *.min.js | *.min.css | */package-lock.json | package-lock.json | */yarn.lock | yarn.lock) exit 0 ;;
 */node_modules/* | */vendor/* | */.git/* | */dist/* | */build/*) exit 0 ;;
 *.db | *.sqlite | *.sqlite3) exit 0 ;;
 esac

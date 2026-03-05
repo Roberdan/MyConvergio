@@ -55,23 +55,24 @@ Usage: execute-plan.sh <plan_id> [OPTIONS]
 
 OPTIONS:
   --from <task_id>          Resume from specific task (e.g. T1-03)
-  --engine <engine>         Execution engine: claude|copilot|opencode (default: claude)
+  --engine <engine>         auto|claude|copilot|opencode (default: auto)
   --model <model>           Model override (e.g. claude-opus-4-6, gpt-5.3-codex)
   --timeout <seconds>       Per-task timeout in seconds (default: 900)
   --dry-run                 Show what would be executed without running
   --help                    Show this help
 
+  Engine 'auto' picks first authenticated CLI: claude > copilot > opencode
+
 EXAMPLES:
   execute-plan.sh 180
   execute-plan.sh 180 --from T1-03
   execute-plan.sh 180 --engine copilot --model gpt-5.3-codex
-  execute-plan.sh 180 --engine opencode --model claude-opus-4-6
 EOF
 	exit 0
 fi
 
 FROM_TASK=""
-ENGINE="claude"
+ENGINE="auto"
 MODEL=""
 DRY_RUN=0
 TASK_TIMEOUT=900
@@ -152,11 +153,33 @@ DELEGATE_SH="${SCRIPT_DIR}/delegate.sh"
 COPILOT_WORKER="${SCRIPT_DIR}/copilot-worker.sh"
 
 check_engine() {
+	# Auto-detect: pick the first available authenticated engine
+	if [[ "$ENGINE" == "auto" ]]; then
+		if command -v claude &>/dev/null && claude auth status 2>/dev/null | grep -q '"loggedIn": true'; then
+			ENGINE="claude"
+			log "Auto-detected engine: claude"
+		elif command -v copilot &>/dev/null && (gh auth status &>/dev/null 2>&1 || [[ -n "${GH_TOKEN:-}" ]]); then
+			ENGINE="copilot"
+			log "Auto-detected engine: copilot (claude not authenticated)"
+		elif command -v opencode &>/dev/null; then
+			ENGINE="opencode"
+			log "Auto-detected engine: opencode (claude/copilot unavailable)"
+		else
+			error "No authenticated engine found. Run 'claude login', 'gh auth login', or install opencode."
+			exit 1
+		fi
+	fi
 	case "$ENGINE" in
 	claude)
 		if ! command -v claude &>/dev/null; then
 			error "claude CLI not found (install or use --engine copilot|opencode)"
 			exit 1
+		fi
+		if ! claude auth status 2>/dev/null | grep -q '"loggedIn": true'; then
+			warn "Claude not authenticated — falling back to copilot"
+			ENGINE="copilot"
+			check_engine
+			return
 		fi
 		;;
 	copilot)
@@ -178,15 +201,13 @@ check_engine() {
 		fi
 		;;
 	*)
-		error "Unknown engine: $ENGINE. Use: claude|copilot|opencode"
+		error "Unknown engine: $ENGINE. Use: auto|claude|copilot|opencode"
 		exit 1
 		;;
 	esac
 }
 
-if [[ "$DRY_RUN" -eq 0 ]]; then
-	check_engine
-fi
+check_engine
 
 # ============================================================================
 # Setup logging

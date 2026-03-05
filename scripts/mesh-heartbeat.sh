@@ -111,6 +111,11 @@ _daemon_loop() {
 			if [[ -x "$sync_script" ]]; then
 				"$sync_script" pull >>"$CLAUDE_HOME/data/mesh-heartbeat.log" 2>&1 &
 			fi
+			# Auto-cleanup: kill orphan AI agent processes
+			local cleanup_script="$SCRIPT_DIR/mesh-cleanup.sh"
+			if [[ -x "$cleanup_script" ]]; then
+				"$cleanup_script" --reset-stale --json >>"$CLAUDE_HOME/data/mesh-cleanup.log" 2>&1 &
+			fi
 		fi
 		sleep "$INTERVAL"
 	done

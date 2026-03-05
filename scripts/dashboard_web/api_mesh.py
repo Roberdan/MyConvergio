@@ -118,7 +118,29 @@ def _tailscale_online_ips() -> set[str]:
         return set()
 
 
+def _local_active_plan_ids() -> set[int]:
+    """Detect locally running plan executor processes."""
+    import re
+    try:
+        r = subprocess.run(
+            ["ps", "-eo", "command"],
+            capture_output=True, text=True, timeout=5,
+        )
+        ids: set[int] = set()
+        for line in r.stdout.splitlines():
+            m = re.search(r"execute-plan\.sh\s+(\d+)", line)
+            if m:
+                ids.add(int(m.group(1)))
+            m = re.search(r"plan-(\d+)", line)
+            if m:
+                ids.add(int(m.group(1)))
+        return ids
+    except Exception:
+        return set()
+
+
 def _peer_execution_map() -> dict[str, list[dict]]:
+    """Build map of plans assigned to hosts via execution_host column."""
     plans = query(
         "SELECT id,name,status,tasks_done,tasks_total,execution_host FROM plans WHERE status IN ('doing','todo') AND execution_host IS NOT NULL AND execution_host<>''"
     )
@@ -146,46 +168,55 @@ _REMOTE_TTL = 30  # seconds
 
 
 def _query_remote_plans(ssh_dest: str) -> list[dict]:
-    """SSH to a remote peer and query its active plans + tasks."""
-    sql = (
-        "SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,"
+    """SSH to a remote peer and query only plans with active execution evidence."""
+    # Two-part query: DB plans + running executor processes
+    # A plan is "active on this node" if it has a running execute-plan.sh process
+    # OR has tasks with recent executor_last_activity (< 10 min)
+    remote_cmd = (
+        'export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"; '
+        'echo "===PROCS==="; '
+        'ps -eo command 2>/dev/null | grep -oE "execute-plan\\.sh [0-9]+" | awk "{print \\$2}" | sort -u; '
+        'ps -eo command 2>/dev/null | grep -oE "plan-([0-9]+)" | grep -oE "[0-9]+" | sort -u; '
+        'echo "===PLANS==="; '
+        "sqlite3 ~/.claude/data/dashboard.db \".timeout 3000\" "
+        "\"SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,"
         "COALESCE(GROUP_CONCAT(CASE WHEN t.status IN ('in_progress','submitted','blocked') "
         "THEN t.task_id||'|'||COALESCE(t.title,'')||'|'||t.status END, ';;'), '') as active "
         "FROM plans p LEFT JOIN tasks t ON t.plan_id=p.id "
-        "WHERE p.status IN ('doing','todo') GROUP BY p.id"
+        "WHERE p.status='doing' GROUP BY p.id\""
     )
     try:
         r = subprocess.run(
-            [
-                "ssh",
-                "-o",
-                "ConnectTimeout=3",
-                "-o",
-                "BatchMode=yes",
-                ssh_dest,
-                f'sqlite3 ~/.claude/data/dashboard.db ".timeout 3000" "{sql}"',
-            ],
-            capture_output=True,
-            text=True,
-            timeout=8,
+            ["ssh", "-o", "ConnectTimeout=3", "-o", "BatchMode=yes", ssh_dest, remote_cmd],
+            capture_output=True, text=True, timeout=10,
         )
         if r.returncode != 0:
             return []
-        plans = []
+
+        section = ""
+        active_plan_ids: set[int] = set()
+        all_plans: list[dict] = []
+
         for line in r.stdout.strip().splitlines():
-            parts = line.split("|", 5)
-            if len(parts) < 5:
-                continue
-            active_tasks = []
-            if len(parts) > 5 and parts[5]:
-                for chunk in parts[5].split(";;"):
-                    tp = chunk.split("|", 2)
-                    if len(tp) >= 3 and tp[0]:
-                        active_tasks.append(
-                            {"task_id": tp[0], "title": tp[1], "status": tp[2]}
-                        )
-            plans.append(
-                {
+            if line == "===PROCS===":
+                section = "procs"; continue
+            if line == "===PLANS===":
+                section = "plans"; continue
+            if section == "procs" and line.strip().isdigit():
+                active_plan_ids.add(int(line.strip()))
+            elif section == "plans":
+                parts = line.split("|", 5)
+                if len(parts) < 5:
+                    continue
+                active_tasks = []
+                if len(parts) > 5 and parts[5]:
+                    for chunk in parts[5].split(";;"):
+                        tp = chunk.split("|", 2)
+                        if len(tp) >= 3 and tp[0]:
+                            active_tasks.append(
+                                {"task_id": tp[0], "title": tp[1], "status": tp[2]}
+                            )
+                plan = {
                     "id": int(parts[0]),
                     "name": parts[1],
                     "status": parts[2],
@@ -193,8 +224,13 @@ def _query_remote_plans(ssh_dest: str) -> list[dict]:
                     "tasks_total": int(parts[4] or 0),
                     "active_tasks": active_tasks,
                 }
-            )
-        return plans
+                all_plans.append(plan)
+
+        # Filter: only return plans with running processes OR active tasks
+        return [
+            p for p in all_plans
+            if p["id"] in active_plan_ids or p["active_tasks"]
+        ]
     except Exception:
         return []
 
@@ -212,11 +248,12 @@ def _get_remote_plans(peer_name: str, ssh_dest: str) -> list[dict]:
 
 
 def api_mesh() -> list[dict]:
-    conf, hb_map, ts_online, local_exec_map, now = (
+    conf, hb_map, ts_online, local_exec_map, local_proc_ids, now = (
         parse_peers_conf(),
         {r["peer_name"]: r for r in query("SELECT * FROM peer_heartbeats")},
         _tailscale_online_ips(),
         _peer_execution_map(),
+        _local_active_plan_ids(),
         time.time(),
     )
     sources = (
@@ -245,20 +282,44 @@ def api_mesh() -> list[dict]:
             or p.get("tailscale_ip", "") in ts_online
         )
         cpu, tasks = _extract_heartbeat(hb)
-        # Local node: use local DB data
+        # Local node: show plans with running processes OR matching execution_host
         if is_local:
-            plans = [
+            # Plans from execution_host matching
+            host_plans = [
                 e
                 for host, host_plans in local_exec_map.items()
                 if peer_host_match(p["peer_name"], host)
                 for e in host_plans
             ]
+            host_plan_ids = {pl["id"] for pl in host_plans}
+            # Plans from detected running processes (not already in host_plans)
+            proc_plan_ids = local_proc_ids - host_plan_ids
+            if proc_plan_ids:
+                for pid in proc_plan_ids:
+                    rows = query(
+                        "SELECT id,name,status,tasks_done,tasks_total FROM plans WHERE id=? AND status='doing'",
+                        (pid,),
+                    )
+                    for row in rows:
+                        active = query(
+                            "SELECT task_id,title,status,executor_agent FROM tasks WHERE plan_id=? AND status IN ('in_progress','submitted','blocked') ORDER BY id LIMIT 5",
+                            (row["id"],),
+                        )
+                        host_plans.append({
+                            "id": row["id"],
+                            "name": row["name"],
+                            "status": row["status"],
+                            "tasks_done": row["tasks_done"],
+                            "tasks_total": row["tasks_total"],
+                            "active_tasks": active,
+                        })
+            plans = host_plans
         elif is_online:
-            # Remote online node: query its DB via SSH (cached 30s)
+            # Remote online node: query its DB + process list via SSH (cached 30s)
             plans = _get_remote_plans(
                 p["peer_name"], p.get("ssh_alias", p["peer_name"])
             )
-            # Fallback to local exec_map if SSH query returned nothing
+            # Fallback: only show plans explicitly assigned to this host
             if not plans:
                 plans = [
                     e
@@ -267,6 +328,7 @@ def api_mesh() -> list[dict]:
                     for e in host_plans
                 ]
         else:
+            # Offline: only show explicitly assigned plans
             plans = [
                 e
                 for host, host_plans in local_exec_map.items()

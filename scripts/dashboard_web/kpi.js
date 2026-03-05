@@ -162,7 +162,7 @@ window.resumePlanExecution = function (planId, peer) {
       const tab = termMgr.tabs.find((t) => t.id === termMgr.activeId);
       if (tab && tab.ws && tab.ws.readyState === WebSocket.OPEN) {
         const cmd =
-          "claude --dangerously-skip-permissions -p '/execute " +
+          "env -u CLAUDECODE claude --dangerously-skip-permissions -p '/execute " +
           planId +
           "'\n";
         tab.ws.send(new TextEncoder().encode(cmd));

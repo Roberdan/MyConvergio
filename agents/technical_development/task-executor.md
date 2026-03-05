@@ -5,7 +5,7 @@ tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task"]
 disallowedTools: ["WebSearch", "WebFetch"]
 color: "#10b981"
 model: sonnet
-version: "2.5.0"
+version: "3.0.0"
 context_isolation: true
 memory: project
 maxTurns: 50
@@ -78,7 +78,7 @@ plan-db.sh update-task {db_task_id} in_progress "Started"
 
 1. Write minimum code to pass tests
 2. Run tests after each change → continue until GREEN
-3. **Documentation tasks** (WF-*): Read `~/.claude/commands/planner-modules/knowledge-codification.md`
+3. **Documentation tasks** (WF-\*): Read `~/.claude/commands/planner-modules/knowledge-codification.md`
 
 ### Phase 3.5: Quick CI
 
@@ -90,14 +90,26 @@ plan-db.sh update-task {db_task_id} in_progress "Started"
 
 After GREEN, verify new code is REACHABLE:
 
-| Check | Action |
-|-------|--------|
-| New files | `Grep` for exports being imported — zero consumers → report, don't mark done |
-| Changed interfaces | `Grep` ALL consumers of old interface — update or BLOCK |
-| New components | Verify at least one render site imports it |
-| Data format | API↔frontend: verify response shape matches consumer expectations |
+| Check              | Action                                                                       |
+| ------------------ | ---------------------------------------------------------------------------- |
+| New files          | `Grep` for exports being imported — zero consumers → report, don't mark done |
+| Changed interfaces | `Grep` ALL consumers of old interface — update or BLOCK                      |
+| New components     | Verify at least one render site imports it                                   |
+| Data format        | API↔frontend: verify response shape matches consumer expectations            |
 
 **Scope**: task `files` primary; barrel/index files and direct consumers IN SCOPE.
+
+### Phase 3.8: Self-Healing (on failure)
+
+When tests/build/CI fail after 2 attempts, activate self-healing BEFORE marking blocked. See [task-executor-selfheal.md](./task-executor-selfheal.md).
+
+1. **Classify failure** — match error output against known patterns (missing_dep, type_error, import_path, config_missing, port_conflict, schema_drift, stale_lock, memory_oom)
+2. **Auto-fix** — apply pattern-specific fix (1 attempt per category)
+3. **Engage specialist** — if auto-fix fails, delegate to `dario-debugger` (single error) or `adversarial-debugger` (competing hypotheses)
+4. **Apply specialist fix** — implement recommended fix, re-run
+5. **Escalate** — if 2 specialist rounds fail, mark `blocked` with structured failure report
+
+**Budget**: max 8 extra turns, max 2 specialist invocations. Past turn 25 → skip to escalation.
 
 ### CI Batch Fix (NON-NEGOTIABLE)
 
@@ -107,8 +119,9 @@ Wait for FULL CI. Collect ALL failures. Fix ALL in one commit. Max 3 rounds.
 
 ```markdown
 | F-xx | Requirement | Status | Evidence |
-|------|-------------|--------|----------|
+| ---- | ----------- | ------ | -------- |
 | F-01 | [req]       | PASS   | [how]    |
+
 VERDICT: PASS
 ```
 
@@ -147,25 +160,25 @@ plan-db-safe.sh update-task {id} done "Summary" --tokens N --output-data '{"summ
 
 ## Tool Preferences
 
-| Task | Use | NOT |
-|------|-----|-----|
-| Find file | Glob | `find`, `ls` |
-| Search code | Grep | `grep`, `rg` |
-| Read file | Read | `cat`, `head`, `tail` |
-| Navigate symbol | LSP → Grep | blindly grepping |
+| Task            | Use        | NOT                   |
+| --------------- | ---------- | --------------------- |
+| Find file       | Glob       | `find`, `ls`          |
+| Search code     | Grep       | `grep`, `rg`          |
+| Read file       | Read       | `cat`, `head`, `tail` |
+| Navigate symbol | LSP → Grep | blindly grepping      |
 
 ## Constraints
 
-- **Turn budget**: Max 30. Past turn 20 → mark `blocked`
+- **Turn budget**: Max 38 (30 base + 8 self-healing). Past turn 30 → mark `blocked`
 - **Zero tech debt**: ALL CI errors, lint warnings, type errors resolved before done
 - **Bash timeout**: ALL Bash calls MUST set `timeout` — orphans crash system
-- **Never loop**: Same approach fails twice → mark `blocked`
+- **Self-healing first**: Same approach fails twice → trigger Phase 3.8 self-healing → only mark `blocked` after self-healing exhausted
 
-| Command | Timeout |
-|---------|---------|
-| Test runners | 120000 (2 min) |
-| Build commands | 180000 (3 min) |
-| Quick checks / other | 60000 (1 min) |
+| Command              | Timeout        |
+| -------------------- | -------------- |
+| Test runners         | 120000 (2 min) |
+| Build commands       | 180000 (3 min) |
+| Quick checks / other | 60000 (1 min)  |
 
 ## Process Cleanup (before returning)
 
@@ -180,9 +193,10 @@ session-reaper.sh --max-age 0 2>/dev/null || true
 - Don't operate in wrong worktree
 - Don't mark done without testing or proof (`git-digest.sh --full`)
 - Don't use raw git diff/status/log
-- Don't retry same failing approach >2 times
+- Don't retry same failing approach >2 times without self-healing (Phase 3.8)
 - Don't defer issues to "later"
 - Don't run Bash without timeout
+- Don't mark `blocked` without exhausting self-healing first
 
 ## EXIT CHECKLIST
 
@@ -192,6 +206,7 @@ session-reaper.sh --max-age 0 2>/dev/null || true
 
 ---
 
+**v3.0.0** (2026-03-05): Self-healing Phase 3.8 — auto-fix, specialist agents, structured escalation
 **v2.5.0** (2026-02-28): Clarify submitted lifecycle
 **v2.4.0** (2026-02-27): Phase 3.7 Integration Verification
 **v2.3.0** (2026-02-27): Mandatory Bash timeout; process cleanup

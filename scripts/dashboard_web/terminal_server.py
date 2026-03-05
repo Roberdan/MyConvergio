@@ -61,21 +61,32 @@ async def terminal_handler(ws):
         ssh_cfg = get_ssh_config(peer)
         user, host = ssh_cfg["user"], ssh_cfg["host"]
         # Prepend common paths (SSH BatchMode has minimal PATH)
-        path_prefix = "export PATH=/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH; "
+        path_prefix = (
+            "export PATH=/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH; "
+        )
         if tmux_session:
-            cmd = ["ssh", "-tt", "-o", "StrictHostKeyChecking=accept-new",
-                   f"{user}@{host}",
-                   f"{path_prefix}tmux new-session -A -s '{tmux_session}'"]
+            cmd = [
+                "ssh",
+                "-tt",
+                "-o",
+                "StrictHostKeyChecking=accept-new",
+                f"{user}@{host}",
+                f"{path_prefix}tmux new-session -A -s '{tmux_session}'",
+            ]
         else:
-            cmd = ["ssh", "-tt", "-o", "StrictHostKeyChecking=accept-new",
-                   f"{user}@{host}"]
+            cmd = [
+                "ssh",
+                "-tt",
+                "-o",
+                "StrictHostKeyChecking=accept-new",
+                f"{user}@{host}",
+            ]
     else:
         if IS_WINDOWS:
             cmd = [os.environ.get("COMSPEC", "cmd.exe")]
         elif tmux_session:
             shell = os.environ.get("SHELL", "/bin/bash")
-            cmd = [shell, "-l", "-c",
-                   f"tmux new-session -A -s '{tmux_session}'"]
+            cmd = [shell, "-l", "-c", f"tmux new-session -A -s '{tmux_session}'"]
         else:
             shell = os.environ.get("SHELL", "/bin/bash")
             cmd = [shell, "-l"]
@@ -174,6 +185,7 @@ async def _terminal_handler_pty(ws, cmd):
 async def _terminal_handler_subprocess(ws, cmd):
     """Windows fallback: subprocess pipes (no PTY)."""
     import subprocess
+
     proc = await asyncio.create_subprocess_exec(
         *cmd,
         stdin=subprocess.PIPE,
@@ -220,13 +232,14 @@ async def main():
         idx = sys.argv.index("--port")
         port = int(sys.argv[idx + 1])
 
+    bind_host = "0.0.0.0"  # All interfaces for mesh access
     async with websockets.serve(
         terminal_handler,
-        "127.0.0.1",
+        bind_host,
         port,
         origins=None,  # Allow all origins (cross-port)
     ):
-        print(f"\033[1;35m◈ Terminal Server\033[0m → ws://localhost:{port}")
+        print(f"\033[1;35m◈ Terminal Server\033[0m → ws://{bind_host}:{port}")
         print(f"  Peers: {PEERS_CONF}")
         print(f"  Press Ctrl+C to stop\n")
         await asyncio.Future()  # Run forever

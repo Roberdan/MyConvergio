@@ -158,16 +158,14 @@ def _detect_plan_health(plan: dict, waves: list, tasks: list) -> list[dict]:
                 }
             )
 
-    # MANUAL REQUIRED: pending tasks that need human intervention
+    # MANUAL REQUIRED: pending tasks that truly need human intervention
     manual_keywords = (
-        "manual",
-        "e2e verification",
-        "run alembic",
-        "run excel",
-        "checklist",
+        "manual test",
+        "manual review",
+        "manual deploy",
         "visual qa",
         "user acceptance",
-        "manual test",
+        "manual approval",
     )
     manual_tasks = [
         t

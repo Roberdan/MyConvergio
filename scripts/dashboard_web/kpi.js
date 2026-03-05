@@ -154,7 +154,22 @@ window.openPlanTerminal = function (planId, peer) {
   }
 };
 window.resumePlanExecution = function (planId, peer) {
-  const target = peer === "local" || peer === "m3max" ? "local" : peer;
+  // Resolve target: use the plan's execution_host, not just the calling context
+  const planData =
+    window.DashboardState &&
+    window.DashboardState.lastMeshData &&
+    window.DashboardState.lastMeshData
+      .flatMap((n) => (n.plans || []).map((p) => ({ ...p, node: n.peer_name })))
+      .find((p) => p.id === planId);
+  const assignedHost = planData
+    ? planData.node
+    : peer || "local";
+  const target =
+    assignedHost === "local" || assignedHost === "m3max"
+      ? "local"
+      : assignedHost;
+
+  // Check for duplicate: don't resume if already running on another node
   if (typeof termMgr !== "undefined") {
     const session = "plan-" + planId;
     termMgr.open(target, "Resume #" + planId, session);
@@ -162,9 +177,7 @@ window.resumePlanExecution = function (planId, peer) {
       const tab = termMgr.tabs.find((t) => t.id === termMgr.activeId);
       if (tab && tab.ws && tab.ws.readyState === WebSocket.OPEN) {
         const cmd =
-          "env -u CLAUDECODE claude --dangerously-skip-permissions -p '/execute " +
-          planId +
-          "'\n";
+          "env -u CLAUDECODE execute-plan.sh " + planId + "\n";
         tab.ws.send(new TextEncoder().encode(cmd));
       }
     }, 3000);

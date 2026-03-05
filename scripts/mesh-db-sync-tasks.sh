@@ -167,7 +167,7 @@ _sync_plan() {
 
   local local_done
   local_done=$(_db "SELECT tasks_done FROM plans WHERE id=$pid;")
-  # Take the higher count (more progress)
+  # Take the higher count (more progress) — NEVER touch execution_host
   if [[ "${pdone:-0}" -gt "${local_done:-0}" ]]; then
     if ! $DRY_RUN; then
       _db "UPDATE plans SET tasks_done=$pdone, tasks_total=$ptotal WHERE id=$pid;"

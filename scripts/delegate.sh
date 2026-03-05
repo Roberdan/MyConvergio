@@ -197,13 +197,25 @@ echo "Routing task $TASK_DB_ID -> $ROUTE_TARGET (agent=$TASK_AGENT model=$TASK_M
 EXIT_CODE=0
 case "$TASK_AGENT" in
 claude)
-	if ! command -v task-executor >/dev/null 2>&1; then
-		echo "ERROR: task-executor command not found" >&2
-		EXIT_CODE=127
-	else
+	if command -v task-executor >/dev/null 2>&1; then
 		worker_args=("$TASK_DB_ID")
 		[[ -n "$TASK_MODEL" ]] && worker_args+=(--model "$TASK_MODEL")
 		task-executor "${worker_args[@]}" || EXIT_CODE=$?
+	elif command -v claude >/dev/null 2>&1; then
+		# Fallback: direct claude CLI invocation
+		echo "task-executor not found, falling back to claude CLI" >&2
+		_DELEGATE_PROMPT="$("${SCRIPT_DIR}/copilot-task-prompt.sh" "$TASK_DB_ID" 2>/dev/null || echo "Execute task $TASK_DB_ID")"
+		_DELEGATE_DIR_FLAG=""
+		[[ -n "$WORKTREE_PATH" && -d "$WORKTREE_PATH" ]] && _DELEGATE_DIR_FLAG="--add-dir $WORKTREE_PATH"
+		_DELEGATE_MODEL_FLAG=""
+		[[ -n "$TASK_MODEL" ]] && _DELEGATE_MODEL_FLAG="--model $TASK_MODEL"
+		# cd to worktree so file operations target correct directory
+		[[ -n "$WORKTREE_PATH" && -d "$WORKTREE_PATH" ]] && cd "$WORKTREE_PATH"
+		timeout 900 claude --dangerously-skip-permissions \
+			$_DELEGATE_DIR_FLAG $_DELEGATE_MODEL_FLAG -p "$_DELEGATE_PROMPT" || EXIT_CODE=$?
+	else
+		echo "ERROR: Neither task-executor nor claude CLI found" >&2
+		EXIT_CODE=127
 	fi
 	;;
 *)

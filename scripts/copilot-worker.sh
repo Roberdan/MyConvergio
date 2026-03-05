@@ -111,6 +111,12 @@ PROMPT_TOKENS="$(_ap_tokens "$PROMPT" 2>/dev/null || echo 0)"
 
 echo "Launching Copilot worker for task $TASK_ID (timeout: ${TIMEOUT}s, max retries: $MAX_RETRIES)..."
 
+# Set CWD to worktree BEFORE entering execution loop (subshells inherit this)
+if [[ -n "$WT" && -d "$WT" ]]; then
+	echo "CWD: $WT"
+	cd "$WT"
+fi
+
 # Execute with retry logic for timeout (exit 124)
 execute_copilot() {
 	local attempt="${1:-1}"
@@ -124,6 +130,7 @@ execute_copilot() {
 	# Pipe copilot output to tee: file + stderr (visible to user)
 	# Track child PID for cleanup on parent exit
 	timeout "$TIMEOUT" copilot --yolo --add-dir "$WT" \
+		--disable-mcp-server codegraph \
 		--model "$MODEL" -p "$PROMPT" 2>&1 | tee "$copilot_stdout_file" >&2 &
 	local copilot_bg_pid=$!
 	_WORKER_CHILD_PIDS+=("$copilot_bg_pid")
@@ -184,11 +191,32 @@ done
 EXIT_CODE="$FINAL_EXIT_CODE"
 START_TS="$(($(date +%s) - TOTAL_DURATION))"
 
-# Parse worker output
+# Parse worker output and extract token usage
 WORKER_RESULT_JSON="$(echo "$COPILOT_OUTPUT" | parse_worker_result 2>/dev/null || echo '{}')"
 TOKENS_USED="$(echo "$WORKER_RESULT_JSON" | jq -r '.tokens_used // 0' 2>/dev/null || echo 0)"
-if [[ "$TOKENS_USED" == "0" ]]; then
-	TOKENS_USED="$(_ap_tokens "$COPILOT_OUTPUT" 2>/dev/null || echo 0)"
+
+# Try to extract tokens from copilot output
+if [[ "$TOKENS_USED" == "0" || "$TOKENS_USED" == "" ]]; then
+	# Try common patterns for token reporting in copilot output
+	# Pattern 1: "tokens used: N" or "tokens: N"
+	if [[ "$COPILOT_OUTPUT" =~ [Tt]okens[[:space:]]*used[[:space:]]*:[[:space:]]*([0-9]+) ]]; then
+		TOKENS_USED="${BASH_REMATCH[1]}"
+	# Pattern 2: "input tokens: N, output tokens: M"
+	elif [[ "$COPILOT_OUTPUT" =~ [Ii]nput[[:space:]]*tokens[[:space:]]*:[[:space:]]*([0-9]+).*[Oo]utput[[:space:]]*tokens[[:space:]]*:[[:space:]]*([0-9]+) ]]; then
+		TOKENS_USED=$((${BASH_REMATCH[1]} + ${BASH_REMATCH[2]}))
+	# Pattern 3: JSON format with usage field
+	elif [[ "$COPILOT_OUTPUT" =~ \"usage\"[[:space:]]*:[[:space:]]*\{[^}]*\"total_tokens\"[[:space:]]*:[[:space:]]*([0-9]+) ]]; then
+		TOKENS_USED="${BASH_REMATCH[1]}"
+	fi
+fi
+
+# Fallback: estimate tokens based on prompt + output size (4 chars ≈ 1 token)
+if [[ "$TOKENS_USED" == "0" || "$TOKENS_USED" == "" ]]; then
+	PROMPT_SIZE=${#PROMPT}
+	OUTPUT_SIZE=${#COPILOT_OUTPUT}
+	TOTAL_SIZE=$((PROMPT_SIZE + OUTPUT_SIZE))
+	TOKENS_USED=$((TOTAL_SIZE / 4))
+	[[ $TOKENS_USED -lt 1 ]] && TOKENS_USED=1
 fi
 
 # Process results and update task status based on exit code

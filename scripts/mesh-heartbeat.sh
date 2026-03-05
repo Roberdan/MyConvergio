@@ -104,14 +104,20 @@ _daemon_loop() {
 		_write_heartbeat
 		# Check for plan/wave/task events (non-fatal)
 		_check_plan_events 2>/dev/null || true
-		# Every 10 beats (~5 min): pull config updates from coordinator
 		pulse=$((pulse + 1))
+		# Every 4 beats (~2 min): pull task updates from peers
+		if (( pulse % 4 == 0 )); then
+			local dbsync_script="$SCRIPT_DIR/mesh-db-sync-tasks.sh"
+			if [[ -x "$dbsync_script" ]]; then
+				"$dbsync_script" >>"$CLAUDE_HOME/data/mesh-dbsync.log" 2>&1 &
+			fi
+		fi
+		# Every 10 beats (~5 min): pull config + cleanup
 		if (( pulse % 10 == 0 )); then
 			local sync_script="$SCRIPT_DIR/sync-claude-config.sh"
 			if [[ -x "$sync_script" ]]; then
 				"$sync_script" pull >>"$CLAUDE_HOME/data/mesh-heartbeat.log" 2>&1 &
 			fi
-			# Auto-cleanup: kill orphan AI agent processes
 			local cleanup_script="$SCRIPT_DIR/mesh-cleanup.sh"
 			if [[ -x "$cleanup_script" ]]; then
 				"$cleanup_script" --reset-stale --json >>"$CLAUDE_HOME/data/mesh-cleanup.log" 2>&1 &

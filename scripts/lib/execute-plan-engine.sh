@@ -93,6 +93,7 @@ run_task() {
 			timeout "$TASK_TIMEOUT" copilot \
 				--allow-all \
 				--no-ask-user \
+				--disable-mcp-server codegraph \
 				$dir_flag \
 				$model_flag \
 				-p "$prompt" || exit_code=$?
@@ -115,11 +116,13 @@ run_task() {
 		step "Executing via claude CLI"
 		local model_flag=""
 		[[ -n "$MODEL" ]] && model_flag="--model $MODEL"
-		local cwd_flag=""
-		[[ -n "$worktree" && -d "$worktree" ]] && cwd_flag="--cwd $worktree"
+		local dir_flag=""
+		[[ -n "$worktree" && -d "$worktree" ]] && dir_flag="--add-dir $worktree"
+		# cd to worktree so file operations target correct directory
+		[[ -n "$worktree" && -d "$worktree" ]] && cd "$worktree"
 		timeout "$TASK_TIMEOUT" claude \
 			--dangerously-skip-permissions \
-			$cwd_flag \
+			$dir_flag \
 			$model_flag \
 			-p "$prompt" || exit_code=$?
 		;;

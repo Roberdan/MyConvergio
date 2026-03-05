@@ -1,5 +1,14 @@
 # Changelog
 
+## [v10.9.0] - 05 Mar 2026
+
+### Mesh Safety + Versioning Discipline
+
+- Fixed: `mesh-coordinator.sh` — removed auto-reassign on offline nodes (notify only, manual reassignment required)
+- Fixed: `mesh-heartbeat.sh` v1.1.0 — skip `sync-claude-config.sh` on Linux peers (push-based only), resilient daemon loop
+- Fixed: `mesh-db-sync-tasks.sh` v2.1.0 — sync `peer_heartbeats` table across peers (higher timestamp wins)
+- Added: `rules/guardian.md` — Versioning Discipline (NON-NEGOTIABLE): every repo MUST have CHANGELOG + semver tags
+
 ## [v10.8.0] - 05 Mar 2026
 
 ### Ironclad Workflow Enforcement (Plan 363 closure)

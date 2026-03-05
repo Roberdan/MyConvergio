@@ -313,6 +313,13 @@ def api_mission(resolve_host_to_peer) -> dict:
             "SELECT task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
             (p["id"],),
         )
+        for w in waves:
+            wt = [t for t in tasks if t.get("wave_id") == w["wave_id"]]
+            done_tasks = [t for t in wt if t["status"] == "done"]
+            if done_tasks and all(t.get("validated_at") for t in done_tasks):
+                w["validated_at"] = min(t["validated_at"] for t in done_tasks)
+            else:
+                w["validated_at"] = None
         health = _detect_plan_health(p, waves, tasks)
         result.append({"plan": p, "waves": waves, "tasks": tasks, "health": health})
     return {
@@ -375,6 +382,14 @@ def api_plan_detail(plan_id: int) -> dict | None:
         "SELECT task_id,title,status,executor_agent,executor_host,tokens,started_at,completed_at,validated_at,model,wave_id FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
         (plan_id,),
     )
+    # Derive wave validated_at from child tasks (waves table has no validated_at column)
+    for w in waves:
+        wt = [t for t in tasks if t.get("wave_id") == w["wave_id"]]
+        done_tasks = [t for t in wt if t["status"] == "done"]
+        if done_tasks and all(t.get("validated_at") for t in done_tasks):
+            w["validated_at"] = min(t["validated_at"] for t in done_tasks)
+        else:
+            w["validated_at"] = None
     cost = query_one(
         "SELECT COALESCE(SUM(cost_usd),0) AS cost, COALESCE(SUM(input_tokens+output_tokens),0) AS tokens FROM token_usage WHERE project_id=(SELECT project_id FROM plans WHERE id=?)",
         (plan_id,),

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# worktree-guard.sh — Copilot CLI preToolUse hook
-# Warns on git writes to main/master when worktrees are active.
-# POLICY: Warn, don't block. NEVER suggest deleting worktrees.
-# Input: JSON via stdin (Copilot hook protocol)
+# worktree-guard.sh — PreToolUse hook (Bash)
+# BLOCKS git writes on main/master unless CLAUDE_MAIN_WRITE_ALLOWED=1.
+# BLOCKS bare branch creation (must use worktree scripts).
+# Version: 2.0.0
 
 INPUT=$(cat)
 TOOL_NAME=$(echo "$INPUT" | jq -r '.toolName // ""' 2>/dev/null)
@@ -48,20 +48,21 @@ fi
 GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
 [ -z "$GIT_ROOT" ] && exit 0
 
-WORKTREE_COUNT=$(git worktree list 2>/dev/null | grep -c '' || echo 0)
-[ "$WORKTREE_COUNT" -le 1 ] && exit 0
-
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "DETACHED")
 
-# BLOCK: git worktree remove
+# BLOCK: git worktree remove (must use worktree-cleanup.sh)
 if echo "$COMMAND" | grep -qE 'git worktree remove'; then
 	jq -n '{permissionDecision: "deny", permissionDecisionReason: "Use worktree-cleanup.sh instead of direct git worktree remove."}'
 	exit 0
 fi
 
-# WARN on main with active worktrees (allow but warn via stderr)
+# BLOCK: ANY git write on main/master unless explicitly allowed
 if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
-	echo "[WORKTREE GUARD] WARNING: git op on '$CURRENT_BRANCH' with $WORKTREE_COUNT worktrees active." >&2
+	if [ "${CLAUDE_MAIN_WRITE_ALLOWED:-0}" = "1" ]; then
+		exit 0
+	fi
+	jq -n --arg b "$CURRENT_BRANCH" \
+		'{permissionDecision: "deny", permissionDecisionReason: ("BLOCKED: Git write on " + $b + " is forbidden. Work in a worktree. Set CLAUDE_MAIN_WRITE_ALLOWED=1 only with explicit user permission.")}'
 	exit 0
 fi
 

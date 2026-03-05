@@ -34,7 +34,7 @@ jobs:
       - name: Install Playwright
         working-directory: scripts/dashboard_web
         run: |
-          npm ci
+          npm install
           npx playwright install --with-deps chromium
 
       - name: Create test DB

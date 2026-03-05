@@ -136,12 +136,13 @@
   <span id="last-update"></span>
 </div>
 
-<script>window.onerror=function(m,s,l,c,e){console.error('JS ERROR:',m,s,l,c,e);}</script>
+<script>window.onerror=function(m,s,l,c,e){console.error('JS ERROR:',m,s,l,c,e);var d=document.getElementById('js-errors');if(!d){d=document.createElement('div');d.id='js-errors';d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1a0000;color:#ff3355;font:11px monospace;padding:8px;z-index:99999;max-height:120px;overflow:auto';document.body.appendChild(d)}d.innerHTML+='<div>'+s.split('/').pop()+':'+l+' '+m+'</div>';}</script>
 <script src="theme-switcher.js"></script>
 <script src="utils.js"></script>
 <script src="kpi.js"></script>
 <script src="charts.js"></script>
 <script src="activity.js"></script>
+<script src="kpi-modals.js"></script>
 <script src="websocket.js"></script>
 <script src="app.js"></script>
 <script src="mesh.js"></script>

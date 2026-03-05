@@ -61,9 +61,12 @@ class MiddlewareMixin:
         self.send_header("X-Frame-Options", "DENY")
         self.send_header(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "img-src 'self' data:; "
             "connect-src 'self' ws://localhost:* ws://127.0.0.1:*; "
-            "font-src 'self'; frame-ancestors 'none'",
+            "font-src 'self' https://cdn.jsdelivr.net; "
+            "frame-ancestors 'none'",
         )
         super().end_headers()

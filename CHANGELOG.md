@@ -1,5 +1,23 @@
 # Changelog
 
+## [v9.20.0] - 05 Mar 2026
+
+### Mesh Peer CRUD + Delegation Engine (Plan 335)
+
+- Added: `peers_writer.py` — line-based peers.conf writer preserving comments (F-08)
+- Added: `api_peers.py` — REST CRUD endpoints: list, create, update, delete peers (F-01..F-04)
+- Added: SSH connectivity check endpoint with 5s timeout (F-05)
+- Added: Tailscale auto-discovery endpoint (F-06)
+- Added: `peer-crud.js` — modal form for add/edit peer, delete dialog, discovery overlay (F-01..F-07)
+- Added: `css/peer-crud.css` — peer CRUD modal styles
+- Added: `default_engine`, `default_model` fields in peers.conf (F-12)
+- Changed: `server.py` — POST/PUT/DELETE method dispatching for /api/peers/* (F-01..F-06)
+- Changed: `remote-dispatch.sh` — reads `default_engine`, copilot-first fallback for mesh (F-09)
+- Changed: `api_plans.py` — Claude Auth Type check in preflight (OAuth/Max detection) (F-10)
+- Changed: `mesh-actions.js` — edit/delete peer actions, engine pre-fill in delegate dialog (F-04, F-12)
+- Changed: `dashboard-terminui.tsx` — Mesh Peers table with inline CRUD (F-11)
+- Changed: `mesh-networking.md` — Peer Management UI section, new field docs
+
 ## [v9.19.0] - 05 Mar 2026
 
 ### Mesh Orchestration — Event-Driven (Plan 330)

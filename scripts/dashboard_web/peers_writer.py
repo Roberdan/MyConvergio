@@ -1,17 +1,16 @@
 """Line-based peers.conf writer that preserves comments and formatting.
 
-Uses parse_peers_conf() from api_mesh for reading (no duplication).
 Writing is line-based to preserve INI comments (configparser.write destroys them).
+Reading uses configparser for parsing (safe since it only reads, never writes).
 """
 
+import configparser
 import fcntl
 import os
 import re
 import shutil
 from datetime import datetime
 from pathlib import Path
-
-from api_mesh import parse_peers_conf
 
 _SECTION_RE = re.compile(r'^\[([^\]]+)\]')
 _KV_RE = re.compile(r'^([a-z_]+)\s*=\s*(.*)')
@@ -31,7 +30,26 @@ class PeersWriter:
         self.path = Path(conf_path)
 
     def list_peers(self) -> list[dict]:
-        return parse_peers_conf()
+        if not self.path.exists():
+            return []
+        cp = configparser.ConfigParser()
+        cp.read(str(self.path))
+        return [
+            {
+                'peer_name': s,
+                'os': cp[s].get('os', 'unknown'),
+                'role': cp[s].get('role', 'worker'),
+                'capabilities': cp[s].get('capabilities', ''),
+                'status': cp[s].get('status', 'active'),
+                'tailscale_ip': cp[s].get('tailscale_ip', ''),
+                'mac_address': cp[s].get('mac_address', ''),
+                'ssh_alias': cp[s].get('ssh_alias', s),
+                'user': cp[s].get('user', ''),
+                'default_engine': cp[s].get('default_engine', ''),
+                'default_model': cp[s].get('default_model', ''),
+            }
+            for s in cp.sections()
+        ]
 
     def _read_lines(self) -> list[str]:
         if not self.path.exists():

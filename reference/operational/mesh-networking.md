@@ -40,8 +40,31 @@ Location: `~/.claude/config/peers.conf` (override: `PEERS_CONF` env var)
 | `role`         | yes      | `coordinator` \| `worker` \| `hybrid`      | Affects dispatcher scoring  |
 | `status`       | no       | `active` \| `inactive` (default: `active`) | Inactive peers are ignored  |
 | `mac_address`  | no       | `AA:BB:CC:DD:EE:FF`                        | Wake-on-LAN magic packet    |
+| `default_engine` | no     | `claude` \| `copilot` \| `opencode` \| `ollama` | Preferred engine for mesh delegation |
+| `default_model`  | no     | any model string                           | Pre-filled in delegation UI |
 
 **Capabilities reference**: `claude` = Claude Code MCP | `copilot` = Copilot CLI | `ollama` = local LLM | `opencode` = OpenCode agent
+
+## Peer Management UI
+
+Web dashboard CRUD for peers.conf with live SSH validation and Tailscale auto-discovery.
+
+### API Endpoints
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/peers` | List peers with heartbeat status |
+| POST | `/api/peers` | Create peer (validates required fields, MAC/IP format, name uniqueness) |
+| PUT | `/api/peers/<name>` | Update peer fields |
+| DELETE | `/api/peers/<name>?mode=soft\|hard` | Soft=inactive, hard=remove section |
+| POST | `/api/peers/ssh-check` | Test SSH with 5s timeout, returns `{ok, latency_ms}` |
+| GET | `/api/peers/discover` | Tailscale status diff vs peers.conf |
+
+### Delegation Engine Defaults
+
+`remote-dispatch.sh` reads `default_engine` from peers.conf. Fallback order: `default_engine` → `copilot` → first capability. Local execution (`execute-plan.sh`) remains `claude`.
+
+Preflight checks include **Claude Auth Type**: detects OAuth/Max vs API key on remote node (non-blocking warning).
 
 ## Unified Sync (mesh-sync-all.sh)
 

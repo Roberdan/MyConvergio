@@ -54,6 +54,25 @@ When plan implementation changes break existing tests, **update tests to match n
 
 New code MUST be wired into at least one consumer. New components MUST have a render site. Changed interfaces MUST have ALL consumers updated. Orphan code (created but never imported) = REJECTION. See `~/.claude/rules/testing-standards.md` for mock boundaries and fail-loud patterns.
 
+## Versioning Discipline (NON-NEGOTIABLE)
+
+Every repo MUST have a versioning system. Every push to main MUST increment the version.
+
+| Commit type                                            | Increment | Example         |
+| ------------------------------------------------------ | --------- | --------------- |
+| `fix:`, `chore:`, `docs:`, `test:`                     | **patch** | v1.2.3 → v1.2.4 |
+| `feat:`                                                | **minor** | v1.2.3 → v1.3.0 |
+| Breaking change (`BREAKING CHANGE:` or `!` after type) | **major** | v1.2.3 → v2.0.0 |
+
+**Requirements**:
+
+1. CHANGELOG.md MUST exist with `## [vX.Y.Z] - DD Mon YYYY` entries
+2. Git tag `vX.Y.Z` MUST match latest CHANGELOG entry
+3. Push without version increment = VIOLATION
+4. **New repo onboarding**: if no CHANGELOG.md or no tags exist, create them before first plan
+
+**Enforcement**: Agent MUST update CHANGELOG.md + create git tag on every commit to main. `version-check.sh` validates alignment.
+
 ## New Repo / Repo Audit Checklist
 
 When onboarding a new repo or auditing existing ones, verify:
@@ -61,6 +80,7 @@ When onboarding a new repo or auditing existing ones, verify:
 1. **Branch protection**: `branch-protect.sh check owner/repo [branch]` — must show PROTECTED
 2. **If not protected**: `branch-protect.sh apply owner/repo [branch]` (requires GitHub Pro for private repos)
 3. **Required settings**: `required_conversation_resolution: true` + `enforce_admins: true`
+4. **Versioning**: CHANGELOG.md exists, git tags exist, latest tag matches CHANGELOG. If missing, create before first plan.
 
 Without branch protection, GitHub Web UI allows merging with unresolved review comments.
 

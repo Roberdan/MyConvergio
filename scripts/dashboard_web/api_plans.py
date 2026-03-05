@@ -175,7 +175,7 @@ def handle_plan_delegate(handler, qs: dict, safe_name):
     handler._start_sse()
     try:
         from mesh_handoff import check_stale_host, full_handoff
-        handler._sse_send("phase", "handoff"); handler._sse_send("log", f"━━━ HANDOFF: Plan #{plan_id} → {target} ━━━"); handler._sse_send("log", "")
+        handler._sse_send("phase", {"name": "handoff"}); handler._sse_send("log", f"━━━ HANDOFF: Plan #{plan_id} → {target} ━━━"); handler._sse_send("log", "")
         stale = check_stale_host(int(plan_id), find_peer_conf)
         if stale["stale"]:
             handler._sse_send("log", f"⚠ Previous host '{stale['host']}' is stale: {stale['reason']}")

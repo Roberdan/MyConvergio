@@ -1,0 +1,175 @@
+/* ========== TERMINAL (xterm.js) ========== */
+.term-container {
+  position: fixed;
+  z-index: 5000;
+  background: #04060e;
+  border: 1px solid var(--cyan);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 -4px 40px rgba(0, 229, 255, 0.12);
+}
+.term-container:not(.open) {
+  opacity: 0;
+  pointer-events: none;
+}
+.term-container.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* Dock mode */
+.term-dock {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 340px;
+  border-radius: 8px 8px 0 0;
+}
+/* Float mode */
+.term-float {
+  border-radius: 8px;
+  box-shadow:
+    0 8px 60px rgba(0, 0, 0, 0.7),
+    0 0 30px rgba(0, 229, 255, 0.08);
+  min-width: 400px;
+  min-height: 200px;
+}
+/* Fullscreen mode */
+.term-full {
+  inset: 0;
+  border-radius: 0;
+  border: none;
+}
+/* Grid mode */
+.term-grid {
+  inset: 0;
+  border-radius: 0;
+  border: none;
+}
+.term-grid .term-body {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  overflow: hidden;
+}
+.term-grid .term-pane {
+  height: 100%;
+  overflow: hidden;
+}
+.term-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  min-height: 32px;
+  user-select: none;
+  flex-shrink: 0;
+}
+.term-float .term-header {
+  cursor: move;
+}
+.term-tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  flex: 1;
+}
+.term-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: transparent;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.term-tab:hover {
+  background: rgba(0, 229, 255, 0.06);
+}
+.term-tab.active {
+  color: var(--cyan);
+  background: rgba(0, 229, 255, 0.1);
+  border-bottom: 2px solid var(--cyan);
+}
+.term-tab-close {
+  font-size: 13px;
+  opacity: 0.5;
+  cursor: pointer;
+}
+.term-tab-close:hover {
+  opacity: 1;
+  color: var(--red);
+}
+.term-controls {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.term-ctrl-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.term-ctrl-btn svg {
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.term-ctrl-btn:hover {
+  background: rgba(0, 229, 255, 0.1);
+  color: var(--cyan);
+}
+.term-ctrl-close:hover {
+  color: var(--red);
+  background: rgba(255, 51, 85, 0.15);
+}
+.term-body {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+.term-pane {
+  width: 100%;
+  height: 100%;
+  padding: 4px;
+}
+.term-resize {
+  height: 4px;
+  cursor: ns-resize;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+.term-dock .term-resize {
+  top: 0;
+}
+.term-float .term-resize {
+  top: auto;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+}
+/* Body padding when terminal is docked */
+body.term-open {
+  padding-bottom: 340px;
+}
+

@@ -1,0 +1,225 @@
+/* Mesh Network Strip */
+.mesh-strip {
+  padding: 0;
+}
+.mesh-inner {
+  padding: 0;
+}
+.mesh-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.mesh-title-text {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--magenta);
+  text-transform: uppercase;
+}
+.mesh-count {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.mesh-nodes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  flex-wrap: wrap;
+}
+/* Hub-spoke topology */
+.mesh-hub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+.mesh-hub-workers {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+.mesh-hub-spokes {
+  width: 100%;
+  height: 36px;
+  position: relative;
+  z-index: 0;
+}
+.mesh-hub-coord {
+  position: relative;
+  z-index: 1;
+}
+/* Sync All button */
+.mesh-sync-all {
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  color: var(--cyan);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+.mesh-sync-all svg {
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.mesh-sync-all:hover {
+  background: rgba(0, 229, 255, 0.18);
+  border-color: var(--cyan);
+}
+.mesh-node {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  min-width: 190px;
+  min-height: 100px;
+  text-align: center;
+  flex-shrink: 0;
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s;
+  position: relative;
+}
+.mesh-node.online {
+  border-color: var(--green);
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.08);
+  animation: nodeBreath 3s ease-in-out infinite;
+}
+@keyframes nodeBreath {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(0, 255, 136, 0.15),
+      0 0 4px rgba(0, 229, 255, 0.1);
+  }
+}
+.mesh-node.coordinator {
+  border-color: var(--magenta);
+  box-shadow: 0 0 16px rgba(255, 45, 170, 0.15);
+  animation: coordBreath 3.5s ease-in-out infinite;
+}
+@keyframes coordBreath {
+  0%,
+  100% {
+    box-shadow: 0 0 16px rgba(255, 45, 170, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 24px rgba(255, 45, 170, 0.25),
+      0 0 8px rgba(0, 229, 255, 0.12);
+  }
+}
+.mesh-node.coordinator::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--magenta), var(--cyan));
+}
+.mesh-node.offline {
+  opacity: 0.45;
+}
+.mn-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.mn-os {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
+.mn-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+.mn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.mn-dot.on {
+  background: #00cc55;
+  box-shadow: 0 0 6px #00cc55;
+  animation: pulse 2s ease-in-out infinite;
+}
+.mn-dot.off {
+  background: #ee3344;
+}
+.mn-role {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.mesh-node.coordinator .mn-role {
+  color: var(--magenta);
+  font-weight: 600;
+}
+.mn-caps {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.mn-cap {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(0, 229, 255, 0.1);
+  color: var(--cyan);
+  letter-spacing: 0.5px;
+}
+.mn-cap.accent {
+  background: rgba(255, 183, 0, 0.15);
+  color: var(--gold);
+}
+.mn-stats {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.mn-stats.offline-text {
+  color: var(--red);
+  letter-spacing: 1px;
+}
+.mn-load-bar {
+  height: 3px;
+  background: var(--bg-deep);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+.mn-load-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+/* Connection lines between nodes */

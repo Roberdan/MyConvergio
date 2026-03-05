@@ -1,0 +1,112 @@
+/* Neumorphic theme — soft raised/inset panels */
+[data-theme="neumorph"] .panel {
+  border: none;
+  border-radius: 16px;
+  box-shadow: var(--neu-shadow);
+}
+[data-theme="neumorph"] .kpi-card {
+  border: none;
+  border-radius: 14px;
+  box-shadow: var(--neu-shadow);
+}
+[data-theme="neumorph"] .kpi-card::before {
+  display: none;
+}
+[data-theme="neumorph"] .kpi-card:hover {
+  border: none;
+  box-shadow: var(--neu-shadow-inset);
+}
+[data-theme="neumorph"] .header {
+  border-bottom: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+[data-theme="neumorph"] .task-table th {
+  background: var(--bg-deep);
+  border-radius: 6px;
+}
+[data-theme="neumorph"] .sidebar {
+  border: none;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+}
+[data-theme="neumorph"] .footer {
+  border-top: none;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+}
+[data-theme="neumorph"] .mesh-strip {
+  border: none;
+}
+[data-theme="neumorph"] .mesh-node {
+  border: none;
+  border-radius: 12px;
+  box-shadow: var(--neu-shadow);
+}
+[data-theme="neumorph"] body::after {
+  display: none;
+}
+
+/* Glass (Glassmorphism) overrides */
+[data-theme="glass"] body {
+  background: linear-gradient(
+    135deg,
+    #0a0a30 0%,
+    #1a1050 40%,
+    #0a2040 70%,
+    #0a0a30 100%
+  );
+}
+[data-theme="glass"] body::after {
+  display: none;
+}
+[data-theme="glass"] .panel {
+  background: var(--bg-panel);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+[data-theme="glass"] .kpi-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+[data-theme="glass"] .kpi-card::before {
+  opacity: 0.15;
+}
+[data-theme="glass"] .kpi-card:hover {
+  background: rgba(40, 40, 100, 0.5);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+[data-theme="glass"] .header {
+  background: var(--header-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-bottom: var(--glass-border);
+}
+[data-theme="glass"] .task-table th {
+  background: rgba(20, 20, 60, 0.5);
+  backdrop-filter: blur(8px);
+}
+[data-theme="glass"] .sidebar {
+  background: rgba(15, 15, 50, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-left: var(--glass-border);
+}
+[data-theme="glass"] .footer {
+  background: rgba(15, 15, 50, 0.5);
+  backdrop-filter: blur(var(--glass-blur));
+  border-top: var(--glass-border);
+}
+[data-theme="glass"] .mesh-strip {
+  background: transparent;
+}
+[data-theme="glass"] .mesh-node {
+  background: rgba(25, 25, 70, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+

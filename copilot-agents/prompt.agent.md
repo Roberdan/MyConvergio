@@ -48,7 +48,21 @@ NEVER fill gaps with assumptions. Ask or mark TBD.
 1. Read user input + clarification answers
 2. Extract EVERY requirement (explicit + implicit) as F-xx
 3. Use EXACT user words - NEVER paraphrase
-4. Ask: "Have I captured everything? Anything missing?"
+4. **Wiring Inference**: for every F-xx containing "Create", "Add", "Build", or "Implement" a component/module/route, auto-generate a companion F-xx "Wire [component] into [consumers]"
+5. Ask: "Have I captured everything? Anything missing?"
+
+### Wiring Inference (MANDATORY)
+
+For each "Create X" requirement, infer and add:
+
+| User says | Auto-generate |
+|-----------|--------------|
+| "Create VoiceOrb component" | F-xx+1: "Wire VoiceOrb into ChatMessage (replace existing icon)" |
+| "Add NotificationBell" | F-xx+1: "Wire NotificationBell into Header toolbar" |
+| "Build OKRSummaryBar" | F-xx+1: "Wire OKRSummaryBar into dashboard page" |
+
+**verify** for wiring F-xx: `grep -r 'import.*ComponentName' src/`
+**Priority**: same as parent F-xx (wiring is not optional)
 
 ## Output: Compact JSON
 

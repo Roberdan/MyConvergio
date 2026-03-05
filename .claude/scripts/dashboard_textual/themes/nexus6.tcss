@@ -1,0 +1,177 @@
+/* nexus6.tcss — Amber/cyan replicant theme.
+ * NEXUS-6 — Blade Runner (1982). Dark bg, amber primary, cyan secondary.
+ * Double-line borders for a premium noir feel.
+ */
+
+/* ── Variables ───────────────────────────────────────────────────────────── */
+
+$background: #0d0800;
+$surface: #120c00;
+$primary: #ffaa00;
+$secondary: #00ffff;
+$accent: #ff8800;
+$text: #cc8800;
+$text-muted: #553300;
+$success: #00ff88;
+$warning: #ffaa00;
+$error: #ff3300;
+
+/* ── Screen ──────────────────────────────────────────────────────────────── */
+
+Screen {
+    background: $background;
+    color: $text;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+Header {
+    background: $background;
+    color: $primary;
+    text-style: bold;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+Footer {
+    background: $background;
+    color: $text-muted;
+}
+
+/* ── Status cards ────────────────────────────────────────────────────────── */
+
+.status-card {
+    background: $surface;
+    border: double $primary;
+    color: $text;
+}
+
+.card-value {
+    color: $primary;
+    text-style: bold;
+}
+
+.card-label {
+    color: $secondary;
+}
+
+/* ── Section headers ─────────────────────────────────────────────────────── */
+
+.section-header {
+    color: $accent;
+    text-style: bold;
+    border-bottom: double $primary;
+}
+
+/* ── Plan boxes ──────────────────────────────────────────────────────────── */
+
+.plan-box {
+    background: $surface;
+    border: double $primary;
+}
+
+.plan-title {
+    color: $primary;
+    text-style: bold;
+}
+
+.plan-meta {
+    color: $text-muted;
+}
+
+/* ── DataTable ───────────────────────────────────────────────────────────── */
+
+DataTable {
+    background: $surface;
+    color: $text;
+}
+
+DataTable > .datatable--header {
+    background: $background;
+    color: $secondary;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: $primary;
+    color: $background;
+    text-style: bold;
+}
+
+DataTable > .datatable--even-row {
+    background: $background;
+}
+
+DataTable > .datatable--odd-row {
+    background: $surface;
+}
+
+/* ── Mesh nodes ──────────────────────────────────────────────────────────── */
+
+.mesh-node {
+    background: $surface;
+    border: double $primary;
+    color: $text;
+}
+
+.mesh-node.online {
+    border: double $success;
+}
+
+.mesh-node.offline {
+    border: double $error;
+}
+
+.node-name {
+    color: $primary;
+    text-style: bold;
+}
+
+.node-role {
+    color: $secondary;
+}
+
+/* ── Progress bars ───────────────────────────────────────────────────────── */
+
+ProgressBar > .bar--bar {
+    color: $accent;
+}
+
+ProgressBar > .bar--complete {
+    color: $secondary;
+}
+
+/* ── Charts ──────────────────────────────────────────────────────────────── */
+
+.chart-box {
+    background: $surface;
+    border: double $primary;
+    color: $text;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+
+ScrollBar {
+    background: $background;
+    color: $accent;
+}
+
+/* ── Input ───────────────────────────────────────────────────────────────── */
+
+Input {
+    background: $surface;
+    border: double $primary;
+    color: $primary;
+}
+
+Input:focus {
+    border: double $secondary;
+}
+
+/* ── Notification ────────────────────────────────────────────────────────── */
+
+Toast {
+    background: $surface;
+    border: double $primary;
+    color: $text;
+}

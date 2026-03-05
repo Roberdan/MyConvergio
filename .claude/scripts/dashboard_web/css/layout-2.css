@@ -1,0 +1,111 @@
+/* Slide-out Sidebar */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 14, 0.6);
+  z-index: 3000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.sidebar-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: -460px;
+  width: 450px;
+  height: 100vh;
+  background: var(--bg-panel);
+  border-left: 2px solid var(--cyan);
+  z-index: 3001;
+  overflow-y: auto;
+  transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -8px 0 40px rgba(0, 229, 255, 0.08);
+}
+.sidebar.open {
+  right: 0;
+}
+.sb-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sb-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--cyan);
+}
+.sb-close {
+  cursor: pointer;
+  color: var(--red);
+  font-size: 16px;
+}
+.sb-body {
+  padding: 16px;
+}
+.sb-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  line-height: 1.8;
+}
+.sb-meta strong {
+  color: var(--text);
+}
+.sb-section {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--magenta);
+  text-transform: uppercase;
+  margin: 16px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.sb-wave {
+  display: grid;
+  grid-template-columns: 1fr 50px;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.sb-wave-bar {
+  height: 4px;
+  background: var(--bg-deep);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.sb-wave-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+.sb-task {
+  display: grid;
+  grid-template-columns: 50px 1fr 70px;
+  gap: 4px;
+  padding: 4px 0;
+  border-bottom: 1px solid #0d1228;
+  font-size: 11px;
+}
+.sb-task-id {
+  color: var(--cyan);
+  font-weight: 600;
+}
+.sb-summary {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 8px;
+  padding: 8px;
+  background: var(--bg-card);
+  border-radius: 4px;
+  border-left: 2px solid var(--cyan);
+}
+

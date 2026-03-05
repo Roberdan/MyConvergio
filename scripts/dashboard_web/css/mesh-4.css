@@ -1,0 +1,191 @@
+/* Node hover cursor */
+.mesh-node {
+  cursor: pointer;
+}
+.mesh-node:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s;
+}
+/* Plan/task info inside mesh nodes */
+.mn-plan {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  text-align: left;
+  cursor: pointer;
+}
+.mn-plan:hover {
+  background: rgba(0, 229, 255, 0.04);
+  border-radius: 4px;
+}
+.mn-plan-head {
+  font-size: 10px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mn-plan-id {
+  color: var(--cyan);
+  font-weight: 600;
+}
+.mn-plan-bar {
+  height: 3px;
+  background: var(--bg-deep);
+  border-radius: 2px;
+  margin: 3px 0;
+  overflow: hidden;
+}
+.mn-plan-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.mn-task {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 1px 0;
+}
+
+/* Move plan dialog */
+.move-plan-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 60px 80px;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.move-plan-row:hover {
+  background: rgba(0, 229, 255, 0.08);
+}
+
+/* Inline mesh node action toolbar — always visible */
+.mn-actions {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.mn-act-btn {
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  color: var(--cyan);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s;
+}
+.mn-act-btn svg {
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  opacity: 0.6;
+}
+.mn-act-btn:hover svg {
+  opacity: 1;
+}
+.mn-act-btn:hover {
+  background: rgba(0, 229, 255, 0.15);
+  color: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.15);
+}
+
+/* Status dots */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  border: 1.5px solid;
+}
+.dot-done {
+  background: #00cc55;
+  border-color: #00cc55;
+}
+.dot-active {
+  background: #ffb700;
+  border-color: #ffb700;
+}
+.dot-submitted {
+  background: #00b8d4;
+  border-color: #00b8d4;
+}
+.dot-blocked {
+  background: #ee3344;
+  border-color: #ee3344;
+}
+.dot-pending {
+  background: transparent;
+  border-color: #5a6080;
+}
+.dot-cancelled {
+  background: transparent;
+  border-color: #ee3344;
+}
+.dot-skipped {
+  background: transparent;
+  border-color: #5a6080;
+}
+.thor-mark {
+  font-size: 10px;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+
+/* Sync status badge on mesh nodes */
+.mn-sync-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.mn-sync-green {
+  background: var(--green);
+  box-shadow: 0 0 4px var(--green);
+}
+.mn-sync-yellow {
+  background: var(--gold);
+  box-shadow: 0 0 4px var(--gold);
+}
+.mn-sync-red {
+  background: var(--red);
+  box-shadow: 0 0 4px var(--red);
+}
+
+/* Peer actions accent */
+.pa-term {
+  color: var(--cyan);
+  font-weight: 600;
+}
+.pa-move {
+  color: var(--magenta);
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+  padding-top: 8px;
+}
+
+/* History rows clickable */
+.history-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+

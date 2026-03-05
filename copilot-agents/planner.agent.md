@@ -32,19 +32,19 @@ Works with ANY repository - auto-detects project context.
 | Mechanical edits, bulk changes | gpt-5-mini         | Fast, cheap        |
 | Large file analysis            | claude-opus-4.6-1m | 1M context         |
 | Test writing                   | gpt-5              | Code gen focus     |
-| Documentation                  | claude-sonnet-4.5  | Good writing, fast |
+| Documentation                  | claude-sonnet-4.5   | Good writing, fast |
 | Security review                | claude-opus-4.6    | Critical analysis  |
 | Quick exploration              | claude-haiku-4.5   | Fastest            |
 
 ## Critical Rules
 
-| Rule | Requirement                                                                                                        |
-| ---- | ------------------------------------------------------------------------------------------------------------------ |
-| 1    | F-xx Requirements - extract ALL, verify ALL [x] before done                                                        |
-| 2    | User Approval Gate - BLOCK until explicit confirmation                                                             |
-| 3    | Worktree Isolation - EVERY task includes worktree path, NEVER on main                                              |
-| 4    | TDD Mandatory - Every task has test_criteria                                                                       |
-| 5    | NO SILENT EXCLUSIONS - NEVER exclude/defer F-xx without user approval. Silently dropping = VIOLATION               |
+| Rule | Requirement                                                                                          |
+| ---- | ---------------------------------------------------------------------------------------------------- |
+| 1    | F-xx Requirements - extract ALL, verify ALL [x] before done                                          |
+| 2    | User Approval Gate - BLOCK until explicit confirmation                                               |
+| 3    | Worktree Isolation - EVERY task includes worktree path, NEVER on main                                |
+| 4    | TDD Mandatory - Every task has test_criteria                                                         |
+| 5    | NO SILENT EXCLUSIONS - NEVER exclude/defer F-xx without user approval. Silently dropping = VIOLATION |
 | 6    | DB GATE - NEVER proceed to User Approval without verifying plan exists in plan-db (Step 4.1). Skipping = plan lost |
 
 ## Workflow
@@ -105,7 +105,9 @@ Write `spec.json`:
 - `verify`: machine-checkable commands, not prose
 - `model`: see Task Model Routing table
 - `executor_agent`: copilot (default) | claude | codex | manual
-- `precondition`: array blocking wave until conditions met
+- `precondition`: object blocking wave until condition met. Types:
+  - `{type: wave_status, wave_id: W1, status: done}` — wait for full merge (sync)
+  - `{type: wave_pr_created, wave_id: W1}` — start when PR exists (overlapping)
 
 **Integration Completeness (MANDATORY)**:
 
@@ -124,10 +126,23 @@ print('PASS: spec.json valid')
 " || { echo "BLOCK: spec.json validation failed. Fix errors before proceeding."; exit 1; }
 ```
 
+### 3.1b Consumer Enforcement (MANDATORY — BLOCK if fails)
+
+After schema validation, verify every feature/refactor task has consumers:
+
+```bash
+python3 -c "
+import json, yaml, sys
+spec = yaml.safe_load(open('SPEC')) if 'SPEC'.endswith('.yaml') else json.load(open('SPEC'))
+bad = [f\"{t['id']}: {t['type']} without consumers\" for w in spec.get('waves',[]) for t in w.get('tasks',[]) if t.get('type') in ('feature','refactor') and not t.get('consumers')]
+if bad: print('BLOCK:', *bad, sep='\n  '); sys.exit(1)
+print('PASS: All feature/refactor tasks have consumers')
+"
+```
+
 ### 3.2 F-xx Exclusion Gate (MANDATORY)
 
 Compare ALL F-xx requirements vs tasks. If ANY F-xx is NOT covered by at least one task `ref`:
-
 1. List uncovered F-xx
 2. Ask user: include, defer, or exclude each one
 3. **BLOCK** — NEVER silently skip
@@ -176,16 +191,15 @@ plan-db.sh start $PLAN_ID
 
 ## Database Commands
 
-| Command                                                                | Purpose                          |
-| ---------------------------------------------------------------------- | -------------------------------- |
-| `plan-db.sh create <proj> <name> --source-file <path> --auto-worktree` | Create plan with worktree        |
-| `plan-db.sh import <plan_id> <spec.json>`                              | Import tasks from spec           |
-| `plan-db.sh start <plan_id>`                                           | Mark plan as started             |
-| `plan-db.sh drift-check <plan_id>`                                     | Check staleness before execution |
-| `plan-db.sh get-context <plan_id>`                                     | Full plan+tasks JSON             |
+| Command | Purpose |
+|---------|---------|
+| `plan-db.sh create <proj> <name> --source-file <path> --auto-worktree` | Create plan |
+| `plan-db.sh import <plan_id> <spec.json>` | Import tasks |
+| `plan-db.sh start <plan_id>` | Start execution |
+| `plan-db.sh drift-check <plan_id>` | Check staleness |
+| `plan-db.sh get-context <plan_id>` | Full plan JSON |
 
 ## Changelog
 
-- **2.2.0** (2026-02-27): Integration Completeness rule; `consumers` field in spec rules
-- **2.0.0** (2026-02-15): Compact format per ADR 0009 - 30% token reduction
-- **1.0.1** (Previous version): Task model routing added
+- **2.1.0** (2026-02-27): Step 3.1b Consumer Enforcement, wave_pr_created precondition
+- **2.0.0** (2026-02-15): Compact format per ADR 0009

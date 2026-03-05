@@ -1,5 +1,41 @@
 # Changelog
 
+## [v9.19.0] - 05 Mar 2026
+
+### Mesh Orchestration — Event-Driven (Plan 330)
+
+- Added: `mesh_events` table — async event queue for worker→coordinator communication
+- Added: `mesh-coordinator.sh` — daemon on m3max: processes events, auto-finish, offline detection
+- Added: `mesh-notify.sh` — multi-channel notifications (macOS native, ntfy.sh, dashboard, Telegram)
+- Added: `config/notifications.conf` — opt-in notification channel config
+- Added: `scripts/lib/notify-config.sh` — INI config loader for notification channels
+- Added: Heartbeat enhanced — emits plan_completed, wave_completed, human_needed events with dedup
+- Added: Auto-finish — plan completes on worker → pull DB, sync all nodes, notify
+- Added: Offline detection — heartbeat > 15min → stale, > 30min → auto-reassign to best peer
+- Added: Dashboard event feed widget with real-time SSE updates
+- Added: Dashboard toast notifications with auto-dismiss
+- Added: Deep link hash router (#plan/{id} → scroll + highlight)
+- Added: Coordinator status/toggle API endpoints
+- Added: `/api/events`, `/api/notifications`, `/api/coordinator/status` endpoints
+
+### Mesh Sync — Bidirectional
+
+- Changed: `mesh-sync-all.sh` v2.0 — compares commit timestamps, pulls from ahead peer, pushes to all
+- Added: Dashboard "Full Sync" button (bidirectional) alongside "Push" button
+- Added: `/api/mesh/fullsync` SSE endpoint with live output
+
+### Dashboard — Plan Start
+
+- Added: ▶ START button on mission cards for plans with status=todo
+- Added: CLI selector dialog (Copilot/Claude/Delegate to mesh)
+- Added: `/api/plan/start` SSE endpoint with live execution output
+
+### Fixes
+
+- Fixed: CSP blocking Chart.js/xterm CDN (cdn.jsdelivr.net now allowed)
+- Fixed: Plan handoff same_node skipping launch when plan not running
+- Fixed: Duplicate JS functions (showToast, renderEventFeed) across modules
+
 ## [Unreleased]
 
 ### Knowledge Base System (Plan 332)

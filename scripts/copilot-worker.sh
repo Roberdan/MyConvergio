@@ -1,15 +1,22 @@
 #!/bin/bash
 # copilot-worker.sh - Launch Copilot CLI worker for a plan task
 # Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]
-# Version: 3.0.0 - submitted status flow, per-task Thor validation, SQLite trigger compatibility
+# Version: 3.1.0 - Fix wave worktree resolution, child process cleanup, PATH hardening
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_FILE="${HOME}/.claude/data/dashboard.db"
 
-# Cleanup temp files on exit (SEC: prevent temp file leaks)
+# PATH hardening: ensure copilot CLI is findable in non-login SSH shells
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$HOME/.claude/scripts:$PATH"
+
+# Cleanup temp files AND child processes on exit
 _WORKER_TMPFILES=()
+_WORKER_CHILD_PIDS=()
 _worker_cleanup() {
+	for pid in "${_WORKER_CHILD_PIDS[@]}"; do
+		kill -9 "$pid" 2>/dev/null || true
+	done
 	for f in "${_WORKER_TMPFILES[@]}"; do
 		[[ -f "$f" ]] && rm -f "$f"
 	done
@@ -71,9 +78,10 @@ if [[ "$STATUS" != "pending" && "$STATUS" != "in_progress" ]]; then
 fi
 
 # Get context for execution and delegation log
+# Bug fix: resolve wave worktree first (wave-per-worktree model), fallback to plan worktree
 TASK_CTX=$(sqlite3 "$DB_FILE" "
 	SELECT json_object(
-		'worktree', COALESCE(p.worktree_path,''),
+		'worktree', COALESCE(w.worktree_path, p.worktree_path, ''),
 		'plan_id', COALESCE(t.plan_id,0),
 		'project_id', COALESCE(p.project_id,''),
 		'task_type', COALESCE(t.type,'code'),
@@ -81,6 +89,7 @@ TASK_CTX=$(sqlite3 "$DB_FILE" "
 	)
 	FROM tasks t
 	JOIN plans p ON t.plan_id = p.id
+	LEFT JOIN waves w ON t.wave_id_fk = w.id
 	WHERE t.id = $TASK_ID;
 ")
 WT="$(echo "$TASK_CTX" | jq -r '.worktree // ""')"
@@ -107,10 +116,13 @@ execute_copilot() {
 	_WORKER_TMPFILES+=("$copilot_stdout_file")
 
 	# Pipe copilot output to tee: file + stderr (visible to user)
-	# Only metadata echo goes to stdout (captured by caller)
+	# Track child PID for cleanup on parent exit
 	timeout "$TIMEOUT" copilot --yolo --add-dir "$WT" \
-		--model "$MODEL" -p "$PROMPT" 2>&1 | tee "$copilot_stdout_file" >&2 || true
-	exit_code="${PIPESTATUS[0]}"
+		--model "$MODEL" -p "$PROMPT" 2>&1 | tee "$copilot_stdout_file" >&2 &
+	local copilot_bg_pid=$!
+	_WORKER_CHILD_PIDS+=("$copilot_bg_pid")
+	wait "$copilot_bg_pid" || true
+	exit_code=$?
 
 	echo "$exit_code|$copilot_stdout_file|$(($(date +%s) - start_ts))"
 }

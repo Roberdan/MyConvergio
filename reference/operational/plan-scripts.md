@@ -8,7 +8,7 @@
 
 - Tasks use `wave_id_fk` (numeric FK), NOT `wave_id` string
 - Use `plan-db.sh` for all DB operations (handles FK correctly)
-- **NEVER invent column names**. Schema: see `PLANNER-ARCHITECTURE.md`
+- **NEVER invent column names**. Schema: see `reference/operational/plan-db-schema.md`
 - **NEVER invent subcommands**. Use ONLY the commands listed below. Run `plan-db.sh` with no args to see help.
 
 ## Mandatory Plan Creation (NON-NEGOTIABLE)
@@ -20,7 +20,7 @@ NEVER create plans without `/planner` skill (Claude: `Skill(skill="planner")`, C
 | Entity | Valid statuses                                                                |
 | ------ | ----------------------------------------------------------------------------- |
 | Task   | `pending` \| `in_progress` \| `submitted` \| `done` \| `blocked` \| `skipped` \| `cancelled` |
-| Plan   | `todo` \| `doing` \| `done` \| `archived` \| `cancelled`                      |
+| Plan   | `todo` \| `doing` \| `done` \| `cancelled`                                   |
 | Wave   | `pending` \| `in_progress` \| `done` \| `blocked` \| `merging` \| `cancelled` |
 
 ## Task Lifecycle (v3.0, enforced)

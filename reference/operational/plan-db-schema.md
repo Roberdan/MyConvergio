@@ -212,17 +212,104 @@ WHERE p.id = ?
 ORDER BY w.position, t.id;
 ```
 
-## CLI Command Mapping
+## CLI Command Reference (Authoritative)
 
-| Command | SQL Operation |
-|---------|---------------|
-| `plan-db.sh list <pid>` | SELECT * FROM plans WHERE project_id = ? |
-| `plan-db.sh start <id>` | UPDATE plans SET status='doing', started_at=now() WHERE id=? |
-| `plan-db.sh complete <id>` | UPDATE plans SET status='done', completed_at=now() WHERE id=? |
-| `plan-db.sh update-task <id> <status>` | UPDATE tasks SET status=? WHERE id=? |
-| `plan-db.sh get-worktree <id>` | SELECT worktree_path FROM plans WHERE id=? |
-| `plan-db.sh json <id>` | Full plan export with waves/tasks as JSON |
-| `plan-db.sh sync <id>` | Recalculate tasks_done/tasks_total counters |
+### CRUD
+
+| Command | Purpose |
+|---------|---------|
+| `list <project_id>` | List plans for project |
+| `create <project_id> <name> [opts]` | Create plan. Opts: `--source-file`, `--markdown-path`, `--auto-worktree` |
+| `start <plan_id>` | Set plan status to 'doing' |
+| `add-wave <plan_id> <id> <name> [opts]` | Add wave. Opts: `--depends-on`, `--estimated-hours` |
+| `add-task <wave_id> <id> <title> [opts]` | Add task. Opts: `P0-P3`, type, `--description`, `--test-criteria` |
+| `update-task <task_id> <status> [notes]` | Update task status. **Blocks done/submitted** — use `plan-db-safe.sh` |
+| `update-wave <wave_id> <status>` | Update wave status |
+| `update-desc <plan_id> <desc>` | Set plan description (agent-facing) |
+| `update-summary <plan_id> <text>` | Set human summary (dashboard) |
+| `complete <plan_id>` | Mark plan done |
+| `cancel <plan_id> [reason]` | Cancel plan (cascades to tasks/waves) |
+| `cancel-wave <wave_db_id> [reason]` | Cancel wave (cascades to tasks) |
+| `cancel-task <task_db_id> [reason]` | Cancel single task |
+| `get-worktree <plan_id>` | Get worktree path |
+| `set-worktree <plan_id> <path>` | Set worktree path |
+| `get-wave-worktree <wave_db_id>` | Get wave worktree path |
+| `set-wave-worktree <wave_db_id> <path>` | Set wave worktree path |
+
+### Validation
+
+| Command | Purpose |
+|---------|---------|
+| `check-readiness <plan_id>` | Block if metadata/process gates missing |
+| `approve <plan_id> [notes]` | Record user approval (requires review+business+challenger) |
+| `evaluate-wave <wave_db_id>` | Check wave preconditions (JSON) |
+| `validate <plan_id> [by]` | Thor validates plan (counters, orphans, bulk) |
+| `validate-task <task_id> [plan_id] [by]` | Per-task Thor gate |
+| `validate-wave <wave_db_id> [by]` | Validate all done tasks in wave |
+| `validate-fxx <plan_id>` | Validate F-xx from markdown |
+| `drift-check <plan_id>` | Plan staleness vs main (JSON) |
+| `conflict-check <plan_id>` | Cross-plan file overlap detection |
+| `rebase-plan <plan_id>` | Rebase worktree onto latest main |
+| `sync <plan_id>` | Fix out-of-sync counters |
+
+### Cluster
+
+| Command | Purpose |
+|---------|---------|
+| `claim <plan_id> [--force]` | Claim plan for this host |
+| `release <plan_id>` | Release plan from this host |
+| `heartbeat` | Write heartbeat for this host |
+| `remote-status [project_id]` | Remote host status |
+| `cluster-status` | Unified view of all hosts |
+| `cluster-tasks` | In-progress tasks across hosts |
+| `token-report` | Per-project token/cost by host |
+| `autosync [start\|stop\|status]` | Auto-sync daemon |
+| `where [plan_id]` | Show execution host |
+
+### Bulk & Display
+
+| Command | Purpose |
+|---------|---------|
+| `import <plan_id> <spec.json\|yaml>` | Bulk import waves+tasks |
+| `render <plan_id>` | Generate markdown from DB |
+| `get-context <plan_id>` | Full plan+tasks JSON (1 call) |
+| `kanban` / `kanban-json` | Kanban board (text/JSON) |
+| `status [project_id]` | Quick status |
+| `json <plan_id>` | Plan as JSON |
+| `execution-tree <plan_id>` | Execution tree with statuses |
+
+### Knowledge Base
+
+| Command | Purpose |
+|---------|---------|
+| `kb-write <domain> <title> <content>` | Write to KB. Opts: `--tags`, `--confidence`, `--source-type`, `--source-ref`, `--project-id` |
+| `kb-search <query>` | Search KB. Opts: `--domain`, `--limit` |
+| `kb-hit <id>` | Record KB hit |
+| `skill-earn <name> <domain> <content>` | Earn skill. Opts: `--confidence low\|medium\|high` |
+| `skill-list` | List skills. Opts: `--domain`, `--min-confidence` |
+| `skill-promote <name>` | Promote to SKILL.md |
+| `skill-bump <name>` | Increase confidence |
+
+### Concurrency
+
+| Command | Purpose |
+|---------|---------|
+| `lock acquire\|release\|check\|list\|cleanup` | File-level locking |
+| `stale-check snapshot\|check\|diff\|cleanup` | Stale context detection |
+| `wave-overlap check-wave\|check-plan\|check-spec` | Intra-wave overlap |
+| `merge-queue enqueue\|process\|status\|cancel` | Sequential merge queue |
+
+### Intelligence
+
+| Command | Purpose |
+|---------|---------|
+| `add-learning <plan> <cat> <sev> <title>` | Record learning. Opts: `--detail`, `--task-id`, `--actionable` |
+| `get-learnings <plan>` | Get learnings. Opts: `--category`, `--severity`, `--actionable` |
+| `add-review <plan> <reviewer> <verdict>` | Record review. Opts: `--fxx-score`, `--completeness` |
+| `add-assessment <plan>` | Business assessment. Opts: `--effort-days`, `--complexity`, `--value`, `--roi` |
+| `add-actuals <plan>` | Record actuals. Opts: `--tokens`, `--cost`, `--ai-minutes`, `--total-tasks` |
+| `estimate-tokens <plan> <scope> <scope_id> <tokens>` | Token estimate. Opts: `--cost`, `--model` |
+| `calibrate-estimates [model]` | Accuracy stats by model |
 
 **Important**: Use `plan-db-safe.sh update-task <id> done` for automatic Thor validation
 

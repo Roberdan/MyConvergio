@@ -12,12 +12,26 @@ set -euo pipefail
 #
 # References: F-01 (universal CLI invocation), F-22 (engine routing)
 
-# Version: 2.0.0 - Modularized
+# Version: 2.1.0 - PATH hardening, process cleanup, wave-stop-on-fail
 set -euo pipefail
+
+# PATH hardening: ensure copilot/gh/claude are findable in non-login SSH shells
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$HOME/.claude/scripts:$PATH"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_FILE="${HOME}/.claude/data/dashboard.db"
 LOG_DIR="${HOME}/.claude/logs/execute-plan"
+
+# Track child processes for cleanup on exit/signal
+_EXEC_CHILD_PIDS=()
+_exec_cleanup() {
+	for pid in "${_EXEC_CHILD_PIDS[@]}"; do
+		kill -9 "$pid" 2>/dev/null || true
+	done
+	# Kill any remaining copilot processes spawned by this executor
+	pkill -9 -P $$ 2>/dev/null || true
+}
+trap _exec_cleanup EXIT INT TERM
 
 # Source shared libraries
 source "${SCRIPT_DIR}/lib/common.sh"

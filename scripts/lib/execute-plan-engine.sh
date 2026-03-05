@@ -1,7 +1,7 @@
 #!/bin/bash
 # execute-plan-engine.sh - Task execution and validation logic
 # Extracted from execute-plan.sh for modularization
-# Version: 1.0.0
+# Version: 1.1.0 - Fix: Thor for submitted, stop on wave fail, DB sync after wave
 
 # ============================================================================
 # DB helpers
@@ -287,6 +287,20 @@ execute_plan_waves() {
 					success "Task $task_code complete and validated"
 					DONE_TASKS=$((DONE_TASKS + 1))
 				fi
+			elif [[ "$new_status" == "submitted" ]]; then
+				# Task completed by worker but needs Thor validation (submitted → done)
+				step "Task $task_code is submitted — running Thor validation..."
+				local thor_exit=0
+				validate_task "$task_db_id" "$task_code" || thor_exit=$?
+
+				if [[ "$thor_exit" -ne 0 ]]; then
+					warn "Task $task_code failed Thor validation after submitted"
+					FAILED_TASKS=$((FAILED_TASKS + 1))
+					wave_failed=$((wave_failed + 1))
+				else
+					success "Task $task_code validated (submitted → done)"
+					DONE_TASKS=$((DONE_TASKS + 1))
+				fi
 			else
 				warn "Task $task_code ended with status=$new_status (exit=$task_exit)"
 				FAILED_TASKS=$((FAILED_TASKS + 1))
@@ -308,7 +322,7 @@ execute_plan_waves() {
 			fi
 
 			# Wave-per-worktree: merge via PR after successful Thor validation
-			if [[ -x "${SCRIPT_DIR}/wave-worktree.sh" ]]; then
+			if [[ "$DRY_RUN" -eq 0 && -x "${SCRIPT_DIR}/wave-worktree.sh" ]]; then
 				local wave_wt_check
 				wave_wt_check=$(db_query "$DB_FILE" "SELECT COALESCE(worktree_path,'') FROM waves WHERE id=$wave_db_id;")
 				if [[ -n "$wave_wt_check" ]]; then
@@ -318,8 +332,19 @@ execute_plan_waves() {
 					}
 				fi
 			fi
+
+			# DB sync: push dashboard.db snapshot to coordinator after wave done
+			if [[ "$DRY_RUN" -eq 0 && -x "${SCRIPT_DIR}/mesh-sync-all.sh" ]]; then
+				step "Syncing DB to mesh peers after wave $wave_code done..."
+				"${SCRIPT_DIR}/mesh-sync-all.sh" --phase config 2>&1 || {
+					warn "DB sync failed (non-blocking) — coordinator may have stale data"
+				}
+			fi
 		elif [[ "$wave_failed" -gt 0 ]]; then
-			warn "Wave $wave_code had $wave_failed failed task(s) — skipping wave Thor validation"
+			warn "Wave $wave_code had $wave_failed failed task(s) — STOPPING execution"
+			error "Fix failed/blocked tasks before continuing."
+			error "Resume with: execute-plan.sh $PLAN_ID --from <first-failed-task> --engine $ENGINE"
+			break
 		fi
 
 	done < <(get_waves)

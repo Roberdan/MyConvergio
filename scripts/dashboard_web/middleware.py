@@ -63,10 +63,10 @@ class MiddlewareMixin:
             "Content-Security-Policy",
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
             "img-src 'self' data:; "
             "connect-src 'self' ws://localhost:* ws://127.0.0.1:*; "
-            "font-src 'self' https://cdn.jsdelivr.net; "
+            "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; "
             "frame-ancestors 'none'",
         )
         super().end_headers()

@@ -10,10 +10,7 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "permissions": {
-    "allow": [
-      "Bash(npm *)",
-      "Bash(git *)"
-    ],
+    "allow": ["Bash(npm *)", "Bash(git *)"],
     "deny": [],
     "defaultMode": "bypassPermissions"
   },
@@ -75,6 +72,11 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/reviewer-lockout.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/enforce-worktree-boundary.sh",
             "timeout": 5
           }
         ]

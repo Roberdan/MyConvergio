@@ -13,7 +13,7 @@
 | Task isolation    | `Task(..., isolation="worktree")`       | `git checkout -b task-xxx` |
 | Quick fix on main | Direct edit on main (no branch needed)  | `git checkout -b fix/xxx`  |
 
-**Enforcement**: `worktree-guard.sh` blocks git write ops on main when worktrees exist. Agents creating bare branches = VIOLATION.
+**Enforcement**: `worktree-guard.sh` blocks git write ops on main when worktrees exist. `enforce-worktree-boundary.sh` blocks file edits outside the plan worktree. Agents creating bare branches or editing files outside their worktree = VIOLATION.
 
 ## Wave-per-Worktree Model (v2) — Default
 

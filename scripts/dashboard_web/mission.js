@@ -181,12 +181,19 @@ function _renderOnePlan(m) {
     }
     html += "</div>";
   }
-  const live = (m.tasks || []).filter(
-    (t) => t.status === "in_progress" || t.status === "submitted",
+  const running_tasks = (m.tasks || []).filter(
+    (t) => t.status === "in_progress",
   );
-  if (live.length) {
+  const submitted_count = (m.tasks || []).filter(
+    (t) => t.status === "submitted",
+  ).length;
+  if (running_tasks.length || submitted_count) {
     html += '<div class="live-flow-section">';
-    live.forEach((t) => (html += _renderTaskFlow(t)));
+    running_tasks.slice(0, 4).forEach((t) => (html += _renderTaskFlow(t)));
+    if (running_tasks.length > 4)
+      html += `<div style="font-size:10px;color:var(--text-dim);padding:2px 0">+ ${running_tasks.length - 4} more running</div>`;
+    if (submitted_count)
+      html += `<div style="font-size:10px;color:var(--gold);padding:2px 0">${submitted_count} task awaiting Thor validation</div>`;
     html += "</div>";
   }
   return html + "</div>";

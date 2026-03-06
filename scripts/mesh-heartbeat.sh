@@ -24,7 +24,7 @@ err() { echo -e "${R}[heartbeat]${N} $*" >&2; }
 _db() { sqlite3 "$DB" "$@"; }
 
 _load_json() {
-	local cpu tasks
+	local cpu tasks mem_total=0 mem_used=0
 	# uptime load average (1-min) — portable across macOS and Linux
 	if command -v uptime &>/dev/null; then
 		cpu="$(uptime 2>/dev/null | grep -oE 'load averages?: [0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+$' || echo "0")"
@@ -34,7 +34,23 @@ _load_json() {
 	# count in_progress tasks from DB (non-fatal if DB unavailable)
 	tasks="$(_db "SELECT COUNT(*) FROM tasks WHERE status='in_progress';" 2>/dev/null || echo "0")"
 
-	printf '{"cpu":%s,"tasks":%s}' "$cpu" "$tasks"
+	# RAM: macOS -> sysctl/vm_stat | Linux -> /proc/meminfo
+	if [[ "$(uname)" == "Darwin" ]]; then
+		mem_total=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.1f", $1/1073741824}')
+		local pages_free pages_inactive page_size used_bytes
+		pages_free=$(vm_stat 2>/dev/null | awk '/Pages free/ {gsub(/\./,"",$3); print $3}')
+		pages_inactive=$(vm_stat 2>/dev/null | awk '/Pages inactive/ {gsub(/\./,"",$3); print $3}')
+		page_size=$(sysctl -n hw.pagesize 2>/dev/null || echo 16384)
+		used_bytes=$(((${mem_total%.*} * 1073741824) - (${pages_free:-0} + ${pages_inactive:-0}) * page_size))
+		mem_used=$(echo "$used_bytes" | awk '{printf "%.1f", $1/1073741824}')
+	elif [[ -f /proc/meminfo ]]; then
+		mem_total=$(awk '/MemTotal/ {printf "%.1f", $2/1048576}' /proc/meminfo 2>/dev/null)
+		local mem_avail
+		mem_avail=$(awk '/MemAvailable/ {printf "%.1f", $2/1048576}' /proc/meminfo 2>/dev/null)
+		mem_used=$(echo "$mem_total $mem_avail" | awk '{printf "%.1f", $1-$2}')
+	fi
+
+	printf '{"cpu":%s,"tasks":%s,"mem_used_gb":%s,"mem_total_gb":%s}' "$cpu" "$tasks" "${mem_used:-0}" "${mem_total:-0}"
 }
 
 _capabilities() {

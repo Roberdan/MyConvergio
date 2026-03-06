@@ -43,7 +43,10 @@ function _meshNodeHtml(p) {
           ? Math.round((100 * pl.tasks_done) / pl.tasks_total)
           : 0,
       bar = pl.status === "doing" ? "var(--cyan)" : "var(--text-dim)";
-    planHtml += `<div class="mn-plan" onclick="event.stopPropagation();openPlanSidebar(${pl.id})"><div class="mn-plan-head"><span class="mn-plan-id">#${pl.id}</span> ${esc((pl.name || "").substring(0, 18))}</div><div class="mn-plan-bar"><div class="mn-plan-fill" style="width:${pp}%;background:${bar}"></div></div>${(pl.active_tasks || []).map((t) => `<div class="mn-task">${statusDot(t.status)} ${esc((t.title || "").substring(0, 22))}</div>`).join("")}</div>`;
+    const tasks = pl.active_tasks || [],
+      shown = tasks.slice(0, 3),
+      extra = tasks.length - 3;
+    planHtml += `<div class="mn-plan" onclick="event.stopPropagation();openPlanSidebar(${pl.id})"><div class="mn-plan-head"><span class="mn-plan-id">#${pl.id}</span> ${esc((pl.name || "").substring(0, 18))}</div><div class="mn-plan-bar"><div class="mn-plan-fill" style="width:${pp}%;background:${bar}"></div></div>${shown.map((t) => `<div class="mn-task">${statusDot(t.status)} ${esc((t.title || "").substring(0, 22))}</div>`).join("")}${extra > 0 ? `<div class="mn-task" style="color:var(--text-dim);font-style:italic">+ ${extra} more tasks</div>` : ""}</div>`;
   });
   const a = (act, ttl, svg) =>
     `<button class="mn-act-btn" data-peer="${esc(p.peer_name)}" data-action="${act}" title="${ttl}"><svg viewBox="0 0 16 16" width="14" height="14">${svg}</svg></button>`;

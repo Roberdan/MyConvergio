@@ -99,12 +99,14 @@ def peer_execution_map() -> dict[str, list[dict]]:
 
 _REMOTE_PROCS_CMD = (
     'export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"; '
+    'echo "===HOSTNAME==="; hostname -s 2>/dev/null || hostname; '
     'echo "===PROCS==="; '
     'ps -eo command 2>/dev/null | grep -oE "execute-plan\\.sh [0-9]+" | awk "{print \\$2}" | sort -u; '
     'ps -eo command 2>/dev/null | grep -oE "plan-([0-9]+)" | grep -oE "[0-9]+" | sort -u; '
     'echo "===PLANS==="; '
     'sqlite3 ~/.claude/data/dashboard.db ".timeout 3000" '
     '"SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,'
+    "COALESCE(p.execution_host,''),"
     "COALESCE(GROUP_CONCAT(CASE WHEN t.status IN ('in_progress','submitted','blocked') "
     "THEN t.task_id||'|'||COALESCE(t.title,'')||'|'||t.status END, ';;'), '') as active "
     "FROM plans p LEFT JOIN tasks t ON t.plan_id=p.id "
@@ -113,11 +115,12 @@ _REMOTE_PROCS_CMD = (
 
 
 def query_remote_plans(ssh_dest: str) -> list[dict]:
-    """SSH to a remote peer and query only plans with active execution evidence."""
+    """SSH to a remote peer and query only plans assigned to or running on that peer."""
     try:
         r = subprocess.run(
             [
                 "ssh",
+                "-n",
                 "-o",
                 "ConnectTimeout=3",
                 "-o",
@@ -131,23 +134,31 @@ def query_remote_plans(ssh_dest: str) -> list[dict]:
         )
         if r.returncode != 0:
             return []
-        section, active_plan_ids, all_plans = "", set(), []
+        section, remote_hostname = "", ""
+        active_plan_ids: set[int] = set()
+        all_plans: list[dict] = []
         for line in r.stdout.strip().splitlines():
+            if line == "===HOSTNAME===":
+                section = "hostname"
+                continue
             if line == "===PROCS===":
                 section = "procs"
                 continue
             if line == "===PLANS===":
                 section = "plans"
                 continue
-            if section == "procs" and line.strip().isdigit():
+            if section == "hostname":
+                remote_hostname = line.strip().lower()
+            elif section == "procs" and line.strip().isdigit():
                 active_plan_ids.add(int(line.strip()))
             elif section == "plans":
-                parts = line.split("|", 5)
-                if len(parts) < 5:
+                parts = line.split("|", 6)
+                if len(parts) < 6:
                     continue
+                exec_host = parts[5].strip().lower()
                 active_tasks = []
-                if len(parts) > 5 and parts[5]:
-                    for chunk in parts[5].split(";;"):
+                if len(parts) > 6 and parts[6]:
+                    for chunk in parts[6].split(";;"):
                         tp = chunk.split("|", 2)
                         if len(tp) >= 3 and tp[0]:
                             active_tasks.append(
@@ -160,10 +171,33 @@ def query_remote_plans(ssh_dest: str) -> list[dict]:
                         "status": parts[2],
                         "tasks_done": int(parts[3] or 0),
                         "tasks_total": int(parts[4] or 0),
+                        "exec_host": exec_host,
                         "active_tasks": active_tasks,
                     }
                 )
-        return [p for p in all_plans if p["id"] in active_plan_ids or p["active_tasks"]]
+        # Filter: only plans assigned to this peer OR with active processes on it
+        peer_name = ssh_dest.split("@")[-1].lower().replace("-", "").replace("_", "")
+        rh = remote_hostname.replace("-", "").replace("_", "")
+
+        def belongs_here(p: dict) -> bool:
+            eh = (
+                p["exec_host"]
+                .replace("-", "")
+                .replace("_", "")
+                .replace(".lan", "")
+                .replace(".local", "")
+            )
+            if p["id"] in active_plan_ids:
+                return True
+            if not eh:
+                return False
+            return eh == peer_name or eh == rh or peer_name in eh or rh in eh
+
+        return [
+            {k: v for k, v in p.items() if k != "exec_host"}
+            for p in all_plans
+            if belongs_here(p)
+        ]
     except Exception:
         return []
 

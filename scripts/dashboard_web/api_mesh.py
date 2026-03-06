@@ -62,10 +62,25 @@ def send_wol(mac: str, broadcast: str = "255.255.255.255", port: int = 9) -> boo
         return False
 
 
-def peer_host_match(peer_name: str, host: str) -> bool:
+def peer_host_match(peer_name: str, host: str, is_local: bool = False) -> bool:
     pn = peer_name.lower().replace("-", "").replace("_", "")
-    eh = host.lower().replace("-", "").replace("_", "")
-    return pn == eh or pn in eh or eh in pn
+    eh = (
+        host.lower()
+        .replace("-", "")
+        .replace("_", "")
+        .replace(".lan", "")
+        .replace(".local", "")
+    )
+    if pn == eh or pn in eh or eh in pn:
+        return True
+    if is_local:
+        import socket
+
+        local_h = (
+            socket.gethostname().lower().replace("-", "").replace("_", "").split(".")[0]
+        )
+        return local_h == eh or local_h in eh or eh in local_h
+    return False
 
 
 def resolve_host_to_peer(host: str) -> str:
@@ -124,7 +139,7 @@ def api_mesh() -> list[dict]:
             host_plans = [
                 e
                 for host, host_plans in local_exec_map.items()
-                if peer_host_match(p["peer_name"], host)
+                if peer_host_match(p["peer_name"], host, is_local=True)
                 for e in host_plans
             ]
             host_plan_ids = {pl["id"] for pl in host_plans}

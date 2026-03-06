@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.14.5] - 06 Mar 2026
+
+### Fixed
+- correct plan-to-node mapping + compact mesh cards + RAM heartbeat
+
+
 ## [v10.14.4] - 06 Mar 2026
 
 ### Changed

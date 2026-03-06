@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.12.3] - 06 Mar 2026
+
+### Changed
+- split frontend JS — kpi.js, mission.js, task-pipeline.js, mesh-actions split, formatters.js
+
+
 ## [v10.12.2] - 06 Mar 2026
 
 ### Changed

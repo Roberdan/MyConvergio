@@ -22,8 +22,10 @@ def extract_heartbeat(hb: dict) -> tuple[float, int, float, float]:
         try:
             d = json.loads(lj)
             if isinstance(d, dict):
-                cpu = float(d.get("cpu_load", d.get("cpu_load_1", 0)))
-                tasks = int(d.get("active_tasks", d.get("tasks_in_progress", 0)))
+                cpu = float(d.get("cpu", d.get("cpu_load", d.get("cpu_load_1", 0))))
+                tasks = int(
+                    d.get("tasks", d.get("active_tasks", d.get("tasks_in_progress", 0)))
+                )
                 mem_used = float(d.get("mem_used_gb", 0))
                 mem_total = float(d.get("mem_total_gb", 0))
         except Exception:
@@ -100,6 +102,9 @@ def peer_execution_map() -> dict[str, list[dict]]:
 _REMOTE_PROCS_CMD = (
     'export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"; '
     'echo "===HOSTNAME==="; hostname -s 2>/dev/null || hostname; '
+    'echo "===HEARTBEAT==="; '
+    'sqlite3 ~/.claude/data/dashboard.db ".timeout 1000" '
+    '"SELECT load_json FROM peer_heartbeats ORDER BY last_seen DESC LIMIT 1;"; '
     'echo "===PROCS==="; '
     'ps -eo command 2>/dev/null | grep -oE "execute-plan\\.sh [0-9]+" | awk "{print \\$2}" | sort -u; '
     'ps -eo command 2>/dev/null | grep -oE "plan-([0-9]+)" | grep -oE "[0-9]+" | sort -u; '
@@ -114,8 +119,8 @@ _REMOTE_PROCS_CMD = (
 )
 
 
-def query_remote_plans(ssh_dest: str) -> list[dict]:
-    """SSH to a remote peer and query only plans assigned to or running on that peer."""
+def query_remote_plans(ssh_dest: str) -> tuple[list[dict], str]:
+    """SSH to a remote peer. Returns (plans, heartbeat_json)."""
     try:
         r = subprocess.run(
             [
@@ -133,13 +138,16 @@ def query_remote_plans(ssh_dest: str) -> list[dict]:
             timeout=10,
         )
         if r.returncode != 0:
-            return []
-        section, remote_hostname = "", ""
+            return [], ""
+        section, remote_hostname, heartbeat_json = "", "", ""
         active_plan_ids: set[int] = set()
         all_plans: list[dict] = []
         for line in r.stdout.strip().splitlines():
             if line == "===HOSTNAME===":
                 section = "hostname"
+                continue
+            if line == "===HEARTBEAT===":
+                section = "heartbeat"
                 continue
             if line == "===PROCS===":
                 section = "procs"
@@ -149,6 +157,8 @@ def query_remote_plans(ssh_dest: str) -> list[dict]:
                 continue
             if section == "hostname":
                 remote_hostname = line.strip().lower()
+            elif section == "heartbeat" and line.strip().startswith("{"):
+                heartbeat_json = line.strip()
             elif section == "procs" and line.strip().isdigit():
                 active_plan_ids.add(int(line.strip()))
             elif section == "plans":
@@ -193,25 +203,29 @@ def query_remote_plans(ssh_dest: str) -> list[dict]:
                 return False
             return eh == peer_name or eh == rh or peer_name in eh or rh in eh
 
-        return [
+        filtered = [
             {k: v for k, v in p.items() if k != "exec_host"}
             for p in all_plans
             if belongs_here(p)
         ]
+        return filtered, heartbeat_json
     except Exception:
-        return []
+        return [], ""
 
 
-def get_remote_plans(peer_name: str, ssh_dest: str) -> list[dict]:
-    """Get remote plans with 30s cache."""
+def get_remote_plans(peer_name: str, ssh_dest: str) -> tuple[list[dict], str]:
+    """Get remote plans + heartbeat with 30s cache."""
     now = time.time()
     cached = _remote_cache.get(peer_name)
     if cached and (now - cached["ts"]) < _REMOTE_TTL:
-        return cached["data"]
-    plans = query_remote_plans(ssh_dest)
-    if plans:
-        _remote_cache[peer_name] = {"data": plans, "ts": now}
-    return plans or (cached["data"] if cached else [])
+        return cached["data"], cached.get("hb", "")
+    plans, hb = query_remote_plans(ssh_dest)
+    if plans or hb:
+        _remote_cache[peer_name] = {"data": plans, "ts": now, "hb": hb}
+    return (
+        plans or (cached["data"] if cached else []),
+        hb or (cached.get("hb", "") if cached else ""),
+    )
 
 
 _sync_cache: dict = {"data": None, "ts": 0}

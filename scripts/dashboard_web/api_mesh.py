@@ -5,6 +5,7 @@ Internal helpers (heartbeat, remote plans, tailscale) live in lib/mesh_helpers.p
 """
 
 import configparser
+import json
 import shlex
 import socket
 import subprocess
@@ -168,7 +169,18 @@ def api_mesh() -> list[dict]:
                         )
             plans = host_plans
         elif is_online:
-            plans = get_remote_plans(p["peer_name"], p.get("ssh_alias", p["peer_name"]))
+            plans, remote_hb = get_remote_plans(
+                p["peer_name"], p.get("ssh_alias", p["peer_name"])
+            )
+            if remote_hb:
+                try:
+                    rhb = json.loads(remote_hb)
+                    cpu = float(rhb.get("cpu", rhb.get("cpu_load", 0)))
+                    tasks = int(rhb.get("tasks", rhb.get("tasks_in_progress", 0)))
+                    mem_used = float(rhb.get("mem_used_gb", 0))
+                    mem_total = float(rhb.get("mem_total_gb", 0))
+                except Exception:
+                    pass
             if not plans:
                 plans = [
                     e

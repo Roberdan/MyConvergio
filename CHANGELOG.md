@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.14.7] - 06 Mar 2026
+
+### Fixed
+- live CPU+RAM from remote peers + fix local CPU field name
+
+
 ## [v10.14.6] - 06 Mar 2026
 
 ### Changed

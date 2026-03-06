@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.12.2] - 06 Mar 2026
+
+### Changed
+- split oversized backend files + dedup server.py
+
+
 ## [v10.12.1] - 06 Mar 2026
 
 ### Changed

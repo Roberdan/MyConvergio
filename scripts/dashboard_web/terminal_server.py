@@ -1,9 +1,5 @@
 """WebSocket + PTY terminal server for Convergio Control Room.
 
-Uses `websockets` library for proper browser WebSocket protocol handling.
-Each connection spawns a real pseudo-terminal via pty.fork().
-Supports local shell and SSH to remote mesh peers.
-
 Usage: python3 terminal_server.py [--port 8421]
 """
 
@@ -31,11 +27,7 @@ PORT = 8421
 
 
 def get_ssh_config(peer_name: str) -> dict:
-    """Return SSH connection config for a peer as {user, host}.
-
-    Reads peers.conf to get the ssh_alias (host) and user fields.
-    Falls back to peer_name as host and current OS user if not found.
-    """
+    """Return SSH connection config {user, host} for a peer."""
     fallback_user = os.environ.get("USER") or os.environ.get("LOGNAME") or "root"
     if not PEERS_CONF.exists():
         return {"user": fallback_user, "host": peer_name}
@@ -49,18 +41,15 @@ def get_ssh_config(peer_name: str) -> dict:
 
 
 async def terminal_handler(ws):
-    # Parse peer from request path
     path = ws.request.path if hasattr(ws.request, "path") else ""
     parsed = urlparse(path)
     qs = parse_qs(parsed.query)
     peer = qs.get("peer", ["local"])[0]
     tmux_session = qs.get("tmux_session", [""])[0]
 
-    # Determine command
     if peer and peer not in ("local", ""):
         ssh_cfg = get_ssh_config(peer)
         user, host = ssh_cfg["user"], ssh_cfg["host"]
-        # Prepend common paths (SSH BatchMode has minimal PATH)
         path_prefix = (
             "export PATH=/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH; "
         )
@@ -98,7 +87,6 @@ async def terminal_handler(ws):
 
 
 async def _terminal_handler_pty(ws, cmd):
-    """POSIX PTY-based terminal handler."""
     pid, master_fd = pty.fork()
     if pid == 0:
         os.environ["TERM"] = "xterm-256color"
@@ -183,7 +171,6 @@ async def _terminal_handler_pty(ws, cmd):
 
 
 async def _terminal_handler_subprocess(ws, cmd):
-    """Windows fallback: subprocess pipes (no PTY)."""
     import subprocess
 
     proc = await asyncio.create_subprocess_exec(
@@ -232,16 +219,10 @@ async def main():
         idx = sys.argv.index("--port")
         port = int(sys.argv[idx + 1])
 
-    bind_host = "0.0.0.0"  # All interfaces for mesh access
-    async with websockets.serve(
-        terminal_handler,
-        bind_host,
-        port,
-        origins=None,  # Allow all origins (cross-port)
-    ):
+    bind_host = "0.0.0.0"
+    async with websockets.serve(terminal_handler, bind_host, port, origins=None):
         print(f"\033[1;35m◈ Terminal Server\033[0m → ws://{bind_host}:{port}")
-        print(f"  Peers: {PEERS_CONF}")
-        print(f"  Press Ctrl+C to stop\n")
+        print(f"  Peers: {PEERS_CONF}\n")
         await asyncio.Future()  # Run forever
 
 

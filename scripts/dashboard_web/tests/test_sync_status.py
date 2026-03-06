@@ -1,4 +1,4 @@
-"""Tests for /api/mesh/sync-status endpoint in server.py."""
+"""Tests for /api/mesh/sync-status — logic lives in lib/mesh_helpers.py."""
 
 import sys
 import time
@@ -10,6 +10,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import server  # noqa: E402
+import lib.mesh_helpers as mesh_helpers  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -47,28 +48,28 @@ def _make_peers_conf(tmp_path, content=SAMPLE_PEERS_CONF):
 
 
 # ---------------------------------------------------------------------------
-# Unit: _check_peer_sync
+# Unit: _check_peer_sync (now in lib.mesh_helpers)
 # ---------------------------------------------------------------------------
 
 
 class TestCheckPeerSync:
     def test_reachable_synced(self, tmp_path):
         """Peer reachable and HEAD matches local HEAD."""
-        local_sha = "abc1234 commit msg"
-        remote_sha = "abc1234 commit msg"
+        sha = "abc1234 commit msg"
 
-        with patch("server.subprocess.run") as mock_run:
-            local_result = MagicMock()
-            local_result.returncode = 0
-            local_result.stdout = local_sha
+        local_result = MagicMock()
+        local_result.returncode = 0
+        local_result.stdout = sha
 
-            remote_result = MagicMock()
-            remote_result.returncode = 0
-            remote_result.stdout = remote_sha
+        remote_result = MagicMock()
+        remote_result.returncode = 0
+        remote_result.stdout = sha
 
-            mock_run.side_effect = [local_result, remote_result]
-
-            result = server._check_peer_sync("omarchy", "roberdan", "omarchy.ts.net")
+        with patch("lib.mesh_helpers.subprocess.run", return_value=local_result):
+            with patch("lib.mesh_helpers.ssh_run", return_value=remote_result):
+                result = mesh_helpers._check_peer_sync(
+                    "omarchy", "roberdan", "omarchy.ts.net"
+                )
 
         assert result["peer_name"] == "omarchy"
         assert result["reachable"] is True
@@ -76,18 +77,19 @@ class TestCheckPeerSync:
 
     def test_reachable_not_synced(self, tmp_path):
         """Peer reachable but HEAD differs from local."""
-        with patch("server.subprocess.run") as mock_run:
-            local_result = MagicMock()
-            local_result.returncode = 0
-            local_result.stdout = "abc1234 commit A"
+        local_result = MagicMock()
+        local_result.returncode = 0
+        local_result.stdout = "abc1234 commit A"
 
-            remote_result = MagicMock()
-            remote_result.returncode = 0
-            remote_result.stdout = "def5678 commit B"
+        remote_result = MagicMock()
+        remote_result.returncode = 0
+        remote_result.stdout = "def5678 commit B"
 
-            mock_run.side_effect = [local_result, remote_result]
-
-            result = server._check_peer_sync("omarchy", "roberdan", "omarchy.ts.net")
+        with patch("lib.mesh_helpers.subprocess.run", return_value=local_result):
+            with patch("lib.mesh_helpers.ssh_run", return_value=remote_result):
+                result = mesh_helpers._check_peer_sync(
+                    "omarchy", "roberdan", "omarchy.ts.net"
+                )
 
         assert result["reachable"] is True
         assert result["config_synced"] is False
@@ -96,38 +98,43 @@ class TestCheckPeerSync:
         """SSH fails → reachable=false, config_synced=null."""
         import subprocess
 
-        with patch("server.subprocess.run") as mock_run:
-            local_result = MagicMock()
-            local_result.returncode = 0
-            local_result.stdout = "abc1234 commit msg"
+        local_result = MagicMock()
+        local_result.returncode = 0
+        local_result.stdout = "abc1234 commit msg"
 
-            mock_run.side_effect = [local_result, subprocess.TimeoutExpired("ssh", 5)]
-
-            result = server._check_peer_sync("omarchy", "roberdan", "omarchy.ts.net")
+        with patch("lib.mesh_helpers.subprocess.run", return_value=local_result):
+            with patch(
+                "lib.mesh_helpers.ssh_run",
+                side_effect=subprocess.TimeoutExpired("ssh", 5),
+            ):
+                result = mesh_helpers._check_peer_sync(
+                    "omarchy", "roberdan", "omarchy.ts.net"
+                )
 
         assert result["reachable"] is False
         assert result["config_synced"] is None
 
     def test_ssh_nonzero_exit(self):
         """SSH returns nonzero → unreachable."""
-        with patch("server.subprocess.run") as mock_run:
-            local_result = MagicMock()
-            local_result.returncode = 0
-            local_result.stdout = "abc1234 commit msg"
+        local_result = MagicMock()
+        local_result.returncode = 0
+        local_result.stdout = "abc1234 commit msg"
 
-            remote_result = MagicMock()
-            remote_result.returncode = 255  # connection refused
+        remote_result = MagicMock()
+        remote_result.returncode = 255  # connection refused
 
-            mock_run.side_effect = [local_result, remote_result]
-
-            result = server._check_peer_sync("omarchy", "roberdan", "omarchy.ts.net")
+        with patch("lib.mesh_helpers.subprocess.run", return_value=local_result):
+            with patch("lib.mesh_helpers.ssh_run", return_value=remote_result):
+                result = mesh_helpers._check_peer_sync(
+                    "omarchy", "roberdan", "omarchy.ts.net"
+                )
 
         assert result["reachable"] is False
         assert result["config_synced"] is None
 
 
 # ---------------------------------------------------------------------------
-# Unit: api_mesh_sync_status
+# Unit: api_mesh_sync_status (now in lib.mesh_helpers)
 # ---------------------------------------------------------------------------
 
 
@@ -135,15 +142,9 @@ class TestApiMeshSyncStatus:
     def test_returns_list_per_active_peer(self, tmp_path, monkeypatch):
         """Returns one entry per active peer (skips inactive)."""
         peers_path = _make_peers_conf(tmp_path)
-        monkeypatch.setattr(server, "PEERS_CONF", peers_path)
-        # Clear cache
-        server._sync_cache["data"] = None
-        server._sync_cache["ts"] = 0
-
-        fake_hb = {
-            "m3max": {"peer_name": "m3max", "last_seen": time.time() - 10},
-            "omarchy": {"peer_name": "omarchy", "last_seen": time.time() - 30},
-        }
+        monkeypatch.setattr(mesh_helpers, "PEERS_CONF", peers_path)
+        mesh_helpers._sync_cache["data"] = None
+        mesh_helpers._sync_cache["ts"] = 0
 
         def fake_check(peer_name, user, host):
             return {
@@ -153,11 +154,10 @@ class TestApiMeshSyncStatus:
                 "last_heartbeat_age_sec": 10,
             }
 
-        with patch("server._check_peer_sync", side_effect=fake_check):
-            with patch("server.query", return_value=[]):
-                result = server.api_mesh_sync_status()
+        with patch("lib.mesh_helpers._check_peer_sync", side_effect=fake_check):
+            with patch("lib.mesh_helpers.query", return_value=[]):
+                result = mesh_helpers.api_mesh_sync_status()
 
-        # inactive_peer must be excluded
         names = [r["peer_name"] for r in result]
         assert "m3max" in names
         assert "omarchy" in names
@@ -166,30 +166,29 @@ class TestApiMeshSyncStatus:
     def test_cache_returns_stale_within_60s(self, tmp_path, monkeypatch):
         """Result is cached for 60s; second call must not re-check peers."""
         peers_path = _make_peers_conf(tmp_path)
-        monkeypatch.setattr(server, "PEERS_CONF", peers_path)
+        monkeypatch.setattr(mesh_helpers, "PEERS_CONF", peers_path)
 
         stale_data = [{"peer_name": "cached", "reachable": True, "config_synced": True}]
-        server._sync_cache["data"] = stale_data
-        server._sync_cache["ts"] = time.time() - 30  # 30s old → still fresh
+        mesh_helpers._sync_cache["data"] = stale_data
+        mesh_helpers._sync_cache["ts"] = time.time() - 30  # 30s old → still fresh
 
-        with patch("server._check_peer_sync") as mock_check:
-            result = server.api_mesh_sync_status()
+        with patch("lib.mesh_helpers._check_peer_sync") as mock_check:
+            result = mesh_helpers.api_mesh_sync_status()
             mock_check.assert_not_called()
 
         assert result == stale_data
 
-        # Reset
-        server._sync_cache["data"] = None
-        server._sync_cache["ts"] = 0
+        mesh_helpers._sync_cache["data"] = None
+        mesh_helpers._sync_cache["ts"] = 0
 
     def test_cache_refreshes_after_60s(self, tmp_path, monkeypatch):
         """Expired cache (>60s) triggers a new check."""
         peers_path = _make_peers_conf(tmp_path)
-        monkeypatch.setattr(server, "PEERS_CONF", peers_path)
+        monkeypatch.setattr(mesh_helpers, "PEERS_CONF", peers_path)
 
         old_data = [{"peer_name": "old", "reachable": True, "config_synced": True}]
-        server._sync_cache["data"] = old_data
-        server._sync_cache["ts"] = time.time() - 61  # expired
+        mesh_helpers._sync_cache["data"] = old_data
+        mesh_helpers._sync_cache["ts"] = time.time() - 61  # expired
 
         def fake_check(peer_name, user, host):
             return {
@@ -199,24 +198,22 @@ class TestApiMeshSyncStatus:
                 "last_heartbeat_age_sec": 5,
             }
 
-        with patch("server._check_peer_sync", side_effect=fake_check):
-            with patch("server.query", return_value=[]):
-                result = server.api_mesh_sync_status()
+        with patch("lib.mesh_helpers._check_peer_sync", side_effect=fake_check):
+            with patch("lib.mesh_helpers.query", return_value=[]):
+                result = mesh_helpers.api_mesh_sync_status()
 
-        # Should have fresh data, not the old cache
         names = [r["peer_name"] for r in result]
         assert "old" not in names
 
-        # Reset
-        server._sync_cache["data"] = None
-        server._sync_cache["ts"] = 0
+        mesh_helpers._sync_cache["data"] = None
+        mesh_helpers._sync_cache["ts"] = 0
 
     def test_last_heartbeat_age_populated(self, tmp_path, monkeypatch):
         """last_heartbeat_age_sec is computed from peer_heartbeats DB."""
         peers_path = _make_peers_conf(tmp_path)
-        monkeypatch.setattr(server, "PEERS_CONF", peers_path)
-        server._sync_cache["data"] = None
-        server._sync_cache["ts"] = 0
+        monkeypatch.setattr(mesh_helpers, "PEERS_CONF", peers_path)
+        mesh_helpers._sync_cache["data"] = None
+        mesh_helpers._sync_cache["ts"] = 0
 
         now = time.time()
         hb_rows = [
@@ -229,12 +226,12 @@ class TestApiMeshSyncStatus:
                 "peer_name": peer_name,
                 "reachable": True,
                 "config_synced": True,
-                "last_heartbeat_age_sec": -1,  # will be overwritten
+                "last_heartbeat_age_sec": -1,
             }
 
-        with patch("server._check_peer_sync", side_effect=fake_check):
-            with patch("server.query", return_value=hb_rows):
-                result = server.api_mesh_sync_status()
+        with patch("lib.mesh_helpers._check_peer_sync", side_effect=fake_check):
+            with patch("lib.mesh_helpers.query", return_value=hb_rows):
+                result = mesh_helpers.api_mesh_sync_status()
 
         m3max_entry = next((r for r in result if r["peer_name"] == "m3max"), None)
         omarchy_entry = next((r for r in result if r["peer_name"] == "omarchy"), None)
@@ -245,7 +242,7 @@ class TestApiMeshSyncStatus:
 
 
 # ---------------------------------------------------------------------------
-# Integration: ROUTES registration
+# Integration: ROUTES registration (server re-exports api_mesh_sync_status)
 # ---------------------------------------------------------------------------
 
 
@@ -254,7 +251,8 @@ class TestRoutesRegistration:
         """/api/mesh/sync-status must be registered in ROUTES."""
         assert "/api/mesh/sync-status" in server.ROUTES
 
-    def test_sync_status_route_is_api_function(self):
-        """ROUTES['/api/mesh/sync-status'] must reference api_mesh_sync_status."""
-        # ROUTES captures function reference at module load; verify it IS the function
-        assert server.ROUTES["/api/mesh/sync-status"] is server.api_mesh_sync_status
+    def test_sync_status_route_is_callable(self):
+        """ROUTES['/api/mesh/sync-status'] must be the api_mesh_sync_status function."""
+        from lib.mesh_helpers import api_mesh_sync_status
+
+        assert server.ROUTES["/api/mesh/sync-status"] is api_mesh_sync_status

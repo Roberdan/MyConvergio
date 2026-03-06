@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.14.6] - 06 Mar 2026
+
+### Changed
+- enforce: zero tolerance for technical debt across all agents
+
+
 ## [v10.14.5] - 06 Mar 2026
 
 ### Fixed

@@ -132,9 +132,26 @@ THOR_REJECT:
 
 Executor parses `failed_tasks` for targeted fixes. After round 3: ESCALATED to user. Worker STOP.
 
-## Zero Tolerance
+## Zero Tolerance for Technical Debt (NON-NEGOTIABLE)
 
-**IMMEDIATELY REJECT**: `// TODO`, `// FIXME`, `@ts-ignore` without justification, `any` without reason, empty catch, copy-paste (DRY violation), "optimize later" comments. Agent defers ANYTHING to "later" = REJECTED.
+**IMMEDIATELY REJECT if ANY of these are found in new/changed code:**
+
+| Pattern                                            | Scan Command                                                    | Verdict                     |
+| -------------------------------------------------- | --------------------------------------------------------------- | --------------------------- |
+| `TODO`, `FIXME`, `HACK`, `XXX`                     | `grep -rEnI 'TODO\|FIXME\|HACK\|XXX' {files}`                   | REJECT                      |
+| `@ts-ignore`, `@ts-expect-error` without comment   | `grep -rn '@ts-ignore\|@ts-expect-error' {files}`               | REJECT                      |
+| `# noqa`, `eslint-disable` without justification   | `grep -rn 'noqa\|eslint-disable' {files}`                       | REJECT                      |
+| `any` type (TS) without JSDoc reason               | `grep -rn ': any\|as any' {files}`                              | REJECT                      |
+| Empty catch (`catch {}`, `catch (e) {}`)           | `grep -rn 'catch.*{.*}' {files}`                                | REJECT                      |
+| `console.log` / `print()` debug artifacts          | `grep -rn 'console\.log\|print(' {files}`                       | REJECT (unless logging lib) |
+| Commented-out code (>2 lines)                      | visual inspection                                               | REJECT                      |
+| "Will fix later" / "temporary" / "workaround"      | `grep -rni 'fix later\|temporary\|workaround\|for now' {files}` | REJECT                      |
+| Partial implementation (stub returns, placeholder) | visual inspection                                               | REJECT                      |
+| Known failing tests marked skip/xfail              | `grep -rn 'skip\|xfail\|pending' {test_files}`                  | REJECT                      |
+
+**Executor claims "out of scope" or "pre-existing" = NOT AN EXCUSE.** If they touched the file, they own ALL issues in that file. Pre-existing debt in modified files MUST be fixed.
+
+**Executor defers ANYTHING to "later" = REJECTED. No exceptions. No "will address in next wave". Fix NOW or BLOCK.**
 
 ## Brutal Challenge Questions (EVERY time)
 

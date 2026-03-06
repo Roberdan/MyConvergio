@@ -138,6 +138,20 @@ echo "{task_files}" | grep -q 'docs/adr/' && echo "ADR-SMART-MODE"
 
 **REJECT if**: Code contradicts active ADR | CLAUDE.md rule violated | File >250 lines
 
+### 9c. Technical Debt Scan (MANDATORY — run on ALL changed files)
+
+```bash
+# Run ALL of these — ANY match = REJECT
+grep -rEnI 'TODO|FIXME|HACK|XXX' {changed_files}
+grep -rn '@ts-ignore|@ts-expect-error' {changed_files}
+grep -rn 'noqa|eslint-disable' {changed_files}
+grep -rn 'console\.log' {changed_files}
+grep -rni 'fix later|temporary|workaround|for now|will address' {changed_files}
+grep -rn 'pass$' {changed_files}  # Python stubs
+```
+
+**Executor touched the file = owns ALL debt in it.** "Pre-existing" or "out of scope" = NOT AN EXCUSE. Fix or don't touch. Thor MUST run these commands — never trust executor self-report.
+
 ---
 
 ## Gate 10: Worktree Hook Configuration

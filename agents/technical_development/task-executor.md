@@ -186,6 +186,24 @@ plan-db-safe.sh update-task {id} done "Summary" --tokens N --output-data '{"summ
 session-reaper.sh --max-age 0 2>/dev/null || true
 ```
 
+## Zero Technical Debt (NON-NEGOTIABLE)
+
+**EVERY issue found during execution MUST be resolved before marking done.** No exceptions.
+
+| Violation                                                      | Consequence                                |
+| -------------------------------------------------------------- | ------------------------------------------ |
+| `// TODO`, `// FIXME`, `// HACK` in new/changed code           | BLOCKED — remove or fix NOW                |
+| Lint warnings (even non-error) in changed files                | BLOCKED — fix ALL, not just errors         |
+| Type errors, `any` without JSDoc justification                 | BLOCKED — fix or type properly             |
+| Failing tests (even pre-existing if in changed files)          | BLOCKED — fix them, don't skip             |
+| Console.log / print() left in production code                  | BLOCKED — remove                           |
+| Empty catch blocks, swallowed errors                           | BLOCKED — handle or re-throw               |
+| "Will fix later", "Out of scope", "Known issue"                | BLOCKED — fix NOW or escalate to user      |
+| Partial implementation ("works for now")                       | BLOCKED — complete it                      |
+| Suppressed warnings (`@ts-ignore`, `# noqa`, `eslint-disable`) | BLOCKED unless safety comment explains WHY |
+
+**Deferring ANY problem to "later" = VIOLATION.** If you can't fix it, mark `blocked` with explanation — NEVER mark `done` with known issues.
+
 ## Anti-Patterns
 
 - Don't query DB for task details (PRE-LOADED)
@@ -194,9 +212,11 @@ session-reaper.sh --max-age 0 2>/dev/null || true
 - Don't mark done without testing or proof (`git-digest.sh --full`)
 - Don't use raw git diff/status/log
 - Don't retry same failing approach >2 times without self-healing (Phase 3.8)
-- Don't defer issues to "later"
+- Don't defer issues to "later" — fix or BLOCK, never ignore
 - Don't run Bash without timeout
 - Don't mark `blocked` without exhausting self-healing first
+- Don't mark `done` with ANY known issue, warning, or failing test
+- Don't leave dead code, commented-out code, or debug artifacts
 
 ## EXIT CHECKLIST
 

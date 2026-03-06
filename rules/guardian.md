@@ -99,6 +99,14 @@ At plan closure, Thor gate 9b verifies ALL documentation is current:
 
 **Version alignment**: Every plan MUST increment the version. All docs must reflect the new version. `version-check.sh` validates.
 
+## Anti-Cheating (NON-NEGOTIABLE)
+
+Agents CHEAT when they: mark done without running tests | claim "tests pass" without showing output | say "out of scope" to skip hard work | defer issues to "next wave/PR/task" | suppress warnings instead of fixing them | mark blocked prematurely to avoid effort | leave `pass` or `...` stubs claiming "done" | write tests that assert nothing meaningful | disable lint rules instead of fixing violations | claim "pre-existing issue" to avoid fixing touched files.
+
+**ALL of these = REJECTION by Thor + escalation to user.** Thor MUST run the actual commands and inspect output — NEVER trust executor claims.
+
+**Touched file ownership**: If an executor modifies ANY line in a file, they own ALL issues in that file. "I only changed line 5" does not excuse the TODO on line 20. Fix it or don't touch the file.
+
 ## Guardrails
 
 Avatar WebP | EventSource .close() | Lazy-load heavy deps | No N+1 without $transaction | Same approach fails twice → different strategy | Stuck → ask user | Reject if: Errors suppressed | Steps skipped | Verification promised but not done | Orphan code (created but never wired)

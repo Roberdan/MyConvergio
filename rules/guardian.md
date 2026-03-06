@@ -1,4 +1,4 @@
-<!-- v2.6.0 -->
+<!-- v2.7.0 -->
 
 # Process Guardian
 
@@ -106,6 +106,51 @@ Agents CHEAT when they: mark done without running tests | claim "tests pass" wit
 **ALL of these = REJECTION by Thor + escalation to user.** Thor MUST run the actual commands and inspect output — NEVER trust executor claims.
 
 **Touched file ownership**: If an executor modifies ANY line in a file, they own ALL issues in that file. "I only changed line 5" does not excuse the TODO on line 20. Fix it or don't touch the file.
+
+## Assessment Coverage Gate (NON-NEGOTIABLE)
+
+When a plan is based on a diagnostic report, security assessment, or audit document:
+
+1. **Extract ALL findings**: Every finding (F-xx, B.x, C.x, etc.) MUST be listed explicitly
+2. **Map every finding to a task**: Each finding → at least one plan task, OR explicit exclusion with user approval via AskUserQuestion
+3. **Coverage matrix**: Planner MUST produce a `| Finding | Task | Status |` table visible to user BEFORE approval
+4. **Silent exclusion = VIOLATION**: Skipping ANY finding without user acknowledgment = REJECTED. "Out of scope" or "deferred" without explicit approval = REJECTED
+5. **Severity ordering**: Critical/High findings MUST be in early waves. Never defer Critical findings to "later"
+
+_Why: Plan 18.5.0 silently skipped F-01 (Critical), F-02, F-03, F-04 (all High) from the assessment. Nobody noticed until production broke._
+
+## Schema Migration Gate (NON-NEGOTIABLE)
+
+When a task creates or modifies a database model/schema (any language, any ORM):
+
+| ORM/Framework | Model change requires |
+|---|---|
+| SQLAlchemy (Alembic) | New file in `alembic/versions/` |
+| Django | `python manage.py makemigrations` output committed |
+| Prisma | `prisma migrate dev` output committed |
+| TypeORM | New migration file in `migrations/` |
+| Sequelize | New migration file |
+| Raw SQL | Migration script in `migrations/` or equivalent |
+
+**Thor MUST verify**: `new/modified model file` → `corresponding migration file in same PR`. Missing migration = REJECTION.
+
+**Verify command** (generic): search for new model classes/tables in diff, then verify migration exists:
+- Python/Alembic: `git diff --name-only | grep models/ && git diff --name-only | grep alembic/versions/`
+- If model changed but no migration → REJECT
+
+_Why: PR #235 added `PatToken` model without Alembic migration. Table never created in production. All users lost data access._
+
+## Post-Deploy Smoke Test (NON-NEGOTIABLE)
+
+Plans touching authentication, authorization, data access, or storage MUST include a smoke test task in the final wave:
+
+1. **What to test**: Login → navigate → verify data is non-empty → verify correct user context
+2. **How**: API call to a data endpoint that requires auth + scope. Assert `response.status == 200` AND `len(data) > 0`
+3. **When**: After deploy to staging (CI) or as final Thor gate
+
+**Empty data on authenticated endpoint = FAIL.** The smoke test must distinguish "no data because empty DB" from "no data because auth/token/scope is broken".
+
+_Why: v19.1.0 deployed with broken PAT storage. All dashboards showed zero. No smoke test caught it._
 
 ## Guardrails
 

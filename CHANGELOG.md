@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.14.8] - 06 Mar 2026
+
+### Changed
+- Add assessment coverage and schema migration gates
+
+
 ## [v10.14.7] - 06 Mar 2026
 
 ### Fixed

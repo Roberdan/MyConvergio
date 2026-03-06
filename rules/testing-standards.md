@@ -1,8 +1,8 @@
-<!-- v1.0.0 -->
+<!-- v1.1.0 -->
 
 # Testing Standards
 
-> Addresses: mock masking, integration gaps, cascading silent failures
+> Addresses: mock masking, integration gaps, cascading silent failures, schema/migration drift
 
 ## Mock Boundaries (NON-NEGOTIABLE)
 
@@ -75,6 +75,37 @@ Test data MUST reflect real production values. NEVER invent, hallucinate, or use
 
 **Enforcement**: Thor Gate 8b checks test data against production format. `code-pattern-check.sh` flags generic test data patterns.
 
+## Schema-Migration Consistency (NON-NEGOTIABLE)
+
+When a PR adds/modifies a database model, a corresponding migration MUST exist in the same PR.
+
+| Check | REJECT if |
+|---|---|
+| New model class | No migration file creates the table |
+| Column added/removed/renamed | No migration file alters the table |
+| Index added/removed | No migration file modifies indexes |
+| Model deleted | No migration file drops the table |
+
+**Verify** (language-generic):
+```bash
+# Files with model changes
+MODEL_FILES=$(git diff --name-only HEAD~1 | grep -iE 'models/|schema|entities/')
+# Files with migrations
+MIGRATION_FILES=$(git diff --name-only HEAD~1 | grep -iE 'migrations/|alembic/versions/|prisma/migrations/')
+# If MODEL_FILES non-empty and MIGRATION_FILES empty → REJECT
+```
+
+_Why: PR #235 added `PatToken` model without migration. Production table never created. Silent failure._
+
+## Post-Deploy Data Smoke Test (NON-NEGOTIABLE)
+
+Plans touching auth, RBAC, tokens, or data access MUST include a smoke test that verifies:
+1. Authenticated request returns `200` (not `401`/`403`)
+2. Response contains non-empty data (not `[]` or `{"engagements": []}`)
+3. Scope filtering returns correct subset (not everything, not nothing)
+
+**Silent empty data = BUG.** If an endpoint returns empty when it shouldn't, the test MUST fail loudly.
+
 ## Test Quality Checklist (Thor Gate 8 Extension)
 
 | Check | REJECT if |
@@ -84,3 +115,5 @@ Test data MUST reflect real production values. NEVER invent, hallucinate, or use
 | Coverage without assertions | Test has 80% coverage but zero meaningful assertions |
 | Format mismatch | Test uses different data format than production (case, shape) |
 | Missing consumer test | New export has zero tests for its integration point |
+| Missing migration | New/modified ORM model without corresponding migration file |
+| Missing smoke test | Auth/RBAC/data plan without post-deploy data verification |

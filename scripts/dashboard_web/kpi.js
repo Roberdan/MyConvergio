@@ -161,27 +161,40 @@ window.resumePlanExecution = function (planId, peer) {
     window.DashboardState.lastMeshData
       .flatMap((n) => (n.plans || []).map((p) => ({ ...p, node: n.peer_name })))
       .find((p) => p.id === planId);
-  const assignedHost = planData
-    ? planData.node
-    : peer || "local";
+  const assignedHost = planData ? planData.node : peer || "local";
   const target =
     assignedHost === "local" || assignedHost === "m3max"
       ? "local"
       : assignedHost;
 
-  // Check for duplicate: don't resume if already running on another node
-  if (typeof termMgr !== "undefined") {
-    const session = "plan-" + planId;
-    termMgr.open(target, "Resume #" + planId, session);
-    setTimeout(() => {
-      const tab = termMgr.tabs.find((t) => t.id === termMgr.activeId);
-      if (tab && tab.ws && tab.ws.readyState === WebSocket.OPEN) {
-        const cmd =
-          "env -u CLAUDECODE execute-plan.sh " + planId + "\n";
-        tab.ws.send(new TextEncoder().encode(cmd));
-      }
-    }, 3000);
-  }
+  if (typeof termMgr === "undefined") return;
+
+  const session = "plan-" + planId;
+  const tabId = termMgr.open(target, "Resume #" + planId, session);
+
+  // Wait for WebSocket to actually connect, then send resume command
+  const tab = termMgr.tabs.find((t) => t.id === tabId);
+  if (!tab) return;
+
+  const sendResume = () => {
+    if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
+      const cmd =
+        'cd ~/.claude && claude --model sonnet -p "/execute ' + planId + '"\n';
+      tab.ws.send(new TextEncoder().encode(cmd));
+    }
+  };
+
+  // Poll for WS open state — don't overwrite onopen (addTab needs it)
+  let attempts = 0;
+  const waitForOpen = setInterval(() => {
+    attempts++;
+    if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
+      clearInterval(waitForOpen);
+      setTimeout(sendResume, 800);
+    } else if (attempts > 50) {
+      clearInterval(waitForOpen);
+    }
+  }, 100);
 };
 function _renderOnePlan(m) {
   const p = m.plan,

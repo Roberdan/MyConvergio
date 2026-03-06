@@ -46,8 +46,10 @@ from api_peers import (
 )
 from api_plans import (
     api_preflight_sse,
+    handle_plan_cancel,
     handle_plan_delegate,
     handle_plan_move,
+    handle_plan_reset,
     handle_plan_start_sse,
     handle_pull_remote_db,
 )
@@ -257,6 +259,12 @@ class Handler(MiddlewareMixin, SimpleHTTPRequestHandler):
             return
         if path == "/api/plan/move":
             self._json_response(handle_plan_move(qs))
+            return
+        if path == "/api/plan/cancel":
+            self._json_response(handle_plan_cancel(qs))
+            return
+        if path == "/api/plan/reset":
+            self._json_response(handle_plan_reset(qs))
             return
         if path == "/api/plan/preflight":
             api_preflight_sse(self, qs)

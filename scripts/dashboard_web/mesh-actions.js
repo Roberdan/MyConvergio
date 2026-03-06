@@ -7,7 +7,8 @@ window.meshAction = async function (action, peer) {
   if (action === "edit") {
     const peers = (typeof lastMeshData !== "undefined" && lastMeshData) || [];
     const peerData = peers.find((p) => p.peer_name === peer);
-    if (peerData && typeof showPeerForm === "function") showPeerForm("edit", peerData);
+    if (peerData && typeof showPeerForm === "function")
+      showPeerForm("edit", peerData);
     return;
   }
   if (action === "delete") {
@@ -288,17 +289,17 @@ function _showCliSelector(planId, peer, planName, prevOverlay) {
   overlay.innerHTML = `<div class="modal-box" style="max-width:420px">
     <div class="modal-title">Execute with → ${esc(peer)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
-      <button class="cli-choice-btn${defaultEngine === 'copilot' ? ' cli-default' : ''}" data-cli="copilot" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.25);border-radius:8px;color:var(--cyan);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
+      <button class="cli-choice-btn${defaultEngine === "copilot" ? " cli-default" : ""}" data-cli="copilot" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.25);border-radius:8px;color:var(--cyan);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
         <span style="font-size:20px">🤖</span>
-        <span><div>GitHub Copilot${defaultEngine === 'copilot' ? ' ★' : ''}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">copilot -p '/execute ${planId}'</div></span>
+        <span><div>GitHub Copilot${defaultEngine === "copilot" ? " ★" : ""}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">copilot -p '/execute ${planId}'</div></span>
       </button>
-      <button class="cli-choice-btn${defaultEngine === 'claude' ? ' cli-default' : ''}" data-cli="claude" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,160,0,0.06);border:1px solid rgba(255,160,0,0.25);border-radius:8px;color:var(--gold);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
+      <button class="cli-choice-btn${defaultEngine === "claude" ? " cli-default" : ""}" data-cli="claude" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,160,0,0.06);border:1px solid rgba(255,160,0,0.25);border-radius:8px;color:var(--gold);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
         <span style="font-size:20px">🧠</span>
-        <span><div>Claude Code${defaultEngine === 'claude' ? ' ★' : ''}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">claude --model sonnet -p '/execute ${planId}'</div></span>
+        <span><div>Claude Code${defaultEngine === "claude" ? " ★" : ""}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">claude --model sonnet -p '/execute ${planId}'</div></span>
       </button>
-      <button class="cli-choice-btn${defaultEngine === 'opencode' ? ' cli-default' : ''}" data-cli="opencode" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(140,140,140,0.06);border:1px solid rgba(140,140,140,0.25);border-radius:8px;color:var(--text-dim);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
+      <button class="cli-choice-btn${defaultEngine === "opencode" ? " cli-default" : ""}" data-cli="opencode" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(140,140,140,0.06);border:1px solid rgba(140,140,140,0.25);border-radius:8px;color:var(--text-dim);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
         <span style="font-size:20px">⚡</span>
-        <span><div>OpenCode / Other${defaultEngine === 'opencode' ? ' ★' : ''}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">opencode -p '/execute ${planId}'</div></span>
+        <span><div>OpenCode / Other${defaultEngine === "opencode" ? " ★" : ""}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">opencode -p '/execute ${planId}'</div></span>
       </button>
     </div>
   </div>`;
@@ -318,7 +319,13 @@ function _showCliSelector(planId, peer, planName, prevOverlay) {
 /**
  * Pre-delegation checks via SSE — shows each check appearing in real-time.
  */
-window.runPreflight = function (planId, targetPeer, planName, prevOverlay, cli) {
+window.runPreflight = function (
+  planId,
+  targetPeer,
+  planName,
+  prevOverlay,
+  cli,
+) {
   if (prevOverlay) prevOverlay.remove();
 
   const overlay = document.createElement("div");
@@ -369,7 +376,8 @@ window.runPreflight = function (planId, targetPeer, planName, prevOverlay, cli) 
       const icon = ok ? "✓" : "✗";
       const cls = ok ? "delegate-status-ok" : "delegate-status-fail";
       activeRow.classList.add(ok ? "preflight-pass" : "preflight-fail");
-      activeRow.querySelector(".preflight-icon").innerHTML = `<span class="${cls}" style="font-size:16px;font-weight:700">${icon}</span>`;
+      activeRow.querySelector(".preflight-icon").innerHTML =
+        `<span class="${cls}" style="font-size:16px;font-weight:700">${icon}</span>`;
       activeRow.querySelector(".preflight-name").textContent = data.name;
       const detailEl = activeRow.querySelector(".preflight-detail");
       detailEl.textContent = data.detail;
@@ -392,10 +400,12 @@ window.runPreflight = function (planId, targetPeer, planName, prevOverlay, cli) 
         <button id="preflight-go-btn" style="background:linear-gradient(135deg,var(--cyan),#00ff88);color:#0a0e1a;border:none;padding:10px 32px;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:1px">
           DELEGATE NOW
         </button>`;
-      document.getElementById("preflight-go-btn").addEventListener("click", () => {
-        overlay.remove();
-        delegatePlan(planId, targetPeer, planName, cli);
-      });
+      document
+        .getElementById("preflight-go-btn")
+        .addEventListener("click", () => {
+          overlay.remove();
+          delegatePlan(planId, targetPeer, planName, cli);
+        });
     } else {
       // Count failures
       const failCount = checksEl.querySelectorAll(".preflight-fail").length;
@@ -406,33 +416,43 @@ window.runPreflight = function (planId, targetPeer, planName, prevOverlay, cli) 
           <button id="preflight-retry-btn" class="preflight-action-btn" style="border-color:var(--cyan);color:var(--cyan)">RETRY CHECKS</button>
           <button id="preflight-sync-btn" class="preflight-action-btn" style="border-color:var(--gold);color:var(--gold)">SYNC &amp; RETRY</button>
         </div>`;
-      document.getElementById("preflight-retry-btn").addEventListener("click", () => {
-        overlay.remove();
-        runPreflight(planId, targetPeer, planName, null, cli);
-      });
-      document.getElementById("preflight-sync-btn").addEventListener("click", async () => {
-        const btn = document.getElementById("preflight-sync-btn");
-        btn.textContent = "Syncing…";
-        btn.disabled = true;
-        await fetchJson(`/api/mesh/action?action=sync&peer=${encodeURIComponent(targetPeer)}`);
-        overlay.remove();
-        runPreflight(planId, targetPeer, planName, null, cli);
-      });
+      document
+        .getElementById("preflight-retry-btn")
+        .addEventListener("click", () => {
+          overlay.remove();
+          runPreflight(planId, targetPeer, planName, null, cli);
+        });
+      document
+        .getElementById("preflight-sync-btn")
+        .addEventListener("click", async () => {
+          const btn = document.getElementById("preflight-sync-btn");
+          btn.textContent = "Syncing…";
+          btn.disabled = true;
+          await fetchJson(
+            `/api/mesh/action?action=sync&peer=${encodeURIComponent(targetPeer)}`,
+          );
+          overlay.remove();
+          runPreflight(planId, targetPeer, planName, null, cli);
+        });
     }
   });
 
   es.onerror = () => {
     es.close();
     if (activeRow) {
-      activeRow.querySelector(".preflight-icon").innerHTML = '<span class="delegate-status-fail" style="font-size:16px;font-weight:700">✗</span>';
-      activeRow.querySelector(".preflight-detail").textContent = "Connection lost";
+      activeRow.querySelector(".preflight-icon").innerHTML =
+        '<span class="delegate-status-fail" style="font-size:16px;font-weight:700">✗</span>';
+      activeRow.querySelector(".preflight-detail").textContent =
+        "Connection lost";
     }
     actionsEl.style.display = "block";
     actionsEl.innerHTML = `<button id="preflight-retry-btn" class="preflight-action-btn" style="border-color:var(--cyan);color:var(--cyan)">RETRY</button>`;
-    document.getElementById("preflight-retry-btn").addEventListener("click", () => {
-      overlay.remove();
-      runPreflight(planId, targetPeer, planName, null, cli);
-    });
+    document
+      .getElementById("preflight-retry-btn")
+      .addEventListener("click", () => {
+        overlay.remove();
+        runPreflight(planId, targetPeer, planName, null, cli);
+      });
   };
 };
 
@@ -468,7 +488,11 @@ window.delegatePlan = function (planId, targetPeer, planName, cli) {
     if (hasAnsi) {
       // Strip ANSI first to test patterns, then render with colors
       const stripped = line.replace(/\x1b\[[0-9;]*m/g, "");
-      if (stripped.startsWith("━━━") || stripped.startsWith("--- PHASE") || stripped.startsWith("=== ")) {
+      if (
+        stripped.startsWith("━━━") ||
+        stripped.startsWith("--- PHASE") ||
+        stripped.startsWith("=== ")
+      ) {
         html = `<div class="delegate-phase-header">${ansiToHtml(line)}</div>`;
       } else {
         html = ansiToHtml(line) + "\n";
@@ -479,7 +503,11 @@ window.delegatePlan = function (planId, targetPeer, planName, cli) {
       html = `<div class="delegate-phase-header">${esc(line)}</div>`;
     } else if (line.startsWith("▶")) {
       html = `<span style="color:var(--cyan)">${esc(line)}</span>\n`;
-    } else if (/^(OK|PASS|✓|✓ )/.test(line) || line.includes("started on") || line.includes("Sync completed")) {
+    } else if (
+      /^(OK|PASS|✓|✓ )/.test(line) ||
+      line.includes("started on") ||
+      line.includes("Sync completed")
+    ) {
       html = `<span class="delegate-status-ok">${esc(line)}</span>\n`;
     } else if (/^(WARN|⚠)/.test(line)) {
       html = `<span class="delegate-status-warn">${esc(line)}</span>\n`;
@@ -698,6 +726,74 @@ window.runFullSync = function (peer) {
     es.close();
     output.innerHTML += `\n<span style="color:var(--red)">✗ Connection lost</span>\n`;
   };
+};
+
+/**
+ * Cancel a plan — sets plan + waves + tasks to cancelled.
+ */
+window.cancelPlan = async function (planId) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `<div class="modal-box" style="max-width:400px">
+    <div class="modal-title">Cancel Plan #${planId}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">&#x2715;</span></div>
+    <div style="padding:14px">
+      <p style="color:var(--text);margin-bottom:12px">This will cancel all pending/in-progress tasks and waves for plan #${planId}. Already completed tasks will be preserved.</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="preflight-action-btn" style="border-color:var(--text-dim);color:var(--text-dim)" onclick="this.closest('.modal-overlay').remove()">Abort</button>
+        <button id="confirm-cancel-btn" class="preflight-action-btn" style="border-color:var(--red);color:var(--red)">Confirm Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  document
+    .getElementById("confirm-cancel-btn")
+    .addEventListener("click", async () => {
+      const res = await fetchJson(`/api/plan/cancel?plan_id=${planId}`);
+      overlay.remove();
+      if (res && res.ok) {
+        closeSidebar();
+        refreshAll();
+      } else {
+        showOutputModal("Cancel Error", res ? res.error : "Failed");
+      }
+    });
+};
+
+/**
+ * Reset a plan — resets to todo, all non-done tasks back to pending.
+ */
+window.resetPlan = async function (planId) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `<div class="modal-box" style="max-width:400px">
+    <div class="modal-title">Reset Plan #${planId}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">&#x2715;</span></div>
+    <div style="padding:14px">
+      <p style="color:var(--text);margin-bottom:12px">This will reset plan #${planId} back to "todo". All non-completed tasks will be set to pending. Agent assignments and token counts will be cleared.</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="preflight-action-btn" style="border-color:var(--text-dim);color:var(--text-dim)" onclick="this.closest('.modal-overlay').remove()">Abort</button>
+        <button id="confirm-reset-btn" class="preflight-action-btn" style="border-color:var(--gold);color:var(--gold)">Confirm Reset</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  document
+    .getElementById("confirm-reset-btn")
+    .addEventListener("click", async () => {
+      const res = await fetchJson(`/api/plan/reset?plan_id=${planId}`);
+      overlay.remove();
+      if (res && res.ok) {
+        closeSidebar();
+        refreshAll();
+      } else {
+        showOutputModal("Reset Error", res ? res.error : "Failed");
+      }
+    });
 };
 
 // Event delegation for .mn-act-btn — uses data-peer / data-action (XSS-safe)

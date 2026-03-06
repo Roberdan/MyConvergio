@@ -1,5 +1,14 @@
 # Changelog
 
+## [v10.10.0] - 06 Mar 2026
+
+### Added
+- comprehensive test suite + auto-version-bump script
+
+### Fixed
+- send JSON object in SSE phase event to prevent parse error
+
+
 ## [v10.9.0] - 05 Mar 2026
 
 ### Mesh Safety + Versioning Discipline

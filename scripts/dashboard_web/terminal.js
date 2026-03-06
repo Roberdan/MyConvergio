@@ -28,7 +28,7 @@ class TerminalManager {
       this._build();
     }
     if (!this.visible) this.show();
-    this.addTab(peer || "local", label || peer || "local", tmuxSession);
+    return this.addTab(peer || "local", label || peer || "local", tmuxSession);
   }
 
   show() {
@@ -141,8 +141,12 @@ class TerminalManager {
     ws.onclose = () => {
       if (!opened) {
         // Connection never succeeded — keep tab open so user sees the error
-        term.write("\r\n\x1b[33m⚠ Could not connect. Start terminal_server.py on port 8421.\x1b[0m\r\n");
-        term.write("\x1b[2m  python3 ~/.claude/scripts/dashboard_web/terminal_server.py\x1b[0m\r\n");
+        term.write(
+          "\r\n\x1b[33m⚠ Could not connect. Start terminal_server.py on port 8421.\x1b[0m\r\n",
+        );
+        term.write(
+          "\x1b[2m  python3 ~/.claude/scripts/dashboard_web/terminal_server.py\x1b[0m\r\n",
+        );
         return;
       }
       term.write("\r\n\x1b[2m[session ended]\x1b[0m\r\n");

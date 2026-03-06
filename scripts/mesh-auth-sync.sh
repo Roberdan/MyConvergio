@@ -30,27 +30,16 @@ peer_dest() {
 
 sync_claude() {
 	local dest="$1" peer="$2"
-	# Method 1: credentials.json file (legacy)
-	local src="$CLAUDE_HOME/.credentials.json"
-	if [[ -f "$src" ]]; then
-		info "[$peer] Syncing Claude credentials file..."
-		scp -q "$src" "${dest}:~/.claude/.credentials.json" &&
-			ssh -n -o BatchMode=yes -o ConnectTimeout=10 "$dest" "chmod 600 ~/.claude/.credentials.json" &&
-			ok "[$peer] Claude credentials file synced" ||
-			warn "[$peer] Claude credentials file sync failed"
-	fi
-	# Method 2: ANTHROPIC_API_KEY env var (works without OAuth)
-	if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
-		info "[$peer] Syncing ANTHROPIC_API_KEY..."
-		ssh -n -o BatchMode=yes -o ConnectTimeout=10 "$dest" \
-			"mkdir -p ~/.claude/config && printf 'ANTHROPIC_API_KEY=%s\n' '${ANTHROPIC_API_KEY}' > ~/.claude/config/claude-api.env && chmod 600 ~/.claude/config/claude-api.env" &&
-			ok "[$peer] ANTHROPIC_API_KEY synced" ||
-			{
-				err "[$peer] ANTHROPIC_API_KEY sync failed"
-				return 1
-			}
+	# Claude uses OAuth via Max subscription — login must be done interactively on each machine.
+	# Run `claude login` on the remote peer to authenticate.
+	# NEVER sync API keys (ANTHROPIC_API_KEY) — Max subscription only.
+	local has_auth
+	has_auth="$(ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
+		'[ -f ~/.claude/.credentials.json ] && echo yes || echo no' 2>/dev/null)"
+	if [[ "$has_auth" == "yes" ]]; then
+		ok "[$peer] Claude: OAuth credentials present"
 	else
-		warn "[$peer] No Claude credentials found (no .credentials.json, no ANTHROPIC_API_KEY)"
+		warn "[$peer] Claude: not logged in — run 'claude login' on this machine"
 	fi
 }
 
@@ -174,7 +163,7 @@ status_peer() {
 
 	local claude copilot opencode ollama
 	claude="$(ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
-		'([ -f ~/.claude/.credentials.json ] || [ -f ~/.claude/config/claude-api.env ]) && echo yes || echo no' 2>/dev/null)"
+		'[ -f ~/.claude/.credentials.json ] && echo yes || echo no' 2>/dev/null)"
 	copilot="$(ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
 		'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; command -v gh &>/dev/null && gh auth status &>/dev/null && echo yes || echo no' 2>/dev/null)"
 	opencode="$(ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$dest" \

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.11.0] - 06 Mar 2026
+
+### Added
+- remote Claude auth via setup-token + credential sync improvements
+
+
 ## [v10.10.2] - 06 Mar 2026
 
 ### Fixed

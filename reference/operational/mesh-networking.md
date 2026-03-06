@@ -1,4 +1,4 @@
-<!-- v1.2.0 | 03 Mar 2026 | Dashboard delegation, auto-sync, WoL, tmux integration -->
+<!-- v1.3.0 | 06 Mar 2026 | Remote auth via setup-token, credential sync phase -->
 
 # Mesh Networking
 
@@ -22,49 +22,35 @@ status=active
 # 2. Verify connectivity
 mesh-load-query.sh --peer my-vm --json
 
-# 3. Push credentials to new peer
+# 3. Push credentials (Copilot, OpenCode, Ollama)
 mesh-auth-sync.sh push --peer my-vm
+
+# 4. Deploy Claude OAuth token (requires setup-token first)
+mesh-claude-login.sh my-vm --token sk-ant-oat01-YOUR_TOKEN
 ```
 
 ## peers.conf Format
 
 Location: `~/.claude/config/peers.conf` (override: `PEERS_CONF` env var)
 
-| Field          | Required | Valid Values                               | Notes                       |
-| -------------- | -------- | ------------------------------------------ | --------------------------- |
-| `ssh_alias`    | yes      | SSH config alias or hostname               | Used as primary SSH target  |
-| `user`         | yes      | any SSH username                           | Remote user for all SSH ops |
-| `os`           | yes      | `macos` \| `linux`                         | Used for platform detection |
-| `tailscale_ip` | no       | `100.x.x.x`                                | Fallback if ssh_alias fails |
-| `capabilities` | no       | `claude,copilot,ollama,opencode`           | Comma-separated, no spaces  |
-| `role`         | yes      | `coordinator` \| `worker` \| `hybrid`      | Affects dispatcher scoring  |
-| `status`       | no       | `active` \| `inactive` (default: `active`) | Inactive peers are ignored  |
-| `mac_address`  | no       | `AA:BB:CC:DD:EE:FF`                        | Wake-on-LAN magic packet    |
-| `default_engine` | no     | `claude` \| `copilot` \| `opencode` \| `ollama` | Preferred engine for mesh delegation |
-| `default_model`  | no     | any model string                           | Pre-filled in delegation UI |
+| Field            | Required | Valid Values                                    | Notes                                |
+| ---------------- | -------- | ----------------------------------------------- | ------------------------------------ |
+| `ssh_alias`      | yes      | SSH config alias or hostname                    | Used as primary SSH target           |
+| `user`           | yes      | any SSH username                                | Remote user for all SSH ops          |
+| `os`             | yes      | `macos` \| `linux`                              | Used for platform detection          |
+| `tailscale_ip`   | no       | `100.x.x.x`                                     | Fallback if ssh_alias fails          |
+| `capabilities`   | no       | `claude,copilot,ollama,opencode`                | Comma-separated, no spaces           |
+| `role`           | yes      | `coordinator` \| `worker` \| `hybrid`           | Affects dispatcher scoring           |
+| `status`         | no       | `active` \| `inactive` (default: `active`)      | Inactive peers are ignored           |
+| `mac_address`    | no       | `AA:BB:CC:DD:EE:FF`                             | Wake-on-LAN magic packet             |
+| `default_engine` | no       | `claude` \| `copilot` \| `opencode` \| `ollama` | Preferred engine for mesh delegation |
+| `default_model`  | no       | any model string                                | Pre-filled in delegation UI          |
 
 **Capabilities reference**: `claude` = Claude Code MCP | `copilot` = Copilot CLI | `ollama` = local LLM | `opencode` = OpenCode agent
 
 ## Peer Management UI
 
-Web dashboard CRUD for peers.conf with live SSH validation and Tailscale auto-discovery.
-
-### API Endpoints
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/peers` | List peers with heartbeat status |
-| POST | `/api/peers` | Create peer (validates required fields, MAC/IP format, name uniqueness) |
-| PUT | `/api/peers/<name>` | Update peer fields |
-| DELETE | `/api/peers/<name>?mode=soft\|hard` | Soft=inactive, hard=remove section |
-| POST | `/api/peers/ssh-check` | Test SSH with 5s timeout, returns `{ok, latency_ms}` |
-| GET | `/api/peers/discover` | Tailscale status diff vs peers.conf |
-
-### Delegation Engine Defaults
-
-`remote-dispatch.sh` reads `default_engine` from peers.conf. Fallback order: `default_engine` → `copilot` → first capability. Local execution (`execute-plan.sh`) remains `claude`.
-
-Preflight checks include **Claude Auth Type**: detects OAuth/Max vs API key on remote node (non-blocking warning).
+Dashboard CRUD: GET/POST/PUT/DELETE `/api/peers[/<name>]`, POST `/api/peers/ssh-check`, GET `/api/peers/discover` (Tailscale auto-discovery). Delegation engine reads `default_engine` from peers.conf (fallback: `copilot` → first capability). Preflight detects OAuth vs API key (warning).
 
 ## Unified Sync (mesh-sync-all.sh)
 
@@ -81,74 +67,35 @@ c mesh status                      # Verification table only
 
 ### 3 Phases
 
-| Phase | What | How |
-|---|---|---|
+| Phase          | What                          | How                                                                    |
+| -------------- | ----------------------------- | ---------------------------------------------------------------------- |
 | 1. Config + DB | dotclaude repo + dashboard.db | `peer-sync.sh push` (git bundle) + `mesh-sync-config.sh` (SCP non-git) |
-| 2. Repo Sync | Project repos + non-git files | `git pull --ff-only` per repo + SCP `sync_files` (.env) |
-| 3. Verify | Alignment table | SSH per peer → `git log --oneline -1` per repo, color-coded |
+| 2. Repo Sync   | Project repos + non-git files | `git pull --ff-only` per repo + SCP `sync_files` (.env)                |
+| 3. Verify      | Alignment table               | SSH per peer → `git log --oneline -1` per repo, color-coded            |
 
 ### repos.conf
 
-Location: `~/.claude/config/repos.conf`
+Location: `~/.claude/config/repos.conf`. Fields: `path` (required), `branch` (default: main), `gh_account` (`gh auth switch` before pull), `sync_files` (comma-separated non-git files to SCP).
 
-```ini
-[VirtualBPM]
-path=~/GitHub/VirtualBPM
-branch=main
-gh_account=roberdan_microsoft
-sync_files=.env
+### SSH PATH & Git Bundles
 
-[MyConvergio]
-path=~/GitHub/MyConvergio
-branch=master
-gh_account=Roberdan
-```
-
-| Field | Required | Purpose |
-|---|---|---|
-| `path` | yes | Repo path on peer (~ expanded remotely) |
-| `branch` | no | Default branch to pull (default: main) |
-| `gh_account` | no | `gh auth switch` before pull (HTTPS auth) |
-| `sync_files` | no | Comma-separated non-git files to SCP after pull |
-
-### SSH PATH Fix (macOS peers)
-
-Non-login SSH shells don't load `/opt/homebrew/bin`. `mesh-sync-all.sh` prepends Homebrew paths to all remote commands automatically:
-
-```bash
-export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
-```
-
-This ensures `gh`, `claude`, and other Homebrew tools are available in SSH sessions. No manual PATH configuration needed on peers.
-
-### Incremental Git Bundles
-
-Full dotclaude bundle = ~85MB. Use incremental bundles for fast sync:
-
-```bash
-# Coordinator: create small bundle (only missing commits)
-git -C ~/.claude bundle create /tmp/incr.bundle <last_synced_sha>..main
-# SCP + apply on peer
-scp /tmp/incr.bundle peer:/tmp/
-ssh peer "cd ~/.claude && git fetch /tmp/incr.bundle main:refs/remotes/bundle/main && git merge --ff-only refs/remotes/bundle/main"
-```
-
-`mesh-sync-all.sh` Phase 1 uses `peer-sync.sh` (which uses `sync-claude-config.sh` full bundle). For manual fixes, incremental bundles are faster.
+All mesh scripts auto-prepend Homebrew/local PATH for remote commands. Full dotclaude bundle ~85MB; incremental via `git bundle create <sha>..main`. If bundle fails (`unresolved deltas`), fallback: `rsync -az --delete ~/.claude/.git/`.
 
 ## Commands Reference
 
-| Script                | Usage                                                          | Purpose                                         |
-| --------------------- | -------------------------------------------------------------- | ----------------------------------------------- |
-| `mesh-sync-all.sh`    | `[--dry-run] [--peer NAME] [--phase P] [--force]`             | Unified sync: config + repos + verify           |
-| `mesh-sync-config.sh` | `[--dry-run] [--peer NAME]`                                    | SCP key config files to peers (non-git fallback)|
-| `mesh-dispatcher.sh`  | `--plan ID \| --all-plans [--dry-run] [--force-provider PEER]` | Score peers and dispatch pending tasks          |
-| `mesh-load-query.sh`  | `[--json] [--peer NAME]`                                       | Query CPU load + task state across online peers |
-| `mesh-heartbeat.sh`   | `start \| stop \| status`                                      | Liveness daemon writing heartbeats every 30s    |
-| `mesh-auth-sync.sh`   | `push \| status [--peer NAME \| --all]`                        | Sync credentials from master to peers           |
-| `mesh-migrate.sh`     | `<plan_id> <peer> [--dry-run] [--no-launch]`                   | Migrate running plan to another peer (rsync+DB) |
-| `mesh-discover.sh`    | `[--deep]`                                                     | Discover Tailscale peers, tool versions, repos  |
-| `lib/peers.sh`        | sourced library                                                | Peer discovery, routing, connectivity checks    |
-| `lib/mesh-scoring.sh` | sourced library                                                | Peer scoring functions (cost/load/privacy)      |
+| Script                 | Usage                                                          | Purpose                                          |
+| ---------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
+| `mesh-sync-all.sh`     | `[--dry-run] [--peer NAME] [--phase P] [--force]`              | Unified sync: config + repos + verify            |
+| `mesh-sync-config.sh`  | `[--dry-run] [--peer NAME]`                                    | SCP key config files to peers (non-git fallback) |
+| `mesh-dispatcher.sh`   | `--plan ID \| --all-plans [--dry-run] [--force-provider PEER]` | Score peers and dispatch pending tasks           |
+| `mesh-load-query.sh`   | `[--json] [--peer NAME]`                                       | Query CPU load + task state across online peers  |
+| `mesh-heartbeat.sh`    | `start \| stop \| status`                                      | Liveness daemon writing heartbeats every 30s     |
+| `mesh-auth-sync.sh`    | `push \| status [--peer NAME \| --all]`                        | Sync credentials from master to peers            |
+| `mesh-claude-login.sh` | `<peer\|--all> --token TOKEN \| --status`                      | Deploy Claude OAuth token to remote peers        |
+| `mesh-migrate.sh`      | `<plan_id> <peer> [--dry-run] [--no-launch]`                   | Migrate running plan to another peer (rsync+DB)  |
+| `mesh-discover.sh`     | `[--deep]`                                                     | Discover Tailscale peers, tool versions, repos   |
+| `lib/peers.sh`         | sourced library                                                | Peer discovery, routing, connectivity checks     |
+| `lib/mesh-scoring.sh`  | sourced library                                                | Peer scoring functions (cost/load/privacy)       |
 
 **Env vars for dispatcher**:
 
@@ -171,138 +118,88 @@ Peers are scored; highest score wins. Dispatcher picks best available for each t
 
 Additional scoring factors: capability match (+3), privacy safe match (+3), CPU load ≤0 (+2), CPU ≤1 (+1), tasks < max (+1). Offline or null-load peers score -99 (disqualified).
 
-**Decision matrix**:
+**Privacy routing**: `privacy_required=true` tasks → only `privacy_safe=true` peers (Ollama, local). Cloud = never privacy-safe. `--force-provider` overrides all routing.
 
-| Task has `privacy_required`? | Ollama peer online? | Route to           |
-| ---------------------------- | ------------------- | ------------------ |
-| yes                          | yes                 | Ollama peer (free) |
-| yes                          | no                  | BLOCKED (no cloud) |
-| no                           | yes                 | Ollama (free wins) |
-| no                           | no, zero-cost peer  | Zero-cost peer     |
-| no                           | no zero/free peers  | Premium (cloud)    |
+## mesh-heartbeat
 
-## Privacy Routing
+`mesh-heartbeat.sh start|stop|status` — liveness daemon (30s interval). Log: `~/.claude/data/mesh-heartbeat.log`.
 
-Tasks with `privacy_required=true` are restricted to peers with `privacy_safe=true` in heartbeat data. Cloud API peers are never privacy-safe by default.
+Auto-start: macOS → `launchctl load` with `mesh-heartbeat.plist.template`, Linux → `systemctl --user enable --now` with `mesh-heartbeat.service.template`. Templates in `~/.claude/config/`.
 
-| Scenario                          | Allowed Peers          | Blocked Peers |
-| --------------------------------- | ---------------------- | ------------- |
-| Task with `privacy_required=true` | Ollama, local machines | Cloud VMs     |
-| Task with no privacy constraint   | All online peers       | Offline only  |
-| Task with `--force-provider PEER` | Named peer only        | All others    |
+## Ollama / Cloud VM Setup
 
-Configure privacy on the peer side: heartbeat `capabilities` field and `privacy_safe` flag in `peer_heartbeats` table.
+**Ollama**: Install → `ollama pull model` → add `capabilities=ollama` in peers.conf → verify with `mesh-load-query.sh`. Privacy-safe peers: set `privacy_safe=true` in `peer_heartbeats`.
 
-## mesh-heartbeat: Daemon Management
+**Cloud VM (Tailscale)**: Install Tailscale → `sudo tailscale up` → install Claude CLI → add to peers.conf with `tailscale_ip` → `mesh-auth-sync.sh push` + `mesh-claude-login.sh` from coordinator.
+
+## Claude Remote Auth (NON-NEGOTIABLE: OAuth Only)
+
+**NEVER use ANTHROPIC_API_KEY for Claude Code.** Authentication MUST use Max subscription OAuth only. API keys are reserved exclusively for `batch-dispatcher.sh` (Batch API).
+
+### Remote Login via setup-token
+
+Claude Code uses PKCE OAuth — the browser callback goes to `platform.claude.com`, not localhost. This means `claude auth login` cannot complete over SSH. Use `setup-token` instead:
 
 ```bash
-mesh-heartbeat.sh start    # Start daemon (writes PID to ~/.claude/data/mesh-heartbeat.pid)
-mesh-heartbeat.sh stop     # Stop daemon
-mesh-heartbeat.sh status   # Show daemon state + last heartbeat for all peers
+# Step 1: Generate token LOCALLY (one-time, in a NEW terminal outside Claude Code)
+claude setup-token
+# Complete browser auth → copy token (sk-ant-oat01-...)
+
+# Step 2: Deploy to all peers
+mesh-claude-login.sh --all --token sk-ant-oat01-YOUR_TOKEN
+
+# Or single peer
+mesh-claude-login.sh omarchy --token sk-ant-oat01-YOUR_TOKEN
+
+# Check status
+mesh-claude-login.sh --status
 ```
 
-Log: `~/.claude/data/mesh-heartbeat.log`
+Token validity: **1 year**. Regenerate with `claude setup-token` before expiration.
 
-### launchd (macOS) — auto-start on login
+`mesh-claude-login.sh` automatically: removes any `ANTHROPIC_API_KEY` from remote shell configs, deploys token to `~/.claude/config/oauth-token.env` (chmod 600), sources it from `~/.zshenv`, deploys minimal `~/.claude.json` for onboarding bypass.
+
+### mesh-auth-sync (Credential Sync)
 
 ```bash
-export CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
-envsubst < "$CLAUDE_HOME/config/mesh-heartbeat.plist.template" \
-  > ~/Library/LaunchAgents/com.claude.mesh-heartbeat.plist
-launchctl load ~/Library/LaunchAgents/com.claude.mesh-heartbeat.plist
+mesh-auth-sync.sh push --all     # Push all credentials to all peers
+mesh-auth-sync.sh push --peer VM # Single peer
+mesh-auth-sync.sh status         # Check credential presence table
 ```
 
-### systemd (Linux) — auto-start as user service
+Runs automatically as Phase 1b of `mesh-sync-all.sh`.
 
-```bash
-export CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
-mkdir -p ~/.config/systemd/user
-envsubst < "$CLAUDE_HOME/config/mesh-heartbeat.service.template" \
-  > ~/.config/systemd/user/mesh-heartbeat.service
-systemctl --user daemon-reload
-systemctl --user enable --now mesh-heartbeat.service
-```
+| Credential | Sync Method                                            | Notes                                         |
+| ---------- | ------------------------------------------------------ | --------------------------------------------- |
+| Claude     | Status check only                                      | OAuth via `setup-token`, never syncs API keys |
+| Copilot    | `gh auth token` → `gh auth login --with-token` via SSH | Embedded in remote command (no stdin pipe)    |
+| OpenCode   | SCP `~/.config/opencode/config.json`                   | Direct file copy                              |
+| Ollama     | `OLLAMA_API_KEY` → `~/.claude/config/ollama.env`       | chmod 600                                     |
 
-## Ollama Integration
-
-```bash
-# 1. Install Ollama (Linux)
-curl -fsSL https://ollama.ai/install.sh | sh
-
-# 2. Pull a model
-ollama pull qwen2.5-coder:7b
-
-# 3. Configure peer with ollama capability
-# In peers.conf: capabilities=claude,ollama
-
-# 4. Verify from coordinator
-mesh-load-query.sh --peer my-ollama-peer --json
-# Expect: "capabilities":"...ollama..." and online:true
-```
-
-Privacy-safe Ollama peers: ensure `privacy_safe=true` is configured in the orchestrator YAML `cost_tiers` section or set manually in `peer_heartbeats` table.
-
-## Cloud VM Guide (Tailscale)
-
-```bash
-# On the cloud VM (Ubuntu):
-
-# 1. Install Tailscale
-curl -fsSL https://tailscale.com/install.sh | sh
-sudo tailscale up
-
-# 2. Install Claude dependencies
-curl -fsSL https://claude.ai/install.sh | sh    # Claude Code CLI
-# OR: npm install -g @anthropic-ai/claude-code
-
-# 3. Bootstrap with credentials from coordinator
-mesh-auth-sync.sh push --peer my-cloud          # Run on coordinator
-
-# 4. Verify peer is visible
-mesh-load-query.sh --peer my-cloud --json
-```
-
-Ensure Tailscale IP matches `tailscale_ip` in peers.conf.
-
-## mesh-auth-sync
-
-```bash
-# Push all credentials to all active peers
-mesh-auth-sync.sh push --all
-
-# Push to a specific peer
-mesh-auth-sync.sh push --peer my-vm
-
-# Check sync status (connectivity check only)
-mesh-auth-sync.sh status
-```
-
-Credentials synced (via SSH/SCP, no plaintext temp files):
-
-| Credential     | Source                           | Destination                   |
-| -------------- | -------------------------------- | ----------------------------- |
-| Claude         | `~/.claude/.credentials.json`    | `~/.claude/.credentials.json` |
-| Copilot        | `gh auth token`                  | `gh auth login --with-token`  |
-| OpenCode       | `~/.config/opencode/config.json` | same on remote                |
-| Ollama API key | `OLLAMA_API_KEY` env var         | `~/.claude/config/ollama.env` |
+**SSH pitfalls solved**: all SSH calls use `-n` flag (prevents stdin consumption in loops), PATH prepended for Homebrew tools on macOS.
 
 **Security**: Only sync to machines you own. Tokens grant full API access.
 
 ## Troubleshooting
 
-| Symptom                                         | Cause                                       | Fix                                                               |
-| ----------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------- |
-| `peers.conf not found`                          | Missing config                              | Create `~/.claude/config/peers.conf` from template                |
-| Peer shows offline in `mesh-load-query.sh`      | SSH unreachable                             | `ssh my-peer true` — check SSH config and Tailscale               |
-| `No route for peer`                             | No `ssh_alias` or `tailscale_ip`            | Add at least one to peers.conf entry                              |
-| Dispatcher skips privacy tasks                  | No privacy-safe peer online                 | Start Ollama peer or check `peer_heartbeats` table                |
-| `DB write failed (will retry)` in heartbeat log | DB lock contention                          | Transient — daemon retries. If persistent, check disk             |
-| Credentials not found on remote                 | Auth sync not run                           | Run `mesh-auth-sync.sh push --peer NAME`                          |
-| Heartbeat daemon PID stale                      | Crash without cleanup                       | `rm ~/.claude/data/mesh-heartbeat.pid && mesh-heartbeat.sh start` |
-| `cost_tier` not set                             | orchestrator.yaml missing `mesh.cost_tiers` | Add tier config or peer scores 0 (still dispatched)               |
-| `gh: command not found` via SSH                 | Non-login shell missing Homebrew PATH       | `mesh-sync-all.sh` auto-prepends PATH; for manual SSH: `export PATH="/opt/homebrew/bin:$PATH"` |
-| VirtualBPM pull fails on peer                   | `gh auth` wrong account or expired          | SSH into peer: `export PATH=...; gh auth status; gh auth switch --user roberdan_microsoft` |
-| Git bundle merge fails (local changes)          | SCP'd files diverge from git state          | `ssh peer "cd ~/.claude && git checkout -- <file>"` then retry bundle merge |
+| Symptom                                         | Cause                                           | Fix                                                                                            |
+| ----------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `peers.conf not found`                          | Missing config                                  | Create `~/.claude/config/peers.conf` from template                                             |
+| Peer shows offline in `mesh-load-query.sh`      | SSH unreachable                                 | `ssh my-peer true` — check SSH config and Tailscale                                            |
+| `No route for peer`                             | No `ssh_alias` or `tailscale_ip`                | Add at least one to peers.conf entry                                                           |
+| Dispatcher skips privacy tasks                  | No privacy-safe peer online                     | Start Ollama peer or check `peer_heartbeats` table                                             |
+| `DB write failed (will retry)` in heartbeat log | DB lock contention                              | Transient — daemon retries. If persistent, check disk                                          |
+| Credentials not found on remote                 | Auth sync not run                               | Run `mesh-auth-sync.sh push --peer NAME`                                                       |
+| Heartbeat daemon PID stale                      | Crash without cleanup                           | `rm ~/.claude/data/mesh-heartbeat.pid && mesh-heartbeat.sh start`                              |
+| `cost_tier` not set                             | orchestrator.yaml missing `mesh.cost_tiers`     | Add tier config or peer scores 0 (still dispatched)                                            |
+| `gh: command not found` via SSH                 | Non-login shell missing Homebrew PATH           | `mesh-sync-all.sh` auto-prepends PATH; for manual SSH: `export PATH="/opt/homebrew/bin:$PATH"` |
+| VirtualBPM pull fails on peer                   | `gh auth` wrong account or expired              | SSH into peer: `export PATH=...; gh auth status; gh auth switch --user roberdan_microsoft`     |
+| Git bundle merge fails (local changes)          | SCP'd files diverge from git state              | `ssh peer "cd ~/.claude && git checkout -- <file>"` then retry bundle merge                    |
+| Git bundle `unresolved deltas`                  | Delta resolution fails on large repos           | Use `rsync -az --delete ~/.claude/.git/` instead of git bundle                                 |
+| `ANTHROPIC_API_KEY` on peer                     | Stale key in `.zshenv`/systemd/launchd          | `mesh-claude-login.sh` auto-removes; check `.zshenv`, `launchctl`, `systemctl --user`          |
+| SSH loop processes only 1 peer                  | SSH consumes stdin of while-read loop           | All SSH calls MUST use `-n` flag                                                               |
+| Copilot token pipe fails with `ssh -n`          | `-n` redirects stdin from /dev/null             | Embed token in remote command: `ssh -n "$dest" "echo 'T' \| gh auth login --with-token"`       |
+| `claude auth login` hangs over SSH              | OAuth PKCE callback goes to platform.claude.com | Use `setup-token` + `mesh-claude-login.sh` instead                                             |
 
 ## Live Plan Migration
 
@@ -314,85 +211,32 @@ mesh-migrate.sh <plan_id> <peer_name> [--dry-run] [--no-launch]
 
 **5 phases** (automatic, with rollback on failure):
 
-| Phase | What | Rollback |
-|---|---|---|
-| 1. Pre-flight | Target online, tool versions, disk, plan valid | Abort |
-| 2. rsync | Full-folder sync (~/.claude + repos from repos.conf) | Idempotent |
-| 3. DB migrate | WAL checkpoint → copy → integrity check → path remap → claim transfer | Restore backup |
-| 4. Auto-launch | tmux session on target runs `claude -p "/execute <id>"` | Manual /execute |
-| 5. Report | Summary table | — |
+| Phase          | What                                                                  | Rollback        |
+| -------------- | --------------------------------------------------------------------- | --------------- |
+| 1. Pre-flight  | Target online, tool versions, disk, plan valid                        | Abort           |
+| 2. rsync       | Full-folder sync (~/.claude + repos from repos.conf)                  | Idempotent      |
+| 3. DB migrate  | WAL checkpoint → copy → integrity check → path remap → claim transfer | Restore backup  |
+| 4. Auto-launch | tmux session on target runs `claude -p "/execute <id>"`               | Manual /execute |
+| 5. Report      | Summary table                                                         | —               |
 
-**Prerequisites on target peer:**
+**Prerequisites**: SSH access, Claude CLI + auth (`setup-token`), tmux, no-sleep (macOS: `sudo pmset -a sleep 0`).
 
-1. SSH access configured (Tailscale or direct)
-2. Claude CLI installed + authenticated (`claude setup-token`)
-3. tmux installed (`brew install tmux`)
-4. No-sleep configured (`sudo pmset -a sleep 0` + LaunchDaemon)
+**First-time setup**: `mesh-env-setup.sh --full` → `mesh-auth-sync.sh push --peer NAME` → `mesh-claude-login.sh NAME --token TOKEN` → `mesh-sync-all.sh --peer NAME`.
 
-**First-time setup for a new peer:**
-
-```bash
-# From coordinator (m3max):
-mesh-env-setup.sh --full           # Install tools on peer
-mesh-auth-sync.sh push --peer NAME # Push credentials
-mesh-sync-all.sh --peer NAME       # Sync config + repos
-# On peer: claude setup-token      # OAuth token (1 year validity)
-# On peer: sudo pmset -a sleep 0 displaysleep 0 standby 0  # No sleep
-```
-
-**Task status during migration**: `done` stays done, `in_progress` resets to `pending`, `pending` unchanged.
+**Migration task status**: `done` stays done, `in_progress` → `pending`, `pending` unchanged.
 
 ## Dashboard Delegation
 
-Delegate plans to mesh nodes from the web dashboard with full preflight validation.
+**Flow**: Plan card → Delegate → Select peer → Preflight (SSE) → Sync → Migrate → tmux session
 
-**Flow**: Plan card → 🚀 Delegate → Select peer → Preflight (auto-fix) → Sync → Migrate → tmux session
-
-### Preflight Checks (SSE streaming, auto-fix)
-
-| Check | Auto-fix | Blocking |
-|---|---|---|
-| Plan status (todo/doing) | — | yes |
-| SSH reachable | — | yes |
-| Heartbeat stale | Restarts daemon via SSH | no |
-| Config out of sync | Runs `mesh-sync-all.sh --peer` | no |
-| Claude CLI | Searches `~/.local/bin`, `/opt/homebrew/bin` | yes |
-| Disk space ≥5GB | — | yes |
-
-### Delegation Process
-
-Phase 0 (auto): `mesh-sync-all.sh --peer <target>` — full config+DB+repo sync
-Phase 1-5: `mesh-migrate.sh <plan_id> <target>` — preflight, sync, DB migrate, tmux launch, verify
-
-All output streamed via SSE to a live modal in the dashboard.
+Preflight checks (auto-fix where possible): plan status, SSH, heartbeat, config sync, Claude CLI, disk ≥5GB. Phase 0 auto-runs `mesh-sync-all.sh --peer`. SSE streaming to dashboard modal.
 
 ## Power Management
 
-| Action | Trigger | Method |
-|---|---|---|
-| **Wake** | Node offline, has `mac_address` | WoL magic packet (pure Python, broadcast UDP:9), 3 packets + 15s SSH poll |
-| **Reboot** | Node online but unresponsive | `sudo reboot` via SSH (OS-aware), 40s SSH poll for comeback |
+**Wake**: WoL magic packet (`mac_address` in peers.conf), 3 packets + 15s SSH poll. **Reboot**: `sudo reboot` via SSH, 40s poll. Dashboard buttons on mesh cards.
 
-Buttons on mesh node cards: Wake (offline nodes), Reboot (online nodes).
+## Auto-Sync & tmux
 
-## Auto-Sync Protocol
+Sync triggers: plan complete (push all), heartbeat start/loop (pull every ~5min), delegation (Phase 0 full sync). Conflict resolution: auto-stash, force-reset, rsync fallback.
 
-Sync propagates automatically at key lifecycle events:
-
-| Event | Action | Direction |
-|---|---|---|
-| **Plan complete** | `mesh-sync-all.sh` push | Coordinator → all online peers |
-| **Heartbeat start** | `sync-claude-config.sh pull` | Peer → coordinator |
-| **Heartbeat loop** | `sync-claude-config.sh pull` (every ~5min) | Peer → coordinator |
-| **Delegation** | Phase 0 full sync before migrate | Coordinator → target peer |
-
-Conflict resolution: auto-stash remote, force-reset on diverged history, rsync fallback.
-
-## Terminal tmux Integration
-
-Each delegated plan runs in `tmux plan-{ID}` session on the target node.
-
-- **Dashboard terminal icons**: auto-attach to `plan-{ID}` if node has active plan
-- **`openAllTerminals()`**: connects each peer to its active plan tmux session
-- **Remote**: `ssh <peer> -t "tmux attach -t plan-{ID}"`
-- **Local tmux aliases**: `tlm` (Mac M1), `tlx` (Linux) connect to `dev` session
+Delegated plans run in `tmux plan-{ID}`. Attach: `ssh <peer> -t "tmux attach -t plan-{ID}"`. Aliases: `tlm` (M1), `tlx` (Linux).

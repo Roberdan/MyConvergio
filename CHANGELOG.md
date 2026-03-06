@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.12.0] - 06 Mar 2026
+
+### Added
+- documentation governance — TROUBLESHOOTING.md, per-wave ADR mandate, Thor gate 9b
+
+
 ## [v10.11.0] - 06 Mar 2026
 
 ### Added

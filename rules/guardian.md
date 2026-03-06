@@ -1,4 +1,4 @@
-<!-- v2.5.0 -->
+<!-- v2.6.0 -->
 
 # Process Guardian
 
@@ -20,7 +20,7 @@ See CLAUDE.md Anti-Bypass + Mandatory Routing sections. Plan creation = `/planne
 
 ## Plan Closure = Merged (NON-NEGOTIABLE)
 
-A plan is NOT done until ALL changes are merged to main. `plan-db.sh complete` enforces: all wave PRs must be `MERGED` on GitHub (live check via `gh pr view`). Worktrees must be clean. No unmerged branches allowed at plan closure. Bypassing with `--force` requires explicit user approval.
+A plan is NOT done until ALL changes are merged to main AND documentation is current. `plan-db.sh complete` enforces: all wave PRs must be `MERGED` on GitHub (live check via `gh pr view`). Worktrees must be clean. No unmerged branches allowed at plan closure. All docs (CHANGELOG, README, TROUBLESHOOTING, ADRs) must be updated and version-aligned. Bypassing with `--force` requires explicit user approval.
 
 ## Git & PR
 
@@ -81,8 +81,23 @@ When onboarding a new repo or auditing existing ones, verify:
 2. **If not protected**: `branch-protect.sh apply owner/repo [branch]` (requires GitHub Pro for private repos)
 3. **Required settings**: `required_conversation_resolution: true` + `enforce_admins: true`
 4. **Versioning**: CHANGELOG.md exists, git tags exist, latest tag matches CHANGELOG. If missing, create before first plan.
+5. **Troubleshooting**: `TROUBLESHOOTING.md` exists in root. If missing, create before first plan.
 
 Without branch protection, GitHub Web UI allows merging with unresolved review comments.
+
+## Documentation Closure Gate — Thor 9b (NON-NEGOTIABLE)
+
+At plan closure, Thor gate 9b verifies ALL documentation is current:
+
+| Check              | Verify                                                      | REJECT if                   |
+| ------------------ | ----------------------------------------------------------- | --------------------------- |
+| TROUBLESHOOTING.md | `test -f TROUBLESHOOTING.md`                                | Missing from repo root      |
+| Per-wave ADRs      | `ls docs/adr/*wave-summary*` or decision ADRs for each wave | Any wave without ADR        |
+| CHANGELOG.md       | Latest entry matches current version                        | Stale or missing entry      |
+| README.md          | Updated if public API/features changed                      | Outdated sections           |
+| Version bump       | Git tag + CHANGELOG version incremented after plan          | Same version as before plan |
+
+**Version alignment**: Every plan MUST increment the version. All docs must reflect the new version. `version-check.sh` validates.
 
 ## Guardrails
 

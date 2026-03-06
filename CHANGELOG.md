@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.10.2] - 06 Mar 2026
+
+### Fixed
+- discover hostname sanitization + copilot gh-extension detection + auth sync
+
+
 ## [v10.10.1] - 06 Mar 2026
 
 ### Changed

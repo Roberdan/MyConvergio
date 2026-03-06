@@ -24,25 +24,34 @@ peer_dest() {
 		err "No route for peer: $name"
 		return 1
 	}
-	user="${_PEERS_DATA["${name}:user"]:-}"
+	user="$(peers_get "$name" "user" 2>/dev/null || echo "")"
 	echo "${user:+${user}@}${target}"
 }
 
 sync_claude() {
 	local dest="$1" peer="$2"
+	# Method 1: credentials.json file (legacy)
 	local src="$CLAUDE_HOME/.credentials.json"
-	if [[ ! -f "$src" ]]; then
-		warn "[$peer] Claude credentials not found, skipping"
-		return 0
+	if [[ -f "$src" ]]; then
+		info "[$peer] Syncing Claude credentials file..."
+		scp -q "$src" "${dest}:~/.claude/.credentials.json" &&
+			ssh -n -o BatchMode=yes -o ConnectTimeout=10 "$dest" "chmod 600 ~/.claude/.credentials.json" &&
+			ok "[$peer] Claude credentials file synced" ||
+			warn "[$peer] Claude credentials file sync failed"
 	fi
-	info "[$peer] Syncing Claude credentials..."
-	scp -q "$src" "${dest}:~/.claude/.credentials.json" &&
-		ssh -o BatchMode=yes -o ConnectTimeout=10 "$dest" "chmod 600 ~/.claude/.credentials.json" &&
-		ok "[$peer] Claude credentials synced" ||
-		{
-			err "[$peer] Claude credential sync failed"
-			return 1
-		}
+	# Method 2: ANTHROPIC_API_KEY env var (works without OAuth)
+	if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+		info "[$peer] Syncing ANTHROPIC_API_KEY..."
+		ssh -n -o BatchMode=yes -o ConnectTimeout=10 "$dest" \
+			"mkdir -p ~/.claude/config && printf 'ANTHROPIC_API_KEY=%s\n' '${ANTHROPIC_API_KEY}' > ~/.claude/config/claude-api.env && chmod 600 ~/.claude/config/claude-api.env" &&
+			ok "[$peer] ANTHROPIC_API_KEY synced" ||
+			{
+				err "[$peer] ANTHROPIC_API_KEY sync failed"
+				return 1
+			}
+	else
+		warn "[$peer] No Claude credentials found (no .credentials.json, no ANTHROPIC_API_KEY)"
+	fi
 }
 
 sync_copilot() {
@@ -61,8 +70,8 @@ sync_copilot() {
 		return 0
 	fi
 	info "[$peer] Syncing Copilot token..."
-	echo "$token" | ssh -o BatchMode=yes -o ConnectTimeout=10 "$dest" \
-		"gh auth login --with-token" &&
+	ssh -n -o BatchMode=yes -o ConnectTimeout=10 "$dest" \
+		"export PATH=\"\$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:\$PATH\"; echo '${token}' | gh auth login --with-token" &&
 		ok "[$peer] Copilot token synced" ||
 		{
 			err "[$peer] Copilot sync failed"
@@ -78,7 +87,7 @@ sync_opencode() {
 		return 0
 	fi
 	info "[$peer] Syncing OpenCode config..."
-	ssh -o BatchMode=yes -o ConnectTimeout=10 "$dest" "mkdir -p ~/.config/opencode"
+	ssh -n -o BatchMode=yes -o ConnectTimeout=10 "$dest" "mkdir -p ~/.config/opencode"
 	scp -q "$src" "${dest}:~/.config/opencode/config.json" &&
 		ok "[$peer] OpenCode config synced" ||
 		{
@@ -95,7 +104,7 @@ sync_ollama() {
 	fi
 	info "[$peer] Syncing Ollama API key..."
 	printf 'OLLAMA_API_KEY=%s\n' "$OLLAMA_API_KEY" |
-		ssh -o BatchMode=yes -o ConnectTimeout=10 "$dest" \
+		ssh -n -o BatchMode=yes -o ConnectTimeout=10 "$dest" \
 			"mkdir -p ~/.claude/config && cat > ~/.claude/config/ollama.env && chmod 600 ~/.claude/config/ollama.env" &&
 		ok "[$peer] Ollama API key synced" ||
 		{
@@ -109,17 +118,17 @@ push_peer() {
 	local dest
 	dest="$(peer_dest "$name")" || return 1
 
-	if ! ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
+	if ! ssh -n -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
 		-o LogLevel=quiet "$dest" true &>/dev/null; then
 		err "[$name] Peer unreachable"
 		return 1
 	fi
 
 	info "[$name] Pushing credentials to $dest..."
-	sync_claude "$dest" "$name"
-	sync_copilot "$dest" "$name"
-	sync_opencode "$dest" "$name"
-	sync_ollama "$dest" "$name"
+	sync_claude "$dest" "$name" || true
+	sync_copilot "$dest" "$name" || true
+	sync_opencode "$dest" "$name" || true
+	sync_ollama "$dest" "$name" || true
 	ok "[$name] Done."
 }
 
@@ -134,6 +143,7 @@ cmd_push() {
 	fi
 
 	local pushed=0 failed=0
+	set +e
 	while IFS= read -r name; do
 		if push_peer "$name"; then
 			pushed=$((pushed + 1))
@@ -141,6 +151,7 @@ cmd_push() {
 			failed=$((failed + 1))
 		fi
 	done < <(peers_others)
+	set -e
 
 	echo ""
 	ok "Push complete: $pushed succeeded, $failed failed"
@@ -155,20 +166,20 @@ status_peer() {
 		return
 	}
 
-	if ! ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
+	if ! ssh -n -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
 		-o LogLevel=quiet "$dest" true &>/dev/null; then
 		printf "%-20s OFFLINE\n" "$name"
 		return
 	fi
 
 	local claude copilot opencode ollama
-	claude="$(ssh -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
-		'[ -f ~/.claude/.credentials.json ] && echo yes || echo no' 2>/dev/null)"
-	copilot="$(ssh -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
-		'command -v gh &>/dev/null && gh auth status &>/dev/null && echo yes || echo no' 2>/dev/null)"
-	opencode="$(ssh -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
+	claude="$(ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
+		'([ -f ~/.claude/.credentials.json ] || [ -f ~/.claude/config/claude-api.env ]) && echo yes || echo no' 2>/dev/null)"
+	copilot="$(ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
+		'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; command -v gh &>/dev/null && gh auth status &>/dev/null && echo yes || echo no' 2>/dev/null)"
+	opencode="$(ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
 		'[ -f ~/.config/opencode/config.json ] && echo yes || echo no' 2>/dev/null)"
-	ollama="$(ssh -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
+	ollama="$(ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$dest" \
 		'[ -f ~/.claude/config/ollama.env ] && echo yes || echo no' 2>/dev/null)"
 
 	printf "%-20s claude=%-4s copilot=%-4s opencode=%-4s ollama=%s\n" \

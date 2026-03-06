@@ -145,14 +145,14 @@ phase_config() {
 		local bundle_file="/tmp/mesh-sync-dotclaude-$$.bundle"
 		local remote_bundle="/tmp/mesh-sync-dotclaude-$$.bundle"
 		ssh -n -o ConnectTimeout=15 "$newest_dest" \
-			"${REMOTE_PATH_PREFIX}cd ~/.claude && git bundle create $remote_bundle HEAD 2>/dev/null && echo BUNDLE_OK" 2>/dev/null | grep -q 'BUNDLE_OK' && \
-		scp -o ConnectTimeout=15 "$newest_dest:$remote_bundle" "$bundle_file" 2>/dev/null && {
+			"${REMOTE_PATH_PREFIX}cd ~/.claude && git bundle create $remote_bundle HEAD 2>/dev/null && echo BUNDLE_OK" 2>/dev/null | grep -q 'BUNDLE_OK' &&
+			scp -o ConnectTimeout=15 "$newest_dest:$remote_bundle" "$bundle_file" 2>/dev/null && {
 			if git -C "$CLAUDE_HOME" fetch "$bundle_file" HEAD 2>/dev/null; then
 				if $FORCE; then
 					git -C "$CLAUDE_HOME" reset --hard FETCH_HEAD 2>/dev/null
 				else
-					git -C "$CLAUDE_HOME" merge --ff-only FETCH_HEAD 2>/dev/null || \
-					echo -e "  ${Y}WARN${N}: ff-only merge failed, use --force to override"
+					git -C "$CLAUDE_HOME" merge --ff-only FETCH_HEAD 2>/dev/null ||
+						echo -e "  ${Y}WARN${N}: ff-only merge failed, use --force to override"
 				fi
 				echo -e "  ${G}OK${N}: pulled dotclaude from $newest_src"
 			fi
@@ -266,9 +266,9 @@ phase_repos() {
 
 			# Try 1: git bundle from remote peer
 			ssh -n -o ConnectTimeout=15 "$newest_dest" \
-				"${REMOTE_PATH_PREFIX}cd $rpath && git bundle create $remote_bundle $rbranch 2>/dev/null && echo BUNDLE_OK" 2>/dev/null | grep -q 'BUNDLE_OK' && \
-			scp -o ConnectTimeout=15 "$newest_dest:$remote_bundle" "$bundle_file" 2>/dev/null && \
-			bundle_ok=true
+				"${REMOTE_PATH_PREFIX}cd $rpath && git bundle create $remote_bundle $rbranch 2>/dev/null && echo BUNDLE_OK" 2>/dev/null | grep -q 'BUNDLE_OK' &&
+				scp -o ConnectTimeout=15 "$newest_dest:$remote_bundle" "$bundle_file" 2>/dev/null &&
+				bundle_ok=true
 			ssh -n "$newest_dest" "rm -f $remote_bundle" 2>/dev/null || true
 
 			if $bundle_ok && [[ -f "$bundle_file" ]]; then
@@ -397,12 +397,23 @@ phase_verify() {
 	echo ""
 }
 
+phase_auth() {
+	echo -e "\033[1m=== PHASE 1b: Credentials Sync ===\033[0m"
+	if $DRY_RUN; then
+		echo "  (dry-run) Would push credentials to all peers"
+		return
+	fi
+	"$SCRIPT_DIR/mesh-auth-sync.sh" push --all 2>&1 || true
+}
+
 case "$PHASE" in
 all)
 	phase_config
+	phase_auth
 	phase_repos
 	phase_verify
 	;;
+auth) phase_auth ;;
 config | repos | verify) "phase_$PHASE" ;;
 *)
 	echo "Unknown phase: $PHASE" >&2

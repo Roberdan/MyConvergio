@@ -418,6 +418,8 @@ EVERY plan MUST include `TF-tests` in the final wave, BEFORE `TF-pr`:
 
 **Why**: Without this gate, tests accumulate without consolidation. Each task adds its own tests independently, leading to duplicated setup, fragile paths, conflicting patterns, and hour-long CI runs that fail for unrelated reasons.
 
+**Sequencing rule (NON-NEGOTIABLE)**: `TF-tests` MUST run AFTER all other tasks complete, never in parallel. Test files overlap with every task's output — running TF-tests concurrently with other tasks causes file conflicts and stale test discovery. Position it last in the final wave, immediately before `TF-pr`.
+
 ## Final Closure {#final-closure}
 
 EVERY plan MUST end with `TF-pr` task: `{"id": "TF-pr", "do": "Create PR, ensure CI passes, resolve comments, confirm merge-ready", "files": [], "verify": ["gh pr view --json state,statusCheckRollup | jq '.statusCheckRollup[] | select(.conclusion != \"SUCCESS\")'"], "ref": "F-closure", "priority": "P0", "type": "chore", "model": "sonnet", "effort": 2}`

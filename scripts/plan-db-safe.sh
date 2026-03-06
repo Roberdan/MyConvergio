@@ -4,7 +4,7 @@ set -euo pipefail
 # Auto-releases file locks, checks staleness, warns about uncommitted changes.
 # VALIDATE-THEN-DONE: Validation runs BEFORE marking done (blocking, no bypass flags).
 # CIRCUIT BREAKER: Auto-blocks tasks after MAX_REJECTIONS consecutive Thor rejections.
-# Version: 4.1.0 - PATH hardening for remote machines
+# Version: 4.2.0 - Worktree lookup: task wave → any wave → plan fallback
 
 # PATH hardening: ensure pnpm/node/python tools are findable
 export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
@@ -107,8 +107,21 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 
 	# Warn about uncommitted changes (don't block)
 	if [[ -n "$plan_id" ]]; then
+		# Worktree lookup: task's own wave → any wave in plan → plan-level
 		worktree=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
-			"SELECT worktree_path FROM plans WHERE id = $plan_id;" 2>/dev/null || echo "")
+			"SELECT w.worktree_path FROM waves w JOIN tasks t ON t.wave_id_fk = w.id
+			 WHERE t.id = $TASK_ID AND w.worktree_path IS NOT NULL AND w.worktree_path <> ''
+			 LIMIT 1;" 2>/dev/null || echo "")
+		if [[ -z "$worktree" ]]; then
+			worktree=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+				"SELECT worktree_path FROM waves
+				 WHERE plan_id = $plan_id AND worktree_path IS NOT NULL AND worktree_path <> ''
+				 ORDER BY position DESC LIMIT 1;" 2>/dev/null || echo "")
+		fi
+		if [[ -z "$worktree" ]]; then
+			worktree=$(sqlite3 -cmd ".timeout 3000" "$DB_FILE" \
+				"SELECT worktree_path FROM plans WHERE id = $plan_id;" 2>/dev/null || echo "")
+		fi
 		if [[ -n "$worktree" && -d "$worktree" ]]; then
 			dirty_count=$(git -C "$worktree" status --porcelain 2>/dev/null | grep -c "" || echo "0")
 			if [[ "$dirty_count" -gt 0 ]]; then

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.14.2] - 06 Mar 2026
+
+### Fixed
+- batch worktree support + plan-db-safe fallback chain
+
+
 ## [v10.14.1] - 06 Mar 2026
 
 ### Changed

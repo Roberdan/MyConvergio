@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# wave-worktree.sh v3.2.0 — Wave-level worktree lifecycle management
+# wave-worktree.sh v3.3.0 — Wave-level worktree lifecycle management
 # Usage: wave-worktree.sh <command> <plan_id> [wave_db_id]
 # Commands: create, merge, merge-async, pr-sync, cleanup, status
+#
+# create --batch: wave-worktree.sh create <plan_id> <wave_db_id> --batch <id2>,<id3>
+#   Creates worktree for the primary wave, then sets the SAME worktree_path on all
+#   batched wave DB rows (shared worktree for parallel waves in the same theme).
 #
 # merge-async: Push + create PR + return immediately (non-blocking).
 #   Next wave can start while PR is in review. Use pr-sync to reconcile.
@@ -16,10 +20,16 @@ source "$SCRIPT_DIR/lib/plan-db-core.sh"
 source "$SCRIPT_DIR/lib/wave-worktree-core.sh"
 
 # ---------------------------------------------------------------------------
-# cmd_create plan_id wave_db_id
+# cmd_create plan_id wave_db_id [--batch <id2>,<id3>...]
 # ---------------------------------------------------------------------------
 cmd_create() {
 	local plan_id="$1" wave_db_id="$2"
+	local batch_ids=""
+
+	# Parse --batch flag
+	if [[ "${3:-}" == "--batch" && -n "${4:-}" ]]; then
+		batch_ids="$4"
+	fi
 
 	# 1. Get project path from DB
 	local project_path
@@ -90,6 +100,17 @@ cmd_create() {
 	db_query "UPDATE plans SET worktree_path = '$(sql_escape "$norm_wt")' WHERE id = ${plan_id};"
 	db_query "UPDATE waves SET status = 'in_progress', started_at = COALESCE(started_at, datetime('now')) WHERE id = ${wave_db_id};"
 	log_info "Wave ${wave_db_id} -> in_progress"
+
+	# Propagate worktree_path to all batched wave IDs
+	if [[ -n "$batch_ids" ]]; then
+		IFS=',' read -ra extra_ids <<<"$batch_ids"
+		for extra_id in "${extra_ids[@]}"; do
+			[[ -z "$extra_id" ]] && continue
+			db_query "UPDATE waves SET worktree_path = '$(sql_escape "$norm_wt")' WHERE id = ${extra_id} AND plan_id = ${plan_id};" 2>/dev/null || true
+			log_info "Batch: wave ${extra_id} -> worktree_path set to same worktree"
+		done
+	fi
+
 	wave_get_db "$wave_db_id"
 }
 
@@ -576,12 +597,12 @@ cmd_cleanup() {
 # Dispatch
 # ---------------------------------------------------------------------------
 case "${1:-help}" in
-create) cmd_create "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
+create) cmd_create "${2:?plan_id required}" "${3:?wave_db_id required}" "${@:4}" ;;
 batch) cmd_batch "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 status) cmd_status "${2:?plan_id required}" ;;
 merge) cmd_merge "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 merge-async) cmd_merge_async "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 pr-sync) cmd_pr_sync "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
 cleanup) cmd_cleanup "${2:?plan_id required}" "${3:?wave_db_id required}" ;;
-*) echo "Usage: wave-worktree.sh <create|batch|merge|merge-async|pr-sync|cleanup|status> <plan_id> [wave_db_id]" ;;
+*) echo "Usage: wave-worktree.sh <create|batch|merge|merge-async|pr-sync|cleanup|status> <plan_id> [wave_db_id] [--batch <id2>,<id3>]" ;;
 esac

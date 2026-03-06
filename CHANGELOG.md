@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.12.1] - 06 Mar 2026
+
+### Changed
+- extract shared modules lib/ssh.py, lib/sse.py, lib/jsonl_scraper.py
+
+
 ## [v10.12.0] - 06 Mar 2026
 
 ### Added

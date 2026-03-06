@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.14.4] - 06 Mar 2026
+
+### Changed
+- Update plan-db-safe.sh to remove unused variable declaration
+
+
 ## [v10.14.3] - 06 Mar 2026
 
 ### Fixed

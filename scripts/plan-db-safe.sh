@@ -186,7 +186,6 @@ if [[ "$COMMAND" == "update-task" && "$STATUS" == "done" ]]; then
 				echo "[plan-db-safe] Wave $wave_id: All executor work complete. Auto-validating $need_thor submitted task(s)..." >&2
 
 				# F-12: Auto-validate all submitted tasks in this wave
-				local submitted_ids
 				submitted_ids=$(sqlite3 "$DB_FILE" \
 					"SELECT id FROM tasks WHERE wave_id_fk = $wave_db_id AND status = 'submitted';" 2>/dev/null || echo "")
 				while IFS= read -r sub_id; do

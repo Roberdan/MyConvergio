@@ -213,6 +213,58 @@
   flex: 1;
 }
 
+/* Wave pending collapse */
+.wave-pending-summary {
+  cursor: pointer;
+  opacity: 0.7;
+}
+.wave-pending-summary:hover {
+  opacity: 1;
+}
+.wave-expand-icon {
+  font-size: 10px;
+  color: var(--text-dim);
+  transition: transform 0.2s;
+}
+.wave-pending-collapse {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.wave-pending-collapse.expanded {
+  max-height: 500px;
+}
+.wave-row-dim {
+  opacity: 0.5;
+}
+/* Thor action button */
+.plan-health-btn-thor {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+.plan-health-btn-thor:hover {
+  background: rgba(255, 183, 0, 0.15);
+}
+
+/* Task pipeline row status colors */
+tr.task-done {
+  border-left: 3px solid #00cc55;
+}
+tr.task-running {
+  border-left: 3px solid #ffb700;
+  background: rgba(255, 183, 0, 0.03);
+}
+tr.task-submitted {
+  border-left: 3px solid #00b8d4;
+}
+tr.task-blocked {
+  border-left: 3px solid #ee3344;
+  background: rgba(238, 51, 68, 0.03);
+}
+tr.task-pending {
+  border-left: 3px solid transparent;
+}
+
 /* History rows clickable */
 .history-row {
   cursor: pointer;

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.14.0] - 06 Mar 2026
+
+### Added
+- STUCK counter, Run Thor button, wave collapse, task pipeline colors
+
+
 ## [v10.13.0] - 06 Mar 2026
 
 ### Added

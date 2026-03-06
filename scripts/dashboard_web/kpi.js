@@ -26,7 +26,13 @@ function renderKpi(d) {
       `Today: ${fmt(d.today_tokens)}`,
       "widget-tokens",
     ) +
-    _kpiCard("Blocked", d.blocked, "", "task-pipeline-widget", d.blocked > 0);
+    _kpiCard(
+      d.blocked > 0 ? "STUCK" : "Blocked",
+      d.blocked,
+      d.blocked > 0 ? "needs attention" : "",
+      "task-pipeline-widget",
+      d.blocked > 0,
+    );
 }
 
 window.renderKpi = renderKpi;

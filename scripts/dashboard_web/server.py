@@ -40,6 +40,7 @@ from api_plans import (
     handle_plan_cancel,
     handle_plan_move,
     handle_plan_reset,
+    handle_plan_validate,
     handle_pull_remote_db,
 )
 from api_plans_sse import (
@@ -153,6 +154,10 @@ class Handler(MiddlewareMixin, SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         path = parsed.path
+        m = re.match(r"^/api/plans/(\d+)/validate$", path)
+        if m:
+            self._json_response(handle_plan_validate(int(m.group(1))))
+            return
         if path == "/api/peers":
             data, code = api_peer_create(self)
             self._json_response(data, code)

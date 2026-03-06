@@ -6,6 +6,36 @@ from api_mesh import find_peer_conf, peer_host_match
 from middleware import DB_PATH, query
 
 
+def handle_plan_validate(plan_id: int) -> dict:
+    """Run plan-db.sh validate-task on all submitted tasks for a plan."""
+    scripts = Path.home() / ".claude" / "scripts"
+    tasks = query(
+        "SELECT task_id FROM tasks WHERE plan_id=? AND status='submitted'",
+        (plan_id,),
+    )
+    if not tasks:
+        return {"ok": True, "validated": 0, "message": "No submitted tasks"}
+    validated = 0
+    for t in tasks:
+        try:
+            r = subprocess.run(
+                [
+                    str(scripts / "plan-db.sh"),
+                    "validate-task",
+                    t["task_id"],
+                    str(plan_id),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            if r.returncode == 0:
+                validated += 1
+        except subprocess.TimeoutExpired:
+            pass
+    return {"ok": True, "validated": validated, "total": len(tasks)}
+
+
 def handle_plan_cancel(qs: dict) -> dict:
     plan_id = qs.get("plan_id", [""])[0]
     if not plan_id or not plan_id.isdigit():

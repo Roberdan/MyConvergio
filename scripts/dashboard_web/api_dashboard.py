@@ -15,7 +15,9 @@ def api_overview() -> dict:
         "SELECT COUNT(*) AS c FROM tasks t JOIN waves w ON t.wave_id_fk=w.id JOIN plans p ON w.plan_id=p.id WHERE t.status='in_progress' AND p.status='doing'"
     ) or {"c": 0}
     blocked = query_one(
-        "SELECT COUNT(*) AS c FROM tasks t JOIN waves w ON t.wave_id_fk=w.id JOIN plans p ON w.plan_id=p.id WHERE t.status='blocked' AND p.status='doing'"
+        "SELECT COUNT(*) AS c FROM tasks t JOIN waves w ON t.wave_id_fk=w.id JOIN plans p ON w.plan_id=p.id"
+        " WHERE p.status='doing' AND (t.status='blocked'"
+        " OR (t.status='submitted' AND t.updated_at < datetime('now', '-5 minutes')))"
     ) or {"c": 0}
     ts = query_one(
         "SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS total_tok, COALESCE(SUM(cost_usd),0) AS total_cost FROM token_usage"

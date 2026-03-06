@@ -32,13 +32,13 @@ def test_mesh_actions_exports_meshAction():
     assert "meshAction" in src, "meshAction must be defined in mesh-actions.js"
 
 
-def test_mesh_actions_exports_showMovePlanDialog():
-    src = read("mesh-actions.js")
+def test_mesh_delegate_exports_showMovePlanDialog():
+    src = read("mesh-delegate.js")
     assert "showMovePlanDialog" in src
 
 
-def test_mesh_actions_exports_movePlan():
-    src = read("mesh-actions.js")
+def test_mesh_delegate_exports_movePlan():
+    src = read("mesh-delegate.js")
     assert "movePlan" in src
 
 
@@ -77,13 +77,13 @@ def test_mesh_actions_no_inline_onclick_with_user_string():
 
 
 def test_css_mn_actions_exists():
-    src = read("style.css")
-    assert ".mn-actions" in src, ".mn-actions must be defined in style.css"
+    src = read("css/mesh-4.css")
+    assert ".mn-actions" in src, ".mn-actions must be defined in mesh-4.css"
 
 
 def test_css_mn_actions_horizontal_layout():
     """User directive: horizontal always-visible icons (not vertical absolute)."""
-    src = read("style.css")
+    src = read("css/mesh-4.css")
     idx = src.find(".mn-actions")
     assert idx >= 0
     snippet = src[idx : idx + 300]
@@ -93,12 +93,12 @@ def test_css_mn_actions_horizontal_layout():
 
 
 def test_css_mn_act_btn_exists():
-    src = read("style.css")
-    assert ".mn-act-btn" in src, ".mn-act-btn must be defined in style.css"
+    src = read("css/mesh-4.css")
+    assert ".mn-act-btn" in src, ".mn-act-btn must be defined in mesh-4.css"
 
 
 def test_css_mn_act_btn_size():
-    src = read("style.css")
+    src = read("css/mesh-4.css")
     idx = src.find(".mn-act-btn")
     snippet = src[idx : idx + 200]
     assert "24px" in snippet, ".mn-act-btn must be 24px wide/high (user directive)"
@@ -127,15 +127,15 @@ def test_app_js_no_showMovePlanDialog_definition():
     ), "showMovePlanDialog must be moved to mesh-actions.js"
 
 
-def test_app_js_mn_actions_toolbar_in_renderMeshStrip():
-    src = read("app.js")
+def test_websocket_js_mn_actions_toolbar_in_meshNodeHtml():
+    src = read("websocket.js")
     assert (
         "mn-actions" in src
-    ), "renderMeshStrip must render .mn-actions toolbar inside each node"
+    ), "_meshNodeHtml must render .mn-actions toolbar inside each node"
 
 
-def test_app_js_data_peer_on_action_buttons():
-    src = read("app.js")
+def test_websocket_js_data_peer_on_action_buttons():
+    src = read("websocket.js")
     assert (
         "data-peer" in src or "data-action" in src
     ), "action buttons must use data-peer / data-action attributes"

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.14.1] - 06 Mar 2026
+
+### Changed
+- ADR 0033 + fix test paths after UX refactor
+
+
 ## [v10.14.0] - 06 Mar 2026
 
 ### Added

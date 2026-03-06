@@ -59,29 +59,29 @@ class TestFontLoading:
 
 class TestCancelResetJS:
     def test_cancelPlan_defined(self):
-        src = read("mesh-actions.js")
+        src = read("mesh-plan-ops.js")
         assert "cancelPlan" in src, "cancelPlan must be defined"
 
     def test_resetPlan_defined(self):
-        src = read("mesh-actions.js")
+        src = read("mesh-plan-ops.js")
         assert "resetPlan" in src, "resetPlan must be defined"
 
     def test_cancelPlan_calls_api_cancel(self):
-        src = read("mesh-actions.js")
+        src = read("mesh-plan-ops.js")
         assert "/api/plan/cancel" in src, "cancelPlan must call /api/plan/cancel"
 
     def test_resetPlan_calls_api_reset(self):
-        src = read("mesh-actions.js")
+        src = read("mesh-plan-ops.js")
         assert "/api/plan/reset" in src, "resetPlan must call /api/plan/reset"
 
     def test_cancelPlan_uses_modal_confirmation(self):
-        src = read("mesh-actions.js")
+        src = read("mesh-plan-ops.js")
         idx = src.find("cancelPlan")
         snippet = src[idx : idx + 1000]
         assert "modal" in snippet.lower(), "cancelPlan must show confirmation modal"
 
     def test_resetPlan_uses_modal_confirmation(self):
-        src = read("mesh-actions.js")
+        src = read("mesh-plan-ops.js")
         idx = src.find("resetPlan")
         snippet = src[idx : idx + 1000]
         assert "modal" in snippet.lower(), "resetPlan must show confirmation modal"
@@ -135,13 +135,12 @@ class TestButtonStyles:
 
 class TestResumeFunction:
     def test_resume_function_exists(self):
-        src = read("kpi.js")
+        src = read("mission.js")
         assert "resumePlanExecution" in src
 
     def test_resume_uses_polling(self):
         """Must use setInterval polling, not setTimeout."""
-        src = read("kpi.js")
-        # Find the function definition (window.resumePlanExecution)
+        src = read("mission.js")
         idx = src.find("window.resumePlanExecution")
         snippet = src[idx : idx + 2000]
         assert (
@@ -150,23 +149,22 @@ class TestResumeFunction:
 
     def test_resume_does_not_overwrite_onopen(self):
         """Must NOT overwrite ws.onopen (addTab needs it)."""
-        src = read("kpi.js")
+        src = read("mission.js")
         idx = src.find("window.resumePlanExecution")
         snippet = src[idx : idx + 2000]
-        # Should not have direct assignment to ws.onopen or tab.ws.onopen
         assert (
             "tab.ws.onopen =" not in snippet
         ), "resumePlanExecution must not overwrite ws.onopen"
 
     def test_resume_uses_claude_command(self):
-        src = read("kpi.js")
+        src = read("mission.js")
         idx = src.find("window.resumePlanExecution")
         snippet = src[idx : idx + 2000]
         assert "claude" in snippet, "resumePlanExecution must use claude CLI"
         assert "/execute" in snippet, "resumePlanExecution must invoke /execute skill"
 
     def test_open_plan_terminal_exists(self):
-        src = read("kpi.js")
+        src = read("mission.js")
         assert "openPlanTerminal" in src
 
     def test_terminal_open_returns_tab_id(self):

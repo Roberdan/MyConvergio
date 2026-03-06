@@ -5,11 +5,14 @@
 # Requires: bash 3.2+, ssh. Source this file, then call peers_load.
 # Usage: source scripts/lib/peers.sh && peers_load && peers_list
 
-# Guard: prevent direct execution
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && {
+# Guard: prevent direct execution (skip in zsh where BASH_SOURCE is unset)
+if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	echo "ERROR: peers.sh must be sourced." >&2
 	exit 1
-}
+fi
+
+# zsh compat: enable word splitting on unquoted $var (bash default)
+[[ -n "${ZSH_VERSION:-}" ]] && setopt SH_WORD_SPLIT 2>/dev/null
 
 PEERS_CONF="${PEERS_CONF:-${CLAUDE_HOME:-$HOME/.claude}/config/peers.conf}"
 _PEERS_ALL=""    # space-separated list of all peer names
@@ -41,12 +44,12 @@ peers_load() {
 	local current_peer="" line key val
 	while IFS= read -r line || [[ -n "$line" ]]; do
 		line="${line%%#*}"
-		while [[ "$line" == [[:space:]]* ]]; do line="${line#?}"; done
-		while [[ "$line" == *[[:space:]] ]]; do line="${line%?}"; done
+		line="${line#"${line%%[! 	]*}"}"
+		line="${line%"${line##*[! 	]}"}"
 		[[ -z "$line" ]] && continue
-		if [[ "$line" == "["*"]" ]]; then
-			current_peer="${line#[}"
-			current_peer="${current_peer%]}"
+		if [[ "$line" == \[*\] ]]; then
+			current_peer="${line#\[}"
+			current_peer="${current_peer%\]}"
 			_PEERS_ALL="${_PEERS_ALL:+$_PEERS_ALL }$current_peer"
 			_peers_set "$current_peer" "status" "active"
 			continue

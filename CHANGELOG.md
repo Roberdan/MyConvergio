@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.14.3] - 06 Mar 2026
+
+### Fixed
+- make peers.sh compatible with zsh sourcing
+
+
 ## [v10.14.2] - 06 Mar 2026
 
 ### Fixed

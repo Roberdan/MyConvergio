@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.10.1] - 06 Mar 2026
+
+### Changed
+- auto-commit before mesh sync
+
+
 ## [v10.10.0] - 06 Mar 2026
 
 ### Added

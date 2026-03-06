@@ -387,6 +387,22 @@ def api_preflight_sse(handler, qs: dict):
     except Exception:
         _check("Claude CLI", False, "Check timeout")
 
+    # Check copilot availability (standalone or gh extension)
+    handler._sse_send("checking", {"name": "Copilot CLI"})
+    try:
+        r = _ssh_run(
+            ssh_dest,
+            'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; '
+            "(command -v copilot >/dev/null 2>&1 && copilot --version 2>/dev/null) || "
+            '(gh copilot --version >/dev/null 2>&1 && echo "gh-extension") || echo missing',
+            timeout=10,
+        )
+        has_copilot = "missing" not in r.stdout and r.returncode == 0
+        ver = r.stdout.strip().split("\n")[-1][:40]
+        _check("Copilot CLI", has_copilot, ver if has_copilot else "not found")
+    except Exception:
+        _check("Copilot CLI", False, "Check timeout")
+
     engine = cli_engine or (pc.get("default_engine") if pc else "") or "copilot"
     if engine == "claude":
         handler._sse_send("checking", {"name": "Claude Auth Type"})

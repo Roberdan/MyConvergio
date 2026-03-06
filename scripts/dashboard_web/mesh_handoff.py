@@ -540,30 +540,50 @@ def _launch_on_target(
         "claude": "claude --dangerously-skip-permissions --model sonnet",
         "opencode": "opencode",
     }
+    # copilot may be installed as standalone or as gh extension
+    cli_detect = {
+        "copilot": "(command -v copilot >/dev/null 2>&1 && echo copilot) || "
+        "(gh copilot --version >/dev/null 2>&1 && echo gh-copilot) || echo MISSING",
+        "claude": "command -v claude >/dev/null 2>&1 && echo claude || echo MISSING",
+        "opencode": "command -v opencode >/dev/null 2>&1 && echo opencode || echo MISSING",
+    }
     cli_cmd = cli_map.get(cli, cli)  # fallback: use raw value
     # Verify chosen CLI exists on target
     try:
-        cli_bin = cli_cmd.split()[0]
+        detect_cmd = cli_detect.get(
+            cli,
+            f"command -v {cli_cmd.split()[0]} >/dev/null 2>&1 && echo FOUND || echo MISSING",
+        )
         r = _ssh(
             ssh_target,
             f'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; '
-            f"command -v {cli_bin} >/dev/null 2>&1 && echo FOUND || echo MISSING",
+            f"{detect_cmd}",
             timeout=8,
         )
-        if "MISSING" in r.stdout:
-            log(f"  ⚠ {cli_bin} not found on target — trying fallback")
+        result = r.stdout.strip().split("\n")[-1]
+        if result == "gh-copilot":
+            cli_cmd = "gh copilot -p"
+            log("  → copilot detected as gh extension")
+        elif result == "MISSING":
+            log(f"  Warning: {cli} not found on target — trying fallback")
             # Fallback chain: copilot → claude → opencode
             for fb in ["copilot", "claude", "opencode"]:
-                fb_bin = fb.split()[0]
+                det = cli_detect.get(
+                    fb, f"command -v {fb} >/dev/null 2>&1 && echo {fb} || echo MISSING"
+                )
                 r2 = _ssh(
                     ssh_target,
                     f'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; '
-                    f"command -v {fb_bin} >/dev/null 2>&1 && echo FOUND || echo MISSING",
+                    f"{det}",
                     timeout=8,
                 )
-                if "FOUND" in r2.stdout:
-                    cli_cmd = cli_map.get(fb, fb)
-                    log(f"  → Using {fb} instead")
+                fb_result = r2.stdout.strip().split("\n")[-1]
+                if fb_result != "MISSING":
+                    if fb_result == "gh-copilot":
+                        cli_cmd = "gh copilot -p"
+                    else:
+                        cli_cmd = cli_map.get(fb, fb)
+                    log(f"  → Using {fb} ({fb_result}) instead")
                     break
             else:
                 cli_cmd = ""

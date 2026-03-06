@@ -183,9 +183,38 @@
   padding-top: 8px;
 }
 
+/* CPU+RAM gauges in mesh node cards */
+.mn-gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+.mn-gauge-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.mn-gauge-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  width: 24px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.mn-gauge-val {
+  font-size: 9px;
+  color: var(--text-dim);
+  width: 28px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.mn-gauge-group .mn-load-bar {
+  flex: 1;
+}
+
 /* History rows clickable */
 .history-row {
   cursor: pointer;
   transition: background 0.15s;
 }
-

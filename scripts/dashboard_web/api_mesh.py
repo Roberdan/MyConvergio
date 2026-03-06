@@ -119,7 +119,7 @@ def api_mesh() -> list[dict]:
             or (now - (hb.get("last_seen") or 0)) < 300
             or p.get("tailscale_ip", "") in ts_online
         )
-        cpu, tasks = extract_heartbeat(hb)
+        cpu, tasks, mem_used, mem_total = extract_heartbeat(hb)
         if is_local:
             host_plans = [
                 e
@@ -179,6 +179,8 @@ def api_mesh() -> list[dict]:
                 "is_local": is_local,
                 "cpu": cpu,
                 "active_tasks": tasks,
+                "mem_used_gb": mem_used,
+                "mem_total_gb": mem_total,
                 "plans": plans,
             }
         )

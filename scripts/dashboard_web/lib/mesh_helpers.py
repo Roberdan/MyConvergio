@@ -15,26 +15,24 @@ _remote_cache: dict = {}  # {peer_name: {"data": [...], "ts": float}}
 _REMOTE_TTL = 30
 
 
-def extract_heartbeat(hb: dict) -> tuple[float, int]:
-    cpu, tasks, lj = 0.0, 0, hb.get("load_json")
+def extract_heartbeat(hb: dict) -> tuple[float, int, float, float]:
+    cpu, tasks, mem_used, mem_total = 0.0, 0, 0.0, 0.0
+    lj = hb.get("load_json")
     if lj and lj != "null":
         try:
             d = json.loads(lj)
-            cpu = (
-                float(d.get("cpu_load", d.get("cpu_load_1", 0)))
-                if isinstance(d, dict)
-                else 0
-            )
-            tasks = (
-                int(d.get("active_tasks", d.get("tasks_in_progress", 0)))
-                if isinstance(d, dict)
-                else 0
-            )
+            if isinstance(d, dict):
+                cpu = float(d.get("cpu_load", d.get("cpu_load_1", 0)))
+                tasks = int(d.get("active_tasks", d.get("tasks_in_progress", 0)))
+                mem_used = float(d.get("mem_used_gb", 0))
+                mem_total = float(d.get("mem_total_gb", 0))
         except Exception:
             pass
     return (
         cpu or float(hb.get("cpu_load_1m") or 0),
         tasks or int(hb.get("active_tasks") or 0),
+        mem_used,
+        mem_total,
     )
 
 

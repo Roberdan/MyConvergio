@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # mesh-load-query.sh — Query CPU load and task state across online mesh peers
-# Version: 1.0.0
+# Version: 1.1.0
 # Usage: mesh-load-query.sh [--json] [--peer NAME]
-# Output: JSON array [{peer, cpu_load, tasks_in_progress, capabilities, cost_tier, privacy_safe, online}]
+# Output: JSON array [{peer, cpu_load, tasks_in_progress, mem_used_gb, mem_total_gb, capabilities, cost_tier, privacy_safe, online}]
 # Writes results to peer_heartbeats table (last_seen + load_json).
 set -euo pipefail
 
@@ -119,7 +119,23 @@ tasks=0
 if [ -f "$db" ] && command -v sqlite3 >/dev/null 2>&1; then
   tasks=$(sqlite3 "$db" "SELECT COUNT(*) FROM tasks WHERE status='in_progress';" 2>/dev/null || echo 0)
 fi
-printf '%s %s\n' "${cpu:-0}" "${tasks:-0}"
+# RAM: macOS -> sysctl/vm_stat | Linux -> /proc/meminfo (output in GB)
+mem_total=0 mem_used=0
+if [ "$(uname)" = "Darwin" ]; then
+  mem_total=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.1f", $1/1073741824}')
+  pages_free=$(vm_stat 2>/dev/null | awk '/Pages free/ {gsub(/\./,"",$3); print $3}')
+  pages_inactive=$(vm_stat 2>/dev/null | awk '/Pages inactive/ {gsub(/\./,"",$3); print $3}')
+  page_size=$(sysctl -n hw.pagesize 2>/dev/null || echo 16384)
+  free_bytes=$(( (${pages_free:-0} + ${pages_inactive:-0}) * ${page_size} ))
+  total_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo 0)
+  used_bytes=$(( total_bytes - free_bytes ))
+  mem_used=$(echo "$used_bytes" | awk '{printf "%.1f", $1/1073741824}')
+else
+  mem_total=$(awk '/MemTotal/ {printf "%.1f", $2/1048576}' /proc/meminfo 2>/dev/null)
+  mem_avail=$(awk '/MemAvailable/ {printf "%.1f", $2/1048576}' /proc/meminfo 2>/dev/null)
+  mem_used=$(echo "$mem_total $mem_avail" | awk '{printf "%.1f", $1-$2}')
+fi
+printf '%s %s %s %s\n' "${cpu:-0}" "${tasks:-0}" "${mem_used:-0}" "${mem_total:-0}"
 REMOTE
 }
 
@@ -138,7 +154,7 @@ _upsert_heartbeat() {
 
 _write_offline() {
 	local name="$1" caps="$2" cost_tier="$3" privacy_safe="$4" result_file="$5"
-	printf '{"peer":"%s","cpu_load":null,"tasks_in_progress":null,"capabilities":"%s","cost_tier":"%s","privacy_safe":%s,"online":false}\n' \
+	printf '{"peer":"%s","cpu_load":null,"tasks_in_progress":null,"mem_used_gb":null,"mem_total_gb":null,"capabilities":"%s","cost_tier":"%s","privacy_safe":%s,"online":false}\n' \
 		"$name" "$caps" "$cost_tier" "$privacy_safe" >"$result_file"
 	_upsert_heartbeat "$name" "$caps" "null"
 }
@@ -166,16 +182,20 @@ _query_peer() {
 		return
 	fi
 
-	local cpu tasks
+	local cpu tasks mem_used mem_total
 	cpu="$(echo "$raw" | awk '{print $1}')"
 	tasks="$(echo "$raw" | awk '{print $2}')"
+	mem_used="$(echo "$raw" | awk '{print $3}')"
+	mem_total="$(echo "$raw" | awk '{print $4}')"
 	cpu="${cpu:-0}"
 	tasks="${tasks:-0}"
+	mem_used="${mem_used:-0}"
+	mem_total="${mem_total:-0}"
 
-	printf '{"peer":"%s","cpu_load":%s,"tasks_in_progress":%s,"capabilities":"%s","cost_tier":"%s","privacy_safe":%s,"online":true}\n' \
-		"$name" "$cpu" "$tasks" "$caps" "$cost_tier" "$privacy_safe" >"$result_file"
+	printf '{"peer":"%s","cpu_load":%s,"tasks_in_progress":%s,"mem_used_gb":%s,"mem_total_gb":%s,"capabilities":"%s","cost_tier":"%s","privacy_safe":%s,"online":true}\n' \
+		"$name" "$cpu" "$tasks" "$mem_used" "$mem_total" "$caps" "$cost_tier" "$privacy_safe" >"$result_file"
 	_upsert_heartbeat "$name" "$caps" \
-		"{\"cpu_load\":$cpu,\"tasks_in_progress\":$tasks,\"cost_tier\":\"$cost_tier\",\"privacy_safe\":$privacy_safe}"
+		"{\"cpu_load\":$cpu,\"tasks_in_progress\":$tasks,\"mem_used_gb\":$mem_used,\"mem_total_gb\":$mem_total,\"cost_tier\":\"$cost_tier\",\"privacy_safe\":$privacy_safe}"
 }
 
 main() {

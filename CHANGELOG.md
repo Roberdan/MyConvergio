@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.13.0] - 06 Mar 2026
+
+### Added
+- live CPU+RAM gauges in mesh peer cards
+
+
 ## [v10.12.3] - 06 Mar 2026
 
 ### Changed

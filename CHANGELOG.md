@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.18.2] - 07 Mar 2026
+
+### Fixed
+- zoom-aware pointer coordinate mapping for node interaction
+
+
 ## [v10.18.1] - 07 Mar 2026
 
 ### Fixed

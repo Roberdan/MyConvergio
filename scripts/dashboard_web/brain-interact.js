@@ -5,19 +5,16 @@
   let drag = null,
     hover = null,
     tooltip = null,
-    canvas = null;
+    canvas = null,
+    _debugXY = null;
 
   function canvasXY(e) {
-    if (!canvas) return { x: 0, y: 0 };
     const S = window._brainState;
-    if (!S || !S.w) return { x: 0, y: 0 };
-    const r = canvas.getBoundingClientRect();
-    if (!r.width || !r.height) return { x: 0, y: 0 };
-    // getBoundingClientRect and clientX/Y are both in viewport coords,
-    // so the fraction is zoom-agnostic
-    const fx = (e.clientX - r.left) / r.width;
-    const fy = (e.clientY - r.top) / r.height;
-    return { x: fx * S.w, y: fy * S.h };
+    if (!S || !S.canvas) return { x: 0, y: 0 };
+    // Chrome reports offsetX/offsetY in viewport pixels (scaled by body zoom).
+    // Canvas draws in CSS pixels. Divide by zoom to convert.
+    const zoom = parseFloat(document.body.style.zoom) || 1;
+    return { x: e.offsetX / zoom, y: e.offsetY / zoom };
   }
 
   function hitTest(mx, my) {
@@ -26,7 +23,7 @@
     const nodes = S.layout.nodes;
     for (let i = nodes.length - 1; i >= 0; i--) {
       const n = nodes[i];
-      const r = n.type === 'plan' ? 26 : 14;
+      const r = n.type === 'plan' ? 28 : 14;
       if (Math.hypot(mx - n.x, my - n.y) < r) return n;
     }
     return null;
@@ -43,12 +40,14 @@
     drag = { node: hit, sx: p.x, sy: p.y, ox: hit.x, oy: hit.y, moved: false };
     const S = window._brainState;
     if (S?.layout) S.layout.pin(hit.id);
+    canvas.setPointerCapture(e.pointerId);
     e.preventDefault();
   }
 
   function onMove(e) {
     if (!canvas) return;
     const p = canvasXY(e);
+    _debugXY = p;
     if (drag) {
       const dx = p.x - drag.sx,
         dy = p.y - drag.sy;
@@ -91,11 +90,9 @@
     el.innerHTML = buildHTML(node);
     const box = canvas.parentElement;
     box.style.position = 'relative';
-    // Position tooltip relative to container using mouse event
-    const cr = box.getBoundingClientRect();
     const zoom = parseFloat(document.body.style.zoom) || 1;
-    let tx = (evt.clientX - cr.left) / zoom + 14;
-    let ty = (evt.clientY - cr.top) / zoom - 20;
+    let tx = evt.offsetX / zoom + 14;
+    let ty = evt.offsetY / zoom - 20;
     const bw = box.clientWidth,
       bh = box.clientHeight;
     if (tx + 260 > bw) tx = bw - 270;
@@ -113,13 +110,11 @@
     tooltip = null;
   }
   function buildHTML(n) {
-    if (n.type === 'plan') return planHTML(n);
-    return agentHTML(n);
+    return n.type === 'plan' ? planHTML(n) : agentHTML(n);
   }
   function agentHTML(n) {
     const d = n._data || {};
-    const dot = sdot(d.status);
-    const rows = [`<div class="btt-title">${dot} ${esc(d.name || n.id)}</div>`];
+    const rows = [`<div class="btt-title">${sdot(d.status)} ${esc(d.name || n.id)}</div>`];
     if (d.taskId) rows.push(row('Task', d.taskId));
     rows.push(row('Status', d.status || '?'));
     if (d.host) rows.push(row('Host', d.host));
@@ -197,9 +192,9 @@
   // --- Hover ring ---
   window._brainDrawHover = function (ctx) {
     if (!hover || drag) return;
-    const r = hover.type === 'plan' ? 28 : 16;
+    const r = hover.type === 'plan' ? 30 : 16;
     ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
     ctx.lineWidth = 2;
     ctx.setLineDash([5, 4]);
     ctx.beginPath();
@@ -212,6 +207,7 @@
   window._brainInteract = {
     init(c) {
       canvas = c;
+      c.style.touchAction = 'none';
       c.addEventListener('pointerdown', onDown);
       c.addEventListener('pointermove', onMove);
       c.addEventListener('pointerup', onUp);
@@ -222,6 +218,7 @@
           drag = null;
         }
         hover = null;
+        _debugXY = null;
         if (canvas) canvas.style.cursor = 'default';
       });
     },
@@ -234,6 +231,7 @@
       canvas = null;
       drag = null;
       hover = null;
+      _debugXY = null;
     },
     isDragging() {
       return !!drag;

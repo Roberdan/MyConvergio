@@ -5,7 +5,7 @@
 
 <img src="./CovergioLogoTransparent.webp" alt="MyConvergio Logo" width="180"/>
 
-[![Agents](https://img.shields.io/badge/agents-85-4C1)](#agent-portfolio)
+[![Agents](https://img.shields.io/badge/agents-86-4C1)](#agent-portfolio)
 [![Open Source](https://img.shields.io/badge/open_source-CC_BY--NC--SA_4.0-lightgrey)](./LICENSE)
 [![Multi-Provider](https://img.shields.io/badge/Claude_·_Copilot_·_Gemini_·_OpenCode-0A66C2)](#model-routing)
 
@@ -93,9 +93,38 @@ You want AI that ships reliable, secure, production-ready software — with inde
 
 ---
 
+## Quick setup
+
+```bash
+# Install core system
+curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
+
+# Guided bootstrap: core install + shell + CLI tools + optional workstation extras
+myconvergio setup --full --with-workstation
+```
+
+What the setup command does:
+
+- audits your machine and package manager
+- installs missing required dependencies
+- installs MyConvergio into `~/.claude/`
+- optionally configures shell aliases, PATH, prompt, tmux, Tailscale, and recommended CLI tools
+- verifies the final state with `myconvergio doctor`
+
+For minimal machines, use `myconvergio setup --minimal`. For a lightweight but ergonomic install, use `myconvergio setup --standard --with-shell --with-devtools`.
+
+To keep the public repo aligned with your private `~/.claude` in future releases:
+
+```bash
+myconvergio ecosystem-sync all --dry-run
+myconvergio ecosystem-sync all
+```
+
+This now combines sanitized upstream sync, internal mirror sync, and validation/generation checks in one place.
+
 ## The Control Room
 
-Real-time visibility into plans, agents, mesh peers, costs, and execution — from your browser.
+Real-time visibility into plans, agents, mesh peers, costs, execution, and now live organization telemetry — from your browser.
 
 <img src="./docs/images/dashboard-overview.png" alt="Convergio Control Room — Overview with mesh network, active missions, task pipeline, and integrated terminal" width="100%"/>
 

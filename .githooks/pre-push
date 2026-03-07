@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+bash "$(dirname "$0")/../hooks/version-check.sh"
+bash "$(dirname "$0")/../hooks/worktree-guard.sh" <<<"{}" || true

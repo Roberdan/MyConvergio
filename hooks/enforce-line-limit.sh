@@ -8,18 +8,18 @@ set -euo pipefail
 MAX_LINES=250
 
 INPUT=$(cat)
-TOOL_NAME=$(echo "$INPUT" | jq -r '.toolName // ""' 2>/dev/null)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.toolName // .tool_name // ""' 2>/dev/null)
 
-# Only check edit/write tools
-case "$TOOL_NAME" in
-edit | write | editFile | writeFile) ;;
-*) exit 0 ;;
-esac
-
-# Extract file_path from toolArgs
-FILE=$(echo "$INPUT" | jq -r '.toolArgs.file_path // .toolArgs.filePath // empty' 2>/dev/null)
+# Extract file_path from current and legacy hook payloads
+FILE=$(echo "$INPUT" | jq -r '.toolArgs.file_path // .toolArgs.filePath // .tool_input.file_path // .tool_input.filePath // empty' 2>/dev/null)
 [ -z "$FILE" ] && exit 0
 [ ! -f "$FILE" ] && exit 0
+
+# Only check edit/write tools when a tool name is present.
+case "$TOOL_NAME" in
+"" | edit | write | editFile | writeFile) ;;
+*) exit 0 ;;
+esac
 
 # Skip non-code files
 case "$FILE" in

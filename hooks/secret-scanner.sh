@@ -27,23 +27,41 @@ NC='\033[0m' # No Color
 SECRETS_FOUND=0
 
 # API Keys and Tokens patterns
-declare -A SECRET_PATTERNS=(
-  ["OpenAI API Key"]='sk-(proj-)?[a-zA-Z0-9]{8,}'
-  ["GitHub Token"]='gh[pso]_[a-zA-Z0-9]{8,}|(ghu|ghs)_[a-zA-Z0-9]{8,}'
-  ["AWS Access Key"]='AKIA[0-9A-Z]{16}'
-  ["AWS Secret Key"]='aws_secret_access_key[[:space:]]*=[[:space:]]*[A-Za-z0-9/+=]{40}'
-  ["Azure Storage Key"]='AccountKey=[A-Za-z0-9+/=]{88}'
-  ["GCP API Key"]='AIza[0-9A-Za-z_-]{35}'
-  ["Generic API Key"]='[aA][pP][iI][-_]?[kK][eE][yY][[:space:]]*[:=][[:space:]]*["'\''][a-zA-Z0-9_-]{8,}["'\'']'
-  ["Generic Secret"]='[sS][eE][cC][rR][eE][tT][[:space:]]*[:=][[:space:]]*["'\''][a-zA-Z0-9_-]{8,}["'\'']'
-  ["Generic Password"]='[pP][aA][sS][sS][wW][oO][rR][dD][[:space:]]*[:=][[:space:]]*["'\''][^"'\'']{8,}["'\'']'
-  ["Generic Token"]='[tT][oO][kK][eE][nN][[:space:]]*[:=][[:space:]]*["'\''][a-zA-Z0-9_.-]{8,}["'\'']'
-  ["JWT Token"]='eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}'
-  ["Slack Token"]='xox[baprs]-[0-9]{10,13}-[0-9]{10,13}-[a-zA-Z0-9]{24,}'
-  ["Stripe Key"]='sk_live_[0-9a-zA-Z]{24,}'
-  ["Stripe Publishable"]='pk_live_[0-9a-zA-Z]{24,}'
-  ["Private Key"]='-----BEGIN (RSA |EC |DSA )?PRIVATE KEY-----'
-  ["Connection String"]='(mongodb|mysql|postgresql|postgres|redis)://[^@]+:[^@]+@'
+SECRET_PATTERN_NAMES=(
+  "OpenAI API Key"
+  "GitHub Token"
+  "AWS Access Key"
+  "AWS Secret Key"
+  "Azure Storage Key"
+  "GCP API Key"
+  "Generic API Key"
+  "Generic Secret"
+  "Generic Password"
+  "Generic Token"
+  "JWT Token"
+  "Slack Token"
+  "Stripe Key"
+  "Stripe Publishable"
+  "Private Key"
+  "Connection String"
+)
+SECRET_PATTERN_REGEXES=(
+  'sk-(proj-)?[a-zA-Z0-9]{8,}'
+  'gh[pso]_[a-zA-Z0-9]{8,}|(ghu|ghs)_[a-zA-Z0-9]{8,}'
+  'AKIA[0-9A-Z]{16}'
+  'aws_secret_access_key[[:space:]]*=[[:space:]]*[A-Za-z0-9/+=]{40}'
+  'AccountKey=[A-Za-z0-9+/=]{88}'
+  'AIza[0-9A-Za-z_-]{35}'
+  '[aA][pP][iI][-_]?[kK][eE][yY][[:space:]]*[:=][[:space:]]*["'\''][a-zA-Z0-9_-]{8,}["'\'']'
+  '[sS][eE][cC][rR][eE][tT][[:space:]]*[:=][[:space:]]*["'\''][a-zA-Z0-9_-]{8,}["'\'']'
+  '[pP][aA][sS][sS][wW][oO][rR][dD][[:space:]]*[:=][[:space:]]*["'\''][^"'\'']{8,}["'\'']'
+  '[tT][oO][kK][eE][nN][[:space:]]*[:=][[:space:]]*["'\''][a-zA-Z0-9_.-]{8,}["'\'']'
+  'eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}'
+  'xox[baprs]-[0-9]{10,13}-[0-9]{10,13}-[a-zA-Z0-9]{24,}'
+  'sk_live_[0-9a-zA-Z]{24,}'
+  'pk_live_[0-9a-zA-Z]{24,}'
+  '-----BEGIN (RSA |EC |DSA )?PRIVATE KEY-----'
+  '(mongodb|mysql|postgresql|postgres|redis)://[^@]+:[^@]+@'
 )
 
 # Get list of staged files
@@ -87,8 +105,10 @@ scan_secrets() {
   esac
   
   # Check each secret pattern
-  for pattern_name in "${!SECRET_PATTERNS[@]}"; do
-    local pattern="${SECRET_PATTERNS[$pattern_name]}"
+  local idx
+  for idx in "${!SECRET_PATTERN_NAMES[@]}"; do
+    local pattern_name="${SECRET_PATTERN_NAMES[$idx]}"
+    local pattern="${SECRET_PATTERN_REGEXES[$idx]}"
     
     while IFS=: read -r line_num line_content; do
       if [ -n "$line_num" ]; then

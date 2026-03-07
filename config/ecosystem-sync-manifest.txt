@@ -1,0 +1,11 @@
+# mode|source|target|category|notes
+# source/target are repo-relative to MyConvergio root.
+dir|.claude/scripts/dashboard_web|scripts/dashboard_web|dashboard|Mirror dashboard runtime into public root copy
+file|.claude/scripts/init-db.sql|scripts/mesh/init-db.sql|mesh|Mirror DB schema to mesh runtime
+file|.claude/scripts/migrate-db.sh|scripts/mesh/migrate-db.sh|mesh|Mirror DB migration to mesh runtime
+file|.claude/scripts/copilot-worker.sh|scripts/mesh/copilot-worker.sh|mesh|Mirror Copilot worker to mesh runtime
+file|.claude/scripts/execution-preflight.sh|scripts/mesh/execution-preflight.sh|mesh|Mirror execution preflight to mesh runtime
+file|.claude/scripts/lib/plan-db/validate-gate-8.sh|scripts/lib/plan-db/validate-gate-8.sh|shared|Mirror validate gate to root shared lib
+file|.claude/scripts/lib/plan-db/validate-gate-8.sh|scripts/mesh/lib/plan-db/validate-gate-8.sh|mesh|Mirror validate gate to mesh lib
+file|.claude/scripts/dashboard-db-repair.sh|scripts/dashboard-db-repair.sh|shared|Promote DB repair helper to public root runtime
+file|.claude/scripts/token-usage-normalize.sh|scripts/token-usage-normalize.sh|shared|Promote token normalization helper to public root runtime

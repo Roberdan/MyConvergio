@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 TERMINAL_JS = Path(__file__).parent.parent / "terminal.js"
-STYLE_CSS = Path(__file__).parent.parent / "style.css"
+STYLE_CSS = Path(__file__).parent.parent / "css" / "terminal.css"
 
 
 def read_file(path: Path) -> str:

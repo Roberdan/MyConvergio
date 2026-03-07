@@ -6,6 +6,13 @@ from pathlib import Path
 _TERMINAL_ALLOWED_CMDS = {
     "ls", "cat", "head", "tail", "grep", "find", "df", "du", "free", "uptime", "ps", "top", "uname", "hostname", "whoami", "date", "wc", "sort", "uniq", "echo", "pwd", "id", "which", "file", "stat", "mount", "env", "printenv", "journalctl", "systemctl", "docker", "git", "sqlite3", "python3", "python", "node", "npm", "npx", "pip", "plan-db.sh", "plan-db-safe.sh", "git-digest.sh", "diff-digest.sh", "test-digest.sh", "build-digest.sh", "service-digest.sh", "db-digest.sh", "mesh-sync-all.sh", "mesh-heartbeat.sh", "mesh-auth-sync.sh", "mesh-load-query.sh", "copilot-worker.sh", "claude", "copilot", "ssh", "scp", "rsync", "ping", "curl", "wget", "dig", "nslookup", "brew", "apt", "htop", "lsof", "netstat", "ss", "ip",
 }
+_TERMINAL_FLAG_BLOCKLIST = {
+    "python3": {"-c", "-m"},
+    "python": {"-c", "-m"},
+    "node": {"-e", "--eval"},
+    "npm": {"exec"},
+    "npx": {"-c"},
+}
 
 
 def handle_terminal(qs: dict, safe_name) -> dict:
@@ -22,6 +29,9 @@ def handle_terminal(qs: dict, safe_name) -> dict:
     base_cmd = Path(args[0]).name
     if base_cmd not in _TERMINAL_ALLOWED_CMDS:
         return {"output": f"Command not allowed: {base_cmd}", "exit_code": 1}
+    blocked_flags = _TERMINAL_FLAG_BLOCKLIST.get(base_cmd, set())
+    if any(arg in blocked_flags for arg in args[1:]):
+        return {"output": f"Blocked unsafe flags for {base_cmd}", "exit_code": 1}
     if peer and peer != "local":
         if not safe_name.match(peer):
             return {"output": "Invalid peer name", "exit_code": 1}

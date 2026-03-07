@@ -21,8 +21,10 @@ from api_dashboard import (
     api_coordinator_toggle as _api_coordinator_toggle,
     api_events as _api_events,
     api_history as _api_history,
+    api_live_system as _api_live_system,
     api_mission as _api_mission,
     api_notifications as _api_notifications,
+    api_organization as _api_organization,
     api_overview as _api_overview,
     api_plan_detail as _api_plan_detail,
     api_task_status_dist as _api_task_status_dist,
@@ -44,7 +46,7 @@ from api_plans import (
     handle_pull_remote_db,
 )
 from api_terminal import handle_terminal
-from middleware import DB_PATH, PEERS_CONF as _PEERS_CONF, PORT, MiddlewareMixin, query
+from middleware import DB_PATH, PEERS_CONF as _PEERS_CONF, PORT, MiddlewareMixin, ensure_live_runtime_schema, query, validate_queries_on_boot
 
 STATIC_DIR = Path(__file__).parent
 PEERS_CONF = _PEERS_CONF
@@ -55,6 +57,8 @@ _sync_cache = {"data": None, "ts": 0}
 
 def api_overview(): return _api_overview()
 def api_mission(): return _api_mission(resolve_host_to_peer)
+def api_organization(): return _api_organization(resolve_host_to_peer, api_mesh)
+def api_live_system(): return _api_live_system(resolve_host_to_peer, api_mesh)
 def api_tokens_daily(): return _api_tokens_daily()
 def api_tokens_by_model(): return _api_tokens_by_model()
 def api_mesh(): return api_mesh_mod.api_mesh()
@@ -104,6 +108,8 @@ def api_mesh_sync_status() -> list[dict]:
 ROUTES = {
     "/api/overview": api_overview,
     "/api/mission": api_mission,
+    "/api/organization": api_organization,
+    "/api/live-system": api_live_system,
     "/api/tokens/daily": api_tokens_daily,
     "/api/tokens/models": api_tokens_by_model,
     "/api/mesh": api_mesh,
@@ -164,10 +170,17 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 def main():
+    ensure_live_runtime_schema()
+    passed, failed, errors = validate_queries_on_boot()
     port = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else PORT
     server = ThreadedHTTPServer(("127.0.0.1", port), Handler)
     print(f"\033[1;36m◈ Convergio Control Room\033[0m → http://localhost:{port}")
-    print(f"  DB: {DB_PATH}\n  Press Ctrl+C to stop\n")
+    print(f"  DB: {DB_PATH}")
+    print(f"  SQL boot validation: {passed} passed / {failed} failed")
+    if errors:
+        for err in errors[:5]:
+            print(err)
+    print("  Press Ctrl+C to stop\n")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

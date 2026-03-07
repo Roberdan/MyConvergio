@@ -1,6 +1,6 @@
 # MyConvergio Agents
 
-**v10.1.0** | 85 Unique Agents (76 Claude + 83 Copilot files) | Multi-Provider Orchestrator
+**v10.15.0** | 85 Unique Agents (76 Claude + 83 Copilot files) | Multi-Provider Orchestrator
 
 <!-- AGENT_COUNTS: unique:86 claude:77 copilot:85 -->
 
@@ -8,12 +8,12 @@
 
 ## Overview
 
-MyConvergio is an enterprise AI agent suite providing specialized assistance across strategy, development, compliance, operations, and orchestration. It supports both **Claude Code** (76 agent files) and **GitHub Copilot CLI** (83 agent files), enabling cross-tool agent discovery and unified workflows.
+MyConvergio is an enterprise AI agent suite providing specialized assistance across strategy, development, compliance, operations, and orchestration. It supports both **Claude Code** (77 agent files) and **GitHub Copilot CLI** (85 agent files), enabling cross-tool agent discovery and unified workflows.
 
 **Key Features**:
 
-- 76 Claude agent files across 8 categories
-- 83 Copilot agent files for GitHub Copilot users
+- 77 Claude agent files across 8 categories
+- 85 Copilot agent files for GitHub Copilot users
 - Multi-provider orchestration (Claude, Copilot CLI, OpenCode, Gemini)
 - Modular installation tiers (minimal/standard/full)
 - Lean variants (~50% smaller) for context optimization
@@ -32,7 +32,7 @@ MyConvergio is an enterprise AI agent suite providing specialized assistance acr
 | specialized_experts   | 14    | domik, behice, fiona, angela, ethan, evan, michael, research-report-generator         | Claude (sonnet), Gemini         |
 | design_ux             | 3     | creative-director (5 skills), ux-designer, design-thinking                            | Claude (sonnet)                 |
 
-**Total**: 159 agent files (76 Claude + 83 Copilot)
+**Total**: 162 agent files (77 Claude + 85 Copilot)
 
 ### Model Tiering
 
@@ -244,7 +244,7 @@ MyConvergio/
 
 ## Version
 
-**Current**: v9.19.0
+**Current**: v10.15.0
 **Release Notes**: See `CHANGELOG.md`
 **Versioning**: SemVer 2.0.0 (system + individual agents)
 

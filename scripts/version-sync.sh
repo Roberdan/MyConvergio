@@ -21,7 +21,19 @@ update_file() {
 		echo "SKIP (not found): $file"
 		return
 	fi
-	sed -i "s|$pattern|$replacement|g" "$file"
+	python3 - "$file" "$pattern" "$replacement" <<'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+pattern = sys.argv[2]
+replacement = sys.argv[3]
+content = path.read_text(encoding="utf-8")
+updated = re.sub(pattern, replacement, content)
+if updated != content:
+    path.write_text(updated, encoding="utf-8")
+PY
 }
 
 # README.md: **v9.x.x** occurrences in badge and footer lines

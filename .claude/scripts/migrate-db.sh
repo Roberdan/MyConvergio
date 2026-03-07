@@ -104,22 +104,82 @@ if ! table_exists "token_usage"; then
 	sqlite3 "$DB_PATH" <<'SQL'
 CREATE TABLE IF NOT EXISTS token_usage (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  project_id TEXT NOT NULL,
-  session_id TEXT,
+  project_id TEXT,
+  plan_id INTEGER,
+  wave_id TEXT,
   task_id TEXT,
-  model TEXT NOT NULL,
-  tokens_input INTEGER NOT NULL DEFAULT 0,
-  tokens_output INTEGER NOT NULL DEFAULT 0,
-  cost_usd REAL,
-  recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  agent TEXT,
+  model TEXT,
+  input_tokens INTEGER DEFAULT 0,
+  output_tokens INTEGER DEFAULT 0,
+  cost_usd REAL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  execution_host TEXT,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_token_usage_project ON token_usage(project_id, recorded_at DESC);
-CREATE INDEX IF NOT EXISTS idx_token_usage_task ON token_usage(task_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_project ON token_usage(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_task ON token_usage(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_plan_task ON token_usage(plan_id, task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_plan_created ON token_usage(plan_id, created_at DESC);
 SQL
 	log_info "token_usage table created"
 else
 	log_info "token_usage table already exists"
+fi
+
+for coldef in \
+	"plan_id INTEGER" \
+	"wave_id TEXT" \
+	"agent TEXT" \
+	"input_tokens INTEGER DEFAULT 0" \
+	"output_tokens INTEGER DEFAULT 0" \
+	"created_at DATETIME DEFAULT CURRENT_TIMESTAMP" \
+	"execution_host TEXT"; do
+	col="${coldef%% *}"
+	if ! column_exists "token_usage" "$col"; then
+		log_info "Adding token_usage.$col..."
+		sqlite3 "$DB_PATH" "ALTER TABLE token_usage ADD COLUMN $coldef;"
+	fi
+done
+sqlite3 "$DB_PATH" <<'SQL'
+CREATE INDEX IF NOT EXISTS idx_token_usage_project ON token_usage(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_task ON token_usage(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_plan_task ON token_usage(plan_id, task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_plan_created ON token_usage(plan_id, created_at DESC);
+SQL
+
+if ! table_exists "delegation_log"; then
+	log_info "Adding delegation_log table..."
+	sqlite3 "$DB_PATH" <<'SQL'
+CREATE TABLE IF NOT EXISTS delegation_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_db_id INTEGER,
+  plan_id INTEGER,
+  project_id TEXT,
+  provider TEXT,
+  model TEXT,
+  prompt_tokens INTEGER DEFAULT 0,
+  response_tokens INTEGER DEFAULT 0,
+  duration_ms INTEGER DEFAULT 0,
+  exit_code INTEGER DEFAULT 0,
+  thor_result TEXT,
+  cost_estimate REAL DEFAULT 0,
+  privacy_level TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_plan_id ON delegation_log(plan_id);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_task_db_id ON delegation_log(task_db_id);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_created_at ON delegation_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_plan_task_created ON delegation_log(plan_id, task_db_id, created_at DESC);
+SQL
+	log_info "delegation_log table created"
+else
+	sqlite3 "$DB_PATH" <<'SQL'
+CREATE INDEX IF NOT EXISTS idx_delegation_log_plan_id ON delegation_log(plan_id);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_task_db_id ON delegation_log(task_db_id);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_created_at ON delegation_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_plan_task_created ON delegation_log(plan_id, task_db_id, created_at DESC);
+SQL
 fi
 
 # Migration 4: Add plans table if missing
@@ -200,6 +260,75 @@ SQL
 	log_info "mesh_events table created"
 else
 	log_info "mesh_events table already exists"
+fi
+
+# Migration 8: Add live orchestration telemetry tables
+if ! table_exists "agent_runs"; then
+	log_info "Adding live orchestration telemetry tables..."
+	sqlite3 "$DB_PATH" <<'SQL'
+CREATE TABLE IF NOT EXISTS agent_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER,
+  wave_id TEXT,
+  task_id TEXT,
+  parent_run_id INTEGER,
+  agent_name TEXT NOT NULL,
+  agent_role TEXT,
+  model TEXT,
+  peer_name TEXT,
+  status TEXT NOT NULL CHECK(status IN ('queued','running','waiting','handoff','validating','blocked','completed','failed','cancelled')),
+  current_task TEXT,
+  metadata_json TEXT,
+  started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_heartbeat DATETIME DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME,
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_run_id) REFERENCES agent_runs(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS task_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER,
+  wave_id TEXT,
+  task_id TEXT,
+  run_id INTEGER,
+  event_type TEXT NOT NULL,
+  status TEXT,
+  severity TEXT DEFAULT 'info',
+  source_agent TEXT,
+  target_agent TEXT,
+  peer_name TEXT,
+  message TEXT,
+  payload TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+  FOREIGN KEY (run_id) REFERENCES agent_runs(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS agent_handoffs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER,
+  task_id TEXT,
+  from_run_id INTEGER,
+  to_run_id INTEGER,
+  handoff_kind TEXT DEFAULT 'delegate',
+  status TEXT NOT NULL CHECK(status IN ('proposed','accepted','completed','rejected','expired')),
+  reason TEXT,
+  payload TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  accepted_at DATETIME,
+  completed_at DATETIME,
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+  FOREIGN KEY (from_run_id) REFERENCES agent_runs(id) ON DELETE SET NULL,
+  FOREIGN KEY (to_run_id) REFERENCES agent_runs(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_active ON agent_runs(status, peer_name, last_heartbeat);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_plan ON agent_runs(plan_id, task_id);
+CREATE INDEX IF NOT EXISTS idx_task_events_plan ON task_events(plan_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_task_events_run ON task_events(run_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_handoffs_plan ON agent_handoffs(plan_id, created_at DESC);
+SQL
+	log_info "live orchestration telemetry tables created"
+else
+	log_info "live orchestration telemetry tables already exist"
 fi
 
 # Verify database integrity

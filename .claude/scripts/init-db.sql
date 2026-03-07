@@ -253,6 +253,67 @@ CREATE TABLE IF NOT EXISTS mesh_events (
 CREATE INDEX IF NOT EXISTS idx_mesh_events_pending ON mesh_events(status, created_at) WHERE status = 'pending';
 CREATE INDEX IF NOT EXISTS idx_mesh_events_plan ON mesh_events(plan_id, event_type);
 
+-- Live orchestration telemetry for dashboard neural/system view
+CREATE TABLE IF NOT EXISTS agent_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER,
+  wave_id TEXT,
+  task_id TEXT,
+  parent_run_id INTEGER,
+  agent_name TEXT NOT NULL,
+  agent_role TEXT,
+  model TEXT,
+  peer_name TEXT,
+  status TEXT NOT NULL CHECK(status IN ('queued','running','waiting','handoff','validating','blocked','completed','failed','cancelled')),
+  current_task TEXT,
+  metadata_json TEXT,
+  started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_heartbeat DATETIME DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME,
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_run_id) REFERENCES agent_runs(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS task_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER,
+  wave_id TEXT,
+  task_id TEXT,
+  run_id INTEGER,
+  event_type TEXT NOT NULL,
+  status TEXT,
+  severity TEXT DEFAULT 'info',
+  source_agent TEXT,
+  target_agent TEXT,
+  peer_name TEXT,
+  message TEXT,
+  payload TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+  FOREIGN KEY (run_id) REFERENCES agent_runs(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS agent_handoffs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER,
+  task_id TEXT,
+  from_run_id INTEGER,
+  to_run_id INTEGER,
+  handoff_kind TEXT DEFAULT 'delegate',
+  status TEXT NOT NULL CHECK(status IN ('proposed','accepted','completed','rejected','expired')),
+  reason TEXT,
+  payload TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  accepted_at DATETIME,
+  completed_at DATETIME,
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+  FOREIGN KEY (from_run_id) REFERENCES agent_runs(id) ON DELETE SET NULL,
+  FOREIGN KEY (to_run_id) REFERENCES agent_runs(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_active ON agent_runs(status, peer_name, last_heartbeat);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_plan ON agent_runs(plan_id, task_id);
+CREATE INDEX IF NOT EXISTS idx_task_events_plan ON task_events(plan_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_task_events_run ON task_events(run_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_handoffs_plan ON agent_handoffs(plan_id, created_at DESC);
+
 -- Conversation logs for tracking agent interactions
 CREATE TABLE IF NOT EXISTS conversation_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -272,22 +333,49 @@ CREATE TABLE IF NOT EXISTS conversation_logs (
 -- Token usage tracking for cost analysis
 CREATE TABLE IF NOT EXISTS token_usage (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  project_id TEXT NOT NULL,
-  session_id TEXT,
+  project_id TEXT,
+  plan_id INTEGER,
+  wave_id TEXT,
   task_id TEXT,
-  model TEXT NOT NULL,
-  tokens_input INTEGER NOT NULL DEFAULT 0,
-  tokens_output INTEGER NOT NULL DEFAULT 0,
-  cost_usd REAL,
-  recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  agent TEXT,
+  model TEXT,
+  input_tokens INTEGER DEFAULT 0,
+  output_tokens INTEGER DEFAULT 0,
+  cost_usd REAL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  execution_host TEXT,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+-- Delegation-level token/cost telemetry for runs that predate full token_usage attribution
+CREATE TABLE IF NOT EXISTS delegation_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_db_id INTEGER,
+  plan_id INTEGER,
+  project_id TEXT,
+  provider TEXT,
+  model TEXT,
+  prompt_tokens INTEGER DEFAULT 0,
+  response_tokens INTEGER DEFAULT 0,
+  duration_ms INTEGER DEFAULT 0,
+  exit_code INTEGER DEFAULT 0,
+  thor_result TEXT,
+  cost_estimate REAL DEFAULT 0,
+  privacy_level TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes for new tables
 CREATE INDEX IF NOT EXISTS idx_notifications_project ON notifications(project_id, is_read, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_conversation_logs_session ON conversation_logs(project_id, session_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_token_usage_project ON token_usage(project_id, recorded_at DESC);
-CREATE INDEX IF NOT EXISTS idx_token_usage_task ON token_usage(task_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_project ON token_usage(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_task ON token_usage(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_plan_task ON token_usage(plan_id, task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_plan_created ON token_usage(plan_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_plan_id ON delegation_log(plan_id);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_task_db_id ON delegation_log(task_db_id);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_created_at ON delegation_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_delegation_log_plan_task_created ON delegation_log(plan_id, task_db_id, created_at DESC);
 
 -- Indexes for task/wave lookups
 CREATE INDEX IF NOT EXISTS idx_tasks_wave_fk ON tasks(wave_id_fk);

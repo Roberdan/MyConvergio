@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.20.2] - 07 Mar 2026
+
+### Fixed
+- remove parallel_mode badge from plan cards
+
+
 ## [v10.20.1] - 07 Mar 2026
 
 ### Changed

@@ -8,15 +8,93 @@
   align-items: center;
 }
 #brain-widget .brain-stats {
-  font: 11px 'JetBrains Mono', monospace;
+  font:
+    11px 'JetBrains Mono',
+    monospace;
   color: var(--text-dim, #5a6080);
 }
 #brain-canvas-container {
-  background: linear-gradient(180deg, #0a0f1a, #080810);
+  background: linear-gradient(180deg, var(--bg-panel), var(--bg-deep));
   border-radius: 0 0 8px 8px;
 }
 .brain-canvas {
   display: block;
   width: 100%;
   height: 100%;
+}
+/* Tooltip */
+.brain-tooltip {
+  background: rgba(10, 16, 36, 0.95);
+  border: 1px solid color-mix(in srgb, var(--cyan) 25%, transparent);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-width: 180px;
+  max-width: 260px;
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 12px color-mix(in srgb, var(--cyan) 8%, transparent);
+  pointer-events: none;
+  animation: btt-in 0.15s ease-out;
+}
+@keyframes btt-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.btt-title {
+  font:
+    bold 11px 'JetBrains Mono',
+    monospace;
+  color: var(--text);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btt-row {
+  display: flex;
+  justify-content: space-between;
+  font:
+    10px 'JetBrains Mono',
+    monospace;
+  color: var(--text-dim);
+  padding: 1px 0;
+}
+.btt-label {
+  color: var(--text-dim);
+}
+.btt-val {
+  color: var(--text);
+}
+.btt-val.btt-green {
+  color: var(--green);
+}
+.btt-val.btt-mono {
+  font-size: 9px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btt-tasks {
+  margin-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--cyan) 10%, transparent);
+  padding-top: 4px;
+  max-height: 100px;
+  overflow-y: auto;
+}
+.btt-task {
+  font:
+    9px 'JetBrains Mono',
+    monospace;
+  color: var(--text-dim);
+  padding: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

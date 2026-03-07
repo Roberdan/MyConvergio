@@ -124,19 +124,19 @@
     if (d.filesChanged || d.linesAdded || d.linesRemoved) {
       rows.push(row('Files', (d.filesChanged || 0) + ' changed'));
       rows.push(
-        `<div class="btt-row"><span class="btt-label">Lines</span><span class="btt-val"><span style="color:#00ff88">+${d.linesAdded || 0}</span> <span style="color:#ff3366">-${d.linesRemoved || 0}</span></span></div>`,
+        `<div class="btt-row"><span class="btt-label">Lines</span><span class="btt-val"><span style="color:var(--green)">+${d.linesAdded || 0}</span> <span style="color:var(--red)">-${d.linesRemoved || 0}</span></span></div>`,
       );
     }
     if (d.artifacts?.length) {
       rows.push('<div class="btt-tasks">');
       d.artifacts.slice(0, 6).forEach((f) => {
         rows.push(
-          `<div class="btt-task" style="color:#5a8aaa">${esc(f.split('/').slice(-2).join('/'))}</div>`,
+          `<div class="btt-task" style="color:var(--cyan)">${esc(f.split('/').slice(-2).join('/'))}</div>`,
         );
       });
       if (d.artifacts.length > 6)
         rows.push(
-          `<div class="btt-task" style="color:#5a6080">+${d.artifacts.length - 6} more</div>`,
+          `<div class="btt-task" style="color:var(--text-dim)">+${d.artifacts.length - 6} more</div>`,
         );
       rows.push('</div>');
     }
@@ -165,7 +165,9 @@
       );
     });
     if (tasks.length > 10)
-      rows.push(`<div class="btt-task" style="color:#5a6080">+${tasks.length - 10} more</div>`);
+      rows.push(
+        `<div class="btt-task" style="color:var(--text-dim)">+${tasks.length - 10} more</div>`,
+      );
     rows.push('</div>');
     return rows.join('\n');
   }
@@ -173,16 +175,16 @@
     return `<div class="btt-row"><span class="btt-label">${l}</span><span class="btt-val">${esc(String(v))}</span></div>`;
   }
   function sdot(s) {
-    const c =
-      {
-        agent_running: '#00ff88',
-        in_progress: '#00e5ff',
-        waiting_thor: '#ffd700',
-        done: '#3a4466',
-        pending: '#2a3050',
-        submitted: '#4a6a80',
-        blocked: '#ff3366',
-      }[s] || '#5a6080';
+    const v = {
+      agent_running: 'var(--green)',
+      in_progress: 'var(--cyan)',
+      waiting_thor: 'var(--gold)',
+      done: 'var(--border)',
+      pending: 'var(--bg-panel)',
+      submitted: 'var(--text-dim)',
+      blocked: 'var(--red)',
+    };
+    const c = v[s] || 'var(--text-dim)';
     return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:4px;vertical-align:middle"></span>`;
   }
   function esc(s) {

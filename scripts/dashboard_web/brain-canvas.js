@@ -2,24 +2,49 @@
 (() => {
   'use strict';
   const PI2 = Math.PI * 2;
-  const STATUS_COLOR = {
-    agent_running: '#22dd77',
-    in_progress: '#00bbff',
-    waiting_thor: '#ffbb00',
-    done: '#445577',
-    pending: '#334466',
-    submitted: '#5588aa',
-    blocked: '#ee3355',
-    waiting_ci: '#66aacc',
-    waiting_review: '#66aacc',
-    waiting_merge: '#66aacc',
-  };
-  const PLAN_COLOR = {
-    doing: '#00bbff',
-    done: '#22dd77',
-    blocked: '#ee3355',
-    todo: '#5577aa',
-  };
+
+  // Read CSS theme variables at init, fallback to hardcoded
+  function css(name, fb) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
+  }
+  let TH = {}; // theme cache
+  function loadTheme() {
+    const cyan = css('--cyan', '#00e5ff');
+    const green = css('--green', '#00ff88');
+    const gold = css('--gold', '#ffb700');
+    const red = css('--red', '#ff3355');
+    const dim = css('--text-dim', '#5a6080');
+    const border = css('--border', '#1a2040');
+    const bgDeep = css('--bg-deep', '#04060e');
+    const bgPanel = css('--bg-panel', '#0a0e1a');
+    const text = css('--text', '#c8d0e8');
+    TH = { cyan, green, gold, red, dim, border, bgDeep, bgPanel, text };
+  }
+
+  function statusColor(s) {
+    const map = {
+      agent_running: TH.green,
+      in_progress: TH.cyan,
+      waiting_thor: TH.gold,
+      done: TH.border,
+      pending: TH.bgPanel,
+      submitted: TH.dim,
+      blocked: TH.red,
+      waiting_ci: TH.cyan,
+      waiting_review: TH.cyan,
+      waiting_merge: TH.cyan,
+    };
+    return map[s] || TH.border;
+  }
+  function planColor(s) {
+    const map = {
+      doing: TH.cyan,
+      done: TH.green,
+      blocked: TH.red,
+      todo: TH.dim,
+    };
+    return map[s] || TH.dim;
+  }
 
   const S = {
     container: null,
@@ -103,8 +128,8 @@
   // --- Drawing ---
   function drawBg(c) {
     const g = c.createRadialGradient(S.w / 2, S.h / 2, 0, S.w / 2, S.h / 2, S.w * 0.7);
-    g.addColorStop(0, '#0d1525');
-    g.addColorStop(1, '#080c18');
+    g.addColorStop(0, TH.bgPanel);
+    g.addColorStop(1, TH.bgDeep);
     c.fillStyle = g;
     c.fillRect(0, 0, S.w, S.h);
   }
@@ -117,11 +142,11 @@
       const p = L.nodeMap.get(n.parentId);
       if (!p) return;
       const act = n._data?.isActive;
-      const col = STATUS_COLOR[n._data?.status] || '#334466';
+      const col = statusColor(n._data?.status);
       c.beginPath();
       c.moveTo(n.x, n.y);
       c.lineTo(p.x, p.y);
-      c.strokeStyle = act ? col + '88' : '#1a2844';
+      c.strokeStyle = act ? col + '88' : TH.border;
       c.lineWidth = act ? 1.8 : 0.7;
       c.stroke();
     });
@@ -129,7 +154,7 @@
 
   function drawPlanNode(c, n) {
     const d = n._data || {};
-    const col = PLAN_COLOR[d.status] || '#5577aa';
+    const col = planColor(d.status);
     const r = 22;
     // Glow
     c.save();
@@ -148,7 +173,7 @@
     c.arc(n.x, n.y, r + 3, 0, PI2);
     c.stroke();
     // Label inside
-    c.fillStyle = '#fff';
+    c.fillStyle = TH.text;
     c.font = 'bold 10px "JetBrains Mono",monospace';
     c.textAlign = 'center';
     c.textBaseline = 'middle';
@@ -156,7 +181,7 @@
     // Name below
     const lbl = (d.name || '').length > 22 ? (d.name || '').slice(0, 20) + '..' : d.name || '';
     c.font = '9px "JetBrains Mono",monospace';
-    c.fillStyle = '#8899bb';
+    c.fillStyle = TH.dim;
     c.fillText(lbl, n.x, n.y + r + 14);
     c.restore();
   }
@@ -164,7 +189,7 @@
   function drawAgentNode(c, n) {
     const d = n._data || {};
     const act = d.isActive;
-    const col = STATUS_COLOR[d.status] || '#334466';
+    const col = statusColor(d.status);
     const r = act ? 9 : 6;
     c.save();
     c.globalAlpha = act ? 1 : d.status === 'done' ? 0.35 : 0.6;
@@ -191,7 +216,7 @@
       const short = tid.length > 8 ? tid.slice(0, 7) + '..' : tid;
       c.font = '8px "JetBrains Mono",monospace';
       c.textAlign = 'center';
-      c.fillStyle = '#667799';
+      c.fillStyle = TH.dim;
       c.fillText(short, n.x, n.y + r + 10);
     }
     c.restore();
@@ -221,7 +246,7 @@
 
   function drawIdle(c) {
     c.save();
-    c.fillStyle = 'rgba(136,153,187,0.2)';
+    c.fillStyle = TH.dim + '44';
     c.font = '13px "JetBrains Mono",monospace';
     c.textAlign = 'center';
     c.fillText('No active plans', S.w / 2, S.h / 2);
@@ -286,6 +311,7 @@
   // --- Lifecycle ---
   window.initBrainCanvas = function (id) {
     window.destroyBrainCanvas();
+    loadTheme();
     S.container = document.getElementById(id || 'brain-canvas-container');
     if (!S.container) return;
     S.canvas = document.createElement('canvas');

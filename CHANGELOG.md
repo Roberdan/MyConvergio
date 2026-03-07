@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.19.0] - 07 Mar 2026
+
+### Added
+- align graph colors to app CSS theme variables
+
+
 ## [v10.18.2] - 07 Mar 2026
 
 ### Fixed

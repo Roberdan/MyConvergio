@@ -148,7 +148,7 @@ function renderWaveGantt(waves, p) {
     });
     html += "</div>";
   }
-  if (waves.some((w) => w.depends_on)) {
+  if (waves.some((w) => w.depends_on) && waves.length <= 8) {
     html += '<div class="wave-gantt-container">';
     html += _renderWaveGanttSvg(waves);
     html += "</div>";

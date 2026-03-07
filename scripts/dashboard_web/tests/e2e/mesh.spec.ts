@@ -62,9 +62,10 @@ test.describe('Mesh Network', () => {
   });
 
   test('mesh header shows online count and action buttons', async ({ page }) => {
+    await page.waitForSelector('.mesh-actions-inline', { timeout: 5000 });
     await expect(page.locator('.mesh-count')).toContainText('2/3 online');
-    await expect(page.locator('#mesh-actions-bar button', { hasText: 'Full Sync' })).toBeVisible();
-    await expect(page.locator('#mesh-actions-bar button', { hasText: 'Push' })).toBeVisible();
+    await expect(page.locator('.widget-action-btn[data-action="fullsync"]')).toBeVisible();
+    await expect(page.locator('.widget-action-btn[data-action="sync"]')).toBeVisible();
   });
 
   test('coordinator node shows active plan', async ({ page }) => {

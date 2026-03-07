@@ -142,12 +142,13 @@ Cost-per-model breakdown, token burn over time, plan execution history. Every do
 
 ```mermaid
 flowchart LR
-    A["/prompt"] --> B["/plan"]
-    B --> C["/execute"]
+    A["Prompt\n(/prompt or @prompt)"] --> B["Planner\n(/planner or @planner/cplanner)"]
+    B --> C["Execute\n(/execute or @execute)"]
     C --> D{"Thor\n9 Gates"}
     D -->|fail| C
-    D -->|pass| E["Auto Merge"]
-    E --> F["main ✓"]
+    D -->|pass + repo changes| E["PR + CI + Merge"]
+    D -->|pass + non-code deliverable| F["Approve + Close"]
+    E --> G["main ✓"]
 
     C --> R{Router}
     R --> P1["Claude"]
@@ -156,7 +157,19 @@ flowchart LR
     R --> P4["OpenCode"]
 ```
 
-**`/prompt`** extracts structured requirements. **`/plan`** decomposes into waves of parallel tasks with file-level dependency tracking. **`/execute`** runs isolated agents per task with TDD, file locking, and worktree isolation. **Thor** validates each task against 9 gates before allowing merge. **Auto Merge** rebases, runs CI, resolves review comments, squash merges, and cleans up.
+**Prompt** extracts structured requirements. **Planner** decomposes the objective into waves and tasks inside plan-db. **Execute** runs the assigned specialists with worktree isolation and proof-of-work rules. **Thor** validates deliverables before closure. If the plan changes repository artifacts, MyConvergio continues with **PR + CI + merge**. If the plan is pure business, research, design, or strategy, the same flow applies but closes on **validated deliverables + approval** instead of a code merge.
+
+### Daily command mapping
+
+| Step | Claude Code | Copilot CLI | Notes |
+| ---- | ----------- | ----------- | ----- |
+| 1. Capture intent | `/prompt "<goal>"` | `@prompt "<goal>"` | Turn the goal into structured requirements |
+| 2. Create plan | `/planner` | `@planner` or `cplanner "<goal>"` | Use the MyConvergio planner, not Copilot's built-in `/plan` |
+| 3. Execute plan | `/execute {plan_id}` | `@execute {plan_id}` | Runs the execution workflow |
+| 4. Validate | Thor / `/validate` if exposed in your setup | `@validate {plan_id or task}` | Independent quality gate |
+| 5. Close | PR + CI + merge, or validated deliverable approval | PR + CI + merge, or validated deliverable approval | Depends on whether the plan changes repo artifacts |
+
+> In Copilot CLI, `/plan` is the native lightweight planner. For MyConvergio discipline use `@planner`, `/agent -> planner`, or `cplanner`.
 
 ### Thor: the agent that says no
 
@@ -238,6 +251,27 @@ These agents work together through **structured orchestration** — not isolated
 - **Amy** (CFO) builds financial models with cultural market adjustment — global ROI analysis, not just spreadsheets
 - **Fiona** (Market Analyst) provides live-verified market intelligence — never hallucinated, always sourced
 - **Domik** (McKinsey) applies quantitative scoring across 6 dimensions for investment decisions
+
+### Non-code objectives: how the process works
+
+MyConvergio is **objective-first**, not code-first. The pipeline stays the same:
+
+1. **Prompt** turns the goal into explicit requirements and deliverables.
+2. **Planner** breaks the work into waves/tasks and assigns the right specialists.
+3. **Execute** produces artifacts: strategy memo, market analysis, roadmap, UX audit, wireframe spec, ADR, launch checklist, pricing model, or code.
+4. **Thor** validates against evidence defined in the plan: source links, decision criteria, artifact presence, consistency checks, review checklists, repo hygiene, or tests.
+5. **Closure** depends on artifact type:
+   - **Repo-backed work**: PR + CI + merge.
+   - **Non-repo deliverables**: validated artifacts + explicit approval/hand-off.
+
+Examples:
+
+| Goal type | Typical agents | Validation |
+| --------- | -------------- | ---------- |
+| Business strategy | Ali, Amy, Fiona, Domik | cited evidence, decision matrix, final memo/checklist |
+| Design / UX | Sara, accessibility/design agents | review checklist, exported specs, accessibility criteria |
+| Architecture / process | Baccio, Rex, Thor | ADRs, migration notes, consistency and impact checks |
+| Code / infra | executor + Thor + reviewers | tests, typecheck, CI, PR merge |
 - **Research Report Generator** produces institution-grade equity research — LaTeX output, data integrity guaranteed
 - **Behice** (Cultural Coach) navigates US, UK, Middle East, Nordic, and Asia-Pacific business dynamics
 

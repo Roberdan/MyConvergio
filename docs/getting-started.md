@@ -42,13 +42,44 @@ myconvergio setup --full --with-workstation
 
 ## Your first workflow
 
+### Claude Code
+
 ```bash
-@prompt Add Stripe checkout with subscription management to my Next.js SaaS
-@planner Create plan from .copilot-tracking/stripe-prompt.md
+/prompt "Add Stripe checkout with subscription management to my Next.js SaaS"
+/planner
+/execute 42
+```
+
+### Copilot CLI
+
+```bash
+@prompt "Add Stripe checkout with subscription management to my Next.js SaaS"
+cplanner "Add Stripe checkout with subscription management to my Next.js SaaS"
 @execute 42
 ```
 
+`cplanner` is the MyConvergio wrapper for Copilot planner routing. You can also use `@planner` directly or `/agent -> planner`.
+
+> Do not use Copilot CLI `/plan` when you want MyConvergio plan-db + Thor discipline.
+
 Thor validates every task before it becomes done.
+
+## Non-code objectives
+
+The same process works for business, design, research, and operations goals:
+
+```bash
+@prompt "Create a GTM plan for our B2B launch in Germany"
+cplanner "Create a GTM plan for our B2B launch in Germany"
+@execute 57
+```
+
+What changes is the **deliverable**, not the workflow:
+
+- code goal -> tests, PR, CI, merge
+- business goal -> memo, matrix, recommendations, approval
+- design goal -> audit, spec, wireframe package, approval
+- architecture/process goal -> ADR, checklist, rollout plan
 
 ## Dashboard
 

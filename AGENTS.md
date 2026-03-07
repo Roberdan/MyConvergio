@@ -173,11 +173,14 @@ Invoke any agent by name:
 ### Copilot CLI
 
 ```bash
-# Via GitHub CLI
-gh copilot @planner "Create a plan for migrating to Next.js 15"
-gh copilot @execute "Implement authentication with NextAuth"
-gh copilot @code-reviewer "Review PR #123 for security issues"
+# In Copilot CLI
+@prompt "Create a migration objective for Next.js 15"
+@planner
+@execute 42
+@code-reviewer "Review PR #123 for security issues"
 ```
+
+For one-shot planning from the shell, use `cplanner "Create a plan for migrating to Next.js 15"`.
 
 **Coding Standards**: See `.claude/rules/coding-standards.md`
 **Quality Gates**: See `.claude/agents/core_utility/thor-validation-gates.md` (10 gates, enforced via `plan-db-safe.sh`)

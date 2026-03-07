@@ -59,6 +59,17 @@ Select the optimal model based on task type. Override via `model:` parameter in 
 | `@tdd-executor`       | Standalone TDD cycle      | `gpt-5.3-codex`      |
 | `@compliance-checker` | Regulatory validation     | `claude-opus-4.6-1m` |
 
+## Practical Planner Entry Points
+
+Copilot CLI does **not** expose a custom `/planner` slash command.
+
+| Need | Copilot CLI entry point |
+| ---- | ------------------------ |
+| Interactive session | `/agent` → select `planner` |
+| One-shot shell launch | `cplanner "your goal"` |
+| Pasteable fallback | `@planner` followed by the goal |
+| Avoid | `/plan` — built-in lightweight planner, **not** our plan-db planner |
+
 ## `/execute` — Plan Execution Workflow (MANDATORY)
 
 When the user says `/execute {plan_id}` or `@execute {plan_id}`:

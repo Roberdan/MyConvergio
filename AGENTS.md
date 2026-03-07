@@ -1,6 +1,6 @@
 # MyConvergio Agents
 
-**v10.15.0** | 85 Unique Agents (76 Claude + 83 Copilot files) | Multi-Provider Orchestrator
+**v10.16.0** | 86 Unique Agents (77 Claude + 85 Copilot files) | Multi-Provider Orchestrator
 
 <!-- AGENT_COUNTS: unique:86 claude:77 copilot:85 -->
 
@@ -244,7 +244,7 @@ MyConvergio/
 
 ## Version
 
-**Current**: v10.15.0
+**Current**: v10.16.0
 **Release Notes**: See `CHANGELOG.md`
 **Versioning**: SemVer 2.0.0 (system + individual agents)
 

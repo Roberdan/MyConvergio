@@ -5,6 +5,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+VERSION_FILE="$ROOT_DIR/VERSION"
+
+SYSTEM_VERSION="$(grep '^SYSTEM_VERSION=' "$VERSION_FILE" | cut -d= -f2)"
+if [[ -z "$SYSTEM_VERSION" ]]; then
+	echo "ERROR: SYSTEM_VERSION not found in $VERSION_FILE" >&2
+	exit 1
+fi
 
 # Non-agent .md files in .claude/agents/ (docs, not agents)
 EXCLUDE_NAMES="CONSTITUTION.md|CommonValuesAndPrinciples.md|MICROSOFT_VALUES.md|SECURITY_FRAMEWORK_TEMPLATE.md|EXECUTION_DISCIPLINE.md"
@@ -24,7 +31,7 @@ COUNTS_LINE="unique:${UNIQUE_COUNT} claude:${CLAUDE_COUNT} copilot:${COPILOT_COU
 TEMPLATE_LINE="<!-- AGENT_COUNTS: ${COUNTS_LINE} -->"
 
 sync_docs() {
-	python3 - "$ROOT_DIR" "$TEMPLATE_LINE" "$UNIQUE_COUNT" "$CLAUDE_COUNT" "$COPILOT_COUNT" <<'PY'
+	python3 - "$ROOT_DIR" "$TEMPLATE_LINE" "$UNIQUE_COUNT" "$CLAUDE_COUNT" "$COPILOT_COUNT" "$SYSTEM_VERSION" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -34,6 +41,7 @@ template_line = sys.argv[2]
 unique_count = sys.argv[3]
 claude_count = sys.argv[4]
 copilot_count = sys.argv[5]
+system_version = sys.argv[6]
 
 for rel in ("README.md", "AGENTS.md"):
     path = root / rel
@@ -46,8 +54,11 @@ for rel in ("README.md", "AGENTS.md"):
     if rel == "README.md":
         content = re.sub(r"badge/agents-\d+-", f"badge/agents-{unique_count}-", content)
     if rel == "AGENTS.md":
+        content = re.sub(r"\*\*v[0-9.]+\*\* \| \d+ Unique Agents \(\d+ Claude \+ \d+ Copilot files\) \| Multi-Provider Orchestrator",
+                         f"**v{system_version}** | {unique_count} Unique Agents ({claude_count} Claude + {copilot_count} Copilot files) | Multi-Provider Orchestrator",
+                         content)
         content = re.sub(r"\*\*v[0-9.]+\*\* \| \d+ Unique Agents \| Multi-Provider Orchestrator",
-                         f"**v10.15.0** | {unique_count} Unique Agents | Multi-Provider Orchestrator",
+                         f"**v{system_version}** | {unique_count} Unique Agents ({claude_count} Claude + {copilot_count} Copilot files) | Multi-Provider Orchestrator",
                          content)
         content = re.sub(r"supports both \*\*Claude Code\*\* \(\d+ agent files\) and \*\*GitHub Copilot CLI\*\* \(\d+ agent files\)",
                          f"supports both **Claude Code** ({claude_count} agent files) and **GitHub Copilot CLI** ({copilot_count} agent files)",

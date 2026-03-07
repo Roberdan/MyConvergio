@@ -71,23 +71,11 @@ _autosync_stop() {
 
 _autosync_status() {
 	if _is_running; then
-		local pid
-		pid=$(cat "$PID_FILE")
-		echo "Autosync: RUNNING (PID: $pid)"
-		echo "Host: $PLAN_DB_HOST"
-		echo "DB: $DB_FILE"
-
-		# Show last sync time
-		if [[ -f "$LAST_SYNC_FILE" ]]; then
-			echo "Last sync: $(cat "$LAST_SYNC_FILE")"
-		else
-			echo "Last sync: never"
-		fi
-
-		# Show last heartbeat
-		local hb
-		hb=$(sqlite3 "$DB_FILE" "SELECT last_seen FROM host_heartbeats WHERE host='$PLAN_DB_HOST';" 2>/dev/null || echo "none")
-		echo "Last heartbeat: $hb"
+		local pid=$(cat "$PID_FILE")
+		local sync_time="never"
+		[[ -f "$LAST_SYNC_FILE" ]] && sync_time=$(cat "$LAST_SYNC_FILE")
+		local hb=$(sqlite3 "$DB_FILE" "SELECT last_seen FROM host_heartbeats WHERE host='$PLAN_DB_HOST';" 2>/dev/null || echo "none")
+		echo "Autosync: RUNNING (PID: $pid) | Host: $PLAN_DB_HOST | Last sync: $sync_time | Heartbeat: $hb"
 	else
 		echo "Autosync: STOPPED"
 		rm -f "$PID_FILE"
@@ -98,9 +86,6 @@ _is_running() {
 	[[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null
 }
 
-# ============================================================
-# Daemon main loop
-# ============================================================
 _daemon() {
 	trap 'log "Daemon exiting"; exit 0' TERM INT
 
@@ -147,9 +132,6 @@ _get_mtime() {
 	fi
 }
 
-# ============================================================
-# Heartbeat
-# ============================================================
 _send_heartbeat() {
 	local plan_count
 	plan_count=$(sqlite3 "$DB_FILE" \
@@ -167,10 +149,18 @@ _send_heartbeat() {
 	log "Heartbeat: plans=$plan_count os=$os_name"
 }
 
-# ============================================================
-# Incremental sync
-# ============================================================
 _run_incremental_sync() {
+	# Determine active execution host
+	local exec_host
+	exec_host=$(sqlite3 "$DB_FILE" \
+		"SELECT execution_host FROM plans WHERE status='doing' ORDER BY id DESC LIMIT 1;" 2>/dev/null || echo "")
+
+	# If a plan is executing on a REMOTE host, pull full DB from there
+	if [[ -n "$exec_host" && "$exec_host" != "$PLAN_DB_HOST" ]]; then
+		_pull_from_remote "$exec_host"
+		return
+	fi
+
 	# Check SSH connectivity before trying
 	if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "$(get_remote_host)" "echo ok" &>/dev/null; then
 		log "Sync skipped: remote unreachable"
@@ -186,7 +176,8 @@ _run_incremental_sync() {
 		consecutive_failures=$((consecutive_failures + 1))
 		log "Sync failed (consecutive: $consecutive_failures)"
 		if ((consecutive_failures >= 10)); then
-			log "WARNING: $consecutive_failures consecutive sync failures"
+			log "WARNING: $consecutive_failures consecutive sync failures — falling back to full pull"
+			_pull_from_remote "$(get_remote_host)"
 		fi
 	fi
 
@@ -194,23 +185,62 @@ _run_incremental_sync() {
 	_sync_config
 }
 
-# ============================================================
-# Config sync (T4-05)
-# ============================================================
-_sync_config() {
-	local sync_result
-	sync_result=$(config_sync_check 2>/dev/null) || sync_result="ERROR"
+# Pull full DB from remote execution host (WAL-safe)
+_pull_from_remote() {
+	local remote_host="$1"
+	# Resolve SSH alias from peers.conf
+	local ssh_target=""
+	local peers_conf="${HOME}/.claude/config/peers.conf"
+	if [[ -f "$peers_conf" ]]; then
+		ssh_target=$(awk -F= -v h="$remote_host" '
+			/^\[/{section=$0; gsub(/[\[\]]/,"",section)}
+			section && /^ssh_alias=/{alias=$2}
+			section==h && /^ssh_alias=/{print $2; exit}
+		' "$peers_conf" 2>/dev/null || echo "")
+	fi
+	[[ -z "$ssh_target" ]] && ssh_target="$remote_host"
 
-	case "$sync_result" in
-	SYNCED) ;; # Nothing to do
-	PUSHED) log "Config auto-pushed to remote" ;;
-	DIVERGED) log "Config DIVERGED — manual resolution needed" ;;
-	OFFLINE) log "Config sync skipped: remote offline" ;;
-	*) log "Config sync check: $sync_result" ;;
-	esac
+	if ! ssh -n -o ConnectTimeout=5 -o BatchMode=yes "$ssh_target" "true" &>/dev/null; then
+		log "Pull skipped: $remote_host unreachable"
+		return 0
+	fi
+
+	log "Pulling full DB from $remote_host ($ssh_target)..."
+	# WAL checkpoint on remote first
+	ssh -n -o ConnectTimeout=5 -o BatchMode=yes "$ssh_target" \
+		"sqlite3 ~/.claude/data/dashboard.db 'PRAGMA wal_checkpoint(TRUNCATE);'" 2>/dev/null || true
+	# Copy all DB files (db + wal + shm)
+	if scp -o ConnectTimeout=10 -o BatchMode=yes \
+		"${ssh_target}:~/.claude/data/dashboard.db" \
+		"${ssh_target}:~/.claude/data/dashboard.db-wal" \
+		"${ssh_target}:~/.claude/data/dashboard.db-shm" \
+		"${HOME}/.claude/data/" 2>/dev/null; then
+		# Checkpoint locally to merge WAL
+		sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(TRUNCATE);" 2>/dev/null || true
+		date '+%Y-%m-%d %H:%M:%S' >"$LAST_SYNC_FILE"
+		log "Full DB pull from $remote_host completed"
+		consecutive_failures=0
+	else
+		# WAL/SHM may not exist if already checkpointed — try DB only
+		if scp -o ConnectTimeout=10 -o BatchMode=yes \
+			"${ssh_target}:~/.claude/data/dashboard.db" \
+			"${HOME}/.claude/data/dashboard.db" 2>/dev/null; then
+			rm -f "${HOME}/.claude/data/dashboard.db-wal" "${HOME}/.claude/data/dashboard.db-shm"
+			date '+%Y-%m-%d %H:%M:%S' >"$LAST_SYNC_FILE"
+			log "Full DB pull from $remote_host completed (no WAL)"
+			consecutive_failures=0
+		else
+			consecutive_failures=$((consecutive_failures + 1))
+			log "Full DB pull from $remote_host FAILED (consecutive: $consecutive_failures)"
+		fi
+	fi
 }
 
-# ============================================================
-# Entry point
-# ============================================================
+_sync_config() {
+	local r
+	r=$(config_sync_check 2>/dev/null) || r="ERROR"
+	[[ "$r" == "SYNCED" ]] && return
+	log "Config sync: $r"
+}
+
 cmd_autosync "${1:-status}"

@@ -35,14 +35,31 @@ def detect_plan_health(plan: dict, waves: list, tasks: list) -> list[dict]:
             }
         )
 
+    # Only flag "stale" if plan executes locally — remote plans may have active
+    # agents that don't show in the local DB snapshot between sync intervals
+    import socket
+
+    local_host = socket.gethostname().split(".")[0].lower()
+    exec_host = (plan.get("execution_host") or "").lower()
+    is_remote = exec_host and exec_host != local_host
+
     if not in_progress and not submitted and done_count < total_count and pending:
-        alerts.append(
-            {
-                "severity": "critical",
-                "code": "stale",
-                "message": f"Piano fermo: {len(pending)} task pending, nessuno in esecuzione",
-            }
-        )
+        if is_remote:
+            alerts.append(
+                {
+                    "severity": "info",
+                    "code": "remote_executing",
+                    "message": f"Piano in esecuzione su {exec_host} — {done_count}/{total_count} task completati",
+                }
+            )
+        else:
+            alerts.append(
+                {
+                    "severity": "critical",
+                    "code": "stale",
+                    "message": f"Piano fermo: {len(pending)} task pending, nessuno in esecuzione",
+                }
+            )
 
     done_waves = [w for w in waves if w["status"] == "done"]
     pending_waves = [w for w in waves if w["status"] == "pending"]
@@ -122,7 +139,10 @@ def detect_plan_health(plan: dict, waves: list, tasks: list) -> list[dict]:
                         "message": "Execution readiness blocked: dirty worktree or GH auth not ready",
                     }
                 )
-            if "missing_troubleshooting" in warnings or "missing_ci_knowledge" in warnings:
+            if (
+                "missing_troubleshooting" in warnings
+                or "missing_ci_knowledge" in warnings
+            ):
                 alerts.append(
                     {
                         "severity": "warning",
@@ -138,7 +158,7 @@ def detect_plan_health(plan: dict, waves: list, tasks: list) -> list[dict]:
                     "message": "Execution preflight snapshot unreadable",
                 }
             )
-    else:
+    elif not is_remote:
         alerts.append(
             {
                 "severity": "warning",

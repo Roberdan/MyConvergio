@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.17.3] - 07 Mar 2026
+
+### Fixed
+- remote plan health + WAL-safe DB sync
+
+
 ## [v10.17.2] - 07 Mar 2026
 
 ### Changed

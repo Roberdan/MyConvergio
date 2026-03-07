@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.15.1] - 07 Mar 2026
+
+### Changed
+- add copilot planner wrapper workflow
+
+
 ## [v10.15.0] - 07 Mar 2026
 
 ### Added

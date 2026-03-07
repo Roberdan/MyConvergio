@@ -50,8 +50,10 @@ function renderTaskPipeline() {
         const wp =
           w.tasks_total > 0
             ? Math.round((100 * w.tasks_done) / w.tasks_total)
-            : 0;
-        rows += `<tr class="task-wave-header"><td colspan="5">${statusDot(w.status)} <span style="color:var(--text)">${esc(w.wave_id)}</span> <span style="color:var(--text-dim)">${esc((w.name || "").substring(0, 20))}</span> <span style="color:var(--cyan);font-size:10px">${wp}%</span> ${thorIcon(w.validated_at)}</td></tr>`;
+            : 0,
+          wPct = wp >= 100 && !w.validated_at ? 95 : wp,
+          wName = (w.name || "").substring(0, 25);
+        rows += `<tr class="task-wave-header"><td colspan="5">${statusDot(w.status)} <span style="color:var(--text)">${esc(w.wave_id)}</span> <span style="color:var(--text-dim);font-size:10px">${esc(wName)}</span> <span style="color:${wPct >= 75 ? 'var(--green)' : wPct >= 50 ? 'var(--gold)' : 'var(--red)'};font-size:10px">${wPct}%</span> ${thorIcon(w.validated_at)}</td></tr>`;
         waveTasks.forEach((t) => (rows += _taskRow(t)));
       });
       tasks

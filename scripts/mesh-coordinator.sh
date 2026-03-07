@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# mesh-coordinator.sh — Event-driven coordinator daemon for m3max (master node).
+# mesh-coordinator.sh — Event-driven coordinator daemon for coordinator node.
 # Processes mesh_events, handles auto-finish, offline detection, auto-reassign.
 # Usage: mesh-coordinator.sh [start|stop|status|run-once|--help]
 set -euo pipefail
@@ -13,6 +13,7 @@ INTERVAL=15
 OFFLINE_THRESHOLD=900   # 15 min
 REASSIGN_THRESHOLD=1800 # 30 min
 REASSIGN_GRACE=2        # cycles before reassign
+SCRIPT_MTIME="$(stat -f %m "$0" 2>/dev/null || stat -c %Y "$0" 2>/dev/null || echo 0)"
 
 source "$SCRIPT_DIR/lib/peers.sh"
 source "$SCRIPT_DIR/lib/notify-config.sh"
@@ -134,12 +135,21 @@ _check_offline_nodes() {
 		[[ -f "$counter_file" ]] && count=$(cat "$counter_file" 2>/dev/null || echo "0")
 		count=$((count + 1))
 		echo "$count" >"$counter_file"
+		# Cap: once past grace + 1, stop logging (notification already sent)
+		if [[ $count -gt $((REASSIGN_GRACE + 1)) ]]; then
+			continue
+		fi
 		# First detection: warn. After grace: notify critical (but NEVER reassign)
 		if [[ $count -le 1 ]]; then
 			_warn "Node $peer_name offline (${age}s). Plans affected: $(echo "$active_plans" | tr '\n' ',' | sed 's/,$//')"
 		elif [[ $count -eq $REASSIGN_GRACE ]]; then
 			while IFS= read -r pid; do
 				[[ -z "$pid" ]] && continue
+				local current_host
+				current_host=$(_db "SELECT execution_host FROM plans WHERE id=$pid;")
+				if [[ -n "$current_host" && "$current_host" != "$peer_name" ]]; then
+					continue # already reassigned
+				fi
 				_notify critical "Node $peer_name offline" \
 					"Plan #$pid needs manual reassignment (use dashboard Delegate or mesh-migrate.sh)" \
 					--link "http://localhost:8420/#plan/$pid" --plan-id "$pid"
@@ -155,17 +165,23 @@ _check_offline_nodes() {
 	done < <(_db "SELECT peer_name, last_seen FROM peer_heartbeats;")
 }
 
-# Single coordinator cycle
-_run_once() {
-	_process_events
-	_check_offline_nodes
+_run_once() { _process_events; _check_offline_nodes; }
+
+_check_script_update() {
+	local current_mtime="$(stat -f %m "${BASH_SOURCE[0]}" 2>/dev/null || stat -c %Y "${BASH_SOURCE[0]}" 2>/dev/null || echo 0)"
+	[[ "$current_mtime" == "$SCRIPT_MTIME" ]] && return 0
+	_info "Script updated (mtime $SCRIPT_MTIME → $current_mtime), restarting..."
+	exec "$0" start
 }
 
 # Daemon loop
 _daemon_loop() {
+	local cycle_count=0
 	_info "Coordinator started (interval: ${INTERVAL}s)"
 	while true; do
+		cycle_count=$((cycle_count + 1))
 		_run_once 2>>"$LOG_FILE" || true
+		((cycle_count % 10 == 0)) && _check_script_update
 		sleep "$INTERVAL"
 	done
 }

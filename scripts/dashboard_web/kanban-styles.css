@@ -1,0 +1,105 @@
+/* Plan Kanban Board */
+.kanban-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  min-height: 120px;
+}
+.kanban-col {
+  background: rgba(10, 14, 26, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  min-height: 100px;
+  transition: border-color 0.2s;
+}
+.kanban-col.drag-over {
+  border-color: var(--cyan);
+  background: rgba(0, 229, 255, 0.04);
+}
+.kanban-col-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  padding: 4px 6px 8px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kanban-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.kanban-dot.todo { background: var(--text-dim); }
+.kanban-dot.doing { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.kanban-dot.done { background: var(--green); }
+.kanban-cards { display: flex; flex-direction: column; gap: 4px; }
+.kanban-card {
+  background: rgba(20, 28, 50, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: grab;
+  transition: transform 0.15s, box-shadow 0.15s;
+  font-size: 11px;
+}
+.kanban-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: rgba(0, 229, 255, 0.2);
+}
+.kanban-card.dragging { opacity: 0.4; }
+.kanban-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.kanban-plan-id { color: var(--cyan); font-weight: 700; font-size: 10px; }
+.kanban-plan-name { color: var(--text); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kanban-progress {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.kanban-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.kanban-card-meta {
+  font-size: 9px;
+  color: var(--text-dim);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.kanban-running { color: var(--gold); }
+.kanban-host { color: var(--cyan); opacity: 0.6; }
+.kanban-empty { color: var(--text-dim); font-size: 10px; text-align: center; padding: 16px 0; font-style: italic; }
+
+/* Sparkline charts for mesh nodes */
+.mn-sparkline {
+  display: block;
+  width: 120px;
+  height: 28px;
+  border-radius: 3px;
+  background: rgba(10, 14, 26, 0.4);
+}
+.mn-gauge-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mn-gauge-val {
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 28px;
+  text-align: right;
+}

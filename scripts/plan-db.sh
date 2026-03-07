@@ -44,7 +44,10 @@ source "$SCRIPT_DIR/lib/plan-db-intelligence.sh"
 [[ -f "$SCRIPT_DIR/lib/plan-db-knowledge.sh" ]] && source "$SCRIPT_DIR/lib/plan-db-knowledge.sh"
 
 # Host identification for cross-machine tracking
-export PLAN_DB_HOST="${PLAN_DB_HOST:-$(hostname -s 2>/dev/null || hostname)}"
+if [[ -z "${PLAN_DB_HOST:-}" ]]; then
+	PLAN_DB_HOST="$(peers_self 2>/dev/null || hostname -s 2>/dev/null || hostname)"
+fi
+export PLAN_DB_HOST
 
 # Initialize DB
 init_db

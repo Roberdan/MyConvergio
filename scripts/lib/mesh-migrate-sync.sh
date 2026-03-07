@@ -95,11 +95,19 @@ _migrate_rsync() {
 	local src="$2"
 	local remote="$3"
 
-	rsync -avz --progress --delete \
-		--exclude-from="$EXCLUDE_FILE" \
-		-e "ssh $SSH_OPTS" \
-		"$src" "${dest}:${remote}"
+	_sync_files "$src" "$dest" "$remote"
 	return $?
+}
+
+_sync_files() {
+	local src="$1" dest_host="$2" dest_path="$3"
+	if command -v rsync &>/dev/null; then
+		rsync -avz --progress --delete --exclude-from="$EXCLUDE_FILE" -e "ssh $SSH_OPTS" "$src" "${dest_host}:${dest_path}"
+	else
+		# Fallback: tar + ssh (works on Windows with OpenSSH)
+		tar czf - --exclude-from="$EXCLUDE_FILE" -C "$(dirname "$src")" "$(basename "$src")" |
+			ssh $SSH_OPTS "$dest_host" "cd $(dirname "$dest_path") && tar xzf -"
+	fi
 }
 
 # Sync all relevant paths to target

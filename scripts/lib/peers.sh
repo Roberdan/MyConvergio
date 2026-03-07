@@ -179,3 +179,15 @@ peers_others() {
 		[[ "$name" != "$self" ]] && echo "$name"
 	done
 }
+
+# Translate Unix path to Windows path for remote commands
+_remote_claude_home() {
+	local peer="$1"
+	local os
+	os="$(peers_get "$peer" "os" 2>/dev/null || echo "linux")"
+	if [[ "$os" == "windows" ]]; then
+		echo '%USERPROFILE%\.claude'
+	else
+		echo '~/.claude'
+	fi
+}

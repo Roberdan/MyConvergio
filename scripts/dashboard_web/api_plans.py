@@ -5,10 +5,14 @@ from pathlib import Path
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-    from scripts.dashboard_web.api_mesh import find_peer_conf, peer_host_match
+    from scripts.dashboard_web.api_mesh import (
+        find_peer_conf,
+        local_peer_name,
+        peer_host_match,
+    )
     from scripts.dashboard_web.middleware import DB_PATH, query
 else:
-    from .api_mesh import find_peer_conf, peer_host_match
+    from .api_mesh import find_peer_conf, local_peer_name, peer_host_match
     from .middleware import DB_PATH, query
 
 
@@ -145,7 +149,7 @@ def handle_pull_remote_db(handler, _qs: dict):
     peer_plans: dict[str, list[int]] = {}
     for p in plans:
         host = p["execution_host"]
-        if peer_host_match("m3max", host) or host == local_host:
+        if peer_host_match(local_peer_name(), host) or host == local_host:
             continue
         pc = find_peer_conf(host)
         ssh_dest = pc.get("ssh_alias", host) if pc else host

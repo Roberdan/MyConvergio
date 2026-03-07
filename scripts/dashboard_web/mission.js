@@ -1,8 +1,16 @@
+function _progressGradient(pct) {
+  // Red→Orange→Gold→Green as completion approaches 100%
+  if (pct >= 100) return { color: "#00cc6a", gradient: "linear-gradient(90deg, #00cc6a, #00ff88)" };
+  if (pct >= 75) return { color: "#4dd64d", gradient: "linear-gradient(90deg, #e6a117, #4dd64d)" };
+  if (pct >= 50) return { color: "#e6a117", gradient: "linear-gradient(90deg, #ff6633, #e6a117)" };
+  if (pct >= 25) return { color: "#ff6633", gradient: "linear-gradient(90deg, #ee3344, #ff6633)" };
+  return { color: "#ee3344", gradient: "linear-gradient(90deg, #cc1133, #ee3344)" };
+}
 function _progressRing(pct, size, color) {
   const r = (size - 8) / 2,
     c = 2 * Math.PI * r,
     o = c - (pct / 100) * c;
-  return `<div class="mission-ring" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle class="mission-ring-bg" cx="${size / 2}" cy="${size / 2}" r="${r}"/><circle class="mission-ring-fill" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke="${color}" stroke-dasharray="${c}" stroke-dashoffset="${o}"/></svg><div class="mission-ring-pct" style="color:${color}">${pct}%</div></div>`;
+  return `<div class="mission-ring" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><defs><linearGradient id="ring-grad-${pct}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${pct < 50 ? '#ee3344' : '#e6a117'}"/><stop offset="100%" stop-color="${color}"/></linearGradient></defs><circle class="mission-ring-bg" cx="${size / 2}" cy="${size / 2}" r="${r}"/><circle class="mission-ring-fill" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke="url(#ring-grad-${pct})" stroke-dasharray="${c}" stroke-dashoffset="${o}"/></svg><div class="mission-ring-pct" style="color:${color}">${pct}%</div></div>`;
 }
 function _shortModel(m) {
   if (!m) return "";
@@ -39,6 +47,71 @@ function _renderTaskFlow(t) {
       return `<div class="flow-step ${cls}"><div class="flow-dot"></div><div class="flow-label">${s.label}</div></div>${i < steps.length - 1 ? `<div class="flow-conn ${pi ? "conn-done" : ai ? "conn-active" : ""}"></div>` : ""}`;
     })
     .join("")}</div></div>`;
+}
+function _renderWaveGantt(waves) {
+  if (!waves || !waves.length) return "";
+  const rowHeight = 28,
+    barHeight = 24,
+    totalHeight = waves.length * rowHeight,
+    byWaveId = Object.fromEntries(waves.map((w, i) => [w.wave_id, { w, i }]));
+  const rows = waves
+    .map((w) => {
+      const total = Number(w.tasks_total || 0),
+        done = Number(w.tasks_done || 0),
+        pct =
+          total > 0
+            ? Math.round((100 * done) / total)
+            : w.status === "done" || w.status === "merging"
+              ? 100
+              : 0,
+        width = Math.max(4, Math.min(100, pct)),
+        statusCls = w.status === "merging" ? "done" : (w.status || "pending"),
+        name = w.name ? ` — ${w.name}` : "";
+      return `<div class="wave-gantt-row" style="height:${rowHeight}px"><div class="wave-gantt-bar wave-gantt-${esc(statusCls)}" style="height:${barHeight}px;width:${width}%"><span><strong>${esc(w.wave_id)}</strong>${esc(name)}</span></div></div>`;
+    })
+    .join("");
+  const arrows = waves
+    .map((w, i) => {
+      const rawDeps = Array.isArray(w.depends_on)
+          ? w.depends_on
+          : typeof w.depends_on === "string"
+            ? w.depends_on
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : w.depends_on
+              ? [String(w.depends_on)]
+              : [],
+        dy = i * rowHeight + barHeight / 2;
+      return rawDeps
+        .map((depId) => {
+          const src = byWaveId[depId];
+          if (!src) return "";
+          const swTotal = Number(src.w.tasks_total || 0),
+            swDone = Number(src.w.tasks_done || 0),
+            swPct =
+              swTotal > 0
+                ? Math.round((100 * swDone) / swTotal)
+                : src.w.status === "done" || src.w.status === "merging"
+                  ? 100
+                  : 0,
+            sx = Math.max(4, Math.min(100, swPct)),
+            sy = src.i * rowHeight + barHeight / 2,
+            dx = 0,
+            c1x = Math.min(100, sx + 8),
+            c2x = Math.max(0, dx - 8),
+            stroke =
+              src.w.status === "done" || src.w.status === "merging"
+                ? "var(--green)"
+                : src.w.status === "pending"
+                  ? "var(--text-dim)"
+                  : "var(--cyan)";
+          return `<path class="wave-gantt-arrow" d="M ${sx} ${sy} C ${c1x} ${sy}, ${c2x} ${dy}, ${dx} ${dy}" style="stroke:${stroke}"></path>`;
+        })
+        .join("");
+    })
+    .join("");
+  return `<div class="wave-gantt">${rows}<svg class="wave-gantt-svg" viewBox="0 0 100 ${totalHeight}" preserveAspectRatio="none"><defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="var(--cyan)"></path></marker></defs>${arrows}</svg></div>`;
 }
 function _healthIcon(code) {
   const icons = {
@@ -87,7 +160,12 @@ window.openPlanTerminal = function (planId, peer) {
   if (typeof termMgr !== "undefined") {
     const session = "plan-" + planId;
     termMgr.open(
-      peer === "local" || peer === "m3max" ? "local" : peer,
+      peer === "local" ||
+        peer ===
+          ((window.DashboardState && window.DashboardState.localPeerName) ||
+            "local")
+        ? "local"
+        : peer,
       "Plan #" + planId,
       session,
     );
@@ -102,7 +180,9 @@ window.resumePlanExecution = function (planId, peer) {
       .find((p) => p.id === planId);
   const assignedHost = planData ? planData.node : peer || "local";
   const target =
-    assignedHost === "local" || assignedHost === "m3max"
+    assignedHost === "local" ||
+    assignedHost ===
+      ((window.DashboardState && window.DashboardState.localPeerName) || "local")
       ? "local"
       : assignedHost;
 
@@ -136,18 +216,18 @@ window.resumePlanExecution = function (planId, peer) {
 function _renderOnePlan(m) {
   const p = m.plan,
     health = m.health || [],
-    pct =
-      p.tasks_total > 0 ? Math.round((100 * p.tasks_done) / p.tasks_total) : 0,
-    ringColor =
-      pct >= 100
-        ? "var(--green)"
-        : pct >= 50
-          ? "var(--cyan)"
-          : pct >= 25
-            ? "var(--gold)"
-            : "var(--red)",
+    rawPct = p.tasks_total > 0 ? Math.round((100 * p.tasks_done) / p.tasks_total) : 0,
+    allValidated = m.waves && m.waves.length && m.waves.every(w => w.validated_at || w.status === "pending"),
+    pct = rawPct >= 100 && !allValidated ? 95 : rawPct,
+    pg = _progressGradient(pct),
+    ringColor = pg.color,
     hostName = p.execution_peer || _resolveHost(p.execution_host),
-    isRemote = hostName && hostName !== "local" && hostName !== "m3max",
+    isRemote =
+      hostName &&
+      hostName !== "local" &&
+      hostName !==
+        ((window.DashboardState && window.DashboardState.localPeerName) ||
+          "local"),
     blocked = (m.tasks || []).filter((t) => t.status === "blocked").length,
     running = (m.tasks || []).filter((t) => t.status === "in_progress").length,
     hasCritical = health.some((h) => h.severity === "critical"),
@@ -156,7 +236,7 @@ function _renderOnePlan(m) {
       : hostName && hostName !== "local"
         ? `<span class="host-badge-local">${esc(hostName)}</span>`
         : "";
-  let html = `<div class="mission-plan${hasCritical ? " mission-plan-critical" : health.length ? " mission-plan-warning" : ""}" onclick="filterTasks(${p.id})"><div style="margin-bottom:6px"><span class="mission-id">#${p.id}</span><span class="mission-name">&nbsp;${esc(p.name)}</span>${statusDot(p.status === "doing" ? "in_progress" : p.status)}${health.length ? `<span class="health-badge health-badge-${hasCritical ? "critical" : "warning"}" title="${health.map((h) => h.message).join("; ")}">${hasCritical ? "ALERT" : "WARN"}</span>` : ""}${nodeLabel}${p.parallel_mode ? `<span class="badge badge-doing">${p.parallel_mode}</span>` : ""}${p.project_name ? `<span class="badge badge-project">${esc(p.project_name)}</span>` : ""}<button class="mission-delegate-btn" onclick="event.stopPropagation();showDelegatePlanDialog(${p.id},'${esc(p.name)}')" title="Delegate to mesh node"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg></button>${p.status === "todo" ? `<button class="mission-start-btn" onclick="event.stopPropagation();showStartPlanDialog(${p.id},'${esc(p.name)}')" title="Start plan execution"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>` : ""}</div>${_renderHealthAlerts(health, p.id, hostName)}${p.human_summary ? `<div class="mission-summary">${esc(p.human_summary)}</div>` : ""}<div class="mission-progress">${_progressRing(pct, 56, ringColor)}<div class="mission-progress-bars"><div class="mission-progress-label"><span>Done ${p.tasks_done || 0}/${p.tasks_total || 0}</span><span style="color:var(--cyan)">${pct}%</span></div><div class="mission-progress-track"><div class="mission-progress-fill" style="width:${pct}%;background:linear-gradient(90deg,${ringColor},var(--cyan))"></div></div><div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);margin-top:2px"><span>${running > 0 ? `<span style="color:var(--gold)">${running} running</span>` : ""}</span><span>${blocked > 0 ? `<span style="color:var(--red)">${blocked} blocked</span>` : ""}</span></div></div></div>`;
+  let html = `<div class="mission-plan${hasCritical ? " mission-plan-critical" : health.length ? " mission-plan-warning" : ""}" onclick="filterTasks(${p.id})"><div style="margin-bottom:6px"><span class="mission-id">#${p.id}</span><span class="mission-name">&nbsp;${esc(p.name)}</span>${statusDot(p.status === "doing" ? "in_progress" : p.status)}${health.length ? `<span class="health-badge health-badge-${hasCritical ? "critical" : "warning"}" title="${health.map((h) => h.message).join("; ")}">${hasCritical ? "ALERT" : "WARN"}</span>` : ""}${nodeLabel}${p.parallel_mode ? `<span class="badge badge-doing">${p.parallel_mode}</span>` : ""}${p.project_name ? `<span class="badge badge-project">${esc(p.project_name)}</span>` : ""}${p.status === "doing" ? '<button class="btn-brain" onclick="event.stopPropagation();toggleBrainCanvas()">🧠</button>' : ""}<button class="mission-delegate-btn" onclick="event.stopPropagation();showDelegatePlanDialog(${p.id},'${esc(p.name)}')" title="Delegate to mesh node"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg></button>${p.status === "todo" ? `<button class="mission-start-btn" onclick="event.stopPropagation();showStartPlanDialog(${p.id},'${esc(p.name)}')" title="Start plan execution"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>` : ""}</div>${_renderHealthAlerts(health, p.id, hostName)}${p.human_summary ? `<div class="mission-summary">${esc(p.human_summary)}</div>` : ""}<div class="mission-progress">${_progressRing(pct, 56, ringColor)}<div class="mission-progress-bars"><div class="mission-progress-label"><span>Done ${p.tasks_done || 0}/${p.tasks_total || 0}</span><span style="color:var(--cyan)">${pct}%</span></div><div class="mission-progress-track"><div class="mission-progress-fill" style="width:${pct}%;background:${pg.gradient}"></div></div><div style="display:flex;gap:12px;font-size:10px;color:var(--text-dim);margin-top:2px"><span>${running > 0 ? `<span style="color:var(--gold)">${running} running</span>` : ""}</span><span>${blocked > 0 ? `<span style="color:var(--red)">${blocked} blocked</span>` : ""}</span></div></div></div>`;
   if (m.waves && m.waves.length) {
     html += '<div style="margin-top:8px">';
     const activeWaves = m.waves.filter(
@@ -170,21 +250,33 @@ function _renderOnePlan(m) {
           w.tasks_total > 0
             ? Math.round((100 * w.tasks_done) / w.tasks_total)
             : 0,
+        wValidated = !!w.validated_at,
+        wPct = wp >= 100 && !wValidated ? 95 : wp,
+        wg = _progressGradient(wPct),
+        wName = w.name ? ` — ${(w.name || "").substring(0, 35)}` : "",
         cls =
           w.status === "done" || w.status === "merging"
             ? "done"
             : w.status === "in_progress"
               ? "in_progress"
               : "pending";
-      html += `<div class="wave-row"><div class="wave-label">${statusDot(w.status)} ${esc(w.wave_id)}</div><div class="wave-bar"><div class="wave-fill ${cls}" style="width:${wp}%"></div></div><div class="wave-pct">${wp}%</div><div style="margin-left:4px">${thorIcon(w.validated_at)}</div></div>`;
+      html += `<div class="wave-row"><div class="wave-label">${statusDot(w.status)} <strong>${esc(w.wave_id)}</strong><span class="wave-name">${esc(wName)}</span></div><div class="wave-bar"><div class="wave-fill ${cls}" style="width:${wPct}%;background:${wg.gradient}"></div></div><div class="wave-pct" style="color:${wg.color}">${wPct}%</div><div style="margin-left:4px">${thorIcon(w.validated_at)}</div></div>`;
     });
     if (pendingWaves.length > 0) {
       const cid = `pending-waves-${p.id}`;
       html += `<div class="wave-row wave-pending-summary" onclick="event.stopPropagation();document.getElementById('${cid}').classList.toggle('expanded')"><div class="wave-label">${statusDot("pending")} ${pendingWaves.length} waves pending</div><div class="wave-expand-icon">&#9662;</div></div>`;
       html += `<div id="${cid}" class="wave-pending-collapse">`;
       pendingWaves.forEach((w) => {
-        html += `<div class="wave-row wave-row-dim"><div class="wave-label">${statusDot("pending")} ${esc(w.wave_id)}</div><div class="wave-bar"><div class="wave-fill pending" style="width:0%"></div></div><div class="wave-pct">0%</div></div>`;
+        const wName = w.name ? ` — ${(w.name || "").substring(0, 35)}` : "";
+        html += `<div class="wave-row wave-row-dim"><div class="wave-label">${statusDot("pending")} <strong>${esc(w.wave_id)}</strong><span class="wave-name">${esc(wName)}</span></div><div class="wave-bar"><div class="wave-fill pending" style="width:0%"></div></div><div class="wave-pct">0%</div></div>`;
       });
+      html += "</div>";
+    }
+    // Check for dependencies
+    const hasDeps = m.waves && m.waves.some((w) => w.depends_on);
+    if (hasDeps) {
+      html += '<div class="wave-gantt-container">';
+      html += _renderWaveGantt(m.waves);
       html += "</div>";
     }
     html += "</div>";

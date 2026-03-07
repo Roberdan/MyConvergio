@@ -6,7 +6,7 @@ from pathlib import Path
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-    from scripts.dashboard_web.api_mesh import find_peer_conf
+    from scripts.dashboard_web.api_mesh import find_peer_conf, local_peer_name
     from scripts.dashboard_web.api_plans_checks import (
         check_cli_tools,
         check_disk,
@@ -22,7 +22,7 @@ if __package__ in (None, ""):
     from scripts.dashboard_web.lib.sse import run_command_sse
     from scripts.dashboard_web.middleware import DB_PATH, query_one
 else:
-    from .api_mesh import find_peer_conf
+    from .api_mesh import find_peer_conf, local_peer_name
     from .api_plans_checks import check_cli_tools, check_disk, check_heartbeat
     from .api_plans_preflight import (
         build_candidates,
@@ -184,7 +184,7 @@ def handle_plan_start_sse(handler, qs: dict):
     else:
         from .api_mesh import peer_host_match
 
-    if target == "local" or peer_host_match("m3max", target):
+    if target == "local" or peer_host_match(local_peer_name(), target):
         cmd = (
             f'claude --model sonnet -p "/execute {plan_id}"'
             if cli == "claude"

@@ -74,7 +74,7 @@ while IFS='|' read -r name ssh_alias user <&3 || [[ -n "$name" ]]; do
 	[[ -z "$name" ]] && continue
 
 	# Skip self (coordinator)
-	if [[ "$name" == "m3max" ]]; then
+	if [[ "$name" == "$(peers_self 2>/dev/null || hostname -s)" ]]; then
 		inc SKIPPED
 		continue
 	fi

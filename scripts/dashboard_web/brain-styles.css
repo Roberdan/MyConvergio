@@ -1,0 +1,42 @@
+.brain-container {
+  background: #0a0f1a;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 12px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+.brain-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.1);
+}
+.brain-title {
+  color: #00e5ff;
+  font-size: 14px;
+  font-weight: 600;
+}
+.brain-toggle {
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+}
+.brain-toggle:hover {
+  color: #00e5ff;
+}
+.btn-brain {
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  margin-left: 8px;
+}
+.btn-brain:hover {
+  background: rgba(0, 229, 255, 0.2);
+}

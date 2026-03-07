@@ -56,6 +56,13 @@
     <div class="widget" id="mission-panel">
       <div class="widget-header"><span class="widget-title">Active Missions</span></div>
       <div class="widget-body" id="mission-content"><span style="color:var(--text-dim)">Loading...</span></div>
+      <div id="brain-activity" class="brain-container" style="display:none;">
+        <div class="brain-header">
+          <span class="brain-title">🧠 Neural Activity</span>
+          <button onclick="toggleBrainCanvas()" class="brain-toggle">✕</button>
+        </div>
+        <div id="brain-canvas-container" style="width:100%;height:300px;"></div>
+      </div>
     </div>
     <div class="widget" id="task-pipeline-widget" style="max-height:420px; overflow-y:auto">
       <div class="widget-header">
@@ -83,6 +90,25 @@
     <div class="widget" id="widget-dist">
       <div class="widget-header"><span class="widget-title">Task Distribution</span></div>
       <div class="widget-body"><div class="chart-container chart-container-sm"><canvas id="dist-chart"></canvas></div></div>
+    </div>
+    <div class="widget" id="plan-kanban-widget">
+      <div class="widget-header"><span class="widget-title">Plan Pipeline</span></div>
+      <div class="widget-body" style="padding:8px">
+        <div class="kanban-board" id="kanban-board">
+          <div class="kanban-col" data-status="todo" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'todo')">
+            <div class="kanban-col-header"><span class="kanban-dot todo"></span>Pipeline</div>
+            <div class="kanban-cards" id="kanban-todo"></div>
+          </div>
+          <div class="kanban-col" data-status="doing" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'doing')">
+            <div class="kanban-col-header"><span class="kanban-dot doing"></span>Executing</div>
+            <div class="kanban-cards" id="kanban-doing"></div>
+          </div>
+          <div class="kanban-col" data-status="done" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'done')">
+            <div class="kanban-col-header"><span class="kanban-dot done"></span>Done</div>
+            <div class="kanban-cards" id="kanban-done"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="dash-col-right">
@@ -164,10 +190,13 @@
 <script src="org-chart.js"></script>
 <script src="live-system.js"></script>
 <script src="task-pipeline.js"></script>
+<script src="plan-kanban.js"></script>
 <script src="charts.js"></script>
 <script src="activity.js"></script>
 <script src="kpi-modals.js"></script>
 <script src="websocket.js"></script>
+<script src="/brain-layout.js"></script>
+<script src="/brain-canvas.js"></script>
 <script src="app.js"></script>
 <script src="mesh.js"></script>
 <script src="mesh-animation.js"></script>

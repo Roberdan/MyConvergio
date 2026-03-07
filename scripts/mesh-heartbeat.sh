@@ -148,6 +148,12 @@ _daemon_loop() {
 # Commands
 
 cmd_start() {
+	if [[ "$(uname -s)" == MINGW* || "$(uname -s)" == MSYS* ]]; then
+		info "Windows detected. Use Task Scheduler instead:"
+		info "  schtasks /create /tn 'MeshHeartbeat' /tr 'bash -c \"$0 run-once\"' /sc minute /mo 1"
+		exit 0
+	fi
+
 	if [[ -f "$PID_FILE" ]]; then
 		local old_pid
 		old_pid="$(cat "$PID_FILE" 2>/dev/null || echo "")"

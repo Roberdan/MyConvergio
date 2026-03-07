@@ -7,9 +7,12 @@ DB_FILE="${HOME}/.claude/data/dashboard.db"
 AUDIT_LOG="${AUDIT_LOG:-${HOME}/.claude/data/thor-audit.jsonl}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Export hostname for distributed execution tracking
-# Strip .local suffix for consistency (macOS hostname vs DB stored values)
-PLAN_DB_HOST="${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}"
+# Resolve canonical peer name via Tailscale IP match (stable across hostname changes)
+if [[ -f "$SCRIPT_DIR/lib/peers.sh" ]] && ! declare -F peers_self &>/dev/null; then
+	source "$SCRIPT_DIR/lib/peers.sh"
+	peers_load 2>/dev/null || true
+fi
+PLAN_DB_HOST="$(peers_self 2>/dev/null || hostname -s 2>/dev/null || hostname)"
 export PLAN_DB_HOST="${PLAN_DB_HOST%.local}"
 
 # Colors

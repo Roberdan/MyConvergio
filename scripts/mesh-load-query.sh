@@ -112,8 +112,17 @@ _privacy_safe_for_caps() {
 _remote_cmd() {
 	cat <<'REMOTE'
 set +e
-# uptime: macOS -> "load averages: X Y Z" | Linux -> "load average: X, Y, Z"
-cpu=$(uptime 2>/dev/null | sed -E 's/.*load averages?: *([0-9]+\.[0-9]+).*/\1/')
+cpu=0
+if [ "$(uname)" = "Darwin" ]; then
+  # macOS load average
+  cpu=$(uptime 2>/dev/null | sed -E 's/.*load averages?: *([0-9]+\.[0-9]+).*/\1/')
+elif [[ "$(uname -s)" == MINGW* || "$(uname -s)" == MSYS* || "$(uname -s)" == CYGWIN* ]]; then
+  # Windows: use PowerShell
+  cpu="$(powershell.exe -NoProfile -Command '(Get-CimInstance Win32_Processor).LoadPercentage' 2>/dev/null || echo 0)"
+else
+  # Linux load average
+  cpu=$(uptime 2>/dev/null | sed -E 's/.*load averages?: *([0-9]+\.[0-9]+).*/\1/')
+fi
 db="$HOME/.claude/data/dashboard.db"
 tasks=0
 if [ -f "$db" ] && command -v sqlite3 >/dev/null 2>&1; then
@@ -130,6 +139,11 @@ if [ "$(uname)" = "Darwin" ]; then
   total_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo 0)
   used_bytes=$(( total_bytes - free_bytes ))
   mem_used=$(echo "$used_bytes" | awk '{printf "%.1f", $1/1073741824}')
+elif [[ "$(uname -s)" == MINGW* || "$(uname -s)" == MSYS* || "$(uname -s)" == CYGWIN* ]]; then
+  # Windows: use PowerShell
+  mem_info="$(powershell.exe -NoProfile -Command '$os=Get-CimInstance Win32_OperatingSystem; "{0}|{1}" -f [math]::Round(($os.TotalVisibleMemorySize-$os.FreePhysicalMemory)/1MB,1), [math]::Round($os.TotalVisibleMemorySize/1MB,1)' 2>/dev/null || echo '0|0')"
+  mem_used="${mem_info%%|*}"
+  mem_total="${mem_info##*|}"
 else
   mem_total=$(awk '/MemTotal/ {printf "%.1f", $2/1048576}' /proc/meminfo 2>/dev/null)
   mem_avail=$(awk '/MemAvailable/ {printf "%.1f", $2/1048576}' /proc/meminfo 2>/dev/null)
@@ -137,6 +151,26 @@ else
 fi
 printf '%s %s %s %s\n' "${cpu:-0}" "${tasks:-0}" "${mem_used:-0}" "${mem_total:-0}"
 REMOTE
+}
+
+_ssh() {
+	local peer="$1"
+	shift
+	local target user dest
+	target="$(peers_best_route "$peer" 2>/dev/null)" || return 1
+	user="$(peers_get "$peer" "user" 2>/dev/null || echo "")"
+	dest="${user:+${user}@}${target}"
+	ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
+		-o BatchMode=yes -o LogLevel=quiet "$dest" "$@" 2>/dev/null
+}
+
+_get_remote_load() {
+	local peer="$1" os="$2"
+	if [[ "$os" == "windows" ]]; then
+		_ssh "$peer" "powershell.exe -NoProfile -Command '(Get-CimInstance Win32_Processor).LoadPercentage'"
+	else
+		_ssh "$peer" "uptime | grep -oE 'load averages?: [0-9]+\\.[0-9]+' | grep -oE '[0-9]+\\.[0-9]+$'"
+	fi
 }
 
 _upsert_heartbeat() {
@@ -161,28 +195,30 @@ _write_offline() {
 
 _query_peer() {
 	local name="$1" result_file="$2"
-	local caps cost_tier privacy_safe
+	local caps cost_tier privacy_safe os
 	caps="$(peers_get "$name" "capabilities" 2>/dev/null || echo "")"
 	cost_tier="$(_cost_tier_for_caps "$caps")"
 	privacy_safe="$(_privacy_safe_for_caps "$caps")"
+	os="$(peers_get "$name" "os" 2>/dev/null || echo "linux")"
 
-	local target user dest
-	target="$(peers_best_route "$name" 2>/dev/null)" || {
-		_write_offline "$name" "$caps" "$cost_tier" "$privacy_safe" "$result_file"
-		return
-	}
-	user="$(peers_get "$name" "user" 2>/dev/null || echo "")"
-	dest="${user:+${user}@}${target}"
-
-	local raw
-	if ! raw="$(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
-		-o BatchMode=yes -o LogLevel=quiet \
-		"$dest" "bash -s" <<<"$(_remote_cmd)" 2>/dev/null)"; then
+	if ! peers_best_route "$name" >/dev/null 2>&1; then
 		_write_offline "$name" "$caps" "$cost_tier" "$privacy_safe" "$result_file"
 		return
 	fi
 
-	local cpu tasks mem_used mem_total
+	local raw cpu tasks mem_used mem_total mem_info
+	if [[ "$os" == "windows" ]]; then
+		cpu="$(_get_remote_load "$name" "$os" || echo "0")"
+		mem_info="$(_ssh "$name" "powershell.exe -NoProfile -Command '\$os=Get-CimInstance Win32_OperatingSystem; \"{0}|{1}\" -f [math]::Round((\$os.TotalVisibleMemorySize-\$os.FreePhysicalMemory)/1MB,1), [math]::Round(\$os.TotalVisibleMemorySize/1MB,1)'" || echo "0|0")"
+		mem_used="${mem_info%%|*}"
+		mem_total="${mem_info##*|}"
+		tasks="$(_ssh "$name" "powershell.exe -NoProfile -Command '\$db=Join-Path \$env:USERPROFILE ''.claude\\data\\dashboard.db''; if (Test-Path \$db -and (Get-Command sqlite3 -ErrorAction SilentlyContinue)) { sqlite3 \$db \"SELECT COUNT(*) FROM tasks WHERE status=''in_progress'';\" } else { 0 }'" || echo "0")"
+		raw="${cpu:-0} ${tasks:-0} ${mem_used:-0} ${mem_total:-0}"
+	elif ! raw="$(_ssh "$name" "bash -s" <<<"$(_remote_cmd)")"; then
+		_write_offline "$name" "$caps" "$cost_tier" "$privacy_safe" "$result_file"
+		return
+	fi
+
 	cpu="$(echo "$raw" | awk '{print $1}')"
 	tasks="$(echo "$raw" | awk '{print $2}')"
 	mem_used="$(echo "$raw" | awk '{print $3}')"

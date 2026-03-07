@@ -76,19 +76,22 @@ _pull_from_peer() {
 	local plan_sql="SELECT p.id,p.tasks_done,p.tasks_total,p.status FROM plans p WHERE $plan_where;"
 
 	local hb_sql="SELECT peer_name,last_seen,load_json,capabilities FROM peer_heartbeats;"
+	local remote_claude_home remote_db
+	remote_claude_home="$(_remote_claude_home "$peer")"
+	remote_db="${remote_claude_home}/data/dashboard.db"
 
 	local remote_data
-	remote_data="$(_ssh "$peer" "sqlite3 ~/.claude/data/dashboard.db '.timeout 3000' \
+	remote_data="$(_ssh "$peer" "sqlite3 ${remote_db} '.timeout 3000' \
     '.separator |' \
     \"$remote_sql\" \
     2>/dev/null; echo '===WAVES==='; \
-    sqlite3 ~/.claude/data/dashboard.db '.timeout 3000' '.separator |' \
+    sqlite3 ${remote_db} '.timeout 3000' '.separator |' \
     \"$wave_sql\" 2>/dev/null; \
     echo '===PLANS==='; \
-    sqlite3 ~/.claude/data/dashboard.db '.timeout 3000' '.separator |' \
+    sqlite3 ${remote_db} '.timeout 3000' '.separator |' \
     \"$plan_sql\" 2>/dev/null; \
     echo '===HEARTBEATS==='; \
-    sqlite3 ~/.claude/data/dashboard.db '.timeout 3000' '.separator |' \
+    sqlite3 ${remote_db} '.timeout 3000' '.separator |' \
     \"$hb_sql\" 2>/dev/null")" || {
 		warn "$peer: SSH failed"
 		return 1

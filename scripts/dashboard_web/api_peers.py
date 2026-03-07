@@ -26,7 +26,7 @@ else:
 
 _writer = PeersWriter(PEERS_CONF)
 _REQUIRED_CREATE = ("ssh_alias", "user", "os", "role")
-_VALID_OS = ("macos", "linux")
+_VALID_OS = ("macos", "linux", "windows")
 _VALID_ROLES = ("coordinator", "worker", "hybrid")
 _VALID_ENGINES = ("claude", "copilot", "opencode", "ollama")
 _MAC_RE = re.compile(r"^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
@@ -179,7 +179,7 @@ def api_peer_discover() -> dict:
                 "hostname": hostname,
                 "tailscale_ip": ts_ip,
                 "dns_name": info.get("DNSName", "").rstrip("."),
-                "os": "linux" if "linux" in info.get("OS", "").lower() else "macos",
+                "os": "windows" if "windows" in info.get("OS", "").lower() else ("linux" if "linux" in info.get("OS", "").lower() else "macos"),
                 "is_new": True,
             }
         )

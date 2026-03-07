@@ -1,5 +1,34 @@
 # Changelog
 
+## [Unreleased] — Brain Visualization & Agent Tracking
+
+### Added
+- Brain visualization widget: living organism representation of the AI system
+  - 10 anatomically-mapped brain regions (prefrontal, motor, hippocampus, amygdala, cerebellum, etc.)
+  - Neuron state machine with 7 biological states (dormant→firing→cooling)
+  - Synapse firing with particle animations on task dependencies
+  - Scientific effects: fMRI heatmap, EEG trace, connectome, particle field
+  - Human consciousness layer: cortical impulses on user interaction
+- Agent activity tracking (agent_activity DB table + agent-track.sh)
+  - Real-time agent status with token/cost tracking per task
+  - API endpoint /api/agents for dashboard integration
+- Task substatus field (waiting_ci, waiting_review, waiting_merge, waiting_thor, agent_running)
+- SVG icon system replacing all emoji (icons.js, 17 Lucide-style icons)
+- Plan Kanban board with drag-and-drop
+- Sparkline CPU/RAM charts for mesh nodes
+- Progress bar gradients (red→green, capped at 95% until Thor validation)
+- Wave labels + mini Gantt with dependency arrows
+- Executor completion hooks (P2.5, P2.6 in execute.md)
+
+### Fixed
+- Node identity chaos: 5 different hostnames for same machine → canonical peers_self()
+- Coordinator spam: grace counter infinite loop, reassign dedup
+- Hardcoded 'm3max' in 7 files → dynamic local_peer_name()
+
+### Testing
+- 9 new mesh test files (~1,666 lines): concurrency, failover, identity, windows, sync-conflicts, privacy-routing, stress, edge-cases, live-ssh
+- Shared test helpers (tests/lib/mesh-test-helpers.sh)
+
 ## [v10.15.0] - 07 Mar 2026
 
 ### Added

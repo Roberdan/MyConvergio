@@ -30,7 +30,9 @@ if __package__ in (None, ""):
         api_tokens_by_model,
         api_tokens_daily,
     )
+    from scripts.dashboard_web.api_agents import api_agents
     from scripts.dashboard_web.api_mesh import (
+        api_mesh_init,
         api_mesh_sync_status,
         handle_mesh_action,
         resolve_host_to_peer,
@@ -88,7 +90,13 @@ else:
         api_tokens_by_model,
         api_tokens_daily,
     )
-    from .api_mesh import api_mesh_sync_status, handle_mesh_action, resolve_host_to_peer
+    from .api_agents import api_agents
+    from .api_mesh import (
+        api_mesh_init,
+        api_mesh_sync_status,
+        handle_mesh_action,
+        resolve_host_to_peer,
+    )
     from .api_mesh_actions import handle_fullsync_sse, handle_mesh_action_sse
     from .api_peers import (
         api_peer_create,
@@ -143,6 +151,20 @@ def api_live_system():
     return _api_live_system(resolve_host_to_peer, api_mesh_mod.api_mesh)
 
 
+def api_sessions():
+    """Scan for active CLI sessions and return them as consciousness nodes."""
+    import subprocess
+    scanner = str(Path(__file__).parent.parent / 'session-scanner.sh')
+    try:
+        subprocess.run([scanner, 'scan'], capture_output=True, timeout=5)
+    except Exception:
+        pass
+    return query(
+        "SELECT agent_id, agent_type AS type, description, status, metadata"
+        " FROM agent_activity WHERE agent_id LIKE 'session-%' AND status='running'"
+    ) or []
+
+
 ROUTES = {
     "/api/overview": api_overview,
     "/api/mission": api_mission,
@@ -162,6 +184,8 @@ ROUTES = {
     "/api/coordinator/toggle": api_coordinator_toggle,
     "/api/peers": api_peer_list,
     "/api/peers/discover": api_peer_discover,
+    "/api/agents": api_agents,
+    "/api/sessions": api_sessions,
 }
 
 
@@ -227,6 +251,12 @@ class Handler(MiddlewareMixin, SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         path = parsed.path
+        if path == "/api/mesh/init":
+            self._json_response(api_mesh_init())
+            return
+        if path == "/api/plan-status":
+            self._handle_plan_status_change()
+            return
         m = re.match(r"^/api/plans/(\d+)/validate$", path)
         if m:
             self._json_response(handle_plan_validate(int(m.group(1))))
@@ -271,6 +301,29 @@ class Handler(MiddlewareMixin, SimpleHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
         pass
+
+    def _handle_plan_status_change(self):
+        import subprocess
+        length = int(self.headers.get("Content-Length", 0))
+        body = json.loads(self.rfile.read(length)) if length else {}
+        plan_id = body.get("plan_id")
+        target = body.get("status")
+        if not plan_id or target not in ("todo", "doing", "done"):
+            self._json_response({"error": "Invalid plan_id or status"}, 400)
+            return
+        cmd_map = {
+            "doing": ["plan-db.sh", "start", str(plan_id)],
+            "todo": ["plan-db.sh", "update-status", str(plan_id), "todo"],
+            "done": ["plan-db.sh", "complete", str(plan_id)],
+        }
+        try:
+            r = subprocess.run(cmd_map[target], capture_output=True, text=True, timeout=10)
+            if r.returncode != 0:
+                self._json_response({"error": r.stderr.strip() or "Command failed"}, 500)
+                return
+            self._json_response({"ok": True, "plan_id": plan_id, "status": target})
+        except Exception as e:
+            self._json_response({"error": str(e)}, 500)
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):

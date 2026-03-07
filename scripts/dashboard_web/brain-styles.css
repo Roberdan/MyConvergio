@@ -1,0 +1,22 @@
+/* brain-styles.css — Global Agent Activity widget */
+#brain-widget {
+  min-height: 380px;
+}
+#brain-widget .widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#brain-widget .brain-stats {
+  font: 11px 'JetBrains Mono', monospace;
+  color: var(--text-dim, #5a6080);
+}
+#brain-canvas-container {
+  background: linear-gradient(180deg, #0a0f1a, #080810);
+  border-radius: 0 0 8px 8px;
+}
+.brain-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

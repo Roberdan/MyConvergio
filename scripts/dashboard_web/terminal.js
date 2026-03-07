@@ -134,7 +134,7 @@ class TerminalManager {
         fitAddon.fit();
       }
       term.write(
-        "\x1b[1;31m✗ WebSocket error — is terminal_server.py running?\x1b[0m\r\n",
+        "\x1b[1;31m[X] WebSocket error — is terminal_server.py running?\x1b[0m\r\n",
       );
     };
 
@@ -142,7 +142,7 @@ class TerminalManager {
       if (!opened) {
         // Connection never succeeded — keep tab open so user sees the error
         term.write(
-          "\r\n\x1b[33m⚠ Could not connect. Start terminal_server.py on port 8421.\x1b[0m\r\n",
+          "\r\n\x1b[33m[!] Could not connect. Start terminal_server.py on port 8421.\x1b[0m\r\n",
         );
         term.write(
           "\x1b[2m  python3 ~/.claude/scripts/dashboard_web/terminal_server.py\x1b[0m\r\n",

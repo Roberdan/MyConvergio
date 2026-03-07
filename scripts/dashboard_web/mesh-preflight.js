@@ -58,11 +58,11 @@ window.runPreflight = function (
     if (activeRow) {
       activeRow.classList.remove("preflight-active");
       const ok = data.ok;
-      const icon = ok ? "✓" : "✗";
+      const icon = ok ? Icons.check(14) : Icons.x(14);
       const cls = ok ? "delegate-status-ok" : "delegate-status-fail";
       activeRow.classList.add(ok ? "preflight-pass" : "preflight-fail");
       activeRow.querySelector(".preflight-icon").innerHTML =
-        `<span class="${cls}" style="font-size:16px;font-weight:700">${icon}</span>`;
+        `<span class="${cls}" style="font-size:16px;font-weight:700">${ok ? Icons.check(16) : Icons.x(16)}</span>`;
       activeRow.querySelector(".preflight-name").textContent = data.name;
       const detailEl = activeRow.querySelector(".preflight-detail");
       detailEl.textContent = data.detail;
@@ -78,7 +78,7 @@ window.runPreflight = function (
     actionsEl.style.display = "block";
     if (data.ok) {
       actionsEl.innerHTML = `<div class="delegate-done-banner" style="background:rgba(0,229,255,0.08);border-color:rgba(0,229,255,0.3);color:var(--cyan);margin-bottom:12px">
-          ✓ All checks passed
+          ${Icons.checkCircle(14)} All checks passed
         </div>
         <button id="preflight-go-btn" style="background:linear-gradient(135deg,var(--cyan),#00ff88);color:#0a0e1a;border:none;padding:10px 32px;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:1px">
           DELEGATE NOW
@@ -92,7 +92,7 @@ window.runPreflight = function (
     } else {
       const failCount = checksEl.querySelectorAll(".preflight-fail").length;
       actionsEl.innerHTML = `<div class="delegate-status-fail" style="padding:10px;border:1px solid var(--red);border-radius:6px;margin-bottom:12px">
-          ✗ ${failCount} check${failCount > 1 ? "s" : ""} failed — fix before delegating
+          ${Icons.xCircle(14)} ${failCount} check${failCount > 1 ? "s" : ""} failed — fix before delegating
         </div>
         <div style="display:flex;gap:8px;justify-content:center">
           <button id="preflight-retry-btn" class="preflight-action-btn" style="border-color:var(--cyan);color:var(--cyan)">RETRY CHECKS</button>
@@ -123,7 +123,7 @@ window.runPreflight = function (
     es.close();
     if (activeRow) {
       activeRow.querySelector(".preflight-icon").innerHTML =
-        '<span class="delegate-status-fail" style="font-size:16px;font-weight:700">✗</span>';
+        '<span class="delegate-status-fail" style="font-size:16px;font-weight:700">' + Icons.x(16) + '</span>';
       activeRow.querySelector(".preflight-detail").textContent =
         "Connection lost";
     }
@@ -202,7 +202,7 @@ window.delegatePlan = function (planId, targetPeer, planName, cli) {
     es.close();
     const data = JSON.parse(e.data);
     if (data.ok) {
-      output.innerHTML += `<div class="delegate-done-banner">✓ Plan #${planId} delegated to ${esc(targetPeer)}<br><span style="font-size:11px;font-weight:400">tmux session: Convergio</span></div>`;
+      output.innerHTML += `<div class="delegate-done-banner">${Icons.checkCircle(14)} Plan #${planId} delegated to ${esc(targetPeer)}<br><span style="font-size:11px;font-weight:400">tmux session: Convergio</span></div>`;
     }
     output.scrollTop = output.scrollHeight;
     if (typeof refreshAll === "function") refreshAll();
@@ -215,7 +215,7 @@ window.delegatePlan = function (planId, targetPeer, planName, cli) {
       const data = JSON.parse(e.data);
       msg = data.message || msg;
     } catch (_) {}
-    output.innerHTML += `<div class="delegate-status-fail" style="padding:12px;margin-top:8px;border:1px solid var(--red);border-radius:4px">✗ ${esc(msg)}</div>`;
+    output.innerHTML += `<div class="delegate-status-fail" style="padding:12px;margin-top:8px;border:1px solid var(--red);border-radius:4px">${Icons.xCircle(14)} ${esc(msg)}</div>`;
     output.innerHTML += `<div style="text-align:center;margin-top:12px"><button id="delegate-retry-btn" style="background:transparent;border:1px solid var(--cyan);color:var(--cyan);padding:8px 24px;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;letter-spacing:0.5px">RETRY DELEGATION</button></div>`;
     const retryBtn = document.getElementById("delegate-retry-btn");
     if (retryBtn)
@@ -228,7 +228,7 @@ window.delegatePlan = function (planId, targetPeer, planName, cli) {
 
   es.onerror = () => {
     es.close();
-    output.innerHTML += `<span class="delegate-status-fail">\n✗ Connection lost\n</span>`;
+    output.innerHTML += `<span class="delegate-status-fail">\n${Icons.x(14)} Connection lost\n</span>`;
     output.innerHTML += `<div style="text-align:center;margin-top:12px"><button id="delegate-retry-btn2" style="background:transparent;border:1px solid var(--cyan);color:var(--cyan);padding:8px 24px;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;letter-spacing:0.5px">RETRY</button></div>`;
     const retryBtn = document.getElementById("delegate-retry-btn2");
     if (retryBtn)

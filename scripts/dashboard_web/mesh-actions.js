@@ -99,10 +99,10 @@ window.streamMeshAction = function (action, peer) {
     es.close();
     const data = JSON.parse(e.data);
     if (data.ok) {
-      output.innerHTML += `\n<span style="color:var(--green);font-weight:600">✓ Completed successfully</span>\n`;
+      output.innerHTML += `\n<span style="color:var(--green);font-weight:600">${Icons.checkCircle(14)} Completed successfully</span>\n`;
     } else {
       const msg = data.message || `Exit code ${data.exit_code || "?"}`;
-      output.innerHTML += `\n<span style="color:var(--red);font-weight:600">✗ ${esc(msg)}</span>\n`;
+      output.innerHTML += `\n<span style="color:var(--red);font-weight:600">${Icons.xCircle(14)} ${esc(msg)}</span>\n`;
     }
     output.scrollTop = output.scrollHeight;
     if (typeof refreshAll === "function") refreshAll();
@@ -110,7 +110,7 @@ window.streamMeshAction = function (action, peer) {
 
   es.onerror = () => {
     es.close();
-    output.innerHTML += `\n<span style="color:var(--red)">✗ Connection lost</span>\n`;
+    output.innerHTML += `\n<span style="color:var(--red)">${Icons.x(14)} Connection lost</span>\n`;
   };
 };
 

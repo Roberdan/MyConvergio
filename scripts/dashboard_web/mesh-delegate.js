@@ -70,7 +70,7 @@ window.showDelegatePlanDialog = async function (planId, planName) {
     .map((p) => {
       const off = !p.is_online ? " offline" : "";
       const cpu = p.cpu ? p.cpu.toFixed(0) + "%" : "—";
-      const osIcon = p.os === "macos" ? "🍎" : p.os === "linux" ? "🐧" : "💻";
+      const osIcon = Icons.monitor(16);
       return `<div class="delegate-peer-row${off}" data-peer="${esc(p.peer_name)}">
         <span><span style="margin-right:6px">${osIcon}</span><strong>${esc(p.peer_name)}</strong>
         ${p.role === "coordinator" ? '<span style="color:var(--gold);font-size:9px;margin-left:4px">COORD</span>' : ""}
@@ -113,15 +113,15 @@ window._showCliSelector = function (planId, peer, planName, prevOverlay) {
     <div class="modal-title">Execute with → ${esc(peer)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
       <button class="cli-choice-btn${defaultEngine === "copilot" ? " cli-default" : ""}" data-cli="copilot" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.25);border-radius:8px;color:var(--cyan);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
-        <span style="font-size:20px">🤖</span>
+        <span style="font-size:20px">${Icons.cpu(20)}</span>
         <span><div>GitHub Copilot${defaultEngine === "copilot" ? " ★" : ""}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">copilot -p '/execute ${planId}'</div></span>
       </button>
       <button class="cli-choice-btn${defaultEngine === "claude" ? " cli-default" : ""}" data-cli="claude" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,160,0,0.06);border:1px solid rgba(255,160,0,0.25);border-radius:8px;color:var(--gold);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
-        <span style="font-size:20px">🧠</span>
+        <span style="font-size:20px">${Icons.brain(20)}</span>
         <span><div>Claude Code${defaultEngine === "claude" ? " ★" : ""}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">claude --model sonnet -p '/execute ${planId}'</div></span>
       </button>
       <button class="cli-choice-btn${defaultEngine === "opencode" ? " cli-default" : ""}" data-cli="opencode" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(140,140,140,0.06);border:1px solid rgba(140,140,140,0.25);border-radius:8px;color:var(--text-dim);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
-        <span style="font-size:20px">⚡</span>
+        <span style="font-size:20px">${Icons.zap(20)}</span>
         <span><div>OpenCode / Other${defaultEngine === "opencode" ? " ★" : ""}</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">opencode -p '/execute ${planId}'</div></span>
       </button>
     </div>

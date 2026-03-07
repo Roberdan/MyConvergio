@@ -12,8 +12,16 @@ function _taskRow(t) {
             ? "task-submitted"
             : t.status === "blocked"
               ? "task-blocked"
-              : "task-pending";
-  return `<tr class="${statusCls}" onclick="toggleTaskDetail(this)" data-task-id="${esc(t.task_id || "")}"><td style="color:var(--cyan);font-weight:600">${esc(t.task_id || "")}</td><td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" ${truncated ? `title="${esc(title)}"` : ""}>${esc(title.substring(0, 40))}${truncated ? "\u2026" : ""}</td><td>${statusDot(t.status)} ${thorIcon(t.validated_at)}</td><td style="color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((t.executor_agent || "\u2014").substring(0, 12))}</td><td style="color:var(--gold)">${tokenText}</td></tr>`;
+              : "task-pending",
+    substatusBadges = {
+      waiting_ci: { color: "#00d4ff", text: Icons.clock(11) + " CI" },
+      waiting_review: { color: "#e6a117", text: Icons.eye(11) + " Review" },
+      waiting_merge: { color: "#a855f7", text: Icons.gitMerge(11) + " Merge" },
+      waiting_thor: { color: "#ff9500", text: Icons.shield(11) + " Thor" },
+      agent_running: { color: "#0066ff", text: Icons.cpu(11) + " Agent" },
+    },
+    substatus = substatusBadges[t.substatus];
+  return `<tr class="${statusCls}" onclick="toggleTaskDetail(this)" data-task-id="${esc(t.task_id || "")}"><td style="color:var(--cyan);font-weight:600">${esc(t.task_id || "")}</td><td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" ${truncated ? `title="${esc(title)}"` : ""}>${esc(title.substring(0, 40))}${truncated ? "\u2026" : ""}</td><td>${statusDot(t.status)} ${substatus ? `<span style="color:${substatus.color};font-size:9px;font-weight:500" title="${esc(t.substatus)}">${substatus.text}</span>` : ""} ${thorIcon(t.validated_at)}</td><td style="color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((t.executor_agent || "\u2014").substring(0, 12))}</td><td style="color:var(--gold)">${tokenText}</td></tr>`;
 }
 
 window.filterTasks = (planId) => {
@@ -50,8 +58,10 @@ function renderTaskPipeline() {
         const wp =
           w.tasks_total > 0
             ? Math.round((100 * w.tasks_done) / w.tasks_total)
-            : 0;
-        rows += `<tr class="task-wave-header"><td colspan="5">${statusDot(w.status)} <span style="color:var(--text)">${esc(w.wave_id)}</span> <span style="color:var(--text-dim)">${esc((w.name || "").substring(0, 20))}</span> <span style="color:var(--cyan);font-size:10px">${wp}%</span> ${thorIcon(w.validated_at)}</td></tr>`;
+            : 0,
+          wPct = wp >= 100 && !w.validated_at ? 95 : wp,
+          wName = (w.name || "").substring(0, 25);
+        rows += `<tr class="task-wave-header"><td colspan="5">${statusDot(w.status)} <span style="color:var(--text)">${esc(w.wave_id)}</span> <span style="color:var(--text-dim);font-size:10px">${esc(wName)}</span> <span style="color:${wPct >= 75 ? 'var(--green)' : wPct >= 50 ? 'var(--gold)' : 'var(--red)'};font-size:10px">${wPct}%</span> ${thorIcon(w.validated_at)}</td></tr>`;
         waveTasks.forEach((t) => (rows += _taskRow(t)));
       });
       tasks
@@ -81,7 +91,8 @@ window.toggleTaskDetail = function (tr) {
   tr.classList.add("expanded");
   const row = document.createElement("tr");
   row.className = "task-detail-row";
-  row.innerHTML = `<td colspan="5"><div class="task-detail"><strong style="color:var(--cyan)">${esc(t.task_id)}</strong> \u2014 ${esc(t.title || "")}<br>Status: <span style="color:${statusColor(t.status)}">${t.status}</span> \u00b7 Agent: ${esc(t.executor_agent || "\u2014")} \u00b7 Host: ${esc(t.executor_host || "\u2014")} \u00b7 Tokens: ${fmt(t.tokens)} ${t.validated_at ? ` \u00b7 ${thorIcon(true)} Validated` : ""}</div></td>`;
+  const substatusBadges = { waiting_ci: Icons.clock(11) + " CI", waiting_review: Icons.eye(11) + " Review", waiting_merge: Icons.gitMerge(11) + " Merge", waiting_thor: Icons.shield(11) + " Thor", agent_running: Icons.cpu(11) + " Agent" };
+  row.innerHTML = `<td colspan="5"><div class="task-detail"><strong style="color:var(--cyan)">${esc(t.task_id)}</strong> \u2014 ${esc(t.title || "")}<br>Status: <span style="color:${statusColor(t.status)}">${t.status}</span>${t.substatus ? ` · Substatus: <span style="color:#00d4ff">${esc(substatusBadges[t.substatus] || t.substatus)}</span>` : ""} \u00b7 Agent: ${esc(t.executor_agent || "\u2014")} \u00b7 Host: ${esc(t.executor_host || "\u2014")} \u00b7 Tokens: ${fmt(t.tokens)} ${t.validated_at ? ` \u00b7 ${thorIcon(true)} Validated` : ""}</div></td>`;
   tr.after(row);
 };
 

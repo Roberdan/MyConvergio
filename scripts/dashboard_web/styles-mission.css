@@ -1,0 +1,42 @@
+.wave-name { color: var(--text-dim); font-weight: normal; font-size: 11px; }
+.wave-gantt-container { margin-top: 8px; position: relative; }
+.wave-gantt-bar { height: 24px; border-radius: 4px; margin: 2px 0; position: relative; display: flex; align-items: center; padding: 0 8px; font-size: 10px; }
+.wave-gantt-arrow { stroke: var(--cyan); stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+
+.wave-gantt {
+  position: relative;
+}
+.wave-gantt-row {
+  display: flex;
+  align-items: center;
+}
+.wave-gantt-bar {
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wave-gantt-done {
+  background: linear-gradient(90deg, var(--green), #00cc6a);
+}
+.wave-gantt-merging {
+  background: linear-gradient(90deg, var(--green), #00cc6a);
+}
+.wave-gantt-in_progress {
+  background: linear-gradient(90deg, var(--gold), var(--cyan));
+}
+.wave-gantt-pending {
+  background: #3b3f55;
+}
+.wave-gantt-blocked {
+  background: var(--red);
+}
+.wave-gantt-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}

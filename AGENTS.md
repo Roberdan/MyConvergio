@@ -128,6 +128,10 @@ plan-db.sh skill-promote <name>
 plan-db.sh skill-bump <name>
 ```
 
+### Agent Activity Tracking
+
+Table `agent_activity` tracks every background agent for brain visualization. Columns: `agent_id`, `agent_type`, `task_db_id`, `plan_id`, `model`, `status` (running/completed/failed), `tokens_in/out/total`, `cost_usd`, `duration_s`, `host`. CLI: `agent-track.sh start|complete|list|stats` (standalone) or `plan-db.sh agent-start|agent-complete`. Both `copilot-worker.sh` and `execute.md` call these automatically.
+
 ## Worktree Discipline
 
 **Principle**: Every plan = dedicated worktree. Auto-created: `plan/{plan_id}-{slug}` branch, path in DB.

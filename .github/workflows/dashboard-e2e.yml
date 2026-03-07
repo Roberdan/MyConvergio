@@ -44,12 +44,16 @@ jobs:
           CREATE TABLE IF NOT EXISTS plans (id INTEGER PRIMARY KEY, name TEXT, status TEXT DEFAULT 'todo', tasks_done INTEGER DEFAULT 0, tasks_total INTEGER DEFAULT 0, human_summary TEXT, execution_host TEXT, parallel_mode TEXT, project_id TEXT, started_at TEXT, completed_at TEXT, lines_added INTEGER DEFAULT 0, lines_removed INTEGER DEFAULT 0, worktree_path TEXT);
           CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, name TEXT, path TEXT);
           CREATE TABLE IF NOT EXISTS waves (id INTEGER PRIMARY KEY AUTOINCREMENT, wave_id TEXT, plan_id INTEGER, name TEXT, status TEXT DEFAULT 'pending', tasks_done INTEGER DEFAULT 0, tasks_total INTEGER DEFAULT 0, position INTEGER DEFAULT 0, branch_name TEXT, pr_number INTEGER, pr_url TEXT, validated_at TEXT);
-          CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT, plan_id INTEGER, wave_id TEXT, wave_id_fk INTEGER, title TEXT, status TEXT DEFAULT 'pending', executor_agent TEXT, executor_host TEXT, tokens INTEGER, started_at TEXT, completed_at TEXT, validated_at TEXT, model TEXT, notes TEXT, output_data TEXT);
+          CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT, plan_id INTEGER, wave_id TEXT, wave_id_fk INTEGER, title TEXT, status TEXT DEFAULT 'pending', substatus TEXT, executor_agent TEXT, executor_host TEXT, tokens INTEGER, tokens_total INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0, agent_count INTEGER DEFAULT 0, started_at TEXT, completed_at TEXT, validated_at TEXT, model TEXT, notes TEXT, output_data TEXT);
           CREATE TABLE IF NOT EXISTS token_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT, plan_id INTEGER, wave_id TEXT, task_id TEXT, agent TEXT, model TEXT, input_tokens INTEGER DEFAULT 0, output_tokens INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0, created_at TEXT DEFAULT (datetime('now')), execution_host TEXT);
           CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, title TEXT, message TEXT, link TEXT, link_type TEXT, is_read INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')));
           CREATE TABLE IF NOT EXISTS mesh_events (id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT, plan_id INTEGER, source_peer TEXT, payload TEXT, status TEXT DEFAULT 'pending', created_at INTEGER DEFAULT (strftime('%s','now')));
           CREATE TABLE IF NOT EXISTS host_heartbeats (host TEXT PRIMARY KEY, last_seen TEXT, plan_count INTEGER DEFAULT 0, os TEXT);
           CREATE TABLE IF NOT EXISTS peer_heartbeats (peer_name TEXT PRIMARY KEY, last_seen REAL);
+          CREATE TABLE IF NOT EXISTS agent_activity (id INTEGER PRIMARY KEY AUTOINCREMENT, agent_id TEXT NOT NULL, task_db_id INTEGER, plan_id INTEGER, agent_type TEXT NOT NULL, model TEXT, description TEXT, status TEXT NOT NULL DEFAULT 'running', tokens_in INTEGER DEFAULT 0, tokens_out INTEGER DEFAULT 0, tokens_total INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0, started_at TEXT NOT NULL DEFAULT (datetime('now')), completed_at TEXT, duration_s REAL, host TEXT, region TEXT, metadata TEXT);
+          CREATE INDEX IF NOT EXISTS idx_agent_activity_status ON agent_activity(status);
+          CREATE INDEX IF NOT EXISTS idx_agent_activity_plan ON agent_activity(plan_id);
+          CREATE INDEX IF NOT EXISTS idx_agent_activity_task ON agent_activity(task_db_id);
           SQL
 
       - name: Run E2E tests

@@ -1,6 +1,7 @@
 const $ = (s) => document.querySelector(s);
 const state = (window.DashboardState = window.DashboardState || {
   hostToPeer: {},
+  localPeerName: "local",
   lastMissionData: null,
   lastMeshData: null,
   lastOrganizationData: null,
@@ -34,13 +35,15 @@ async function fetchJson(url) {
 }
 
 function _resolveHost(host) {
-  if (!host) return "local";
+  if (!host) return "unknown";
   if (state.hostToPeer[host]) return state.hostToPeer[host];
-  const h = host.toLowerCase();
+  // Fuzzy: strip suffixes and special chars
+  const clean = host.toLowerCase().replace(/[-_]/g, "").replace(/\.(lan|local|tailnet)$/i, "");
   for (const [k, n] of Object.entries(state.hostToPeer)) {
-    if (h.includes(k.toLowerCase()) || k.toLowerCase().includes(h)) return n;
+    const cleanKey = k.toLowerCase().replace(/[-_]/g, "").replace(/\.(lan|local|tailnet)$/i, "");
+    if (cleanKey === clean) return n;
   }
-  return host.length > 20 ? host.substring(0, 16) + "…" : host;
+  return host;
 }
 
 async function _pullRemoteDb() {
@@ -80,14 +83,27 @@ async function refreshAll() {
     if (typeof renderKpi === "function") renderKpi(ov);
   }
   if (Array.isArray(mesh)) {
+    state.localPeerName = mesh.find((p) => p.is_local)?.peer_name || "local";
     state.hostToPeer = {};
     mesh.forEach((p) => {
-      state.hostToPeer[p.peer_name] = p.peer_name;
-      if (p.dns_name) state.hostToPeer[p.dns_name] = p.peer_name;
-      if (p.is_local) state.hostToPeer.local = p.peer_name;
+      const name = p.peer_name || p.name;
+      if (name) {
+        state.hostToPeer[name] = name;
+        if (p.dns_name) state.hostToPeer[p.dns_name] = name;
+        if (p.ssh_alias) state.hostToPeer[p.ssh_alias] = name;
+        if (p.tailscale_ip) state.hostToPeer[p.tailscale_ip] = name;
+        if (p.is_local) state.hostToPeer.local = name;
+        // Register hostname variants for local peer
+        if (p.is_local && Array.isArray(p.hostname_aliases)) {
+          p.hostname_aliases.forEach((alias) => {
+            if (alias) state.hostToPeer[alias] = name;
+          });
+        }
+      }
     });
   }
   if (typeof renderMission === "function") renderMission(mission);
+  if (typeof renderKanban === "function") renderKanban();
   if (daily && typeof renderTokenChart === "function") renderTokenChart(daily);
   if (models && typeof renderModelChart === "function") renderModelChart(models);
   if (mesh && typeof renderMeshStrip === "function") {
@@ -181,6 +197,18 @@ document.addEventListener("DOMContentLoaded", () => {
   applyZoom(state.currentZoom);
   updateClock();
   setInterval(updateClock, 1000);
+  // First-load only — NOT in periodic refreshAll
+  fetch("/api/mesh/init", { method: "POST" })
+    .then((r) => r.json())
+    .then((data) => {
+      if (data.daemons_restarted && data.daemons_restarted.length > 0) {
+        showToast(`Restarted: ${data.daemons_restarted.join(", ")}`, "info");
+      }
+      if (data.hosts_needing_normalization > 0) {
+        showToast(`${data.hosts_needing_normalization} plans need host normalization`, "warn");
+      }
+    })
+    .catch(() => {});
   refreshAll();
   applyRefresh();
   setTimeout(handleHashRoute, 1200);

@@ -164,7 +164,7 @@ test.describe('History & Event Feed', () => {
     await expect(rows.nth(0)).toContainText('#299');
     await expect(rows.nth(0)).toContainText('DB migration');
     await expect(rows.nth(0)).toContainText('6/6');
-    await expect(rows.nth(0)).toContainText('✓ done');
+    await expect(rows.nth(0)).toContainText('done');
   });
 
   test('event feed renders events', async ({ page }) => {

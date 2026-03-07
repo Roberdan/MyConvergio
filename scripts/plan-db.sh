@@ -10,6 +10,7 @@ set -euo pipefail
 #   add-wave <plan_id> <id> <name> - Add wave to plan
 #   add-task <wave_id> <id> <title> - Add task to wave
 #   update-task <task_id> <status> - Update task status
+#   set-substatus <task_db_id> <substatus> - Set task substatus (waiting_ci, waiting_review, waiting_merge, waiting_thor, agent_running, or null)
 #   update-wave <wave_id> <status> - Update wave status
 #   complete <plan_id>             - Mark plan as done
 #   get-worktree <plan_id>         - Get worktree path for plan
@@ -42,9 +43,14 @@ source "$SCRIPT_DIR/lib/plan-db-delegate.sh"
 source "$SCRIPT_DIR/lib/plan-db-intelligence.sh"
 # Knowledge Base module
 [[ -f "$SCRIPT_DIR/lib/plan-db-knowledge.sh" ]] && source "$SCRIPT_DIR/lib/plan-db-knowledge.sh"
+# Agent activity tracking module
+[[ -f "$SCRIPT_DIR/lib/plan-db-agents.sh" ]] && source "$SCRIPT_DIR/lib/plan-db-agents.sh"
 
 # Host identification for cross-machine tracking
-export PLAN_DB_HOST="${PLAN_DB_HOST:-$(hostname -s 2>/dev/null || hostname)}"
+if [[ -z "${PLAN_DB_HOST:-}" ]]; then
+	PLAN_DB_HOST="$(peers_self 2>/dev/null || hostname -s 2>/dev/null || hostname)"
+fi
+export PLAN_DB_HOST
 
 # Initialize DB
 init_db
@@ -79,6 +85,7 @@ complete) cmd_complete "${2:?plan_id required}" "${3:-}" ;;
 cancel) cmd_cancel "${2:?plan_id required}" "${3:-}" ;;
 cancel-wave) cmd_cancel_wave "${2:?wave_db_id required}" "${3:-}" ;;
 cancel-task) cmd_cancel_task "${2:?task_db_id required}" "${3:-}" ;;
+set-substatus) sqlite3 "$DB_FILE" "UPDATE tasks SET substatus = $(sql_escape "${3:-null}") WHERE id = ${2:?task_db_id required};" && echo "Substatus updated for task #$2" ;;
 get-worktree) cmd_get_worktree "${2:?plan_id required}" ;;
 set-worktree) cmd_set_worktree "${2:?plan_id required}" "${3:?path required}" ;;
 get-wave-worktree) cmd_get_wave_worktree "${2:?wave_db_id required}" ;;
@@ -139,6 +146,11 @@ calibrate-estimates) cmd_calibrate_estimates "${2:-}" ;;
     skill-list) shift; skill_list "$@" ;;
     skill-promote) shift; skill_promote "$@" ;;
     skill-bump) shift; skill_bump "$@" ;;
+# Agent activity tracking
+agent-start) shift; cmd_agent_start "$@" ;;
+agent-complete) shift; cmd_agent_complete "$@" ;;
+agent-status) shift; cmd_agent_status "$@" ;;
+agent-tokens) shift; cmd_agent_tokens "$@" ;;
 *)
 	echo "[ERROR] Unknown command: '${1:-}'" >&2
 	echo "" >&2
@@ -210,6 +222,12 @@ echo "  skill-earn <name> <domain> <content> [opts]  Earn a skill"
 echo "  skill-list [--domain] [--min-confidence lvl]  List skills"
 echo "  skill-promote <name>                          Promote to SKILL.md"
 echo "  skill-bump <name>                             Increase confidence"
+	echo ""
+	echo "Agents:"
+	echo "  agent-start <id> <type> <desc> [--task N] [--plan N] [--model m] [--host h] [--region r]"
+	echo "  agent-complete <id> [--tokens-in N] [--tokens-out N] [--cost N] [--status completed|failed]"
+	echo "  agent-status [--plan N] [--running]                    List agents (JSON)"
+	echo "  agent-tokens [--plan N] [--task N]                     Token usage report (JSON)"
 	echo ""
 	echo "Concurrency:"
 	echo "  lock acquire|release|check|list|cleanup  File-level locking"

@@ -6,8 +6,10 @@ Internal helpers (heartbeat, remote plans, tailscale) live in lib/mesh_helpers.p
 
 import configparser
 import json
+import os
 import shlex
 import socket
+import sqlite3
 import subprocess
 import sys
 import time
@@ -113,6 +115,35 @@ def resolve_host_to_peer(host: str) -> str:
             ):
                 return p["peer_name"]
     return host
+
+
+_local_peer_cache: str | None = None
+
+
+def local_peer_name() -> str:
+    global _local_peer_cache
+    if _local_peer_cache is not None:
+        return _local_peer_cache
+    conf = parse_peers_conf()
+    # Match by Tailscale IP
+    try:
+        ts_ip = subprocess.run(
+            ["tailscale", "ip", "--4"], capture_output=True, text=True, timeout=5
+        ).stdout.strip()
+        for p in conf:
+            if p.get("tailscale_ip") == ts_ip:
+                _local_peer_cache = p["peer_name"]
+                return _local_peer_cache
+    except Exception:
+        pass
+    # Match by hostname
+    hn = socket.gethostname().lower().replace("-", "").replace("_", "").split(".")[0]
+    for p in conf:
+        if p.get("is_local") or peer_host_match(p["peer_name"], hn, is_local=True):
+            _local_peer_cache = p["peer_name"]
+            return _local_peer_cache
+    _local_peer_cache = socket.gethostname().split(".")[0]
+    return _local_peer_cache
 
 
 def api_mesh() -> list[dict]:
@@ -225,8 +256,65 @@ def api_mesh() -> list[dict]:
                 "mem_used_gb": mem_used,
                 "mem_total_gb": mem_total,
                 "plans": plans,
+                "local_peer_name": local_peer_name(),
             }
         )
+    return result
+
+
+def api_mesh_init() -> dict:
+    """POST /api/mesh/init — called once on first dashboard load."""
+    result = {"daemons_restarted": [], "hosts_needing_normalization": 0, "status": "ok"}
+
+    for daemon_name, script in [
+        ("mesh-coordinator", "mesh-coordinator.sh"),
+        ("mesh-heartbeat", "mesh-heartbeat.sh"),
+    ]:
+        pid_file = os.path.expanduser(f"~/.claude/cache/{daemon_name}.pid")
+        script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", script))
+        if not (os.path.exists(pid_file) and os.path.exists(script_path)):
+            continue
+        try:
+            with open(pid_file, encoding="utf-8") as f:
+                pid = int(f.read().strip())
+            os.kill(pid, 0)  # process exists
+            script_mtime = os.path.getmtime(script_path)
+            pid_mtime = os.path.getmtime(pid_file)
+            if script_mtime > pid_mtime:
+                os.kill(pid, 15)
+                time.sleep(1)
+                subprocess.Popen(
+                    [script_path, "start"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                result["daemons_restarted"].append(daemon_name)
+        except (ProcessLookupError, ValueError, FileNotFoundError, PermissionError, OSError):
+            pass
+
+    try:
+        db_path = os.path.expanduser("~/.claude/data/dashboard.db")
+        peers = [p["peer_name"] for p in parse_peers_conf() if p.get("peer_name")]
+        if os.path.exists(db_path):
+            conn = sqlite3.connect(db_path, timeout=5)
+            try:
+                if peers:
+                    placeholders = ",".join("?" * len(peers))
+                    count = conn.execute(
+                        f"SELECT COUNT(*) FROM plans WHERE execution_host != '' "
+                        f"AND execution_host NOT IN ({placeholders})",
+                        peers,
+                    ).fetchone()[0]
+                else:
+                    count = conn.execute(
+                        "SELECT COUNT(*) FROM plans WHERE execution_host != ''"
+                    ).fetchone()[0]
+                result["hosts_needing_normalization"] = int(count or 0)
+            finally:
+                conn.close()
+    except Exception:
+        pass
+
     return result
 
 

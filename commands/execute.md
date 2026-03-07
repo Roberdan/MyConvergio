@@ -83,17 +83,27 @@ Unmapped models (GPT, Gemini) pass through as-is. Use: `MODEL_MAP[task.model] ||
 
 ### P2-3: Execute Tasks (Per-Task Routing)
 
-Tasks in `CTX.pending_tasks` (no separate query). Route each task by `executor_agent` (NULL or empty = `copilot`):
+Tasks in `CTX.pending_tasks` (no separate query). Route each task by `executor_agent` (NULL or empty = `copilot`).
+
+**Agent tracking (MANDATORY)** — register before launch, complete after finish. See `agent-track.sh` for standalone alternative.
 
 **If `executor_agent == "copilot"` (default)**:
 
 ```bash
 copilot-worker.sh ${task.db_id} --model ${task.model} --timeout 600
+# copilot-worker.sh handles agent-start/agent-complete + substatus internally
 ```
 
-Uses Copilot autonomous prompt mode with model from DB (e.g. `gpt-5.3-codex`, `gpt-5.4`, `claude-sonnet-4.6`).
+Copilot autonomous prompt mode with model from DB (e.g. `gpt-5.3-codex`, `gpt-5.4`, `claude-sonnet-4.6`).
 
-**If `executor_agent == "claude"`**:
+**If `executor_agent == "claude"`** — track agent explicitly since Task() doesn't auto-track:
+
+```bash
+AGENT_ID="claude-${task.db_id}-$(date +%s)"
+plan-db.sh agent-start "$AGENT_ID" "claude" "${task.title}" \
+  --task ${task.db_id} --plan ${PLAN_ID} --model ${task.model} --host "$(hostname -s)"
+plan-db.sh set-substatus ${task.db_id} agent_running
+```
 
 ```typescript
 const wavePeers = pendingTasks
@@ -132,6 +142,26 @@ plan-db.sh log-failure $PLAN_ID ${task.task_id} "approach description" "failure 
 
 Before retrying a failed task, check prior failures: `plan-db.sh get-failures $PROJECT_ID --task-pattern ${task.task_id}`. If same approach failed before, use a different strategy.
 
+### P2.5: Agent Completion Hook (MANDATORY)
+
+When a background agent completes (system_notification received):
+
+1. **Read results**: `read_agent(agent_id)`
+2. **Record completion** (MANDATORY — feeds brain visualization):
+   `plan-db.sh agent-complete "$AGENT_ID" --tokens-in ${tokens_in:-0} --tokens-out ${tokens_out:-0} --status ${success ? "completed" : "failed"}`
+3. **If succeeded**: set substatus `waiting_thor` → submit via `plan-db-safe.sh` → Thor (P4a)
+4. **If failed**: `plan-db.sh log-failure` → clear substatus → retry (max 2x) or mark blocked
+
+### P2.6: Substatus Tracking (MANDATORY)
+
+Update substatus at each lifecycle transition:
+- Agent launched → `plan-db.sh set-substatus ${db_id} agent_running`
+- Agent completed, submitting → `plan-db.sh set-substatus ${db_id} waiting_thor`
+- Thor passed, PR needed → `plan-db.sh set-substatus ${db_id} waiting_ci`
+- PR created → `plan-db.sh set-substatus ${db_id} waiting_review`
+- PR approved → `plan-db.sh set-substatus ${db_id} waiting_merge`
+- Task fully done → `plan-db.sh set-substatus ${db_id} null` (substatus cleared)
+
 ### P4a: Per-Task Thor
 
 `Task(subagent_type="thor-quality-assurance-guardian", model="sonnet", max_turns=15, prompt="THOR PER-TASK VALIDATION | Plan: ${PLAN_ID} | Task: ${task_id} | Wave: ${wave_id} | WORKTREE: ${WORKTREE_PATH} | Task do: ${task_description} | Task type: ${task_type} | Task verify: ${test_criteria_json} | Task ref: ${task_ref} | Task files: ${task_files} | Run verify commands. Check Gate 1-4, 8, 9. Read files directly.")`
@@ -169,11 +199,34 @@ W1 (batch) → commit → Thor → W2 (batch) → commit → Thor → W3 (sync) 
 ```bash
 MERGE_MODE=$(sqlite3 ~/.claude/data/dashboard.db "SELECT COALESCE(merge_mode,'sync') FROM waves WHERE id=${wave_db_id};")
 case "$MERGE_MODE" in
-  sync)  wave-worktree.sh merge $PLAN_ID $wave_db_id ;;
-  batch) wave-worktree.sh batch $PLAN_ID $wave_db_id ;;
-  none)  plan-db.sh validate-wave $wave_db_id ;;
+  sync)  
+    # Set all wave tasks to waiting_ci before PR creation
+    for task_id in ${wave_task_ids[@]}; do
+      plan-db.sh set-substatus ${task_id} waiting_ci
+    done
+    wave-worktree.sh merge $PLAN_ID $wave_db_id
+    # After PR created successfully, keep waiting_ci
+    ;;
+  batch) 
+    # Set all wave tasks to waiting_ci (batch wave still expects CI on theme merge)
+    for task_id in ${wave_task_ids[@]}; do
+      plan-db.sh set-substatus ${task_id} waiting_ci
+    done
+    wave-worktree.sh batch $PLAN_ID $wave_db_id 
+    ;;
+  none)  
+    # Set all wave tasks to waiting_ci (in case future merges happen)
+    for task_id in ${wave_task_ids[@]}; do
+      plan-db.sh set-substatus ${task_id} waiting_ci
+    done
+    plan-db.sh validate-wave $wave_db_id 
+    ;;
 esac
 ```
+
+**After CI passes (workflow check)**: Set all wave tasks to `waiting_merge`.
+
+**After merge completes**: Clear substatus (`plan-db.sh set-substatus ${task_id} null`) for all wave tasks.
 
 ### P5: Completion
 

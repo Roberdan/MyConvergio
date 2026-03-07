@@ -85,7 +85,7 @@ async function testSSH() {
   const form = document.getElementById("peer-form");
   const fd = new FormData(form);
   const st = document.getElementById("peer-ssh-status");
-  st.textContent = "⏳ Testing...";
+  st.innerHTML = Icons.clock(12) + " Testing...";
   try {
     const res = await fetch("/api/peers/ssh-check", {
       method: "POST",
@@ -97,12 +97,12 @@ async function testSSH() {
       }),
     });
     const json = await res.json();
-    st.textContent = json.ok
-      ? `✅ ${json.latency_ms}ms`
-      : `❌ ${json.error || "Failed"}`;
+    st.innerHTML = json.ok
+      ? Icons.checkCircle(12) + ` ${json.latency_ms}ms`
+      : Icons.xCircle(12) + ` ${esc(json.error || "Failed")}`;
     st.className = json.ok ? "ssh-ok" : "ssh-fail";
   } catch (e) {
-    st.textContent = "❌ Error";
+    st.innerHTML = Icons.xCircle(12) + " Error";
     st.className = "ssh-fail";
   }
 }

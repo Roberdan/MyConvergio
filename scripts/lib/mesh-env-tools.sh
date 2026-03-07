@@ -14,15 +14,24 @@ _skip() { echo "[mesh-env] SKIP: $*"; }
 
 # ---- OS detection ------------------------------------------------------------
 detect_os() {
-	if [[ "$(uname -s)" == "Darwin" ]]; then
-		echo "macos"
-	elif [[ -f /etc/debian_version ]]; then
-		echo "debian"
-	elif [[ -f /etc/redhat-release ]]; then
-		echo "redhat"
-	else
-		echo "unknown"
-	fi
+	local uname_s
+	uname_s="$(uname -s 2>/dev/null || echo "Unknown")"
+	case "$uname_s" in
+		Darwin) echo "macos" ;;
+		Linux)
+			if grep -qi microsoft /proc/version 2>/dev/null; then
+				echo "windows" # WSL
+			elif [[ -f /etc/debian_version ]]; then
+				echo "debian"
+			elif [[ -f /etc/redhat-release ]]; then
+				echo "redhat"
+			else
+				echo "linux"
+			fi
+			;;
+		MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
+		*) echo "unknown" ;;
+	esac
 }
 
 # ---- package install helpers -------------------------------------------------

@@ -9,11 +9,11 @@ async function renderEventFeed() {
       return;
     }
     const icons = {
-        plan_completed: "✓",
-        wave_completed: "◈",
-        human_needed: "⚠",
-        node_offline: "✗",
-        task_status_changed: "◉",
+        plan_completed: Icons.check(12),
+        wave_completed: Icons.waveComplete(12),
+        human_needed: Icons.alertTriangle(12),
+        node_offline: Icons.x(12),
+        task_status_changed: Icons.dot(12),
       },
       colors = {
         plan_completed: "var(--green)",
@@ -57,7 +57,7 @@ function renderHistory(plans) {
   $("#history-list").innerHTML = (plans || [])
     .map(
       (p) =>
-        `<div class="history-row" onclick="openPlanSidebar(${p.id})"><span style="color:#00e5ff;font-weight:600">#${p.id}</span><span>${esc((p.name || "?").substring(0, 28))}</span><span>${p.tasks_done}/${p.tasks_total}</span><span style="color:${p.status === "done" ? "#00ff88" : "#ff3355"}">${p.status === "done" ? "✓" : "✗"} ${p.status}</span></div>`,
+        `<div class="history-row" onclick="openPlanSidebar(${p.id})"><span style="color:#00e5ff;font-weight:600">#${p.id}</span><span>${esc((p.name || "?").substring(0, 28))}</span><span>${p.tasks_done}/${p.tasks_total}</span><span style="color:${p.status === "done" ? "#00ff88" : "#ff3355"}">${p.status === "done" ? Icons.check(12) : Icons.x(12)} ${p.status}</span></div>`,
     )
     .join("");
 }

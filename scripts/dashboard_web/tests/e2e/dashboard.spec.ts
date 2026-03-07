@@ -41,8 +41,8 @@ test.describe('Dashboard Core', () => {
     await expect(cards.nth(3)).toContainText('Tokens');
     await expect(cards.nth(3).locator('.kpi-value')).toContainText('85.0M');
 
-    // Blocked
-    await expect(cards.nth(4)).toContainText('Blocked');
+    // Blocked / stuck
+    await expect(cards.nth(4)).toContainText('STUCK');
     await expect(cards.nth(4).locator('.kpi-value')).toHaveText('1');
     await expect(cards.nth(4)).toHaveClass(/alert/);
   });
@@ -93,9 +93,9 @@ test.describe('Dashboard Core', () => {
   test('two-column layout renders left and right columns', async ({ page }) => {
     await expect(page.locator('.dash-col-left')).toBeVisible();
     await expect(page.locator('.dash-col-right')).toBeVisible();
-    // Left: mission panel, task pipeline, distribution
-    await expect(page.locator('.dash-col-left .widget')).toHaveCount(3);
-    // Right: mesh, event feed, tokens, cost, history
-    await expect(page.locator('.dash-col-right .widget')).toHaveCount(5);
+    // Left: mission panel, task pipeline, distribution, kanban
+    await expect(page.locator('.dash-col-left .widget')).toHaveCount(4);
+    // Right: mesh, brain, agent-org, live-system, event-feed, tokens, cost, history
+    await expect(page.locator('.dash-col-right .widget')).toHaveCount(8);
   });
 });

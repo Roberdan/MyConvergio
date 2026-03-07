@@ -72,7 +72,7 @@ while IFS= read -r line; do
 	[[ -z "${line// /}" ]] && continue
 
 	if [[ "$line" =~ ^\[(.+)\]$ ]]; then
-		[[ -n "${PEER_NAME:-}" && -n "${PEER_SSH:-}" && "${PEER_STATUS:-active}" == "active" && "$PEER_NAME" != "m3max" ]] && {
+		[[ -n "${PEER_NAME:-}" && -n "${PEER_SSH:-}" && "${PEER_STATUS:-active}" == "active" && "$PEER_NAME" != "$(peers_self 2>/dev/null || hostname -s)" ]] && {
 			echo ""
 			echo "--- $PEER_NAME ($PEER_SSH) ---"
 			if ssh -o ConnectTimeout=5 -o BatchMode=yes "$PEER_SSH" true 2>/dev/null; then
@@ -104,7 +104,7 @@ while IFS= read -r line; do
 done <"$PEERS_CONF"
 
 # Emit last peer
-[[ -n "${PEER_NAME:-}" && -n "${PEER_SSH:-}" && "${PEER_STATUS:-active}" == "active" && "$PEER_NAME" != "m3max" ]] && {
+[[ -n "${PEER_NAME:-}" && -n "${PEER_SSH:-}" && "${PEER_STATUS:-active}" == "active" && "$PEER_NAME" != "$(peers_self 2>/dev/null || hostname -s)" ]] && {
 	echo ""
 	echo "--- $PEER_NAME ($PEER_SSH) ---"
 	if ssh -o ConnectTimeout=5 -o BatchMode=yes "$PEER_SSH" true 2>/dev/null; then

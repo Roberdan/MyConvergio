@@ -13,17 +13,17 @@ window.showStartPlanDialog = function (planId, planName) {
     <div class="modal-title">Start #${planId} ${esc((planName || "").substring(0, 25))}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
       <button class="cli-choice-btn" data-cli="copilot" data-target="local" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.25);border-radius:8px;color:var(--cyan);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
-        <span style="font-size:20px">🤖</span>
+        <span style="font-size:20px">${Icons.cpu(20)}</span>
         <span><div>GitHub Copilot (local)</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">copilot -p '/execute ${planId}'</div></span>
       </button>
       <button class="cli-choice-btn" data-cli="claude" data-target="local" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,160,0,0.06);border:1px solid rgba(255,160,0,0.25);border-radius:8px;color:var(--gold);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
-        <span style="font-size:20px">🧠</span>
+        <span style="font-size:20px">${Icons.brain(20)}</span>
         <span><div>Claude Code (local)</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">claude --model sonnet -p '/execute ${planId}'</div></span>
       </button>
       <div style="border-top:1px solid var(--border);margin:4px 0;padding-top:8px">
         <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Or delegate to mesh node →</div>
         <button class="cli-choice-btn" data-cli="delegate" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(140,140,140,0.06);border:1px solid rgba(140,140,140,0.25);border-radius:8px;color:var(--text-dim);cursor:pointer;font-size:12px;font-weight:600;text-align:left">
-          <span style="font-size:18px">🌐</span>
+          <span style="font-size:18px">${Icons.globe(18)}</span>
           <span>Choose mesh node…</span>
         </button>
       </div>
@@ -88,10 +88,10 @@ window.startPlanExecution = function (planId, planName, cli, target) {
     es.close();
     const data = JSON.parse(e.data);
     if (data.ok) {
-      output.innerHTML += `\n<span style="color:var(--green);font-weight:600">✓ Plan started successfully</span>\n`;
+      output.innerHTML += `\n<span style="color:var(--green);font-weight:600">${Icons.checkCircle(14)} Plan started successfully</span>\n`;
     } else {
       const msg = data.message || `Exit code ${data.exit_code || "?"}`;
-      output.innerHTML += `\n<span style="color:var(--red);font-weight:600">✗ ${esc(msg)}</span>\n`;
+      output.innerHTML += `\n<span style="color:var(--red);font-weight:600">${Icons.xCircle(14)} ${esc(msg)}</span>\n`;
     }
     output.scrollTop = output.scrollHeight;
     if (typeof refreshAll === "function") refreshAll();
@@ -99,7 +99,7 @@ window.startPlanExecution = function (planId, planName, cli, target) {
 
   es.onerror = () => {
     es.close();
-    output.innerHTML += `\n<span style="color:var(--red)">✗ Connection lost</span>\n`;
+    output.innerHTML += `\n<span style="color:var(--red)">${Icons.x(14)} Connection lost</span>\n`;
   };
 };
 
@@ -149,9 +149,9 @@ window.runFullSync = function (peer) {
     es.close();
     const data = JSON.parse(e.data);
     if (data.ok) {
-      output.innerHTML += `\n<span style="color:var(--green);font-weight:600">✓ Full sync completed</span>\n`;
+      output.innerHTML += `\n<span style="color:var(--green);font-weight:600">${Icons.checkCircle(14)} Full sync completed</span>\n`;
     } else {
-      output.innerHTML += `\n<span style="color:var(--red);font-weight:600">✗ Sync failed</span>\n`;
+      output.innerHTML += `\n<span style="color:var(--red);font-weight:600">${Icons.xCircle(14)} Sync failed</span>\n`;
     }
     output.scrollTop = output.scrollHeight;
     if (typeof refreshAll === "function") refreshAll();
@@ -159,7 +159,7 @@ window.runFullSync = function (peer) {
 
   es.onerror = () => {
     es.close();
-    output.innerHTML += `\n<span style="color:var(--red)">✗ Connection lost</span>\n`;
+    output.innerHTML += `\n<span style="color:var(--red)">${Icons.x(14)} Connection lost</span>\n`;
   };
 };
 

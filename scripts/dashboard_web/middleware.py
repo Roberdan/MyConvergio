@@ -109,6 +109,14 @@ _CRITICAL_QUERIES = [
     ("coordinator", "SELECT COUNT(*) AS c FROM mesh_events WHERE status='pending'"),
     ("heartbeats", "SELECT peer_name, last_seen FROM peer_heartbeats"),
     (
+        "agents:running",
+        "SELECT agent_id, agent_type, model, description, task_db_id, plan_id, host, region, started_at FROM agent_activity WHERE status='running'",
+    ),
+    (
+        "agents:recent",
+        "SELECT agent_id, status, duration_s, tokens_total, cost_usd, completed_at FROM agent_activity WHERE status IN ('completed','failed') AND completed_at >= datetime('now','-1 hour') ORDER BY completed_at DESC LIMIT 20",
+    ),
+    (
         "mesh:plans",
         "SELECT id,name,status,tasks_done,tasks_total,execution_host FROM plans WHERE status IN ('doing','todo') AND execution_host IS NOT NULL AND execution_host<>''",
     ),
@@ -179,6 +187,29 @@ def ensure_live_runtime_schema() -> None:
             CREATE INDEX IF NOT EXISTS idx_task_events_plan ON task_events(plan_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_task_events_run ON task_events(run_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_agent_handoffs_plan ON agent_handoffs(plan_id, created_at DESC);
+            CREATE TABLE IF NOT EXISTS agent_activity (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agent_id TEXT NOT NULL,
+                task_db_id INTEGER,
+                plan_id INTEGER,
+                agent_type TEXT NOT NULL,
+                model TEXT,
+                description TEXT,
+                status TEXT NOT NULL DEFAULT 'running',
+                tokens_in INTEGER DEFAULT 0,
+                tokens_out INTEGER DEFAULT 0,
+                tokens_total INTEGER DEFAULT 0,
+                cost_usd REAL DEFAULT 0,
+                started_at TEXT NOT NULL DEFAULT (datetime('now')),
+                completed_at TEXT,
+                duration_s REAL,
+                host TEXT,
+                region TEXT,
+                metadata TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_agent_activity_status ON agent_activity(status);
+            CREATE INDEX IF NOT EXISTS idx_agent_activity_plan ON agent_activity(plan_id);
+            CREATE INDEX IF NOT EXISTS idx_agent_activity_task ON agent_activity(task_db_id);
             """
         )
         conn.commit()

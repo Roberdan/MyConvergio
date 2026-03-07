@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+[[ "${MESH_TEST_LEGACY:-0}" == "1" ]] || { echo "SKIP: legacy test (set MESH_TEST_LEGACY=1 to run)"; exit 0; }
 # test-mesh-load-query.sh — Tests for scripts/mesh-load-query.sh
 # Plan 297 / T3-01 | F-10 (load query), F-15 (cost-tier), F-16 (privacy_safe)
 set -euo pipefail

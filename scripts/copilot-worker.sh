@@ -15,6 +15,13 @@ _WORKER_TMPFILES=()
 _WORKER_CHILD_PIDS=()
 _worker_cleanup() {
 	set +u
+	# Complete agent tracking on exit (capture duration + status)
+	if [[ -n "${AGENT_ID:-}" ]]; then
+		local _status="failed"
+		[[ "${FINAL_EXIT_CODE:-1}" -eq 0 ]] && _status="completed"
+		"$SCRIPT_DIR/plan-db.sh" agent-complete "$AGENT_ID" \
+			--tokens-in "${TOKENS_USED:-0}" --tokens-out 0 --status "$_status" 2>/dev/null || true
+	fi
 	if [[ ${#_WORKER_CHILD_PIDS[@]} -gt 0 ]]; then
 		for pid in "${_WORKER_CHILD_PIDS[@]}"; do
 			kill -9 "$pid" 2>/dev/null || true
@@ -105,6 +112,11 @@ PLAN_ID="$(echo "$TASK_CTX" | jq -r '.plan_id // 0')"
 PROJECT_ID="$(echo "$TASK_CTX" | jq -r '.project_id // ""')"
 TASK_TYPE="$(echo "$TASK_CTX" | jq -r '.task_type // "code"')"
 TASK_TITLE="$(echo "$TASK_CTX" | jq -r '.task_title // ""')"
+
+# Agent activity tracking — register this worker in brain visualization
+AGENT_ID="copilot-${TASK_ID}-$(date +%s)"
+"$SCRIPT_DIR/plan-db.sh" agent-start "$AGENT_ID" "copilot" "${TASK_TITLE:-task-$TASK_ID}" \
+	--task "$TASK_ID" --plan "$PLAN_ID" --model "$MODEL" --host "$(hostname -s)" 2>/dev/null || true
 
 # Generate prompt
 PROMPT=$("$SCRIPT_DIR/copilot-task-prompt.sh" "$TASK_ID")

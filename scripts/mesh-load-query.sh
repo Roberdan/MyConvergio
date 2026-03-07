@@ -47,64 +47,27 @@ _parse_cost_tiers() {
 	local in_mesh=false in_tiers=false line
 	while IFS= read -r line; do
 		[[ "$line" =~ ^[[:space:]]*# ]] && continue
-		if [[ "$line" =~ ^mesh: ]]; then
-			in_mesh=true
-			continue
-		fi
+		[[ "$line" =~ ^mesh: ]] && { in_mesh=true; continue; }
 		if $in_mesh && [[ "$line" =~ ^[[:space:]]+cost_tiers: ]]; then
-			in_tiers=true
-			continue
+			in_tiers=true; continue
 		fi
 		if $in_tiers; then
-			# Stop when we hit a top-level (non-indented) key
-			if [[ "$line" =~ ^[a-z] ]]; then
-				in_mesh=false
-				in_tiers=false
-				break
-			fi
-			if [[ "$line" =~ ^[[:space:]]+([a-z_]+):[[:space:]]*([a-z]+) ]]; then
-				COST_TIER_PAIRS="${COST_TIER_PAIRS} ${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
-			fi
+			[[ "$line" =~ ^[a-z] ]] && break
+			[[ "$line" =~ ^[[:space:]]+([a-z_]+):[[:space:]]*([a-z]+) ]] && COST_TIER_PAIRS="${COST_TIER_PAIRS} ${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
 		fi
 	done <"$ORCHESTRATOR_YAML"
 }
-
-_tier_for_cap() {
-	local cap="$1" pair key
-	for pair in $COST_TIER_PAIRS; do
-		key="${pair%%=*}"
-		[[ "$key" == "$cap" ]] && echo "${pair#*=}" && return 0
-	done
-	echo "free"
-}
-
+_tier_for_cap() { local pair; for pair in $COST_TIER_PAIRS; do [[ "${pair%%=*}" == "$1" ]] && echo "${pair#*=}" && return 0; done; echo "free"; }
 _cost_tier_for_caps() {
-	local caps="$1" tier="free" cap t
-	IFS=',' read -ra cap_arr <<<"$caps"
+	local tier="free" cap t; IFS=',' read -ra cap_arr <<<"$1"
 	for cap in "${cap_arr[@]}"; do
-		cap="${cap// /}"
-		t="$(_tier_for_cap "$cap")"
-		if [[ "$t" == "premium" ]]; then
-			tier="premium"
-			break
-		fi
-		[[ "$t" == "zero" && "$tier" != "premium" ]] && tier="zero"
-	done
-	echo "$tier"
+		t="$(_tier_for_cap "${cap// /}")"
+		[[ "$t" == "premium" ]] && { tier="premium"; break; } || [[ "$t" == "zero" && "$tier" != "premium" ]] && tier="zero"
+	done; echo "$tier"
 }
-
 _privacy_safe_for_caps() {
-	local caps="$1" safe=true cap
-	IFS=',' read -ra cap_arr <<<"$caps"
-	for cap in "${cap_arr[@]}"; do
-		cap="${cap// /}"
-		case "$cap" in
-		claude | copilot | gemini)
-			safe=false
-			break
-			;;
-		esac
-	done
+	local safe=true cap; IFS=',' read -ra cap_arr <<<"$1"
+	for cap in "${cap_arr[@]}"; do [[ "${cap// /}" =~ ^(claude|copilot|gemini)$ ]] && { safe=false; break; }; done
 	echo "$safe"
 }
 
@@ -112,8 +75,17 @@ _privacy_safe_for_caps() {
 _remote_cmd() {
 	cat <<'REMOTE'
 set +e
-# uptime: macOS -> "load averages: X Y Z" | Linux -> "load average: X, Y, Z"
-cpu=$(uptime 2>/dev/null | sed -E 's/.*load averages?: *([0-9]+\.[0-9]+).*/\1/')
+cpu=0
+if [ "$(uname)" = "Darwin" ]; then
+  # macOS load average
+  cpu=$(uptime 2>/dev/null | sed -E 's/.*load averages?: *([0-9]+\.[0-9]+).*/\1/')
+elif [[ "$(uname -s)" == MINGW* || "$(uname -s)" == MSYS* || "$(uname -s)" == CYGWIN* ]]; then
+  # Windows: use PowerShell
+  cpu="$(powershell.exe -NoProfile -Command '(Get-CimInstance Win32_Processor).LoadPercentage' 2>/dev/null || echo 0)"
+else
+  # Linux load average
+  cpu=$(uptime 2>/dev/null | sed -E 's/.*load averages?: *([0-9]+\.[0-9]+).*/\1/')
+fi
 db="$HOME/.claude/data/dashboard.db"
 tasks=0
 if [ -f "$db" ] && command -v sqlite3 >/dev/null 2>&1; then
@@ -130,6 +102,11 @@ if [ "$(uname)" = "Darwin" ]; then
   total_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo 0)
   used_bytes=$(( total_bytes - free_bytes ))
   mem_used=$(echo "$used_bytes" | awk '{printf "%.1f", $1/1073741824}')
+elif [[ "$(uname -s)" == MINGW* || "$(uname -s)" == MSYS* || "$(uname -s)" == CYGWIN* ]]; then
+  # Windows: use PowerShell
+  mem_info="$(powershell.exe -NoProfile -Command '$os=Get-CimInstance Win32_OperatingSystem; "{0}|{1}" -f [math]::Round(($os.TotalVisibleMemorySize-$os.FreePhysicalMemory)/1MB,1), [math]::Round($os.TotalVisibleMemorySize/1MB,1)' 2>/dev/null || echo '0|0')"
+  mem_used="${mem_info%%|*}"
+  mem_total="${mem_info##*|}"
 else
   mem_total=$(awk '/MemTotal/ {printf "%.1f", $2/1048576}' /proc/meminfo 2>/dev/null)
   mem_avail=$(awk '/MemAvailable/ {printf "%.1f", $2/1048576}' /proc/meminfo 2>/dev/null)
@@ -139,17 +116,31 @@ printf '%s %s %s %s\n' "${cpu:-0}" "${tasks:-0}" "${mem_used:-0}" "${mem_total:-
 REMOTE
 }
 
+_ssh() {
+	local peer="$1"
+	shift
+	local target user dest
+	target="$(peers_best_route "$peer" 2>/dev/null)" || return 1
+	user="$(peers_get "$peer" "user" 2>/dev/null || echo "")"
+	dest="${user:+${user}@}${target}"
+	ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
+		-o BatchMode=yes -o LogLevel=quiet "$dest" "$@" 2>/dev/null
+}
+
+_get_remote_load() {
+	local peer="$1" os="$2"
+	if [[ "$os" == "windows" ]]; then
+		_ssh "$peer" "powershell.exe -NoProfile -Command '(Get-CimInstance Win32_Processor).LoadPercentage'"
+	else
+		_ssh "$peer" "uptime | grep -oE 'load averages?: [0-9]+\\.[0-9]+' | grep -oE '[0-9]+\\.[0-9]+$'"
+	fi
+}
+
 _upsert_heartbeat() {
 	local peer_name="$1" caps="$2" load_json="$3"
 	[[ ! -f "$DB_PATH" ]] && return 0
-	local now
-	now="$(date +%s)"
-	sqlite3 "$DB_PATH" \
-		"INSERT INTO peer_heartbeats (peer_name, last_seen, load_json, capabilities, updated_at)
-		 VALUES ('$peer_name', $now, '$load_json', '$caps', datetime('now'))
-		 ON CONFLICT(peer_name) DO UPDATE SET
-		   last_seen=excluded.last_seen, load_json=excluded.load_json,
-		   capabilities=excluded.capabilities, updated_at=excluded.updated_at;" 2>/dev/null || true
+	local now; now="$(date +%s)"
+	sqlite3 "$DB_PATH" "INSERT INTO peer_heartbeats (peer_name, last_seen, load_json, capabilities, updated_at) VALUES ('$peer_name', $now, '$load_json', '$caps', datetime('now')) ON CONFLICT(peer_name) DO UPDATE SET last_seen=excluded.last_seen, load_json=excluded.load_json, capabilities=excluded.capabilities, updated_at=excluded.updated_at;" 2>/dev/null || true
 }
 
 _write_offline() {
@@ -161,39 +152,33 @@ _write_offline() {
 
 _query_peer() {
 	local name="$1" result_file="$2"
-	local caps cost_tier privacy_safe
+	local caps cost_tier privacy_safe os
 	caps="$(peers_get "$name" "capabilities" 2>/dev/null || echo "")"
 	cost_tier="$(_cost_tier_for_caps "$caps")"
 	privacy_safe="$(_privacy_safe_for_caps "$caps")"
+	os="$(peers_get "$name" "os" 2>/dev/null || echo "linux")"
 
-	local target user dest
-	target="$(peers_best_route "$name" 2>/dev/null)" || {
-		_write_offline "$name" "$caps" "$cost_tier" "$privacy_safe" "$result_file"
-		return
-	}
-	user="$(peers_get "$name" "user" 2>/dev/null || echo "")"
-	dest="${user:+${user}@}${target}"
-
-	local raw
-	if ! raw="$(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
-		-o BatchMode=yes -o LogLevel=quiet \
-		"$dest" "bash -s" <<<"$(_remote_cmd)" 2>/dev/null)"; then
+	if ! peers_best_route "$name" >/dev/null 2>&1; then
 		_write_offline "$name" "$caps" "$cost_tier" "$privacy_safe" "$result_file"
 		return
 	fi
 
-	local cpu tasks mem_used mem_total
-	cpu="$(echo "$raw" | awk '{print $1}')"
-	tasks="$(echo "$raw" | awk '{print $2}')"
-	mem_used="$(echo "$raw" | awk '{print $3}')"
-	mem_total="$(echo "$raw" | awk '{print $4}')"
-	cpu="${cpu:-0}"
-	tasks="${tasks:-0}"
-	mem_used="${mem_used:-0}"
-	mem_total="${mem_total:-0}"
+	local raw cpu tasks mem_used mem_total mem_info
+	if [[ "$os" == "windows" ]]; then
+		cpu="$(_get_remote_load "$name" "$os" || echo "0")"
+		mem_info="$(_ssh "$name" "powershell.exe -NoProfile -Command '\$os=Get-CimInstance Win32_OperatingSystem; \"{0}|{1}\" -f [math]::Round((\$os.TotalVisibleMemorySize-\$os.FreePhysicalMemory)/1MB,1), [math]::Round(\$os.TotalVisibleMemorySize/1MB,1)'" || echo "0|0")"
+		mem_used="${mem_info%%|*}"
+		mem_total="${mem_info##*|}"
+		tasks="$(_ssh "$name" "powershell.exe -NoProfile -Command '\$db=Join-Path \$env:USERPROFILE ''.claude\\data\\dashboard.db''; if (Test-Path \$db -and (Get-Command sqlite3 -ErrorAction SilentlyContinue)) { sqlite3 \$db \"SELECT COUNT(*) FROM tasks WHERE status=''in_progress'';\" } else { 0 }'" || echo "0")"
+		raw="${cpu:-0} ${tasks:-0} ${mem_used:-0} ${mem_total:-0}"
+	elif ! raw="$(_ssh "$name" "bash -s" <<<"$(_remote_cmd)")"; then
+		_write_offline "$name" "$caps" "$cost_tier" "$privacy_safe" "$result_file"
+		return
+	fi
 
+	cpu="$(echo "$raw" | awk '{print $1}')"; tasks="$(echo "$raw" | awk '{print $2}')"; mem_used="$(echo "$raw" | awk '{print $3}')"; mem_total="$(echo "$raw" | awk '{print $4}')"
 	printf '{"peer":"%s","cpu_load":%s,"tasks_in_progress":%s,"mem_used_gb":%s,"mem_total_gb":%s,"capabilities":"%s","cost_tier":"%s","privacy_safe":%s,"online":true}\n' \
-		"$name" "$cpu" "$tasks" "$mem_used" "$mem_total" "$caps" "$cost_tier" "$privacy_safe" >"$result_file"
+		"$name" "${cpu:-0}" "${tasks:-0}" "${mem_used:-0}" "${mem_total:-0}" "$caps" "$cost_tier" "$privacy_safe" >"$result_file"
 	_upsert_heartbeat "$name" "$caps" \
 		"{\"cpu_load\":$cpu,\"tasks_in_progress\":$tasks,\"mem_used_gb\":$mem_used,\"mem_total_gb\":$mem_total,\"cost_tier\":\"$cost_tier\",\"privacy_safe\":$privacy_safe}"
 }

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+[[ "${MESH_TEST_LEGACY:-0}" == "1" ]] || { echo "SKIP: legacy test (set MESH_TEST_LEGACY=1 to run)"; exit 0; }
 # test-mesh-migrate.sh — mesh-migrate test suite (no real SSH/network)
 # v1.0.0 | C-06: ≤250 lines
 

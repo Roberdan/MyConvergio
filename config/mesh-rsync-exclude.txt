@@ -4,6 +4,7 @@
 
 # Git LFS (large binary objects — not needed on workers)
 .git/lfs/**
+.git/objects/**
 
 # Node dependencies — run npm ci on target after sync
 node_modules/

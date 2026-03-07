@@ -41,30 +41,50 @@
 
 .task-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 12px;
   table-layout: fixed;
 }
 .task-table th {
   text-align: left;
-  padding: 6px 8px;
+  padding: 8px 10px;
   font-size: 10px;
   letter-spacing: 1px;
   color: var(--cyan);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   text-transform: uppercase;
-  font-weight: 400;
+  font-weight: 600;
+  background: rgba(0, 229, 255, 0.03);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
+.task-table th:first-child { border-radius: 6px 0 0 0; }
+.task-table th:last-child { border-radius: 0 6px 0 0; }
 .task-table td {
-  padding: 5px 8px;
-  border-bottom: 1px solid #0d1228;
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(13, 18, 40, 0.6);
   cursor: pointer;
+  vertical-align: middle;
 }
 .task-table tr:hover td {
   background: rgba(0, 229, 255, 0.04);
 }
 .task-table tr.expanded td {
   background: rgba(0, 229, 255, 0.06);
+}
+.task-wave-header td {
+  padding: 10px 10px 6px;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.1);
+  background: rgba(0, 229, 255, 0.02);
+  font-weight: 600;
+}
+.task-group-header td {
+  padding: 12px 10px 8px;
+  border-bottom: 2px solid rgba(0, 229, 255, 0.15);
+  background: rgba(0, 229, 255, 0.04);
+  font-size: 13px;
 }
 .task-detail {
   padding: 8px;

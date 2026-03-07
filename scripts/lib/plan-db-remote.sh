@@ -53,9 +53,9 @@ cmd_cluster_status() {
 	if ssh -o ConnectTimeout="${PLAN_DB_SSH_TIMEOUT:-5}" -o BatchMode=yes "$REMOTE_HOST" "echo ok" &>/dev/null; then
 		remote_online=1
 		remote_plans=$(ssh -o ConnectTimeout=10 "$REMOTE_HOST" "
-			sqlite3 -separator '|' ~/.claude/data/dashboard.db \"
-				SELECT p.id, p.name, p.tasks_done || '/' || p.tasks_total,
-				       COALESCE(p.execution_host, '$(hostname -s)'), p.status
+				sqlite3 -separator '|' ~/.claude/data/dashboard.db \"
+					SELECT p.id, p.name, p.tasks_done || '/' || p.tasks_total,
+					       COALESCE(p.execution_host, '$PLAN_DB_HOST'), p.status
 				FROM plans p WHERE p.status IN ('doing','todo')
 				ORDER BY p.status, p.id;
 			\"

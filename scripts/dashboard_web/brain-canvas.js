@@ -57,6 +57,7 @@
     _dataHash: '',
   };
   let _raf = 0;
+  let _frozen = false;
 
   // --- Data ---
   function collectNodes() {
@@ -256,6 +257,7 @@
   // --- Render loop (on-demand) ---
   function drawFrame(ts) {
     if (!S.ctx) return;
+    loadTheme();
     const c = S.ctx;
     c.clearRect(0, 0, S.w, S.h);
     drawBg(c);
@@ -265,7 +267,7 @@
       drawStats(c);
       return;
     }
-    if (!L.stable) L.step();
+    if (!_frozen && !L.stable) L.step();
     drawEdges(c);
     drawNodes(c);
     if (window._brainDrawHover) window._brainDrawHover(c);
@@ -275,7 +277,7 @@
   function frame(ts) {
     _raf = 0;
     drawFrame(ts);
-    if (S.layout && !S.layout.stable) {
+    if (!_frozen && S.layout && !S.layout.stable) {
       _raf = requestAnimationFrame(frame);
     }
   }
@@ -285,6 +287,38 @@
     _raf = requestAnimationFrame(frame);
   }
   window._brainRequestFrame = requestFrame;
+
+  // Pause / Play toggle
+  window.toggleBrainFreeze = function () {
+    _frozen = !_frozen;
+    if (_frozen && S.layout) S.layout.stable = true;
+    if (!_frozen && S.layout) {
+      S.layout.kick();
+      requestFrame();
+    }
+    const btn = document.getElementById('brain-pause-btn');
+    if (btn) {
+      btn.textContent = _frozen ? '▶' : '❚❚';
+      btn.title = _frozen ? 'Resume simulation' : 'Pause simulation';
+      btn.classList.toggle('active', !_frozen);
+    }
+  };
+
+  // Rewind — reset layout from scratch
+  window.rewindBrain = function () {
+    if (!S.layout) return;
+    _frozen = false;
+    S._dataHash = '';
+    S.layout = null;
+    syncLayout();
+    requestFrame();
+    const btn = document.getElementById('brain-pause-btn');
+    if (btn) {
+      btn.textContent = '❚❚';
+      btn.title = 'Pause simulation';
+      btn.classList.add('active');
+    }
+  };
 
   // --- Resize ---
   function resize() {
@@ -325,6 +359,12 @@
     S.ro = new ResizeObserver(() => resize());
     S.ro.observe(S.container);
     document.addEventListener('visibilitychange', onVis);
+    // Redraw on theme change
+    S._themeObs = new MutationObserver(() => requestFrame());
+    S._themeObs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
     syncLayout();
     requestFrame();
   };
@@ -338,6 +378,8 @@
     }
     if (S.ro) S.ro.disconnect();
     S.ro = null;
+    if (S._themeObs) S._themeObs.disconnect();
+    S._themeObs = null;
     document.removeEventListener('visibilitychange', onVis);
     if (S.canvas?.parentNode) S.canvas.parentNode.removeChild(S.canvas);
     S.container = S.canvas = S.ctx = S.layout = null;

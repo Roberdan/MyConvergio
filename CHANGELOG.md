@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.20.0] - 07 Mar 2026
+
+### Added
+- pause/rewind controls + reactive theme switching
+
+
 ## [v10.19.0] - 07 Mar 2026
 
 ### Added

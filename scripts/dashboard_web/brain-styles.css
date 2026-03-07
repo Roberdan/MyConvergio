@@ -22,6 +22,39 @@
   width: 100%;
   height: 100%;
 }
+/* Controls (pause, play, rewind) */
+.brain-controls {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  margin-right: 12px;
+}
+.brain-ctrl-btn {
+  background: none;
+  border: 1px solid var(--border, #1a2040);
+  border-radius: 4px;
+  color: var(--text-dim, #5a6080);
+  font-size: 13px;
+  width: 28px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.brain-ctrl-btn:hover {
+  color: var(--cyan, #00e5ff);
+  border-color: var(--cyan, #00e5ff);
+  background: color-mix(in srgb, var(--cyan) 8%, transparent);
+}
+.brain-ctrl-btn.active {
+  color: var(--cyan, #00e5ff);
+}
+
 /* Tooltip */
 .brain-tooltip {
   background: rgba(10, 16, 36, 0.95);

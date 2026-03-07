@@ -125,6 +125,10 @@
     <div class="widget" id="brain-widget">
       <div class="widget-header">
         <span class="widget-title">Augmented Brain</span>
+        <div class="brain-controls" id="brain-controls">
+          <button class="brain-ctrl-btn" id="brain-rewind-btn" onclick="rewindBrain()" title="Reset layout">⟲</button>
+          <button class="brain-ctrl-btn active" id="brain-pause-btn" onclick="toggleBrainFreeze()" title="Pause/Play">❚❚</button>
+        </div>
         <div class="brain-stats" id="brain-stats"></div>
       </div>
       <div id="brain-canvas-container" style="width:100%;height:480px;position:relative;"></div>

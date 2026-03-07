@@ -1,0 +1,242 @@
+/* brain-interact.js — Drag, click, hover for brain graph nodes */
+(() => {
+  'use strict';
+  const DRAG_TH = 5;
+  let drag = null,
+    hover = null,
+    tooltip = null,
+    canvas = null;
+
+  function canvasXY(e) {
+    if (!canvas) return { x: 0, y: 0 };
+    const S = window._brainState;
+    if (!S || !S.w) return { x: 0, y: 0 };
+    const r = canvas.getBoundingClientRect();
+    if (!r.width || !r.height) return { x: 0, y: 0 };
+    // getBoundingClientRect and clientX/Y are both in viewport coords,
+    // so the fraction is zoom-agnostic
+    const fx = (e.clientX - r.left) / r.width;
+    const fy = (e.clientY - r.top) / r.height;
+    return { x: fx * S.w, y: fy * S.h };
+  }
+
+  function hitTest(mx, my) {
+    const S = window._brainState;
+    if (!S?.layout) return null;
+    const nodes = S.layout.nodes;
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const n = nodes[i];
+      const r = n.type === 'plan' ? 26 : 14;
+      if (Math.hypot(mx - n.x, my - n.y) < r) return n;
+    }
+    return null;
+  }
+
+  function onDown(e) {
+    if (!canvas) return;
+    const p = canvasXY(e);
+    const hit = hitTest(p.x, p.y);
+    if (!hit) {
+      hideTooltip();
+      return;
+    }
+    drag = { node: hit, sx: p.x, sy: p.y, ox: hit.x, oy: hit.y, moved: false };
+    const S = window._brainState;
+    if (S?.layout) S.layout.pin(hit.id);
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!canvas) return;
+    const p = canvasXY(e);
+    if (drag) {
+      const dx = p.x - drag.sx,
+        dy = p.y - drag.sy;
+      if (!drag.moved && Math.hypot(dx, dy) < DRAG_TH) return;
+      drag.moved = true;
+      canvas.style.cursor = 'grabbing';
+      const S = window._brainState;
+      if (S?.layout) {
+        S.layout.moveTo(drag.node.id, drag.ox + dx, drag.oy + dy);
+        S.layout.kick();
+        if (window._brainRequestFrame) window._brainRequestFrame();
+      }
+      return;
+    }
+    const hit = hitTest(p.x, p.y);
+    const prev = hover;
+    hover = hit;
+    canvas.style.cursor = hit ? 'pointer' : 'default';
+    if (hit !== prev && window._brainRequestFrame) window._brainRequestFrame();
+  }
+
+  function onUp(e) {
+    if (!drag) return;
+    const S = window._brainState;
+    if (!drag.moved) {
+      showTooltip(drag.node, e);
+    }
+    if (S?.layout) S.layout.unpin(drag.node.id);
+    if (S?.layout) S.layout.kick();
+    if (window._brainRequestFrame) window._brainRequestFrame();
+    canvas.style.cursor = 'default';
+    drag = null;
+  }
+
+  // --- Tooltip ---
+  function showTooltip(node, evt) {
+    hideTooltip();
+    const el = document.createElement('div');
+    el.className = 'brain-tooltip';
+    el.innerHTML = buildHTML(node);
+    const box = canvas.parentElement;
+    box.style.position = 'relative';
+    // Position tooltip relative to container using mouse event
+    const cr = box.getBoundingClientRect();
+    const zoom = parseFloat(document.body.style.zoom) || 1;
+    let tx = (evt.clientX - cr.left) / zoom + 14;
+    let ty = (evt.clientY - cr.top) / zoom - 20;
+    const bw = box.clientWidth,
+      bh = box.clientHeight;
+    if (tx + 260 > bw) tx = bw - 270;
+    if (ty < 8) ty = 8;
+    if (ty + 220 > bh) ty = bh - 220;
+    el.style.cssText = `position:absolute;left:${tx}px;top:${ty}px;z-index:100;`;
+    box.appendChild(el);
+    tooltip = el;
+    setTimeout(() => {
+      if (tooltip === el) hideTooltip();
+    }, 10000);
+  }
+  function hideTooltip() {
+    if (tooltip?.parentNode) tooltip.parentNode.removeChild(tooltip);
+    tooltip = null;
+  }
+  function buildHTML(n) {
+    if (n.type === 'plan') return planHTML(n);
+    return agentHTML(n);
+  }
+  function agentHTML(n) {
+    const d = n._data || {};
+    const dot = sdot(d.status);
+    const rows = [`<div class="btt-title">${dot} ${esc(d.name || n.id)}</div>`];
+    if (d.taskId) rows.push(row('Task', d.taskId));
+    rows.push(row('Status', d.status || '?'));
+    if (d.host) rows.push(row('Host', d.host));
+    rows.push(row('Plan', '#' + (d.planId || '?')));
+    if (d.wave) rows.push(row('Wave', d.wave));
+    if (d.model) rows.push(row('Model', d.model));
+    if (d.filesChanged || d.linesAdded || d.linesRemoved) {
+      rows.push(row('Files', (d.filesChanged || 0) + ' changed'));
+      rows.push(
+        `<div class="btt-row"><span class="btt-label">Lines</span><span class="btt-val"><span style="color:#00ff88">+${d.linesAdded || 0}</span> <span style="color:#ff3366">-${d.linesRemoved || 0}</span></span></div>`,
+      );
+    }
+    if (d.artifacts?.length) {
+      rows.push('<div class="btt-tasks">');
+      d.artifacts.slice(0, 6).forEach((f) => {
+        rows.push(
+          `<div class="btt-task" style="color:#5a8aaa">${esc(f.split('/').slice(-2).join('/'))}</div>`,
+        );
+      });
+      if (d.artifacts.length > 6)
+        rows.push(
+          `<div class="btt-task" style="color:#5a6080">+${d.artifacts.length - 6} more</div>`,
+        );
+      rows.push('</div>');
+    }
+    return rows.join('\n');
+  }
+  function planHTML(n) {
+    const d = n._data || {};
+    const S = window._brainState;
+    const tasks = (S?.layout?.nodes || []).filter((x) => x.parentId === n.id);
+    const active = tasks.filter((t) => t._data?.isActive).length;
+    const done = tasks.filter((t) => t._data?.status === 'done').length;
+    const rows = [`<div class="btt-title">${esc(d.name || n.id)}</div>`];
+    rows.push(row('Status', d.status || '?'));
+    rows.push(
+      `<div class="btt-row"><span class="btt-label">Tasks</span><span class="btt-val">${done} done / ${tasks.length} total</span></div>`,
+    );
+    if (active)
+      rows.push(
+        `<div class="btt-row"><span class="btt-label">Active</span><span class="btt-val btt-green">${active}</span></div>`,
+      );
+    rows.push('<div class="btt-tasks">');
+    tasks.slice(0, 10).forEach((t) => {
+      const td = t._data || {};
+      rows.push(
+        `<div class="btt-task">${sdot(td.status)} ${esc(td.taskId || '')} ${esc(td.name || '')}</div>`,
+      );
+    });
+    if (tasks.length > 10)
+      rows.push(`<div class="btt-task" style="color:#5a6080">+${tasks.length - 10} more</div>`);
+    rows.push('</div>');
+    return rows.join('\n');
+  }
+  function row(l, v) {
+    return `<div class="btt-row"><span class="btt-label">${l}</span><span class="btt-val">${esc(String(v))}</span></div>`;
+  }
+  function sdot(s) {
+    const c =
+      {
+        agent_running: '#00ff88',
+        in_progress: '#00e5ff',
+        waiting_thor: '#ffd700',
+        done: '#3a4466',
+        pending: '#2a3050',
+        submitted: '#4a6a80',
+        blocked: '#ff3366',
+      }[s] || '#5a6080';
+    return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:4px;vertical-align:middle"></span>`;
+  }
+  function esc(s) {
+    return (s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // --- Hover ring ---
+  window._brainDrawHover = function (ctx) {
+    if (!hover || drag) return;
+    const r = hover.type === 'plan' ? 28 : 16;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.arc(hover.x, hover.y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  };
+
+  window._brainInteract = {
+    init(c) {
+      canvas = c;
+      c.addEventListener('pointerdown', onDown);
+      c.addEventListener('pointermove', onMove);
+      c.addEventListener('pointerup', onUp);
+      c.addEventListener('pointerleave', () => {
+        if (drag) {
+          const S = window._brainState;
+          if (S?.layout) S.layout.unpin(drag.node.id);
+          drag = null;
+        }
+        hover = null;
+        if (canvas) canvas.style.cursor = 'default';
+      });
+    },
+    destroy() {
+      if (!canvas) return;
+      canvas.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp);
+      hideTooltip();
+      canvas = null;
+      drag = null;
+      hover = null;
+    },
+    isDragging() {
+      return !!drag;
+    },
+  };
+})();

@@ -1,228 +1,342 @@
-/* brain-canvas.js — Global Agent Activity widget (standalone, all plans) */
+/* brain-canvas.js — Interactive force-directed graph renderer */
 (() => {
   'use strict';
-  const S = {
-    container: null, canvas: null, ctx: null, ro: null, raf: 0, w: 0, h: 0,
-    running: false, lastDataTick: 0, lastTs: 0, agents: [], clusters: [],
-    particles: [], anim: new Map(), layout: null, sessions: [], _sTick: 0,
-  };
-  const PAL = { cyan: '#00e5ff', green: '#00ff88', gold: '#ffd700', red: '#ff3366', dim: '#3a4466' };
-  const STATUS_COL = {
-    agent_running: PAL.green, in_progress: PAL.cyan, waiting_thor: PAL.gold,
-    waiting_ci: PAL.dim, waiting_review: PAL.dim, waiting_merge: PAL.dim,
-  };
-  const PLAN_COL = { doing: PAL.cyan, done: PAL.green, blocked: PAL.red };
   const PI2 = Math.PI * 2;
-  function collectAgents() {
-    const plans = window._dashboardPlans || [], agents = [], clMap = new Map();
-    plans.forEach(p => {
-      if (!p?.tasks) return;
-      const color = PLAN_COL[p.status] || PAL.dim;
-      p.tasks.forEach(t => {
-        const act = t.status === 'in_progress' || t.substatus === 'agent_running';
-        const show = act || t.substatus === 'waiting_thor' ||
-          ['waiting_ci', 'waiting_review', 'waiting_merge'].includes(t.substatus);
-        if (!show) return;
-        const st = t.substatus || t.status;
-        agents.push({ id: `t-${t.id}`, planId: p.id, name: t.title || `Task ${t.id}`,
-          host: t.execution_host, status: st, color: STATUS_COL[st] || PAL.dim, isActive: act });
-        if (!clMap.has(p.id)) clMap.set(p.id, { id: `p-${p.id}`, planId: p.id,
-          name: p.name || `#${p.id}`, color, status: p.status, hasActive: false });
+  const PAL = {
+    cyan: '#00e5ff',
+    green: '#00ff88',
+    gold: '#ffd700',
+    red: '#ff3366',
+    dim: '#3a4466',
+  };
+  const SCOL = {
+    agent_running: PAL.green,
+    in_progress: PAL.cyan,
+    waiting_thor: PAL.gold,
+    done: '#2a3a55',
+    pending: '#2a3050',
+    submitted: '#4a6a80',
+    blocked: PAL.red,
+    waiting_ci: '#5a7a90',
+    waiting_review: '#5a7a90',
+    waiting_merge: '#5a7a90',
+  };
+  const PCOL = { doing: PAL.cyan, done: PAL.green, blocked: PAL.red, todo: '#4a5a80' };
+
+  const S = {
+    container: null,
+    canvas: null,
+    ctx: null,
+    ro: null,
+    w: 0,
+    h: 0,
+    layout: null,
+    _dataHash: '',
+  };
+  let _raf = 0;
+
+  // --- Data collection ---
+  function collectNodes() {
+    const plans = window._dashboardPlans || [],
+      nodes = [];
+    plans.forEach((m) => {
+      const p = m.plan || m,
+        tasks = m.tasks || p.tasks;
+      if (!tasks) return;
+      const pid = `p-${p.id}`;
+      nodes.push({
+        id: pid,
+        type: 'plan',
+        parentId: null,
+        _data: {
+          name: p.name || `#${p.id}`,
+          status: p.status,
+          planId: p.id,
+        },
       });
-      const cl = clMap.get(p.id);
-      if (cl) cl.hasActive = agents.some(a => a.planId === p.id && a.isActive);
+      tasks.forEach((t) => {
+        const act = t.status === 'in_progress' || t.substatus === 'agent_running';
+        const st = t.substatus || t.status;
+        let artifacts = [];
+        try {
+          const od =
+            typeof t.output_data === 'string'
+              ? JSON.parse(t.output_data || '{}')
+              : t.output_data || {};
+          artifacts = od.artifacts || [];
+        } catch (_) {}
+        nodes.push({
+          id: `t-${t.id}`,
+          type: 'agent',
+          parentId: pid,
+          _data: {
+            name: t.title || `Task ${t.id}`,
+            status: st,
+            isActive: act,
+            taskId: t.task_id,
+            host: t.executor_host,
+            model: t.model,
+            wave: t.wave_id,
+            planId: p.id,
+            artifacts,
+            linesAdded: t.lines_added || 0,
+            linesRemoved: t.lines_removed || 0,
+            filesChanged: t.files_changed || 0,
+          },
+        });
+      });
     });
-    return { agents, clusters: [...clMap.values()] };
-  }
-  function an(id) {
-    if (!S.anim.has(id)) S.anim.set(id, {
-      scale: 0, alpha: 0, phase: Math.random() * PI2, state: 'appearing', t: 0, px: 0, py: 0 });
-    return S.anim.get(id);
-  }
-  function tickAnims(dt) {
-    for (const [id, a] of S.anim) {
-      a.t += dt; a.phase += dt * 0.003;
-      if (a.state === 'appearing') {
-        a.scale = Math.min(1, a.t / 300); a.alpha = a.scale;
-        if (a.scale >= 1) { a.state = 'active'; a.t = 0; }
-      } else if (a.state === 'active') { a.scale = 1 + 0.08 * Math.sin(a.phase); a.alpha = 1; }
-      else if (a.state === 'idle') {
-        a.scale = 0.85 + 0.03 * Math.sin(a.phase * 0.5); a.alpha = 0.35 + 0.1 * Math.sin(a.phase * 0.5);
-      } else if (a.state === 'completing') {
-        a.scale = Math.max(0, 1 - a.t / 500); a.alpha = a.scale;
-      }
-      if (a.state === 'completing' && a.scale <= 0) S.anim.delete(id);
-    }
+    return nodes;
   }
 
-  function doLayout() {
+  function dataHash(nodes) {
+    return nodes.map((n) => n.id + (n._data?.status || '')).join(',');
+  }
+
+  function syncLayout() {
+    const nodes = collectNodes();
+    const hash = dataHash(nodes);
+    if (hash === S._dataHash) return false;
+    S._dataHash = hash;
     if (!S.layout) S.layout = new BrainLayout(S.w, S.h);
-    S.layout.width = S.w; S.layout.height = S.h;
-    S.layout.setNodes([
-      ...S.clusters.map(c => ({ id: c.id, type: 'plan', parentId: null })),
-      ...S.agents.map(a => ({ id: a.id, type: 'agent', parentId: `p-${a.planId}` })),
-    ]);
-    for (let i = 0; i < 4; i++) S.layout.step();
-    for (const [id, p] of Object.entries(S.layout.getPositions())) { const a = an(id); a.px = p.x; a.py = p.y; }
+    S.layout.width = S.w;
+    S.layout.height = S.h;
+    S.layout.setNodes(nodes);
+    return true;
   }
 
-  function tickParticles(dt) {
-    S.agents.forEach(a => {
-      if (!a.isActive) return;
-      const from = S.anim.get(a.id), to = S.anim.get(`p-${a.planId}`);
-      if (!from?.px || !to?.px) return;
-      if (Math.random() < dt * 0.003) S.particles.push({ sx: from.px, sy: from.py,
-        tx: to.px, ty: to.py, t: 0, spd: 0.7 + Math.random() * 0.5, col: a.color, sz: 1.5 + Math.random() * 1.5 });
-    });
-    for (let i = S.particles.length - 1; i >= 0; i--) {
-      const p = S.particles[i]; p.t += dt * p.spd * 0.002;
-      if (p.t >= 1) { S.particles.splice(i, 1); continue; }
-      const u = 1 - p.t, mx = (p.sx + p.tx) / 2 + (p.sy - p.ty) * 0.18, my = (p.sy + p.ty) / 2 - (p.sx - p.tx) * 0.18;
-      p.cx = u * u * p.sx + 2 * u * p.t * mx + p.t * p.t * p.tx;
-      p.cy = u * u * p.sy + 2 * u * p.t * my + p.t * p.t * p.ty;
-    }
-    if (S.particles.length > 200) S.particles.length = 200;
-  }
+  // --- Drawing ---
   function drawGrid(c) {
-    c.strokeStyle = 'rgba(0,229,255,0.03)'; c.lineWidth = 0.5;
-    for (let x = 0; x < S.w; x += 40) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, S.h); c.stroke(); }
-    for (let y = 0; y < S.h; y += 40) { c.beginPath(); c.moveTo(0, y); c.lineTo(S.w, y); c.stroke(); }
+    c.strokeStyle = 'rgba(0,229,255,0.03)';
+    c.lineWidth = 0.5;
+    for (let x = 0; x < S.w; x += 40) {
+      c.beginPath();
+      c.moveTo(x, 0);
+      c.lineTo(x, S.h);
+      c.stroke();
+    }
+    for (let y = 0; y < S.h; y += 40) {
+      c.beginPath();
+      c.moveTo(0, y);
+      c.lineTo(S.w, y);
+      c.stroke();
+    }
   }
-  function drawConns(c) {
-    S.agents.forEach(a => {
-      const fa = S.anim.get(a.id), ta = S.anim.get(`p-${a.planId}`);
-      if (!fa?.px || !ta?.px) return;
-      const mx = (fa.px + ta.px) / 2 + (fa.py - ta.py) * 0.18, my = (fa.py + ta.py) / 2 - (fa.px - ta.px) * 0.18;
-      c.beginPath(); c.moveTo(fa.px, fa.py); c.quadraticCurveTo(mx, my, ta.px, ta.py);
-      c.strokeStyle = a.isActive ? a.color + '44' : a.color + '15';
-      c.lineWidth = a.isActive ? 1.5 : 0.5; c.stroke();
+
+  function drawEdges(c) {
+    const L = S.layout;
+    if (!L) return;
+    L.nodes.forEach((n) => {
+      if (n.type !== 'agent' || !n.parentId) return;
+      const p = L.nodeMap.get(n.parentId);
+      if (!p) return;
+      const act = n._data?.isActive;
+      c.beginPath();
+      const mx = (n.x + p.x) / 2 + (n.y - p.y) * 0.15,
+        my = (n.y + p.y) / 2 - (n.x - p.x) * 0.15;
+      c.moveTo(n.x, n.y);
+      c.quadraticCurveTo(mx, my, p.x, p.y);
+      c.strokeStyle = act ? (SCOL[n._data?.status] || PAL.dim) + '55' : 'rgba(60,80,120,0.12)';
+      c.lineWidth = act ? 1.5 : 0.6;
+      c.stroke();
     });
   }
-  function drawParts(c) {
-    c.save();
-    S.particles.forEach(p => {
-      c.globalAlpha = p.t > 0.8 ? (1 - p.t) / 0.2 : 0.9; c.fillStyle = p.col;
-      c.beginPath(); c.arc(p.cx, p.cy, p.sz, 0, PI2); c.fill();
-    });
-    c.restore();
-  }
-  function drawPlans(c) {
-    S.clusters.forEach(cl => {
-      const a = S.anim.get(cl.id); if (!a?.px) return;
-      const r = 22 * a.scale;
-      c.save(); c.shadowBlur = cl.hasActive ? 18 : 6; c.shadowColor = cl.color;
-      const g = c.createRadialGradient(a.px - 3, a.py - 3, 4, a.px, a.py, r);
-      g.addColorStop(0, cl.color + 'cc'); g.addColorStop(1, cl.color + '33');
-      c.fillStyle = g; c.beginPath(); c.arc(a.px, a.py, r, 0, PI2); c.fill();
-      c.strokeStyle = cl.color + '66'; c.lineWidth = 1.5;
-      const rr = r + 6 + (cl.hasActive ? 3 * Math.sin(a.phase) : 0);
-      c.beginPath(); c.arc(a.px, a.py, rr, 0, PI2); c.stroke(); c.shadowBlur = 0; c.restore();
-      const lbl = cl.name.length > 22 ? cl.name.slice(0, 20) + '\u2026' : cl.name;
-      c.font = '10px "JetBrains Mono",monospace'; c.textAlign = 'center';
-      const tw = c.measureText(lbl).width; c.fillStyle = 'rgba(10,16,36,0.6)';
-      if (c.roundRect) { c.beginPath(); c.roundRect(a.px - tw / 2 - 5, a.py + rr + 3, tw + 10, 14, 3); c.fill(); }
-      c.fillStyle = '#b0c4dd'; c.fillText(lbl, a.px, a.py + rr + 14);
-    });
-  }
-  function drawAgents(c) {
-    S.agents.forEach(ag => {
-      const a = S.anim.get(ag.id); if (!a || a.alpha < 0.01 || !a.px) return;
-      const r = 9 * a.scale;
-      c.save(); c.globalAlpha = a.alpha;
-      c.shadowBlur = ag.isActive ? 10 : 3; c.shadowColor = ag.color;
-      c.fillStyle = ag.color + (ag.isActive ? 'cc' : '55');
-      c.beginPath(); c.arc(a.px, a.py, r, 0, PI2); c.fill(); c.shadowBlur = 0;
-      c.fillStyle = '#0a1024'; c.font = `bold ${Math.max(7, 9 * a.scale)}px "JetBrains Mono",monospace`;
-      c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText(ag.status === 'waiting_thor' ? '\u26A1' : ag.isActive ? '\u25C6' : '\u25CF', a.px, a.py + 0.5);
+
+  function drawPlanNodes(c) {
+    const L = S.layout;
+    if (!L) return;
+    L.nodes.forEach((n) => {
+      if (n.type !== 'plan') return;
+      const d = n._data || {},
+        col = PCOL[d.status] || PAL.dim;
+      const r = 20;
+      c.save();
+      c.shadowBlur = 14;
+      c.shadowColor = col;
+      const g = c.createRadialGradient(n.x - 2, n.y - 2, 3, n.x, n.y, r);
+      g.addColorStop(0, col + 'cc');
+      g.addColorStop(1, col + '33');
+      c.fillStyle = g;
+      c.beginPath();
+      c.arc(n.x, n.y, r, 0, PI2);
+      c.fill();
+      c.shadowBlur = 0;
+      c.strokeStyle = col + '55';
+      c.lineWidth = 1.2;
+      c.beginPath();
+      c.arc(n.x, n.y, r + 5, 0, PI2);
+      c.stroke();
+      // Label
+      const lbl = (d.name || '').length > 20 ? (d.name || '').slice(0, 18) + '...' : d.name || '';
+      c.font = '10px "JetBrains Mono",monospace';
+      c.textAlign = 'center';
+      const tw = c.measureText(lbl).width;
+      c.fillStyle = 'rgba(10,16,36,0.7)';
+      if (c.roundRect) {
+        c.beginPath();
+        c.roundRect(n.x - tw / 2 - 4, n.y + r + 8, tw + 8, 14, 3);
+        c.fill();
+      }
+      c.fillStyle = '#b0c4dd';
+      c.fillText(lbl, n.x, n.y + r + 19);
       c.restore();
     });
   }
-  function drawSessions(c, dt) {
-    // Delegate to region-aware SessionClusterRenderer; no standalone floating bubbles
-    const sr = window._sessionClusters;
-    if (!sr?.sessions.length) return;
-    sr.tickAnims(dt);
-    sr.render(c, sr.getSessionPositions(S.w, S.h), S.w, S.h);
+
+  function drawAgentNodes(c) {
+    const L = S.layout;
+    if (!L) return;
+    L.nodes.forEach((n) => {
+      if (n.type !== 'agent') return;
+      const d = n._data || {},
+        act = d.isActive;
+      const col = SCOL[d.status] || PAL.dim;
+      const r = act ? 8 : 5;
+      c.save();
+      c.globalAlpha = act ? 1 : d.status === 'done' ? 0.4 : 0.55;
+      c.shadowBlur = act ? 10 : 2;
+      c.shadowColor = col;
+      c.fillStyle = col + (act ? 'dd' : '88');
+      c.beginPath();
+      c.arc(n.x, n.y, r, 0, PI2);
+      c.fill();
+      c.shadowBlur = 0;
+      // Icon
+      c.fillStyle = act ? '#0a1024' : '#0a1024aa';
+      c.font = `bold ${act ? 9 : 7}px "JetBrains Mono",monospace`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      const icon = d.status === 'waiting_thor' ? '\u26A1' : act ? '\u25C6' : '\u25CF';
+      c.fillText(icon, n.x, n.y + 0.5);
+      c.restore();
+    });
   }
+
   function drawStats(c) {
-    const act = S.agents.filter(a => a.isActive).length;
-    const txt = `${act} active \xB7 ${S.clusters.length} plan${S.clusters.length !== 1 ? 's' : ''}`;
-    const el = document.getElementById('brain-stats'); if (el) el.textContent = txt;
+    const L = S.layout;
+    if (!L) return;
+    const agents = L.nodes.filter((n) => n.type === 'agent');
+    const active = agents.filter((n) => n._data?.isActive).length;
+    const plans = L.nodes.filter((n) => n.type === 'plan').length;
+    const el = document.getElementById('brain-stats');
+    if (el) el.textContent = `${active} active \xB7 ${agents.length} tasks \xB7 ${plans} plans`;
   }
 
   function drawIdle(c, ts) {
-    const p = 0.5 + 0.5 * Math.sin(ts * 0.001), cx = S.w / 2, cy = S.h / 2;
-    c.save(); c.strokeStyle = `rgba(0,229,255,${0.04 + p * 0.06})`; c.lineWidth = 1;
-    c.beginPath(); c.arc(cx, cy, 35 + p * 8, 0, PI2); c.stroke();
-    c.fillStyle = `rgba(176,196,221,${0.15 + p * 0.12})`; c.font = '12px "JetBrains Mono",monospace';
-    c.textAlign = 'center'; c.fillText('No active agents', cx, cy + 55); c.restore();
+    const p = 0.5 + 0.5 * Math.sin(ts * 0.001);
+    c.save();
+    c.strokeStyle = `rgba(0,229,255,${0.04 + p * 0.06})`;
+    c.lineWidth = 1;
+    c.beginPath();
+    c.arc(S.w / 2, S.h / 2, 35 + p * 8, 0, PI2);
+    c.stroke();
+    c.fillStyle = `rgba(176,196,221,${0.15 + p * 0.12})`;
+    c.font = '12px "JetBrains Mono",monospace';
+    c.textAlign = 'center';
+    c.fillText('No active tasks', S.w / 2, S.h / 2 + 55);
+    c.restore();
   }
-  function resize() {
-    if (!S.container || !S.canvas) return;
-    const r = S.container.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-    S.w = Math.max(10, r.width); S.h = Math.max(10, r.height);
-    S.canvas.width = Math.floor(S.w * dpr); S.canvas.height = Math.floor(S.h * dpr);
-    S.canvas.style.width = S.w + 'px'; S.canvas.style.height = S.h + 'px';
-    S.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // --- Render loop (on-demand) ---
+  function drawFrame(ts) {
+    if (!S.ctx) return;
+    const c = S.ctx;
+    c.clearRect(0, 0, S.w, S.h);
+    drawGrid(c);
+    const L = S.layout;
+    if (!L || !L.nodes.length) {
+      drawIdle(c, ts);
+      drawStats(c);
+      return;
+    }
+    if (!L.stable) L.step();
+    drawEdges(c);
+    drawPlanNodes(c);
+    drawAgentNodes(c);
+    if (window._brainDrawHover) window._brainDrawHover(c);
+    drawStats(c);
   }
-  function refreshData(ts) {
-    if (ts - S.lastDataTick < 500) return;
-    const { agents, clusters } = collectAgents();
-    const curIds = new Set([...agents.map(a => a.id), ...clusters.map(c => c.id)]);
-    [...S.agents, ...S.clusters].forEach(n => {
-      if (!curIds.has(n.id)) { const a = S.anim.get(n.id); if (a && a.state !== 'completing') { a.state = 'completing'; a.t = 0; } }
-    });
-    S.agents = agents; S.clusters = clusters; S.lastDataTick = ts;
-    if (ts - S._sTick > 10000) { S._sTick = ts; fetch('/api/sessions').then(r => r.json()).then(d => { S.sessions = d || []; }).catch(() => {}); }
-    agents.forEach(a => {
-      const na = an(a.id);
-      if (a.isActive && na.state !== 'appearing') na.state = 'active';
-      else if (!a.isActive && na.state === 'active') na.state = 'idle';
-    });
-    clusters.forEach(c => an(c.id));
-    // Feed session data to cluster renderer
-    const sr = window._sessionClusters;
-    if (sr && window._dashboardAgentData) {
-      const d = window._dashboardAgentData;
-      sr.update(d.sessions || [], d.orphan_agents || []);
-      sr.detectChanges();
+
+  function frame(ts) {
+    _raf = 0;
+    drawFrame(ts);
+    if (S.layout && !S.layout.stable) {
+      _raf = requestAnimationFrame(frame);
     }
   }
-  function render(ts) {
-    if (!S.ctx || !S.running) return;
-    const dt = Math.min(50, ts - (S.lastTs || ts)); S.lastTs = ts;
-    refreshData(ts);
-    const c = S.ctx; c.clearRect(0, 0, S.w, S.h); drawGrid(c);
-    drawSessions(c, dt);
-    if (!S.agents.length && !S.clusters.length && !S.sessions.length) { drawIdle(c, ts); drawStats(c); }
-    else if (S.agents.length || S.clusters.length) { doLayout(); tickAnims(dt); tickParticles(dt); drawConns(c); drawParts(c); drawPlans(c); drawAgents(c); drawStats(c); }
-    else { drawStats(c); }
-    S.raf = requestAnimationFrame(render);
+
+  function requestFrame() {
+    if (_raf) return;
+    _raf = requestAnimationFrame(frame);
   }
-  function onVis() {
-    S.running = !document.hidden;
-    if (S.running && !S.raf) S.raf = requestAnimationFrame(render);
-    if (!S.running && S.raf) { cancelAnimationFrame(S.raf); S.raf = 0; }
+  window._brainRequestFrame = requestFrame;
+
+  // --- Resize (uses clientWidth to avoid CSS zoom issues) ---
+  function resize() {
+    if (!S.container || !S.canvas) return;
+    const nw = Math.max(10, S.container.clientWidth);
+    const nh = Math.max(10, S.container.clientHeight);
+    if (nw === S.w && nh === S.h) return;
+    S.w = nw;
+    S.h = nh;
+    const dpr = window.devicePixelRatio || 1;
+    S.canvas.width = nw * dpr;
+    S.canvas.height = nh * dpr;
+    S.canvas.style.width = nw + 'px';
+    S.canvas.style.height = nh + 'px';
+    S.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    requestFrame();
   }
-  window.initBrainCanvas = function(id) {
+
+  // --- Data refresh (called by dashboard refreshAll) ---
+  function refreshBrain() {
+    if (!S.ctx) return;
+    const changed = syncLayout();
+    if (changed) requestFrame();
+  }
+
+  // --- Lifecycle ---
+  window.initBrainCanvas = function (id) {
     window.destroyBrainCanvas();
-    S.container = document.getElementById(id || 'brain-canvas-container'); if (!S.container) return;
-    S.canvas = document.createElement('canvas'); S.canvas.className = 'brain-canvas';
-    S.canvas.style.cssText = 'width:100%;height:100%;display:block;border-radius:8px;';
-    S.container.appendChild(S.canvas); S.ctx = S.canvas.getContext('2d', { alpha: true }); resize();
-    S.ro = new ResizeObserver(resize); S.ro.observe(S.container);
-    window.addEventListener('resize', resize); document.addEventListener('visibilitychange', onVis);
-    S.running = !document.hidden; S.raf = requestAnimationFrame(render);
+    S.container = document.getElementById(id || 'brain-canvas-container');
+    if (!S.container) return;
+    S.canvas = document.createElement('canvas');
+    S.canvas.className = 'brain-canvas';
+    S.canvas.style.cssText = 'display:block;border-radius:8px;';
+    S.container.appendChild(S.canvas);
+    S.ctx = S.canvas.getContext('2d', { alpha: true });
+    window._brainState = S;
+    if (window._brainInteract) window._brainInteract.init(S.canvas);
+    resize();
+    S.ro = new ResizeObserver(() => resize());
+    S.ro.observe(S.container);
+    document.addEventListener('visibilitychange', onVis);
+    syncLayout();
+    requestFrame();
   };
-  window.destroyBrainCanvas = function() {
-    if (S.raf) cancelAnimationFrame(S.raf); S.raf = 0;
-    if (S.ro) S.ro.disconnect(); S.ro = null;
-    window.removeEventListener('resize', resize); document.removeEventListener('visibilitychange', onVis);
+
+  window.destroyBrainCanvas = function () {
+    if (window._brainInteract) window._brainInteract.destroy();
+    window._brainState = null;
+    if (_raf) {
+      cancelAnimationFrame(_raf);
+      _raf = 0;
+    }
+    if (S.ro) S.ro.disconnect();
+    S.ro = null;
+    document.removeEventListener('visibilitychange', onVis);
     if (S.canvas?.parentNode) S.canvas.parentNode.removeChild(S.canvas);
-    S.container = S.canvas = S.ctx = null; S.particles = []; S.anim.clear(); S.layout = null; S.running = false;
+    S.container = S.canvas = S.ctx = S.layout = null;
+    S.w = S.h = 0;
+    S._dataHash = '';
   };
-  window.updateBrainData = function() {};
+
+  window.updateBrainData = refreshBrain;
+
+  function onVis() {
+    if (!document.hidden) refreshBrain();
+  }
+
   const _boot = () => window.initBrainCanvas('brain-canvas-container');
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _boot);
   else setTimeout(_boot, 100);

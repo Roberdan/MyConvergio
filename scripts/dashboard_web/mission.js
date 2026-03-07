@@ -1,21 +1,23 @@
 function _progressGradient(pct) {
   // Red→Orange→Gold→Green as completion approaches 100%
-  if (pct >= 100) return { color: "#00cc6a", gradient: "linear-gradient(90deg, #00cc6a, #00ff88)" };
-  if (pct >= 75) return { color: "#4dd64d", gradient: "linear-gradient(90deg, #e6a117, #4dd64d)" };
-  if (pct >= 50) return { color: "#e6a117", gradient: "linear-gradient(90deg, #ff6633, #e6a117)" };
-  if (pct >= 25) return { color: "#ff6633", gradient: "linear-gradient(90deg, #ee3344, #ff6633)" };
-  return { color: "#ee3344", gradient: "linear-gradient(90deg, #cc1133, #ee3344)" };
+  if (pct >= 100) return { color: '#00cc6a', gradient: 'linear-gradient(90deg, #00cc6a, #00ff88)' };
+  if (pct >= 75) return { color: '#4dd64d', gradient: 'linear-gradient(90deg, #e6a117, #4dd64d)' };
+  if (pct >= 50) return { color: '#e6a117', gradient: 'linear-gradient(90deg, #ff6633, #e6a117)' };
+  if (pct >= 25) return { color: '#ff6633', gradient: 'linear-gradient(90deg, #ee3344, #ff6633)' };
+  return { color: '#ee3344', gradient: 'linear-gradient(90deg, #cc1133, #ee3344)' };
 }
 function _substatusBadge(substatus) {
   const badges = {
-    waiting_ci: { icon: Icons.clock(11), label: "CI", color: "#00d4ff" },
-    waiting_review: { icon: Icons.eye(11), label: "Review", color: "#e6a117" },
-    waiting_merge: { icon: Icons.gitMerge(11), label: "Merge", color: "#a855f7" },
-    waiting_thor: { icon: Icons.shield(11), label: "Thor", color: "#ff9500" },
-    agent_running: { icon: Icons.cpu(11), label: "Agent", color: "#0066ff" },
+    waiting_ci: { icon: Icons.clock(11), label: 'CI', color: '#00d4ff' },
+    waiting_review: { icon: Icons.eye(11), label: 'Review', color: '#e6a117' },
+    waiting_merge: { icon: Icons.gitMerge(11), label: 'Merge', color: '#a855f7' },
+    waiting_thor: { icon: Icons.shield(11), label: 'Thor', color: '#ff9500' },
+    agent_running: { icon: Icons.cpu(11), label: 'Agent', color: '#0066ff' },
   };
   const badge = badges[substatus];
-  return badge ? `<span class="substatus-badge" style="color:${badge.color}" title="${esc(substatus)}">${badge.icon} ${badge.label}</span>` : "";
+  return badge
+    ? `<span class="substatus-badge" style="color:${badge.color}" title="${esc(substatus)}">${badge.icon} ${badge.label}</span>`
+    : '';
 }
 function _healthIcon(code) {
   const icons = {
@@ -43,36 +45,39 @@ function _healthIcon(code) {
   return icons[code] || icons.blocked;
 }
 function _renderHealthAlerts(health, planId, peer) {
-  if (!health || !health.length) return "";
-  const hasCritical = health.some((h) => h.severity === "critical");
-  let html = `<div class="plan-health-bar ${hasCritical ? "health-critical" : "health-warning"}" onclick="event.stopPropagation()">`;
+  if (!health || !health.length) return '';
+  const hasCritical = health.some((h) => h.severity === 'critical');
+  let html = `<div class="plan-health-bar ${hasCritical ? 'health-critical' : 'health-warning'}" onclick="event.stopPropagation()">`;
   html += `<div class="plan-health-alerts">`;
   health.forEach((h) => {
     html += `<div class="plan-health-item plan-health-${h.severity}">${_healthIcon(h.code)} <span>${esc(h.message)}</span></div>`;
   });
-  const actionable = health.some((h) => h.severity === "critical" || h.code === "thor_stuck" || h.code === "preflight_blocked");
-  if (!actionable) { html += `</div></div>`; return html; }
+  const actionable = health.some(
+    (h) => h.severity === 'critical' || h.code === 'thor_stuck' || h.code === 'preflight_blocked',
+  );
+  if (!actionable) {
+    html += `</div></div>`;
+    return html;
+  }
   html += `</div><div class="plan-health-actions">`;
-  const hasThor = health.some((h) => h.code === "thor_stuck");
+  const hasThor = health.some((h) => h.code === 'thor_stuck');
   if (hasThor) {
     html += `<button class="plan-health-btn plan-health-btn-thor" onclick="event.stopPropagation();runThorValidation(${planId})" title="Run Thor validation on submitted tasks"><svg width="16" height="16" viewBox="0 0 24 24" fill="var(--gold)"><path d="M12 1L8 5v3H5l-2 4h4l-3 11h2l7-9H9l3-5h5l3-4h-4l1-4h-5z"/></svg> Run Thor</button>`;
   }
-  html += `<button class="plan-health-btn plan-health-btn-resume" onclick="event.stopPropagation();resumePlanExecution(${planId},'${esc(peer || "local")}')" title="Resume/fix plan execution"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Resume</button>`;
-  html += `<button class="plan-health-btn plan-health-btn-term" onclick="event.stopPropagation();openPlanTerminal(${planId},'${esc(peer || "local")}')" title="Open terminal on plan"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg> Debug</button>`;
+  html += `<button class="plan-health-btn plan-health-btn-resume" onclick="event.stopPropagation();resumePlanExecution(${planId},'${esc(peer || 'local')}')" title="Resume/fix plan execution"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Resume</button>`;
+  html += `<button class="plan-health-btn plan-health-btn-term" onclick="event.stopPropagation();openPlanTerminal(${planId},'${esc(peer || 'local')}')" title="Open terminal on plan"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg> Debug</button>`;
   html += `</div></div>`;
   return html;
 }
 window.openPlanTerminal = function (planId, peer) {
-  if (typeof termMgr !== "undefined") {
-    const session = "plan-" + planId;
+  if (typeof termMgr !== 'undefined') {
+    const session = 'plan-' + planId;
     termMgr.open(
-      peer === "local" ||
-        peer ===
-          ((window.DashboardState && window.DashboardState.localPeerName) ||
-            "local")
-        ? "local"
+      peer === 'local' ||
+        peer === ((window.DashboardState && window.DashboardState.localPeerName) || 'local')
+        ? 'local'
         : peer,
-      "Plan #" + planId,
+      'Plan #' + planId,
       session,
     );
   }
@@ -84,26 +89,24 @@ window.resumePlanExecution = function (planId, peer) {
     window.DashboardState.lastMeshData
       .flatMap((n) => (n.plans || []).map((p) => ({ ...p, node: n.peer_name })))
       .find((p) => p.id === planId);
-  const assignedHost = planData ? planData.node : peer || "local";
+  const assignedHost = planData ? planData.node : peer || 'local';
   const target =
-    assignedHost === "local" ||
-    assignedHost ===
-      ((window.DashboardState && window.DashboardState.localPeerName) || "local")
-      ? "local"
+    assignedHost === 'local' ||
+    assignedHost === ((window.DashboardState && window.DashboardState.localPeerName) || 'local')
+      ? 'local'
       : assignedHost;
 
-  if (typeof termMgr === "undefined") return;
+  if (typeof termMgr === 'undefined') return;
 
-  const session = "plan-" + planId;
-  const tabId = termMgr.open(target, "Resume #" + planId, session);
+  const session = 'plan-' + planId;
+  const tabId = termMgr.open(target, 'Resume #' + planId, session);
 
   const tab = termMgr.tabs.find((t) => t.id === tabId);
   if (!tab) return;
 
   const sendResume = () => {
     if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
-      const cmd =
-        'cd ~/.claude && claude --model sonnet -p "/execute ' + planId + '"\n';
+      const cmd = 'cd ~/.claude && claude --model sonnet -p "/execute ' + planId + '"\n';
       tab.ws.send(new TextEncoder().encode(cmd));
     }
   };
@@ -123,68 +126,72 @@ function _renderOnePlan(m) {
   const p = m.plan,
     health = m.health || [],
     rawPct = p.tasks_total > 0 ? Math.round((100 * p.tasks_done) / p.tasks_total) : 0,
-    allValidated = m.waves && m.waves.length && m.waves.every(w => w.validated_at || w.status === "pending"),
+    allValidated =
+      m.waves && m.waves.length && m.waves.every((w) => w.validated_at || w.status === 'pending'),
     pct = rawPct >= 100 && !allValidated ? 95 : rawPct,
     pg = _progressGradient(pct),
     ringColor = pg.color,
     hostName = p.execution_peer || _resolveHost(p.execution_host),
     isRemote =
       hostName &&
-      hostName !== "local" &&
-      hostName !==
-        ((window.DashboardState && window.DashboardState.localPeerName) ||
-          "local"),
-    blocked = (m.tasks || []).filter((t) => t.status === "blocked").length,
-    running = (m.tasks || []).filter((t) => t.status === "in_progress").length,
-    waitingCi = (m.tasks || []).filter((t) => t.substatus === "waiting_ci").length,
-    waitingReview = (m.tasks || []).filter((t) => t.substatus === "waiting_review").length,
-    waitingMerge = (m.tasks || []).filter((t) => t.substatus === "waiting_merge").length,
-    waitingThor = (m.tasks || []).filter((t) => t.substatus === "waiting_thor").length,
-    agentRunning = (m.tasks || []).filter((t) => t.substatus === "agent_running").length,
-    hasCritical = health.some((h) => h.severity === "critical"),
+      hostName !== 'local' &&
+      hostName !== ((window.DashboardState && window.DashboardState.localPeerName) || 'local'),
+    blocked = (m.tasks || []).filter((t) => t.status === 'blocked').length,
+    running = (m.tasks || []).filter((t) => t.status === 'in_progress').length,
+    waitingCi = (m.tasks || []).filter((t) => t.substatus === 'waiting_ci').length,
+    waitingReview = (m.tasks || []).filter((t) => t.substatus === 'waiting_review').length,
+    waitingMerge = (m.tasks || []).filter((t) => t.substatus === 'waiting_merge').length,
+    waitingThor = (m.tasks || []).filter((t) => t.substatus === 'waiting_thor').length,
+    agentRunning = (m.tasks || []).filter((t) => t.substatus === 'agent_running').length,
+    hasCritical = health.some((h) => h.severity === 'critical'),
     nodeLabel = isRemote
       ? `<span class="host-badge-prominent">${esc(hostName)}</span>`
-      : hostName && hostName !== "local"
+      : hostName && hostName !== 'local'
         ? `<span class="host-badge-local">${esc(hostName)}</span>`
-        : "";
-  const cancelBtn = p.status !== "done"
-    ? `<button class="mission-cancel-btn" onclick="event.stopPropagation();cancelPlan(${p.id})" title="Cancel plan"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>`
-    : "";
-  let html = `<div class="mission-plan${hasCritical ? " mission-plan-critical" : health.length ? " mission-plan-warning" : ""}" onclick="filterTasks(${p.id})"><div style="margin-bottom:6px"><span class="mission-id">#${p.id}</span><span class="mission-name">&nbsp;${esc(p.name)}</span>${statusDot(p.status === "doing" ? "in_progress" : p.status)}${health.length ? `<span class="health-badge health-badge-${hasCritical ? "critical" : "warning"}" title="${health.map((h) => h.message).join("; ")}">${hasCritical ? "ALERT" : "WARN"}</span>` : ""}${nodeLabel}${p.parallel_mode ? `<span class="badge badge-doing">${p.parallel_mode}</span>` : ""}${p.project_name ? `<span class="badge badge-project">${esc(p.project_name)}</span>` : ""}<button class="mission-delegate-btn" onclick="event.stopPropagation();showDelegatePlanDialog(${p.id},'${esc(p.name)}')" title="Delegate to mesh node"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg></button>${p.status === "todo" ? `<button class="mission-start-btn" onclick="event.stopPropagation();showStartPlanDialog(${p.id},'${esc(p.name)}')" title="Start plan execution"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>` : ""}${cancelBtn}</div>${_renderHealthAlerts(health, p.id, hostName)}${p.human_summary ? `<div class="mission-summary">${esc(p.human_summary)}</div>` : ""}<div class="mission-progress">${_progressRing(pct, 56, ringColor)}<div class="mission-progress-bars"><div class="mission-progress-label"><span>Done ${p.tasks_done || 0}/${p.tasks_total || 0}</span><span style="color:var(--cyan)">${pct}%</span></div><div class="mission-progress-track"><div class="mission-progress-fill" style="width:${pct}%;background:${pg.gradient}"></div></div><div style="display:flex;gap:6px;font-size:9px;color:var(--text-dim);margin-top:4px;flex-wrap:wrap"><span>${running > 0 ? `<span style="color:var(--gold)">${running} running</span>` : ""}</span><span>${blocked > 0 ? `<span style="color:var(--red)">${blocked} blocked</span>` : ""}</span>${waitingCi > 0 ? _substatusBadge("waiting_ci") : ""}${waitingReview > 0 ? _substatusBadge("waiting_review") : ""}${waitingMerge > 0 ? _substatusBadge("waiting_merge") : ""}${waitingThor > 0 ? _substatusBadge("waiting_thor") : ""}${agentRunning > 0 ? _substatusBadge("agent_running") : ""}</div></div></div>`;
+        : '';
+  const stopBtn =
+    p.status === 'doing'
+      ? `<button class="mission-stop-btn" onclick="event.stopPropagation();stopPlan(${p.id})" title="Stop execution"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></button>`
+      : '';
+  const resetBtn =
+    p.status !== 'done'
+      ? `<button class="mission-reset-btn" onclick="event.stopPropagation();resetPlan(${p.id})" title="Reset to todo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 105.64-11.36L3 10"/></svg></button>`
+      : '';
+  const cancelBtn =
+    p.status !== 'done'
+      ? `<button class="mission-cancel-btn" onclick="event.stopPropagation();cancelPlan(${p.id})" title="Cancel plan"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>`
+      : '';
+  let html = `<div class="mission-plan${hasCritical ? ' mission-plan-critical' : health.length ? ' mission-plan-warning' : ''}" onclick="filterTasks(${p.id})"><div style="margin-bottom:6px"><span class="mission-id">#${p.id}</span><span class="mission-name">&nbsp;${esc(p.name)}</span>${statusDot(p.status === 'doing' ? 'in_progress' : p.status)}${health.length ? `<span class="health-badge health-badge-${hasCritical ? 'critical' : 'warning'}" title="${health.map((h) => h.message).join('; ')}">${hasCritical ? 'ALERT' : 'WARN'}</span>` : ''}${nodeLabel}${p.parallel_mode ? `<span class="badge badge-doing">${p.parallel_mode}</span>` : ''}${p.project_name ? `<span class="badge badge-project">${esc(p.project_name)}</span>` : ''}<button class="mission-delegate-btn" onclick="event.stopPropagation();showDelegatePlanDialog(${p.id},'${esc(p.name)}')" title="Delegate to mesh node"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg></button>${p.status === 'todo' ? `<button class="mission-start-btn" onclick="event.stopPropagation();showStartPlanDialog(${p.id},'${esc(p.name)}')" title="Start plan execution"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>` : ''}${stopBtn}${resetBtn}${cancelBtn}</div>${_renderHealthAlerts(health, p.id, hostName)}${p.human_summary ? `<div class="mission-summary">${esc(p.human_summary)}</div>` : ''}<div class="mission-progress">${_progressRing(pct, 56, ringColor)}<div class="mission-progress-bars"><div class="mission-progress-label"><span>Done ${p.tasks_done || 0}/${p.tasks_total || 0}</span><span style="color:var(--cyan)">${pct}%</span></div><div class="mission-progress-track"><div class="mission-progress-fill" style="width:${pct}%;background:${pg.gradient}"></div></div><div style="display:flex;gap:6px;font-size:9px;color:var(--text-dim);margin-top:4px;flex-wrap:wrap"><span>${running > 0 ? `<span style="color:var(--gold)">${running} running</span>` : ''}</span><span>${blocked > 0 ? `<span style="color:var(--red)">${blocked} blocked</span>` : ''}</span>${waitingCi > 0 ? _substatusBadge('waiting_ci') : ''}${waitingReview > 0 ? _substatusBadge('waiting_review') : ''}${waitingMerge > 0 ? _substatusBadge('waiting_merge') : ''}${waitingThor > 0 ? _substatusBadge('waiting_thor') : ''}${agentRunning > 0 ? _substatusBadge('agent_running') : ''}</div></div></div>`;
   html += typeof renderWaveGantt === 'function' ? renderWaveGantt(m.waves, p) : '';
   html += typeof renderTaskFlow === 'function' ? renderTaskFlow(m.tasks, p) : '';
-  return html + "</div>";
+  return html + '</div>';
 }
 function renderMission(data) {
   const st = window.DashboardState;
   st.lastMissionData = data;
-  st.allMissionPlans =
-    data && data.plans ? data.plans : data && data.plan ? [data] : [];
+  st.allMissionPlans = data && data.plans ? data.plans : data && data.plan ? [data] : [];
   window._dashboardPlans = st.allMissionPlans;
   if (!st.allMissionPlans.length) {
-    $("#mission-content").innerHTML =
-      '<span style="color:#5a6080">No active mission</span>';
-    $("#task-table tbody").innerHTML = "";
+    $('#mission-content').innerHTML = '<span style="color:#5a6080">No active mission</span>';
+    $('#task-table tbody').innerHTML = '';
     return;
   }
-  $("#mission-content").innerHTML = st.allMissionPlans
-    .map(_renderOnePlan)
-    .join("");
+  $('#mission-content').innerHTML = st.allMissionPlans.map(_renderOnePlan).join('');
   renderTaskPipeline();
 }
 
 window.runThorValidation = async function (planId) {
   try {
-    const r = await fetch(`/api/plans/${planId}/validate`, { method: "POST" });
+    const r = await fetch(`/api/plans/${planId}/validate`, { method: 'POST' });
     const d = await r.json();
     if (d.ok) {
-      showToast("Thor", `Validated ${d.validated || 0} tasks`, null, "info");
+      showToast('Thor', `Validated ${d.validated || 0} tasks`, null, 'info');
     } else {
-      showToast("Thor", d.error || "Validation failed", null, "error");
+      showToast('Thor', d.error || 'Validation failed', null, 'error');
     }
-    if (typeof refreshAll === "function") refreshAll();
+    if (typeof refreshAll === 'function') refreshAll();
   } catch (e) {
-    showToast("Thor", "Request failed: " + e.message, null, "error");
+    showToast('Thor', 'Request failed: ' + e.message, null, 'error');
   }
 };
 

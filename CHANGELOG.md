@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.18.0] - 07 Mar 2026
+
+### Added
+- interactive brain graph + plan stop/reset/cancel buttons
+
+
 ## [v10.17.4] - 07 Mar 2026
 
 ### Fixed

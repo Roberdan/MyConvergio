@@ -127,7 +127,7 @@
         <span class="widget-title">Augmented Brain</span>
         <div class="brain-stats" id="brain-stats"></div>
       </div>
-      <div id="brain-canvas-container" style="width:100%;height:280px;position:relative;"></div>
+      <div id="brain-canvas-container" style="width:100%;height:480px;position:relative;"></div>
     </div>
     <div class="widget" id="agent-organization-widget">
       <div class="widget-header">
@@ -182,7 +182,7 @@
   <span id="last-update"></span>
 </div>
 
-<script>window.onerror=function(m,s,l,c,e){console.error('JS ERROR:',m,s,l,c,e);var d=document.getElementById('js-errors');if(!d){d=document.createElement('div');d.id='js-errors';d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1a0000;color:#ff3355;font:11px monospace;padding:8px;z-index:99999;max-height:120px;overflow:auto';document.body.appendChild(d)}d.innerHTML+='<div>'+s.split('/').pop()+':'+l+' '+m+'</div>';}</script>
+<script>window.onerror=function(m,s,l,c,e){if(typeof m==='string'&&m.indexOf('ResizeObserver')!==-1)return;console.error('JS ERROR:',m,s,l,c,e);var d=document.getElementById('js-errors');if(!d){d=document.createElement('div');d.id='js-errors';d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1a0000;color:#ff3355;font:11px monospace;padding:8px;z-index:99999;max-height:120px;overflow:auto';document.body.appendChild(d)}d.innerHTML+='<div>'+s.split('/').pop()+':'+l+' '+m+'</div>';}</script>
 <script src="icons.js"></script>
 <script src="theme-switcher.js"></script>
 <script src="utils.js"></script>
@@ -198,13 +198,9 @@
 <script src="activity.js"></script>
 <script src="kpi-modals.js"></script>
 <script src="websocket.js"></script>
-<script src="/brain-regions.js"></script>
-<script src="/brain-organism.js"></script>
-<script src="/brain-consciousness.js"></script>
-<script src="/brain-layout.js"></script>
-<script src="/brain-sessions.js"></script>
-<script src="/brain-effects.js"></script>
-<script src="/brain-canvas.js"></script>
+<script src="brain-layout.js"></script>
+<script src="brain-interact.js"></script>
+<script src="brain-canvas.js"></script>
 <script src="app.js"></script>
 <script src="mesh.js"></script>
 <script src="mesh-animation.js"></script>

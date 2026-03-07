@@ -1,7 +1,28 @@
-.wave-name { color: var(--text-dim); font-weight: normal; font-size: 11px; }
-.wave-gantt-container { margin-top: 8px; position: relative; }
-.wave-gantt-bar { height: 24px; border-radius: 4px; margin: 2px 0; position: relative; display: flex; align-items: center; padding: 0 8px; font-size: 10px; }
-.wave-gantt-arrow { stroke: var(--cyan); stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+.wave-name {
+  color: var(--text-dim);
+  font-weight: normal;
+  font-size: 11px;
+}
+.wave-gantt-container {
+  margin-top: 8px;
+  position: relative;
+}
+.wave-gantt-bar {
+  height: 24px;
+  border-radius: 4px;
+  margin: 2px 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 10px;
+}
+.wave-gantt-arrow {
+  stroke: var(--cyan);
+  stroke-width: 1.5;
+  fill: none;
+  marker-end: url(#arrow);
+}
 
 .wave-gantt {
   position: relative;
@@ -41,17 +62,41 @@
   overflow: visible;
 }
 
+.mission-stop-btn,
+.mission-reset-btn,
 .mission-cancel-btn {
   background: none;
   border: none;
   cursor: pointer;
   padding: 2px 4px;
-  color: var(--text-dim);
-  opacity: 0.3;
-  transition: opacity 0.15s, color 0.15s;
+  opacity: 0.5;
+  transition:
+    opacity 0.15s,
+    color 0.15s,
+    transform 0.1s;
   vertical-align: middle;
+}
+.mission-stop-btn {
+  color: var(--gold, #ffd700);
+}
+.mission-stop-btn:hover {
+  opacity: 1;
+  color: #ffaa00;
+  transform: scale(1.2);
+}
+.mission-reset-btn {
+  color: var(--cyan, #00e5ff);
+}
+.mission-reset-btn:hover {
+  opacity: 1;
+  color: #00ccee;
+  transform: scale(1.2);
+}
+.mission-cancel-btn {
+  color: #ee3344;
 }
 .mission-cancel-btn:hover {
   opacity: 1;
-  color: #ee3344;
+  color: #ff1133;
+  transform: scale(1.2);
 }

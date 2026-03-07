@@ -1,5 +1,29 @@
 # Changelog
 
+## [10.16.0] — 2026-03-07
+
+### Added
+
+- Unified `myconvergio setup` bootstrap flow for optional shell, devtools, prompt, tmux, and workstation setup.
+- New `myconvergio ecosystem-sync` orchestration command with manifest-driven mirror sync and validation.
+- New environment commands: `shell-check`, `init-shell`, `install-tools`, and `doctor`.
+- Dashboard live-system + organization telemetry helpers, tests, and boot-time SQL validation.
+- DB repair, token normalization, execution preflight, PR template, and Git hooks parity for safer execution.
+
+### Changed
+
+- Upgraded dashboard token/task attribution to prefer exact task rows, then delegation fallback.
+- Refreshed DB schema + migration assets for live runtime telemetry and stronger indexing.
+- Hardened terminal endpoints and worker execution flow to match the current production control room.
+- Reworked setup/install docs around a single guided bootstrap command.
+- Clarified Claude vs Copilot planner routing and documented how the same workflow applies to business, design, and other non-code objectives.
+
+### Fixed
+
+- Stale dashboard tests that still targeted the removed mini-dashboard layout.
+- Missing numeric `TASK_ID` validation in `copilot-worker.sh`.
+- Missing repository scaffolding required by hardening checks (`.githooks`, PR template).
+
 ## [10.7.0] — 2026-03-05
 
 ### Added

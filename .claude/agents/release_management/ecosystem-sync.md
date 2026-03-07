@@ -26,7 +26,7 @@ constraints: ["Modifies files within assigned domain"]
 - NEVER copy files containing personal paths, credentials, or PII
 - NEVER include project-specific agents (e.g., mirrorbuddy) in public repo
 - NEVER include research reports, logs, or generated output files
-- ALL paths must be generic (`~/.claude/`, not `/Users/<username>/`)
+- ALL paths must be generic (`~/.claude/`, not machine-specific absolute paths)
 
 ---
 
@@ -69,7 +69,7 @@ config/peers.conf  (contains real IPs — use peers.conf.example)
 ### Step 1: Diff Analysis (always first)
 
 ```bash
-sync-to-myconvergio.sh --dry-run --verbose
+ecosystem-sync.sh all --dry-run --verbose
 ```
 
 Review output: NEW, UPDATED, REMOVED, BLOCKED entries.
@@ -78,7 +78,7 @@ Review output: NEW, UPDATED, REMOVED, BLOCKED entries.
 
 For each file to sync, verify:
 
-1. No hardcoded paths (`/Users/<name>/`, `/home/<name>/`)
+1. No machine-specific absolute paths
 2. No credentials, API keys, tokens (actual values, not references)
 3. No project-specific references (MirrorBuddy, personal projects)
 4. Line count ≤ 250 (enforced by hooks)
@@ -86,21 +86,22 @@ For each file to sync, verify:
 ### Step 3: Execute Sync
 
 ```bash
-sync-to-myconvergio.sh --category all
+ecosystem-sync.sh all
 ```
 
 Or selective:
 
 ```bash
-sync-to-myconvergio.sh --category agents
-sync-to-myconvergio.sh --category scripts
-sync-to-myconvergio.sh --category copilot
+ecosystem-sync.sh upstream --category agents
+ecosystem-sync.sh upstream --category scripts
+ecosystem-sync.sh upstream --category copilot
+ecosystem-sync.sh mirrors
 ```
 
 ### Step 4: Verify & Commit
 
 ```bash
-cd ~/GitHub/MyConvergio
+cd /path/to/MyConvergio
 git diff --stat
 grep -rn "/Users/" .claude/ --include="*.md" --include="*.sh"
 grep -rn "/home/" .claude/ --include="*.md" --include="*.sh"
@@ -134,7 +135,7 @@ Before syncing a v2.1.x release, verify these features are present and consisten
 ## Post-Sync Checklist
 
 - [ ] `git diff --stat` shows only expected changes
-- [ ] `grep -rn "/Users/" .claude/` returns 0 results (or generic examples only)
+- [ ] `grep -rn "/Users/" .claude/` returns 0 results
 - [ ] `make lint` passes (YAML frontmatter validation)
 - [ ] `make validate` passes (Constitution compliance)
 - [ ] Agent count matches expected total

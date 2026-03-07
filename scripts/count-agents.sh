@@ -5,6 +5,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+VERSION_FILE="$ROOT_DIR/VERSION"
+
+SYSTEM_VERSION="$(grep '^SYSTEM_VERSION=' "$VERSION_FILE" | cut -d= -f2)"
+if [[ -z "$SYSTEM_VERSION" ]]; then
+	echo "ERROR: SYSTEM_VERSION not found in $VERSION_FILE" >&2
+	exit 1
+fi
 
 # Non-agent .md files in .claude/agents/ (docs, not agents)
 EXCLUDE_NAMES="CONSTITUTION.md|CommonValuesAndPrinciples.md|MICROSOFT_VALUES.md|SECURITY_FRAMEWORK_TEMPLATE.md|EXECUTION_DISCIPLINE.md"
@@ -24,17 +31,49 @@ COUNTS_LINE="unique:${UNIQUE_COUNT} claude:${CLAUDE_COUNT} copilot:${COPILOT_COU
 TEMPLATE_LINE="<!-- AGENT_COUNTS: ${COUNTS_LINE} -->"
 
 sync_docs() {
-	for file in "$ROOT_DIR/README.md" "$ROOT_DIR/AGENTS.md"; do
-		if [[ ! -f "$file" ]]; then
-			continue
-		fi
-		if grep -q '^<!-- AGENT_COUNTS: ' "$file"; then
-			sed -i '' "s|^<!-- AGENT_COUNTS: .* -->$|${TEMPLATE_LINE}|g" "$file"
-		else
-			echo "ERROR: Missing AGENT_COUNTS template in $file" >&2
-			exit 1
-		fi
-	done
+	python3 - "$ROOT_DIR" "$TEMPLATE_LINE" "$UNIQUE_COUNT" "$CLAUDE_COUNT" "$COPILOT_COUNT" "$SYSTEM_VERSION" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+template_line = sys.argv[2]
+unique_count = sys.argv[3]
+claude_count = sys.argv[4]
+copilot_count = sys.argv[5]
+system_version = sys.argv[6]
+
+for rel in ("README.md", "AGENTS.md"):
+    path = root / rel
+    if not path.exists():
+        continue
+    content = path.read_text(encoding="utf-8")
+    if "<!-- AGENT_COUNTS: " not in content:
+        raise SystemExit(f"ERROR: Missing AGENT_COUNTS template in {path}")
+    content = re.sub(r"^<!-- AGENT_COUNTS: .* -->$", template_line, content, flags=re.M)
+    if rel == "README.md":
+        content = re.sub(r"badge/agents-\d+-", f"badge/agents-{unique_count}-", content)
+    if rel == "AGENTS.md":
+        content = re.sub(r"\*\*v[0-9.]+\*\* \| \d+ Unique Agents \(\d+ Claude \+ \d+ Copilot files\) \| Multi-Provider Orchestrator",
+                         f"**v{system_version}** | {unique_count} Unique Agents ({claude_count} Claude + {copilot_count} Copilot files) | Multi-Provider Orchestrator",
+                         content)
+        content = re.sub(r"\*\*v[0-9.]+\*\* \| \d+ Unique Agents \| Multi-Provider Orchestrator",
+                         f"**v{system_version}** | {unique_count} Unique Agents ({claude_count} Claude + {copilot_count} Copilot files) | Multi-Provider Orchestrator",
+                         content)
+        content = re.sub(r"supports both \*\*Claude Code\*\* \(\d+ agent files\) and \*\*GitHub Copilot CLI\*\* \(\d+ agent files\)",
+                         f"supports both **Claude Code** ({claude_count} agent files) and **GitHub Copilot CLI** ({copilot_count} agent files)",
+                         content)
+        content = re.sub(r"- \d+ Claude agent files across 8 categories",
+                         f"- {claude_count} Claude agent files across 8 categories",
+                         content)
+        content = re.sub(r"- \d+ Copilot agent files for GitHub Copilot users",
+                         f"- {copilot_count} Copilot agent files for GitHub Copilot users",
+                         content)
+        content = re.sub(r"\*\*Total\*\*: \d+ agent files \(\d+ Claude \+ \d+ Copilot\)",
+                         f"**Total**: {int(claude_count) + int(copilot_count)} agent files ({claude_count} Claude + {copilot_count} Copilot)",
+                         content)
+    path.write_text(content, encoding="utf-8")
+PY
 }
 
 check_docs() {

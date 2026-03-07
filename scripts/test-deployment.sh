@@ -213,8 +213,8 @@ echo -e "${BLUE}Test Suite: Version Sync${NC}"
 
 run_test "version-sync.sh exists" "[ -f '$ROOT_DIR/scripts/version-sync.sh' ]"
 run_test "version-sync.sh is executable" "[ -x '$ROOT_DIR/scripts/version-sync.sh' ]"
-run_test "version-sync.sh is idempotent (no git diff after sync)" \
-	"cd '$ROOT_DIR' && bash scripts/version-sync.sh >/dev/null 2>&1 && [ \"\$(git diff --name-only | wc -l | tr -d ' ')\" = '0' ]"
+run_test "version-sync.sh is idempotent (does not add new diff)" \
+	"cd '$ROOT_DIR' && BEFORE=\"\$(git diff --name-only | wc -l | tr -d ' ')\" && bash scripts/version-sync.sh >/dev/null 2>&1 && AFTER=\"\$(git diff --name-only | wc -l | tr -d ' ')\" && [ \"\$BEFORE\" = \"\$AFTER\" ]"
 run_test "make release target exists" "cd '$ROOT_DIR' && make -n release 2>/dev/null | grep -q 'version-sync'"
 
 echo ""
@@ -231,9 +231,9 @@ run_test "count-agents.sh outputs claude: field" \
 run_test "count-agents.sh outputs copilot: field" \
 	"bash '$ROOT_DIR/scripts/count-agents.sh' | grep -q 'copilot:'"
 run_test "count-agents.sh claude count >= 50" \
-	"CLAUDE_N=\$(bash '$ROOT_DIR/scripts/count-agents.sh' | grep -oP 'claude:\\s*\\K[0-9]+'); [ \"\$CLAUDE_N\" -ge 50 ]"
+	"CLAUDE_N=\$(bash '$ROOT_DIR/scripts/count-agents.sh' | sed -n 's/.*claude:\\([0-9][0-9]*\\).*/\\1/p'); [ \"\$CLAUDE_N\" -ge 50 ]"
 run_test "count-agents.sh copilot count >= 1" \
-	"COPILOT_N=\$(bash '$ROOT_DIR/scripts/count-agents.sh' | grep -oP 'copilot:\\s*\\K[0-9]+'); [ \"\$COPILOT_N\" -ge 1 ]"
+	"COPILOT_N=\$(bash '$ROOT_DIR/scripts/count-agents.sh' | sed -n 's/.*copilot:\\([0-9][0-9]*\\).*/\\1/p'); [ \"\$COPILOT_N\" -ge 1 ]"
 run_test "make count-agents target exists" "cd '$ROOT_DIR' && make -n count-agents 2>/dev/null | grep -q 'count-agents.sh'"
 
 echo ""

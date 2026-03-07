@@ -67,6 +67,17 @@ Add your project-specific guidelines below:
 
 - [Define your documentation standards]
 
+## Recommended Workflow Mapping
+
+| Step | Claude Code | Copilot CLI |
+| --- | --- | --- |
+| Capture goal | `/prompt "<goal>"` | `@prompt "<goal>"` |
+| Create plan | `/planner` | `@planner` or `cplanner "<goal>"` |
+| Execute | `/execute {id}` | `@execute {id}` |
+| Validate | Thor / project validator | `@validate {plan_id or task}` |
+
+Do not use Copilot CLI `/plan` if you want MyConvergio plan-db + Thor discipline. Business, design, and strategy objectives use the same workflow and close on validated deliverables when no repo merge is needed.
+
 ---
 
 ## References

@@ -47,6 +47,11 @@
         "bash": "~/.claude/hooks/enforce-plan-edit.sh",
         "timeoutSec": 10
       }
+      ,{
+        "type": "command",
+        "bash": "~/.claude/hooks/enforce-execution-preflight.sh",
+        "timeoutSec": 10
+      }
     ],
     "postToolUse": [
       {

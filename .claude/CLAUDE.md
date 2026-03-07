@@ -35,6 +35,18 @@ Claude automatically stores cross-session context (recent decisions, patterns, e
 
 `/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task → Thor per-wave → closure (all F-xx verified) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
 
+### Practical Command Mapping
+
+| Step | Claude Code | Copilot CLI | Notes |
+| --- | --- | --- | --- |
+| Capture goal | `/prompt "<goal>"` | `@prompt "<goal>"` | Structured requirements |
+| Create plan | `/planner` | `@planner` or `cplanner "<goal>"` | Use MyConvergio planner, not Copilot `/plan` |
+| Execute plan | `/execute {id}` | `@execute {id}` | Plan-db execution flow |
+| Validate | Thor / project validator | `@validate {plan_id or task}` | Independent quality gate |
+| Close | PR + CI + merge, or validated deliverable approval | PR + CI + merge, or validated deliverable approval | Depends on artifact type |
+
+**Non-code objectives** use the same workflow. The difference is closure: business/design/research/process plans end on validated deliverables and approval, while repo-backed plans continue through PR + CI + merge.
+
 ### Slash Commands & CLI
 
 | Command         | Purpose                                |
@@ -74,7 +86,7 @@ Per-task: Gate 1-4, 8, 9 | Per-wave: all 9 gates + build | Max 3 rejection round
 | Thor validation            | `Task(subagent_type="thor")`          | `@validate`     | Self-declaring done        |
 | Single isolated fix        | Direct edit (no plan needed)          | Direct edit     | Creating unnecessary plan  |
 
-**PLANNER MODEL (NON-NEGOTIABLE)**: `/planner` DEVE sempre girare su Opus (`model: opus` nel frontmatter — alias auto-risolto). Se il coordinator è Sonnet, BLOCCA e avvisa l'utente. Sonnet che pianifica = VIOLATION (vedi Plan 289).
+**PLANNER MODEL (NON-NEGOTIABLE)**: `/planner` DEVE sempre girare su Opus (`model: opus` nel frontmatter — alias auto-risolto). Se il coordinator è Sonnet, BLOCCA e avvisa l'utente. Sonnet che pianifica = VIOLATION (vedi Plan 289). In Copilot CLI, `/plan` is the built-in lightweight planner and must not replace `@planner` / `cplanner`.
 
 ## Pre-Closure Checklist (MANDATORY)
 

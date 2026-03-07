@@ -18,6 +18,10 @@ fail()  { printf "${RED}✗ ${RESET}%s\n" "$*"; }
 step()  { printf "${BOLD}[%s/%s]${RESET} %s\n" "$1" "$2" "$3"; }
 ask_yn() {
   local prompt="$1" default="${2:-y}"
+  if [[ "${SETUP_ASSUME_YES:-0}" == "1" ]]; then
+    [[ "$default" == "y" ]]
+    return
+  fi
   if [[ "$default" == "y" ]]; then prompt="$prompt [Y/n]"; else prompt="$prompt [y/N]"; fi
   printf "${YELLOW}? ${RESET}%s " "$prompt"
   read -r answer </dev/tty 2>/dev/null || answer=""

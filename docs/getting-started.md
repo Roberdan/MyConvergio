@@ -1,209 +1,107 @@
 # Getting Started with MyConvergio
 
-From zero to a completed plan in 10 minutes.
-
-```mermaid
-graph LR
-    I[Install] --> C[Configure] --> F[First Task] --> R[See Results]
-    style I fill:#e1f5fe
-    style R fill:#c8e6c9
-```
-
----
+From zero to a working AI organization in one guided command.
 
 ## Prerequisites
 
-| Tool      | Required | Notes                           |
-| --------- | -------- | ------------------------------- |
-| `bash`    | Yes      | Preinstalled on macOS/Linux     |
-| `sqlite3` | Yes      | Preinstalled on macOS/Linux     |
-| `git`     | Yes      | For worktree isolation          |
-| `claude`  | Yes      | Claude Code CLI                 |
-| `gh`      | Optional | For Copilot CLI + PR automation |
+| Tool | Required | Notes |
+| --- | --- | --- |
+| `bash` | Yes | macOS/Linux/WSL |
+| `git` | Yes | install/update workflow |
+| `sqlite3` | Yes | dashboard + plan DB |
+| `claude` | Yes | Claude Code / CLI |
+| `gh` | Optional | Copilot CLI + PR automation |
 
-**Windows**: Use WSL2. All tools work identically.
-
----
+**Windows**: use WSL2.
 
 ## Installation
 
-### Option A: One-Line Install
+### Fastest path
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
+myconvergio setup --full --with-workstation
 ```
 
-Expected output:
+### What `myconvergio setup` does
 
-```
-✓ Cloned to ~/.myconvergio/
-✓ Installed 65 agents to ~/.claude/agents/
-✓ CLI installed to ~/.local/bin/myconvergio
-✓ Ready! Run: claude
-```
+1. detects OS, architecture, package manager, and hardware tier
+2. installs missing required dependencies
+3. installs MyConvergio assets into `~/.claude/`
+4. optionally installs recommended CLI/dev tools (`rg`, `fd`, `fzf`, `gh`, `delta`, `eza`, `starship`, etc.)
+5. optionally updates your shell RC with PATH + `shell-aliases.sh`
+6. verifies the environment with `myconvergio doctor`
 
-### Option B: Clone & Make
+### Common profiles
 
 ```bash
-git clone https://github.com/Roberdan/MyConvergio.git && cd MyConvergio
-make install
+myconvergio setup --minimal
+myconvergio setup --standard --with-shell --with-devtools
+myconvergio setup --full --with-workstation
 ```
 
-### Option C: Modular (Minimal)
+## Your first workflow
+
+### Claude Code
 
 ```bash
-myconvergio install --minimal   # 9 core agents (~50KB)
+/prompt "Add Stripe checkout with subscription management to my Next.js SaaS"
+/planner
+/execute 42
 ```
 
-### Copilot CLI Setup
+### Copilot CLI
 
 ```bash
-cp copilot-agents/*.agent.md ~/.copilot/agents/
-```
-
----
-
-## Your First Workflow
-
-**Scenario**: "Add Stripe checkout to my SaaS"
-
-### Step 1: Extract Requirements
-
-```bash
-@prompt Add Stripe checkout with subscription management to my Next.js SaaS
-```
-
-Output:
-
-```
-Extracted 6 requirements:
-  F-01: Stripe SDK integration with API keys management
-  F-02: Checkout session creation endpoint
-  F-03: Webhook handler for payment events
-  F-04: Subscription CRUD with customer portal
-  F-05: Pricing page with plan selection UI
-  F-06: Error handling and retry logic
-Saved to: .copilot-tracking/stripe-prompt.md
-```
-
-### Step 2: Create Plan
-
-```bash
-@planner Create plan from .copilot-tracking/stripe-prompt.md
-```
-
-Output:
-
-```
-Plan 42 created: "Stripe Checkout Integration"
-  Wave 1: Payment Infrastructure (F-01, F-02, F-03) — 3 tasks
-  Wave 2: Subscription & UI (F-04, F-05, F-06) — 3 tasks
-  Worktree: plan/42-W1 (auto-created)
-  DB: ~/.claude/data/dashboard.db
-```
-
-### Step 3: Execute with TDD
-
-```bash
+@prompt "Add Stripe checkout with subscription management to my Next.js SaaS"
+cplanner "Add Stripe checkout with subscription management to my Next.js SaaS"
 @execute 42
 ```
 
-The executor runs each task through the TDD cycle: write failing test → implement → pass → Thor validates.
+`cplanner` is the MyConvergio wrapper for Copilot planner routing. You can also use `@planner` directly or `/agent -> planner`.
 
-### Step 4: Thor Validates
+> Do not use Copilot CLI `/plan` when you want MyConvergio plan-db + Thor discipline.
 
-Thor runs 9 independent quality gates per task:
+Thor validates every task before it becomes done.
 
-```
-Thor Gate Results — Task T1-01:
-  ✓ Gate 1: F-xx Compliance (F-01 satisfied)
-  ✓ Gate 2: Code Quality
-  ✓ Gate 3: Credential Scanning (no secrets)
-  ✓ Gate 4: Repo Standards
-  ✓ Gate 5: Documentation Updated
-  ✓ Gate 6: Git Hygiene
-  ✓ Gate 7: Performance
-  ✓ Gate 8: TDD (3 tests, all passing)
-  ✓ Gate 9: Constitution & ADR
-  VERDICT: PASS
-```
+## Non-code objectives
 
-### Step 5: Ship
+The same process works for business, design, research, and operations goals:
 
 ```bash
-wave-worktree.sh merge 42 W1   # Auto: commit → push → PR → CI → squash merge
+@prompt "Create a GTM plan for our B2B launch in Germany"
+cplanner "Create a GTM plan for our B2B launch in Germany"
+@execute 57
 ```
 
----
+What changes is the **deliverable**, not the workflow:
 
-## Copilot `--yolo` Mode
+- code goal -> tests, PR, CI, merge
+- business goal -> memo, matrix, recommendations, approval
+- design goal -> audit, spec, wireframe package, approval
+- architecture/process goal -> ADR, checklist, rollout plan
 
-For fully autonomous delegation, Copilot workers run with `--yolo`:
+## Dashboard
 
 ```bash
-copilot-worker.sh ${task_id} --model gpt-5 --timeout 600
-# Internally uses: copilot --yolo (no confirmation prompts)
+python3 ~/.claude/scripts/dashboard_web/server.py
 ```
 
-This enables maximum throughput — the agent executes without pausing for approval. Thor validates independently after completion.
+Open `http://localhost:8420` to see:
 
----
+- plan/wave/task status
+- live organization view (agents grouped by node / role)
+- live runtime graph (active runs, handoffs, events)
+- per-model token/cost attribution
 
-## Understanding the Output
-
-### Dashboard
+## Useful commands
 
 ```bash
-dashboard-mini.sh              # Full project overview
-dashboard-mini.sh --overview   # Cross-project summary
-plan-db.sh list-tasks 42       # Task-level status
+myconvergio doctor
+myconvergio shell-check
+myconvergio init-shell --yes
+myconvergio install-tools --profile full --with-prompt
+plan-db.sh list-tasks 42
 ```
 
-### SQLite Database
-
-The DB tracks all state: plans, waves, tasks, tokens, timestamps.
-
-```bash
-sqlite3 ~/.claude/data/dashboard.db "SELECT id, status FROM tasks WHERE plan_id=42"
-```
-
----
-
-## First Workflow Sequence
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant PR as /prompt
-    participant PL as /planner
-    participant DB as SQLite DB
-    participant EX as /execute
-    participant TH as Thor
-    U->>PR: "Add Stripe checkout"
-    PR->>U: 6 F-xx requirements
-    U->>PL: Create plan
-    PL->>DB: Store plan + waves + tasks
-    PL->>U: Plan 42 ready
-    U->>EX: Execute plan 42
-    EX->>EX: TDD cycle per task
-    EX->>TH: Validate task
-    TH->>TH: 9-gate check
-    TH-->>EX: PASS/FAIL
-    EX->>DB: Update status
-    EX->>U: Wave complete
-```
-
----
-
-## Next Steps
-
-| Goal                     | Document                                       |
-| ------------------------ | ---------------------------------------------- |
-| Understand core concepts | [Concepts & Glossary](./concepts.md)           |
-| Full workflow reference  | [Workflow Guide](./workflow.md)                |
-| See real scenarios       | [Use Cases](./use-cases.md)                    |
-| Browse all agents        | [Agent Portfolio](./agents/agent-portfolio.md) |
-
----
-
-[README](../README.md) | [Getting Started](getting-started.md) | [Concepts](concepts.md) | [Workflow](workflow.md) | [Use Cases](use-cases.md) | [Infrastructure](infrastructure.md) | [Comparison](agents/comparison.md)
+[README](../README.md) | [Workflow](workflow.md) | [Hardware](HARDWARE_DETECTION.md)

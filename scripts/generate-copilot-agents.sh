@@ -13,15 +13,6 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Model name mapping
-declare -A MODEL_MAP=(
-  ["sonnet"]="claude-sonnet-4.5" ["opus"]="claude-opus-4.6" ["opus-1m"]="claude-opus-4.6-1m"
-  ["haiku"]="claude-haiku-4.5" ["codex"]="gpt-5.3-codex" ["codex-mini"]="gpt-5.1-codex-mini"
-  ["claude-sonnet-4.5"]="claude-sonnet-4.5" ["claude-opus-4.6"]="claude-opus-4.6"
-  ["claude-opus-4.6-1m"]="claude-opus-4.6-1m" ["claude-haiku-4.5"]="claude-haiku-4.5"
-  ["gpt-5.3-codex"]="gpt-5.3-codex" ["gpt-5.1-codex-mini"]="gpt-5.1-codex-mini"
-)
-
 CONVERTED=0 SKIPPED=0 ERRORS=0
 
 show_usage() {
@@ -53,12 +44,20 @@ map_model_name() {
   # Remove any leading/trailing whitespace
   model=$(echo "$model" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   
-  if [[ -n "${MODEL_MAP[$model]:-}" ]]; then
-    echo "${MODEL_MAP[$model]}"
-  else
-    # If no mapping found, return original
-    echo "$model"
-  fi
+  case "$model" in
+    sonnet) echo "claude-sonnet-4.5" ;;
+    opus) echo "claude-opus-4.6" ;;
+    opus-1m) echo "claude-opus-4.6-1m" ;;
+    haiku) echo "claude-haiku-4.5" ;;
+    codex) echo "gpt-5.3-codex" ;;
+    codex-mini) echo "gpt-5.1-codex-mini" ;;
+    claude-sonnet-4.5|claude-opus-4.6|claude-opus-4.6-1m|claude-haiku-4.5|gpt-5.3-codex|gpt-5.1-codex-mini)
+      echo "$model"
+      ;;
+    *)
+      echo "$model"
+      ;;
+  esac
 }
 
 # Normalize tool names to lowercase
@@ -225,8 +224,11 @@ main() {
   fi
   
   # Find and process all .md files in source directory
-  mapfile -t agent_files < <(find "$SOURCE_DIR" -type f -name "*.md")
-  
+  local agent_files=()
+  while IFS= read -r source_file; do
+    agent_files+=("$source_file")
+  done < <(find "$SOURCE_DIR" -type f -name "*.md")
+
   echo "Processing ${#agent_files[@]} agent files..."
   echo ""
   

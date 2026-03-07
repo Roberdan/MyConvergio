@@ -9,13 +9,13 @@ setup() {
   [ -f "$INSTALLER" ]
 }
 
-@test "install.sh: requires jq in prerequisites" {
-  run grep 'jq' "$INSTALLER"
+@test "install.sh: requires git in prerequisites" {
+  run grep 'git' "$INSTALLER"
   [ "$status" -eq 0 ]
 }
 
-@test "install.sh: requires git in prerequisites" {
-  run grep 'git' "$INSTALLER"
+@test "install.sh: documents guided setup flags" {
+  run grep -- '--with-workstation' "$INSTALLER"
   [ "$status" -eq 0 ]
 }
 

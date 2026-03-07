@@ -1,18 +1,32 @@
 #!/bin/bash
 # copilot-worker.sh - Launch Copilot CLI worker for a plan task
 # Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]
-# Version: 3.0.0 - submitted status flow, per-task Thor validation, SQLite trigger compatibility
+# Version: 3.3.0 - Fix bad substitution in cleanup (array length + default)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_FILE="${HOME}/.claude/data/dashboard.db"
 
-# Cleanup temp files on exit (SEC: prevent temp file leaks)
+# PATH hardening: ensure copilot CLI is findable in non-login SSH shells
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$HOME/.claude/scripts:$PATH"
+
+# Cleanup temp files AND child processes on exit
 _WORKER_TMPFILES=()
+_WORKER_CHILD_PIDS=()
 _worker_cleanup() {
+	set +u
+	if [[ ${#_WORKER_CHILD_PIDS[@]} -gt 0 ]]; then
+		for pid in "${_WORKER_CHILD_PIDS[@]}"; do
+			kill -9 "$pid" 2>/dev/null || true
+			pkill -9 -P "$pid" 2>/dev/null || true
+		done
+	fi
 	for f in "${_WORKER_TMPFILES[@]}"; do
 		[[ -f "$f" ]] && rm -f "$f"
 	done
+	set -u
+	# Kill any remaining children of this process
+	pkill -9 -P $$ 2>/dev/null || true
 }
 trap _worker_cleanup EXIT INT TERM
 
@@ -21,6 +35,11 @@ source "${SCRIPT_DIR}/lib/agent-protocol.sh"
 
 TASK_ID="${1:-}"
 shift || true
+
+if [[ -z "$TASK_ID" || ! "$TASK_ID" =~ ^[0-9]+$ ]]; then
+	echo "Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]" >&2
+	exit 2
+fi
 
 # Defaults (gpt-5.3-codex = cheapest adequate for most tasks)
 MODEL="gpt-5.3-codex"
@@ -42,11 +61,6 @@ while [[ $# -gt 0 ]]; do
 	*) shift ;;
 	esac
 done
-
-if [[ -z "$TASK_ID" ]]; then
-	echo "Usage: copilot-worker.sh <db_task_id> [--model <model>] [--timeout <secs>]" >&2
-	exit 1
-fi
 
 # Preflight checks
 if ! command -v copilot &>/dev/null; then
@@ -71,9 +85,10 @@ if [[ "$STATUS" != "pending" && "$STATUS" != "in_progress" ]]; then
 fi
 
 # Get context for execution and delegation log
+# Bug fix: resolve wave worktree first (wave-per-worktree model), fallback to plan worktree
 TASK_CTX=$(sqlite3 "$DB_FILE" "
 	SELECT json_object(
-		'worktree', COALESCE(p.worktree_path,''),
+		'worktree', COALESCE(w.worktree_path, p.worktree_path, ''),
 		'plan_id', COALESCE(t.plan_id,0),
 		'project_id', COALESCE(p.project_id,''),
 		'task_type', COALESCE(t.type,'code'),
@@ -81,6 +96,7 @@ TASK_CTX=$(sqlite3 "$DB_FILE" "
 	)
 	FROM tasks t
 	JOIN plans p ON t.plan_id = p.id
+	LEFT JOIN waves w ON t.wave_id_fk = w.id
 	WHERE t.id = $TASK_ID;
 ")
 WT="$(echo "$TASK_CTX" | jq -r '.worktree // ""')"
@@ -96,6 +112,20 @@ PROMPT_TOKENS="$(_ap_tokens "$PROMPT" 2>/dev/null || echo 0)"
 
 echo "Launching Copilot worker for task $TASK_ID (timeout: ${TIMEOUT}s, max retries: $MAX_RETRIES)..."
 
+# Set CWD to worktree BEFORE entering execution loop (subshells inherit this)
+if [[ -n "$WT" && -d "$WT" ]]; then
+	echo "CWD: $WT"
+	cd "$WT"
+fi
+
+if [[ -n "$WT" && -d "$WT" && -x "${SCRIPT_DIR}/execution-preflight.sh" ]]; then
+	PRECHECK_JSON="$("${SCRIPT_DIR}/execution-preflight.sh" --plan-id "$PLAN_ID" "$WT" 2>/dev/null || echo '{}')"
+	if echo "$PRECHECK_JSON" | jq -e '.warnings | index("dirty_worktree")' >/dev/null 2>&1; then
+		echo '{"error":"dirty worktree detected by execution-preflight"}' >&2
+		exit 1
+	fi
+fi
+
 # Execute with retry logic for timeout (exit 124)
 execute_copilot() {
 	local attempt="${1:-1}"
@@ -107,10 +137,14 @@ execute_copilot() {
 	_WORKER_TMPFILES+=("$copilot_stdout_file")
 
 	# Pipe copilot output to tee: file + stderr (visible to user)
-	# Only metadata echo goes to stdout (captured by caller)
+	# Track child PID for cleanup on parent exit
 	timeout "$TIMEOUT" copilot --yolo --add-dir "$WT" \
-		--model "$MODEL" -p "$PROMPT" 2>&1 | tee "$copilot_stdout_file" >&2 || true
-	exit_code="${PIPESTATUS[0]}"
+		--disable-mcp-server codegraph \
+		--model "$MODEL" -p "$PROMPT" 2>&1 | tee "$copilot_stdout_file" >&2 &
+	local copilot_bg_pid=$!
+	_WORKER_CHILD_PIDS+=("$copilot_bg_pid")
+	wait "$copilot_bg_pid" || true
+	exit_code=$?
 
 	echo "$exit_code|$copilot_stdout_file|$(($(date +%s) - start_ts))"
 }
@@ -166,11 +200,32 @@ done
 EXIT_CODE="$FINAL_EXIT_CODE"
 START_TS="$(($(date +%s) - TOTAL_DURATION))"
 
-# Parse worker output
+# Parse worker output and extract token usage
 WORKER_RESULT_JSON="$(echo "$COPILOT_OUTPUT" | parse_worker_result 2>/dev/null || echo '{}')"
 TOKENS_USED="$(echo "$WORKER_RESULT_JSON" | jq -r '.tokens_used // 0' 2>/dev/null || echo 0)"
-if [[ "$TOKENS_USED" == "0" ]]; then
-	TOKENS_USED="$(_ap_tokens "$COPILOT_OUTPUT" 2>/dev/null || echo 0)"
+
+# Try to extract tokens from copilot output
+if [[ "$TOKENS_USED" == "0" || "$TOKENS_USED" == "" ]]; then
+	# Try common patterns for token reporting in copilot output
+	# Pattern 1: "tokens used: N" or "tokens: N"
+	if [[ "$COPILOT_OUTPUT" =~ [Tt]okens[[:space:]]*used[[:space:]]*:[[:space:]]*([0-9]+) ]]; then
+		TOKENS_USED="${BASH_REMATCH[1]}"
+	# Pattern 2: "input tokens: N, output tokens: M"
+	elif [[ "$COPILOT_OUTPUT" =~ [Ii]nput[[:space:]]*tokens[[:space:]]*:[[:space:]]*([0-9]+).*[Oo]utput[[:space:]]*tokens[[:space:]]*:[[:space:]]*([0-9]+) ]]; then
+		TOKENS_USED=$((${BASH_REMATCH[1]} + ${BASH_REMATCH[2]}))
+	# Pattern 3: JSON format with usage field
+	elif [[ "$COPILOT_OUTPUT" =~ \"usage\"[[:space:]]*:[[:space:]]*\{[^}]*\"total_tokens\"[[:space:]]*:[[:space:]]*([0-9]+) ]]; then
+		TOKENS_USED="${BASH_REMATCH[1]}"
+	fi
+fi
+
+# Fallback: estimate tokens based on prompt + output size (4 chars ≈ 1 token)
+if [[ "$TOKENS_USED" == "0" || "$TOKENS_USED" == "" ]]; then
+	PROMPT_SIZE=${#PROMPT}
+	OUTPUT_SIZE=${#COPILOT_OUTPUT}
+	TOTAL_SIZE=$((PROMPT_SIZE + OUTPUT_SIZE))
+	TOKENS_USED=$((TOTAL_SIZE / 4))
+	[[ $TOKENS_USED -lt 1 ]] && TOKENS_USED=1
 fi
 
 # Process results and update task status based on exit code

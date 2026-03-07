@@ -10,8 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 source "${SCRIPT_DIR}/lib/sync-to-myconvergio-ops.sh"
 
-SOURCE_DIR="$HOME/.claude"
-TARGET_REPO="$HOME/GitHub/MyConvergio"
+SOURCE_DIR="${SOURCE_DIR:-$HOME/.claude}"
+TARGET_REPO="${TARGET_REPO:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 TARGET_DIR="$TARGET_REPO/.claude"
 
 DRY_RUN=false
@@ -31,8 +31,8 @@ BLOCKLIST=(
 # Personal path patterns to detect (not actual secrets, but shouldn't be hardcoded)
 PERSONAL_PATTERNS=(
 	"$HOME"
-	"/home/roberdan"
-	"danieleroberti"
+	"/Users/${USER}"
+	"/home/${USER}"
 )
 
 # Counters
@@ -47,7 +47,7 @@ export NEW UPDATED UNCHANGED BLOCKED SANITIZE_WARN DRY_RUN VERBOSE SOURCE_DIR TA
 export BLOCKLIST PERSONAL_PATTERNS
 
 usage() {
-	echo "Usage: $(basename "$0") [--dry-run] [--verbose] [--category agents|scripts|skills|rules|copilot|reference|mesh|dashboard|config|all]"
+	echo "Usage: $(basename "$0") [--dry-run] [--verbose] [--category agents|scripts|skills|rules|copilot|reference|mesh|dashboard|config|all] [--source DIR] [--target DIR]"
 	echo "Sync ~/.claude (source of truth) → MyConvergio (public repo, sanitized)"
 }
 
@@ -63,6 +63,15 @@ while [[ $# -gt 0 ]]; do
 		;;
 	--category)
 		CATEGORY="$2"
+		shift 2
+		;;
+	--source)
+		SOURCE_DIR="$2"
+		shift 2
+		;;
+	--target)
+		TARGET_REPO="$2"
+		TARGET_DIR="$TARGET_REPO/.claude"
 		shift 2
 		;;
 	--help | -h)

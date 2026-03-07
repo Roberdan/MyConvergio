@@ -48,6 +48,18 @@ make install-tier TIER=minimal VARIANT=lean          # 5 core agents (~50KB)
 myconvergio upgrade                                 # Update to latest
 ```
 
+## Workflow Mapping
+
+| Step | Claude Code | Copilot CLI | Notes |
+| --- | --- | --- | --- |
+| Capture goal | `/prompt "<goal>"` | `@prompt "<goal>"` | Create structured requirements |
+| Create plan | `/planner` | `@planner` or `cplanner "<goal>"` | Use MyConvergio planner, not Copilot `/plan` |
+| Execute plan | `/execute {id}` | `@execute {id}` | Run the plan workflow |
+| Validate | Thor / validator | `@validate {plan_id or task}` | Independent approval gate |
+| Close | PR + CI + merge, or validated deliverable approval | PR + CI + merge, or validated deliverable approval | Depends on whether the plan changes repo artifacts |
+
+Business, design, research, and process goals follow the **same** prompt → planner → execute → validate flow. They close on validated deliverables + approval when no repo change is required.
+
 ## Conventions
 
 - YAML frontmatter required: `name`, `description`, `tools`, `model`, `version`
@@ -69,4 +81,5 @@ make validate               # Validate Constitution compliance
 - [CONTEXT_OPTIMIZATION.md](./docs/CONTEXT_OPTIMIZATION.md) - Installation tiers and context usage
 - [VERSIONING_POLICY.md](./docs/VERSIONING_POLICY.md) - Version management
 - [AgenticManifesto.md](./AgenticManifesto.md) - Philosophical foundation
+- [docs/workflow.md](./docs/workflow.md) - Claude/Copilot workflow and non-code objective handling
 - `.claude/reference/operational/` - Tool preferences, execution optimization, worktree discipline

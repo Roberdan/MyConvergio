@@ -4,7 +4,7 @@
 # Version: 2.0.0
 # =============================================================================
 
-.PHONY: install install-local upgrade test clean update check-sync version help lint validate release count-agents
+.PHONY: install install-local upgrade test clean update check-sync version help lint validate release count-agents setup ecosystem-sync
 .PHONY: install-tier install-categories install-agents generate-lean list-tiers list-categories copilot-agents
 
 # Directories
@@ -33,7 +33,7 @@ NC := \033[0m
 .DEFAULT_GOAL := help
 
 help:
-	@echo "$(BLUE)MyConvergio Agent Management v9.19.0$(NC)"
+	@echo "$(BLUE)MyConvergio Agent Management v10.16.0$(NC)"
 	@echo ""
 	@echo "$(YELLOW)For New Users:$(NC)"
 	@echo "  make install        Install ALL agents, rules, and skills to ~/.claude/"
@@ -290,3 +290,9 @@ check-sync:
 	@echo "$(BLUE)Checking for upstream changes in ConvergioCLI...$(NC)"
 	@curl -s "https://api.github.com/repos/Roberdan/convergio-cli/commits?path=src/agents/definitions&per_page=1" 2>/dev/null | \
 		grep -E '"sha"|"message"|"date"' | head -6 || echo "Could not fetch (check network)"
+
+setup:
+	@bash scripts/setup.sh --standard
+
+ecosystem-sync:
+	@bash scripts/ecosystem-sync.sh all --dry-run

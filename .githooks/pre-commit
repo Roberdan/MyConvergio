@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+"$(dirname "$0")/../hooks/secret-scanner.sh" < <(printf '{"toolName":"bash","toolArgs":{"command":"git commit"}}')
+"$(dirname "$0")/../hooks/env-vault-guard.sh" < <(printf '{"toolName":"bash","toolArgs":{"command":"git commit"}}')
+"$(dirname "$0")/../hooks/enforce-standards.sh" < <(printf '{"toolName":"bash","toolArgs":{"command":"git diff --stat"}}')

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.17.2] - 07 Mar 2026
+
+### Changed
+- add retries=1 to playwright config for server stability
+
+
 ## [v10.17.1] - 07 Mar 2026
 
 ### Changed

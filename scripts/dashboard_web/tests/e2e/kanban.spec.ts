@@ -128,21 +128,26 @@ test.describe('Plan Kanban Board', () => {
 
   // --- Drag & Drop ---
 
-  test('drag card from Pipeline to Executing triggers API', async ({ page }) => {
+  test('drag card from Pipeline to Executing shows start dialog (not direct API)', async ({ page }) => {
     const todoCard = page.locator('#kanban-todo .kanban-card').first();
     const doingCol = page.locator('.kanban-col[data-status="doing"]');
 
-    // Accept any confirm dialog
-    page.on('dialog', (d) => d.accept());
+    // No API should fire — drag to doing opens start dialog
+    let apiCalled = false;
+    page.on('request', (req) => {
+      if (req.url().includes('/api/plan-status') && req.method() === 'POST') apiCalled = true;
+    });
 
-    const [request] = await Promise.all([
-      page.waitForRequest((req) => req.url().includes('/api/plan-status') && req.method() === 'POST'),
-      todoCard.dragTo(doingCol),
-    ]);
+    await todoCard.dragTo(doingCol);
+    await page.waitForTimeout(400);
 
-    const body = JSON.parse(request.postData()!);
-    expect(body.plan_id).toBe(301);
-    expect(body.status).toBe('doing');
+    // Start dialog modal should appear
+    await expect(page.locator('.modal-overlay')).toBeVisible();
+    await expect(page.locator('.modal-title')).toContainText('Start #301');
+    expect(apiCalled).toBe(false);
+
+    // Dismiss dialog
+    await page.locator('.modal-close').click();
   });
 
   test('drag card from Executing to Pipeline triggers confirm and API', async ({ page }) => {
@@ -158,14 +163,14 @@ test.describe('Plan Kanban Board', () => {
     expect(body.status).toBe('todo');
   });
 
-  test('API POST body has correct shape', async ({ page }) => {
+  test('API POST body has correct shape (doing→todo drag)', async ({ page }) => {
     page.on('dialog', (d) => d.accept());
-    const todoCard = page.locator('#kanban-todo .kanban-card').first();
-    const doingCol = page.locator('.kanban-col[data-status="doing"]');
+    const doingCard = page.locator('#kanban-doing .kanban-card').first();
+    const todoCol = page.locator('.kanban-col[data-status="todo"]');
 
     const [request] = await Promise.all([
       page.waitForRequest((req) => req.url().includes('/api/plan-status')),
-      todoCard.dragTo(doingCol),
+      doingCard.dragTo(todoCol),
     ]);
     const body = JSON.parse(request.postData()!);
     expect(body).toHaveProperty('plan_id');
@@ -214,5 +219,32 @@ test.describe('Plan Kanban Board', () => {
       el.dispatchEvent(new DragEvent('dragover', { bubbles: true }));
     });
     await expect(col).toHaveClass(/drag-over/);
+  });
+
+  // --- Cancel / Trash Buttons ---
+
+  test('cancel/trash button exists on todo card', async ({ page }) => {
+    const todoCard = page.locator('#kanban-todo .kanban-card').first();
+    await expect(todoCard.locator('.kanban-trash-btn')).toHaveCount(1);
+    await expect(todoCard.locator('.kanban-trash-btn svg')).toBeAttached();
+  });
+
+  test('cancel/trash button exists on doing card', async ({ page }) => {
+    const doingCard = page.locator('#kanban-doing .kanban-card').first();
+    await expect(doingCard.locator('.kanban-trash-btn')).toHaveCount(1);
+  });
+
+  test('cancel/trash button does NOT exist on done card', async ({ page }) => {
+    const doneCard = page.locator('#kanban-done .kanban-card').first();
+    await expect(doneCard.locator('.kanban-trash-btn')).toHaveCount(0);
+  });
+
+  test('clicking cancel button opens confirmation modal (not native dialog)', async ({ page }) => {
+    const trashBtn = page.locator('#kanban-todo .kanban-trash-btn').first();
+    await trashBtn.click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 2000 });
+    await expect(page.locator('.modal-title')).toContainText('Cancel Plan');
+    // Dismiss
+    await page.locator('.modal-close').click();
   });
 });

@@ -26,7 +26,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   overflow-x: auto;
   padding-bottom: 4px;
   flex-wrap: wrap;
@@ -42,7 +42,7 @@
 .mesh-hub-workers {
   display: flex;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   position: relative;
   z-index: 1;
 }
@@ -86,9 +86,9 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 14px 16px;
-  min-width: 190px;
-  min-height: 100px;
+  padding: 10px 12px;
+  min-width: 180px;
+  min-height: 90px;
   text-align: center;
   flex-shrink: 0;
   transition:
@@ -222,4 +222,10 @@
   border-radius: 2px;
   transition: width 0.8s ease;
 }
-/* Connection lines between nodes */
+.mesh-actions-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 2px;
+  flex-wrap: wrap;
+}

@@ -40,3 +40,18 @@
   pointer-events: none;
   overflow: visible;
 }
+
+.mission-cancel-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  color: var(--text-dim);
+  opacity: 0.3;
+  transition: opacity 0.15s, color 0.15s;
+  vertical-align: middle;
+}
+.mission-cancel-btn:hover {
+  opacity: 1;
+  color: #ee3344;
+}

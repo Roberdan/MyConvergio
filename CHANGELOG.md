@@ -1,5 +1,14 @@
 # Changelog
 
+## [v10.16.0] - 07 Mar 2026
+
+### Added
+- test hardening + brain viz + kanban + sparklines + node identity fix (#11)
+
+### Changed
+- Add performance optimization roadmap
+
+
 ## [Unreleased] — Brain Visualization & Agent Tracking
 
 ### Added

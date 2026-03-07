@@ -88,6 +88,10 @@ export const MOCK = {
     cost: { cost: 52.30, tokens: 520000 },
   },
   pullDb: { count: 0, synced: [] },
+  sessions: [
+    { session_id: 'sess-001', plan_id: 300, agent_id: 'agent-001', model: 'gpt-5.3-codex', host: 'm3max', status: 'running', started_at: Date.now() / 1000 - 142 },
+    { session_id: 'sess-002', plan_id: 300, agent_id: 'agent-002', model: 'claude-opus-4.6', host: 'omarchy', status: 'running', started_at: Date.now() / 1000 - 38 },
+  ],
   /* --- Kanban: plans with varied statuses --- */
   kanbanPlans: [
     { id: 300, name: 'Auth refactor', status: 'doing', tasks_done: 5, tasks_total: 8, project_id: 'proj-1', human_summary: 'JWT token rotation' },
@@ -139,6 +143,7 @@ export async function mockAllApis(page: Page, overrides: MockOverrides = {}) {
     '/api/events': data.events,
     '/api/notifications': data.notifications,
     '/api/mesh/pull-db': data.pullDb,
+    '/api/sessions': data.sessions,
     '/api/plan/300': data.planDetail,
     '/api/agents': data.agents,
     '/api/peers/heartbeats': data.peerHeartbeats,

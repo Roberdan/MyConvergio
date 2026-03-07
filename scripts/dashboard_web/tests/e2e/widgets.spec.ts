@@ -130,6 +130,32 @@ test.describe('Mesh Monitoring Widget', () => {
     expect(gaugeCount).toBeGreaterThanOrEqual(1);
     await expect(node.locator('.mn-gauge-label').nth(0)).toHaveText('CPU');
   });
+
+  test('actions bar (Full Sync + Push) appears AFTER node cards in DOM', async ({ page }) => {
+    await page.waitForSelector('.mesh-actions-inline', { timeout: 5000 });
+    const strip = page.locator('#mesh-strip');
+    // Verify actions bar is the last child of #mesh-strip (after node hub/grid)
+    const actionsIsLast = await strip.evaluate((el) => {
+      const children = Array.from(el.children);
+      const actionsIdx = children.findIndex((c) => c.classList.contains('mesh-actions-inline'));
+      return actionsIdx > 0 && actionsIdx === children.length - 1;
+    });
+    expect(actionsIsLast).toBe(true);
+  });
+
+  test('Full Sync button is present and clickable', async ({ page }) => {
+    await page.waitForSelector('.mesh-actions-inline', { timeout: 5000 });
+    const btn = page.locator('.widget-action-btn[data-action="fullsync"]');
+    await expect(btn).toBeVisible();
+    await expect(btn).toContainText('Full Sync');
+  });
+
+  test('Push button is present and clickable', async ({ page }) => {
+    await page.waitForSelector('.mesh-actions-inline', { timeout: 5000 });
+    const btn = page.locator('.widget-action-btn[data-action="sync"]');
+    await expect(btn).toBeVisible();
+    await expect(btn).toContainText('Push');
+  });
 });
 
 test.describe('Font Loading', () => {
@@ -225,6 +251,32 @@ test.describe('Buttons & Interactions', () => {
     await page.locator('.mission-delegate-btn').click();
     await page.waitForTimeout(500);
     expect(errors).toHaveLength(0);
+  });
+
+  test('cancel button exists on non-done mission cards', async ({ page, mockApis }) => {
+    await mockApis();
+    await page.goto('/');
+    await page.waitForSelector('#mission-content .mission-plan', { timeout: 5000 });
+    await expect(page.locator('.mission-cancel-btn')).toHaveCount(1);
+    await expect(page.locator('.mission-cancel-btn svg')).toBeAttached();
+  });
+
+  test('cancel button opens cancel plan modal', async ({ page, mockApis }) => {
+    await mockApis();
+    await page.goto('/');
+    await page.waitForSelector('.mission-cancel-btn', { timeout: 5000 });
+    await page.locator('.mission-cancel-btn').click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 2000 });
+    await expect(page.locator('.modal-title')).toContainText('Cancel Plan');
+    await page.locator('.modal-close').click();
+  });
+
+  test('window.renderWaveGantt is defined (mission-details.js loaded)', async ({ page, mockApis }) => {
+    await mockApis();
+    await page.goto('/');
+    await page.waitForSelector('#mission-content .mission-plan', { timeout: 5000 });
+    const defined = await page.evaluate(() => typeof (window as any).renderWaveGantt === 'function');
+    expect(defined).toBe(true);
   });
 });
 

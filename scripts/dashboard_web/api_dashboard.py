@@ -90,19 +90,19 @@ def api_overview() -> dict:
         " OR (t.status='submitted' AND COALESCE(t.executor_last_activity, t.executor_started_at, t.started_at) < datetime('now', '-5 minutes')))"
     ) or {"c": 0}
     ts = query_one(
-        f"SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS total_tok, COALESCE(SUM(cost_usd),0) AS total_cost FROM token_usage WHERE {_ATTRIBUTED_TOKEN_WHERE}"
+        "SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS total_tok, COALESCE(SUM(cost_usd),0) AS total_cost FROM token_usage"
     ) or {"total_tok": 0, "total_cost": 0}
     delegation_total = query_one(
         "SELECT COALESCE(SUM(d.prompt_tokens + d.response_tokens), 0) AS total_tok"
         " FROM delegation_log d"
         " WHERE NOT EXISTS ("
         "   SELECT 1 FROM token_usage tu"
-        f"   WHERE tu.plan_id = d.plan_id AND {_ATTRIBUTED_TOKEN_WHERE}"
+        "   WHERE tu.plan_id = d.plan_id"
         "     AND CAST(tu.task_id AS TEXT) = CAST(d.task_db_id AS TEXT)"
         " )"
     ) or {"total_tok": 0}
     today_db = query_one(
-        f"SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS tok, COALESCE(SUM(cost_usd),0) AS cost FROM token_usage WHERE {_ATTRIBUTED_TOKEN_WHERE} AND date(created_at)=date('now')"
+        "SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS tok, COALESCE(SUM(cost_usd),0) AS cost FROM token_usage WHERE date(created_at)=date('now')"
     ) or {"tok": 0, "cost": 0}
     delegation_today = query_one(
         "SELECT COALESCE(SUM(d.prompt_tokens + d.response_tokens), 0) AS tok"
@@ -110,7 +110,7 @@ def api_overview() -> dict:
         " WHERE date(d.created_at)=date('now')"
         " AND NOT EXISTS ("
         "   SELECT 1 FROM token_usage tu"
-        f"   WHERE tu.plan_id = d.plan_id AND {_ATTRIBUTED_TOKEN_WHERE}"
+        "   WHERE tu.plan_id = d.plan_id"
         "     AND CAST(tu.task_id AS TEXT) = CAST(d.task_db_id AS TEXT)"
         " )"
     ) or {"tok": 0}
@@ -192,7 +192,7 @@ def api_live_system(resolve_host_to_peer, mesh_provider) -> dict:
 def api_tokens_daily() -> list[dict]:
     db_rows = query(
         "SELECT date(created_at) AS day, SUM(input_tokens) AS input, SUM(output_tokens) AS output, SUM(cost_usd) AS cost"
-        f" FROM token_usage WHERE {_ATTRIBUTED_TOKEN_WHERE} AND date(created_at)>=date('now','-30 days') GROUP BY day ORDER BY day"
+        " FROM token_usage WHERE date(created_at)>=date('now','-30 days') GROUP BY day ORDER BY day"
     )
     db_map: dict[str, dict] = {r["day"]: r for r in db_rows}
     fallback_rows = query(
@@ -201,7 +201,7 @@ def api_tokens_daily() -> list[dict]:
         " WHERE date(created_at)>=date('now','-30 days')"
         " AND NOT EXISTS ("
         "   SELECT 1 FROM token_usage tu"
-        f"   WHERE tu.plan_id = d.plan_id AND {_ATTRIBUTED_TOKEN_WHERE}"
+        "   WHERE tu.plan_id = d.plan_id"
         "     AND CAST(tu.task_id AS TEXT) = CAST(d.task_db_id AS TEXT)"
         " ) GROUP BY day ORDER BY day"
     )
@@ -220,7 +220,7 @@ def api_tokens_daily() -> list[dict]:
 
 def api_tokens_by_model() -> list[dict]:
     rows = query(
-        f"SELECT model, SUM(input_tokens+output_tokens) AS tokens, SUM(cost_usd) AS cost FROM token_usage WHERE {_ATTRIBUTED_TOKEN_WHERE} AND model IS NOT NULL GROUP BY model ORDER BY tokens DESC LIMIT 8"
+        "SELECT model, SUM(input_tokens+output_tokens) AS tokens, SUM(cost_usd) AS cost FROM token_usage WHERE model IS NOT NULL GROUP BY model ORDER BY tokens DESC LIMIT 8"
     )
     combined = {row["model"]: {"model": row["model"], "tokens": row["tokens"], "cost": row["cost"]} for row in rows}
     fallback = query(
@@ -229,7 +229,7 @@ def api_tokens_by_model() -> list[dict]:
         " WHERE model IS NOT NULL"
         " AND NOT EXISTS ("
         "   SELECT 1 FROM token_usage tu"
-        f"   WHERE tu.plan_id = d.plan_id AND {_ATTRIBUTED_TOKEN_WHERE}"
+        "   WHERE tu.plan_id = d.plan_id"
         "     AND CAST(tu.task_id AS TEXT) = CAST(d.task_db_id AS TEXT)"
         " ) GROUP BY model"
     )

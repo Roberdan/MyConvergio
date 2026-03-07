@@ -86,17 +86,12 @@
 
     render(ctx, positions, w, h) {
       if (!this.sessions.length && !this.orphans.length) return;
-      const count = this.sessions.length;
-      const spacing = Math.min(180, (w - 80) / Math.max(1, count));
-      const startX = (w - spacing * (count - 1)) / 2;
-      const baseY = h - 90;
-
-      this.sessions.forEach((sess, si) => {
-        const x = positions[sess.session_id]?.x ?? (startX + si * spacing);
-        const y = positions[sess.session_id]?.y ?? baseY;
+      this.sessions.forEach(sess => {
+        const x = positions[sess.session_id]?.x ?? (w * 0.5);
+        const y = positions[sess.session_id]?.y ?? (h * 0.5);
         this._renderCluster(ctx, sess, x, y);
       });
-      this._renderOrphans(ctx, w, baseY - 70);
+      this._renderOrphans(ctx, w, h * 0.88);
     }
 
     _renderCluster(ctx, sess, x, y) {
@@ -104,56 +99,38 @@
       const col = SESSION_COL[tool] || SESSION_COL.claude;
       const children = sess.children || [];
       const activeCount = children.filter(c => c.status === 'running').length;
-      const total = children.length;
       const sa = this._an(sess.session_id);
-
-      const pR = (15 + Math.min(activeCount * 3, 15)) * sa.scale;
-      const intensity = 0.3 + activeCount * 0.15;
-
-      ctx.save();
-      ctx.globalAlpha = sa.alpha;
-
-      // Glow
-      ctx.shadowBlur = activeCount > 0 ? 20 : 8;
-      ctx.shadowColor = hsl(col.h, 80, 55, intensity);
-
-      // Parent circle
-      const g = ctx.createRadialGradient(x - 2, y - 2, 3, x, y, pR);
-      g.addColorStop(0, hsl(col.h, 85, 65, 0.9));
-      g.addColorStop(1, hsl(col.h, 70, 45, 0.3));
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(x, y, pR, 0, PI2); ctx.fill();
-
-      // Outer ring (activity indicator)
+      const gR = (14 + Math.min(activeCount * 3, 12)) * sa.scale;
+      ctx.save(); ctx.globalAlpha = sa.alpha;
+      // Region glow
+      ctx.shadowBlur = activeCount > 0 ? 24 : 10;
+      ctx.shadowColor = hsl(col.h, 80, 55, 0.7);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, gR);
+      g.addColorStop(0, hsl(col.h, 90, 70, 0.55));
+      g.addColorStop(1, hsl(col.h, 70, 45, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, gR, 0, PI2); ctx.fill();
+      // Pulse ring
       ctx.shadowBlur = 0;
-      const ringR = pR + 5 + (activeCount > 0 ? 2 * Math.sin(sa.phase * 2) : 0);
-      ctx.strokeStyle = hsl(col.h, 70, 55, 0.3 + intensity * 0.3);
-      ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.arc(x, y, ringR, 0, PI2); ctx.stroke();
-
-      // Children orbit
-      const orbitR = pR + 25 + total * 2;
-      children.forEach((child, i) => {
-        const angle = (total > 0 ? i / total : 0) * PI2 - Math.PI / 2;
-        const cx = x + Math.cos(angle) * orbitR;
-        const cy = y + Math.sin(angle) * orbitR;
-        this._renderChild(ctx, child, cx, cy, x, y, col);
+      const rR = gR + 4 + (activeCount > 0 ? 2 * Math.sin(sa.phase * 2) : 0);
+      ctx.strokeStyle = hsl(col.h, 70, 60, 0.3); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(x, y, rR, 0, PI2); ctx.stroke();
+      // Children orbit within region
+      const orbitR = rR + 10 + children.length * 2;
+      children.forEach((ch, i) => {
+        const a = (children.length > 0 ? i / children.length : 0) * PI2 - Math.PI / 2;
+        this._renderChild(ctx, ch, x + Math.cos(a) * orbitR, y + Math.sin(a) * orbitR, x, y, col);
       });
-
-      // Label
-      ctx.shadowBlur = 0;
+      // Label with subtle connecting line
       const lbl = sessionLabel(sess.session_id);
-      ctx.font = '10px "JetBrains Mono",monospace';
-      ctx.textAlign = 'center';
+      const lY = y + rR + 15;
+      ctx.shadowBlur = 0; ctx.globalAlpha = sa.alpha * 0.85;
+      ctx.strokeStyle = hsl(col.h, 50, 65, 0.3); ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(x, y + rR + 2); ctx.lineTo(x, lY - 3); ctx.stroke();
+      ctx.font = '9px "JetBrains Mono",monospace'; ctx.textAlign = 'center';
       const tw = ctx.measureText(lbl).width;
-      ctx.fillStyle = 'rgba(10,16,36,0.65)';
-      if (ctx.roundRect) {
-        ctx.beginPath();
-        ctx.roundRect(x - tw / 2 - 4, y + pR + 10, tw + 8, 14, 3);
-        ctx.fill();
-      }
-      ctx.fillStyle = hsl(col.h, 60, 75, 0.9);
-      ctx.fillText(lbl, x, y + pR + 21);
+      ctx.fillStyle = 'rgba(10,16,36,0.6)';
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x - tw / 2 - 3, lY - 10, tw + 6, 12, 2); ctx.fill(); }
+      ctx.fillStyle = hsl(col.h, 60, 75, 0.9); ctx.fillText(lbl, x, lY);
       ctx.restore();
     }
 
@@ -201,15 +178,37 @@
 
     getSessionPositions(w, h) {
       const pos = {};
-      const count = this.sessions.length;
-      if (!count) return pos;
-      const spacing = Math.min(180, (w - 80) / Math.max(1, count));
-      const startX = (w - spacing * (count - 1)) / 2;
-      const baseY = h - 90;
-      this.sessions.forEach((s, i) => {
-        pos[s.session_id] = { x: startX + i * spacing, y: baseY };
-      });
+      const byRegion = new Map();
+      for (const sess of this.sessions) {
+        const r = this._sessionRegion(sess);
+        if (!byRegion.has(r)) byRegion.set(r, []);
+        byRegion.get(r).push(sess.session_id);
+      }
+      const BR = window.BrainRegions;
+      for (const [region, ids] of byRegion) {
+        const def = BR?.[region];
+        if (!def) continue;
+        const cx = def.center.x * w, cy = def.center.y * h;
+        const spread = (def.radius || 0.08) * Math.min(w, h) * 0.35;
+        ids.forEach((sid, i) => {
+          const a = ids.length > 1 ? (i / ids.length) * PI2 - Math.PI / 2 : 0;
+          pos[sid] = { x: cx + Math.cos(a) * spread, y: cy + Math.sin(a) * spread };
+        });
+      }
       return pos;
+    }
+
+    _sessionRegion(sess) {
+      const type = (sess.type || '').toLowerCase();
+      const meta = typeof sess.metadata === 'string'
+        ? JSON.parse(sess.metadata || '{}') : (sess.metadata || {});
+      const act = (meta.activity || meta.status || type).toLowerCase();
+      if (/plan|strateg|design|architect/.test(act)) return 'prefrontal';
+      if (/execut|run|deploy|build|task/.test(act)) return 'motor';
+      if (/valid|test|thor|review|audit/.test(act)) return 'amygdala';
+      if (/mesh|sync|coord|dispatch|network/.test(act)) return 'cerebellum';
+      if (/memory|kb|learn|checkpoint|store/.test(act)) return 'hippocampus';
+      return 'prefrontal';
     }
   }
 

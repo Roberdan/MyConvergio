@@ -151,21 +151,19 @@ function renderMeshStrip(peers) {
   const online = peers.filter((p) => p.is_online).length,
     coord = peers.find((p) => p.role === "coordinator"),
     workers = peers.filter((p) => p.role !== "coordinator"),
-    bar = $("#mesh-actions-bar");
-  if (bar)
-    bar.innerHTML = `<span class="mesh-count">${online}/${peers.length} online</span><button class="widget-action-btn" onclick="meshAction('fullsync','__all__')" title="Bidirectional sync all repos + config"><svg viewBox="0 0 16 16" width="12" height="12"><path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/></svg> Full Sync</button><button class="widget-action-btn" onclick="meshAction('sync','__all__')" title="Push config to all peers"><svg viewBox="0 0 16 16" width="12" height="12"><path d="M8 2v12M2 8l6-6 6 6"/></svg> Push</button>`;
+    actionsBar = `<div class="mesh-actions-inline"><span class="mesh-count">${online}/${peers.length} online</span><button class="widget-action-btn" data-action="fullsync" data-peer="__all__" onclick="meshAction('fullsync','__all__')" title="Bidirectional sync all repos + config"><svg viewBox="0 0 16 16" width="12" height="12"><path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/></svg> Full Sync</button><button class="widget-action-btn" data-action="sync" data-peer="__all__" onclick="meshAction('sync','__all__')" title="Push config to all peers"><svg viewBox="0 0 16 16" width="12" height="12"><path d="M8 2v12M2 8l6-6 6 6"/></svg> Push</button></div>`;
+  const bar = $("#mesh-actions-bar");
+  if (bar) bar.innerHTML = "";
   if (coord && workers.length) {
-    el.innerHTML = `<div class="mesh-hub"><div class="mesh-hub-workers">${workers.map(_meshNodeHtml).join("")}</div><div class="mesh-hub-spokes" id="mesh-spokes"></div><div class="mesh-hub-coord">${_meshNodeHtml(coord)}</div></div>`;
+    el.innerHTML = `<div class="mesh-hub"><div class="mesh-hub-workers">${workers.map(_meshNodeHtml).join("")}</div><div class="mesh-hub-spokes" id="mesh-spokes"></div><div class="mesh-hub-coord">${_meshNodeHtml(coord)}</div></div>${actionsBar}`;
   } else
-    el.innerHTML = `<div class="mesh-nodes">${peers.map(_meshNodeHtml).join("")}</div>`;
+    el.innerHTML = `<div class="mesh-nodes">${peers.map(_meshNodeHtml).join("")}</div>${actionsBar}`;
   requestAnimationFrame(() => { _drawSpokes(); _drawSparklines(); });
 }
 function applyMeshSyncBadges(items) {
   if (!items || !items.length) return;
   items.forEach((s) => {
-    const n = document.querySelector(
-      `.mesh-node[data-peer="${CSS.escape(s.peer_name)}"]`,
-    );
+    const n = document.querySelector(`.mesh-node[data-peer="${CSS.escape(s.peer_name)}"]`);
     if (!n) return;
     const [cls, title] = !s.reachable
         ? ["mn-sync-red", "Unreachable"]
@@ -180,19 +178,12 @@ function applyMeshSyncBadges(items) {
 }
 function showToast(title, msg, link, type) {
   let c = document.getElementById("toast-container");
-  if (!c) {
-    c = document.createElement("div");
-    c.id = "toast-container";
-    document.body.appendChild(c);
-  }
+  if (!c) { c = document.createElement("div"); c.id = "toast-container"; document.body.appendChild(c); }
   const t = document.createElement("div");
   t.className = `toast toast-${type || "info"}`;
   t.innerHTML = `<div class="toast-title">${esc(title)}</div><div class="toast-msg">${esc(msg || "")}</div>`;
   if (link) t.style.cursor = "pointer";
-  t.addEventListener("click", () => {
-    if (link) location.hash = link.replace(/.*#/, "#");
-    t.remove();
-  });
+  t.addEventListener("click", () => { if (link) location.hash = link.replace(/.*#/, "#"); t.remove(); });
   c.appendChild(t);
   setTimeout(() => t.remove(), 8000);
 }

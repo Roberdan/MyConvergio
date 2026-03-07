@@ -3,53 +3,71 @@
  * Depends on: mesh-actions.js (ansiToHtml, showOutputModal loaded first)
  */
 
-/**
- * Start Plan Dialog — choose CLI and execute locally or delegate.
- */
+function runPreflight(planId, el, btn, target) {
+  if (target === 'local') { el.innerHTML = '✓ Sync OK'; el.style.color = 'var(--green)'; btn.disabled = false; return; }
+  el.innerHTML = '⟳ Checking sync…'; el.style.color = 'var(--text-dim)'; btn.disabled = true;
+  const es = new EventSource(`/api/plan/preflight?plan_id=${planId}&target=${encodeURIComponent(target)}`);
+  const t = setTimeout(() => { es.close(); el.innerHTML = '⚠ Could not verify — start anyway?'; el.style.color = 'var(--gold)'; btn.disabled = false; }, 10000);
+  es.addEventListener('result', e => { clearTimeout(t); es.close(); const d = JSON.parse(e.data); el.innerHTML = d.ok ? '✓ Sync OK' : `✗ Sync issues: ${esc(d.detail || '')}`; el.style.color = d.ok ? 'var(--green)' : 'var(--red)'; btn.disabled = false; });
+  es.onerror = () => { clearTimeout(t); es.close(); el.innerHTML = '⚠ Could not verify — start anyway?'; el.style.color = 'var(--gold)'; btn.disabled = false; };
+}
+
 window.showStartPlanDialog = function (planId, planName) {
-  const overlay = document.createElement("div");
-  overlay.className = "modal-overlay";
-  overlay.innerHTML = `<div class="modal-box" style="max-width:420px">
-    <div class="modal-title">Start #${planId} ${esc((planName || "").substring(0, 25))}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
-    <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
-      <button class="cli-choice-btn" data-cli="copilot" data-target="local" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.25);border-radius:8px;color:var(--cyan);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
-        <span style="font-size:20px">${Icons.cpu(20)}</span>
-        <span><div>GitHub Copilot (local)</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">copilot -p '/execute ${planId}'</div></span>
-      </button>
-      <button class="cli-choice-btn" data-cli="claude" data-target="local" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,160,0,0.06);border:1px solid rgba(255,160,0,0.25);border-radius:8px;color:var(--gold);cursor:pointer;font-size:13px;font-weight:600;text-align:left">
-        <span style="font-size:20px">${Icons.brain(20)}</span>
-        <span><div>Claude Code (local)</div><div style="font-size:10px;font-weight:400;color:var(--text-dim);margin-top:2px">claude --model sonnet -p '/execute ${planId}'</div></span>
-      </button>
-      <div style="border-top:1px solid var(--border);margin:4px 0;padding-top:8px">
-        <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Or delegate to mesh node →</div>
-        <button class="cli-choice-btn" data-cli="delegate" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(140,140,140,0.06);border:1px solid rgba(140,140,140,0.25);border-radius:8px;color:var(--text-dim);cursor:pointer;font-size:12px;font-weight:600;text-align:left">
-          <span style="font-size:18px">${Icons.globe(18)}</span>
-          <span>Choose mesh node…</span>
-        </button>
+  const MODELS = ['gpt-5.3-codex','claude-opus-4.6','claude-sonnet-4.6','gpt-5-mini','claude-haiku-4.5'];
+  const modelOpts = MODELS.map((m,i) => `<option value="${m}"${i===0?' selected':''}>${m}</option>`).join('');
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<div class="modal-box" style="max-width:460px">
+    <div class="modal-title">Start #${planId} ${esc((planName||'').substring(0,25))}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+      <div>
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Target Node</div>
+        <div id="spd-nodes" style="display:flex;flex-direction:column;gap:4px">
+          <div class="spd-node" data-sel="1" data-target="local" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.4);border-radius:6px;cursor:pointer"><span class="spd-dot" style="color:var(--cyan);font-size:14px;width:14px">●</span><span style="flex:1;font-size:13px;color:var(--text)">Local (this machine)</span></div>
+          <div id="spd-loading" style="font-size:11px;color:var(--text-dim);padding:4px 2px">Loading peers…</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Model</div>
+        <select id="spd-model" style="width:100%;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">${modelOpts}</select>
+      </div>
+      <div style="font-size:11px;color:var(--green)" id="spd-preflight">✓ Sync OK</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:4px">
+        <button class="preflight-action-btn" style="border-color:var(--text-dim);color:var(--text-dim)" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button id="spd-start" class="preflight-action-btn" style="border-color:var(--cyan);color:var(--cyan)">▶ Start Plan</button>
       </div>
     </div>
   </div>`;
   document.body.appendChild(overlay);
-  overlay.addEventListener("click", (e) => {
-    const btn = e.target.closest(".cli-choice-btn");
-    if (btn) {
-      const cli = btn.dataset.cli;
-      overlay.remove();
-      if (cli === "delegate") {
-        showDelegatePlanDialog(planId, planName);
-      } else {
-        startPlanExecution(planId, planName, cli, "local");
-      }
-      return;
-    }
-    if (e.target === overlay) overlay.remove();
+  fetch('/api/mesh').then(r => r.json()).then(data => {
+    const peers = Array.isArray(data.peers) ? data.peers : (Array.isArray(data) ? data : []);
+    const wrap = overlay.querySelector('#spd-nodes');
+    overlay.querySelector('#spd-loading').remove();
+    peers.forEach(p => {
+      const online = p.status === 'online' || p.online !== false, cpu = p.cpu != null ? `CPU: ${p.cpu}%` : '---';
+      const card = document.createElement('div'); card.className = 'spd-node'; card.dataset.target = p.name || p.host || p.id;
+      card.style.cssText = `display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(140,140,140,0.04);border:1px solid rgba(140,140,140,0.2);border-radius:6px;${online ? 'cursor:pointer' : 'opacity:0.45;pointer-events:none'}`;
+      card.innerHTML = `<span class="spd-dot" style="color:var(--text-dim);font-size:14px;width:14px">○</span><span style="flex:1;font-size:13px;color:var(--text)">${esc(p.name || p.host || p.id)}</span><span style="font-size:11px;color:var(--text-dim)">${esc(cpu)}</span>`;
+      wrap.appendChild(card);
+    });
+  }).catch(() => { const l = overlay.querySelector('#spd-loading'); if (l) l.textContent = 'No peers found'; });
+  overlay.querySelector('#spd-nodes').addEventListener('click', e => {
+    const card = e.target.closest('.spd-node'); if (!card) return;
+    overlay.querySelectorAll('.spd-node').forEach(c => { delete c.dataset.sel; c.style.background = 'rgba(140,140,140,0.04)'; c.style.borderColor = 'rgba(140,140,140,0.2)'; c.querySelector('.spd-dot').style.color = 'var(--text-dim)'; c.querySelector('.spd-dot').textContent = '○'; });
+    card.dataset.sel = '1'; card.style.background = 'rgba(0,229,255,0.08)'; card.style.borderColor = 'rgba(0,229,255,0.4)'; card.querySelector('.spd-dot').style.color = 'var(--cyan)'; card.querySelector('.spd-dot').textContent = '●';
+    runPreflight(planId, overlay.querySelector('#spd-preflight'), overlay.querySelector('#spd-start'), card.dataset.target);
   });
+  overlay.querySelector('#spd-start').addEventListener('click', () => {
+    const sel = overlay.querySelector('.spd-node[data-sel="1"]'), model = overlay.querySelector('#spd-model').value;
+    overlay.remove(); startPlanExecution(planId, planName, 'copilot', sel ? sel.dataset.target : 'local', model);
+  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 };
 
 /**
  * Execute plan start via SSE — shows live progress.
  */
-window.startPlanExecution = function (planId, planName, cli, target) {
+window.startPlanExecution = function (planId, planName, cli, target, model) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   overlay.innerHTML = `<div class="modal-box" style="max-width:650px">
@@ -62,7 +80,7 @@ window.startPlanExecution = function (planId, planName, cli, target) {
   });
 
   const output = document.getElementById("start-plan-output");
-  const url = `/api/plan/start?plan_id=${planId}&cli=${encodeURIComponent(cli)}&target=${encodeURIComponent(target)}`;
+  const url = `/api/plan/start?plan_id=${planId}&cli=${encodeURIComponent(cli)}&target=${encodeURIComponent(target)}${model ? `&model=${encodeURIComponent(model)}` : ''}`;
   const es = new EventSource(url);
 
   es.addEventListener("log", (e) => {

@@ -138,30 +138,16 @@
       c.restore();
     });
   }
-  function drawSessions(c, ts) {
-    const n = S.sessions.length; if (!n) return;
-    const cx = S.w * 0.5, cy = Math.max(35, S.h * 0.13), sp = Math.min(90, S.w * 0.3 / Math.max(1, n));
-    S.sessions.forEach((s, i) => {
-      const x = cx + (i - (n - 1) / 2) * sp, y = cy + 8 * Math.sin(ts * 0.002 + i);
-      const cp = (s.type || '').includes('copilot'), col = cp ? '#00aaff' : '#ffaa33';
-      const m = typeof s.metadata === 'string' ? JSON.parse(s.metadata || '{}') : (s.metadata || {});
-      const cpu = parseFloat(m.cpu) || 0, r = 14 + 4 * Math.sin(ts * 0.003 + i * 1.5);
-      c.save(); c.shadowBlur = 14 + cpu * 0.12; c.shadowColor = col; c.globalAlpha = 0.6 + Math.min(0.4, cpu / 100);
-      const g = c.createRadialGradient(x - 2, y - 2, 3, x, y, r);
-      g.addColorStop(0, col + 'ee'); g.addColorStop(1, col + '44');
-      c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, PI2); c.fill();
-      c.strokeStyle = col + '88'; c.lineWidth = 1.5;
-      c.beginPath(); c.arc(x, y, r + 5 + 2 * Math.sin(ts * 0.004 + i), 0, PI2); c.stroke();
-      c.shadowBlur = 0; c.globalAlpha = 1; c.font = '9px "JetBrains Mono",monospace'; c.textAlign = 'center';
-      c.fillStyle = col; c.fillText(m.tty ? m.tty.replace(/\/dev\//, '') : (cp ? 'GH' : 'CC'), x, y + r + 14);
-      c.restore();
-    });
+  function drawSessions(c, dt) {
+    // Delegate to region-aware SessionClusterRenderer; no standalone floating bubbles
+    const sr = window._sessionClusters;
+    if (!sr?.sessions.length) return;
+    sr.tickAnims(dt);
+    sr.render(c, sr.getSessionPositions(S.w, S.h), S.w, S.h);
   }
   function drawStats(c) {
     const act = S.agents.filter(a => a.isActive).length;
     const txt = `${act} active \xB7 ${S.clusters.length} plan${S.clusters.length !== 1 ? 's' : ''}`;
-    c.save(); c.font = '11px "JetBrains Mono",monospace';
-    c.textAlign = 'right'; c.fillStyle = 'rgba(176,196,221,0.5)'; c.fillText(txt, S.w - 12, 18); c.restore();
     const el = document.getElementById('brain-stats'); if (el) el.textContent = txt;
   }
 
@@ -208,17 +194,10 @@
     const dt = Math.min(50, ts - (S.lastTs || ts)); S.lastTs = ts;
     refreshData(ts);
     const c = S.ctx; c.clearRect(0, 0, S.w, S.h); drawGrid(c);
-    drawSessions(c, ts);
+    drawSessions(c, dt);
     if (!S.agents.length && !S.clusters.length && !S.sessions.length) { drawIdle(c, ts); drawStats(c); }
     else if (S.agents.length || S.clusters.length) { doLayout(); tickAnims(dt); tickParticles(dt); drawConns(c); drawParts(c); drawPlans(c); drawAgents(c); drawStats(c); }
     else { drawStats(c); }
-    // Session clusters (rendered below plan neurons)
-    const sr = window._sessionClusters;
-    if (sr && sr.sessions.length) {
-      sr.tickAnims(dt);
-      const sPos = sr.getSessionPositions(S.w, S.h);
-      sr.render(c, sPos, S.w, S.h);
-    }
     S.raf = requestAnimationFrame(render);
   }
   function onVis() {

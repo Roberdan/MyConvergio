@@ -83,6 +83,20 @@
 .kanban-running { color: var(--gold); }
 .kanban-host { color: var(--cyan); opacity: 0.6; }
 .kanban-empty { color: var(--text-dim); font-size: 10px; text-align: center; padding: 16px 0; font-style: italic; }
+.kanban-card { position: relative; }
+.kanban-trash-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
+  color: currentColor;
+}
+.kanban-trash { opacity: 0.3; transition: opacity 0.15s, color 0.15s; }
+.kanban-trash-btn:hover .kanban-trash { opacity: 1; color: #ee3344; }
 
 /* Sparkline charts for mesh nodes */
 .mn-sparkline {

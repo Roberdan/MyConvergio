@@ -19,9 +19,9 @@ test.describe('Brain Widget', () => {
     await expect(canvas).toBeAttached();
   });
 
-  test('widget header shows Agent Activity', async ({ page }) => {
+  test('widget header shows Augmented Brain', async ({ page }) => {
     const title = page.locator('#brain-widget .widget-title');
-    await expect(title).toHaveText('Agent Activity');
+    await expect(title).toHaveText('Augmented Brain');
   });
 
   test('stats bar is present', async ({ page }) => {
@@ -236,5 +236,31 @@ test.describe('Brain Widget', () => {
 
     // At minimum stats should still be populated after refresh
     expect(text2!.length).toBeGreaterThan(0);
+  });
+
+  // --- 10. Session Data Rendering ---
+
+  test('window._sessionClusters is defined (session cluster renderer loaded)', async ({ page }) => {
+    const defined = await page.evaluate(() => typeof (window as any)._sessionClusters !== 'undefined');
+    expect(defined).toBe(true);
+  });
+
+  test('canvas still renders with /api/sessions returning data', async ({ page, mockApis }) => {
+    await mockApis();
+    await page.goto('/');
+    await page.waitForSelector('#brain-widget', { timeout: 5000 });
+    await page.waitForTimeout(800);
+
+    const canvas = page.locator('#brain-canvas-container canvas');
+    const hasContent = await canvas.evaluate((el: HTMLCanvasElement) => {
+      const ctx = el.getContext('2d');
+      if (!ctx) return false;
+      const data = ctx.getImageData(0, 0, el.width, el.height).data;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 0) return true;
+      }
+      return false;
+    });
+    expect(hasContent).toBe(true);
   });
 });

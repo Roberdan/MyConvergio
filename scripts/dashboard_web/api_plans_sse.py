@@ -152,10 +152,11 @@ def handle_plan_delegate(handler, qs: dict, safe_name):
 
 
 def handle_plan_start_sse(handler, qs: dict):
-    plan_id, cli, target = (
+    plan_id, cli, target, model = (
         qs.get("plan_id", [""])[0],
         qs.get("cli", ["copilot"])[0],
         qs.get("target", ["local"])[0],
+        qs.get("model", ["gpt-5.3-codex"])[0],
     )
     if not plan_id or not plan_id.isdigit():
         handler._json_response({"error": "missing plan_id"}, 400)
@@ -188,7 +189,7 @@ def handle_plan_start_sse(handler, qs: dict):
         cmd = (
             f'claude --model sonnet -p "/execute {plan_id}"'
             if cli == "claude"
-            else f'copilot -p "/execute {plan_id}"'
+            else f'copilot -p "/execute {plan_id}" --model {model}'
         )
         handler._sse_send("log", f"▶ Running locally: {cmd}")
         run_command_sse(

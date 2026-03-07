@@ -18,6 +18,10 @@ function renderKanban() {
   });
 }
 
+const _trashSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kanban-trash">
+  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+</svg>`;
+
 function _kanbanCard(m, col) {
   const p = m.plan,
     pct = p.tasks_total > 0 ? Math.round((100 * p.tasks_done) / p.tasks_total) : 0,
@@ -25,8 +29,12 @@ function _kanbanCard(m, col) {
     host = p.execution_peer || p.execution_host || "",
     rgb = pct >= 75 ? "0,204,106" : pct >= 50 ? "230,161,23" : "238,51,68",
     border = col === "doing" ? `border-left:3px solid rgba(${rgb},0.8)` : "";
+  const trashBtn = (col === "todo" || col === "doing")
+    ? `<button class="kanban-trash-btn" onclick="cancelPlan(${p.id})" title="Cancel plan">${_trashSvg}</button>`
+    : "";
   return `<div class="kanban-card" draggable="true" data-plan-id="${p.id}" data-status="${p.status}"
     ondragstart="kanbanDragStart(event)" style="${border}">
+    ${trashBtn}
     <div class="kanban-card-top">
       <span class="kanban-plan-id">#${p.id}</span>
       <span class="kanban-plan-name">${esc((p.name || "").substring(0, 22))}</span>
@@ -68,6 +76,13 @@ window.kanbanDrop = async function (e, targetStatus) {
   const key = `${currentStatus}→${targetStatus}`;
   if (!valid[key]) {
     showToast(`Cannot move plan from ${currentStatus} to ${targetStatus}`, "error");
+    return;
+  }
+
+  // For "doing", show start dialog instead of direct POST
+  if (targetStatus === 'doing') {
+    const planName = m.plan.name || '';
+    showStartPlanDialog(parseInt(planId, 10), planName);
     return;
   }
 

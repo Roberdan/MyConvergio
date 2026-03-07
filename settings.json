@@ -56,6 +56,11 @@
           },
           {
             "type": "command",
+            "command": "~/.claude/hooks/enforce-execution-preflight.sh",
+            "timeout": 3
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/enforce-plan-db-safe.sh",
             "timeout": 3
           },

@@ -19,11 +19,10 @@ if not _log.handlers:
 
 def query(sql: str, params: tuple = ()) -> list[dict]:
     try:
-        conn = sqlite3.connect(str(DB_PATH), timeout=5)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(sql, params).fetchall()
-        conn.close()
-        return [dict(r) for r in rows]
+        with sqlite3.connect(str(DB_PATH), timeout=5) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(sql, params).fetchall()
+            return [dict(r) for r in rows]
     except (sqlite3.OperationalError, sqlite3.DatabaseError) as exc:
         _log.error("Query failed: %s | SQL: %.120s", exc, sql.replace("\n", " "))
         return []
@@ -49,11 +48,11 @@ _CRITICAL_QUERIES = [
     ),
     (
         "overview:blocked",
-        "SELECT COUNT(*) AS c FROM tasks t JOIN waves w ON t.wave_id_fk=w.id JOIN plans p ON w.plan_id=p.id WHERE t.status='blocked' AND p.status='doing'",
+        "SELECT COUNT(*) AS c FROM tasks t JOIN waves w ON t.wave_id_fk=w.id JOIN plans p ON w.plan_id=p.id WHERE p.status='doing' AND (t.status='blocked' OR (t.status='submitted' AND COALESCE(t.executor_last_activity, t.executor_started_at, t.started_at) < datetime('now', '-5 minutes')))",
     ),
     (
         "overview:tokens",
-        "SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS total_tok, COALESCE(SUM(cost_usd),0) AS total_cost FROM token_usage",
+        "SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS total_tok, COALESCE(SUM(cost_usd),0) AS total_cost FROM token_usage WHERE ((plan_id IS NOT NULL AND CAST(plan_id AS TEXT) != 'NULL') OR (task_id IS NOT NULL AND task_id != ''))",
     ),
     (
         "mission:plans",
@@ -65,15 +64,15 @@ _CRITICAL_QUERIES = [
     ),
     (
         "mission:tasks",
-        "SELECT task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id FROM tasks WHERE plan_id=1 ORDER BY wave_id_fk,id",
+        "SELECT id,task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id FROM tasks WHERE plan_id=1 ORDER BY wave_id_fk,id",
     ),
     (
         "tokens:daily",
-        "SELECT date(created_at) AS day, SUM(input_tokens) AS input, SUM(output_tokens) AS output, SUM(cost_usd) AS cost FROM token_usage WHERE date(created_at)>=date('now','-30 days') GROUP BY day ORDER BY day",
+        "SELECT date(created_at) AS day, SUM(input_tokens) AS input, SUM(output_tokens) AS output, SUM(cost_usd) AS cost FROM token_usage WHERE ((plan_id IS NOT NULL AND CAST(plan_id AS TEXT) != 'NULL') OR (task_id IS NOT NULL AND task_id != '')) AND date(created_at)>=date('now','-30 days') GROUP BY day ORDER BY day",
     ),
     (
         "tokens:models",
-        "SELECT model, SUM(input_tokens+output_tokens) AS tokens, SUM(cost_usd) AS cost FROM token_usage WHERE model IS NOT NULL GROUP BY model ORDER BY tokens DESC LIMIT 8",
+        "SELECT model, SUM(input_tokens+output_tokens) AS tokens, SUM(cost_usd) AS cost FROM token_usage WHERE ((plan_id IS NOT NULL AND CAST(plan_id AS TEXT) != 'NULL') OR (task_id IS NOT NULL AND task_id != '')) AND model IS NOT NULL GROUP BY model ORDER BY tokens DESC LIMIT 8",
     ),
     (
         "history",
@@ -89,7 +88,7 @@ _CRITICAL_QUERIES = [
     ),
     (
         "detail:tasks",
-        "SELECT task_id,title,status,executor_agent,executor_host,tokens,started_at,completed_at,validated_at,model,wave_id FROM tasks WHERE plan_id=1 ORDER BY wave_id_fk,id",
+        "SELECT id,task_id,title,status,executor_agent,executor_host,tokens,started_at,completed_at,validated_at,model,wave_id FROM tasks WHERE plan_id=1 ORDER BY wave_id_fk,id",
     ),
     (
         "tasks:dist",
@@ -114,6 +113,77 @@ _CRITICAL_QUERIES = [
         "SELECT id,name,status,tasks_done,tasks_total,execution_host FROM plans WHERE status IN ('doing','todo') AND execution_host IS NOT NULL AND execution_host<>''",
     ),
 ]
+
+
+def ensure_live_runtime_schema() -> None:
+    conn = sqlite3.connect(str(DB_PATH), timeout=5)
+    try:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS agent_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plan_id INTEGER,
+                wave_id TEXT,
+                task_id TEXT,
+                parent_run_id INTEGER,
+                agent_name TEXT NOT NULL,
+                agent_role TEXT,
+                model TEXT,
+                peer_name TEXT,
+                status TEXT NOT NULL CHECK(status IN ('queued','running','waiting','handoff','validating','blocked','completed','failed','cancelled')),
+                current_task TEXT,
+                metadata_json TEXT,
+                started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_heartbeat DATETIME DEFAULT CURRENT_TIMESTAMP,
+                completed_at DATETIME,
+                FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+                FOREIGN KEY (parent_run_id) REFERENCES agent_runs(id) ON DELETE SET NULL
+            );
+            CREATE TABLE IF NOT EXISTS task_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plan_id INTEGER,
+                wave_id TEXT,
+                task_id TEXT,
+                run_id INTEGER,
+                event_type TEXT NOT NULL,
+                status TEXT,
+                severity TEXT DEFAULT 'info',
+                source_agent TEXT,
+                target_agent TEXT,
+                peer_name TEXT,
+                message TEXT,
+                payload TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+                FOREIGN KEY (run_id) REFERENCES agent_runs(id) ON DELETE SET NULL
+            );
+            CREATE TABLE IF NOT EXISTS agent_handoffs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plan_id INTEGER,
+                task_id TEXT,
+                from_run_id INTEGER,
+                to_run_id INTEGER,
+                handoff_kind TEXT DEFAULT 'delegate',
+                status TEXT NOT NULL CHECK(status IN ('proposed','accepted','completed','rejected','expired')),
+                reason TEXT,
+                payload TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                accepted_at DATETIME,
+                completed_at DATETIME,
+                FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+                FOREIGN KEY (from_run_id) REFERENCES agent_runs(id) ON DELETE SET NULL,
+                FOREIGN KEY (to_run_id) REFERENCES agent_runs(id) ON DELETE SET NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_agent_runs_active ON agent_runs(status, peer_name, last_heartbeat);
+            CREATE INDEX IF NOT EXISTS idx_agent_runs_plan ON agent_runs(plan_id, task_id);
+            CREATE INDEX IF NOT EXISTS idx_task_events_plan ON task_events(plan_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_task_events_run ON task_events(run_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_agent_handoffs_plan ON agent_handoffs(plan_id, created_at DESC);
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def validate_queries_on_boot() -> tuple[int, int, list[str]]:

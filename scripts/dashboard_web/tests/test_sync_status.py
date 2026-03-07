@@ -253,6 +253,6 @@ class TestRoutesRegistration:
 
     def test_sync_status_route_is_callable(self):
         """ROUTES['/api/mesh/sync-status'] must be the api_mesh_sync_status function."""
-        from lib.mesh_helpers import api_mesh_sync_status
+        from scripts.dashboard_web.lib.mesh_helpers import api_mesh_sync_status
 
         assert server.ROUTES["/api/mesh/sync-status"] is api_mesh_sync_status

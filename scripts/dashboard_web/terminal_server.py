@@ -24,6 +24,8 @@ import websockets
 
 PEERS_CONF = Path.home() / ".claude" / "config" / "peers.conf"
 PORT = 8421
+HTTP_PORT = 8420
+ALLOWED_ORIGINS = {f"http://localhost:{HTTP_PORT}", f"http://127.0.0.1:{HTTP_PORT}"}
 
 
 def get_ssh_config(peer_name: str) -> dict:
@@ -219,8 +221,10 @@ async def main():
         idx = sys.argv.index("--port")
         port = int(sys.argv[idx + 1])
 
-    bind_host = "0.0.0.0"
-    async with websockets.serve(terminal_handler, bind_host, port, origins=None):
+    bind_host = "127.0.0.1"
+    async with websockets.serve(
+        terminal_handler, bind_host, port, origins=sorted(ALLOWED_ORIGINS)
+    ):
         print(f"\033[1;35m◈ Terminal Server\033[0m → ws://{bind_host}:{port}")
         print(f"  Peers: {PEERS_CONF}\n")
         await asyncio.Future()  # Run forever

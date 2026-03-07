@@ -53,8 +53,9 @@ graph TB
         R -->|theme boundary| Q
     end
     subgraph "Dashboard"
-        H --> T[dashboard-mini.sh]
-        T --> U[Terminal UI]
+        H --> T[dashboard_web]
+        H --> U[dashboard_textual]
+        T --> V[Live neural system + org view]
     end
 ```
 
@@ -218,6 +219,14 @@ flowchart TD
 | --------------- | ------------------------ | ------------------------------------- | ------------------------- |
 | Plan creation   | `@planner`               | `Skill(skill="planner")`              | spec.yaml is the contract |
 | Task execution  | `copilot-worker.sh`      | `Task(subagent_type="task-executor")` | Same DB, same worktree    |
+
+---
+
+## Dashboard surfaces
+
+- `scripts/dashboard_web/` — browser control room with mission, mesh, AI organization, and live-system views.
+- `dashboard_textual` — terminal-first monitoring surface for the same `dashboard.db` control plane.
+- `scripts/token-usage-normalize.sh` + `scripts/dashboard-db-repair.sh` — maintenance pair for token attribution and DB drift repair.
 | Thor validation | `@validate`              | `Task(subagent_type="thor")`          | Same 9 gates              |
 | Merge           | `wave-worktree.sh merge` | `wave-worktree.sh merge`              | Identical script          |
 | Dashboard       | `piani`                  | `piani`                               | Same SQLite DB            |

@@ -39,6 +39,7 @@ Plan and execute with parallel Claude instances.
 | Parallelization modes  | @planner-modules/parallelization-modes.md  |
 | Model strategy         | @planner-modules/model-strategy.md         |
 | Knowledge codification | @planner-modules/knowledge-codification.md |
+| Universal orchestration | @reference/operational/universal-orchestration.md |
 
 ## Workflow
 
@@ -176,13 +177,13 @@ except ImportError:
 
 ### 2.5 Copilot-First Delegation (MANDATORY — Rule 13) {#step-2-5}
 
-**ALL tasks default to `executor_agent: "copilot"`.** Only escalate to `claude` per decision tree in @planner-modules/model-strategy.md. Present summary: "Task su Claude (pagati): [list + perche']. Tutto il resto su Copilot (gratis). Ok?"
+**ALL tasks default to `executor_agent: "copilot"`.** Only escalate to `claude` per decision tree in @planner-modules/model-strategy.md. Present summary: "Task su Claude (pagati): [list + perche']. Tutto il resto su Copilot (premium-efficient). Ok?"
 
-**Copilot model assignment**: trivial -> `gpt-5.1-codex-mini` | standard -> `gpt-5.3-codex` | complex -> `claude-opus-4.6-fast`. See model-strategy for full tree.
+**Copilot model assignment**: trivial -> `gpt-5-mini` | repetitive lightweight -> `claude-haiku-4.5` | standard -> `gpt-5.3-codex` | deep debugging/review -> `gpt-5.4` | nuanced fallback -> `claude-sonnet-4.6`. See model-strategy for full tree.
 
 **Never delegate to Copilot**: architecture decisions, security-sensitive, investigative debugging, cross-system integration where failure cascades.
 
-**Model naming rule (NON-NEGOTIABLE)**: ALL `model` fields in spec MUST use full model IDs from @planner-modules/model-strategy.md. Short aliases (`sonnet`, `opus`, `haiku`, `codex`) are FORBIDDEN — they break copilot-worker.sh routing. Valid examples: `gpt-5.3-codex`, `claude-sonnet-4.6`, `claude-opus-4.6-fast`, `gpt-4.1`, `gpt-5-mini`, `gpt-5.1-codex-mini`. See model-strategy.md Full Copilot Multiplier Reference for the complete list.
+**Model naming rule (NON-NEGOTIABLE)**: ALL `model` fields in spec MUST use full model IDs from @planner-modules/model-strategy.md. Short aliases (`sonnet`, `opus`, `haiku`, `codex`) are FORBIDDEN — they break copilot-worker.sh routing. Valid examples: `gpt-5.3-codex`, `gpt-5.4`, `claude-sonnet-4.6`, `claude-opus-4.6`, `gpt-5-mini`, `claude-haiku-4.5`. See model-strategy.md for the supported routing set.
 
 **Exec**: `copilot-worker.sh <id> --model <model> --timeout 600`. Requires: `copilot --yolo`, `GH_TOKEN`.
 

@@ -10,53 +10,116 @@ from pathlib import Path
 from socketserver import ThreadingMixIn
 from urllib.parse import parse_qs, urlparse
 
-import api_mesh as api_mesh_mod
-from api_dashboard import (
-    api_assignable_plans,
-    api_coordinator_status,
-    api_coordinator_toggle,
-    api_events,
-    api_history,
-    api_mission as _api_mission,
-    api_notifications,
-    api_overview,
-    api_plan_detail,
-    api_task_status_dist,
-    api_tasks_blocked,
-    api_tokens_by_model,
-    api_tokens_daily,
-)
-from api_mesh import api_mesh_sync_status, handle_mesh_action, resolve_host_to_peer
-from api_mesh_actions import handle_fullsync_sse, handle_mesh_action_sse
-from api_peers import (
-    api_peer_create,
-    api_peer_delete,
-    api_peer_discover,
-    api_peer_list,
-    api_peer_ssh_check,
-    api_peer_update,
-)
-from api_plans import (
-    handle_plan_cancel,
-    handle_plan_move,
-    handle_plan_reset,
-    handle_plan_validate,
-    handle_pull_remote_db,
-)
-from api_plans_sse import (
-    api_preflight_sse,
-    handle_plan_delegate,
-    handle_plan_start_sse,
-)
-from api_terminal import handle_terminal
-from middleware import (
-    DB_PATH,
-    PEERS_CONF as _PEERS_CONF,
-    PORT,
-    MiddlewareMixin,
-    query,
-    validate_queries_on_boot,
-)
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    import scripts.dashboard_web.api_mesh as api_mesh_mod
+    from scripts.dashboard_web.api_dashboard import (
+        api_assignable_plans,
+        api_coordinator_status,
+        api_coordinator_toggle,
+        api_events,
+        api_history,
+        api_live_system as _api_live_system,
+        api_mission as _api_mission,
+        api_notifications,
+        api_organization as _api_organization,
+        api_overview,
+        api_plan_detail,
+        api_task_status_dist,
+        api_tasks_blocked,
+        api_tokens_by_model,
+        api_tokens_daily,
+    )
+    from scripts.dashboard_web.api_mesh import (
+        api_mesh_sync_status,
+        handle_mesh_action,
+        resolve_host_to_peer,
+    )
+    from scripts.dashboard_web.api_mesh_actions import (
+        handle_fullsync_sse,
+        handle_mesh_action_sse,
+    )
+    from scripts.dashboard_web.api_peers import (
+        api_peer_create,
+        api_peer_delete,
+        api_peer_discover,
+        api_peer_list,
+        api_peer_ssh_check,
+        api_peer_update,
+    )
+    from scripts.dashboard_web.api_plans import (
+        handle_plan_cancel,
+        handle_plan_move,
+        handle_plan_reset,
+        handle_plan_validate,
+        handle_pull_remote_db,
+    )
+    from scripts.dashboard_web.api_plans_sse import (
+        api_preflight_sse,
+        handle_plan_delegate,
+        handle_plan_start_sse,
+    )
+    from scripts.dashboard_web.api_terminal import handle_terminal
+    from scripts.dashboard_web.middleware import (
+        DB_PATH,
+        PEERS_CONF as _PEERS_CONF,
+        PORT,
+        MiddlewareMixin,
+        ensure_live_runtime_schema,
+        query,
+        validate_queries_on_boot,
+    )
+else:
+    from . import api_mesh as api_mesh_mod
+    from .api_dashboard import (
+        api_assignable_plans,
+        api_coordinator_status,
+        api_coordinator_toggle,
+        api_events,
+        api_history,
+        api_live_system as _api_live_system,
+        api_mission as _api_mission,
+        api_notifications,
+        api_organization as _api_organization,
+        api_overview,
+        api_plan_detail,
+        api_task_status_dist,
+        api_tasks_blocked,
+        api_tokens_by_model,
+        api_tokens_daily,
+    )
+    from .api_mesh import api_mesh_sync_status, handle_mesh_action, resolve_host_to_peer
+    from .api_mesh_actions import handle_fullsync_sse, handle_mesh_action_sse
+    from .api_peers import (
+        api_peer_create,
+        api_peer_delete,
+        api_peer_discover,
+        api_peer_list,
+        api_peer_ssh_check,
+        api_peer_update,
+    )
+    from .api_plans import (
+        handle_plan_cancel,
+        handle_plan_move,
+        handle_plan_reset,
+        handle_plan_validate,
+        handle_pull_remote_db,
+    )
+    from .api_plans_sse import (
+        api_preflight_sse,
+        handle_plan_delegate,
+        handle_plan_start_sse,
+    )
+    from .api_terminal import handle_terminal
+    from .middleware import (
+        DB_PATH,
+        PEERS_CONF as _PEERS_CONF,
+        PORT,
+        MiddlewareMixin,
+        ensure_live_runtime_schema,
+        query,
+        validate_queries_on_boot,
+    )
 
 STATIC_DIR = Path(__file__).parent
 PEERS_CONF = _PEERS_CONF
@@ -72,9 +135,19 @@ def api_mesh():
     return api_mesh_mod.api_mesh()
 
 
+def api_organization():
+    return _api_organization(resolve_host_to_peer, api_mesh_mod.api_mesh)
+
+
+def api_live_system():
+    return _api_live_system(resolve_host_to_peer, api_mesh_mod.api_mesh)
+
+
 ROUTES = {
     "/api/overview": api_overview,
     "/api/mission": api_mission,
+    "/api/organization": api_organization,
+    "/api/live-system": api_live_system,
     "/api/tokens/daily": api_tokens_daily,
     "/api/tokens/models": api_tokens_by_model,
     "/api/mesh": api_mesh,
@@ -206,6 +279,8 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 def main():
     port = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else PORT
+
+    ensure_live_runtime_schema()
 
     # Validate all SQL queries against actual schema before serving
     passed, failed, errors = validate_queries_on_boot()

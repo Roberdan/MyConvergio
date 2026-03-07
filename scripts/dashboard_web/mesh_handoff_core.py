@@ -28,20 +28,18 @@ def _sql(query: str, db: str | None = None) -> str:
 
     db = db or str(DB_PATH)
     try:
-        conn = _sqlite3.connect(db, timeout=5)
-        conn.execute("PRAGMA journal_mode=WAL;")
-        cur = conn.execute(query)
-        if query.strip().upper().startswith("SELECT"):
-            rows = cur.fetchall()
-            conn.close()
-            return "\n".join(
-                "|".join(str(c) if c is not None else "" for c in r) for r in rows
-            )
-        else:
+        with _sqlite3.connect(db, timeout=5) as conn:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            cur = conn.execute(query)
+            if query.strip().upper().startswith("SELECT"):
+                rows = cur.fetchall()
+                return "\n".join(
+                    "|".join(str(c) if c is not None else "" for c in r) for r in rows
+                )
             conn.commit()
-            conn.close()
             return ""
-    except Exception:
+    except Exception as exc:
+        print(f"[mesh_handoff sql] {exc}: {query[:120]}", file=sys.stderr)
         return ""
 
 

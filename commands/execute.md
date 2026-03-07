@@ -19,7 +19,7 @@ Each task has `executor_agent` in DB (set by planner). Executor reads it and rou
 
 | executor_agent | Agent/Worker      | Billing        |
 | -------------- | ----------------- | -------------- |
-| `copilot`      | copilot-worker.sh | GitHub (free)  |
+| `copilot`      | copilot-worker.sh | GitHub premium |
 | `claude`       | task-executor     | Anthropic ($$) |
 
 **Default is `copilot`**. See @planner-modules/model-strategy.md for escalation criteria.
@@ -39,6 +39,10 @@ NEVER execute without plan_id | NEVER skip tasks/Thor | WORKTREE ISOLATION — p
 ### P1.2: Execution Readiness Bundle
 
 Run `PRECHECK_JSON=$(execution-preflight.sh "$WORKTREE_PATH")` before dispatch. If `warnings` contains `dirty_worktree`, `missing_troubleshooting`, `missing_ci_knowledge`, or `gh_auth_not_ready` for PR/CI work, STOP and resolve or ask user before edits. Pass `PRECHECK_JSON` into EVERY task prompt; tasks touching auth/permissions/CI/deploy/versioning MUST read TROUBLESHOOTING + CI knowledge + relevant ADRs before changing code.
+
+### P1.3: Capability Routing Bundle
+
+Treat each task as a capability request from `@reference/operational/universal-orchestration.md`: planner, researcher, executor, validator, reviewer, deployer, or operator. Executor selection chooses the best worker for that capability; model selection only optimizes cost/quality inside the chosen capability.
 
 ### P1.5: Drift Check
 
@@ -87,7 +91,7 @@ Tasks in `CTX.pending_tasks` (no separate query). Route each task by `executor_a
 copilot-worker.sh ${task.db_id} --model ${task.model} --timeout 600
 ```
 
-Uses `--allow-all`, `--add-dir`, `--no-ask-user`, `-p` mode. Model from DB (e.g. `gpt-5.3-codex`, `claude-opus-4.6-fast`).
+Uses Copilot autonomous prompt mode with model from DB (e.g. `gpt-5.3-codex`, `gpt-5.4`, `claude-sonnet-4.6`).
 
 **If `executor_agent == "claude"`**:
 

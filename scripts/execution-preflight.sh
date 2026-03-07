@@ -6,6 +6,7 @@ set -euo pipefail
 
 MODE="json"
 TARGET="."
+PLAN_ID=""
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -13,9 +14,13 @@ while [[ $# -gt 0 ]]; do
 		MODE="text"
 		shift
 		;;
+	--plan-id)
+		PLAN_ID="${2:-}"
+		shift 2
+		;;
 	-h | --help)
 		cat <<'EOF'
-Usage: execution-preflight.sh [--text] [path]
+Usage: execution-preflight.sh [--text] [--plan-id ID] [path]
 
 Outputs a compact execution-readiness snapshot for the target repo/worktree.
 Default output is JSON.
@@ -88,6 +93,8 @@ WARNINGS=()
 [[ "$GH_AUTH_STATUS" != "authenticated" ]] && WARNINGS+=("gh_auth_not_ready")
 
 WARNINGS_JSON="$(printf '%s\n' "${WARNINGS[@]-}" | jq -Rsc 'split("\n") | map(select(length > 0))')"
+GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+GENERATED_EPOCH="$(date +%s)"
 
 if [[ "$MODE" == "text" ]]; then
 	echo "repo_root=$REPO_ROOT"
@@ -106,7 +113,7 @@ if [[ "$MODE" == "text" ]]; then
 	exit 0
 fi
 
-jq -cn \
+OUTPUT="$(jq -cn \
 	--arg repo_root "$REPO_ROOT" \
 	--arg branch "$BRANCH" \
 	--arg remote_url "$REMOTE_URL" \
@@ -114,6 +121,8 @@ jq -cn \
 	--arg gh_account "$GH_ACCOUNT" \
 	--arg ci_knowledge_path "$CI_KNOWLEDGE_PATH" \
 	--arg version_hint "$VERSION_HINT" \
+	--arg generated_at "$GENERATED_AT" \
+	--argjson generated_epoch "$GENERATED_EPOCH" \
 	--argjson dirty_count "$DIRTY_COUNT" \
 	--argjson has_troubleshooting "$HAS_TROUBLESHOOTING" \
 	--argjson adr_count "$ADR_COUNT" \
@@ -133,5 +142,15 @@ jq -cn \
 	  changelog_present: $changelog_present,
 	  readme_present: $readme_present,
 	  version_hint: $version_hint,
+	  generated_at: $generated_at,
+	  generated_epoch: $generated_epoch,
 	  warnings: $warnings
-	}'
+	}')"
+
+if [[ -n "$PLAN_ID" ]]; then
+	SNAPSHOT_DIR="$HOME/.claude/data/execution-preflight"
+	mkdir -p "$SNAPSHOT_DIR"
+	printf '%s\n' "$OUTPUT" >"$SNAPSHOT_DIR/plan-${PLAN_ID}.json"
+fi
+
+printf '%s\n' "$OUTPUT"

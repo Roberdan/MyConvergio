@@ -134,13 +134,17 @@ def _do_handoff(
         _ssh(
             ssh_target,
             f"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' "
-            f"\"UPDATE plans SET execution_host='{target}' WHERE id={plan_id}; "
+            f"\"UPDATE plans SET status='todo' WHERE id={plan_id}; "
+            f"UPDATE plans SET execution_host='{target}' WHERE id={plan_id}; "
+            f"UPDATE plans SET status='doing' WHERE id={plan_id}; "
             f"UPDATE tasks SET status='pending' WHERE status='in_progress' AND plan_id={plan_id};\"",
             timeout=10,
         )
     except Exception:
         pass
+    _sql(f"UPDATE plans SET status='todo' WHERE id={plan_id};")
     _sql(f"UPDATE plans SET execution_host='{target}' WHERE id={plan_id};")
+    _sql(f"UPDATE plans SET status='doing' WHERE id={plan_id};")
     _sql(
         f"UPDATE tasks SET status='pending' WHERE status='in_progress' AND plan_id={plan_id};"
     )

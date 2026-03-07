@@ -118,6 +118,14 @@ if [[ -n "$WT" && -d "$WT" ]]; then
 	cd "$WT"
 fi
 
+if [[ -n "$WT" && -d "$WT" && -x "${SCRIPT_DIR}/execution-preflight.sh" ]]; then
+	PRECHECK_JSON="$("${SCRIPT_DIR}/execution-preflight.sh" --plan-id "$PLAN_ID" "$WT" 2>/dev/null || echo '{}')"
+	if echo "$PRECHECK_JSON" | jq -e '.warnings | index("dirty_worktree")' >/dev/null 2>&1; then
+		echo '{"error":"dirty worktree detected by execution-preflight"}' >&2
+		exit 1
+	fi
+fi
+
 # Execute with retry logic for timeout (exit 124)
 execute_copilot() {
 	local attempt="${1:-1}"

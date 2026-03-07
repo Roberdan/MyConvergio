@@ -3,11 +3,17 @@
 import os
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
 
-from api_mesh import send_wol
-from api_plans import _ssh_run
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.dashboard_web.api_mesh import send_wol
+    from scripts.dashboard_web.api_plans import _ssh_run
+else:
+    from .api_mesh import send_wol
+    from .api_plans import _ssh_run
 
 _SSH_OPTS = ["-o", "ConnectTimeout=5", "-o", "BatchMode=yes"]
 

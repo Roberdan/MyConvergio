@@ -1,5 +1,28 @@
 # Changelog
 
+## [v10.15.0] - 07 Mar 2026
+
+### Added
+- harden dashboard audit and telemetry
+
+
+## [v10.15.0] - 07 Mar 2026
+
+### Added
+- release hardening artifacts: `.githooks/*`, PR template, audit-friendly package scripts, eslint/prettier config
+- `scripts/token-usage-normalize.sh` + test for end-to-end token attribution backfill
+- dashboard packaging support via `scripts/dashboard_web/__init__.py` and `pyrightconfig.json`
+
+### Changed
+- align `hardening-check.sh` and `project-audit-checks.sh` with repo conventions while keeping strict checks green
+- update dashboard README architecture to reflect `dashboard_web`, `dashboard_textual`, and live neural system views
+- update DB schema/migration files for current `token_usage`, `delegation_log`, and live telemetry tables
+
+### Fixed
+- dashboard token accounting now prefers exact task attribution, normalizes delegation telemetry, and exposes zero vs unknown correctly
+- dashboard DB repair now reports foreign-key violations correctly and real DB orphan `plan_versions` rows are cleaned
+- dashboard Python modules now use package-safe imports compatible with Zed/basedpyright
+
 ## [v10.14.9] - 07 Mar 2026
 
 ### Changed

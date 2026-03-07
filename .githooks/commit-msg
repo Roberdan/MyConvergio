@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+msg_file="${1:?commit message file required}"
+grep -qE '^(feat|fix|chore|docs|refactor|test|perf|style|build|ci)(\(.+\))?: .+' "$msg_file" || {
+  echo "Commit message must use conventional commit format" >&2
+  exit 1
+}

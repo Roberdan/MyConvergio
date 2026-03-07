@@ -1,3 +1,5 @@
+-- ARCHIVED SCHEMA SNAPSHOT.
+-- Do not use for new databases; use scripts/init-db.sql instead.
 -- Dashboard SQLite Schema
 -- Version: 4.0 | Created: 1 Febbraio 2026
 -- DB-first architecture: single source of truth

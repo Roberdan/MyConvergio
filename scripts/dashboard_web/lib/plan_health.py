@@ -1,5 +1,9 @@
 """Plan health detection helpers for api_dashboard.py."""
 
+import json
+import time
+from pathlib import Path
+
 _MANUAL_KEYWORDS = (
     "manual test",
     "manual review",
@@ -89,5 +93,58 @@ def detect_plan_health(plan: dict, waves: list, tasks: list) -> list[dict]:
                     "message": f"{pct}% completato ma {len(pending)} task pending non avviati",
                 }
             )
+
+    snapshot = (
+        Path.home()
+        / ".claude"
+        / "data"
+        / "execution-preflight"
+        / f"plan-{plan['id']}.json"
+    )
+    if snapshot.exists():
+        try:
+            data = json.loads(snapshot.read_text(encoding="utf-8"))
+            age = int(time.time() - int(data.get("generated_epoch") or 0))
+            warnings = set(data.get("warnings") or [])
+            if age > 1800:
+                alerts.append(
+                    {
+                        "severity": "warning",
+                        "code": "preflight_stale",
+                        "message": f"Execution preflight stale ({age // 60}m)",
+                    }
+                )
+            if "dirty_worktree" in warnings or "gh_auth_not_ready" in warnings:
+                alerts.append(
+                    {
+                        "severity": "critical",
+                        "code": "preflight_blocked",
+                        "message": "Execution readiness blocked: dirty worktree or GH auth not ready",
+                    }
+                )
+            if "missing_troubleshooting" in warnings or "missing_ci_knowledge" in warnings:
+                alerts.append(
+                    {
+                        "severity": "warning",
+                        "code": "preflight_context",
+                        "message": "Operational docs missing: troubleshooting or CI knowledge",
+                    }
+                )
+        except Exception:
+            alerts.append(
+                {
+                    "severity": "warning",
+                    "code": "preflight_stale",
+                    "message": "Execution preflight snapshot unreadable",
+                }
+            )
+    else:
+        alerts.append(
+            {
+                "severity": "warning",
+                "code": "preflight_missing",
+                "message": "Execution preflight snapshot missing",
+            }
+        )
 
     return alerts

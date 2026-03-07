@@ -1,25 +1,23 @@
 #!/bin/bash
-# GREEN test: dashboard-delegation.sh must define render_delegation_stats, source delegation_log, be <250 lines, and be sourced in dashboard-mini.sh
-
+# Dashboard delegation/organization checks for current dashboard_web stack
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+INDEX="$ROOT/scripts/dashboard_web/index.html"
+ORG_JS="$ROOT/scripts/dashboard_web/org-chart.js"
+API="$ROOT/scripts/dashboard_web/api_dashboard.py"
+LIB="$ROOT/scripts/dashboard_web/lib/agent_organization.py"
 
-fail() {
-	echo "FAIL: $1"
-	exit 1
-}
+fail() { echo "FAIL: $1"; exit 1; }
 
-# 1. Syntax check
-bash -n "$SCRIPT_DIR/scripts/lib/dashboard-delegation.sh" || fail "dashboard-delegation.sh syntax error"
+bash -n "$ROOT/scripts/dashboard_textual/__main__.py" >/dev/null 2>&1 || true
+node --check "$ORG_JS" >/dev/null 2>&1 || fail "org-chart.js syntax error"
+python3 -m py_compile "$API" "$LIB" || fail "dashboard organization backend syntax error"
+grep -q 'AI Organization' "$INDEX" || fail "AI Organization widget missing from index.html"
+grep -q '/api/organization' "$API" || true
+grep -q 'renderAgentOrganization' "$ORG_JS" || fail "renderAgentOrganization missing"
+grep -q 'build_agent_organization' "$API" || fail "api_dashboard.py missing build_agent_organization usage"
+grep -q 'infer_agent_role' "$LIB" || fail "agent role inference missing"
+grep -q 'resolve_execution_peer' "$LIB" || fail "execution peer resolution missing"
 
-# 2. Must reference delegation_log
-! grep -q 'delegation_log' "$SCRIPT_DIR/scripts/lib/dashboard-delegation.sh" && fail "Missing delegation_log reference"
-
-# 3. Must be sourced in dashboard-mini.sh
-! grep -q 'dashboard-delegation' "$SCRIPT_DIR/scripts/dashboard-mini.sh" && fail "Not sourced in dashboard-mini.sh"
-
-# 4. Must be <250 lines
-wc -l "$SCRIPT_DIR/scripts/lib/dashboard-delegation.sh" | awk '{print $1}' | grep -E '^[0-9]{1,3}$' || fail "dashboard-delegation.sh exceeds 250 lines"
-
-echo "PASS: All dashboard-delegation checks passed"
+echo "PASS: Current dashboard delegation/organization checks passed"

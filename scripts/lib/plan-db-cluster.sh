@@ -47,8 +47,11 @@ cmd_claim() {
 	safe_host=$(sql_escape "$PLAN_DB_HOST")
 
 	if [[ $force -eq 1 ]]; then
-		# Force claim: unconditional update
+		# Force claim: transition through non-doing status to satisfy execution_host protection trigger
 		sqlite3 "$DB_FILE" <<-EOF
+			UPDATE plans
+			SET status = CASE WHEN status = 'doing' THEN 'todo' ELSE status END
+			WHERE id = $plan_id;
 			UPDATE plans
 			SET execution_host = '${safe_host}',
 			    status = 'doing',

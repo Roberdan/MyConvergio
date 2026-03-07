@@ -40,7 +40,14 @@ async function renderEventFeed() {
   }
 }
 function _timeAgo(ts) {
-  const d = Math.floor(Date.now() / 1000) - ts;
+  const parsed =
+    typeof ts === "number"
+      ? ts > 1e12
+        ? ts
+        : ts * 1000
+      : Date.parse(ts);
+  if (!Number.isFinite(parsed)) return "";
+  const d = Math.max(0, Math.floor((Date.now() - parsed) / 1000));
   if (d < 60) return d + "s";
   if (d < 3600) return Math.floor(d / 60) + "m";
   if (d < 86400) return Math.floor(d / 3600) + "h";

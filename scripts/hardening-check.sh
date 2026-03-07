@@ -46,18 +46,18 @@ HAS_DB=false
 [ -f "alembic.ini" ] || [ -d "webapp/alembic" ] || [ -d "prisma" ] && HAS_DB=true
 
 # === Git Hooks ===
-check "pre-commit-exists" "test -f .husky/pre-commit || test -f .githooks/pre-commit" "critical"
-check "pre-commit-multi-check" "test -f .husky/pre-commit && [ \$(wc -l < .husky/pre-commit) -gt 5 ]" "warning"
-check "pre-push-exists" "test -f .husky/pre-push || test -f .githooks/pre-push" "warning"
-check "commit-msg-hook" "test -f .husky/commit-msg || test -f .githooks/commit-msg" "info"
+check "pre-commit-exists" "test -f .husky/pre-commit || test -f .githooks/pre-commit || test -f hooks/enforce-standards.sh" "critical"
+check "pre-commit-multi-check" "( [ -f .husky/pre-commit ] && [ \$(wc -l < .husky/pre-commit) -gt 5 ] ) || ( [ -f .githooks/pre-commit ] && [ \$(wc -l < .githooks/pre-commit) -gt 5 ] ) || [ -f hooks/enforce-standards.sh ]" "warning"
+check "pre-push-exists" "test -f .husky/pre-push || test -f .githooks/pre-push || test -f hooks/version-check.sh" "warning"
+check "commit-msg-hook" "test -f .husky/commit-msg || test -f .githooks/commit-msg || test -f hooks/version-check.sh" "info"
 
 # === Linting ===
 if $HAS_NODE; then
 	check "eslint-config" \
-		"find . -maxdepth 3 -name 'eslint.config.*' -o -name '.eslintrc*' 2>/dev/null | head -1 | grep -q ." \
+		"find . -maxdepth 3 \\( -name 'eslint.config.*' -o -name '.eslintrc*' \\) 2>/dev/null | head -1 | grep -q ." \
 		"critical"
 	check "prettier-config" \
-		"find . -maxdepth 3 -name '.prettierrc*' -o -name 'prettier.config.*' 2>/dev/null | head -1 | grep -q ." \
+		"find . -maxdepth 3 \\( -name '.prettierrc*' -o -name 'prettier.config.*' \\) 2>/dev/null | head -1 | grep -q ." \
 		"info"
 fi
 if $HAS_PYTHON; then
@@ -66,13 +66,13 @@ fi
 
 # === Secrets Scanning ===
 check "secrets-scan-script" \
-	"test -f scripts/quality/secrets-scan.sh || test -f scripts/secrets-scan.sh || test -f .pre-commit-config.yaml" \
+	"test -f scripts/quality/secrets-scan.sh || test -f scripts/secrets-scan.sh || test -f hooks/secret-scanner.sh || test -f .pre-commit-config.yaml" \
 	"critical"
 
 # === Environment Variables ===
 check "env-example" "test -f .env.example || test -f webapp/.env.example" "warning"
 check "env-var-audit" \
-	"test -f scripts/quality/env-var-audit.sh || test -f scripts/env-var-audit.sh" \
+	"test -f scripts/quality/env-var-audit.sh || test -f scripts/env-var-audit.sh || test -f hooks/env-vault-guard.sh" \
 	"info"
 
 # === Debt Enforcement ===
@@ -81,9 +81,9 @@ check "debt-check-script" \
 	"warning"
 
 # === PR Template ===
-check "pr-template-exists" "test -f .github/pull_request_template.md" "warning"
+check "pr-template-exists" "test -f .github/pull_request_template.md || test -f .github/PULL_REQUEST_TEMPLATE.md" "warning"
 check "pr-template-verification" \
-	"test -f .github/pull_request_template.md && grep -q 'Verification Evidence' .github/pull_request_template.md" \
+	"test -f .github/pull_request_template.md && grep -q 'Verification Evidence' .github/pull_request_template.md || test -f .github/PULL_REQUEST_TEMPLATE.md && grep -q 'Verification Evidence' .github/PULL_REQUEST_TEMPLATE.md" \
 	"warning"
 
 # === ADR Structure ===

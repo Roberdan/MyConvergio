@@ -1,0 +1,100 @@
+.live-system-summary,
+.live-system-synapses,
+.live-system-events {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.live-system-summary span,
+.live-synapse,
+.live-event {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 11px;
+}
+.live-system-brain {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 12px;
+  margin: 12px 0;
+}
+.live-system-peers,
+.live-system-runs,
+.live-system-events {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.live-peer,
+.live-run {
+  position: relative;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+}
+.live-peer.online::before,
+.live-run-dot {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 10px currentColor;
+}
+.live-peer.offline::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--red);
+}
+.live-peer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.live-peer::before {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+.live-peer-name,
+.live-run-label {
+  font-weight: 700;
+  color: var(--text);
+}
+.live-peer-meta,
+.live-run-meta,
+.live-run-status,
+.live-synapse-kind {
+  color: var(--text-dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.live-run {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border-color: color-mix(in srgb, var(--run-tone) 30%, transparent);
+}
+.live-run-dot {
+  background: var(--run-tone);
+  color: var(--run-tone);
+  animation: livePulse 1.8s ease-in-out infinite;
+}
+.live-synapse-arrow {
+  color: var(--magenta);
+  font-weight: 700;
+}
+.live-event-type {
+  font-weight: 700;
+}
+@keyframes livePulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+}

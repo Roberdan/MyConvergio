@@ -5,11 +5,17 @@ import configparser
 import json
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
 
-from lib.ssh import ssh_run
-from middleware import PEERS_CONF, query
+if __package__ in (None, "", "lib"):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+    from scripts.dashboard_web.lib.ssh import ssh_run
+    from scripts.dashboard_web.middleware import PEERS_CONF, query
+else:
+    from .ssh import ssh_run
+    from ..middleware import PEERS_CONF, query
 
 _remote_cache: dict = {}  # {peer_name: {"data": [...], "ts": float}}
 _REMOTE_TTL = 30
@@ -76,8 +82,11 @@ def local_active_plan_ids() -> set[int]:
 def peer_execution_map() -> dict[str, list[dict]]:
     """Build map of plans assigned to hosts via execution_host column."""
     plans = query(
-        "SELECT id,name,status,tasks_done,tasks_total,execution_host FROM plans"
-        " WHERE status IN ('doing','todo') AND execution_host IS NOT NULL AND execution_host<>''"
+        "SELECT p.id,p.name,p.status,"
+        " COALESCE((SELECT COUNT(*) FROM tasks t WHERE t.plan_id=p.id AND t.status='done'),0) AS tasks_done,"
+        " COALESCE((SELECT COUNT(*) FROM tasks t WHERE t.plan_id=p.id),0) AS tasks_total,"
+        " p.execution_host FROM plans p"
+        " WHERE p.status IN ('doing','todo') AND p.execution_host IS NOT NULL AND p.execution_host<>''"
     )
     result: dict[str, list[dict]] = {}
     for p in plans:
@@ -110,7 +119,9 @@ _REMOTE_PROCS_CMD = (
     'ps -eo command 2>/dev/null | grep -oE "plan-([0-9]+)" | grep -oE "[0-9]+" | sort -u; '
     'echo "===PLANS==="; '
     'sqlite3 ~/.claude/data/dashboard.db ".timeout 3000" '
-    '"SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,'
+    '"SELECT p.id,p.name,p.status,'
+    "(SELECT COUNT(*) FROM tasks tx WHERE tx.plan_id=p.id AND tx.status=''done''),"
+    "(SELECT COUNT(*) FROM tasks tx WHERE tx.plan_id=p.id),"
     "COALESCE(p.execution_host,''),"
     "COALESCE(GROUP_CONCAT(CASE WHEN t.status IN ('in_progress','submitted','blocked') "
     "THEN t.task_id||'|'||COALESCE(t.title,'')||'|'||t.status END, ';;'), '') as active "

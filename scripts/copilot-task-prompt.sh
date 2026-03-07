@@ -96,7 +96,7 @@ fi
 
 PRECHECK_JSON="{}"
 if [[ -x "${HOME}/.claude/scripts/execution-preflight.sh" ]]; then
-	PRECHECK_JSON="$("${HOME}/.claude/scripts/execution-preflight.sh" "$WT" 2>/dev/null || echo '{}')"
+	PRECHECK_JSON="$("${HOME}/.claude/scripts/execution-preflight.sh" --plan-id "$PLAN_ID" "$WT" 2>/dev/null || echo '{}')"
 fi
 
 # Generate prompt
@@ -120,7 +120,7 @@ export PATH="\$HOME/.claude/scripts:\$PATH"
 cd "$WT" && pwd
 worktree-guard.sh "$WT"
 worktree-safety.sh audit "$WT" 2>/dev/null || true
-execution-preflight.sh "$WT"
+execution-preflight.sh --plan-id $PLAN_ID "$WT"
 plan-db-safe.sh update-task $TASK_ID in_progress "Started by Copilot"
 \`\`\`
 

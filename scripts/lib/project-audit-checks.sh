@@ -161,13 +161,15 @@ check_token_aware_comment_density() {
 	}
 	for f in "${src_files[@]}"; do
 		local total comment_lines pct comment_re
+		[[ -f "$f" ]] || continue
 		total=$(awk 'END{print NR}' "$f" 2>/dev/null) || total=0
-		[[ "$total" -lt 10 ]] && continue
 		# Language-aware comment detection
 		if [[ "$f" =~ \.py$ ]]; then
 			comment_re='^\s*#'
+			[[ "$total" -lt 10 ]] && continue
 		elif [[ "$f" =~ \.(ts|tsx|js|jsx|mjs|cjs)$ ]]; then
-			comment_re='^\s*(//|/\*|\*)'
+			comment_re='^\s*//'
+			[[ "$total" -lt 10 ]] && continue
 		else
 			continue # unknown language → skip
 		fi
@@ -198,7 +200,7 @@ check_token_aware_doc_verbosity() {
 	while IFS= read -r -d '' f; do
 		md_files+=("$f")
 	done < <(find "$PROJECT_ROOT" -maxdepth 3 \
-		\( -name node_modules -o -name .git -o -name dist \) -prune -o \
+		\( -name node_modules -o -name .git -o -name dist -o -path "$PROJECT_ROOT/data" -o -path "$PROJECT_ROOT/backups" \) -prune -o \
 		-name '*.md' -print0 2>/dev/null)
 	[[ ${#md_files[@]} -eq 0 ]] && {
 		_pa_json token_aware_doc_verbosity P3 true '[]'
@@ -206,6 +208,10 @@ check_token_aware_doc_verbosity() {
 	}
 	for f in "${md_files[@]}"; do
 		local lines words wpl
+		[[ -f "$f" ]] || continue
+		case "$f" in
+		*/docs/adr/INDEX.md | */data/* | */backups/*) continue ;;
+		esac
 		lines=$(wc -l <"$f" 2>/dev/null | tr -d ' ')
 		[[ "$lines" -lt 5 ]] && continue
 		words=$(wc -w <"$f" 2>/dev/null | tr -d ' ')

@@ -12,10 +12,17 @@ Endpoints:
 import json
 import re
 import subprocess
+import sys
 import time
+from pathlib import Path
 
-from middleware import PEERS_CONF, query
-from peers_writer import PeersWriter
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.dashboard_web.middleware import PEERS_CONF, query
+    from scripts.dashboard_web.peers_writer import PeersWriter
+else:
+    from .middleware import PEERS_CONF, query
+    from .peers_writer import PeersWriter
 
 _writer = PeersWriter(PEERS_CONF)
 _REQUIRED_CREATE = ("ssh_alias", "user", "os", "role")

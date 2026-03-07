@@ -1,19 +1,38 @@
 import os
 import sqlite3
 import subprocess
+import sys
 from pathlib import Path
 
-from api_mesh import find_peer_conf
-from api_plans_checks import check_cli_tools, check_disk, check_heartbeat
-from api_plans_preflight import (
-    build_candidates,
-    check_rsync,
-    resolve_ssh_dest,
-    sync_config,
-    sync_db,
-)
-from lib.sse import run_command_sse
-from middleware import DB_PATH, query_one
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.dashboard_web.api_mesh import find_peer_conf
+    from scripts.dashboard_web.api_plans_checks import (
+        check_cli_tools,
+        check_disk,
+        check_heartbeat,
+    )
+    from scripts.dashboard_web.api_plans_preflight import (
+        build_candidates,
+        check_rsync,
+        resolve_ssh_dest,
+        sync_config,
+        sync_db,
+    )
+    from scripts.dashboard_web.lib.sse import run_command_sse
+    from scripts.dashboard_web.middleware import DB_PATH, query_one
+else:
+    from .api_mesh import find_peer_conf
+    from .api_plans_checks import check_cli_tools, check_disk, check_heartbeat
+    from .api_plans_preflight import (
+        build_candidates,
+        check_rsync,
+        resolve_ssh_dest,
+        sync_config,
+        sync_db,
+    )
+    from .lib.sse import run_command_sse
+    from .middleware import DB_PATH, query_one
 
 
 def api_preflight_sse(handler, qs: dict):
@@ -147,13 +166,11 @@ def handle_plan_start_sse(handler, qs: dict):
         hostname = subprocess.run(
             ["hostname", "-s"], capture_output=True, text=True, timeout=5
         ).stdout.strip()
-        conn = sqlite3.connect(str(DB_PATH), timeout=5)
-        conn.execute(
-            "UPDATE plans SET status='doing', execution_host=? WHERE id=? AND status IN ('todo','doing')",
-            (target if target != "local" else hostname, int(plan_id)),
-        )
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(str(DB_PATH), timeout=5) as conn:
+            conn.execute(
+                "UPDATE plans SET status='doing', execution_host=? WHERE id=? AND status IN ('todo','doing')",
+                (target if target != "local" else hostname, int(plan_id)),
+            )
         handler._sse_send(
             "log", f"✓ Plan claimed by {target if target != 'local' else hostname}"
         )
@@ -162,7 +179,10 @@ def handle_plan_start_sse(handler, qs: dict):
         handler._sse_send("done", {"ok": False, "message": str(e)})
         return
     scripts = Path.home() / ".claude" / "scripts"
-    from api_mesh import peer_host_match
+    if __package__ in (None, ""):
+        from scripts.dashboard_web.api_mesh import peer_host_match
+    else:
+        from .api_mesh import peer_host_match
 
     if target == "local" or peer_host_match("m3max", target):
         cmd = (

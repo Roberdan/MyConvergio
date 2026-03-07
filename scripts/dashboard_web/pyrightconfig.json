@@ -1,0 +1,17 @@
+{
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "**/__pycache__",
+    ".pytest_cache",
+    "node_modules",
+    "playwright-report",
+    "~"
+  ],
+  "typeCheckingMode": "basic",
+  "reportImplicitRelativeImport": "error",
+  "extraPaths": [
+    "../.."
+  ]
+}

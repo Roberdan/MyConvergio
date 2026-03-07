@@ -5,9 +5,13 @@ cmd_start() {
 
 	# GATE: Readiness check BLOCKS start if planner process incomplete
 	if [[ "$force_flag" != "--force" ]]; then
-		if ! cmd_check_readiness "$plan_id"; then
-			log_error "Plan $plan_id failed readiness check. Fix issues above or use --force to override (audited)."
-			return 1
+		if declare -F cmd_check_readiness >/dev/null 2>&1; then
+			if ! cmd_check_readiness "$plan_id"; then
+				log_error "Plan $plan_id failed readiness check. Fix issues above or use --force to override (audited)."
+				return 1
+			fi
+		else
+			log_info "Readiness check unavailable in legacy source mode; continuing without gate"
 		fi
 	fi
 

@@ -34,6 +34,11 @@
       },
       {
         "type": "command",
+        "bash": "~/.copilot/hooks/enforce-execution-preflight.sh",
+        "timeoutSec": 5
+      },
+      {
+        "type": "command",
         "bash": "~/.copilot/hooks/guard-plan-mode.sh",
         "timeoutSec": 5
       },

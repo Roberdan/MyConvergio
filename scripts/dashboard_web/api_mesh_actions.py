@@ -6,12 +6,19 @@ streaming (SSE) handlers and power-management actions.
 
 import os
 import shlex
+import sys
 import time
 from pathlib import Path
 
-from api_mesh import find_peer_conf, send_wol
-from lib.sse import run_command_sse
-from lib.ssh import ssh_ok
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.dashboard_web.api_mesh import find_peer_conf, send_wol
+    from scripts.dashboard_web.lib.sse import run_command_sse
+    from scripts.dashboard_web.lib.ssh import ssh_ok
+else:
+    from .api_mesh import find_peer_conf, send_wol
+    from .lib.sse import run_command_sse
+    from .lib.ssh import ssh_ok
 
 
 _SCRIPTS = Path.home() / ".claude" / "scripts"

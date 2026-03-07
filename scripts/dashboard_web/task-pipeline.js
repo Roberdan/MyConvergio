@@ -1,6 +1,8 @@
 function _taskRow(t) {
   const title = t.title || "\u2014",
     truncated = title.length > 40,
+    tokenText =
+      t.tokens === null || t.tokens === undefined ? "\u2014" : fmt(t.tokens),
     statusCls =
       t.status === "done"
         ? "task-done"
@@ -11,7 +13,7 @@ function _taskRow(t) {
             : t.status === "blocked"
               ? "task-blocked"
               : "task-pending";
-  return `<tr class="${statusCls}" onclick="toggleTaskDetail(this)" data-task-id="${esc(t.task_id || "")}"><td style="color:var(--cyan);font-weight:600">${esc(t.task_id || "")}</td><td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" ${truncated ? `title="${esc(title)}"` : ""}>${esc(title.substring(0, 40))}${truncated ? "\u2026" : ""}</td><td>${statusDot(t.status)} ${thorIcon(t.validated_at)}</td><td style="color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((t.executor_agent || "\u2014").substring(0, 12))}</td><td style="color:var(--gold)">${t.tokens ? fmt(t.tokens) : "\u2014"}</td></tr>`;
+  return `<tr class="${statusCls}" onclick="toggleTaskDetail(this)" data-task-id="${esc(t.task_id || "")}"><td style="color:var(--cyan);font-weight:600">${esc(t.task_id || "")}</td><td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" ${truncated ? `title="${esc(title)}"` : ""}>${esc(title.substring(0, 40))}${truncated ? "\u2026" : ""}</td><td>${statusDot(t.status)} ${thorIcon(t.validated_at)}</td><td style="color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((t.executor_agent || "\u2014").substring(0, 12))}</td><td style="color:var(--gold)">${tokenText}</td></tr>`;
 }
 
 window.filterTasks = (planId) => {

@@ -9,19 +9,32 @@ import json
 import shlex
 import socket
 import subprocess
+import sys
 import time
 
 from pathlib import Path
 
-from lib.mesh_helpers import (
-    api_mesh_sync_status,
-    extract_heartbeat,
-    get_remote_plans,
-    local_active_plan_ids,
-    peer_execution_map,
-    tailscale_online_ips,
-)
-from middleware import PEERS_CONF, query
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.dashboard_web.lib.mesh_helpers import (
+        api_mesh_sync_status,
+        extract_heartbeat,
+        get_remote_plans,
+        local_active_plan_ids,
+        peer_execution_map,
+        tailscale_online_ips,
+    )
+    from scripts.dashboard_web.middleware import PEERS_CONF, query
+else:
+    from .lib.mesh_helpers import (
+        api_mesh_sync_status,
+        extract_heartbeat,
+        get_remote_plans,
+        local_active_plan_ids,
+        peer_execution_map,
+        tailscale_online_ips,
+    )
+    from .middleware import PEERS_CONF, query
 
 
 def parse_peers_conf() -> list[dict]:
@@ -148,7 +161,10 @@ def api_mesh() -> list[dict]:
             if proc_plan_ids:
                 for pid in proc_plan_ids:
                     rows = query(
-                        "SELECT id,name,status,tasks_done,tasks_total FROM plans WHERE id=? AND status='doing'",
+                        "SELECT p.id,p.name,p.status,"
+                        " COALESCE((SELECT COUNT(*) FROM tasks t WHERE t.plan_id=p.id AND t.status='done'),0) AS tasks_done,"
+                        " COALESCE((SELECT COUNT(*) FROM tasks t WHERE t.plan_id=p.id),0) AS tasks_total"
+                        " FROM plans p WHERE p.id=? AND p.status='doing'",
                         (pid,),
                     )
                     for row in rows:

@@ -1,9 +1,15 @@
 import sqlite3
 import subprocess
+import sys
 from pathlib import Path
 
-from api_mesh import find_peer_conf, peer_host_match
-from middleware import DB_PATH, query
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.dashboard_web.api_mesh import find_peer_conf, peer_host_match
+    from scripts.dashboard_web.middleware import DB_PATH, query
+else:
+    from .api_mesh import find_peer_conf, peer_host_match
+    from .middleware import DB_PATH, query
 
 
 def handle_plan_validate(plan_id: int) -> dict:
@@ -42,24 +48,21 @@ def handle_plan_cancel(qs: dict) -> dict:
         return {"error": "missing plan_id"}
     pid = int(plan_id)
     try:
-        conn = sqlite3.connect(str(DB_PATH), timeout=5)
-        plan = conn.execute(
-            "SELECT id, status FROM plans WHERE id=?", (pid,)
-        ).fetchone()
-        if not plan:
-            conn.close()
-            return {"error": f"plan {pid} not found"}
-        conn.execute("UPDATE plans SET status='cancelled' WHERE id=?", (pid,))
-        conn.execute(
-            "UPDATE waves SET status='cancelled' WHERE plan_id=? AND status NOT IN ('done','cancelled')",
-            (pid,),
-        )
-        conn.execute(
-            "UPDATE tasks SET status='cancelled' WHERE plan_id=? AND status NOT IN ('done','cancelled','skipped')",
-            (pid,),
-        )
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(str(DB_PATH), timeout=5) as conn:
+            plan = conn.execute(
+                "SELECT id, status FROM plans WHERE id=?", (pid,)
+            ).fetchone()
+            if not plan:
+                return {"error": f"plan {pid} not found"}
+            conn.execute("UPDATE plans SET status='cancelled' WHERE id=?", (pid,))
+            conn.execute(
+                "UPDATE waves SET status='cancelled' WHERE plan_id=? AND status NOT IN ('done','cancelled')",
+                (pid,),
+            )
+            conn.execute(
+                "UPDATE tasks SET status='cancelled' WHERE plan_id=? AND status NOT IN ('done','cancelled','skipped')",
+                (pid,),
+            )
         return {"ok": True, "plan_id": pid, "action": "cancelled"}
     except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
         return {"error": str(e)}
@@ -71,26 +74,23 @@ def handle_plan_reset(qs: dict) -> dict:
         return {"error": "missing plan_id"}
     pid = int(plan_id)
     try:
-        conn = sqlite3.connect(str(DB_PATH), timeout=5)
-        plan = conn.execute(
-            "SELECT id, status FROM plans WHERE id=?", (pid,)
-        ).fetchone()
-        if not plan:
-            conn.close()
-            return {"error": f"plan {pid} not found"}
-        conn.execute(
-            "UPDATE plans SET status='todo', tasks_done=0, execution_host=NULL WHERE id=?",
-            (pid,),
-        )
-        conn.execute(
-            "UPDATE waves SET status='pending', tasks_done=0 WHERE plan_id=?", (pid,)
-        )
-        conn.execute(
-            "UPDATE tasks SET status='pending', executor_agent=NULL, executor_host=NULL, tokens=NULL, validated_at=NULL, started_at=NULL, completed_at=NULL WHERE plan_id=? AND status NOT IN ('done','skipped')",
-            (pid,),
-        )
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(str(DB_PATH), timeout=5) as conn:
+            plan = conn.execute(
+                "SELECT id, status FROM plans WHERE id=?", (pid,)
+            ).fetchone()
+            if not plan:
+                return {"error": f"plan {pid} not found"}
+            conn.execute(
+                "UPDATE plans SET status='todo', tasks_done=0, execution_host=NULL WHERE id=?",
+                (pid,),
+            )
+            conn.execute(
+                "UPDATE waves SET status='pending', tasks_done=0 WHERE plan_id=?", (pid,)
+            )
+            conn.execute(
+                "UPDATE tasks SET status='pending', executor_agent=NULL, executor_host=NULL, tokens=NULL, validated_at=NULL, started_at=NULL, completed_at=NULL WHERE plan_id=? AND status NOT IN ('done','skipped')",
+                (pid,),
+            )
         return {"ok": True, "plan_id": pid, "action": "reset"}
     except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
         return {"error": str(e)}
@@ -100,18 +100,26 @@ def handle_plan_move(qs: dict) -> dict:
     plan_id, target = qs.get("plan_id", [""])[0], qs.get("target", [""])[0]
     if not plan_id or not plan_id.isdigit() or not target:
         return {"error": "missing plan_id or target"}
+    pid = int(plan_id)
     try:
-        conn = sqlite3.connect(str(DB_PATH), timeout=5)
-        conn.execute(
-            "UPDATE plans SET execution_host=? WHERE id=?", (target, int(plan_id))
-        )
-        conn.execute(
-            "UPDATE tasks SET executor_host=? WHERE plan_id=? AND status IN ('pending','in_progress')",
-            (target, int(plan_id)),
-        )
-        conn.commit()
-        conn.close()
-        return {"ok": True, "plan_id": int(plan_id), "target": target}
+        with sqlite3.connect(str(DB_PATH), timeout=5) as conn:
+            row = conn.execute(
+                "SELECT status, COALESCE(execution_host, '') FROM plans WHERE id=?",
+                (pid,),
+            ).fetchone()
+            if not row:
+                return {"error": f"plan {pid} not found"}
+            status, current_host = row
+            if status == "doing" and current_host and current_host != target:
+                conn.execute("UPDATE plans SET status='todo' WHERE id=?", (pid,))
+            conn.execute("UPDATE plans SET execution_host=? WHERE id=?", (target, pid))
+            if status == "doing":
+                conn.execute("UPDATE plans SET status='doing' WHERE id=?", (pid,))
+            conn.execute(
+                "UPDATE tasks SET executor_host=? WHERE plan_id=? AND status IN ('pending','in_progress','submitted')",
+                (target, pid),
+            )
+        return {"ok": True, "plan_id": pid, "target": target}
     except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
         return {"error": str(e)}
 

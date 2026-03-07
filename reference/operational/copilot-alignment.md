@@ -1,4 +1,4 @@
-<!-- v2.1.0 | 27 Feb 2026 | GA status, feature parity, plugin system, skills sync -->
+<!-- v2.2.0 | 07 Mar 2026 | GA refresh, GPT-5.4, request-aware routing -->
 
 # Copilot CLI Alignment
 
@@ -10,9 +10,9 @@ GitHub Copilot CLI as Claude Code alternative reference.
 
 | Plan Size | Waves    | Use         | Why                                                |
 | --------- | -------- | ----------- | -------------------------------------------------- |
-| 1-6 task  | 1-2      | Copilot CLI | Sufficient rigour, saves tokens                    |
-| 7+ task   | 3+       | Claude Code | Thor independent + parallel + context preservation |
-| Any       | Parallel | Claude Code | No parallel worker spawning in Copilot             |
+| 1-6 task  | 1-2      | Copilot CLI | Best terminal ROI, built-in plan/autopilot, low operator overhead |
+| 7+ task   | 3+       | Claude Code | Better coordinator isolation and stricter local orchestration      |
+| Any       | Parallel | Either      | Choose the platform with better guardrails and lower cost for that wave |
 
 ## Architecture
 
@@ -40,7 +40,7 @@ EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
 | Plan DB + TDD + Thor   | Native            | Native              | Identical behaviour                       |
 | Hooks enforcement      | 15+ hooks         | 15+ hooks           | 15 portable, 6 Claude Code-only           |
 | Worktree isolation     | Native            | Native              | Same scripts                              |
-| Parallel task spawning | Yes (`Task` tool) | No                  | Claude Code only                          |
+| Parallel task spawning | Yes (`Task` tool) | Yes (specialized/background agents) | Copilot supports multi-agent flows, but rigor still depends on our wrappers |
 | Agent Teams            | Native            | No                  | Claude Code native; no Copilot equivalent |
 | `/chronicle`           | No                | Yes                 | Copilot CLI only                          |
 | Background delegation  | No                | Yes                 | Copilot CLI only; async agent handoff     |
@@ -57,8 +57,10 @@ EnterPlanMode = no DB registration = VIOLATION. _Why: Plan 225._
 | `/planner`             | `@planner`       | Same spec.json + plan-db |
 | `/execute {id}`        | `@execute`       | Same TDD, one at a time  |
 | Thor subagent          | `@validate`      | Same 9 gates             |
-| `Task` tool (parallel) | N/A              | No parallel spawning     |
+| `Task` tool (parallel) | N/A              | Specialized/background agents | Use wrappers for plan-db discipline |
 | preCompact hook        | N/A              | Auto-compact at 95%      |
+
+Universal orchestration contract: `reference/operational/universal-orchestration.md`
 
 ## Plugin System
 
@@ -128,9 +130,18 @@ Full hook reference: `reference/operational/enforcement-hooks.md`
 | Area                                        | Status | Notes                                                 |
 | ------------------------------------------- | ------ | ----------------------------------------------------- |
 | Hooks, Plan DB, TDD, Thor, Worktree, Digest | Equal  | Identical to Claude Code                              |
-| Thor independence                           | Lower  | Shares session; **fix**: close executor, new session  |
-| Workflow enforcement                        | Lower  | No `subagentStart` hook                               |
-| Compaction                                  | Lower  | Auto at 95%; **fix**: manual `/compact` between waves |
-| Parallelization                             | Lower  | Sequential only; higher compaction risk               |
+| Thor independence                           | Lower  | More shared runtime state than Claude Code; compensate with wrappers and explicit post-run validation |
+| Workflow enforcement                        | Lower  | Fewer lifecycle hooks than Claude Code                                                    |
+| Compaction                                  | Lower  | Auto at 95%; mitigate with manual checkpoints, preflight snapshots, and DB-backed continuity |
+| Parallelization                             | Medium | Supported, but must stay within worktree/plan discipline                                  |
 | Subagent spawning                           | Lower  | In-session, not parallel                              |
 | Instruction caching                         | Lower  | Edit requires restart or `/resume`                    |
+
+## 07 Mar 2026 Operating Guidance
+
+- Use **GPT-5.3-Codex** as the default Copilot execution model for planned coding tasks.
+- Use **GPT-5.4** for deep debugging, code review, and architecture-level tradeoff analysis.
+- Use **Claude Sonnet 4.6** as the balanced validation/implementation model and **Claude Opus 4.6** only for ambiguity, security, or cross-system reasoning.
+- Do not assume Copilot is "free/unlimited"; route by premium-request efficiency, not ideology.
+- Before manual compaction or `/resume`, persist workflow state to DB/checkpoint artifacts first, then reconstruct from DB on re-entry.
+- Claude Code still wins on strict local orchestration; Copilot CLI wins on terminal ergonomics, built-in plan/autopilot, plugin/skills ecosystem, and rapid context switching.

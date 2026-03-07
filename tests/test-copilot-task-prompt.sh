@@ -16,7 +16,7 @@ grep -q "COALESCE(w.worktree_path, p.worktree_path, '')" "$PROMPT_SCRIPT" || {
 	exit 1
 }
 
-grep -q 'execution-preflight.sh "\$WT"' "$PROMPT_SCRIPT" || {
+grep -q 'execution-preflight.sh --plan-id \$PLAN_ID "\$WT"' "$PROMPT_SCRIPT" || {
 	echo "FAIL: prompt setup missing execution-preflight.sh"
 	exit 1
 }

@@ -61,13 +61,13 @@ test_pattern "EXIT_CODE.*-ne 0" "Non-zero differentiation"
 
 # Test 3: Thor Validation
 test_pattern "THOR_RESULT" "THOR_RESULT variable"
-test_pattern "thor-validate.sh" "Thor script invoked"
+test_pattern "plan-db.sh\" validate-task" "Thor validation command invoked"
 test_pattern "THOR_RESULT=\"PASS\"" "THOR_RESULT PASS"
 test_pattern "THOR_RESULT=\"REJECT\"" "THOR_RESULT REJECT"
 test_pattern "THOR_RESULT=\"UNKNOWN\"" "THOR_RESULT UNKNOWN"
-test_pattern "Running Thor validation" "Thor message"
+test_pattern "Running Thor per-task validation" "Thor message"
 test_pattern "FINAL_STATUS.*done.*THOR_RESULT.*PASS" "Thor on success only"
-test_pattern "thor-validate.sh.*PLAN_ID" "Thor gets PLAN_ID"
+test_pattern "validate-task.*TASK_ID.*PLAN_ID.*thor" "Thor gets PLAN_ID"
 test_pattern "Thor validation: PASSED" "Thor pass message"
 test_pattern "Thor validation: FAILED" "Thor fail message"
 test_pattern "log_delegation" "log_delegation exists"
@@ -76,7 +76,7 @@ test_pattern "THOR_RESULT.*0.*unknown" "THOR_RESULT logged"
 # Test 4: File-Lock Integration
 test_pattern "source.*delegate-utils.sh" "delegate-utils sourced"
 test_pattern "safe_update_task" "safe_update_task used"
-test_count "safe_update_task" 5 "safe_update_task called 5x"
+test_count "safe_update_task" 6 "safe_update_task called 6x"
 test_pattern "log_delegation" "log_delegation used"
 
 # Test 5: Execution Function

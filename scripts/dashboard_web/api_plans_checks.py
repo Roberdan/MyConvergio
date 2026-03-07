@@ -1,8 +1,14 @@
 """Service check helpers for api_preflight_sse (heartbeat, CLI, disk, auth)."""
 
+import sys
 import time
+from pathlib import Path
 
-from api_plans import _ssh_run
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.dashboard_web.api_plans import _ssh_run
+else:
+    from .api_plans import _ssh_run
 
 
 def check_heartbeat(handler, ssh_dest: str, target: str, _check, query_one_fn) -> None:

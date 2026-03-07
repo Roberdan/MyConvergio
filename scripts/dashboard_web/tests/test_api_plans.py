@@ -245,6 +245,19 @@ class TestPlanMove:
         assert tasks[3][1] == "omarchy"
         conn.close()
 
+    def test_move_normalizes_target_before_write(self, test_db):
+        from api_plans import handle_plan_move
+
+        with patch("api_plans.resolve_host_to_peer", return_value="m3max"):
+            result = handle_plan_move({"plan_id": ["100"], "target": ["Mac.lan"]})
+
+        assert result["ok"] is True
+        assert result["target"] == "m3max"
+        conn = sqlite3.connect(str(test_db))
+        plan = conn.execute("SELECT execution_host FROM plans WHERE id=100").fetchone()
+        conn.close()
+        assert plan[0] == "m3max"
+
     def test_move_missing_target(self):
         from api_plans import handle_plan_move
 

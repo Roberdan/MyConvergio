@@ -47,6 +47,10 @@ trim() {
   printf "%s" "$s"
 }
 
+normalize_key() {
+  printf "%s" "$1" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]'
+}
+
 SQL_FILE="$(mktemp)"
 trap 'rm -f "$SQL_FILE"' EXIT
 
@@ -67,6 +71,33 @@ add_variant() {
   q_variant="$(sql_quote "$variant")"
   printf "INSERT OR IGNORE INTO host_map(variant, canonical) VALUES ('%s', '%s');\n" \
     "$q_variant" "$q_canonical" >>"$SQL_FILE"
+}
+
+resolve_peer_for_variant() {
+  local variant="$1"
+  local variant_key matched="" peer candidate candidate_key
+  variant_key="$(normalize_key "$variant")"
+  [[ -z "$variant_key" ]] && return 1
+
+  for peer in $_PEERS_ALL; do
+    for candidate in \
+      "$peer" \
+      "$(peers_get "$peer" ssh_alias 2>/dev/null || true)" \
+      "$(peers_get "$peer" dns_name 2>/dev/null || true)"; do
+      candidate_key="$(normalize_key "$candidate")"
+      [[ -z "$candidate_key" ]] && continue
+      if [[ "$variant_key" == *"$candidate_key"* || "$candidate_key" == *"$variant_key"* ]]; then
+        if [[ -n "$matched" && "$matched" != "$peer" ]]; then
+          return 1
+        fi
+        matched="$peer"
+        break
+      fi
+    done
+  done
+
+  [[ -n "$matched" ]] || return 1
+  printf "%s" "$matched"
 }
 
 # Build peer variants -> canonical mapping for each section in peers.conf
@@ -95,12 +126,30 @@ if [[ -n "$SELF_PEER" ]]; then
   [[ -n "$COMPUTER_NAME" ]] && add_variant "$SELF_PEER" "${COMPUTER_NAME}.lan"
 fi
 
+# Fuzzy pass: map historical DB host variants to canonical peers when match is unique.
+while IFS= read -r host_variant; do
+  host_variant="$(trim "$host_variant")"
+  [[ -z "$host_variant" ]] && continue
+  canonical="$(resolve_peer_for_variant "$host_variant" || true)"
+  [[ -z "$canonical" ]] && continue
+  add_variant "$canonical" "$host_variant"
+done < <(sqlite3 "$DB_PATH" "
+  SELECT DISTINCT execution_host
+  FROM plans
+  WHERE execution_host IS NOT NULL AND TRIM(execution_host) != ''
+  UNION
+  SELECT DISTINCT executor_host
+  FROM tasks
+  WHERE executor_host IS NOT NULL AND TRIM(executor_host) != '';
+")
+
 cat >>"$SQL_FILE" <<'SQL'
 CREATE TEMP TABLE _counts(name TEXT PRIMARY KEY, value INTEGER);
 
 UPDATE plans
 SET execution_host = (SELECT m.canonical FROM host_map m WHERE m.variant = plans.execution_host)
 WHERE execution_host IN (SELECT variant FROM host_map)
+  AND status != 'doing'
   AND execution_host <> (SELECT m.canonical FROM host_map m WHERE m.variant = plans.execution_host);
 INSERT INTO _counts(name, value) VALUES ('plans', changes());
 

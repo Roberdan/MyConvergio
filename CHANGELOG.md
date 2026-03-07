@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.18.1] - 07 Mar 2026
+
+### Fixed
+- enforce canonical execution hosts
+
+
 ## [v10.18.0] - 07 Mar 2026
 
 ### Added

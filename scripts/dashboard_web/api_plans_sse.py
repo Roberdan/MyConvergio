@@ -6,7 +6,11 @@ from pathlib import Path
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-    from scripts.dashboard_web.api_mesh import find_peer_conf, local_peer_name
+    from scripts.dashboard_web.api_mesh import (
+        find_peer_conf,
+        local_peer_name,
+        resolve_host_to_peer,
+    )
     from scripts.dashboard_web.api_plans_checks import (
         check_cli_tools,
         check_disk,
@@ -22,7 +26,7 @@ if __package__ in (None, ""):
     from scripts.dashboard_web.lib.sse import run_command_sse
     from scripts.dashboard_web.middleware import DB_PATH, query_one
 else:
-    from .api_mesh import find_peer_conf, local_peer_name
+    from .api_mesh import find_peer_conf, local_peer_name, resolve_host_to_peer
     from .api_plans_checks import check_cli_tools, check_disk, check_heartbeat
     from .api_plans_preflight import (
         build_candidates,
@@ -94,17 +98,18 @@ def api_preflight_sse(handler, qs: dict):
 
 
 def handle_plan_delegate(handler, qs: dict, safe_name):
-    plan_id, target, cli_choice = (
+    plan_id, raw_target, cli_choice = (
         qs.get("plan_id", [""])[0],
         qs.get("target", [""])[0],
         qs.get("cli", ["copilot"])[0],
     )
-    if not plan_id or not plan_id.isdigit() or not target:
+    if not plan_id or not plan_id.isdigit() or not raw_target:
         handler._json_response({"error": "missing plan_id or target"}, 400)
         return
-    if not safe_name.match(target):
+    if not safe_name.match(raw_target):
         handler._json_response({"error": "invalid target name"}, 400)
         return
+    target = resolve_host_to_peer(raw_target) or raw_target
     handler._start_sse()
     try:
         from mesh_handoff import check_stale_host, full_handoff
@@ -163,29 +168,23 @@ def handle_plan_start_sse(handler, qs: dict):
         return
     handler._start_sse()
     handler._sse_send("log", f"▶ Starting plan #{plan_id} with {cli}")
+    local_host = resolve_host_to_peer(local_peer_name())
+    execution_host = (
+        local_host if target == "local" else (resolve_host_to_peer(target) or target)
+    )
     try:
-        hostname = subprocess.run(
-            ["hostname", "-s"], capture_output=True, text=True, timeout=5
-        ).stdout.strip()
         with sqlite3.connect(str(DB_PATH), timeout=5) as conn:
             conn.execute(
                 "UPDATE plans SET status='doing', execution_host=? WHERE id=? AND status IN ('todo','doing')",
-                (target if target != "local" else hostname, int(plan_id)),
+                (execution_host, int(plan_id)),
             )
-        handler._sse_send(
-            "log", f"✓ Plan claimed by {target if target != 'local' else hostname}"
-        )
+        handler._sse_send("log", f"✓ Plan claimed by {execution_host}")
     except Exception as e:
         handler._sse_send("log", f"✗ DB update failed: {e}")
         handler._sse_send("done", {"ok": False, "message": str(e)})
         return
     scripts = Path.home() / ".claude" / "scripts"
-    if __package__ in (None, ""):
-        from scripts.dashboard_web.api_mesh import peer_host_match
-    else:
-        from .api_mesh import peer_host_match
-
-    if target == "local" or peer_host_match(local_peer_name(), target):
+    if execution_host == local_host:
         cmd = (
             f'claude --model sonnet -p "/execute {plan_id}"'
             if cli == "claude"
@@ -205,13 +204,13 @@ def handle_plan_start_sse(handler, qs: dict):
             cwd=str(Path.home() / ".claude"),
         )
     else:
-        handler._sse_send("log", f"▶ Delegating to {target}")
+        handler._sse_send("log", f"▶ Delegating to {execution_host}")
         try:
             from mesh_handoff import full_handoff
 
             ok, summary = full_handoff(
                 int(plan_id),
-                target,
+                execution_host,
                 find_peer_conf,
                 lambda msg: handler._sse_send("log", msg),
                 cli=cli,

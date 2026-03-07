@@ -9,10 +9,11 @@ if __package__ in (None, ""):
         find_peer_conf,
         local_peer_name,
         peer_host_match,
+        resolve_host_to_peer,
     )
     from scripts.dashboard_web.middleware import DB_PATH, query
 else:
-    from .api_mesh import find_peer_conf, local_peer_name, peer_host_match
+    from .api_mesh import find_peer_conf, local_peer_name, peer_host_match, resolve_host_to_peer
     from .middleware import DB_PATH, query
 
 
@@ -101,9 +102,10 @@ def handle_plan_reset(qs: dict) -> dict:
 
 
 def handle_plan_move(qs: dict) -> dict:
-    plan_id, target = qs.get("plan_id", [""])[0], qs.get("target", [""])[0]
-    if not plan_id or not plan_id.isdigit() or not target:
+    plan_id, raw_target = qs.get("plan_id", [""])[0], qs.get("target", [""])[0]
+    if not plan_id or not plan_id.isdigit() or not raw_target:
         return {"error": "missing plan_id or target"}
+    target = resolve_host_to_peer(raw_target) or raw_target
     pid = int(plan_id)
     try:
         with sqlite3.connect(str(DB_PATH), timeout=5) as conn:

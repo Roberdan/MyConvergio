@@ -2,8 +2,15 @@
 
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.dashboard_web.api_mesh import local_peer_name, resolve_host_to_peer
+else:
+    from .api_mesh import local_peer_name, resolve_host_to_peer
 
 from mesh_handoff_core import (
     CLAUDE_HOME,
@@ -69,10 +76,9 @@ def reverse_sync(ssh_source: str, plan_id: int, log: callable) -> tuple[bool, st
     log(f"▶ Pulling DB from {ssh_source}")
     ok, detail = pull_db_from_peer(ssh_source, [plan_id])
     log(f"  → {detail}")
-    local_host = subprocess.run(
-        ["hostname", "-s"], capture_output=True, text=True, timeout=5
-    ).stdout.strip()
-    _sql(f"UPDATE plans SET execution_host='{local_host}' WHERE id={plan_id};")
+    local_host = resolve_host_to_peer(local_peer_name()) or local_peer_name()
+    safe_local_host = local_host.replace("'", "''")
+    _sql(f"UPDATE plans SET execution_host='{safe_local_host}' WHERE id={plan_id};")
     log("  ✓ execution_host returned to coordinator")
     return True, "reverse sync complete"
 

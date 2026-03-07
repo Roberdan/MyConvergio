@@ -65,6 +65,14 @@ ACTION: Fix issue, re-verify, then proceed
 
 ## Database Operations
 
+### Execution readiness snapshot
+
+```bash
+execution-preflight.sh {absolute_worktree_path}
+```
+
+Resolve blockers before code changes, especially for auth/CI/deploy/versioning tasks.
+
 ### Get numeric task ID (if needed)
 
 ```bash
@@ -86,8 +94,8 @@ sqlite3 ~/.claude/data/dashboard.db \
 # Mark in progress
 ~/.claude/scripts/plan-db.sh update-task {db_task_id} in_progress "Work started"
 
-# Mark done (ALWAYS include --tokens!)
-~/.claude/scripts/plan-db.sh update-task {db_task_id} done "Work summary" --tokens 15234
+# Mark done (ALWAYS via safe path and include --tokens!)
+~/.claude/scripts/plan-db-safe.sh update-task {db_task_id} done "Work summary" --tokens 15234
 
 # Mark blocked
 ~/.claude/scripts/plan-db.sh update-task {db_task_id} blocked "Blocker description"
@@ -169,7 +177,7 @@ npm run lint                      # ✓ PASS
 npm run build                     # ✓ PASS
 
 # Phase 5: Mark complete (with token count!)
-plan-db.sh update-task $DB_TASK_ID done "Metrics display implemented and tested. All acceptance criteria met." --tokens 12456
+plan-db-safe.sh update-task $DB_TASK_ID done "Metrics display implemented and tested. All acceptance criteria met." --tokens 12456
 
 # Report
 echo "Task T1-01: DONE

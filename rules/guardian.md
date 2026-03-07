@@ -38,6 +38,12 @@ After every push on a PR, before merge:
 
 **Merging with unresolved PR comments = VIOLATION.** `wave-worktree.sh merge` blocks on unresolved threads.
 
+## Execution Readiness Snapshot (NON-NEGOTIABLE)
+
+Before execution or resume, run `execution-preflight.sh <worktree>`. Treat `dirty_worktree`, `gh_auth_not_ready`, `missing_troubleshooting`, and `missing_ci_knowledge` as blockers for auth/CI/deploy/PR work until resolved or explicitly acknowledged by the user.
+
+If operational dashboards, caches, or metrics are older than the current work cycle, refresh them before using them for decisions. Stale observability treated as missing evidence.
+
 ## CI Batch Fix (NON-NEGOTIABLE)
 
 Wait for FULL CI to complete before pushing fixes. Collect ALL failures. Fix ALL in one commit. Push once. Never fix-push-repeat per error. Max 3 rounds. **Pushing after fixing only 1 error while CI has more failures = REJECTED.**

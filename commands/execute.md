@@ -36,6 +36,10 @@ NEVER execute without plan_id | NEVER skip tasks/Thor | WORKTREE ISOLATION — p
 
 **Extract constraints** (ADR-054): `CONSTRAINTS=$(echo "$CTX" | jq -r '.constraints // [] | .[] | "C-" + .id + ": " + .text' )`. If non-empty, EVERY task prompt MUST include constraints block.
 
+### P1.2: Execution Readiness Bundle
+
+Run `PRECHECK_JSON=$(execution-preflight.sh "$WORKTREE_PATH")` before dispatch. If `warnings` contains `dirty_worktree`, `missing_troubleshooting`, `missing_ci_knowledge`, or `gh_auth_not_ready` for PR/CI work, STOP and resolve or ask user before edits. Pass `PRECHECK_JSON` into EVERY task prompt; tasks touching auth/permissions/CI/deploy/versioning MUST read TROUBLESHOOTING + CI knowledge + relevant ADRs before changing code.
+
 ### P1.5: Drift Check
 
 `DRIFT_JSON=$(plan-db.sh drift-check $PLAN_ID)` → Check `DRIFT_LEVEL`: **major** → ASK USER (Proceed/Rebase/Replan) | **minor** → `plan-db.sh rebase-plan $PLAN_ID`
@@ -100,9 +104,10 @@ await Task({
   model: MODEL_MAP[task.model] || task.model || "sonnet",
   max_turns: 30,
   description: `Execute ${task.task_id}`,
-  prompt: `TASK ${task.task_id} | Wave: ${task.wave_id} | db_id: ${task.db_id}
+   prompt: `TASK ${task.task_id} | Wave: ${task.wave_id} | db_id: ${task.db_id}
 WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK}
 CONSTRAINTS (MUST NOT VIOLATE): ${CONSTRAINTS || "none"}
+EXECUTION READINESS: ${PRECHECK_JSON || "{}"}
 Do: ${task.title}
 ${task.description}
 Verify: ${task.test_criteria}
@@ -169,6 +174,8 @@ esac
 ### P5: Completion
 
 `plan-db.sh validate $PLAN_ID && plan-db.sh complete $PLAN_ID`
+
+Before `complete`: verify checkpoint/memory state is current, PR threads are zero, deployed version matches expected version, and any auth/permissions/data-access changes have a smoke-test result recorded.
 
 ## Error Handling
 

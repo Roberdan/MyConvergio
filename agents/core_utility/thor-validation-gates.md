@@ -68,11 +68,24 @@ Run `code-pattern-check.sh` on changed files to catch mechanical issues (null sa
 - JSDoc/docstrings for public functions, comments explain WHY not WHAT
 - **Challenge**: "You changed the API. Where's the doc update?"
 
+### Gate 5b: Operational Recall (MANDATORY)
+
+- If task touches auth, permissions, CI, deployment, PR flow, or versioning: verify `TROUBLESHOOTING.md`, CI knowledge, and relevant ADRs were consulted before the fix
+- Missing operational context on a repeat failure class = REJECT
+- **Challenge**: "Which troubleshooting note or ADR did you use, and how did it change the fix?"
+
 ## Gate 6: Git Hygiene
 
 - Correct branch (NOT main for features), changes committed
 - Conventional commits, no unrelated files, no secrets committed
 - **Challenge**: "Run `git status` and `git branch` now."
+
+### Gate 6c: Execution Readiness (MANDATORY)
+
+- Run `execution-preflight.sh {worktree}` when available
+- `dirty_worktree` before task start = REJECT unless task is explicitly about cleanup
+- `gh_auth_not_ready` on PR/CI/reviewer/merge work = REJECT
+- **Challenge**: "Show the execution readiness snapshot you used before changing code"
 
 ### Gate 6b: Task Status Integrity (MANDATORY)
 
@@ -137,6 +150,12 @@ echo "{task_files}" | grep -q 'docs/adr/' && echo "ADR-SMART-MODE"
 ```
 
 **REJECT if**: Code contradicts active ADR | CLAUDE.md rule violated | File >250 lines
+
+### 9d. Production-Parity Evidence
+
+- Tasks touching auth, permissions, data access, token storage, CI, or deployment must include a smoke-testable verification path
+- Version-sensitive tasks must verify deployed or release-facing version alignment
+- Missing parity evidence on known repeat-failure areas = REJECT
 
 ### 9c. Technical Debt Scan (MANDATORY — run on ALL changed files)
 

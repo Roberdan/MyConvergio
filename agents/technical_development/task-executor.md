@@ -48,6 +48,15 @@ worktree-guard.sh "{absolute_worktree_path}"
 
 **NEVER work on main/master.** `WORKTREE_VIOLATION` → mark `blocked`, return.
 
+### Phase 0.2: Execution Readiness Snapshot
+
+```bash
+PRECHECK_JSON=$(execution-preflight.sh "{absolute_worktree_path}")
+echo "$PRECHECK_JSON"
+```
+
+If `warnings` includes `dirty_worktree`, STOP and resolve before edits. If the task touches auth/permissions/CI/deploy/versioning and `warnings` includes `missing_troubleshooting`, `missing_ci_knowledge`, or `gh_auth_not_ready`, read the missing docs or mark `blocked` with the exact prerequisite.
+
 ### Phase 0.5: File Locking + Snapshot
 
 ```bash

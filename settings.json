@@ -61,6 +61,11 @@
           },
           {
             "type": "command",
+            "command": "~/.claude/hooks/enforce-plan-reviews.sh",
+            "timeout": 3
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/enforce-thor-completion.sh",
             "timeout": 3
           }

@@ -23,7 +23,7 @@ TASK_JSON=$(sqlite3 "$DB_FILE" "
 		'test_criteria', COALESCE(t.test_criteria,''),
 		'wave_id', w.wave_id, 'wave_name', w.name,
 		'plan_id', t.plan_id, 'plan_name', p.name,
-		'worktree_path', COALESCE(p.worktree_path,''),
+		'worktree_path', COALESCE(w.worktree_path, p.worktree_path, ''),
 		'db_task_id', t.id
 	) FROM tasks t
 	JOIN waves w ON t.wave_id_fk = w.id
@@ -94,6 +94,11 @@ elif [[ -f "$WT/Cargo.toml" ]]; then
 	FW="cargo"
 fi
 
+PRECHECK_JSON="{}"
+if [[ -x "${HOME}/.claude/scripts/execution-preflight.sh" ]]; then
+	PRECHECK_JSON="$("${HOME}/.claude/scripts/execution-preflight.sh" "$WT" 2>/dev/null || echo '{}')"
+fi
+
 # Generate prompt
 cat <<PROMPT
 # Task Execution: $TID ($TITLE)
@@ -115,13 +120,19 @@ export PATH="\$HOME/.claude/scripts:\$PATH"
 cd "$WT" && pwd
 worktree-guard.sh "$WT"
 worktree-safety.sh audit "$WT" 2>/dev/null || true
+execution-preflight.sh "$WT"
 plan-db-safe.sh update-task $TASK_ID in_progress "Started by Copilot"
 \`\`\`
+
+## Execution Readiness Snapshot
+$PRECHECK_JSON
 
 ## Rules
 1. Work ONLY in: $WT — NEVER checkout main/master
 2. If \`worktree-guard.sh\` fails, STOP immediately
 3. TDD: tests FIRST, then implement
+4. If the snapshot warns about dirty worktree, missing troubleshooting, missing CI knowledge, or missing GH auth for PR/CI work, STOP and resolve before coding
+5. For auth/CI/deploy/permissions/version issues, read TROUBLESHOOTING.md, relevant ADRs, and CI knowledge before deciding the fix
 
 ## Task
 **Wave**: $WAVE | **Task**: $TID | **Framework**: $FW | **Plan**: $PLAN_ID
@@ -153,6 +164,7 @@ $TC
 - Max 250 lines per file. Split if exceeds.
 - No TODO, FIXME, @ts-ignore in new code
 - English for all code and comments
+- If you touch auth, permissions, CI, PR, deployment, or versioning, add/keep a smoke-testable verification path
 
 ## !! FINAL STEP — DO NOT SKIP !!
 

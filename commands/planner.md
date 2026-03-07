@@ -30,6 +30,7 @@ Plan and execute with parallel Claude instances.
 | 14  | **PLAN INTELLIGENCE REVIEW**: Steps 3.1-3.2 MANDATORY for plans with 3+ tasks. Skipping = VIOLATION. See [Step 3.1](#step-3-1).                                                                                                                                                                                            |
 | 15  | **TEST ADAPTS TO CODE**: When implementation changes break existing tests, update tests to match new behavior. NEVER revert implementation to make old tests pass. Tests follow code, not the opposite.                                                                                                                    |
 | 16  | **INTEGRATION COMPLETENESS**: For EVERY task that creates/exports new code, the plan MUST include a wiring task that connects it to consumers. For EVERY task that changes an interface, a consumer audit task MUST verify ALL consumers are updated. Orphan code = VIOLATION. See `~/.claude/rules/testing-standards.md`. |
+| 17  | **EXECUTION READINESS PACK**: Plans touching auth, permissions, CI, PR flow, deployment, versioning, or production parity MUST include an early task that verifies worktree state, GH identity, troubleshooting/CI docs, and smoke-test path before implementation.                                                       |
 
 ## Module References
 
@@ -53,7 +54,7 @@ Returns: project_id, project_name, path, branch, active_plans, worktrees, has_ad
 
 ### 1.5 Read Existing Docs + Failed Approaches (MANDATORY)
 
-NO Explore. Direct Glob/Grep (2 calls): `Glob("docs/adr/*.md")`, `Grep(pattern="kw1|kw2", path="docs/adr/", output_mode="files_with_matches")`. Read matched ADRs. Check CHANGELOG.md last 20 lines. Cite ADRs in `ref`. Conflict = ASK.
+NO Explore. Direct Glob/Grep (2 calls): `Glob("docs/adr/*.md")`, `Grep(pattern="kw1|kw2", path="docs/adr/", output_mode="files_with_matches")`. Read matched ADRs. Check CHANGELOG.md last 20 lines, TROUBLESHOOTING.md if present, and repo/global CI knowledge if auth/CI/deploy is involved. Cite ADRs/docs in `ref`. Conflict = ASK.
 
 **Failed Approaches Check** (HVE Core pattern): `plan-db.sh get-failures $PROJECT_ID`. If prior failures exist for this project, list them and ensure the new plan DOES NOT repeat the same approach. Reference failures in task `do` field: "Previous attempt X failed because Y — use Z instead."
 
@@ -135,7 +136,7 @@ spec.yaml (or spec.json): `{user_request, constraints:[{id,text,type,verify}], r
 
 **CONSTRAINT VALIDATION GATE (ADR-054)**: After generating tasks, cross-check EVERY task against EVERY constraint. Present matrix: `| Task | C-01 | C-02 | ... |`. Any cell = VIOLATES → redesign task or BLOCK. Example: if C-01 = "No admin permissions required" and T2-01 = "Configure EasyAuth (requires admin consent)" → VIOLATION → remove or redesign T2-01.
 
-**Rules**: `do`=ONE action. `files`=explicit paths. `verify`=machine-checkable. `ref`=F-xx ID. Missing `verify`=broken. **Per-wave docs**: TX-doc (CHANGELOG + plan-{id}-notes.md). **Final wave** "WF-Closure": TF-01 (notes->ADRs), TF-02 (CHANGELOG), TF-03 (ESLint), TF-tests (test consolidation), TF-pr (PR+CI). Cite ADRs in `do`.
+**Rules**: `do`=ONE action. `files`=explicit paths. `verify`=machine-checkable. `ref`=F-xx ID. Missing `verify`=broken. **Per-wave docs**: TX-doc (CHANGELOG + plan-{id}-notes.md). **Final wave** "WF-Closure": TF-01 (notes->ADRs), TF-02 (CHANGELOG), TF-03 (ESLint), TF-tests (test consolidation), TF-smoke (required for auth/permissions/data-access/deploy plans), TF-pr (PR+CI). Cite ADRs/docs in `do`.
 
 ### 2.1 Schema Validation (MANDATORY)
 

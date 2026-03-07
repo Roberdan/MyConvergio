@@ -185,54 +185,26 @@ _run_incremental_sync() {
 	_sync_config
 }
 
-# Pull full DB from remote execution host (WAL-safe)
+# Pull full DB from remote execution host (atomic, WAL-safe)
 _pull_from_remote() {
 	local remote_host="$1"
-	# Resolve SSH alias from peers.conf
 	local ssh_target=""
 	local peers_conf="${HOME}/.claude/config/peers.conf"
 	if [[ -f "$peers_conf" ]]; then
 		ssh_target=$(awk -F= -v h="$remote_host" '
 			/^\[/{section=$0; gsub(/[\[\]]/,"",section)}
-			section && /^ssh_alias=/{alias=$2}
 			section==h && /^ssh_alias=/{print $2; exit}
 		' "$peers_conf" 2>/dev/null || echo "")
 	fi
 	[[ -z "$ssh_target" ]] && ssh_target="$remote_host"
-
-	if ! ssh -n -o ConnectTimeout=5 -o BatchMode=yes "$ssh_target" "true" &>/dev/null; then
-		log "Pull skipped: $remote_host unreachable"
-		return 0
-	fi
-
-	log "Pulling full DB from $remote_host ($ssh_target)..."
-	# WAL checkpoint on remote first
-	ssh -n -o ConnectTimeout=5 -o BatchMode=yes "$ssh_target" \
-		"sqlite3 ~/.claude/data/dashboard.db 'PRAGMA wal_checkpoint(TRUNCATE);'" 2>/dev/null || true
-	# Copy all DB files (db + wal + shm)
-	if scp -o ConnectTimeout=10 -o BatchMode=yes \
-		"${ssh_target}:~/.claude/data/dashboard.db" \
-		"${ssh_target}:~/.claude/data/dashboard.db-wal" \
-		"${ssh_target}:~/.claude/data/dashboard.db-shm" \
-		"${HOME}/.claude/data/" 2>/dev/null; then
-		# Checkpoint locally to merge WAL
-		sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(TRUNCATE);" 2>/dev/null || true
+	log "Pulling DB from $remote_host ($ssh_target)..."
+	if "$SCRIPT_DIR/db-pull.sh" "$ssh_target" >>"$LOG_FILE" 2>&1; then
 		date '+%Y-%m-%d %H:%M:%S' >"$LAST_SYNC_FILE"
-		log "Full DB pull from $remote_host completed"
+		log "DB pull from $remote_host completed"
 		consecutive_failures=0
 	else
-		# WAL/SHM may not exist if already checkpointed — try DB only
-		if scp -o ConnectTimeout=10 -o BatchMode=yes \
-			"${ssh_target}:~/.claude/data/dashboard.db" \
-			"${HOME}/.claude/data/dashboard.db" 2>/dev/null; then
-			rm -f "${HOME}/.claude/data/dashboard.db-wal" "${HOME}/.claude/data/dashboard.db-shm"
-			date '+%Y-%m-%d %H:%M:%S' >"$LAST_SYNC_FILE"
-			log "Full DB pull from $remote_host completed (no WAL)"
-			consecutive_failures=0
-		else
-			consecutive_failures=$((consecutive_failures + 1))
-			log "Full DB pull from $remote_host FAILED (consecutive: $consecutive_failures)"
-		fi
+		consecutive_failures=$((consecutive_failures + 1))
+		log "DB pull from $remote_host FAILED (consecutive: $consecutive_failures)"
 	fi
 }
 

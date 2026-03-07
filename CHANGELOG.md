@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.20.1] - 07 Mar 2026
+
+### Changed
+- sync plan 333 status from omarchy — W0+W1 done (8/55)
+
+
 ## [v10.20.0] - 07 Mar 2026
 
 ### Added

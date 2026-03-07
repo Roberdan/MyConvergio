@@ -26,7 +26,9 @@ _ATTRIBUTED_TOKEN_WHERE = (
 )
 
 
-def _reconcile_progress(plan: dict, waves: list[dict], tasks: list[dict]) -> tuple[dict, list[dict]]:
+def _reconcile_progress(
+    plan: dict, waves: list[dict], tasks: list[dict]
+) -> tuple[dict, list[dict]]:
     plan = dict(plan)
     waves = [dict(w) for w in waves]
     wave_map = {w["wave_id"]: w for w in waves}
@@ -52,20 +54,28 @@ def _merge_task_tokens(plan_id: int, tasks: list[dict]) -> list[dict]:
         " GROUP BY task_id",
         (plan_id,),
     )
-    token_map = {str(row["task_id"]): row["tokens"] for row in rows if row.get("task_id") is not None}
+    token_map = {
+        str(row["task_id"]): row["tokens"]
+        for row in rows
+        if row.get("task_id") is not None
+    }
     delegation_rows = query(
         "SELECT task_db_id, SUM(prompt_tokens + response_tokens) AS tokens"
         " FROM delegation_log WHERE plan_id=? GROUP BY task_db_id",
         (plan_id,),
     )
     delegation_map = {
-        int(row["task_db_id"]): row["tokens"] for row in delegation_rows if row.get("task_db_id") is not None
+        int(row["task_db_id"]): row["tokens"]
+        for row in delegation_rows
+        if row.get("task_db_id") is not None
     }
     merged = []
     for task in tasks:
         task = dict(task)
         if not task.get("tokens"):
-            task_key = str(task.get("task_id")) if task.get("task_id") is not None else None
+            task_key = (
+                str(task.get("task_id")) if task.get("task_id") is not None else None
+            )
             db_key = str(task.get("id")) if task.get("id") is not None else None
             if task_key in token_map:
                 task["tokens"] = token_map[task_key]
@@ -142,7 +152,7 @@ def api_mission(resolve_host_to_peer) -> dict:
             (p["id"],),
         )
         tasks = query(
-            "SELECT id,task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
+            "SELECT id,task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id,substatus,output_data,lines_added,lines_removed,files_changed FROM tasks WHERE plan_id=? ORDER BY wave_id_fk,id",
             (p["id"],),
         )
         tasks = _merge_task_tokens(p["id"], tasks)
@@ -186,7 +196,9 @@ def api_live_system(resolve_host_to_peer, mesh_provider) -> dict:
         "SELECT id,plan_id,task_id,from_run_id,to_run_id,handoff_kind,status,created_at,accepted_at"
         " FROM agent_handoffs ORDER BY created_at DESC LIMIT 40"
     )
-    return build_live_system_snapshot(mission.get("plans", []), peers, agent_runs, task_events, handoffs)
+    return build_live_system_snapshot(
+        mission.get("plans", []), peers, agent_runs, task_events, handoffs
+    )
 
 
 def api_tokens_daily() -> list[dict]:
@@ -210,8 +222,10 @@ def api_tokens_daily() -> list[dict]:
     return [
         {
             "day": day,
-            "input": (db_map.get(day, {}).get("input") or 0) + (fallback_map.get(day, {}).get("input") or 0),
-            "output": (db_map.get(day, {}).get("output") or 0) + (fallback_map.get(day, {}).get("output") or 0),
+            "input": (db_map.get(day, {}).get("input") or 0)
+            + (fallback_map.get(day, {}).get("input") or 0),
+            "output": (db_map.get(day, {}).get("output") or 0)
+            + (fallback_map.get(day, {}).get("output") or 0),
             "cost": db_map.get(day, {}).get("cost") or 0,
         }
         for day in all_days
@@ -222,7 +236,14 @@ def api_tokens_by_model() -> list[dict]:
     rows = query(
         "SELECT model, SUM(input_tokens+output_tokens) AS tokens, SUM(cost_usd) AS cost FROM token_usage WHERE model IS NOT NULL GROUP BY model ORDER BY tokens DESC LIMIT 8"
     )
-    combined = {row["model"]: {"model": row["model"], "tokens": row["tokens"], "cost": row["cost"]} for row in rows}
+    combined = {
+        row["model"]: {
+            "model": row["model"],
+            "tokens": row["tokens"],
+            "cost": row["cost"],
+        }
+        for row in rows
+    }
     fallback = query(
         "SELECT model, SUM(prompt_tokens + response_tokens) AS tokens"
         " FROM delegation_log d"

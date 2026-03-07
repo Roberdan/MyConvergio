@@ -154,15 +154,19 @@ def api_live_system():
 def api_sessions():
     """Scan for active CLI sessions and return them as consciousness nodes."""
     import subprocess
-    scanner = str(Path(__file__).parent.parent / 'session-scanner.sh')
+
+    scanner = str(Path(__file__).parent.parent / "session-scanner.sh")
     try:
-        subprocess.run([scanner, 'scan'], capture_output=True, timeout=5)
+        subprocess.run([scanner, "scan"], capture_output=True, timeout=5)
     except Exception:
         pass
-    return query(
-        "SELECT agent_id, agent_type AS type, description, status, metadata"
-        " FROM agent_activity WHERE agent_id LIKE 'session-%' AND status='running'"
-    ) or []
+    return (
+        query(
+            "SELECT agent_id, agent_type AS type, description, status, metadata"
+            " FROM agent_activity WHERE agent_id LIKE 'session-%' AND status='running'"
+        )
+        or []
+    )
 
 
 ROUTES = {
@@ -304,6 +308,7 @@ class Handler(MiddlewareMixin, SimpleHTTPRequestHandler):
 
     def _handle_plan_status_change(self):
         import subprocess
+
         length = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(length)) if length else {}
         plan_id = body.get("plan_id")
@@ -317,9 +322,13 @@ class Handler(MiddlewareMixin, SimpleHTTPRequestHandler):
             "done": ["plan-db.sh", "complete", str(plan_id)],
         }
         try:
-            r = subprocess.run(cmd_map[target], capture_output=True, text=True, timeout=10)
+            r = subprocess.run(
+                cmd_map[target], capture_output=True, text=True, timeout=10
+            )
             if r.returncode != 0:
-                self._json_response({"error": r.stderr.strip() or "Command failed"}, 500)
+                self._json_response(
+                    {"error": r.stderr.strip() or "Command failed"}, 500
+                )
                 return
             self._json_response({"ok": True, "plan_id": plan_id, "status": target})
         except Exception as e:
@@ -328,6 +337,8 @@ class Handler(MiddlewareMixin, SimpleHTTPRequestHandler):
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
+    allow_reuse_address = True
+    allow_reuse_port = True
 
 
 def main():

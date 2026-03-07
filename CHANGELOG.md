@@ -1,5 +1,11 @@
 # Changelog
 
+## [v10.17.4] - 07 Mar 2026
+
+### Fixed
+- schema-safe multi-host DB sync with counter recalculation
+
+
 ## [v10.17.3] - 07 Mar 2026
 
 ### Fixed

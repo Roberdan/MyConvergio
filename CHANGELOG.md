@@ -1,5 +1,15 @@
 # Changelog
 
+## [v10.17.0] - 07 Mar 2026
+
+### Added
+- add auto-approve for autonomous plan execution
+- Augmented Brain, cancel buttons, start dialog, mesh layout, token fix (#12)
+
+### Changed
+- auto-commit before mesh sync
+
+
 ## [v10.16.1] - 07 Mar 2026
 
 ### Changed

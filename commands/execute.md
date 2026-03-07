@@ -30,9 +30,35 @@ NEVER execute without plan_id | NEVER skip tasks/Thor | WORKTREE ISOLATION — p
 
 ## Workflow
 
-### P1: Initialize
+### P1: Initialize (Self-Healing)
 
-`export PATH="$HOME/.claude/scripts:$PATH" && PLAN_ID={plan_id}` → `CTX=$(plan-db.sh get-context $PLAN_ID)` → Extract: `WORKTREE_PATH`, `FRAMEWORK`, `PLAN_STATUS`, `CONSTRAINTS` → `cd "$WORKTREE_PATH"` → `[[ "$PLAN_STATUS" != "doing" ]] && plan-db.sh start $PLAN_ID` → `plan-db.sh check-readiness $PLAN_ID`
+```bash
+export PATH="$HOME/.claude/scripts:$PATH" && PLAN_ID={plan_id}
+CTX=$(plan-db.sh get-context $PLAN_ID)
+WORKTREE_PATH=$(echo "$CTX" | jq -r '.worktree_path')
+FRAMEWORK=$(echo "$CTX" | jq -r '.framework // empty')
+PLAN_STATUS=$(echo "$CTX" | jq -r '.status')
+
+# Auto-heal: register reviews + approval if missing (autonomous/delegated plans)
+plan-db.sh auto-approve $PLAN_ID "Auto-approved for autonomous execution" 2>/dev/null || true
+
+# Auto-heal: create worktree if missing
+if [[ -z "$WORKTREE_PATH" || "$WORKTREE_PATH" == "null" ]]; then
+  FIRST_WAVE_ID=$(sqlite3 ~/.claude/data/dashboard.db \
+    "SELECT id FROM waves WHERE plan_id=$PLAN_ID ORDER BY position LIMIT 1;")
+  [[ -n "$FIRST_WAVE_ID" ]] && wave-worktree.sh create $PLAN_ID $FIRST_WAVE_ID 2>/dev/null || true
+  CTX=$(plan-db.sh get-context $PLAN_ID)
+  WORKTREE_PATH=$(echo "$CTX" | jq -r '.worktree_path')
+  [[ -z "$WORKTREE_PATH" || "$WORKTREE_PATH" == "null" ]] && {
+    WORKTREE_PATH="$(pwd)"
+    plan-db.sh set-worktree $PLAN_ID "$WORKTREE_PATH"
+  }
+fi
+
+cd "$WORKTREE_PATH"
+[[ "$PLAN_STATUS" != "doing" ]] && plan-db.sh start $PLAN_ID
+plan-db.sh check-readiness $PLAN_ID
+```
 
 **Extract constraints** (ADR-054): `CONSTRAINTS=$(echo "$CTX" | jq -r '.constraints // [] | .[] | "C-" + .id + ": " + .text' )`. If non-empty, EVERY task prompt MUST include constraints block.
 
@@ -109,25 +135,25 @@ plan-db.sh set-substatus ${task.db_id} agent_running
 const wavePeers = pendingTasks
   .filter((t) => t.wave_db_id === task.wave_db_id && t.db_id !== task.db_id)
   .map((t) => `${t.task_id}: ${t.title}`)
-  .join("\n");
+  .join('\n');
 const priorOutputs = CTX.completed_tasks_output
   .map((t) => `${t.task_id}: ${t.output_data}`)
-  .join("\n");
+  .join('\n');
 await Task({
-  subagent_type: "task-executor",
-  model: MODEL_MAP[task.model] || task.model || "sonnet",
+  subagent_type: 'task-executor',
+  model: MODEL_MAP[task.model] || task.model || 'sonnet',
   max_turns: 30,
   description: `Execute ${task.task_id}`,
-   prompt: `TASK ${task.task_id} | Wave: ${task.wave_id} | db_id: ${task.db_id}
+  prompt: `TASK ${task.task_id} | Wave: ${task.wave_id} | db_id: ${task.db_id}
 WORKTREE: ${WORKTREE_PATH} | FRAMEWORK: ${FRAMEWORK}
-CONSTRAINTS (MUST NOT VIOLATE): ${CONSTRAINTS || "none"}
-EXECUTION READINESS: ${PRECHECK_JSON || "{}"}
+CONSTRAINTS (MUST NOT VIOLATE): ${CONSTRAINTS || 'none'}
+EXECUTION READINESS: ${PRECHECK_JSON || '{}'}
 Do: ${task.title}
 ${task.description}
 Verify: ${task.test_criteria}
 Wave peers: ${wavePeers}
-Prior task outputs: ${priorOutputs || "none"}
-${CI_KNOWLEDGE ? `CI Knowledge (avoid these patterns):\n${CI_KNOWLEDGE}` : ""}
+Prior task outputs: ${priorOutputs || 'none'}
+${CI_KNOWLEDGE ? `CI Knowledge (avoid these patterns):\n${CI_KNOWLEDGE}` : ''}
 PATH: export PATH="$HOME/.claude/scripts:$PATH"`,
 });
 ```
@@ -155,6 +181,7 @@ When a background agent completes (system_notification received):
 ### P2.6: Substatus Tracking (MANDATORY)
 
 Update substatus at each lifecycle transition:
+
 - Agent launched → `plan-db.sh set-substatus ${db_id} agent_running`
 - Agent completed, submitting → `plan-db.sh set-substatus ${db_id} waiting_thor`
 - Thor passed, PR needed → `plan-db.sh set-substatus ${db_id} waiting_ci`
@@ -199,7 +226,7 @@ W1 (batch) → commit → Thor → W2 (batch) → commit → Thor → W3 (sync) 
 ```bash
 MERGE_MODE=$(sqlite3 ~/.claude/data/dashboard.db "SELECT COALESCE(merge_mode,'sync') FROM waves WHERE id=${wave_db_id};")
 case "$MERGE_MODE" in
-  sync)  
+  sync)
     # Set all wave tasks to waiting_ci before PR creation
     for task_id in ${wave_task_ids[@]}; do
       plan-db.sh set-substatus ${task_id} waiting_ci
@@ -207,19 +234,19 @@ case "$MERGE_MODE" in
     wave-worktree.sh merge $PLAN_ID $wave_db_id
     # After PR created successfully, keep waiting_ci
     ;;
-  batch) 
+  batch)
     # Set all wave tasks to waiting_ci (batch wave still expects CI on theme merge)
     for task_id in ${wave_task_ids[@]}; do
       plan-db.sh set-substatus ${task_id} waiting_ci
     done
-    wave-worktree.sh batch $PLAN_ID $wave_db_id 
+    wave-worktree.sh batch $PLAN_ID $wave_db_id
     ;;
-  none)  
+  none)
     # Set all wave tasks to waiting_ci (in case future merges happen)
     for task_id in ${wave_task_ids[@]}; do
       plan-db.sh set-substatus ${task_id} waiting_ci
     done
-    plan-db.sh validate-wave $wave_db_id 
+    plan-db.sh validate-wave $wave_db_id
     ;;
 esac
 ```

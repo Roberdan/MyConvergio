@@ -104,6 +104,7 @@ execution-tree) cmd_execution_tree "${2:?plan_id required}" ;;
 status) cmd_status "${2:-}" ;;
 check-readiness) cmd_check_readiness "${2:?plan_id required}" ;;
 approve) cmd_approve "${2:?plan_id required}" "${3:-}" ;;
+auto-approve) cmd_auto_approve "${2:?plan_id required}" "${3:-}" ;;
 evaluate-wave) cmd_evaluate_wave "${2:?wave_db_id required}" ;;
 sync) cmd_sync "${2:?plan_id required}" ;;
 update-desc) sqlite3 "$DB_FILE" "UPDATE plans SET description = '$(sql_escape "${3:?description required}")' WHERE id = ${2:?plan_id required};" && echo "Description updated for plan #$2" ;;
@@ -139,18 +140,51 @@ add-actuals) cmd_add_actuals "${2:?plan_id required}" "${@:3}" ;;
 estimate-tokens) cmd_estimate_tokens "${2:?plan_id required}" "${3:?scope required}" "${4:?scope_id required}" "${5:?est_tokens required}" "${@:6}" ;;
 update-token-actuals) cmd_update_token_actuals "${2:?estimate_id required}" "${3:?actual_tokens required}" "${@:4}" ;;
 calibrate-estimates) cmd_calibrate_estimates "${2:-}" ;;
-    kb-write) shift; kb_write "$@" ;;
-    kb-search) shift; kb_search "$@" ;;
-    kb-hit) shift; kb_hit "$@" ;;
-    skill-earn) shift; skill_earn "$@" ;;
-    skill-list) shift; skill_list "$@" ;;
-    skill-promote) shift; skill_promote "$@" ;;
-    skill-bump) shift; skill_bump "$@" ;;
+kb-write)
+	shift
+	kb_write "$@"
+	;;
+kb-search)
+	shift
+	kb_search "$@"
+	;;
+kb-hit)
+	shift
+	kb_hit "$@"
+	;;
+skill-earn)
+	shift
+	skill_earn "$@"
+	;;
+skill-list)
+	shift
+	skill_list "$@"
+	;;
+skill-promote)
+	shift
+	skill_promote "$@"
+	;;
+skill-bump)
+	shift
+	skill_bump "$@"
+	;;
 # Agent activity tracking
-agent-start) shift; cmd_agent_start "$@" ;;
-agent-complete) shift; cmd_agent_complete "$@" ;;
-agent-status) shift; cmd_agent_status "$@" ;;
-agent-tokens) shift; cmd_agent_tokens "$@" ;;
+agent-start)
+	shift
+	cmd_agent_start "$@"
+	;;
+agent-complete)
+	shift
+	cmd_agent_complete "$@"
+	;;
+agent-status)
+	shift
+	cmd_agent_status "$@"
+	;;
+agent-tokens)
+	shift
+	cmd_agent_tokens "$@"
+	;;
 *)
 	echo "[ERROR] Unknown command: '${1:-}'" >&2
 	echo "" >&2
@@ -180,6 +214,7 @@ agent-tokens) shift; cmd_agent_tokens "$@" ;;
 	echo "Validation:"
 	echo "  check-readiness <plan_id>      BLOCKS if metadata or process gates missing"
 	echo "  approve <plan_id> [notes]      Record user approval (requires review+business+challenger)"
+	echo "  auto-approve <plan_id> [reason]  Register all gates in one shot (autonomous/delegated plans)"
 	echo "  evaluate-wave <wave_db_id>     Check wave preconditions (returns JSON)"
 	echo "  validate <plan_id> [by]        Thor validates plan (counters, orphans, bulk)"
 	echo "  validate-task <task_id> [plan_id] [by]  Validate single task (per-task Thor gate)"
@@ -213,15 +248,15 @@ agent-tokens) shift; cmd_agent_tokens "$@" ;;
 	echo "  json <plan_id>                 Plan as JSON"
 	echo "  kanban-json                    Kanban as JSON"
 	echo "  execution-tree <plan_id>       Show execution tree with statuses"
-echo ""
-echo "Knowledge Base:"
-echo "  kb-write <domain> <title> <content> [opts]  Write to KB"
-echo "  kb-search <query> [--domain] [--limit N]    Search KB (LIKE)"
-echo "  kb-hit <id>                                  Record KB hit"
-echo "  skill-earn <name> <domain> <content> [opts]  Earn a skill"
-echo "  skill-list [--domain] [--min-confidence lvl]  List skills"
-echo "  skill-promote <name>                          Promote to SKILL.md"
-echo "  skill-bump <name>                             Increase confidence"
+	echo ""
+	echo "Knowledge Base:"
+	echo "  kb-write <domain> <title> <content> [opts]  Write to KB"
+	echo "  kb-search <query> [--domain] [--limit N]    Search KB (LIKE)"
+	echo "  kb-hit <id>                                  Record KB hit"
+	echo "  skill-earn <name> <domain> <content> [opts]  Earn a skill"
+	echo "  skill-list [--domain] [--min-confidence lvl]  List skills"
+	echo "  skill-promote <name>                          Promote to SKILL.md"
+	echo "  skill-bump <name>                             Increase confidence"
 	echo ""
 	echo "Agents:"
 	echo "  agent-start <id> <type> <desc> [--task N] [--plan N] [--model m] [--host h] [--region r]"

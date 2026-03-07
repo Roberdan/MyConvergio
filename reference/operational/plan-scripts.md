@@ -17,11 +17,11 @@ NEVER create plans without `/planner` skill (Claude: `Skill(skill="planner")`, C
 
 ## Valid Statuses (NEVER invent values)
 
-| Entity | Valid statuses                                                                |
-| ------ | ----------------------------------------------------------------------------- |
+| Entity | Valid statuses                                                                               |
+| ------ | -------------------------------------------------------------------------------------------- |
 | Task   | `pending` \| `in_progress` \| `submitted` \| `done` \| `blocked` \| `skipped` \| `cancelled` |
-| Plan   | `todo` \| `doing` \| `done` \| `cancelled`                                   |
-| Wave   | `pending` \| `in_progress` \| `done` \| `blocked` \| `merging` \| `cancelled` |
+| Plan   | `todo` \| `doing` \| `done` \| `cancelled`                                                   |
+| Wave   | `pending` \| `in_progress` \| `done` \| `blocked` \| `merging` \| `cancelled`                |
 
 ## Task Lifecycle (v3.0, enforced)
 
@@ -39,6 +39,7 @@ plan-db.sh update-summary {plan_id} "Aggiorna il summary leggibile"
 plan-db.sh import {plan_id} spec.yaml  # also accepts spec.json
 plan-db-safe.sh update-task {id} done "Summary" # ALWAYS use safe wrapper; sets submitted
 # then run Thor validation: plan-db.sh validate-task {task_id} {plan_id}
+plan-db.sh auto-approve {plan_id} "reason" # Register all gates in one shot (autonomous plans)
 plan-db.sh conflict-check {id}            # Cross-plan file overlap detection
 plan-db.sh conflict-check-spec {proj} spec.yaml # Pre-import conflict check (also accepts .json)
 plan-db.sh wave-overlap check-spec spec.yaml    # Intra-wave overlap detection (also accepts .json)

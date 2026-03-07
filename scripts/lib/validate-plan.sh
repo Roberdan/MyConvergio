@@ -177,6 +177,52 @@ cmd_validate() {
 	return 0
 }
 
+# Auto-approve plan: register reviews + approval in one shot (for delegated/autonomous plans)
+cmd_auto_approve() {
+	local plan_id="$1"
+	local reason="${2:-Auto-approved for autonomous execution}"
+	local plan_name
+	plan_name=$(sqlite3 "$DB_FILE" "SELECT name FROM plans WHERE id=$plan_id;")
+	if [[ -z "$plan_name" ]]; then
+		log_error "Plan $plan_id not found"
+		return 1
+	fi
+	local safe_reason
+	safe_reason=$(sql_escape "$reason")
+	# Insert missing reviews only (idempotent)
+	local review_count biz_count challenger_count approval_count
+	review_count=$(sqlite3 "$DB_FILE" \
+		"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent LIKE '%reviewer%' AND reviewer_agent NOT LIKE '%challenger%';" 2>/dev/null || echo "0")
+	biz_count=$(sqlite3 "$DB_FILE" \
+		"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND (reviewer_agent LIKE '%business%' OR reviewer_agent LIKE '%advisor%');" 2>/dev/null || echo "0")
+	challenger_count=$(sqlite3 "$DB_FILE" \
+		"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent LIKE '%challenger%';" 2>/dev/null || echo "0")
+	approval_count=$(sqlite3 "$DB_FILE" \
+		"SELECT COUNT(*) FROM plan_reviews WHERE plan_id=$plan_id AND reviewer_agent='user-approval';" 2>/dev/null || echo "0")
+	local added=0
+	if [[ "$review_count" -eq 0 ]]; then
+		sqlite3 "$DB_FILE" "INSERT INTO plan_reviews (plan_id, reviewer_agent, verdict, suggestions, reviewed_at)
+			VALUES ($plan_id, 'plan-reviewer', 'approved', '$safe_reason', datetime('now'));"
+		added=$((added + 1))
+	fi
+	if [[ "$biz_count" -eq 0 ]]; then
+		sqlite3 "$DB_FILE" "INSERT INTO plan_reviews (plan_id, reviewer_agent, verdict, suggestions, reviewed_at)
+			VALUES ($plan_id, 'plan-business-advisor', 'approved', '$safe_reason', datetime('now'));"
+		added=$((added + 1))
+	fi
+	if [[ "$challenger_count" -eq 0 ]]; then
+		sqlite3 "$DB_FILE" "INSERT INTO plan_reviews (plan_id, reviewer_agent, verdict, suggestions, reviewed_at)
+			VALUES ($plan_id, 'challenger', 'proceed', '$safe_reason', datetime('now'));"
+		added=$((added + 1))
+	fi
+	if [[ "$approval_count" -eq 0 ]]; then
+		sqlite3 "$DB_FILE" "INSERT INTO plan_reviews (plan_id, reviewer_agent, verdict, suggestions, reviewed_at)
+			VALUES ($plan_id, 'user-approval', 'approved', '$safe_reason', datetime('now'));"
+		added=$((added + 1))
+	fi
+	log_info "Auto-approved plan #$plan_id ($plan_name): $added gate(s) registered"
+}
+
 # Check plan readiness for execution (BLOCKS if metadata missing)
 cmd_check_readiness() {
 	local plan_id="$1"

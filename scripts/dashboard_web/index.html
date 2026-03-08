@@ -6,7 +6,7 @@
 <title>Convergio Control Room</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2/hammer.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2/dist/chartjs-plugin-zoom.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11.0/lib/addon-web-links.min.js"></script>
@@ -215,7 +215,7 @@
   <span id="last-update"></span>
 </div>
 
-<script>window.onerror=function(m,s,l,c,e){if(typeof m==='string'&&m.indexOf('ResizeObserver')!==-1)return;console.error('JS ERROR:',m,s,l,c,e);var d=document.getElementById('js-errors');if(!d){d=document.createElement('div');d.id='js-errors';d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1a0000;color:#ff3355;font:11px monospace;padding:8px;z-index:99999;max-height:120px;overflow:auto';document.body.appendChild(d)}d.innerHTML+='<div>'+s.split('/').pop()+':'+l+' '+m+'</div>';}</script>
+<script>window.onerror=function(m,s,l,c,e){if(typeof m==='string'&&m.indexOf('ResizeObserver')!==-1)return;console.error('JS ERROR:',m,s,l,c,e);var d=document.getElementById('js-errors');if(!d){d=document.createElement('div');d.id='js-errors';d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1a0000;color:#ff3355;font:11px monospace;padding:8px;z-index:99999;max-height:120px;overflow:auto';document.body.appendChild(d)}d.innerHTML+='<div>'+s.split('/').pop()+':'+l+' '+m+'</div>';};window.onunhandledrejection=function(ev){console.error('UNHANDLED REJECTION:',ev.reason);var d=document.getElementById('js-errors');if(!d){d=document.createElement('div');d.id='js-errors';d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1a0000;color:#ff3355;font:11px monospace;padding:8px;z-index:99999;max-height:120px;overflow:auto';document.body.appendChild(d)}d.innerHTML+='<div>Promise: '+(ev.reason&&ev.reason.message||ev.reason)+'</div>';};</script>
 <script src="icons.js"></script>
 <script src="theme-switcher.js"></script>
 <script src="utils.js"></script>
@@ -223,20 +223,20 @@
 <script src="kpi.js"></script>
 <script src="mission.js"></script>
 <script src="mission-details.js"></script>
-<script src="org-chart.js"></script>
-<script src="live-system.js"></script>
+<script src="org-chart.js?v=1772974473"></script>
+<script src="live-system.js?v=1772974473"></script>
 <script src="task-pipeline.js"></script>
 <script src="plan-kanban.js"></script>
 <script src="charts.js"></script>
 <script src="activity.js"></script>
 <script src="github-activity.js"></script>
-<script src="nightly-jobs.js"></script>
+<script src="nightly-jobs.js?v=1772974473"></script>
 <script src="kpi-modals.js"></script>
 <script src="websocket.js"></script>
 <script src="brain-layout.js"></script>
 <script src="brain-interact.js"></script>
 <script src="brain-canvas.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=1772974473"></script>
 <script src="mesh.js"></script>
 <script src="mesh-animation.js"></script>
 <script src="mesh-actions.js"></script>

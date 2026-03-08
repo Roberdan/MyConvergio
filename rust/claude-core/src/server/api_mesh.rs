@@ -36,6 +36,10 @@ async fn api_mesh(State(state): State<ServerState>) -> Result<Json<Value>, ApiEr
         if !obj.contains_key("is_local") { obj.insert("is_local".to_string(), json!(name.contains("m3max") || name.contains("local"))); }
         if !obj.contains_key("cpu") { obj.insert("cpu".to_string(), json!(0)); }
         if !obj.contains_key("active_tasks") { obj.insert("active_tasks".to_string(), json!(0)); }
+        if !obj.contains_key("role") {
+            let role = if name.contains("m3max") || name.contains("local") { "coordinator" } else { "worker" };
+            obj.insert("role".to_string(), json!(role));
+        }
         row
     }).collect();
     Ok(Json(Value::Array(peers)))

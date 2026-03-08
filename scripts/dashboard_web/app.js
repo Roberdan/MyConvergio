@@ -103,28 +103,30 @@ async function refreshAll() {
       }
     });
   }
-  if (typeof renderMission === "function") renderMission(mission);
-  // Re-render KPI after mission state is populated so GitHub stats resolve active plan context.
+  const _safe = (label, fn) => { try { fn(); } catch (e) { console.error(`[Dashboard] ${label} render error:`, e); } };
+  _safe("mission", () => { if (typeof renderMission === "function") renderMission(mission); });
   if (ov && typeof renderKpi === "function") renderKpi(ov);
-  if (typeof renderKanban === "function") renderKanban();
-  if (daily && typeof renderTokenChart === "function") renderTokenChart(daily);
-  if (models && typeof renderModelChart === "function") renderModelChart(models);
+  _safe("kanban", () => { if (typeof renderKanban === "function") renderKanban(); });
+  _safe("tokenChart", () => { if (daily && typeof renderTokenChart === "function") renderTokenChart(daily); });
+  _safe("modelChart", () => { if (models && typeof renderModelChart === "function") renderModelChart(models); });
   if (mesh && typeof renderMeshStrip === "function") {
-    renderMeshStrip(mesh);
-    if (typeof renderGitHubActivity === "function") renderGitHubActivity();
-    else if (typeof renderEventFeed === "function") renderEventFeed();
+    _safe("meshStrip", () => {
+      renderMeshStrip(mesh);
+      if (typeof renderGitHubActivity === "function") renderGitHubActivity();
+      else if (typeof renderEventFeed === "function") renderEventFeed();
+    });
     fetch("/api/mesh/sync-status")
       .then((r) => r.json())
       .then((items) => typeof applyMeshSyncBadges === "function" && applyMeshSyncBadges(items))
       .catch(() => null);
   }
   if (organization) state.lastOrganizationData = organization;
-  if (typeof renderAgentOrganization === "function") renderAgentOrganization(organization);
+  _safe("organization", () => { if (typeof renderAgentOrganization === "function") renderAgentOrganization(organization); });
   if (liveSystem) state.lastLiveSystemData = liveSystem;
-  if (typeof renderLiveSystem === "function") renderLiveSystem(liveSystem);
-  if (history && typeof renderHistory === "function") renderHistory(history);
-  if (dist && typeof renderDist === "function") renderDist(dist);
-  if (typeof renderNightlyJobs === "function") renderNightlyJobs(nightly);
+  _safe("liveSystem", () => { if (typeof renderLiveSystem === "function") renderLiveSystem(liveSystem); });
+  _safe("history", () => { if (history && typeof renderHistory === "function") renderHistory(history); });
+  _safe("dist", () => { if (dist && typeof renderDist === "function") renderDist(dist); });
+  _safe("nightlyJobs", () => { if (typeof renderNightlyJobs === "function") renderNightlyJobs(nightly); });
   const lu = $("#last-update");
   if (lu) lu.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
   _pullRemoteDb();

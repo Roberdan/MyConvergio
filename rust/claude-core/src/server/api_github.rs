@@ -33,14 +33,15 @@ async fn handle_github_commits(
 
 async fn handle_github_events(
     State(state): State<ServerState>,
-    Path(project_id): Path<i64>,
+    Path(project_id): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
     let db = state.open_db()?;
     let local_events = query_rows(
         db.connection(),
-        "SELECT ge.id, ge.plan_id, ge.task_id, ge.event_type, ge.event_action, ge.github_id, ge.status, ge.event_at, ge.processed_at, ge.created_at FROM github_events ge JOIN plans p ON p.id=ge.plan_id WHERE p.project_id=?1 ORDER BY COALESCE(ge.event_at, ge.created_at) DESC LIMIT 100",
+        "SELECT ge.id, ge.plan_id, ge.event_type, ge.status, ge.created_at FROM github_events ge JOIN plans p ON p.id=ge.plan_id WHERE p.project_id=?1 ORDER BY ge.created_at DESC LIMIT 100",
         rusqlite::params![project_id],
-    )?;
+    )
+    .unwrap_or_default();
     Ok(Json(json!({"ok": true, "project_id": project_id, "repo": "local/repo", "local_events": local_events, "remote_events": []})))
 }
 
@@ -51,7 +52,7 @@ async fn handle_github_stats(
     let db = state.open_db()?;
     let plan_rows = query_rows(
         db.connection(),
-        "SELECT github_issue FROM plans WHERE id=?1",
+        "SELECT id, name FROM plans WHERE id=?1",
         rusqlite::params![plan_id],
     )?;
     if plan_rows.is_empty() {
@@ -73,7 +74,7 @@ async fn handle_github_stats(
         "ok": true,
         "plan_id": plan_id,
         "repo": "local/repo",
-        "github_issue": plan_rows[0].get("github_issue").cloned().unwrap_or(Value::Null),
+        "github_issue": Value::Null,
         "commit_totals": commit_totals.first().cloned().unwrap_or_else(|| json!({})),
         "event_totals": event_totals,
         "repo_stats": {"nameWithOwner": "local/repo", "stargazerCount": 0, "forkCount": 0, "openIssues": 0}

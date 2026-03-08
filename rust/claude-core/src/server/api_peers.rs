@@ -15,11 +15,25 @@ pub fn router() -> Router<ServerState> {
 
 async fn api_peer_list(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
     let db = state.open_db()?;
-    let peers = query_rows(
+    let rows = query_rows(
         db.connection(),
-        "SELECT peer_name, last_seen, cpu_load, tasks_in_progress, mem_used_gb, mem_total_gb FROM peer_heartbeats",
+        "SELECT peer_name, last_seen, load_json, capabilities FROM peer_heartbeats",
         [],
     )?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs_f64())
+        .unwrap_or(0.0);
+    let peers: Vec<Value> = rows.into_iter().map(|mut row| {
+        let name = row.get("peer_name").and_then(Value::as_str).unwrap_or("").to_owned();
+        let seen = row.get("last_seen").and_then(Value::as_f64).unwrap_or(0.0);
+        let obj = row.as_object_mut().unwrap();
+        obj.insert("is_online".to_string(), json!(now - seen < 300.0));
+        obj.insert("is_local".to_string(), json!(name.contains("m3max") || name.contains("local")));
+        let role = if name.contains("m3max") || name.contains("local") { "coordinator" } else { "worker" };
+        obj.insert("role".to_string(), json!(role));
+        row
+    }).collect();
     Ok(Json(json!({"peers": peers})))
 }
 

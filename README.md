@@ -71,12 +71,15 @@ It installs as a layer on top of Claude Code, GitHub Copilot CLI, Gemini, and Op
 | Agent says "done" and you trust it   | Thor validator checks 9 quality gates independently           |
 | No one reviews your architecture     | Baccio (architect) + Rex (reviewer) + Luca (security)         |
 | Financial decisions are gut feelings | Amy (CFO) + Fiona (market analyst) + Domik (McKinsey)         |
-| Two agents edit the same file        | File locking blocks the second agent — zero silent overwrites |
-| CI dumps 2000 lines into context     | Digest scripts compress to 50-line JSON — 10x less tokens     |
+| Two agents edit the same file        | Rust file locking blocks the second agent — zero overwrites   |
+| CI dumps 2000 lines into context     | Rust digest compresses to 50-line JSON — 10x less tokens      |
 | Agents burn $50/day on wasted tokens | Isolated subagents + token tracking save 50-70% per task      |
 | "How many tasks are done?" — no idea | SQLite plan DB + real-time Control Room dashboard             |
 | One machine, one agent at a time     | Mesh: distribute across every machine you own                 |
-| Locked into one AI provider          | Route each task to the best model across providers            |
+| Locked into one AI provider          | 18 models across 4 providers, routed per task                 |
+| Shell scripts break at 3am           | Rust core runtime — single binary, no deps, 100x faster       |
+| Upgrade = pray nothing breaks        | Backup/restore + migration scripts + doctor health check      |
+| GitHub issues pile up overnight      | Night agent triages, fixes, and creates PRs while you sleep   |
 
 ---
 
@@ -308,7 +311,7 @@ scripts/mesh/mesh-auth-sync.sh push --peer my-linux
 scripts/mesh/mesh-heartbeat.sh start
 
 # 6. Launch Control Room
-python3 scripts/dashboard_web/server.py --port 8420
+claude-core server --port 8420
 # Open http://localhost:8420
 ```
 
@@ -316,17 +319,21 @@ python3 scripts/dashboard_web/server.py --port 8420
 
 ## Enforcement layer
 
-31 hooks that run automatically on every tool call — no discipline required.
+31 hooks that run automatically on every tool call — no discipline required. In v11, core hooks (`enforce-line-limit`, `secret-scanner`, `session-file-lock`) are compiled into `claude-core` for 50x faster enforcement. Shell versions remain as fallbacks.
 
-| Hook                   | Trigger       | What it does                                    |
-| ---------------------- | ------------- | ----------------------------------------------- |
-| `worktree-guard`       | git ops       | Blocks commits on main when worktrees exist     |
-| `enforce-plan-db-safe` | task done     | Forces Thor validation before marking done      |
-| `enforce-plan-edit`    | file edits    | Blocks direct edits outside task-executor       |
-| `secret-scanner`       | pre-commit    | Detects API keys, tokens, credentials           |
-| `enforce-line-limit`   | post-edit     | Rejects files over 250 lines                    |
-| `session-file-lock`    | file edits    | Prevents parallel agents overwriting each other |
-| `prefer-ci-summary`    | bash commands | Forces digest scripts over raw CI output        |
+| Hook                     | Trigger       | What it does                                        |
+| ------------------------ | ------------- | --------------------------------------------------- |
+| `worktree-guard`         | git ops       | Blocks commits on protected branches during plans   |
+| `secret-scanner`         | pre-commit    | Detects API keys, tokens, credentials (Rust in v11) |
+| `enforce-line-limit`     | post-edit     | Rejects files over 250 lines (Rust in v11)          |
+| `session-file-lock`      | file edits    | Prevents parallel agents overwriting each other     |
+| `session-reaper`         | session end   | Kills orphaned AI agent processes (new in v11)      |
+| `enforce-standards`      | all tool calls | Enforces coding standards and conventions          |
+| `prefer-ci-summary`      | bash commands | Forces digest scripts over raw CI output            |
+| `model-registry-refresh` | session start | Auto-updates available model list (new in v11)      |
+| `warn-infra-plan-drift`  | plan ops      | Detects plan staleness vs main (new in v11)         |
+| `session-tokens`         | per-turn      | Tracks token usage per session (new in v11)         |
+| `version-check`          | session start | Warns if MyConvergio is outdated (new in v11)       |
 
 Hooks work on both Claude Code and Copilot CLI. Zero config after install.
 
@@ -334,16 +341,17 @@ Hooks work on both Claude Code and Copilot CLI. Zero config after install.
 
 ## Model routing
 
-Use the right model for each job. No provider lock-in. Models are user-configurable.
+18 models across 4 providers. Use the right model for each job. No provider lock-in. User-configurable per task.
 
-| Task            | Primary | Default model | Fallback      |
-| --------------- | ------- | ------------- | ------------- |
-| Requirements    | Claude  | Opus          | Gemini Pro    |
-| Planning        | Claude  | Opus          | Gemini Pro    |
-| Code generation | Copilot | Codex         | Claude Sonnet |
-| Validation      | Claude  | Sonnet        | Copilot       |
-| Bulk fixes      | Copilot | GPT-mini      | Claude Haiku  |
-| Research        | Gemini  | Pro           | Claude Sonnet |
+| Task            | Primary | Default model     | Fallback        |
+| --------------- | ------- | ----------------- | --------------- |
+| Requirements    | Claude  | Opus 4.6          | Gemini 3 Pro    |
+| Planning        | Claude  | Opus 4.6 (1M ctx) | Gemini 3 Pro    |
+| Code generation | Copilot | GPT-5.3-Codex     | Claude Sonnet 4 |
+| Validation      | Claude  | Sonnet 4.6        | Copilot         |
+| Bulk fixes      | Copilot | GPT-5-mini        | Claude Haiku    |
+| Research        | Gemini  | 3 Pro             | Claude Sonnet   |
+| Exploration     | Claude  | Haiku 4.5         | GPT-4.1         |
 
 > Frontier models for reasoning, fast models for execution. The plan-and-execute pattern [significantly reduces costs](https://www.pulumi.com/blog/ai-predictions-2026-devops-guide/) vs using frontier models for everything.
 
@@ -353,14 +361,15 @@ Use the right model for each job. No provider lock-in. Models are user-configura
 
 AI tokens are money. Every wasted token is a wasted dollar. MyConvergio is obsessively optimized to minimize token consumption:
 
-| Technique                      | Saving     | How                                                                     |
-| ------------------------------ | ---------- | ----------------------------------------------------------------------- |
-| **Isolated subagents**         | 50-70%     | Each task-executor gets fresh context (~30K tokens vs 100K inherited)   |
-| **Digest scripts**             | 10x        | CI/build/test output compressed to compact JSON before entering context |
-| **Compact instruction format** | 30-40%     | Tables over prose, commands over descriptions in all agent/rule files   |
-| **Token tracking per task**    | Visibility | Every token attributed to plan → wave → task → model in SQLite          |
-| **Copilot-first delegation**   | $0         | Trivial tasks routed to free Copilot; Claude reserved for reasoning     |
-| **Auto context compression**   | Continuous | Long conversations auto-compressed with state preserved in memory       |
+| Technique                      | Saving     | How                                                                      |
+| ------------------------------ | ---------- | ------------------------------------------------------------------------ |
+| **Isolated subagents**         | 50-70%     | Each task-executor gets fresh context (~30K tokens vs 100K inherited)    |
+| **Rust digest compression**    | 10x        | CI/build/test output compiled to compact JSON via `claude-core digest`  |
+| **Compact instruction format** | 30-40%     | All 91 agent definitions rewritten for token-aware compact markdown     |
+| **Token tracking per task**    | Visibility | Every token attributed to plan → wave → task → model in SQLite           |
+| **Copilot-first delegation**   | $0         | Trivial tasks routed to free Copilot; Claude reserved for reasoning      |
+| **Auto context compression**   | Continuous | Long conversations auto-compressed with state preserved in memory        |
+| **Rust hook enforcement**      | 50x        | No fork/exec per tool call — `claude-core hook` runs in-process          |
 
 31 hooks enforce this automatically. `prefer-ci-summary` blocks raw `npm build` output (2000+ lines) and forces digest scripts (~50 lines). `enforce-line-limit` rejects files over 250 lines — because agents lose context in long files.
 
@@ -403,13 +412,14 @@ They solve different problems. Here's a direct comparison:
 
 | Dimension | Squad | MyConvergio |
 |-----------|-------|-------------|
-| **What it is** | Installable SDK/CLI (`npm install`) | Personal workflow config + orchestration engine |
-| **Agent identity** | Casting system with named agents and persistent personality | Functional agents (planner, executor, Thor validator) |
-| **Knowledge** | `history.md` per agent + `decisions.md` (markdown) | Knowledge Base in SQLite with LIKE search, vector-ready schema |
-| **Quality gates** | Hook pipeline (file-write guards, PII scrubbing, reviewer lockout) | Thor 9-gate validation, plan-db-safe proof-of-work, CI gate |
-| **Execution model** | Parallel agent sessions via @github/copilot-sdk | Wave-based plans with dependency tracking, worktree isolation |
-| **Multi-model** | Fallback chains (3 tiers) | 18-model routing with cost optimization (free → premium) |
-| **Ecosystem** | Plugin marketplace, community skills | Closed config repo, cross-tool (Claude Code + Copilot CLI) |
+| **What it is** | Installable SDK/CLI (`npm install`) | Orchestration engine with Rust core runtime |
+| **Agent identity** | Casting system with named agents and persistent personality | 91 functional agents (planner, executor, Thor validator, CFO, architect...) |
+| **Knowledge** | `history.md` per agent + `decisions.md` (markdown) | Knowledge Base in SQLite with earned skills, auto-promoted to SKILL.md |
+| **Quality gates** | Hook pipeline (file-write guards, PII scrubbing, reviewer lockout) | Thor 9-gate validation + Rust-enforced proof-of-work + CI gate |
+| **Execution model** | Parallel agent sessions via @github/copilot-sdk | Wave-based plans with dependency tracking, worktree isolation, 18-model routing |
+| **Multi-model** | Fallback chains (3 tiers) | 18 models across 4 providers with per-task cost optimization |
+| **Performance** | Node.js runtime | Rust core (`claude-core`) — 10-100x faster than shell equivalents |
+| **Ecosystem** | Plugin marketplace, community skills | Cross-tool (Claude Code + Copilot CLI + Gemini + OpenCode) |
 | **DX** | `squad init` → team ready | Structured workflow: `/prompt` → `/planner` → `/execute` → Thor |
 
 In short: Squad provides an installable AI team runtime, while MyConvergio focuses on execution governance and delivery discipline.
@@ -453,6 +463,12 @@ cp ~/.myconvergio/.claude/settings-templates/mid-spec.json  ~/.claude/settings.j
 cp ~/.myconvergio/.claude/settings-templates/low-spec.json  ~/.claude/settings.json  # 8GB RAM
 ```
 
+Or run the doctor to validate your installation:
+
+```bash
+myconvergio doctor
+```
+
 Without this step, hooks won't run. This is the difference between "AI with guardrails" and "AI hoping for the best."
 
 ### What happens next
@@ -465,14 +481,25 @@ Open your terminal with Claude Code or Copilot CLI and type:
 
 MyConvergio extracts requirements, asks clarifying questions, generates a structured plan with parallel tasks, executes each task in isolation with TDD, validates through Thor's 9 quality gates, and auto-merges to main. You approve the plan — the system does the rest.
 
+### CLI commands
+
+```bash
+myconvergio doctor     # 20+ health checks on your installation
+myconvergio backup     # Create checksummed backup before changes
+myconvergio rollback   # Restore from latest backup
+myconvergio agents     # List installed agents
+myconvergio upgrade    # Upgrade an existing installation
+myconvergio help       # Show all commands
+```
+
 ### Dashboards
 
 MyConvergio includes two dashboards for monitoring plans, agents, and mesh nodes:
 
 | Dashboard | What | How to run |
 |-----------|------|------------|
-| **Control Room** (web) | Full browser UI with plan drill-down, mesh topology, integrated terminals, cost analytics | `python3 ~/.claude/scripts/dashboard_web/server.py` then open `http://localhost:8420` |
-| **pianits** (terminal) | Lightweight TUI for quick checks inside tmux/SSH sessions — auto-refresh, drill-down, quit with `q` | `~/.claude/scripts/pianits` |
+| **Control Room** (web) | Full browser UI with plan drill-down, mesh topology, integrated terminals, cost analytics | `claude-core server --port 8420` (Rust) or `python3 ~/.claude/scripts/dashboard_web/server.py` (legacy) |
+| **pianits** (terminal) | Lightweight TUI for quick checks inside tmux/SSH sessions — auto-refresh, drill-down, quit with `q` | `claude-core tui` (Rust) or `~/.claude/scripts/pianits` (legacy) |
 
 #### Recommended aliases
 
@@ -504,21 +531,23 @@ Set-Alias pianits "$env:USERPROFILE\.claude\scripts\pianits"
 > To run the Control Room server on startup, add to your shell profile:
 > ```bash
 > # Start Control Room in background (if not already running)
-> pgrep -f "dashboard_web/server.py" >/dev/null || python3 ~/.claude/scripts/dashboard_web/server.py &>/dev/null &
+> pgrep -f "claude-core" >/dev/null || claude-core server --port 8420 &>/dev/null &
 > ```
 
 ---
 
 ## Documentation
 
-| Guide                                               | Description                          |
-| --------------------------------------------------- | ------------------------------------ |
-| [Getting Started](./docs/getting-started.md)        | Install, first plan, first execution |
-| [Core Concepts](./docs/concepts.md)                 | Plans, waves, Thor, file locking     |
-| [Workflow Guide](./docs/workflow.md)                | End-to-end delivery flow             |
-| [Infrastructure](./docs/infrastructure.md)          | SQLite schema, scripts, hooks        |
-| [Agent Portfolio](./docs/agents/agent-portfolio.md) | Full catalog of all 91 agents        |
-| [ADRs](./docs/adr/INDEX.md)                         | Architecture Decision Records        |
+| Guide                                               | Description                              |
+| --------------------------------------------------- | ---------------------------------------- |
+| [Getting Started](./docs/getting-started.md)        | Install, first plan, first execution     |
+| [Core Concepts](./docs/concepts.md)                 | Plans, waves, Thor, file locking         |
+| [Workflow Guide](./docs/workflow.md)                | End-to-end delivery flow                 |
+| [Infrastructure](./docs/infrastructure.md)          | SQLite schema, scripts, hooks            |
+| [Agent Portfolio](./docs/agents/agent-portfolio.md) | Full catalog of all 91 agents            |
+| [Migration v10→v11](./docs/MIGRATION-v10-to-v11.md) | Breaking upgrade guide with rollback     |
+| [ADRs](./docs/adr/INDEX.md)                         | 23 Architecture Decision Records         |
+| [Troubleshooting](./TROUBLESHOOTING.md)             | Migration, auth, setup, and runtime fixes |
 
 ---
 

@@ -1,0 +1,167 @@
+% ============================================
+% SECTION 5: SUCCESS STORIES & CASE STUDIES
+% ============================================
+\section{Case Studies: Successes That Define the Model}
+
+\subsection{Palantir x Airbus --- A350 Production Optimization}
+
+The Airbus engagement represents the canonical FDE success story and
+illustrates the circular flow from custom solution to platform product.
+
+\begin{tcolorbox}[
+    colback=mslightgray, colframe=msblue,
+    boxrule=0.5pt, arc=3pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt
+]
+\textbf{Context}: Palantir FDEs embedded in Airbus factories in Hamburg
+and Toulouse to address A350 production bottlenecks and maintenance
+inefficiencies.
+
+\vspace{4pt}
+\textbf{Results}:
+\begin{itemize}[topsep=2pt]
+    \item Production cycle accelerated by one-third.
+    \item Maintenance cost savings of 10--20\%.
+    \item 35 technical cancellations avoided.
+\end{itemize}
+
+\vspace{4pt}
+\textbf{Platform impact}: Solutions built for Airbus were generalized
+into the \textbf{Skywise} platform, now used by 100+ airlines globally.
+This is the FDE circular flow at its most powerful: bespoke work for one
+customer becomes a platform serving an entire industry.
+\end{tcolorbox}
+
+\subsection{Salesforce x Reservation Platform --- Agentforce Deployment}
+
+A Salesforce FDE pod was deployed to a reservation platform client
+experiencing issues with Agentforce integration. The FDE team served as
+the bridge between the customer's operational reality and Salesforce's
+product engineering team, diagnosing and resolving issues that neither
+side could address alone.
+
+\subsection{Invisible Tech x Food Delivery --- AI Classification}
+
+FDEs from Invisible Tech, embedded with a food delivery client,
+discovered critical catalog data gaps that were limiting AI agent
+performance. They built an AI classification system to address the gaps,
+producing a measurable increase in sales. The case illustrates how FDEs
+surface problems that customers do not even know they have.
+
+\subsection{Alumni as Founders}
+
+The FDE pipeline produces founders at a striking rate:
+
+\begin{itemize}
+    \item \textbf{Anduril Industries}: Two co-founders are ex-Palantir
+        FDEs. Now a major defense technology company.
+    \item \textbf{Hex} (Barry McCardel): 5-year Palantir FDE, now CEO
+        of Hex, a data collaboration platform.
+    \item \textbf{Veraset}: Founded by ex-FDEs, reached \$15M ARR,
+        subsequently acquired.
+\end{itemize}
+
+% ============================================
+% SECTION 6: RISKS, FAILURES & CRITICISM
+% ============================================
+\section{Risks, Failures \& Criticism}
+
+\subsection{Financial Scalability: The Unit Economics Problem}
+
+The most fundamental risk of the FDE model is its economics. FDEs
+represent the most expensive category of engineering talent, and their
+value proposition only holds at scale:
+
+\begin{center}
+\rowcolors{2}{white}{mslightgray}
+\begin{tabular}{L{4cm}L{4cm}L{4.5cm}}
+\toprule
+\rowcolor{msblue}
+\textcolor{white}{\textbf{Contract Size}} &
+\textcolor{white}{\textbf{FDE Economics}} &
+\textcolor{white}{\textbf{Assessment}} \\
+\midrule
+\$20K--\$100K &
+    ``Lighting equity on fire'' &
+    \textcolor{msred}{\textbf{Destructive}} \\
+\$100K--\$1M &
+    Marginal, high risk &
+    \textcolor{msorange}{\textbf{Caution}} \\
+\$1M--\$10M &
+    Viable with discipline &
+    \textcolor{msyellow}{\textbf{Conditional}} \\
+\$10M--\$100M+ &
+    Sweet spot &
+    \textcolor{msgreen}{\textbf{Optimal}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{4pt}
+Ex-Palantir CFO Colin Anderson's assessment is stark: deploying FDEs on
+\$20K--\$100K contracts is ``lighting equity on fire.'' The 25--40\%
+compensation premium over equivalent SWEs means FDE programs must target
+7+ figure contracts to generate positive ROI. Satya Nadella publicly
+praised the model, yet Anderson's criticism underscores that admiration
+and economics are different things.
+
+\subsection{``Spectacular Pyres'': Palantir's Failed Pilots}
+
+Palantir's own history includes many failed FDE deployments---internally
+described as ``spectacular pyres of time, money, and travel expenses that
+amounted to nothing.'' The company operated with an explicit venture
+model: most FDE bets fail, but the winners pay back the losses many times
+over. This requires organizational tolerance for failure that most
+companies lack.
+
+\subsection{Burnout \& Talent Churn}
+
+The human cost is documented:
+
+\begin{itemize}
+    \item \textbf{Palantir Glassdoor}: Work-life balance rated 2.7/5
+        (lowest category across all employee reviews).
+    \item \textbf{Travel burden}: 3--4 days per week on-site at customer
+        locations, often in different cities or countries.
+    \item \textbf{Brain drain}: ``Real innovators went to OpenAI, war
+        dogs to Anduril'' (Glassdoor review). The best FDEs eventually
+        leave for opportunities with more autonomy or equity.
+\end{itemize}
+
+\subsection{Structural Risks}
+
+\begin{itemize}
+    \item \textbf{Bespoke sprawl}: Without platform-first discipline,
+        FDE programs generate thousands of custom solutions that become
+        unmaintainable.
+    \item \textbf{Pilot Purgatory}: Without FDEs, customers get stuck.
+        With mediocre FDEs, they get stuck more expensively.
+    \item \textbf{Product flaw masking}: Over-reliance on FDE human
+        intervention can mask structural product defects that should be
+        fixed in the platform.
+    \item \textbf{External DevEx}: Palantir's FDE model created poor
+        developer experience for non-FDE users, who lacked the
+        hand-holding that FDE customers received.
+    \item \textbf{PD vs BD fracture}: At Palantir, Product Development
+        and Business Development became culturally separate organizations
+        with systemic friction.
+    \item \textbf{Role ambiguity}: Outside Palantir and OpenAI, ``FDE''
+        describes very different jobs---from glorified solutions
+        architects to true embedded engineers.
+\end{itemize}
+
+\subsection{The Cargo-Culting Warning}
+
+Barry McCardel's warning deserves emphasis: ``Companies are cargo-culting
+FDE culture. For most: absolutely f***ing not.'' Critics argue that many
+companies adopting the FDE label are simply rebranding implementation
+consulting. The litmus test: if FDE-generated revenue is counted as ARR
+but the customer cannot operate without ongoing FDE presence, ``you're
+deluding yourself.''
+
+\subsection{Role Degradation}
+
+Multiple sources note that the FDE role is at risk of degradation toward
+a Solutions Architect function---less prestigious, less technical, and
+with declining compensation. This is particularly acute at companies that
+adopt the FDE title without the operational model.

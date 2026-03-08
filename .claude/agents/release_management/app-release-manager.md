@@ -89,7 +89,7 @@ git status --short && git log --oneline -5
 | ----------- | ------------------------------------------------- | ------------------------------- |
 | A: Build    | `npm run build` / `make clean && make`            | `{status, warnings, errors}`    |
 | B: Security | `rg -i 'password\|secret\|api.key'`, .env tracked | `{status, secrets, unsafe}`     |
-| C: Quality  | TODO/FIXME count, debug prints, commented code    | `{status, todos, debug_prints}` |
+| C: Quality  | deferred-item/fix-marker count, debug prints, commented code    | `{status, todos, debug_prints}` |
 | D: Tests    | `npm test` / `pytest` / `cargo test`              | `{status, passed, failed}`      |
 | E: Docs     | README.md, CHANGELOG.md, LICENSE presence         | `{status, missing, incomplete}` |
 

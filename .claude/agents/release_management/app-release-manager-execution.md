@@ -27,7 +27,7 @@ constraints: ["Reference module — not directly invocable"]
 | Trailing whitespace | `sed -i '' 's/[[:space:]]*$//'` | P1       |
 | Missing EOF newline | `echo >> file`                  | P1       |
 | Debug prints        | Edit tool to remove             | P0       |
-| TODO comments       | Remove or implement             | P0       |
+| deferred-item comments       | Remove or implement             | P0       |
 | Unused imports      | Remove them                     | P1       |
 | Version mismatch    | Update VERSION file             | P0       |
 
@@ -63,7 +63,7 @@ If `ios/` directory or `capacitor.config.ts` detected, **ASK THE USER**:
 - ANY compiler error
 - ANY test failure
 - ANY security vulnerability (hardcoded secrets)
-- ANY TODO/FIXME in code
+- ANY deferred-item/fix-marker in code
 - ANY failing CI check
 - ANY iOS check failure (only if user chose iOS release)
 

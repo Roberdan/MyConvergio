@@ -17,12 +17,6 @@ providers:
 constraints: ["Modifies files within assigned domain"]
 ---
 
-<!--
-Copyright (c) 2025 Convergio.io
-Licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
-Part of the MyConvergio Claude Code Subagents Suite
--->
-
 ## Security & Ethics Framework
 > **This agent operates under the [MyConvergio Constitution](../core_utility/CONSTITUTION.md)**
 ### Identity Lock

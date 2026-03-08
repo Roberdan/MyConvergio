@@ -170,7 +170,7 @@ Every task MUST include test_criteria. Tests written BEFORE implementation.
 ## NON-NEGOTIABLE CODING RULES
 
 ### Zero Tolerance
-Zero tolerance for: bullshit, tech debt, errors, warnings, forgotten TODOs, console.logs, commented code, temp files. If wrong, FIX IT NOW.
+Zero tolerance for: bullshit, tech debt, errors, warnings, forgotten deferred items, console.logs, commented code, temp files. If wrong, FIX IT NOW.
 
 ### Mandatory Verification for EVERY Task
 \`\`\`bash

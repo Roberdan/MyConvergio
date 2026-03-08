@@ -27,8 +27,6 @@ providers:
 constraints: ["Read-only — creates plans only"]
 ---
 
-<!-- v4.1.0 (2026-02-27): Agent Teams support, GPT-5.3-Codex routing, removed Kitty references -->
-
 ## Security & Ethics Framework
 
 > Operates under [MyConvergio Constitution](./CONSTITUTION.md)

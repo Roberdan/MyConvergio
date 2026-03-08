@@ -1,8 +1,4 @@
-<!-- 
-  TRADUZIONE IN ITALIANO - ITALIAN TRANSLATION
-  Questo file è una traduzione automatica. Per favore verifica e adatta la traduzione secondo necessità.
-  This is an automatic translation. Please verify and adapt the translation as needed.
--->
+
 # Microsoft Culture & Values - Single Source of Truth
 
 ## Mission Statement (2025)

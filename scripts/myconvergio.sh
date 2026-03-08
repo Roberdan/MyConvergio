@@ -36,6 +36,7 @@ ${YELLOW}Installation:${NC}
 ${YELLOW}Management:${NC}
   agents              List installed agents with versions
   version             Show version and installation status
+  doctor              Diagnose installation and environment health
   settings            Detect hardware, recommend settings
 
 ${YELLOW}Backup & Restore:${NC}
@@ -163,8 +164,152 @@ cmd_settings() {
 	echo "Templates: low-spec (8GB/4c), mid-spec (16GB/8c), high-spec (32GB+/10c+)"
 }
 
+cmd_doctor() {
+	local pass=0 warn=0 fail=0
+	pass_msg() { printf "[PASS] %s\n" "$1"; pass=$((pass + 1)); }
+	warn_msg() { printf "[WARN] %s\n" "$1"; warn=$((warn + 1)); }
+	fail_msg() { printf "[FAIL] %s\n" "$1"; fail=$((fail + 1)); }
+
+	get_tool_version() {
+		local tool="$1" out
+		case "$tool" in
+		git) out="$(git --version 2>/dev/null)" ;;
+		make) out="$(make --version 2>/dev/null)" ;;
+		bash) out="$(bash --version 2>/dev/null)" ;;
+		sqlite3) out="$(sqlite3 --version 2>/dev/null)" ;;
+		jq) out="$(jq --version 2>/dev/null)" ;;
+		*) out="" ;;
+		esac
+		printf "%s" "${out%%$'\n'*}"
+	}
+
+	check_tool() {
+		local tool="$1" optional="${2:-false}" version
+		if command -v "$tool" >/dev/null 2>&1; then
+			version="$(get_tool_version "$tool")"
+			if [ -n "$version" ]; then
+				pass_msg "$version"
+			else
+				pass_msg "$tool installed"
+			fi
+		elif [ "$optional" = "true" ]; then
+			warn_msg "$tool not found — install for full functionality"
+		else
+			fail_msg "$tool not found"
+		fi
+	}
+
+	echo "MyConvergio Doctor v$(get_version)"
+	echo "─────────────────────────"
+	check_tool git
+	check_tool make
+	check_tool bash
+	check_tool sqlite3
+	check_tool jq true
+
+	if command -v gh >/dev/null 2>&1; then
+		local gh_status gh_user
+		gh_status="$(gh auth status 2>&1 || true)"
+		if gh auth status >/dev/null 2>&1; then
+			gh_user="$(printf "%s\n" "$gh_status" | awk '/Logged in to github.com account/{u=$7} /Active account: true/{print u; exit}')"
+			if [ -n "$gh_user" ]; then
+				pass_msg "gh authenticated as $gh_user"
+			else
+				pass_msg "gh authenticated"
+			fi
+		else
+			fail_msg "gh installed but not authenticated"
+		fi
+	else
+		fail_msg "gh not found"
+	fi
+
+	local myconv_dir="$HOME/.myconvergio" claude_dir="$CLAUDE_HOME" hooks_dir="$CLAUDE_HOME/hooks" rules_dir="$CLAUDE_HOME/rules"
+	if [ -d "$myconv_dir" ]; then
+		local scripts_count
+		scripts_count="$(find "$myconv_dir" -type f -name '*.sh' 2>/dev/null | wc -l | tr -d ' ')"
+		pass_msg "$HOME/.myconvergio exists (${scripts_count:-0} scripts)"
+	else
+		fail_msg "$HOME/.myconvergio missing"
+	fi
+	if [ -d "$claude_dir" ]; then
+		pass_msg ".claude exists"
+	else
+		fail_msg ".claude missing"
+	fi
+	if [ -d "$hooks_dir" ]; then
+		pass_msg "hooks exists"
+	else
+		fail_msg "hooks missing"
+	fi
+	if [ -d "$rules_dir" ]; then
+		pass_msg "rules exists"
+	else
+		fail_msg "rules missing"
+	fi
+
+	if command -v sqlite3 >/dev/null 2>&1; then
+		local db_found=false dbfile integrity db_label
+		while IFS= read -r dbfile; do
+			[ -z "$dbfile" ] && continue
+			db_found=true
+			db_label="$dbfile"
+			db_label="${db_label#"$myconv_dir"/}"
+			db_label="${db_label#"$CLAUDE_HOME"/}"
+			integrity="$(sqlite3 "$dbfile" "PRAGMA integrity_check;" 2>/dev/null || true)"
+			if [ "$integrity" = "ok" ]; then
+				pass_msg "$db_label integrity OK"
+			else
+				fail_msg "$db_label integrity FAILED"
+			fi
+		done < <(find "$myconv_dir" "$CLAUDE_HOME" -type f -name '*.db' 2>/dev/null | sort -u)
+		[ "$db_found" = false ] && warn_msg "No .db files found for integrity checks"
+	else
+		warn_msg "Skipping DB integrity checks (sqlite3 unavailable)"
+	fi
+
+	if [ -d "$hooks_dir" ]; then
+		local hook_total=0 bad_hook=false hookfile
+		while IFS= read -r hookfile; do
+			[ -z "$hookfile" ] && continue
+			hook_total=$((hook_total + 1))
+			if [ ! -x "$hookfile" ]; then
+				fail_msg "hooks/$(basename "$hookfile") not executable"
+				bad_hook=true
+			fi
+		done < <(find "$hooks_dir" -type f -name '*.sh' 2>/dev/null | sort)
+		[ "$hook_total" -eq 0 ] && warn_msg "No hook scripts found in hooks/" || [ "$bad_hook" = false ] && pass_msg "All hook scripts executable ($hook_total)"
+	fi
+
+	if [ -f "$VERSION_FILE" ]; then
+		if grep -Eq '^SYSTEM_VERSION=[0-9]+\.[0-9]+\.[0-9]+$' "$VERSION_FILE"; then
+			pass_msg "VERSION format valid ($(get_version))"
+		else
+			fail_msg "VERSION format invalid (expected SYSTEM_VERSION=x.y.z)"
+		fi
+	else
+		fail_msg "VERSION file missing"
+	fi
+
+	local agents_count=0 copilot_agents_count=0 total_agents
+	[ -d "$REPO_ROOT/agents" ] && agents_count="$(find "$REPO_ROOT/agents" -type f 2>/dev/null | wc -l | tr -d ' ')"
+	[ -d "$REPO_ROOT/copilot-agents" ] && copilot_agents_count="$(find "$REPO_ROOT/copilot-agents" -type f 2>/dev/null | wc -l | tr -d ' ')"
+	total_agents=$((agents_count + copilot_agents_count))
+	pass_msg "agents/: ${agents_count:-0}, copilot-agents/: ${copilot_agents_count:-0}, total: $total_agents"
+
+	local install_size
+	install_size="$(du -sh "$REPO_ROOT" 2>/dev/null)"
+	install_size="${install_size%%$'\t'*}"
+	pass_msg "Installation size: $install_size"
+
+	echo "─────────────────────────"
+	echo "Result: $pass PASS, $warn WARN, $fail FAIL"
+	[ "$fail" -eq 0 ]
+}
+
 cmd_backup() {
-	local backup_dir="$HOME/.claude-backup-$(date +%s)"
+	local backup_dir
+	backup_dir="$HOME/.claude-backup-$(date +%s)"
 	local dirs=(agents rules skills hooks reference commands protocols scripts settings-templates templates)
 	local has_content=false
 
@@ -242,6 +387,7 @@ upgrade | update) cmd_upgrade ;;
 uninstall | remove) cmd_uninstall ;;
 agents | list) cmd_agents ;;
 version | -v | --version) cmd_version ;;
+doctor | health) cmd_doctor ;;
 settings | hardware) cmd_settings ;;
 backup) cmd_backup ;;
 restore) cmd_restore "${2:-}" ;;

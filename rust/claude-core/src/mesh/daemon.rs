@@ -80,19 +80,24 @@ pub async fn run_service(config: DaemonConfig) -> Result<(), String> {
 }
 
 pub fn detect_tailscale_ip() -> Option<String> {
-    let output = std::process::Command::new("tailscale")
-        .arg("ip")
-        .arg("-4")
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
+    const CANDIDATES: &[&str] = &[
+        "tailscale",
+        "/usr/local/bin/tailscale",
+        "/opt/homebrew/bin/tailscale",
+        "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+    ];
+    for cmd in CANDIDATES {
+        if let Ok(output) = std::process::Command::new(cmd).arg("ip").arg("-4").output() {
+            if output.status.success() {
+                return String::from_utf8(output.stdout)
+                    .ok()?
+                    .lines()
+                    .next()
+                    .map(|line| line.trim().to_string());
+            }
+        }
     }
-    String::from_utf8(output.stdout)
-        .ok()?
-        .lines()
-        .next()
-        .map(|line| line.trim().to_string())
+    None
 }
 
 pub(super) fn parse_peers_conf(content: &str) -> Vec<String> {

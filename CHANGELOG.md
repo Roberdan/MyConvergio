@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.4.6] - 08 Mar 2026
+
+### Fixed
+- detect tailscale binary on macOS app bundle path
+
+
 ## [v11.4.5] - 08 Mar 2026
 
 ### Fixed

@@ -35,9 +35,17 @@ pub fn apply_socket_tuning(stream: &TcpStream) -> Result<(), String> {
 }
 
 pub fn load_tailscale_peer_ips() -> HashMap<String, String> {
-    let output = match std::process::Command::new("tailscale").arg("status").arg("--json").output() {
-        Ok(output) if output.status.success() => output,
-        _ => return HashMap::new(),
+    const CANDIDATES: &[&str] = &[
+        "tailscale",
+        "/usr/local/bin/tailscale",
+        "/opt/homebrew/bin/tailscale",
+        "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+    ];
+    let output = match CANDIDATES.iter().find_map(|cmd| {
+        std::process::Command::new(cmd).arg("status").arg("--json").output().ok().filter(|o| o.status.success())
+    }) {
+        Some(output) => output,
+        None => return HashMap::new(),
     };
     let payload = match serde_json::from_slice::<Value>(&output.stdout) {
         Ok(payload) => payload,

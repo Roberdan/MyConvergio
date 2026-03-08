@@ -1,4 +1,5 @@
 # MyConvergio Agents
+<!-- AGENT_COUNTS: unique:91 claude:82 copilot:85 -->
 
 **v11.0.0** | Multi-provider agent ecosystem for Claude Code + GitHub Copilot CLI
 

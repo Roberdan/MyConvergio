@@ -6,6 +6,8 @@
 
 ![Version](https://img.shields.io/badge/version-v11.0.0-blue)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey)
+![Agents](https://img.shields.io/badge/agents-claude:82%20copilot:85-green)
+<!-- AGENT_COUNTS: unique:91 claude:82 copilot:85 -->
 
 </div>
 

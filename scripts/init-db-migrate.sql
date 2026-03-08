@@ -2,9 +2,16 @@
 -- Run after db-pull.sh replaces local DB with remote copy.
 -- ONLY additive: CREATE IF NOT EXISTS, CREATE INDEX IF NOT EXISTS.
 -- ZERO DROP statements. ZERO ALTER TABLE on existing columns.
--- Version: 1.0.0 | 08 Mar 2026
+-- Version: 1.1.0 | 08 Mar 2026
 
 PRAGMA journal_mode = WAL;
+
+-- Core tables (should exist, but safety net after full DB replace)
+CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, title TEXT, message TEXT, link TEXT, link_type TEXT, is_read INTEGER DEFAULT 0, is_dismissed INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS mesh_events (id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL, plan_id INTEGER, source_peer TEXT, target_peer TEXT, payload TEXT, status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS token_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT, plan_id INTEGER, task_id TEXT, model TEXT, input_tokens INTEGER DEFAULT 0, output_tokens INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0, agent_type TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS conversation_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT, session_id TEXT, role TEXT, content TEXT, tokens INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS delegation_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, task_id TEXT, from_host TEXT, to_host TEXT, status TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
 
 -- Tables that may be missing on remote nodes
 CREATE TABLE IF NOT EXISTS agent_activity (

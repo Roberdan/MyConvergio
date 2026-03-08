@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.4.2] - 08 Mar 2026
+
+### Changed
+- add Nightly Guardian operations runbook
+
+
 ## [v11.4.1] - 08 Mar 2026
 
 ### Changed

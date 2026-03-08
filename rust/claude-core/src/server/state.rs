@@ -17,7 +17,7 @@ pub struct ServerState {
 impl ServerState {
     pub fn new(db_path: PathBuf) -> Self {
         if let Ok(conn) = Connection::open(&db_path) {
-            // Run each migration separately so one failure doesn't block the rest
+            let _ = conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
             let migrations = &[
                 "CREATE TABLE IF NOT EXISTS agent_activity (id INTEGER PRIMARY KEY AUTOINCREMENT, agent_id TEXT NOT NULL, task_db_id INTEGER, plan_id INTEGER, agent_type TEXT NOT NULL, model TEXT, description TEXT, status TEXT NOT NULL DEFAULT 'running', tokens_in INTEGER DEFAULT 0, tokens_out INTEGER DEFAULT 0, tokens_total INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0, started_at TEXT NOT NULL DEFAULT (datetime('now')), completed_at TEXT, duration_s REAL, host TEXT, region TEXT, metadata TEXT, parent_session TEXT)",
                 "CREATE INDEX IF NOT EXISTS idx_agent_activity_status ON agent_activity(status)",
@@ -27,17 +27,35 @@ impl ServerState {
                 "CREATE TABLE IF NOT EXISTS nightly_jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT, job_name TEXT DEFAULT 'guardian', started_at DATETIME DEFAULT CURRENT_TIMESTAMP, finished_at DATETIME, host TEXT, status TEXT NOT NULL CHECK(status IN ('running','ok','action_required','failed')), sentry_unresolved INTEGER DEFAULT 0, github_open_issues INTEGER DEFAULT 0, processed_items INTEGER DEFAULT 0, fixed_items INTEGER DEFAULT 0, branch_name TEXT, pr_url TEXT, summary TEXT, report_json TEXT)",
                 "CREATE INDEX IF NOT EXISTS idx_nightly_jobs_started ON nightly_jobs(started_at DESC)",
                 "CREATE TABLE IF NOT EXISTS nightly_job_definitions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, description TEXT, schedule TEXT NOT NULL DEFAULT '0 3 * * *', script_path TEXT NOT NULL, target_host TEXT DEFAULT 'local', enabled INTEGER NOT NULL DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)",
-                "CREATE TABLE IF NOT EXISTS github_events (id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, event_type TEXT, status TEXT, payload TEXT, created_at TEXT DEFAULT (datetime('now')))",
+                "CREATE TABLE IF NOT EXISTS github_events (id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, event_type TEXT, status TEXT DEFAULT 'pending', created_at TEXT DEFAULT (datetime('now')))",
                 "CREATE INDEX IF NOT EXISTS idx_github_events_plan ON github_events(plan_id)",
+                "CREATE TABLE IF NOT EXISTS earned_skills (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, domain TEXT, content TEXT NOT NULL, confidence TEXT DEFAULT 'low', hit_count INTEGER DEFAULT 0, source TEXT DEFAULT 'earned', created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))",
                 "ALTER TABLE nightly_jobs ADD COLUMN job_name TEXT DEFAULT 'guardian'",
                 "ALTER TABLE agent_activity ADD COLUMN parent_session TEXT",
             ];
+            let mut ok = 0;
+            let mut skip = 0;
             for sql in migrations {
-                if let Err(e) = conn.execute_batch(sql) {
-                    let preview: String = sql.chars().take(60).collect();
-                    eprintln!("[migration] ignored error on '{preview}...': {e}");
+                match conn.execute_batch(sql) {
+                    Ok(_) => ok += 1,
+                    Err(e) => {
+                        let msg = e.to_string();
+                        if msg.contains("duplicate column") || msg.contains("already exists") {
+                            skip += 1;
+                        } else {
+                            let preview: String = sql.chars().take(50).collect();
+                            eprintln!("[migration] ERROR on '{preview}...': {e}");
+                        }
+                    }
                 }
             }
+            // Verify critical tables exist
+            let check = conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='agent_activity'");
+            let exists = check.map(|mut s| s.exists([])).unwrap_or(Ok(false)).unwrap_or(false);
+            if !exists {
+                eprintln!("[migration] CRITICAL: agent_activity table missing after migration!");
+            }
+            eprintln!("[migration] {ok} applied, {skip} skipped (already exist), agent_activity={exists}");
         }
         let (ws_tx, _) = broadcast::channel(256);
         Self { db_path, ws_tx }

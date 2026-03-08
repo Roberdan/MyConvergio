@@ -102,6 +102,10 @@ Follow the Workflow above. Bypasses are enforced by hooks: `guard-plan-mode.sh` 
 
 **PLANNER MODEL (NON-NEGOTIABLE)**: `/planner` DEVE sempre girare su Opus (`model: opus` nel frontmatter — alias auto-risolto). Se il coordinator è Sonnet, BLOCCA e avvisa l'utente. Sonnet che pianifica = VIOLATION (vedi Plan 289). In Copilot CLI, `/plan` is the built-in lightweight planner and must not replace `@planner` / `cplanner`.
 
+## Migration Validation
+
+For backend migrations (Python→Rust, framework changes, API rewrites), follow `rules/migration-checklist.md`.
+
 ## Pre-Closure Checklist (MANDATORY)
 
 ```bash

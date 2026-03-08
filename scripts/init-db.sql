@@ -1,5 +1,5 @@
 -- Dashboard SQLite Schema
--- Version: 1.3.0 | Created: 3 Gennaio 2026
+-- Version: 1.4.0 | Created: 3 Gennaio 2026 | Updated: 8 Marzo 2026
 
 PRAGMA foreign_keys = ON;
 PRAGMA journal_mode = WAL;
@@ -305,6 +305,62 @@ CREATE TABLE IF NOT EXISTS agent_runs (
   FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
   FOREIGN KEY (parent_run_id) REFERENCES agent_runs(id) ON DELETE SET NULL
 );
+
+-- Agent activity tracking (background agents, sub-agents, sessions)
+CREATE TABLE IF NOT EXISTS agent_activity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  agent_id TEXT NOT NULL,
+  task_db_id INTEGER,
+  plan_id INTEGER,
+  agent_type TEXT NOT NULL,
+  model TEXT,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'running' CHECK(status IN ('running','completed','failed','cancelled')),
+  tokens_in INTEGER DEFAULT 0,
+  tokens_out INTEGER DEFAULT 0,
+  tokens_total INTEGER DEFAULT 0,
+  cost_usd REAL DEFAULT 0,
+  started_at TEXT NOT NULL DEFAULT (datetime('now')),
+  completed_at TEXT,
+  duration_s REAL,
+  host TEXT,
+  region TEXT,
+  metadata TEXT,
+  parent_session TEXT,
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_activity_status ON agent_activity(status);
+CREATE INDEX IF NOT EXISTS idx_agent_activity_plan ON agent_activity(plan_id);
+CREATE INDEX IF NOT EXISTS idx_agent_activity_task ON agent_activity(task_db_id);
+
+-- GitHub integration events
+CREATE TABLE IF NOT EXISTS github_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER,
+  event_type TEXT,
+  event_action TEXT,
+  github_id TEXT,
+  status TEXT DEFAULT 'pending',
+  event_at TEXT,
+  processed_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_github_events_plan ON github_events(plan_id);
+
+-- Earned skills from knowledge base pattern recognition
+CREATE TABLE IF NOT EXISTS earned_skills (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  domain TEXT,
+  content TEXT NOT NULL,
+  confidence TEXT DEFAULT 'low' CHECK(confidence IN ('low','medium','high')),
+  hit_count INTEGER DEFAULT 0,
+  source TEXT DEFAULT 'earned',
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS task_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   plan_id INTEGER,

@@ -16,6 +16,15 @@
 9. Select parallelization mode.
 10. Start plan and execute via `/execute {plan_id}`.
 
+## Hook Bypass (NON-NEGOTIABLE)
+
+When the planner invokes `plan-db.sh create` or `plan-db.sh import`, prefix with `PLANNER_ACTIVE=1`:
+```bash
+PLANNER_ACTIVE=1 plan-db.sh create ...
+PLANNER_ACTIVE=1 plan-db.sh import ...
+```
+The `enforce-planner-workflow.sh` PreToolUse hook blocks these commands without the prefix. This ensures only the planner skill can create/import plans.
+
 ## Rule highlights
 - Never skip F-xx coverage checks.
 - Never mark work done without Thor validation.

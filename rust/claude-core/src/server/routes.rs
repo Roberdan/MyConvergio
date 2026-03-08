@@ -9,8 +9,9 @@ use super::middleware;
 use super::sse;
 use super::state::ServerState;
 use super::ws;
+use axum::extract::State;
 use axum::routing::{get, get_service};
-use axum::Router;
+use axum::{Json, Router};
 use std::env;
 use std::path::PathBuf;
 use tower_http::services::ServeDir;
@@ -34,6 +35,7 @@ pub const GET_ROUTES: &[&str] = &[
     "/api/events",
     "/api/coordinator/status",
     "/api/coordinator/toggle",
+    "/api/health",
     "/api/peers",
     "/api/peers/discover",
     "/api/agents",
@@ -96,9 +98,37 @@ pub fn build_router_with_db(static_dir: PathBuf, db_path: PathBuf) -> Router {
         .route("/api/mesh/pull-db", get(sse::mesh_action_sse))
         .route("/ws/brain", get(ws::ws_brain))
         .route("/ws/dashboard", get(ws::ws_dashboard))
+        .route("/api/health", get(api_health))
         .layer(middleware::cors_layer())
+        .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(state)
         .fallback_service(get_service(static_files))
+}
+
+async fn api_health(State(state): State<ServerState>) -> Json<serde_json::Value> {
+    let db_ok = state.open_db().is_ok();
+    let table_count = state.open_db().ok().and_then(|db| {
+        super::state::query_one(
+            db.connection(),
+            "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table'",
+            [],
+        ).ok().flatten().and_then(|v| v.get("c").and_then(serde_json::Value::as_i64))
+    }).unwrap_or(0);
+    let agent_activity_ok = state.open_db().ok().map(|db| {
+        db.connection().prepare("SELECT 1 FROM agent_activity LIMIT 0").is_ok()
+    }).unwrap_or(false);
+    let peer_count = state.open_db().ok().and_then(|db| {
+        super::state::query_one(db.connection(), "SELECT COUNT(*) AS c FROM peer_heartbeats", [])
+            .ok().flatten().and_then(|v| v.get("c").and_then(serde_json::Value::as_i64))
+    }).unwrap_or(0);
+    Json(serde_json::json!({
+        "ok": db_ok && agent_activity_ok,
+        "db": db_ok,
+        "tables": table_count,
+        "agent_activity": agent_activity_ok,
+        "peers": peer_count,
+        "version": env!("CARGO_PKG_VERSION"),
+    }))
 }
 
 #[cfg(test)]

@@ -226,6 +226,10 @@ When CI includes a PR body/workflow compliance check, TF-pr tasks MUST update th
 
 _Why: Plan 100028 — PR #256 failed CI 3 times because PR body was missing `check_agent_workflow_compliance.py` required checklist. Each failure cost a full CI cycle (~10 min)._
 
+## Migration Quality Gate
+
+Backend migrations (Python→Rust, framework changes, API rewrites) MUST follow `rules/migration-checklist.md`. Thor rejects migration PRs without E2E Playwright audit and endpoint response verification.
+
 ## Guardrails
 
 Avatar WebP | EventSource .close() | Lazy-load heavy deps | No N+1 without $transaction | Same approach fails twice → different strategy | Stuck → ask user | Reject if: Errors suppressed | Steps skipped | Verification promised but not done | Orphan code (created but never wired)

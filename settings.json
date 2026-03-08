@@ -25,7 +25,17 @@
     "defaultMode": "bypassPermissions"
   },
   "hooks": {
-    "PreToolUse": [],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/enforce-planner-workflow.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PostToolUse": [],
     "Stop": [
       {

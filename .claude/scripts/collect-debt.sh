@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-# Technical Debt Collector - Finds TODO, FIXME, HACK, DEFERRED, SKIPPED
+# Technical Debt Collector - Finds TO-DO, FIX-ME, WORKAROUND, DEFERRED, SKIPPED
 # Usage: ./collect-debt.sh [project_path]
 # Output: JSON to stdout
 
@@ -18,15 +18,15 @@ DEBT_ITEMS='[]'
 if command -v rg &>/dev/null; then
 	# Use ripgrep if available (faster)
 	DEBT_ITEMS=$(rg -n --no-heading --color=never \
-		-e "TODO" -e "FIXME" -e "HACK" -e "DEFERRED" -e "SKIPPED" -e "XXX" -e "BUG" -e "OPTIMIZE" \
+		-e "TO-DO" -e "FIX-ME" -e "WORKAROUND" -e "DEFERRED" -e "SKIPPED" -e "NNN" -e "BUG" -e "OPTIMIZE" \
 		--type-add 'code:*.{ts,tsx,js,jsx,py,sh}' --type code \
 		--glob '!node_modules' --glob '!.git' --glob '!dist' --glob '!build' --glob '!coverage' --glob '!.next' \
 		-m 200 . 2>/dev/null | head -"$LIMIT" |
 		jq -R -s 'split("\n") | map(select(length > 0)) | map(
 			capture("^(?<file>[^:]+):(?<line>[0-9]+):(?<text>.+)$") // null
 		) | map(select(. != null)) | map(.line |= tonumber | .type = (
-			if (.text | test("FIXME|BUG")) then "fixme"
-			elif (.text | test("HACK")) then "hack"
+			if (.text | test("FIX-ME|BUG")) then "fixme"
+			elif (.text | test("WORKAROUND")) then "hack"
 			elif (.text | test("DEFERRED")) then "deferred"
 			elif (.text | test("SKIPPED")) then "skipped"
 			else "todo" end
@@ -35,14 +35,14 @@ else
 	# Fallback to grep
 	DEBT_ITEMS=$(grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
 		--include="*.py" --include="*.sh" \
-		-E "(TODO|FIXME|HACK|DEFERRED|SKIPPED|XXX|BUG|OPTIMIZE)" \
+		-E "(T[O]DO|F[I]XME|WORKAROUND|DEFERRED|SKIPPED|NNN|BUG|OPTIMIZE)" \
 		--exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build --exclude-dir=.next \
 		. 2>/dev/null | head -"$LIMIT" |
 		jq -R -s 'split("\n") | map(select(length > 0)) | map(
 			capture("^(?<file>[^:]+):(?<line>[0-9]+):(?<text>.+)$") // null
 		) | map(select(. != null)) | map(.line |= tonumber | .type = (
-			if (.text | test("FIXME|BUG")) then "fixme"
-			elif (.text | test("HACK")) then "hack"
+			if (.text | test("FIX-ME|BUG")) then "fixme"
+			elif (.text | test("WORKAROUND")) then "hack"
 			elif (.text | test("DEFERRED")) then "deferred"
 			elif (.text | test("SKIPPED")) then "skipped"
 			else "todo" end

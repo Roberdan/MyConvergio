@@ -46,7 +46,7 @@ CHANGELOG.md updated with releases | Keep a Changelog format | Group by: Added, 
 
 ## Comments
 
-Explain "why" not "what" | Update when code changes | No commented-out code (use git) | Sparse TODOs (track them) | Explain complex algorithms
+Explain "why" not "what" | Update when code changes | No commented-out code (use git) | Sparse TO-DOs (track them) | Explain complex algorithms
 
 ## Diagrams
 

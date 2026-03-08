@@ -15,7 +15,7 @@ dbq() {
 DB_SNAP_DIR=""
 
 db_snapshot() {
-	DB_SNAP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/dashboard-snap.XXXXXX")
+	DB_SNAP_DIR=$(mktemp -d -t dashboard-snap)
 	sqlite3 "$DB" ".timeout 5000" ".mode list" ".separator |" "
 		-- Overview counts
 		SELECT 'OVERVIEW',

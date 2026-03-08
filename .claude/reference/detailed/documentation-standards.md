@@ -18,7 +18,7 @@
 - JSDoc (TS/JS) or docstrings (Python) for all public functions/classes
 - Document: params | returns | exceptions | usage examples
 - Comments explain "why", not "what" (code self-documents)
-- No TODO/FIXME in production code (use issue tracker)
+- No TO-DO/FIX-ME in production code (use issue tracker)
 - Remove commented code (rely on version control)
 - Update docs when code changes
 
@@ -128,7 +128,7 @@ MIT
 | ✗ Bad                                    | ✓ Good                           |
 |------------------------------------------|----------------------------------|
 | `// Increment counter`<br>`counter++;`   | Remove obvious comment           |
-| `// TODO: Fix later`                     | Create issue, link if needed     |
+| `// TO-DO: Fix later`                     | Create issue, link if needed     |
 | Commented-out code                       | Delete (use git)                 |
 | Outdated docs after code changes         | Update docs with code            |
 | `/** Gets user @param id */`             | Add exceptions, examples, notes  |

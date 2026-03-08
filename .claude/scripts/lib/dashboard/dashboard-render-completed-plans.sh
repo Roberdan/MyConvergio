@@ -39,7 +39,7 @@ _render_completed_plans() {
 
 		# Token usage (usa project_id perché plan_id è sempre NULL nel DB)
 		total_tokens=$(dbq "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$done_project'")
-		tokens_formatted=$(format_tokens $total_tokens)
+		tokens_formatted=$(format_tokens "$total_tokens")
 
 		# Thor validation status
 		if [ -n "$validated_at" ] && [ -n "$validated_by" ]; then
@@ -59,7 +59,7 @@ _render_completed_plans() {
 		# Git stats display
 		local git_stats_display=""
 		if [ "${lines_added:-0}" -gt 0 ] || [ "${lines_removed:-0}" -gt 0 ]; then
-			git_stats_display=" ${GRAY}│${NC} ${GREEN}+$(format_lines ${lines_added:-0})${NC} ${RED}-$(format_lines ${lines_removed:-0})${NC}"
+			git_stats_display=" ${GRAY}│${NC} ${GREEN}+$(format_lines "${lines_added:-0}")${NC} ${RED}-$(format_lines "${lines_removed:-0}")${NC}"
 		fi
 
 		# PR detection with live GitHub state

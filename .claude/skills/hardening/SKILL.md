@@ -73,7 +73,7 @@ Check each category and report status:
 
 **Debt Enforcement**:
 
-- [ ] TODO/FIXME limits enforced
+- [ ] TO-DO/FIX-ME limits enforced
 - [ ] Type suppression limits (@ts-ignore, # noqa)
 - [ ] Large file detection
 

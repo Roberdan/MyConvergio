@@ -53,7 +53,7 @@ Execute comprehensive pre-release quality assurance through automated checks, se
    - Check for exposed sensitive files (.env, credentials)
 
 5. **Code Quality Gates** (Phase 3)
-   - Remove all TODO/FIXME comments
+   - Remove all TO-DO/FIX-ME comments
    - Remove debug prints (printf, NSLog, console.log)
    - Remove commented-out code
    - Check for trailing whitespace
@@ -127,7 +127,7 @@ Execute comprehensive pre-release quality assurance through automated checks, se
 - ❌ ANY compiler warning
 - ❌ ANY test failure
 - ❌ ANY security vulnerability
-- ❌ ANY TODO/FIXME in code
+- ❌ ANY TO-DO/FIX-ME in code
 - ❌ ANY hardcoded secrets/credentials
 - ❌ ANY debug prints in code
 - ❌ ANY commented-out code
@@ -141,7 +141,7 @@ Execute comprehensive pre-release quality assurance through automated checks, se
 | Issue | Auto-Fix Action | Priority |
 |-------|----------------|----------|
 | Compiler warnings | Edit source to fix | P0 |
-| TODO/FIXME comments | Remove or create ticket | P0 |
+| TO-DO/FIX-ME comments | Remove or create ticket | P0 |
 | Debug prints | Remove all printf/console.log | P0 |
 | Version mismatches | Update VERSION file | P0 |
 | Trailing whitespace | sed strip command | P1 |
@@ -250,7 +250,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Dependency vulnerabilities: 0
 
 ### ✅ Phase 3: Code Quality
-- TODO/FIXME: 0 (auto-fixed: {count})
+- TO-DO/FIX-ME: 0 (auto-fixed: {count})
 - Debug prints: 0 (auto-fixed: {count})
 - Commented code: None
 
@@ -270,7 +270,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Git tag: Created
 
 ## Auto-Fixes Applied
-1. Removed 3 TODO comments
+1. Removed 3 TO-DO comments
 2. Stripped trailing whitespace (12 files)
 3. Removed 5 debug print statements
 4. Updated outdated model config
@@ -296,8 +296,8 @@ Workflow Execution:
 4. Security: ❌ Found debug console.log in auth.js
    → Auto-removed debug prints
    → Re-scanned: ✅ Clean
-5. Code Quality: ❌ Found 5 TODO comments
-   → Auto-removed TODOs, created tickets
+5. Code Quality: ❌ Found 5 TO-DO comments
+   → Auto-removed TO-DOs, created tickets
    → Re-checked: ✅ Clean
 6. Tests: ❌ 2 E2E tests failing
    → Cannot auto-fix, BLOCKING
@@ -314,7 +314,7 @@ Blocking Issues (Must Fix):
 Auto-Fixes Applied:
 ✅ Fixed 3 compiler warnings
 ✅ Removed 8 debug print statements
-✅ Removed 5 TODO comments
+✅ Removed 5 TO-DO comments
 ✅ Updated 2 model configurations
 
 Next Steps:

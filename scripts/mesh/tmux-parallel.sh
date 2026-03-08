@@ -34,7 +34,7 @@ tmux new-session -d -s "$SESSION" -n "Claude-1" -c "$DIR"
 tmux send-keys -t "$SESSION:Claude-1" "claude --dangerously-skip-permissions" Enter
 
 # Create additional windows
-for i in $(seq 2 $NUM); do
+for i in $(seq 2 "$NUM"); do
     log "  → Claude-$i"
     tmux new-window -t "$SESSION" -n "Claude-$i" -c "$DIR"
     tmux send-keys -t "$SESSION:Claude-$i" "claude --dangerously-skip-permissions" Enter

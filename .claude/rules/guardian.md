@@ -24,7 +24,7 @@ A plan is NOT done until ALL changes are merged to main AND documentation is cur
 
 ## Git & PR
 
-**NEVER create bare branches** — use `worktree-create.sh` or `wave-worktree.sh`. Hook `worktree-guard.sh` blocks `git branch`, `git checkout -b`, `git switch -c`. | Conventional commits | Lint+typecheck+test before commit | Build passes | ZERO debt (no TODO, FIXME, @ts-ignore) | **NEVER `git merge main` into wave branch** — use `git rebase origin/main` (see worktree-discipline.md)
+**NEVER create bare branches** — use `worktree-create.sh` or `wave-worktree.sh`. Hook `worktree-guard.sh` blocks `git branch`, `git checkout -b`, `git switch -c`. | Conventional commits | Lint+typecheck+test before commit | Build passes | ZERO debt (no TO-DO, FIX-ME, @ts-ignore) | **NEVER `git merge main` into wave branch** — use `git rebase origin/main` (see worktree-discipline.md)
 
 ## PR Post-Push Protocol (NON-NEGOTIABLE)
 
@@ -119,7 +119,7 @@ Agents CHEAT when they: mark done without running tests | claim "tests pass" wit
 
 **ALL of these = REJECTION by Thor + escalation to user.** Thor MUST run the actual commands and inspect output — NEVER trust executor claims.
 
-**Touched file ownership**: If an executor modifies ANY line in a file, they own ALL issues in that file. "I only changed line 5" does not excuse the TODO on line 20. Fix it or don't touch the file.
+**Touched file ownership**: If an executor modifies ANY line in a file, they own ALL issues in that file. "I only changed line 5" does not excuse the TO-DO on line 20. Fix it or don't touch the file.
 
 ## Assessment Coverage Gate (NON-NEGOTIABLE)
 

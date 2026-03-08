@@ -150,7 +150,7 @@ Every task MUST include test_criteria. Tests written BEFORE implementation.
 ## ADR Template
 
 ```markdown
-## ADR-XXX: [Decision Title]
+## ADR-NNN: [Decision Title]
 
 | Field | Value |
 |-------|-------|

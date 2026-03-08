@@ -13,7 +13,7 @@ case "${1:-}" in
     # Check freshness (behind main?), auto-rebase if <=3, BLOCK if >10, stash if uncommitted
     branch=$(git rev-parse --abbrev-ref HEAD)
     main_branch="main"
-    behind=$(git rev-list --count ${branch}..${main_branch} || echo 0)
+    behind=$(git rev-list --count "${branch}"..${main_branch} || echo 0)
     uncommitted=$(git status --porcelain | wc -l)
     if [ "$behind" -gt 10 ]; then
       echo "BLOCK: branch $branch is $behind commits behind $main_branch" >&2

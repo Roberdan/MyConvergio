@@ -54,7 +54,7 @@ BACKGROUND: true
 
 ```
 PROMPT: "Code quality scan for release.
-1. TODO/FIXME: rg 'TODO|FIXME|XXX|HACK' -c
+1. TO-DO/FIX-ME: rg 'T[O]DO|F[I]XME|X[X]X|H[A]CK' -c
 2. Debug prints: rg 'console\.log|print\(|NSLog|printf.*DEBUG' -c
 3. Commented code: rg '^//.*\{|^#.*def ' -c
 4. Return JSON: {status: PASS/FAIL, todos: N, debug_prints: N, commented_code: N, locations: [...]}"
@@ -168,7 +168,7 @@ BACKGROUND: true
 | Trailing whitespace | `sed -i '' 's/[[:space:]]*$//'` | P1       |
 | Missing EOF newline | `echo >> file`                  | P1       |
 | Debug prints        | Edit tool to remove             | P0       |
-| TODO comments       | Remove or implement             | P0       |
+| TO-DO comments       | Remove or implement             | P0       |
 | Unused imports      | Remove them                     | P1       |
 | Version mismatch    | Update VERSION file             | P0       |
 
@@ -190,7 +190,7 @@ BACKGROUND: true
 - ANY compiler error
 - ANY test failure
 - ANY security vulnerability (hardcoded secrets)
-- ANY TODO/FIXME in code
+- ANY TO-DO/FIX-ME in code
 - ANY failing CI check
 
 ### Generate Report

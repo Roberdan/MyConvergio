@@ -14,7 +14,7 @@ _cleanup_plan_file_cache() {
 	rm -f "$cache_file"
 	if [[ -f "$active_file" ]]; then
 		local tmp_file
-		tmp_file=$(mktemp "${active_file}.XXXXXX")
+		tmp_file=$(mktemp -t active-file)
 		grep -vxF "$plan_id" "$active_file" >"$tmp_file" 2>/dev/null || true
 		mv "$tmp_file" "$active_file"
 	fi

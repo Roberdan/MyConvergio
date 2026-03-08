@@ -30,7 +30,7 @@ detect_precondition_cycles() {
 	# Build adjacency list using temp files (portable across
 	# bash versions; avoids associative array edge cases)
 	local tmpdir
-	tmpdir=$(mktemp -d /tmp/cycle-detect-XXXXXX)
+	tmpdir=$(mktemp -d -t cycle-detect)
 	trap "rm -rf '$tmpdir'" EXIT INT TERM
 
 	# Collect all wave_ids

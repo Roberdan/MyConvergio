@@ -40,9 +40,9 @@ kitty)
 	# Send plan if provided
 	if [ -n "$PLAN" ] && [ -f "$PLAN" ]; then
 		log "Sending plan to workers..."
-		for i in $(seq 2 $NUM); do
-			kitty @ send-text --match title:Claude-$i "Leggi $PLAN, sei CLAUDE $i. Esegui i tuoi task."
-			kitty @ send-key --match title:Claude-$i Return
+		for i in $(seq 2 "$NUM"); do
+			kitty @ send-text --match title:Claude-"$i" "Leggi $PLAN, sei CLAUDE $i. Esegui i tuoi task."
+			kitty @ send-key --match title:Claude-"$i" Return
 		done
 	fi
 	;;
@@ -55,8 +55,8 @@ tmux | tmux-external)
 	if [ -n "$PLAN" ] && [ -f "$PLAN" ]; then
 		log "Sending plan to workers..."
 		sleep 3 # Wait for Claude instances to start
-		for i in $(seq 2 $NUM); do
-			tmux send-keys -t claude-workers:Claude-$i "Leggi $PLAN, sei CLAUDE $i. Esegui i tuoi task." Enter
+		for i in $(seq 2 "$NUM"); do
+			tmux send-keys -t claude-workers:Claude-"$i" "Leggi $PLAN, sei CLAUDE $i. Esegui i tuoi task." Enter
 		done
 	fi
 

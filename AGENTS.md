@@ -8,7 +8,7 @@
 
 This index documents the **actual** agent inventory shipped in this repository:
 
-- `.claude/agents/`: 82 Claude agent files
+- `.claude/agents/`: 87 Claude agent files
 - `copilot-agents/`: 85 Copilot agent files
 - `.github/agents/`: project automation agents (night operations)
 
@@ -19,17 +19,17 @@ The category taxonomy below matches current folders and files in `.claude/agents
 | Category | Count | Notes |
 | --- | ---: | --- |
 | `_root` | 2 | repo-level wrappers (`deep-repo-auditor`, `pr-comment-resolver`) |
-| `business_operations` | 11 | PM, ops, GTM, customer success |
+| `business_operations` | 12 | PM, ops, GTM, customer success |
 | `compliance_legal` | 5 | legal, security, healthcare, gov affairs |
-| `core_utility` | 23 | constitution, thor, planner modules, orchestration |
+| `core_utility` | 25 | constitution, thor, planner modules, orchestration |
 | `design_ux` | 3 | creative direction and UX design |
 | `leadership_strategy` | 7 | executive and strategic leadership |
 | `release_management` | 5 | release, hardening, ecosystem sync |
 | `research_report` | 1 | long-form strategic research reporting |
 | `specialized_experts` | 14 | domain experts and specialist advisors |
-| `technical_development` | 11 | architecture, debugging, TDD execution |
+| `technical_development` | 13 | architecture, debugging, TDD execution |
 
-**Total Claude files: 82**
+**Total Claude files: 87**
 
 ## Copilot Agent Inventory (`copilot-agents/`)
 

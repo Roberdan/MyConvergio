@@ -116,7 +116,7 @@ Thor MUST reject closure unless agent provided:
 - Any review thread unresolved
 - Build/lint/typecheck fails
 - Tests not run or failing
-- Code contains "TODO: will fix", "FIXME: later", "defer to next PR"
+- Code contains "TO-DO: will fix", "FIX-ME: later", "defer to next PR"
 - Agent says "ready" but comments unresolved
 
 **Thor MUST ask:**

@@ -69,7 +69,7 @@ run_task() {
 		[[ -n "$MODEL" ]] && model_flag="--model $MODEL"
 		# delegate.sh accepts: delegate.sh <task_db_id> [--engine <e>] [--model <m>]
 		timeout "$TASK_TIMEOUT" "$DELEGATE_SH" "$task_db_id" \
-			--engine "$ENGINE" $model_flag || exit_code=$?
+			--engine "$ENGINE" "$model_flag" || exit_code=$?
 		return $exit_code
 	fi
 
@@ -93,8 +93,8 @@ run_task() {
 			timeout "$TASK_TIMEOUT" copilot \
 				--allow-all \
 				--no-ask-user \
-				$dir_flag \
-				$model_flag \
+				"$dir_flag" \
+				"$model_flag" \
 				-p "$prompt" || exit_code=$?
 		fi
 		;;
@@ -106,8 +106,8 @@ run_task() {
 		local cwd_flag=""
 		[[ -n "$worktree" && -d "$worktree" ]] && cwd_flag="--cwd $worktree"
 		timeout "$TASK_TIMEOUT" opencode \
-			$cwd_flag \
-			$model_flag \
+			"$cwd_flag" \
+			"$model_flag" \
 			--prompt "$prompt" || exit_code=$?
 		;;
 
@@ -119,8 +119,8 @@ run_task() {
 		[[ -n "$worktree" && -d "$worktree" ]] && cwd_flag="--cwd $worktree"
 		timeout "$TASK_TIMEOUT" claude \
 			--dangerously-skip-permissions \
-			$cwd_flag \
-			$model_flag \
+			"$cwd_flag" \
+			"$model_flag" \
 			-p "$prompt" || exit_code=$?
 		;;
 	esac

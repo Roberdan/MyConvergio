@@ -54,5 +54,5 @@ while true; do
     echo "  Press Ctrl+C to stop monitoring"
     echo "  Refresh every ${REFRESH}s"
 
-    sleep $REFRESH
+    sleep "$REFRESH"
 done

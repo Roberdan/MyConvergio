@@ -216,24 +216,24 @@ elif [[ "$FINAL_STATUS" != "done" && "$FINAL_STATUS" != "submitted" ]]; then
 		# plan-db-safe.sh sets 'submitted' (not done). Thor validation required.
 		FINAL_STATUS="submitted"
 		THOR_RESULT="PENDING"
-		echo '{"status":"submitted","task_id":'$TASK_ID',"copilot_exit":'$EXIT_CODE'}'
+		echo '{"status":"submitted","task_id":'"$TASK_ID"',"copilot_exit":'"$EXIT_CODE"'}'
 	elif [[ "$IS_VERIFY_TASK" == true && "$EXIT_CODE" -eq 0 ]]; then
 		NOTE="Auto-completed: verification/closure task with clean exit (no file changes expected)"
 		OUTPUT_DATA='{"summary":"Verification task completed without file changes","artifacts":[]}'
 		safe_update_task "$TASK_ID" done "$NOTE" --tokens "$TOKENS_USED" --output-data "$OUTPUT_DATA" || true
 		FINAL_STATUS="submitted"
 		THOR_RESULT="PENDING"
-		echo '{"status":"submitted","task_id":'$TASK_ID',"copilot_exit":'$EXIT_CODE'}'
+		echo '{"status":"submitted","task_id":'"$TASK_ID"',"copilot_exit":'"$EXIT_CODE"'}'
 	else
 		NOTE="Copilot exited without completing"
 		safe_update_task "$TASK_ID" blocked "$NOTE" --tokens "$TOKENS_USED" || true
-		echo '{"status":"incomplete","task_id":'$TASK_ID',"copilot_exit":'$EXIT_CODE'}' >&2
+		echo '{"status":"incomplete","task_id":'"$TASK_ID"',"copilot_exit":'"$EXIT_CODE"'}' >&2
 		THOR_RESULT="REJECT"
 	fi
 else
 	# Task was marked submitted by the Copilot agent itself (via plan-db-safe.sh)
 	# or already done from a previous run
-	echo '{"status":"'$FINAL_STATUS'","task_id":'$TASK_ID'}'
+	echo '{"status":"'"$FINAL_STATUS"'","task_id":'"$TASK_ID"'}'
 	if [[ "$FINAL_STATUS" == "done" ]]; then
 		THOR_RESULT="PASS"
 	else
@@ -261,4 +261,4 @@ elif [[ "$FINAL_STATUS" == "done" && "$THOR_RESULT" == "PASS" ]]; then
 	echo "Task already done + validated, skipping Thor."
 fi
 
-exit $EXIT_CODE
+exit "$EXIT_CODE"

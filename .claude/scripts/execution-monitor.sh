@@ -86,7 +86,7 @@ while true; do
 	echo -e "  ${BOLD}Plan:${NC} $PLAN_NAME (ID: $PLAN_ID)"
 	echo -e "  ${BOLD}Project:${NC} $PROJECT_ID"
 	echo -e "  ${BOLD}Status:${NC} $STATUS_COLOR"
-	echo -e "  ${BOLD}Progress:${NC} $(progress_bar $TASKS_DONE $TASKS_TOTAL) ($TASKS_DONE/$TASKS_TOTAL)"
+	echo -e "  ${BOLD}Progress:${NC} $(progress_bar "$TASKS_DONE" "$TASKS_TOTAL") ($TASKS_DONE/$TASKS_TOTAL)"
 	echo ""
 
 	# Waves section

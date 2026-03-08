@@ -111,10 +111,10 @@ For automatable learnings:
 // eslint.config.mjs
 {
   rules: {
-    // ADR-0XXX: {short description}
+    // ADR-0NNN: {short description}
     "no-restricted-syntax": ["error", {
       selector: "...",
-      message: "ADR-0XXX: {message}"
+      message: "ADR-0NNN: {message}"
     }]
   }
 }

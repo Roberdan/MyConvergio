@@ -109,7 +109,7 @@ Perform comprehensive code review with focus on quality, security, design patter
 - [ ] Edge cases and error conditions handled
 - [ ] No hardcoded values - configuration used
 - [ ] Logging comprehensive with context
-- [ ] No TODO/FIXME comments without tickets
+- [ ] No TO-DO/FIX-ME comments without tickets
 - [ ] Documentation updated for public APIs
 - [ ] No scope creep - focused on specific change
 

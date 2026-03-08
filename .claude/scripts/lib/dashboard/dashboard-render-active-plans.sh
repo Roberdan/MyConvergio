@@ -30,7 +30,7 @@ _render_active_plans() {
 		elapsed_seconds=$((now_ts - start_ts))
 		elapsed_time=$(format_elapsed $elapsed_seconds)
 
-		tokens_formatted=$(format_tokens $total_tokens)
+		tokens_formatted=$(format_tokens "$total_tokens")
 
 		# Weighted task progress (model-based complexity)
 		local wp_data wp_done_w wp_total_w

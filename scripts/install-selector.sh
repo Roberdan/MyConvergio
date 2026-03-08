@@ -62,8 +62,8 @@ install_minimal() {
 	mkdir -p "$CLAUDE_HOME/agents"
 
 	for agent in "${CORE_AGENTS[@]}"; do
-		cp "$AGENTS_SRC/$agent" "$CLAUDE_HOME/agents/$(basename $agent)"
-		echo -e "  ${GREEN}✓${NC} $(basename $agent .md)"
+		cp "$AGENTS_SRC/$agent" "$CLAUDE_HOME/agents/$(basename "$agent")"
+		echo -e "  ${GREEN}✓${NC} $(basename "$agent" .md)"
 	done
 
 	# Copy Constitution (always needed)

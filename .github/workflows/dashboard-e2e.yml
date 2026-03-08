@@ -23,14 +23,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install Python deps
-        run: pip install websockets
-
       - name: Install Playwright
         working-directory: scripts/dashboard_web
         run: |
@@ -54,6 +46,8 @@ jobs:
           CREATE INDEX IF NOT EXISTS idx_agent_activity_status ON agent_activity(status);
           CREATE INDEX IF NOT EXISTS idx_agent_activity_plan ON agent_activity(plan_id);
           CREATE INDEX IF NOT EXISTS idx_agent_activity_task ON agent_activity(task_db_id);
+          CREATE TABLE IF NOT EXISTS nightly_jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT, job_name TEXT DEFAULT 'guardian', started_at DATETIME DEFAULT CURRENT_TIMESTAMP, finished_at DATETIME, host TEXT, status TEXT NOT NULL CHECK(status IN ('running','ok','action_required','failed')), sentry_unresolved INTEGER DEFAULT 0, github_open_issues INTEGER DEFAULT 0, processed_items INTEGER DEFAULT 0, fixed_items INTEGER DEFAULT 0, branch_name TEXT, pr_url TEXT, summary TEXT, report_json TEXT);
+          CREATE TABLE IF NOT EXISTS nightly_job_definitions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, description TEXT, schedule TEXT NOT NULL DEFAULT '0 3 * * *', script_path TEXT NOT NULL, target_host TEXT DEFAULT 'local', enabled INTEGER NOT NULL DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
           SQL
 
       - name: Run E2E tests

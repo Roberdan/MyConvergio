@@ -15,7 +15,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'python3 server.py --port 8420',
+    command: 'npx -y serve -l 8420 -s .',
     port: 8420,
     timeout: 10000,
     reuseExistingServer: true,

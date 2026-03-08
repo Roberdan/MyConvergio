@@ -76,7 +76,7 @@ async fn api_mission(State(state): State<ServerState>) -> Result<Json<Value>, Ap
         let plan_id = plan.get("id").and_then(Value::as_i64).unwrap_or(0);
         let waves = query_rows(
             db.connection(),
-            "SELECT wave_id,name,status,tasks_done,tasks_total,position FROM waves WHERE plan_id=?1 ORDER BY position",
+            "SELECT wave_id,name,status,tasks_done,tasks_total,position,completed_at AS validated_at,pr_number,pr_url FROM waves WHERE plan_id=?1 ORDER BY position",
             rusqlite::params![plan_id],
         ).unwrap_or_default();
         let tasks = query_rows(
@@ -289,10 +289,27 @@ async fn api_plan_detail(
     Path(plan_id): Path<i64>,
 ) -> Result<Json<Value>, ApiError> {
     let db = state.open_db()?;
-    let tree = db
-        .execution_tree(plan_id)
-        .map_err(|err| ApiError::bad_request(format!("invalid plan id {plan_id}: {err}")))?;
-    Ok(Json(json!(tree)))
+    let plan = query_one(
+        db.connection(),
+        "SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.execution_host,p.human_summary,p.started_at,p.completed_at,p.parallel_mode,p.lines_added,p.lines_removed,pr.name AS project_name FROM plans p LEFT JOIN projects pr ON p.project_id=pr.id WHERE p.id=?1",
+        rusqlite::params![plan_id],
+    )?.ok_or_else(|| ApiError::bad_request(format!("plan {plan_id} not found")))?;
+    let waves = query_rows(
+        db.connection(),
+        "SELECT wave_id,name,status,tasks_done,tasks_total,position,completed_at AS validated_at,pr_number,pr_url FROM waves WHERE plan_id=?1 ORDER BY position",
+        rusqlite::params![plan_id],
+    ).unwrap_or_default();
+    let tasks = query_rows(
+        db.connection(),
+        "SELECT task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id FROM tasks WHERE plan_id=?1 ORDER BY id",
+        rusqlite::params![plan_id],
+    ).unwrap_or_default();
+    let cost = query_one(
+        db.connection(),
+        "SELECT COALESCE(SUM(input_tokens+output_tokens),0) AS tokens, COALESCE(SUM(cost_usd),0) AS cost FROM token_usage WHERE plan_id=?1",
+        rusqlite::params![plan_id],
+    )?.unwrap_or_else(|| json!({"tokens":0,"cost":0}));
+    Ok(Json(json!({"plan": plan, "waves": waves, "tasks": tasks, "cost": cost})))
 }
 
 async fn api_tasks_distribution(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {

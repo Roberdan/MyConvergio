@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.3.3] - 08 Mar 2026
+
+### Fixed
+- plan detail API returns frontend-compatible format
+
+
 ## [v11.3.2] - 08 Mar 2026
 
 ### Fixed

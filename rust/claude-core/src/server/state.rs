@@ -33,7 +33,10 @@ impl ServerState {
                 "ALTER TABLE agent_activity ADD COLUMN parent_session TEXT",
             ];
             for sql in migrations {
-                let _ = conn.execute_batch(sql);
+                if let Err(e) = conn.execute_batch(sql) {
+                    let preview: String = sql.chars().take(60).collect();
+                    eprintln!("[migration] ignored error on '{preview}...': {e}");
+                }
             }
         }
         let (ws_tx, _) = broadcast::channel(256);

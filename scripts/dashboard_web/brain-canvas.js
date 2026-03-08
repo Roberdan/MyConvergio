@@ -234,6 +234,16 @@
     S.container = S.canvas = S.ctx = null; S.particles = []; S.anim.clear(); S.layout = null; S.running = false; S.peerRegion.clear(); S.peerStats.clear(); S.activeModels.clear(); S.tokenFlow = 0;
   };
   window.updateBrainData = function() {};
+  window.toggleBrainFreeze = function() {
+    S.running = !S.running;
+    const btn = document.getElementById('brain-pause-btn');
+    if (btn) btn.textContent = S.running ? '▶' : '❚❚';
+    if (S.running && S.container) { S.raf = requestAnimationFrame(render); }
+  };
+  window.rewindBrain = function() {
+    S.particles = []; S.anim.clear();
+    if (S.layout) S.layout.nodes.forEach(n => { n.vx = 0; n.vy = 0; });
+  };
   const _boot = () => window.initBrainCanvas('brain-canvas-container');
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _boot);
   else setTimeout(_boot, 100);

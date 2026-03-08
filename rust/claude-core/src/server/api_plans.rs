@@ -21,7 +21,7 @@ async fn handle_plan_validate(
     let count = db
         .connection()
         .execute(
-            "UPDATE tasks SET status='done', validated_at=CURRENT_TIMESTAMP WHERE plan_id=?1 AND status='submitted'",
+            "UPDATE tasks SET status='done', validated_at=CURRENT_TIMESTAMP, validated_by='forced-admin' WHERE plan_id=?1 AND status='submitted'",
             rusqlite::params![plan_id],
         )
         .map_err(|err| ApiError::internal(format!("validate failed: {err}")))?;
@@ -41,6 +41,12 @@ async fn handle_plan_cancel(
     db.connection()
         .execute("UPDATE plans SET status='cancelled' WHERE id=?1", rusqlite::params![plan_id])
         .map_err(|err| ApiError::internal(format!("plan cancel failed: {err}")))?;
+    db.connection()
+        .execute(
+            "UPDATE waves SET status='cancelled', cancelled_at=datetime('now') WHERE plan_id=?1 AND status NOT IN ('done','cancelled')",
+            rusqlite::params![plan_id],
+        )
+        .map_err(|err| ApiError::internal(format!("wave cancel failed: {err}")))?;
     db.connection()
         .execute(
             "UPDATE tasks SET status='cancelled' WHERE plan_id=?1 AND status NOT IN ('done','cancelled','skipped')",
@@ -66,6 +72,12 @@ async fn handle_plan_reset(
             rusqlite::params![plan_id],
         )
         .map_err(|err| ApiError::internal(format!("plan reset failed: {err}")))?;
+    db.connection()
+        .execute(
+            "UPDATE waves SET status='pending', started_at=NULL, completed_at=NULL WHERE plan_id=?1 AND status NOT IN ('done')",
+            rusqlite::params![plan_id],
+        )
+        .map_err(|err| ApiError::internal(format!("wave reset failed: {err}")))?;
     db.connection()
         .execute(
             "UPDATE tasks SET status='pending', executor_agent=NULL, executor_host=NULL, validated_at=NULL, started_at=NULL, completed_at=NULL WHERE plan_id=?1 AND status NOT IN ('done','skipped')",

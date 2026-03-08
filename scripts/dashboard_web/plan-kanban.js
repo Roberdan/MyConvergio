@@ -49,10 +49,12 @@ function _kanbanCard(m, col) {
 }
 
 window.kanbanDragStart = function (e) {
-  e.dataTransfer.setData("text/plain", e.target.dataset.planId);
+  const card = e.target.closest(".kanban-card");
+  if (!card) return;
+  e.dataTransfer.setData("text/plain", card.dataset.planId);
   e.dataTransfer.effectAllowed = "move";
-  e.target.classList.add("dragging");
-  setTimeout(() => e.target.classList.remove("dragging"), 0);
+  card.classList.add("dragging");
+  setTimeout(() => card.classList.remove("dragging"), 0);
 };
 
 window.kanbanDrop = async function (e, targetStatus) {

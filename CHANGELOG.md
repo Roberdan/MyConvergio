@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.3.4] - 08 Mar 2026
+
+### Fixed
+- kanban drag bubbling, cancel/reset cascade waves, validate bypass
+
+
 ## [v11.3.3] - 08 Mar 2026
 
 ### Fixed

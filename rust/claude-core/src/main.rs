@@ -47,8 +47,8 @@ enum DaemonCommands {
         bind_ip: Option<String>,
         #[arg(long, default_value_t = 9420)]
         port: u16,
-        #[arg(long, default_value = "peers.conf")]
-        peers_conf: PathBuf,
+        #[arg(long)]
+        peers_conf: Option<PathBuf>,
         #[arg(long)]
         db_path: Option<PathBuf>,
         #[arg(long)]
@@ -158,7 +158,7 @@ async fn main() {
                     let config = claude_core::mesh::daemon::DaemonConfig {
                         bind_ip: resolved_ip,
                         port,
-                        peers_conf_path: peers_conf,
+                        peers_conf_path: peers_conf.unwrap_or_else(default_peers_conf),
                         db_path: db_path.unwrap_or_else(default_db_path),
                         crsqlite_path,
                     };
@@ -177,4 +177,9 @@ async fn main() {
 fn default_db_path() -> PathBuf {
     let home = env::var("HOME").unwrap_or_else(|_| ".".to_string());
     PathBuf::from(home).join(".claude/data/dashboard.db")
+}
+
+fn default_peers_conf() -> PathBuf {
+    let home = env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    PathBuf::from(home).join(".claude/config/peers.conf")
 }

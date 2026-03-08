@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.4.5] - 08 Mar 2026
+
+### Fixed
+- resolve peers.conf default path to ~/.claude/config/peers.conf
+
+
 ## [v11.4.4] - 08 Mar 2026
 
 ### Fixed

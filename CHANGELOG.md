@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.4.3] - 08 Mar 2026
+
+### Fixed
+- restore session tracking hooks, fix brain pipeline, pin Idea Jar widget
+
+
 ## [v11.4.2] - 08 Mar 2026
 
 ### Changed

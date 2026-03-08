@@ -21,6 +21,8 @@ scan_sessions() {
     case "$CMD" in
       *copilot*agent*|*copilot*worker*|*node*copilot*) continue ;;
       *claude*hook*|*claude*plan-db*|*claude*script*) continue ;;
+      *claude-core*|*claude-co*) continue ;;
+      *"Cursor Helper"*|*extension-host*) continue ;;
     esac
 
     # Determine type

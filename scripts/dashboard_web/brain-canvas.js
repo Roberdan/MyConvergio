@@ -157,10 +157,40 @@
   const mapPeerRegion = (peer) => { if (S.peerRegion.has(peer)) return S.peerRegion.get(peer); const r = REGIONS[S.peerRegion.size % REGIONS.length]; S.peerRegion.set(peer, r); return r; };
   const regionPos = (k) => { const d = window.BrainRegions?.[k]?.center || { x: 0.5, y: 0.5 }; return { x: d.x * S.w, y: d.y * S.h }; };
   function pulse(from, to, col) { const a = regionPos(from), b = regionPos(to); S.particles.push({ sx: a.x, sy: a.y, tx: b.x, ty: b.y, t: 0, spd: 0.9 + Math.random() * 0.6, col: col || PAL.cyan, sz: 1.4 + Math.random() * 1.2 }); }
-  function pollSessions() { fetch('/api/sessions').then(r => r.json()).then(d => { S.sessions = d || []; }).catch(() => {}); }
+  function pollSessions() {
+    Promise.all([
+      fetch('/api/sessions').then(r => r.json()).catch(() => []),
+      fetch('/api/agents').then(r => r.json()).catch(() => ({ running: [] }))
+    ]).then(([rawSessions, agentData]) => {
+      const running = agentData.running || [];
+      const childMap = new Map();
+      running.forEach(a => {
+        if (a.parent_session) {
+          if (!childMap.has(a.parent_session)) childMap.set(a.parent_session, []);
+          childMap.get(a.parent_session).push(a);
+        }
+      });
+      const sessions = (rawSessions || []).map(s => ({
+        session_id: s.agent_id,
+        type: s.type || 'claude-cli',
+        status: s.status,
+        metadata: s.metadata,
+        children: (childMap.get(s.agent_id) || []).map(c => ({
+          agent_id: c.agent_id, type: c.type, model: c.model,
+          description: c.description, status: c.status || 'running',
+          duration_s: c.duration_s
+        }))
+      }));
+      const orphans = running.filter(a => a.parent_session && !rawSessions.find(s => s.agent_id === a.parent_session));
+      S.sessions = sessions;
+      window._dashboardAgentData = { sessions, orphan_agents: orphans };
+      const sr = window._sessionClusters;
+      if (sr) { sr.update(sessions, orphans); sr.detectChanges(); }
+    }).catch(() => {});
+  }
   function fallbackPolling(on) { if (on && !S.pollT) { pollSessions(); S.pollT = setInterval(pollSessions, 10000); } if (!on && S.pollT) { clearInterval(S.pollT); S.pollT = 0; } }
   function onBrainEvent(m) { if (!m) return; if (Array.isArray(m.sessions)) { S.sessions = m.sessions; if (window._sessionClusters) window._sessionClusters.update(m.sessions || [], m.orphan_agents || []); } if (m.kind !== 'agent_heartbeat') return; const p = m.payload || {}, peer = m.node || p.host || 'local', region = mapPeerRegion(peer), type = p.event_type || 'heartbeat'; const st = S.peerStats.get(peer) || { agents: 0, tokens: 0, models: new Set() }; st.agents = Math.max(1, st.agents + (type === 'start' ? 1 : type === 'complete' ? -1 : 0)); const tok = Number(p.tokens_total ?? ((p.tokens_in || 0) + (p.tokens_out || 0))) || 0; st.tokens = Math.max(0, st.tokens + tok); if (p.model) { st.models.add(p.model); S.activeModels.add(p.model); } S.peerStats.set(peer, st); S.tokenFlow = [...S.peerStats.values()].reduce((n, x) => n + (x.tokens || 0), 0); pulse(region, p.status === 'running' ? 'motor' : type === 'complete' ? 'hippocampus' : 'corpusCallosum', p.status === 'failed' ? PAL.red : p.status === 'completed' ? PAL.green : PAL.cyan); }
-  function connectBrainWs() { try { S.ws = new WebSocket(wsUrl()); } catch { S.ws = null; } if (!S.ws) { fallbackPolling(true); return; } S.ws.onopen = () => { S.wsRetry = 0; S.wsLive = true; fallbackPolling(false); }; S.ws.onmessage = (e) => { try { onBrainEvent(JSON.parse(e.data)); } catch {} }; S.ws.onerror = () => S.ws?.close(); S.ws.onclose = () => { S.wsLive = false; fallbackPolling(true); clearTimeout(S.wsT); S.wsT = setTimeout(connectBrainWs, Math.min(30000, 1000 * Math.pow(2, S.wsRetry++))); }; }
+  function connectBrainWs() { try { S.ws = new WebSocket(wsUrl()); } catch { S.ws = null; } if (!S.ws) { fallbackPolling(true); return; } S.ws.onopen = () => { S.wsRetry = 0; S.wsLive = true; fallbackPolling(true); }; S.ws.onmessage = (e) => { try { onBrainEvent(JSON.parse(e.data)); } catch {} }; S.ws.onerror = () => S.ws?.close(); S.ws.onclose = () => { S.wsLive = false; fallbackPolling(true); clearTimeout(S.wsT); S.wsT = setTimeout(connectBrainWs, Math.min(30000, 1000 * Math.pow(2, S.wsRetry++))); }; }
 
   function drawIdle(c, ts) {
     const p = 0.5 + 0.5 * Math.sin(ts * 0.001), cx = S.w / 2, cy = S.h / 2;

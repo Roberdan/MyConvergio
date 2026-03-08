@@ -209,6 +209,7 @@
 .idea-note-time { color: var(--text-dim); white-space: nowrap; flex-shrink: 0; padding-top: 1px; }
 .idea-note-content { color: var(--text); line-height: 1.5; }
 
+#ideajar-widget { order: 999; }
 .ideajar-widget {
   background: var(--bg-card);
   border: 1px solid var(--border);

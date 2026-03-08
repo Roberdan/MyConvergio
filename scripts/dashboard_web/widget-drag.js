@@ -40,11 +40,16 @@
         const c = colMap[k];
         const ids = layout[k];
         if (!c || !ids) return;
-        ids.forEach((id) => {
+        // Filter out ideajar — always pinned last in left column
+        ids.filter(id => id !== 'ideajar-widget').forEach((id) => {
           const w = document.getElementById(id);
           if (w) c.appendChild(w);
         });
       });
+      // Pin ideajar-widget as last child of left column
+      const left = colMap['left'];
+      const jar = document.getElementById('ideajar-widget');
+      if (left && jar) left.appendChild(jar);
     } catch (_) {}
   }
 

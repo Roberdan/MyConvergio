@@ -13,8 +13,7 @@
   min-height: 100px;
   transition: border-color 0.2s;
 }
-.kanban-col.cancelled { opacity: 0.5; }
-.kanban-col.cancelled .kanban-card { cursor: default; }
+.kanban-col.cancelled { opacity: 0.6; }
 .kanban-col.drag-over {
   border-color: var(--cyan);
   background: rgba(0, 229, 255, 0.04);

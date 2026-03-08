@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.3.2] - 08 Mar 2026
+
+### Fixed
+- kanban parking lot drag-and-drop support
+
+
 ## [v11.3.1] - 08 Mar 2026
 
 ### Fixed

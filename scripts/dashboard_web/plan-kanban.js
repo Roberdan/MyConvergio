@@ -1,4 +1,4 @@
-// Plan Kanban — drag-and-drop plan pipeline (todo → doing → done)
+// Plan Kanban — drag-and-drop plan pipeline (todo → doing → done → cancelled)
 function renderKanban() {
   const st = window.DashboardState;
   if (!st || !st.allMissionPlans) return;
@@ -74,6 +74,7 @@ window.kanbanDrop = async function (e, targetStatus) {
     "done→todo": true,
     "todo→cancelled": true,
     "doing→cancelled": true,
+    "cancelled→todo": true,
   };
   const key = `${currentStatus}→${targetStatus}`;
   if (!valid[key]) {
@@ -97,6 +98,9 @@ window.kanbanDrop = async function (e, targetStatus) {
   }
   if (targetStatus === "cancelled") {
     if (!confirm(`Cancel plan #${planId}? This moves it to parking lot.`)) return;
+  }
+  if (currentStatus === "cancelled" && targetStatus === "todo") {
+    if (!confirm(`Restore plan #${planId} from parking lot to pipeline?`)) return;
   }
 
   // Execute via API

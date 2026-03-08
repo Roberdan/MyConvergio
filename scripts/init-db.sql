@@ -1,5 +1,5 @@
 -- Dashboard SQLite Schema
--- Version: 1.4.0 | Created: 3 Gennaio 2026 | Updated: 8 Marzo 2026
+-- Version: 1.5.0 | Created: 3 Gennaio 2026 | Updated: 8 Marzo 2026
 
 PRAGMA foreign_keys = ON;
 PRAGMA journal_mode = WAL;
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS waves (
   project_id TEXT NOT NULL,
   wave_id TEXT NOT NULL,
   name TEXT NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'merging')),
+  status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'merging', 'cancelled')),
   assignee TEXT,
   tasks_done INTEGER DEFAULT 0,
   tasks_total INTEGER DEFAULT 0,
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   wave_id TEXT NOT NULL,
   task_id TEXT NOT NULL,
   title TEXT NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'skipped')),
+  status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'submitted', 'done', 'blocked', 'skipped', 'cancelled')),
   assignee TEXT,
   priority TEXT CHECK(priority IN ('P0', 'P1', 'P2', 'P3')),
   type TEXT CHECK(type IN ('bug', 'feature', 'fix', 'refactor', 'test', 'config', 'documentation', 'chore', 'doc')),
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS plans (
   project_id TEXT NOT NULL,
   plan_name TEXT NOT NULL,
   plan_file TEXT NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('draft', 'active', 'completed', 'abandoned')),
+  status TEXT NOT NULL CHECK(status IN ('todo', 'doing', 'done', 'cancelled')),
   tasks_total INTEGER DEFAULT 0,
   tasks_done INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -672,7 +672,7 @@ CREATE TABLE IF NOT EXISTS tasks_new (
     wave_id TEXT NOT NULL,
     task_id TEXT NOT NULL,
     title TEXT NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'done', 'blocked', 'skipped')),
+    status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'submitted', 'done', 'blocked', 'skipped', 'cancelled')),
     assignee TEXT,
     priority TEXT CHECK(priority IN ('P0', 'P1', 'P2', 'P3')),
     type TEXT CHECK(type IN ('bug', 'feature', 'fix', 'refactor', 'test', 'config', 'documentation', 'chore', 'doc')),

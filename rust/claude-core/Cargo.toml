@@ -34,7 +34,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"]
 tracing-appender = "0.2"
 ssh2 = { version = "0.9", features = ["vendored-openssl"] }
 socket2 = "0.5"
-ratatui = "0.29"
+ratatui = "0.30"
 
 [dev-dependencies]
 tower = "0.5"

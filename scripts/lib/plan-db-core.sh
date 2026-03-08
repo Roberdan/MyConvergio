@@ -150,7 +150,7 @@ yaml_to_json_temp() {
 	local spec_file="$1"
 	if [[ "$spec_file" == *.yaml || "$spec_file" == *.yml ]]; then
 		local tmp
-		tmp=$(mktemp /tmp/plan-spec-XXXX.json)
+		tmp=$(mktemp /tmp/plan-spec-XXXXXXXX).json
 		python3 -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(open(sys.argv[1]))))" "$spec_file" >"$tmp" || {
 			log_error "Failed to convert YAML to JSON: $spec_file"
 			rm -f "$tmp"

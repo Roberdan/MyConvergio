@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.3.8] - 08 Mar 2026
+
+### Fixed
+- mktemp pattern in yaml_to_json_temp for macOS compatibility
+
+
 ## [v11.3.7] - 08 Mar 2026
 
 ### Fixed

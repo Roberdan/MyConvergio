@@ -30,20 +30,34 @@ pub fn router() -> Router<ServerState> {
 
 async fn api_overview(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
     let db = state.open_db()?;
+    // Use CTEs to avoid repeated full table scans
     let row = query_one(
         db.connection(),
-        "SELECT \
-          (SELECT COUNT(*) FROM plans) AS plans_total,\
-          (SELECT COUNT(*) FROM plans WHERE status IN ('todo','doing')) AS plans_active,\
-          (SELECT COUNT(*) FROM plans WHERE status='done') AS plans_done,\
-          (SELECT COUNT(*) FROM tasks WHERE status='in_progress') AS agents_running,\
-          (SELECT COUNT(*) FROM tasks WHERE status='blocked') AS blocked,\
-          COALESCE((SELECT SUM(input_tokens + output_tokens) FROM token_usage),0) AS total_tokens,\
-          COALESCE((SELECT SUM(cost_usd) FROM token_usage),0) AS total_cost,\
-          COALESCE((SELECT SUM(input_tokens + output_tokens) FROM token_usage WHERE date(created_at)=date('now')),0) AS today_tokens,\
-          COALESCE((SELECT SUM(cost_usd) FROM token_usage WHERE date(created_at)=date('now')),0) AS today_cost,\
-          (SELECT COUNT(*) FROM peer_heartbeats) AS mesh_total,\
-          (SELECT COUNT(*) FROM peer_heartbeats WHERE (strftime('%s','now') - COALESCE(last_seen,0)) < 300) AS mesh_online",
+        "WITH plan_stats AS (
+           SELECT COUNT(*) AS total,
+                  SUM(CASE WHEN status IN ('todo','doing') THEN 1 ELSE 0 END) AS active,
+                  SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS done
+           FROM plans
+         ), task_stats AS (
+           SELECT SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END) AS running,
+                  SUM(CASE WHEN status='blocked' THEN 1 ELSE 0 END) AS blocked
+           FROM tasks WHERE status IN ('in_progress','blocked')
+         ), token_stats AS (
+           SELECT COALESCE(SUM(input_tokens + output_tokens),0) AS total_tokens,
+                  COALESCE(SUM(cost_usd),0) AS total_cost,
+                  COALESCE(SUM(CASE WHEN date(created_at)=date('now') THEN input_tokens + output_tokens ELSE 0 END),0) AS today_tokens,
+                  COALESCE(SUM(CASE WHEN date(created_at)=date('now') THEN cost_usd ELSE 0 END),0) AS today_cost
+           FROM token_usage
+         ), mesh_stats AS (
+           SELECT COUNT(*) AS mesh_total,
+                  SUM(CASE WHEN (strftime('%s','now') - COALESCE(last_seen,0)) < 300 THEN 1 ELSE 0 END) AS mesh_online
+           FROM peer_heartbeats
+         )
+         SELECT p.total AS plans_total, p.active AS plans_active, p.done AS plans_done,
+                COALESCE(t.running,0) AS agents_running, COALESCE(t.blocked,0) AS blocked,
+                tk.total_tokens, tk.total_cost, tk.today_tokens, tk.today_cost,
+                m.mesh_total, m.mesh_online
+         FROM plan_stats p, task_stats t, token_stats tk, mesh_stats m",
         [],
     )?
     .unwrap_or_else(|| json!({}));

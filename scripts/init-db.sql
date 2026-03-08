@@ -361,6 +361,41 @@ CREATE TABLE IF NOT EXISTS earned_skills (
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Performance indexes for agent_activity (hot table: queried on every dashboard load)
+CREATE INDEX IF NOT EXISTS idx_agent_activity_started_at ON agent_activity(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_activity_status_started ON agent_activity(status, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_activity_status_completed ON agent_activity(status, completed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_activity_model ON agent_activity(model);
+CREATE INDEX IF NOT EXISTS idx_agent_activity_agent_id ON agent_activity(agent_id);
+
+-- Performance indexes for agent_runs
+CREATE INDEX IF NOT EXISTS idx_agent_runs_started_at ON agent_runs(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_status ON agent_runs(status);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_peer ON agent_runs(peer_name);
+
+-- Performance indexes for mesh/token/commit tables
+CREATE INDEX IF NOT EXISTS idx_mesh_events_created_at ON mesh_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_mesh_events_status ON mesh_events(status);
+CREATE INDEX IF NOT EXISTS idx_token_usage_model ON token_usage(model);
+CREATE INDEX IF NOT EXISTS idx_token_usage_created_at ON token_usage(created_at);
+CREATE INDEX IF NOT EXISTS idx_github_events_plan_status ON github_events(plan_id, status);
+CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(name COLLATE NOCASE);
+
+-- Plan commits tracking (git integration)
+CREATE TABLE IF NOT EXISTS plan_commits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER,
+  commit_sha TEXT,
+  commit_message TEXT,
+  lines_added INTEGER DEFAULT 0,
+  lines_removed INTEGER DEFAULT 0,
+  files_changed INTEGER DEFAULT 0,
+  authored_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_plan_commits_plan_id ON plan_commits(plan_id);
+
 CREATE TABLE IF NOT EXISTS task_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   plan_id INTEGER,

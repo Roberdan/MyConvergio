@@ -1,19 +1,19 @@
 ---
 name: model-strategy
-version: "2.1.0"
+version: "2.2.0"
 ---
 
 # Model Strategy & Assignment
 
 ## Copilot-First Principle (NON-NEGOTIABLE)
 
-**Copilot CLI is free and unlimited. Claude API is paid.** Maximize Copilot delegation, minimize Claude API usage. Thor (Claude) validates everything -- quality doesn't degrade.
+**Premium requests are finite.** Use the lowest adequate model for the job and reserve expensive models for work where failure cost is higher than request cost. Thor remains the quality gate.
 
-| Phase      | Engine                | Why                                  |
-| ---------- | --------------------- | ------------------------------------ |
-| Planning   | Claude (opus)         | Reasoning, architecture, judgment    |
-| Execution  | **Copilot (default)** | Free, unlimited requests             |
-| Validation | Claude (sonnet)       | Thor must be independent of executor |
+| Phase      | Engine                | Why                                         |
+| ---------- | --------------------- | ------------------------------------------- |
+| Planning   | Claude (opus)         | Highest judgment, ambiguity handling        |
+| Execution  | **Copilot (default)** | Best request efficiency for deterministic work |
+| Validation | Claude (sonnet)       | Thor must be independent of executor        |
 
 ## Agent Routing (executor_agent)
 
@@ -21,43 +21,38 @@ version: "2.1.0"
 
 | Value               | Use For                                           | Billing        |
 | ------------------- | ------------------------------------------------- | -------------- |
-| `copilot` (default) | ALL tasks unless escalation criteria met          | GitHub (free)  |
+| `copilot` (default) | ALL tasks unless escalation criteria met          | GitHub premium |
 | `claude`            | Architecture, security, debug, cross-cutting ONLY | Anthropic ($$) |
 | `manual`            | Tasks requiring human intervention                | N/A            |
+
+Every task should also be thought of as a **capability request**: planner, researcher, executor, validator, reviewer, or deployer. Model choice optimizes that capability; it does not define it.
 
 ## Copilot Model Selection
 
 Pick the cheapest Copilot model adequate for the task:
 
-| Complexity        | Copilot Model          | Multiplier | Use When                                           |
-| ----------------- | ---------------------- | ---------- | -------------------------------------------------- |
-| **Free (0x)**     | `gpt-4.1`              | 0x FREE    | Mechanical, 1-file tasks, config, rename, text     |
-| **Free (0x)**     | `gpt-5-mini`           | 0x FREE    | Simple generation, constants, boilerplate          |
-| **Trivial**       | `gpt-5.1-codex-mini`   | 0.33x      | Config, rename, text, constants                    |
-| **Standard**      | `gpt-5.3-codex`        | 1x         | CRUD, components, endpoints, tests with clear spec |
-| **Complex**       | `claude-opus-4.6-fast` | 30x        | Multi-file, nuanced logic -- still free!           |
-| **Max reasoning** | `claude-opus-4.6`      | 30x        | Hard tasks where copilot needs full Opus           |
+| Complexity          | Copilot Model        | Relative Cost | Use When                                              |
+| ------------------- | -------------------- | ------------- | ----------------------------------------------------- |
+| **Fast default**    | `gpt-5-mini`         | low           | Simple coding, summaries, boilerplate, light cleanup  |
+| **Fast lightweight**| `claude-haiku-4.5`   | low           | Repetitive transforms, tiny utilities, quick scans    |
+| **Standard agentic**| `gpt-5.3-codex`      | medium        | Planned TDD, components, endpoints, tests, refactors  |
+| **Deep reasoning**  | `gpt-5.4`            | medium-high   | Debugging, design tradeoffs, code review, tricky bugs |
+| **Balanced Claude** | `claude-sonnet-4.6`  | medium        | Nuanced implementation or validation with good speed  |
+| **Max reasoning**   | `claude-opus-4.6`    | high          | Architecture, security, ambiguous cross-system work   |
 
 ### Full Copilot Multiplier Reference
 
-| Model                  | Multiplier | Notes                         |
-| ---------------------- | ---------- | ----------------------------- |
-| `gpt-4.1`              | 0x         | Free tier - mechanical tasks  |
-| `gpt-5-mini`           | 0x         | Free tier - simple generation |
-| `gpt-5.1-codex-mini`   | 0.33x      | Lowest paid tier              |
-| `gpt-5.1-codex`        | 1x         | Standard codex                |
-| `gpt-5.1-codex-max`    | 1x         | Standard codex max            |
-| `gpt-5.2-codex`        | 1x         | Standard codex v2             |
-| `gpt-5.3-codex`        | 1x         | Standard codex v3 (default)   |
-| `gpt-5`                | 1x         | GPT-5 standard                |
-| `claude-haiku-4.5`     | 1x         | Fast Claude                   |
-| `claude-sonnet-4.5`    | 1x         | Balanced Claude               |
-| `claude-sonnet-4.6`    | 1x         | Balanced Claude latest        |
-| `gemini-3-pro-preview` | 1x         | Gemini via Copilot            |
-| `claude-opus-4.6-fast` | 30x        | Full Opus, fast               |
-| `claude-opus-4.6`      | 30x        | Full Opus, max quality        |
+| Model                  | Role                               |
+| ---------------------- | ---------------------------------- |
+| `gpt-5-mini`           | Fast default                       |
+| `gpt-5.3-codex`        | Agentic software development       |
+| `gpt-5.4`              | Deep reasoning and debugging       |
+| `claude-haiku-4.5`     | Fast lightweight assistance        |
+| `claude-sonnet-4.6`    | Balanced Claude latest            |
+| `claude-opus-4.6`      | Maximum-quality reasoning          |
+| `gemini-3-pro-preview` | Large-context research/analysis    |
 
-All Copilot models available: `claude-opus-4.6`, `claude-opus-4.6-fast`, `claude-sonnet-4.6`, `claude-sonnet-4.5`, `claude-haiku-4.5`, `gpt-5.3-codex`, `gpt-5.2-codex`, `gpt-5.1-codex-max`, `gpt-5.1-codex`, `gpt-5.1-codex-mini`, `gpt-5`, `gpt-5-mini`, `gpt-4.1`, `gemini-3-pro-preview`
+Use GitHub Docs as source of truth for currently supported models and premium multipliers; do not hardcode "free/unlimited" assumptions into planning.
 
 ## OpenCode Provider
 
@@ -121,17 +116,17 @@ Cross-system integration (systems not designed together)?
 ALL REMAINING → copilot
   ↓
   Mechanical 1-file task (config, rename, text, constants)?
-    YES → copilot + gpt-4.1 (0x FREE)
+    YES → copilot + gpt-5-mini
     NO  ↓
-  Simple generation (boilerplate, stubs)?
-    YES → copilot + gpt-5-mini (0x FREE)
-    NO  ↓
-  Trivial multi-step?
-    YES → copilot + gpt-5.1-codex-mini (0.33x)
+  Simple generation (boilerplate, stubs, repetitive transforms)?
+    YES → copilot + claude-haiku-4.5
     NO  ↓
   Clear requirements + existing pattern?
-    YES → copilot + gpt-5.3-codex (1x)
-    NO  → copilot + claude-opus-4.6-fast (30x)
+    YES → copilot + gpt-5.3-codex
+    NO  ↓
+  Hard debugging / review / architecture-level tradeoffs?
+    YES → copilot + gpt-5.4
+    NO  → copilot + claude-sonnet-4.6
 ```
 
 ## Task Granularity (DO NOT fragment for model fit)
@@ -158,11 +153,11 @@ When `executor_agent: "claude"`, pick model by complexity:
 ```bash
 # MANDATORY: --model, --effort, --executor-agent for EVERY task
 plan-db.sh add-task {db_wave_id} T1-01 "Fix typo" P2 chore \
-  --model gpt-4.1 --effort 1 --executor-agent copilot
+  --model gpt-5-mini --effort 1 --executor-agent copilot
 plan-db.sh add-task {db_wave_id} T1-02 "Add endpoint" P1 feature \
   --model gpt-5.3-codex --effort 2 --executor-agent copilot
 plan-db.sh add-task {db_wave_id} T1-03 "Redesign auth" P0 feature \
-  --model opus --effort 3 --executor-agent claude
+  --model claude-opus-4.6 --effort 3 --executor-agent claude
 ```
 
 ## Thor Validation Gate
@@ -178,3 +173,7 @@ plan-db.sh add-task {db_w0_id} T0-00 "Review plan and reassign models/effort" P0
   --model gpt-5.3-codex --effort 1 --executor-agent copilot \
   --description "Review all tasks. Reassign model per task to optimal Copilot model. Adjust effort. Flag tasks needing replan."
 ```
+
+## Changelog
+
+- **2.2.0** (2026-03-07): Added GPT-5.4 role, removed outdated free/unlimited assumption, switched to lowest-adequate-model routing

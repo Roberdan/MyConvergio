@@ -42,7 +42,7 @@ ls "$PROJECT_ROOT/docs/adr/" 2>/dev/null | tail -5
 
 ### 2. Read Format Rules
 
-Read `~/.claude/commands/planner-modules/knowledge-codification.md` for:
+Read `${CLAUDE_HOME:-.claude}/commands/planner-modules/knowledge-codification.md` for:
 
 - ADR compact format (max 20 lines, `Status: X | Date: Y | Plan: Z` on one line)
 - CHANGELOG incremental format (`## [Unreleased]` sections)

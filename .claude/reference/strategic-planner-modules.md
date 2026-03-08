@@ -153,7 +153,7 @@
 
 ### Zero Tolerance
 
-Zero tolerance for: bullshit, technical debt, errors, warnings, forgotten TODOs, debug console.logs, commented code, temporary files, unused dependencies. If you see something wrong, FIX IT NOW.
+Zero tolerance for: bullshit, technical debt, errors, warnings, forgotten TO-DOs, debug console.logs, commented code, temporary files, unused dependencies. If you see something wrong, FIX IT NOW.
 
 ### Mandatory Verification for EVERY Task
 
@@ -570,7 +570,7 @@ CLAUDE 1 MUST:
 ## ADR Template
 
 ```markdown
-## ADR-XXX: [Decision Title]
+## ADR-NNN: [Decision Title]
 
 | Field        | Value                                  |
 | ------------ | -------------------------------------- |

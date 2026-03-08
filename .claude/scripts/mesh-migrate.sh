@@ -81,13 +81,13 @@ echo "--- PHASE 3: DB migration ---"
 _migrate_db_checkpoint
 
 echo "==> Backing up target DB"
-ssh $SSH_OPTS "$DEST" \
+ssh "$SSH_OPTS" "$DEST" \
 	"cp ~/.claude/data/dashboard.db ~/.claude/data/dashboard.db.bak" ||
 	echo "WARN: target backup failed (continuing)"
 BACKUP_PATH="~/.claude/data/dashboard.db.bak"
 
-TARGET_HOME=$(ssh $SSH_OPTS "$DEST" 'echo $HOME' 2>/dev/null || echo "~")
-TARGET_HOST=$(ssh $SSH_OPTS "$DEST" 'hostname -s' 2>/dev/null || echo "$TARGET")
+TARGET_HOME=$(ssh "$SSH_OPTS" "$DEST" 'echo $HOME' 2>/dev/null || echo "~")
+TARGET_HOST=$(ssh "$SSH_OPTS" "$DEST" 'hostname -s' 2>/dev/null || echo "$TARGET")
 
 if ! _migrate_db_copy "$DEST"; then
 	echo "==> DB copy failed — rolling back" >&2
@@ -122,7 +122,7 @@ if [[ "$NO_LAUNCH" -eq 0 ]]; then
 
 	# Detect CLI on target (copilot preferred)
 	local cli_bin="claude --dangerously-skip-permissions --model sonnet"
-	if ssh $SSH_OPTS "$DEST" "command -v copilot" >/dev/null 2>&1; then
+	if ssh "$SSH_OPTS" "$DEST" "command -v copilot" >/dev/null 2>&1; then
 		cli_bin="copilot --yolo"
 	fi
 
@@ -131,12 +131,12 @@ if [[ "$NO_LAUNCH" -eq 0 ]]; then
 	LAUNCH_CMD="cd ${work_dir} 2>/dev/null || cd ~/.claude; ${cli_bin} -p '/execute ${PLAN_ID}'"
 
 	# Create Convergio session if not exists, then add a window and send command
-	ssh $SSH_OPTS "$DEST" \
+	ssh "$SSH_OPTS" "$DEST" \
 		"tmux has-session -t '${SESSION}' 2>/dev/null || tmux new-session -d -s '${SESSION}'; \
 		 tmux new-window -t '${SESSION}' -n '${WINDOW_NAME}'; \
 		 sleep 0.5; \
 		 tmux send-keys -t '${SESSION}:${WINDOW_NAME}' '${LAUNCH_CMD}' Enter" 2>/dev/null
-	if ssh $SSH_OPTS "$DEST" "tmux has-session -t '${SESSION}'" 2>/dev/null; then
+	if ssh "$SSH_OPTS" "$DEST" "tmux has-session -t '${SESSION}'" 2>/dev/null; then
 		echo "tmux window '${WINDOW_NAME}' created in session '${SESSION}' on ${TARGET_HOST}"
 		echo "  CLI: ${cli_bin}"
 		echo "  Dir: ${work_dir}"

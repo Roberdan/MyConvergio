@@ -31,7 +31,7 @@ PLAN_DIR=~/.claude/plans/active/${PROJECT}/plan-${PLAN_ID}
 WAVE_DIR=${PLAN_DIR}/waves/W${WAVE}
 TASK_DIR=${WAVE_DIR}/tasks
 
-mkdir -p ${TASK_DIR}
+mkdir -p "${TASK_DIR}"
 
 # Generate slug from task name
 TASK_SLUG=$(echo "${TASK_NAME}" | tr ' ' '-' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]//g')

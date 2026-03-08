@@ -107,7 +107,7 @@ for src_file in $(find "$SOURCE_PATH" -name '*.md'); do
     fi
 
     # Determine target category (from source path)
-    rel_path="${src_file#$SOURCE_PATH/}"
+    rel_path="${src_file#"$SOURCE_PATH"/}"
     category=$(dirname "$rel_path")
 
     if [ "$category" = "." ]; then

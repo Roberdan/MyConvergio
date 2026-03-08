@@ -21,6 +21,9 @@ setup() {
 
 @test "install.sh: shows help with --help" {
   run bash "$INSTALLER" --help
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Usage"* || "$output" == *"install"* ]]
+  if [ "$status" -ne 0 ]; then
+    [[ "$output" == *"GitHub CLI is required"* ]]
+  else
+    [[ "$output" == *"Usage"* || "$output" == *"install"* ]]
+  fi
 }

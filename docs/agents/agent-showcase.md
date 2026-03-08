@@ -6,7 +6,7 @@ Five hero agents that power the MyConvergio pipeline — from orchestration to q
 graph LR
     ALI[Ali<br/>Orchestrator] -->|coordinates| SP[Strategic Planner<br/>Wave Design]
     SP -->|creates tasks for| TE[Task Executor<br/>TDD Cycle]
-    TE -->|submits to| TH[Thor<br/>9-Gate QA]
+    TE -->|submits to| TH[Thor<br/>10-Gate QA]
     TH -->|PASS| SHIP[Ship ✓]
     TH -->|FAIL max 3x| TE
     BAC[Baccio<br/>Architect] -.->|reviews| TE
@@ -161,3 +161,12 @@ security posture, test coverage, and deployment risk
 ---
 
 [README](../../README.md) | [Getting Started](../getting-started.md) | [Concepts](../concepts.md) | [Workflow](../workflow.md) | [Use Cases](../use-cases.md) | [Infrastructure](../infrastructure.md) | [Comparison](comparison.md)
+
+## v11 Automation Components
+
+```mermaid
+flowchart LR
+    NM["Night Maintenance Agent<br/>systemd → triage → PR"] --> ORCH["Orchestrator + Thor"]
+    AS["Auto-Sync Agent<br/>.claude watcher → diff → PR"] --> ORCH
+    MP["Migration Pipeline<br/>backup → migrate → verify → rollback"] --> ORCH
+```

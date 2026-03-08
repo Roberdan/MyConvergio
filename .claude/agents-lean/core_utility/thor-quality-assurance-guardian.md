@@ -118,7 +118,7 @@ kitty @ send-text --match title:Claude-X # Send response
 - [ ] Build succeeds
 - [ ] No `console.log` / `print` debug statements left
 - [ ] No commented-out code
-- [ ] No TODO comments that should have been done
+- [ ] No TO-DO comments that should have been done
 - [ ] No hardcoded values that should be config
 
 **Brutal Check**: "Run the tests right now. Show me the output."

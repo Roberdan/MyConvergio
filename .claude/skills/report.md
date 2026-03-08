@@ -78,7 +78,7 @@ Key questions to ask:
 - Who is the target audience?
 
 Generate the report using the template at:
-`~/.claude/agents/research_report/templates/morgan-stanley-report.tex`
+`${CLAUDE_HOME:-.claude}/agents/research_report/templates/morgan-stanley-report.tex`
 
 Configuration is in:
-`~/.claude/agents/research_report/config/report-config.yaml`
+`${CLAUDE_HOME:-.claude}/agents/research_report/config/report-config.yaml`

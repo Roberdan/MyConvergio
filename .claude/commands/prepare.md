@@ -19,7 +19,7 @@ Has package.json: `[ -f package.json ] && echo "yes (Node.js)" || echo "no"`
 Has Cargo.toml: `[ -f Cargo.toml ] && echo "yes (Rust)" || echo "no"`
 Has go.mod: `[ -f go.mod ] && echo "yes (Go)" || echo "no"`
 Has pyproject.toml: `[ -f pyproject.toml ] && echo "yes (Python)" || echo "no"`
-Registered: `grep -l "$(pwd)" ~/.claude/plans/registry.json 2>/dev/null && echo "yes" || echo "no"`
+Registered: `grep -l "$(pwd)" ${CLAUDE_HOME:-.claude}/plans/registry.json 2>/dev/null && echo "yes" || echo "no"`
 ```
 
 ## Workflow
@@ -28,7 +28,7 @@ Registered: `grep -l "$(pwd)" ~/.claude/plans/registry.json 2>/dev/null && echo 
 2. Analyze structure (src/, lib/, components/)
 3. Detect icon (public/logo*.png, assets/icon*.png, favicon.\*)
 4. Create/update CLAUDE.md + .claudeignore
-5. Register in `~/.claude/plans/registry.json` (includes icon path)
+5. Register in `${CLAUDE_HOME:-.claude}/plans/registry.json` (includes icon path)
 
 ## Detection
 

@@ -53,7 +53,7 @@ sync_dir() {
 	echo -e "  Target: $tgt_base"
 
 	while IFS= read -r src_file; do
-		local rel_path="${src_file#$src_base/}"
+		local rel_path="${src_file#"$src_base"/}"
 
 		# Skip non-content files
 		[[ "$rel_path" == .* ]] && continue

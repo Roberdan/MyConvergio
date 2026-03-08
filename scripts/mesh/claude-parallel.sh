@@ -14,7 +14,7 @@ fi
 
 echo "Launching $NUM Claude instances in $DIR"
 
-for i in $(seq 1 $NUM); do
+for i in $(seq 1 "$NUM"); do
     echo "  → Claude-$i"
     kitty @ launch --type=tab --title="Claude-$i" --cwd="$DIR" --keep-focus \
         zsh -ic "wildClaude"

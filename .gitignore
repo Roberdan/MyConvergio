@@ -96,6 +96,9 @@ SCRATCH.md
 pdf-local-only/
 docs/pdf-local-only/
 tests/
+!tests/bats/
+!tests/README.md
+!tests/QUICK_TEST_REFERENCE.md
 !scripts/dashboard_web/tests/
 
 # Playwright / Node.js (dashboard E2E tests)

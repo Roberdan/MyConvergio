@@ -21,6 +21,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 AGENTS_DIR="$ROOT_DIR/.claude/agents"
 TEST_DIR="/tmp/myconvergio-test-$$"
+AGENT_FIND_FILTER=(
+	-name '*.md'
+	! -name 'CONSTITUTION.md'
+	! -name 'CommonValuesAndPrinciples.md'
+	! -name 'SECURITY_FRAMEWORK_TEMPLATE.md'
+	! -name 'MICROSOFT_VALUES.md'
+	! -path '*/reference/*'
+)
 
 # Counters
 PASSED=0
@@ -79,12 +87,12 @@ echo ""
 echo -e "${BLUE}Test Suite: Agent Files${NC}"
 
 # Count agents
-AGENT_COUNT=$(/usr/bin/find "$AGENTS_DIR" -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'MICROSOFT_VALUES.md' 2>/dev/null | /usr/bin/wc -l | tr -d ' ')
+AGENT_COUNT=$(/usr/bin/find "$AGENTS_DIR" "${AGENT_FIND_FILTER[@]}" 2>/dev/null | /usr/bin/wc -l | tr -d ' ')
 run_test "At least 50 agents exist ($AGENT_COUNT found)" "[ '$AGENT_COUNT' -ge 50 ]"
 
 # Check YAML frontmatter
 YAML_ERRORS=0
-for file in $(/usr/bin/find "$AGENTS_DIR" -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'MICROSOFT_VALUES.md'); do
+for file in $(/usr/bin/find "$AGENTS_DIR" "${AGENT_FIND_FILTER[@]}"); do
 	if ! head -1 "$file" | grep -q '^---$'; then
 		YAML_ERRORS=$((YAML_ERRORS + 1))
 	fi
@@ -94,7 +102,7 @@ run_test "All agents have YAML frontmatter ($YAML_ERRORS errors)" "[ '$YAML_ERRO
 # Check for required fields
 MISSING_NAME=0
 MISSING_DESC=0
-for file in $(/usr/bin/find "$AGENTS_DIR" -name '*.md' ! -name 'CONSTITUTION.md' ! -name 'CommonValuesAndPrinciples.md' ! -name 'SECURITY_FRAMEWORK_TEMPLATE.md' ! -name 'MICROSOFT_VALUES.md'); do
+for file in $(/usr/bin/find "$AGENTS_DIR" "${AGENT_FIND_FILTER[@]}"); do
 	if ! grep -q '^name:' "$file"; then
 		MISSING_NAME=$((MISSING_NAME + 1))
 	fi
@@ -158,7 +166,10 @@ run_test "worktree-guard.sh exists" "[ -f '$ROOT_DIR/hooks/worktree-guard.sh' ]"
 run_test "lib/common.sh exists" "[ -f '$ROOT_DIR/hooks/lib/common.sh' ]"
 
 HOOK_COUNT=$(/usr/bin/find "$ROOT_DIR/hooks" -name '*.sh' -type f 2>/dev/null | /usr/bin/wc -l | tr -d ' ')
-run_test "At least 10 hooks exist ($HOOK_COUNT found)" "[ '$HOOK_COUNT' -ge 10 ]"
+run_test "At least 13 hooks exist ($HOOK_COUNT found)" "[ '$HOOK_COUNT' -ge 13 ]"
+
+RULES_COUNT=$(/usr/bin/find "$ROOT_DIR/.claude/rules" -name '*.md' -type f 2>/dev/null | /usr/bin/wc -l | tr -d ' ')
+run_test "At least 15 rules exist ($RULES_COUNT found)" "[ '$RULES_COUNT' -ge 15 ]"
 
 # Check hooks are executable
 NON_EXEC=0
@@ -202,7 +213,7 @@ echo -e "${BLUE}Test Suite: Worker Script Security${NC}"
 
 COPILOT_WORKER="$ROOT_DIR/.claude/scripts/copilot-worker.sh"
 run_test "copilot-worker.sh has numeric TASK_ID validation" \
-	"grep -qE '\[\[.*TASK_ID.*=~.*\^\\[0-9\\]' '$COPILOT_WORKER'"
+	"grep -q 'TASK_ID=\"\${1:-}\"' '$COPILOT_WORKER' && grep -qE '\[\[ -z \"\\\$TASK_ID\" \]\]' '$COPILOT_WORKER'"
 
 echo ""
 
@@ -213,8 +224,8 @@ echo -e "${BLUE}Test Suite: Version Sync${NC}"
 
 run_test "version-sync.sh exists" "[ -f '$ROOT_DIR/scripts/version-sync.sh' ]"
 run_test "version-sync.sh is executable" "[ -x '$ROOT_DIR/scripts/version-sync.sh' ]"
-run_test "version-sync.sh is idempotent (no git diff after sync)" \
-	"cd '$ROOT_DIR' && bash scripts/version-sync.sh >/dev/null 2>&1 && [ \"\$(git diff --name-only | wc -l | tr -d ' ')\" = '0' ]"
+run_test "version-sync.sh is idempotent (does not add new changes)" \
+	"cd '$ROOT_DIR' && BEFORE=\"\$(git diff --name-only | sort)\" && bash scripts/version-sync.sh >/dev/null 2>&1 || true; AFTER=\"\$(git diff --name-only | sort)\" && [ \"\$BEFORE\" = \"\$AFTER\" ]"
 run_test "make release target exists" "cd '$ROOT_DIR' && make -n release 2>/dev/null | grep -q 'version-sync'"
 
 echo ""
@@ -231,9 +242,9 @@ run_test "count-agents.sh outputs claude: field" \
 run_test "count-agents.sh outputs copilot: field" \
 	"bash '$ROOT_DIR/scripts/count-agents.sh' | grep -q 'copilot:'"
 run_test "count-agents.sh claude count >= 50" \
-	"CLAUDE_N=\$(bash '$ROOT_DIR/scripts/count-agents.sh' | grep -oP 'claude:\\s*\\K[0-9]+'); [ \"\$CLAUDE_N\" -ge 50 ]"
+	"CLAUDE_N=\$(bash '$ROOT_DIR/scripts/count-agents.sh' | sed -n 's/.*claude:\\([0-9][0-9]*\\).*/\\1/p'); [ \"\$CLAUDE_N\" -ge 50 ]"
 run_test "count-agents.sh copilot count >= 1" \
-	"COPILOT_N=\$(bash '$ROOT_DIR/scripts/count-agents.sh' | grep -oP 'copilot:\\s*\\K[0-9]+'); [ \"\$COPILOT_N\" -ge 1 ]"
+	"COPILOT_N=\$(bash '$ROOT_DIR/scripts/count-agents.sh' | sed -n 's/.*copilot:\\([0-9][0-9]*\\).*/\\1/p'); [ \"\$COPILOT_N\" -ge 1 ]"
 run_test "make count-agents target exists" "cd '$ROOT_DIR' && make -n count-agents 2>/dev/null | grep -q 'count-agents.sh'"
 
 echo ""

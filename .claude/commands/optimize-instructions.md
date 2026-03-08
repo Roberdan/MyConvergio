@@ -131,4 +131,4 @@ for f in CLAUDE.md .claude/rules/*.md; do cat "$f" > /dev/null || echo "FAIL: $f
 3. Comparison (table)
 4. Smoke test (PASS/FAIL)
 
-**Ref**: `~/.claude/reference/operational/compact-format-guide.md`
+**Ref**: `${CLAUDE_HOME:-.claude}/reference/operational/compact-format-guide.md`

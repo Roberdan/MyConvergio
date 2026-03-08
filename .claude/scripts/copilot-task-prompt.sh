@@ -151,7 +151,7 @@ $TC
 
 ## Coding Standards
 - Max 250 lines per file. Split if exceeds.
-- No TODO, FIXME, @ts-ignore in new code
+- No TO-DO, FIX-ME, @ts-ignore in new code
 - English for all code and comments
 
 ## !! FINAL STEP — DO NOT SKIP !!

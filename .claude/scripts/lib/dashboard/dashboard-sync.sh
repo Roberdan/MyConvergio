@@ -79,7 +79,7 @@ _fetch_remote_git_status() {
 	for _p in $proj_list; do
 		safe_proj_list+="$(printf '%q ' "$_p")"
 	done
-	ssh -o ConnectTimeout=3 -o BatchMode=yes "$REMOTE_HOST_RESOLVED" bash -s -- $safe_proj_list <<'REMOTE_SCRIPT' >"$REMOTE_GIT_CACHE" 2>/dev/null || true
+	ssh -o ConnectTimeout=3 -o BatchMode=yes "$REMOTE_HOST_RESOLVED" bash -s -- "$safe_proj_list" <<'REMOTE_SCRIPT' >"$REMOTE_GIT_CACHE" 2>/dev/null || true
 printf '{'
 first=1
 for proj in "$@"; do

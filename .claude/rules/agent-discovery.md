@@ -1,6 +1,6 @@
 # Agent Discovery
 
-Route: MyConvergio agents (plugin dir or `$MYCONVERGIO_HOME/agents/`) first, fallback `~/.claude/agents/`.
+Route: MyConvergio agents (plugin dir or `$MYCONVERGIO_HOME/agents/`) first, fallback `.claude/agents/`.
 
 ## Agents by Domain
 - **Technical**: baccio (architect), dario (debug), marco (devops), otto (perf), rex (review), luca (security)

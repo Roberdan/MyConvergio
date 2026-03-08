@@ -13,11 +13,11 @@ Compact rules loaded on every Claude session. Optimized for minimal token usage.
 
 ## Detailed Versions
 
-Full reference versions in `~/.claude/reference/detailed/` (not auto-loaded):
+Full reference versions in `.claude/reference/detailed/` (not auto-loaded):
 
 - api-development.md, security-requirements.md, testing-standards.md
 - documentation-standards.md, ethical-guidelines.md
 
 ## Usage
 
-Compact rules auto-loaded. Consult `~/.claude/reference/detailed/` on-demand for examples.
+Compact rules auto-loaded. Consult `.claude/reference/detailed/` on-demand for examples.

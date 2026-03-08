@@ -1,258 +1,100 @@
 # MyConvergio Agents
+<!-- AGENT_COUNTS: unique:91 claude:82 copilot:85 -->
 
-**v10.1.0** | 85 Unique Agents (76 Claude + 83 Copilot files) | Multi-Provider Orchestrator
-
-<!-- AGENT_COUNTS: unique:86 claude:77 copilot:85 -->
+**v11.0.0** | Multi-provider agent ecosystem for Claude Code + GitHub Copilot CLI
 
 > _"Intent is human, momentum is agent"_ — [The Agentic Manifesto](./AgenticManifesto.md)
 
 ## Overview
 
-MyConvergio is an enterprise AI agent suite providing specialized assistance across strategy, development, compliance, operations, and orchestration. It supports both **Claude Code** (76 agent files) and **GitHub Copilot CLI** (83 agent files), enabling cross-tool agent discovery and unified workflows.
+This index documents the **actual** agent inventory shipped in this repository:
 
-**Key Features**:
+- `.claude/agents/`: 87 Claude agent files
+- `copilot-agents/`: 85 Copilot agent files
+- `.github/agents/`: project automation agents (night operations)
 
-- 76 Claude agent files across 8 categories
-- 83 Copilot agent files for GitHub Copilot users
-- Multi-provider orchestration (Claude, Copilot CLI, OpenCode, Gemini)
-- Modular installation tiers (minimal/standard/full)
-- Lean variants (~50% smaller) for context optimization
-- Built-in quality gates (Thor validation system)
+The category taxonomy below matches current folders and files in `.claude/agents/`.
 
-## Agent Categories (Claude Code)
+## Claude Agent Categories (source of truth: `.claude/agents/`)
 
-| Category              | Count | Key Agents                                                                            | Providers                       |
-| --------------------- | ----- | ------------------------------------------------------------------------------------- | ------------------------------- |
-| leadership_strategy   | 7     | ali (orchestrator), antonio, satya, dan                                               | Claude (opus), Gemini           |
-| technical_development | 9     | baccio, rex, dario, otto, marco, paolo, luca, adversarial-debugger, task-executor-tdd | Claude (sonnet), Copilot --yolo |
-| business_operations   | 11    | amy, anna, davide, marcello, oliver                                                   | Claude (sonnet)                 |
-| core_utility          | 11    | thor, strategic-planner, marcus, guardian, sentinel, thor-validation-gates            | Claude (opus)                   |
-| release_management    | 3     | app-release-manager, feature-release-manager, app-release-manager-execution           | Claude (opus)                   |
-| compliance_legal      | 5     | elena, dr-enzo, sophia                                                                | Claude (opus), OpenCode         |
-| specialized_experts   | 14    | domik, behice, fiona, angela, ethan, evan, michael, research-report-generator         | Claude (sonnet), Gemini         |
-| design_ux             | 3     | creative-director (5 skills), ux-designer, design-thinking                            | Claude (sonnet)                 |
+| Category | Count | Notes |
+| --- | ---: | --- |
+| `_root` | 2 | repo-level wrappers (`deep-repo-auditor`, `pr-comment-resolver`) |
+| `business_operations` | 12 | PM, ops, GTM, customer success |
+| `compliance_legal` | 5 | legal, security, healthcare, gov affairs |
+| `core_utility` | 25 | constitution, thor, planner modules, orchestration |
+| `design_ux` | 3 | creative direction and UX design |
+| `leadership_strategy` | 7 | executive and strategic leadership |
+| `release_management` | 5 | release, hardening, ecosystem sync |
+| `research_report` | 1 | long-form strategic research reporting |
+| `specialized_experts` | 14 | domain experts and specialist advisors |
+| `technical_development` | 13 | architecture, debugging, TDD execution |
 
-**Total**: 159 agent files (76 Claude + 83 Copilot)
+**Total Claude files: 87**
 
-### Model Tiering
+## Copilot Agent Inventory (`copilot-agents/`)
 
-- **opus** (6): Complex orchestration, critical decisions
-- **sonnet** (24): Strategic specialists (architects, security, compliance)
-- **haiku** (35): Workers, quick tasks, operational agents
+Copilot wrappers mirror the same domain taxonomy and add workflow-native wrappers:
 
-### Agent Metadata
+- Orchestration wrappers: `check`, `prompt`, `planner`, `execute`, `validate`
+- Execution extensions: `task-executor`, `task-executor-tdd`, `tdd-executor`
+- Governance/quality: `code-reviewer`, `compliance-checker`, `knowledge-base`
+- Sync/operations: `ecosystem-sync`, release manager modules
 
-Each agent carries metadata describing its operational characteristics, constraints, and integration requirements.
+**Total Copilot files: 85**
 
-**Maturity Lifecycle**:
+## Key Agent Groups
 
-- **alpha**: Experimental, unstable API, breaking changes possible
-- **beta**: Stable API, feature-complete but under validation
-- **stable**: Production-ready, backward-compatible releases
-- **legacy**: Deprecated, no longer maintained (use recommended replacement)
+### Core Utility
 
-**Constraints**:
+- `CONSTITUTION`
+- `thor-quality-assurance-guardian`
+- `thor-validation-gates`
+- `strategic-planner` (+ `-git`, `-templates`, `-thor`)
+- `wanda-workflow-orchestrator`
+- `xavier-coordination-patterns`
 
-- **context_limit**: Maximum input tokens (e.g., "16K" for Claude Haiku)
-- **execution_timeout**: Max wall-clock seconds before cancellation
-- **rate_limits**: Requests per minute (user + global)
-- **cost_tier**: Operating cost category (free, cheap, premium)
+### Technical Development
 
-**Handoffs**:
+- `baccio-tech-architect`
+- `dario-debugger` (+ lean profile)
+- `rex-code-reviewer`
+- `adversarial-debugger`
+- `task-executor` (+ `task-executor-tdd`)
+- `otto-performance-optimizer`
 
-- **escalation_to**: Agent to invoke if current agent hits limits
-- **dependencies**: Other agents that must run first
-- **compatible_with**: List of agents safe to chain after this one
+### Release and Sync
 
-**Providers Field**:
-Agents declare their supported AI providers as a prioritized list. Multi-provider routing (see README.md Multi-Provider Routing) uses this field to:
+- `app-release-manager`
+- `feature-release-manager`
+- `mirrorbuddy-hardening-checks`
+- `ecosystem-sync` (**auto-sync / claude-sync operational flow**)
 
-- Select optimal provider by cost, latency, or capability
-- Enable fallback chains if primary provider unavailable or over budget
-- Enforce constraints (e.g., sensitive data → OpenCode local only)
-- Route tasks based on provider specialization (e.g., coding → Copilot --yolo)
+## Project Automation Agents
 
-Format: `providers: [{ name: "claude", model: "opus", priority: 1 }, { name: "gemini", priority: 2 }]`
+These are not in `.claude/agents/` or `copilot-agents/`, but are shipped for repository operations:
 
-**Example Agent Metadata**:
+- `night-maintenance` → `.github/agents/night-maintenance.agent.md`
+- `claude-sync` → operational sync profile implemented via `ecosystem-sync` + mesh sync scripts
 
-```yaml
-name: thor-qa-guardian
-maturity: stable
-constraints:
-  context_limit: 200K
-  execution_timeout: 600
-  cost_tier: premium
-providers:
-  - name: claude
-    model: opus
-    priority: 1
-  - name: copilot
-    priority: 2
-escalation_to: ali-orchestrator
-compatible_with: [execute, planner, strategic-planner]
-```
-
-## Copilot CLI Agents
-
-MyConvergio ships **83 Copilot CLI agent files** in `copilot-agents/` for GitHub Copilot users:
-
-| Agent               | Purpose                                      |
-| ------------------- | -------------------------------------------- |
-| @code-reviewer      | Code review with security + quality checks   |
-| @compliance-checker | Verify compliance requirements               |
-| @ecosystem-sync     | Cross-repo synchronization with sanitization |
-| @execute            | Task executor with Thor validation           |
-| @planner            | Multi-wave strategic planning                |
-| @prompt             | Extract feature requests into plan templates |
-| @strategic-planner  | High-level roadmap and architecture          |
-| @tdd-executor       | TDD-enforced task execution                  |
-| @validate           | Wave/task validation with quality gates      |
-
-## Installation
-
-### Claude Code
-
-#### Option 1: Clone & Use (Recommended)
+## Installation Notes
 
 ```bash
-git clone https://github.com/Roberdan/MyConvergio.git
-cd MyConvergio
+# Claude Code (repo mode)
 claude --plugin-dir .
-```
 
-#### Option 2: Curl Install (Full)
-
-```bash
-curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
-```
-
-Clones to `~/.myconvergio/`, copies all 76 Claude agent files to `~/.claude/agents/`, installs `myconvergio` CLI.
-
-#### Option 3: Modular Install
-
-```bash
-myconvergio install --minimal                       # 9 core agents (~50KB)
-myconvergio install --standard                      # 20 agents (~200KB)
-myconvergio install --lean                          # 76 Claude agent files, 50% smaller
-make install-tier TIER=minimal VARIANT=lean         # Same via Makefile
-```
-
-**Installation Tiers**:
-
-- **minimal**: 9 agents (thor, strategic-planner, guardian, task-executor, etc.)
-- **standard**: 20 agents (adds architects, core specialists)
-- **full**: All 76 Claude agent files
-
-### Copilot CLI
-
-```bash
-# Copy agents to Copilot config
+# Copilot CLI
 cp copilot-agents/*.agent.md ~/.copilot/agents/
-
-# Or symlink for auto-updates
-ln -sf "$(pwd)/copilot-agents"/*.agent.md ~/.copilot/agents/
-
-# Verify
-gh copilot --list-agents
 ```
 
-## Usage
+## Validation and Quality Gates
 
-### Claude Code
+- Workflow and routing: `CLAUDE.md`, `.claude/CLAUDE.md`
+- Thor gates reference: `.claude/agents/core_utility/thor-validation-gates.md`
+- Migration path to v11: `docs/MIGRATION-v10-to-v11.md`
 
-Invoke any agent by name:
+## Versioning
 
-```bash
-# In Claude Code
-@ali Create a 3-month roadmap for API migration
-@baccio Review this architecture for scalability issues
-@thor Validate the current task against quality gates
-```
-
-### Copilot CLI
-
-```bash
-# Via GitHub CLI
-gh copilot @planner "Create a plan for migrating to Next.js 15"
-gh copilot @execute "Implement authentication with NextAuth"
-gh copilot @code-reviewer "Review PR #123 for security issues"
-```
-
-**Coding Standards**: See `.claude/rules/coding-standards.md`
-**Quality Gates**: See `.claude/agents/core_utility/thor-validation-gates.md` (10 gates, enforced via `plan-db-safe.sh`)
-
-## Development Commands
-
-```bash
-# Testing
-make test                   # Run agent tests
-make lint                   # Lint YAML frontmatter
-make validate               # Validate Constitution compliance
-
-# Installation Management
-make upgrade                # Update to latest version
-make clean                  # Remove all installed components
-make version                # Show version info
-
-# Modular Installation
-make list-tiers             # Show available tiers
-make list-categories        # Show agent categories
-make install-tier TIER=minimal VARIANT=lean RULES=consolidated
-```
-
-## Configuration
-
-For tool-specific configuration, environment setup, and operational guidelines, see:
-
-- **Claude Code**: `.claude/CLAUDE.md` (agent routing, model tiering, workflow)
-- **Repository Root**: `CLAUDE.md` (high-level conventions, quick start)
-- **Reference Docs**: `.claude/reference/operational/` (digest scripts, worktree discipline)
-- **Coding Standards**: `.claude/rules/coding-standards.md`
-- **Testing Standards**: `.claude/rules/testing-standards.md`
-
-## Repository Structure
-
-```
-MyConvergio/
-├── .claude/                # Claude Code configuration
-│   ├── agents/             # <!-- AGENT_COUNT_MARKER -->74<!-- /AGENT_COUNT_MARKER --> agent files (single source of truth)
-│   ├── rules/              # Coding standards, engineering guidelines
-│   ├── skills/             # Reusable workflows
-│   ├── scripts/            # 89+ utility scripts
-│   ├── reference/          # Operational docs (on-demand)
-│   └── CLAUDE.md           # Tool-specific config
-├── copilot-agents/         # Copilot CLI agents
-├── hooks/                  # Enforcement hooks (token optimization)
-├── scripts/                # Deployment and management
-├── docs/                   # Documentation
-│   ├── CONTEXT_OPTIMIZATION.md
-│   ├── VERSIONING_POLICY.md
-│   └── adr/                # Architecture Decision Records
-├── Makefile                # Build commands
-├── CLAUDE.md               # High-level config (repo root)
-├── AGENTS.md               # This file
-└── VERSION                 # System version tracking
-```
-
-## Support
-
-- **Issues**: https://github.com/Roberdan/MyConvergio/issues
-- **Documentation**: See `docs/` directory
-- **ADRs**: Architecture decisions in `docs/adr/`
-- **License**: CC BY-NC-SA 4.0 (non-commercial)
-
-## Version
-
-**Current**: v9.19.0
-**Release Notes**: See `CHANGELOG.md`
-**Versioning**: SemVer 2.0.0 (system + individual agents)
-
-## Agent Deep-Dives
-
-- [Agent Showcase](./docs/agents/agent-showcase.md) — Deep dive into 5 hero agents (Thor, Strategic Planner, Task Executor, Baccio, Ali)
-- [Market Comparison](./docs/agents/comparison.md) — MyConvergio vs Squad, AutoGen, CrewAI, LangGraph, OpenAI Agents SDK
-
----
-
-For detailed agent descriptions, see individual agent files in `agents/` (Claude Code) or `copilot-agents/` (Copilot CLI).
+- Current docs target: **v11.0.0**
+- Version policy: `docs/VERSIONING_POLICY.md`
+- Changelog: `CHANGELOG.md`

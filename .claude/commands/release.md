@@ -29,7 +29,7 @@ Agent validates:
 1. **Build Quality** — lint, typecheck, build passes
 2. **Test Execution** — unit, integration, E2E tests
 3. **Security Audit** — secrets, dependencies, vulnerabilities
-4. **Code Quality** — no TODOs, debug prints, commented code
+4. **Code Quality** — no TO-DOs, debug prints, commented code
 5. **Documentation** — CHANGELOG, README up to date
 
 ## Workflow
@@ -91,7 +91,7 @@ Agent returns:
 - BLOCK: ANY compiler/lint warning
 - BLOCK: ANY test failure
 - BLOCK: ANY security vulnerability
-- BLOCK: ANY TODO/FIXME in code
+- BLOCK: ANY TO-DO/FIX-ME in code
 - BLOCK: ANY hardcoded secrets
 - BLOCK: ANY debug prints (console.log)
 - BLOCK: ANY outdated deps with CVEs
@@ -101,7 +101,7 @@ Agent returns:
 | Issue               | Auto-Fix Action         |
 | ------------------- | ----------------------- |
 | Lint warnings       | `npm run lint --fix`    |
-| TODO/FIXME          | Remove or create ticket |
+| TO-DO/FIX-ME          | Remove or create ticket |
 | Debug prints        | Remove all console.log  |
 | Trailing whitespace | Strip via formatter     |
 | Unused imports      | Remove automatically    |

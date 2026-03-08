@@ -40,6 +40,12 @@ graph TB
         O["27 More"]
     end
 
+    subgraph AUTOMATION["v11 Automation"]
+        NIGHT["Night Maintenance Agent<br/><i>systemd → triage → PR</i>"]
+        AUTOSYNC["Auto-Sync Agent<br/><i>.claude watcher → diff → PR</i>"]
+        MIGRATE["Migration Pipeline<br/><i>backup → migrate → verify → rollback</i>"]
+    end
+
     subgraph INFRA["Infrastructure"]
         DB["SQLite DB<br/><i>Plans, tasks, tokens</i>"]
         HOOKS["12 Hooks<br/><i>Pre/Post guards</i>"]
@@ -51,6 +57,9 @@ graph TB
     EX --> ORCHESTRATOR
     ORCHESTRATOR --> TH
     TH -->|PASS| DB
+    NIGHT --> ORCHESTRATOR
+    AUTOSYNC --> ORCHESTRATOR
+    MIGRATE --> TH
     TH -->|FAIL max 3x| EX
     ORCHESTRATOR --> AGENTS
     AGENTS --> INFRA
@@ -148,7 +157,7 @@ sequenceDiagram
         DB->>TE: Start task (plan-db.sh start)
         TE->>TE: TDD: RED → GREEN → REFACTOR
         TE->>TH: Submit for validation
-        TH->>TH: 7 quality gates
+        TH->>TH: 10 quality gates
         alt PASS
             TH->>DB: plan-db.sh validate ✓
             TH->>TE: APPROVED
@@ -235,6 +244,12 @@ flowchart LR
         PDBS[plan-db-safe.sh]
     end
 
+    subgraph AUTOMATION["v11 Automation"]
+        NIGHT["Night Maintenance Agent<br/><i>systemd → triage → PR</i>"]
+        AUTOSYNC["Auto-Sync Agent<br/><i>.claude watcher → diff → PR</i>"]
+        MIGRATE["Migration Pipeline<br/><i>backup → migrate → verify → rollback</i>"]
+    end
+
     subgraph INFRA["Infrastructure"]
         DASH[dashboard-mini.sh]
         FL[file-lock.sh]
@@ -278,3 +293,12 @@ MyConvergio/
 
 For orchestrator details, see [orchestrator.md](./orchestrator.md).
 For agent portfolio, see [agent-portfolio.md](./agent-portfolio.md).
+
+## v11 Automation Components
+
+```mermaid
+flowchart LR
+    NM["Night Maintenance Agent<br/>systemd → triage → PR"] --> ORCH["Orchestrator + Thor"]
+    AS["Auto-Sync Agent<br/>.claude watcher → diff → PR"] --> ORCH
+    MP["Migration Pipeline<br/>backup → migrate → verify → rollback"] --> ORCH
+```

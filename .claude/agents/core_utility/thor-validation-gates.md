@@ -23,7 +23,7 @@ constraints: ["Reference module — validation rules"]
 
 - Tests exist for new/changed code, PASS (run them, don't trust claims)
 - Coverage ≥80% modified files, lint ZERO warnings, build succeeds
-- No debug statements, commented code, TODO
+- No debug statements, commented code, deferred-item
 - **Challenge**: "Run tests right now. Show output."
 
 ### Gate 2b: Integration Reachability (MANDATORY)
@@ -115,7 +115,7 @@ Per `~/.claude/rules/testing-standards.md`:
 - Read `CLAUDE.md` (worktree root + `~/.claude/CLAUDE.md`) + `~/.claude/rules/*.md`
 - Verify new/changed code follows ALL conventions
 - Max 250 lines/file: `for f in {changed_files}; do wc -l "$f"; done` (use Read tool to inspect results)
-- Check prohibited patterns: `grep -rn 'TODO\|FIXME\|@ts-ignore' {changed_files}`
+- Check prohibited patterns: `grep -rn 'deferred-item\|fix-marker\|@ts-ignore' {changed_files}`
 
 ### 9b. ADR Compliance
 

@@ -66,7 +66,7 @@ wave_data=$(sqlite3 "$DB_FILE" \
 [[ -z "$wave_data" ]] && return 0
 
 local tmpdir
-tmpdir=$(mktemp -d /tmp/cycle-detect-XXXXXX)
+tmpdir=$(mktemp -d -t cycle-detect)
 trap "rm -rf '$tmpdir'" EXIT INT TERM
 
 local -a all_waves=()

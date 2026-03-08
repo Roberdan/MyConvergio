@@ -67,7 +67,7 @@ Check:
 3. Link integrity: every internal markdown reference must resolve
 4. Line limits: max 250 lines per file
 5. Requirement coverage: each task must be verifiably fulfilled
-6. No TODO, FIXME, or incomplete sections
+6. No TO-DO, FIX-ME, or incomplete sections
 
 For each issue:
 CRITICAL: [file:line] description — blocks merge

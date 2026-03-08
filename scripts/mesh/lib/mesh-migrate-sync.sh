@@ -29,14 +29,14 @@ _migrate_preflight() {
 	# Reachability check
 	local dest
 	dest=$(peers_best_route "$target_peer" 2>/dev/null || echo "$target_peer")
-	if ! ssh $SSH_OPTS "$dest" true 2>/dev/null; then
+	if ! ssh "$SSH_OPTS" "$dest" true 2>/dev/null; then
 		echo "ERROR: target $target_peer unreachable" >&2
 		return 1
 	fi
 
 	# Disk space on target (warn <5GB)
 	local avail
-	avail=$(ssh $SSH_OPTS "$dest" "df -k ~" 2>/dev/null |
+	avail=$(ssh "$SSH_OPTS" "$dest" "df -k ~" 2>/dev/null |
 		awk 'NR==2{print $4}' || echo "0")
 	if [[ "$avail" -lt 5242880 ]]; then
 		echo "WARN: target has <5GB free (${avail}KB)" >&2
@@ -68,7 +68,7 @@ _migrate_check_tools() {
 		local cmd name ver_src ver_tgt match
 		name=$(echo "$tool" | awk '{print $1}')
 		ver_src=$(eval "$tool" 2>/dev/null | awk 'NR==1' || echo "missing")
-		ver_tgt=$(ssh $SSH_OPTS "$dest" "$tool" 2>/dev/null | awk 'NR==1' || echo "missing")
+		ver_tgt=$(ssh "$SSH_OPTS" "$dest" "$tool" 2>/dev/null | awk 'NR==1' || echo "missing")
 
 		if [[ "$ver_src" == "$ver_tgt" ]]; then
 			match="YES"

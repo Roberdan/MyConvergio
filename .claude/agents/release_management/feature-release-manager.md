@@ -66,7 +66,7 @@ gh issue list --state open --limit 50
 2. Search codebase for implementation:
    - Use `rg` (ripgrep) to find relevant code
    - Check commits with `git log --grep="<issue keywords>"`
-   - Look for TODO comments referencing the issue
+   - Look for deferred-item comments referencing the issue
 3. Categorize:
    - **IMPLEMENTED**: Code exists, working
    - **PARTIAL**: Some parts done, some missing

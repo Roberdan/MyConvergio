@@ -1,0 +1,11 @@
+[Unit]
+Description=Run MyConvergio Nightly Copilot Guardian
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=20m
+Persistent=true
+Unit=myconvergio-nightly-guardian.service
+
+[Install]
+WantedBy=timers.target

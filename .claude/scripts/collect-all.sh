@@ -81,7 +81,7 @@ run_quality() {
 }
 
 # Run collectors in parallel
-tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/collect-all-XXXXXX")
+tmpdir=$(mktemp -d -t collect-all)
 trap "rm -rf '$tmpdir'" EXIT INT TERM
 
 run_git >"$tmpdir/git.json" 2>/dev/null &

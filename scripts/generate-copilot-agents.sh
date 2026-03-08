@@ -159,7 +159,7 @@ convert_frontmatter() {
 # Process a single agent file
 process_agent_file() {
   local source_file="$1"
-  local relative_path="${source_file#$SOURCE_DIR/}"
+  local relative_path="${source_file#"$SOURCE_DIR"/}"
   local basename="${relative_path##*/}"
   local filename="${basename%.md}"
   
@@ -189,11 +189,11 @@ process_agent_file() {
   
   # Write to target file (unless dry-run)
   if [[ $DRY_RUN == true ]]; then
-    echo -e "${GREEN}  Would write:${NC} ${target_file#$REPO_ROOT/}"
+    echo -e "${GREEN}  Would write:${NC} ${target_file#"$REPO_ROOT"/}"
     CONVERTED=$((CONVERTED + 1))
   else
     echo "$converted_content" > "$target_file"
-    echo -e "${GREEN}  ✓ Converted:${NC} ${relative_path} → ${target_file#$REPO_ROOT/}"
+    echo -e "${GREEN}  ✓ Converted:${NC} ${relative_path} → ${target_file#"$REPO_ROOT"/}"
     CONVERTED=$((CONVERTED + 1))
   fi
 }

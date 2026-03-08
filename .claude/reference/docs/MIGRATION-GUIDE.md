@@ -64,7 +64,7 @@ cp ~/.claude/data/dashboard.db ~/.claude/data/dashboard.db.backup.$(date +%s)
 ```
 ✓ Backup created: ~/.claude/data/dashboard.db.backup.xxxx
 ✓ Column added
-✓ Updated XXXX rows with wave_id_fk
+✓ Updated NNNX rows with wave_id_fk
 ✓ FK constraint added
 ✓ Indexes recreated
 ✓ FK integrity validated
@@ -142,7 +142,7 @@ If something goes wrong:
 
 ```bash
 # Restore from backup
-cp ~/.claude/data/dashboard.db.backup.XXXX ~/.claude/data/dashboard.db
+cp ~/.claude/data/dashboard.db.backup.NNNX ~/.claude/data/dashboard.db
 
 # Then re-run migration after fixing plan-db.sh
 ~/.claude/scripts/migrate-wave-fk.sh

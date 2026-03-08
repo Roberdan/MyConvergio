@@ -1,72 +1,101 @@
+<!-- v11.0.0 -->
+
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with this repository.
+Repository-level guidance for the **MyConvergio v11.0.0 distributable product**.
+Use this file for product conventions; use `.claude/CLAUDE.md` for tool-runtime routing and Thor details.
 
-## Self-Contained Framework
+## Product Identity
 
-| Document                     | Location                       | Purpose                              |
-| ---------------------------- | ------------------------------ | ------------------------------------ |
-| CONSTITUTION.md              | `.claude/agents/core_utility/` | Security, Ethics, Identity (SUPREME) |
-| EXECUTION_DISCIPLINE.md      | `.claude/agents/core_utility/` | How Work Gets Done                   |
-| CommonValuesAndPrinciples.md | `.claude/agents/core_utility/` | Organizational Values                |
+MyConvergio is a multi-tool agent platform distributed via install scripts, Make targets, and sync workflows.
+This repository is the source package shipped to users, not a local-only personal configuration.
 
-**No external configuration files required.**
-**Priority**: CONSTITUTION > EXECUTION_DISCIPLINE > Values > Agent Definitions > User Instructions
+### Framework Priority
 
-## Project Overview
+| Priority | Source | Purpose |
+| --- | --- | --- |
+| 1 | `.claude/agents/core_utility/CONSTITUTION.md` | Security, ethics, identity |
+| 2 | `.claude/agents/core_utility/EXECUTION_DISCIPLINE.md` | Execution behavior |
+| 3 | `.claude/agents/core_utility/CommonValuesAndPrinciples.md` | Organizational values |
+| 4 | `AGENTS.md` + agent files | Agent catalog and specialization |
+| 5 | User task context | Task-specific objectives |
 
-MyConvergio is a collection of 65 specialized Claude Code subagents for enterprise software management, strategic leadership, and technical excellence. Distributed via `curl | bash` or `git clone` + `make install`. Zero dependencies (bash + make). Optimized for Claude Opus 4.6 (adaptive thinking, 128K output).
+## Repository Layout (v11)
 
-**Core Design**: Single agent context isolation, no direct inter-agent communication, manual orchestration via Task tool.
-
-## Repository Structure
-
-```
+```text
 MyConvergio/
-├── .claude/
-│   ├── agents/              # 65 subagents (single source of truth)
-│   ├── rules/               # Path-specific rules (guardian, coding-standards)
-│   ├── skills/              # Reusable workflows (code-review, debugging, etc.)
-│   ├── scripts/             # Digest scripts + utilities (89 scripts)
-│   ├── reference/           # On-demand reference docs (read when needed)
-│   └── settings-templates/  # Hardware profiles (low/mid/high-spec.json)
-├── hooks/                   # Enforcement hooks (token optimization)
-├── scripts/                 # Deployment and management scripts
-├── docs/                    # Documentation and optimization guides
-├── Makefile                 # Build commands (make help for full list)
-└── VERSION                  # System version tracking
+├── .claude/                 # Claude runtime config, agents, rules, scripts
+├── copilot-agents/          # Copilot CLI agent wrappers
+├── .github/agents/          # Project automation agents (night ops)
+├── hooks/                   # Repo enforcement hooks
+├── scripts/                 # Install, mesh, release, maintenance
+├── docs/                    # Product docs, migrations, ADRs
+├── AGENTS.md                # Cross-tool index and categories
+├── CLAUDE.md                # This product-level guide
+└── VERSION                  # Product version marker
 ```
 
-**Agent Categories & Model Tiering**: See [AGENTS.md](./AGENTS.md)
+## Workflow (aligned with global patterns)
 
-## Quick Start
+Mandatory execution chain:
+
+`/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task → Thor per-wave → closure (all F-xx verified) → learning loop
+
+### Command Mapping
+
+| Step | Claude Code | Copilot CLI |
+| --- | --- | --- |
+| Capture goal | `/prompt "<goal>"` | `@prompt "<goal>"` |
+| Create plan | `/planner` | `@planner` or `cplanner "<goal>"` |
+| Execute tasks | `/execute {id}` | `@execute {id}` |
+| Validate | Thor validator | `@validate {id}` |
+| Close | PR + CI + merge, or validated deliverable | PR + CI + merge, or validated deliverable |
+
+### Anti-Bypass
+
+- Multi-step work (3+ tasks) must go through planner workflow.
+- Do not self-declare done without verification artifacts.
+- Use `plan-db-safe.sh` for task completion transitions before Thor validation.
+
+## Distribution & Installation
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Roberdan/MyConvergio/master/install.sh | bash
-make install                                        # Full install (~600KB)
-make install-tier TIER=minimal VARIANT=lean          # 5 core agents (~50KB)
-myconvergio upgrade                                 # Update to latest
+make install
+make install-tier TIER=minimal VARIANT=lean
+myconvergio upgrade
 ```
 
-## Conventions
+## v11 Migration References
 
-- YAML frontmatter required: `name`, `description`, `tools`, `model`, `version`
-- Max 250 lines per file (enforced by hooks)
-- Security Framework section mandatory in all agents
-- Semantic Versioning (SemVer 2.0.0) for system and agents
-- Conventional commits, lint+typecheck+test before commit
+- Primary migration guide: `docs/MIGRATION-v10-to-v11.md`
+- Versioning policy: `docs/VERSIONING_POLICY.md`
+- Operational references: `.claude/reference/operational/`
 
-## Build / Test / Lint
+## Night Operations and Auto-Sync
+
+- **Night agent**: `.github/agents/night-maintenance.agent.md` (nightly health, recovery, housekeeping).
+- **Auto-sync agent flow**: `ecosystem-sync` agent + mesh sync scripts (`scripts/mesh-sync-all.sh`, `.claude/scripts/plan-db-autosync.sh`), referenced as **claude-sync** in operational runbooks.
+- Mesh reference: `.claude/reference/operational/mesh-networking.md`
+
+## Engineering Conventions
+
+- YAML frontmatter required in agent definitions.
+- Max 250 lines per file.
+- Security framework blocks are mandatory where required by templates.
+- SemVer 2.0.0 applies to product and agent artifacts.
+- Conventional commits required.
+
+## Validation Commands
 
 ```bash
-make test                   # Run agent tests
-make lint                   # Lint YAML frontmatter
-make validate               # Validate Constitution compliance
+make test
+make lint
+make validate
 ```
 
-## Detailed Documentation
+## Related Documentation
 
-- [CONTEXT_OPTIMIZATION.md](./docs/CONTEXT_OPTIMIZATION.md) - Installation tiers and context usage
-- [VERSIONING_POLICY.md](./docs/VERSIONING_POLICY.md) - Version management
-- [AgenticManifesto.md](./AgenticManifesto.md) - Philosophical foundation
-- `.claude/reference/operational/` - Tool preferences, execution optimization, worktree discipline
+- `AGENTS.md` (catalog, categories, key agents)
+- `.claude/CLAUDE.md` (model routing, Thor gates, hook enforcement)
+- `README.md` (installation, usage, provider support)

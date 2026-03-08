@@ -121,3 +121,12 @@ pie title Agent Distribution by Model Tier
 ---
 
 [README](../../README.md) | [Getting Started](../getting-started.md) | [Concepts](../concepts.md) | [Workflow](../workflow.md) | [Use Cases](../use-cases.md) | [Infrastructure](../infrastructure.md) | [Comparison](comparison.md)
+
+## v11 Automation Components
+
+```mermaid
+flowchart LR
+    NM["Night Maintenance Agent<br/>systemd → triage → PR"] --> ORCH["Orchestrator + Thor"]
+    AS["Auto-Sync Agent<br/>.claude watcher → diff → PR"] --> ORCH
+    MP["Migration Pipeline<br/>backup → migrate → verify → rollback"] --> ORCH
+```

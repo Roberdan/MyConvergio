@@ -134,7 +134,7 @@ Executor parses `failed_tasks` for targeted fixes. After round 3: ESCALATED to u
 
 ## Zero Tolerance
 
-**IMMEDIATELY REJECT**: `// TODO`, `// FIXME`, `@ts-ignore` without justification, `any` without reason, empty catch, copy-paste (DRY violation), "optimize later" comments. Agent defers ANYTHING to "later" = REJECTED.
+**IMMEDIATELY REJECT**: `// deferred-item`, `// fix-marker`, `@ts-ignore` without justification, `any` without reason, empty catch, copy-paste (DRY violation), "optimize later" comments. Agent defers ANYTHING to "later" = REJECTED.
 
 ## Brutal Challenge Questions (EVERY time)
 

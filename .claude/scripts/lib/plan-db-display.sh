@@ -22,7 +22,7 @@ _truncate() {
 _last_segments() {
 	local path="$1"
 	local n="${2:-2}"
-	echo "$path" | rev | cut -d'/' -f1-$n | rev
+	echo "$path" | rev | cut -d'/' -f1-"$n" | rev
 }
 
 # Get branch from worktree
@@ -85,7 +85,7 @@ cmd_kanban() {
 	[[ ${PIPESTATUS[0]} -ne 0 ]] && echo "  (none)"
 	echo ""
 
-	echo -e "${NC}TODO${NC}"
+	echo -e "${NC}TO-DO${NC}"
 	sqlite3 -column "$DB_FILE" "
         SELECT project_name, plan_name,
                CASE WHEN is_master THEN '*' ELSE '' END as m

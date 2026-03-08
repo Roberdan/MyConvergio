@@ -38,7 +38,7 @@ _render_single_plan() {
 	doing) status_display="${YELLOW}IN PROGRESS${NC}" ;;
 	cancelled) status_display="${RED}CANCELLED${NC}" ;;
 	archived) status_display="${GRAY}ARCHIVED${NC}" ;;
-	*) status_display="${BLUE}TODO${NC}" ;;
+	*) status_display="${BLUE}TO-DO${NC}" ;;
 	esac
 
 	# Pre-compute metrics (single query instead of 5)
@@ -107,14 +107,14 @@ _render_single_plan() {
 	fi
 	if [ "${plines_added:-0}" -gt 0 ] || [ "${plines_removed:-0}" -gt 0 ]; then
 		[ -n "$metrics_line" ] && metrics_line+="  ${GRAY}│${NC}  "
-		metrics_line+="${GREEN}+$(format_lines ${plines_added:-0})${NC} ${RED}-$(format_lines ${plines_removed:-0})${NC} ${GRAY}lines${NC}"
+		metrics_line+="${GREEN}+$(format_lines "${plines_added:-0}")${NC} ${RED}-$(format_lines "${plines_removed:-0}")${NC} ${GRAY}lines${NC}"
 	fi
 	[ -n "$metrics_line" ] && echo -e "${GRAY}├─${NC} $metrics_line"
 
 	# Tokens
 	local total_tokens tokens_formatted
 	total_tokens=$(dbq "SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage WHERE project_id = '$pproject'")
-	tokens_formatted=$(format_tokens $total_tokens)
+	tokens_formatted=$(format_tokens "$total_tokens")
 	echo -e "${GRAY}├─${NC} Tokens: ${CYAN}$tokens_formatted${NC} ${GRAY}(progetto)${NC}"
 
 	# Thor validation

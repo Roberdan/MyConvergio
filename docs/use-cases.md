@@ -13,7 +13,7 @@ graph LR
     U[You] -->|@dario| D[Dario Debugger<br/>Root Cause]
     D -->|hypothesis| AD[Adversarial Debugger<br/>Challenge Fix]
     AD -->|verified fix| TE[Task Executor<br/>TDD Patch]
-    TE --> TH[Thor<br/>9-Gate Validate]
+    TE --> TH[Thor<br/>10-Gate Validate]
     TH -->|PASS| SH[Ship Hotfix ✓]
 ```
 
@@ -155,3 +155,12 @@ Include: problem, solution, market, traction, team, ask.
 ---
 
 [README](../README.md) | [Getting Started](getting-started.md) | [Concepts](concepts.md) | [Workflow](workflow.md) | [Use Cases](use-cases.md) | [Infrastructure](infrastructure.md) | [Comparison](agents/comparison.md)
+
+## v11 Automation Components
+
+```mermaid
+flowchart LR
+    NM["Night Maintenance Agent<br/>systemd → triage → PR"] --> ORCH["Orchestrator + Thor"]
+    AS["Auto-Sync Agent<br/>.claude watcher → diff → PR"] --> ORCH
+    MP["Migration Pipeline<br/>backup → migrate → verify → rollback"] --> ORCH
+```

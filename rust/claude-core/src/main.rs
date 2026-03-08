@@ -23,6 +23,10 @@ enum Commands {
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
     },
+    Hook {
+        /// pre or post
+        mode: String,
+    },
     Daemon {
         #[command(subcommand)]
         command: DaemonCommands,
@@ -84,6 +88,24 @@ async fn main() {
                     Err(err) => {
                         eprintln!("{err}");
                         std::process::exit(2);
+                    }
+                }
+            }
+            Commands::Hook { mode } => {
+                let mut input = String::new();
+                if std::io::stdin().read_to_string(&mut input).is_err() || input.trim().is_empty() {
+                    return;
+                }
+                let home = env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                let context = claude_core::hooks::checks::CheckContext::from_env(&home);
+                if mode == "pre" {
+                    match claude_core::hooks::dispatch_pre_tool(&input, &context) {
+                        Ok(Some(result)) => println!("{result}"),
+                        Ok(None) => {}
+                        Err(err) => {
+                            eprintln!("{err}");
+                            std::process::exit(1);
+                        }
                     }
                 }
             }

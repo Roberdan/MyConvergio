@@ -39,6 +39,36 @@ pub struct CheckContext {
 }
 
 impl CheckContext {
+    pub fn from_env(home: &str) -> Self {
+        let home_dir = PathBuf::from(home);
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let branch = std::process::Command::new("git")
+            .args(["rev-parse", "--abbrev-ref", "HEAD"])
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_string());
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        Self {
+            db_path: home_dir.join(".claude/data/dashboard.db"),
+            preflight_dir: home_dir.join(".claude/data/execution-preflight"),
+            home_dir,
+            cwd,
+            repo_root: None,
+            current_branch: branch,
+            allow_main_write: false,
+            gh_tokens: BTreeMap::new(),
+            now_epoch: now,
+            active_plan_id: None,
+            db_conn: RefCell::new(None),
+            db_open_count: Cell::new(0),
+        }
+    }
+
     pub fn for_tests() -> Self {
         Self {
             home_dir: PathBuf::from("/tmp"),

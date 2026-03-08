@@ -1,5 +1,15 @@
 # Changelog
 
+## [v11.2.0] - 08 Mar 2026
+
+### Added
+- enforce-planner-workflow PreToolUse hook
+- post-migration stabilization — logging, health, schema, KB learnings
+
+### Fixed
+- full Playwright audit green — 15/15 tests pass
+
+
 ## [v11.1.2] - 08 Mar 2026
 
 ### Fixed

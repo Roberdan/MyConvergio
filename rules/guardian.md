@@ -1,4 +1,4 @@
-<!-- v2.7.0 -->
+<!-- v2.8.0 -->
 
 # Process Guardian
 
@@ -41,6 +41,8 @@ After every push on a PR, before merge:
 ## Execution Readiness Snapshot (NON-NEGOTIABLE)
 
 Before execution or resume, run `execution-preflight.sh <worktree>`. Treat `dirty_worktree`, `gh_auth_not_ready`, `missing_troubleshooting`, and `missing_ci_knowledge` as blockers for auth/CI/deploy/PR work until resolved or explicitly acknowledged by the user.
+
+**Git auth pre-check**: Before any `git push` or `gh` API call, verify the correct account is active. Multi-account setups auto-revert — always run the platform's account-switch command before push/PR operations.
 
 If operational dashboards, caches, or metrics are older than the current work cycle, refresh them before using them for decisions. Stale observability treated as missing evidence.
 
@@ -202,6 +204,27 @@ After every plan closure (PR merged, deploy verified), before marking the plan c
 - Project-specific learnings go in repo `CLAUDE.md` "Project Learnings" section, `AGENTS.md`, or `MEMORY.md`
 - Max 3 new generic rules per plan (merge with existing when possible)
 - Every new rule MUST include a `_Why: Plan NNN — description_` annotation
+
+## Verify Path Glob Rule (NON-NEGOTIABLE)
+
+Task `verify` commands for NEW files MUST use glob patterns, not exact paths. Executors may place files in different but valid directories.
+
+| WRONG | RIGHT |
+|---|---|
+| `test -f components/layout/FeedbackButton.tsx` | `find . -name 'FeedbackButton.tsx' -path '*/components/*'` |
+| `test -f docs/adr/ADR-073-announcements-model-api.md` | `ls docs/adr/ADR-073*` |
+
+**Planner MUST**: Use `find -name` or `ls glob*` in verify arrays for files that don't exist yet. Exact paths only for files that already exist in the repo.
+
+_Why: Plan 100028 — T4-01 verify expected `components/layout/FeedbackButton.tsx` but executor created `components/feedback/FeedbackButton.tsx`. Thor rejected valid work due to path mismatch. Same issue hit TF-doc with ADR filename._
+
+## PR Body Compliance (NON-NEGOTIABLE)
+
+When CI includes a PR body/workflow compliance check, TF-pr tasks MUST update the PR body to include all required fields BEFORE pushing. Common requirements: Plan ID reference, checklist items (planner, executor, thor, workflow-proof), summary section.
+
+**Executor MUST**: Read the CI compliance script to understand required PR body format, then `gh api --method PATCH` the PR body accordingly. Pushing code without valid PR body = CI failure on every push.
+
+_Why: Plan 100028 — PR #256 failed CI 3 times because PR body was missing `check_agent_workflow_compliance.py` required checklist. Each failure cost a full CI cycle (~10 min)._
 
 ## Guardrails
 

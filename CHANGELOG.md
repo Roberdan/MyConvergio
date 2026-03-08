@@ -1,5 +1,12 @@
 # Changelog
 
+## [v11.1.2] - 08 Mar 2026
+
+### Fixed
+- add Plan 100028 learnings — verify globs, PR body compliance, test domains, git auth
+- resolve all console errors and add real-server E2E tests
+
+
 ## [v11.1.1] - 08 Mar 2026
 
 ### Changed

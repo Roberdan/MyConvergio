@@ -1,4 +1,4 @@
-<!-- v1.1.0 -->
+<!-- v1.2.0 -->
 
 # Testing Standards
 
@@ -127,6 +127,20 @@ When a task adds/removes/renames a parameter on an existing function:
 
 _Why: Plan 100027 — added `cache_svc: CacheService = Depends(get_cache_service)` to 6 routers. 4 existing tests called those functions directly without the new param → `AttributeError: 'Depends' object has no attribute 'invalidate_pattern'`._
 
+## Test Data Domain Safety (NON-NEGOTIABLE)
+
+Test data containing URLs, emails, or hostnames MUST use safe domains to avoid triggering secrets/credential hooks.
+
+| WRONG | RIGHT |
+|---|---|
+| `https://dev.azure.com/myorg/project` | `https://ado.example.com/org/project` |
+| `https://api.github.com/repos/real/repo` | `https://api.example.com/repos/test/repo` |
+| `secret_key_abc123` in test fixture | Use env var mock or `# noqa: secrets` annotation |
+
+**Safe domains**: `example.com`, `example.org`, `test.example.com` (RFC 2606 reserved). For Python files with unavoidable patterns, add `# noqa: secrets` inline comment. For TypeScript/JavaScript, use `example.com` equivalents.
+
+_Why: Plan 100028 — pre-commit `check-no-hardcoded-secrets` hook blocked commit because test files contained `dev.azure.com/myorg` URLs. Required manual `# noqa: secrets` annotation or domain replacement._
+
 ## Test Quality Checklist (Thor Gate 8 Extension)
 
 | Check | REJECT if |
@@ -138,3 +152,4 @@ _Why: Plan 100027 — added `cache_svc: CacheService = Depends(get_cache_service
 | Missing consumer test | New export has zero tests for its integration point |
 | Missing migration | New/modified ORM model without corresponding migration file |
 | Missing smoke test | Auth/RBAC/data plan without post-deploy data verification |
+| Unsafe test domains | Test URLs use real service domains instead of `example.com` |

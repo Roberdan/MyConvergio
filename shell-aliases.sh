@@ -61,7 +61,7 @@ alias bench='hyperfine'
 unalias piani 2>/dev/null; unalias dashboard 2>/dev/null
 piani() {
   if ! lsof -i :8420 -sTCP:LISTEN &>/dev/null; then
-    nohup python3 ~/.claude/scripts/dashboard_web/server.py &>/dev/null &
+    nohup ~/.claude/rust/claude-core/target/release/claude-core serve --bind 0.0.0.0:8420 &>/dev/null &
     sleep 1
   fi
   open http://localhost:8420

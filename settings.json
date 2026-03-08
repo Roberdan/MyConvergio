@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/enforce-planner-workflow.sh",
+            "command": "~/.claude/hooks/workflow-enforcer.sh",
             "timeout": 5
           }
         ]
@@ -48,12 +48,12 @@
         ]
       },
       {
-        "matcher": "Edit|Write",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "codegraph mark-dirty",
-            "async": true
+            "command": "~/.claude/hooks/post-task-enforce.sh",
+            "timeout": 5
           }
         ]
       }

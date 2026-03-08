@@ -24,91 +24,30 @@
 
 Claude stores cross-session context in `~/.claude/projects/{project-slug}/memory/`. Since v2.1.63, auto-memory is **shared across git worktrees** — wave worktree sessions resolve to the main repo's project directory (via `git-common-dir`). Decisions from Wave N are available to Wave N+1 automatically. Manual memory in `~/.claude/agent-memory/` for durable architectural knowledge. `/memory` command to inspect/clear.
 
-## Workflow (MANDATORY)
+## Workflow (HOOK-ENFORCED — see `rules/workflow-enforced.md`)
 
-`/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → thor per-task → thor per-wave → closure (all F-xx verified) → **learning loop** (Thor 10) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
+**The flow**: `/prompt` → `/planner` (Opus) → DB → `/execute {id}` → thor per-task → thor per-wave → merge → done
 
-### Post-Plan Learning Loop (Thor 10)
+**Hooks block violations automatically** via `workflow-enforcer.sh` (PreToolUse) + `post-task-enforce.sh` (PostToolUse):
 
-After every plan closure, two-level learning update:
-- **Generic (`.claude/rules/`)**: New rules valid for any repo/platform. Max 3/plan. `_Why: Plan NNN_` annotation required.
-- **Project-specific (repo `CLAUDE.md` / `AGENTS.md`)**: Conventions, gotchas, patterns specific to this codebase.
+| Blocked action | What to do instead |
+|---|---|
+| `EnterPlanMode` | `Skill(skill="planner")` |
+| `plan-db.sh create/import` | `planner-create.sh` (requires 3 reviews) |
+| `plan-db.sh update-task done` | `plan-db-safe.sh update-task {id} done` |
+| Direct Edit/Write during plan execution | `Skill(skill="execute", args="{id}")` |
+| Wave merge with unvalidated tasks | `plan-db.sh validate-task` each task first |
+| `plan-db.sh complete` with pending tasks | Finish all tasks + Thor validate |
 
-See `rules/guardian.md` "Post-Plan Learning Loop" and `reference/commands/execute/validation-merge-completion.md` for full protocol.
+**After every task**: checkpoint → update DB → Thor validate. Hook reminds you.
 
-### Practical Command Mapping
-
-| Step | Claude Code | Copilot CLI | Notes |
-| --- | --- | --- | --- |
-| Capture goal | `/prompt "<goal>"` | `@prompt "<goal>"` | Structured requirements |
-| Create plan | `/planner` | `@planner` or `cplanner "<goal>"` | Use custom planner, not Copilot `/plan` |
-| Execute plan | `/execute {id}` | `@execute {id}` | Plan-db execution flow |
-| Validate | Thor / project validator | `@validate {plan_id or task}` | Independent quality gate |
-| Close | PR + CI + merge, or validated deliverable approval | PR + CI + merge, or validated deliverable approval | Depends on artifact type |
-
-**Non-code objectives** use the same workflow. The difference is closure: business/design/research/process plans end on validated deliverables and approval, while repo-backed plans continue through PR + CI + merge.
-
-### Plan DB Continuity (NON-NEGOTIABLE — Plan 298 learning)
-
-**Update plan DB in real-time** — every task completion MUST call `plan-db-safe.sh` immediately, not deferred. Before context compaction, write active plan state to auto-memory (`MEMORY.md`): `ACTIVE_PLAN`, `BRANCH`, `WAVE`, task statuses, PR number. Resumed sessions read this and reconcile with `plan-db.sh execution-tree`. _Why: Plan 298 — tasks executed across compaction boundary with no DB updates = stale DB, user had to remind._
-
-### Plan DB Commands
-
-### Knowledge Base Commands
-
-```bash
-plan-db.sh kb-write <domain> <title> <content> [--tags json] [--confidence 0.5] [--source-type plan|task|manual] [--source-ref id] [--project-id id]
-plan-db.sh kb-search <query> [--domain] [--limit 10]
-plan-db.sh kb-hit <id>
-plan-db.sh skill-earn <name> <domain> <content> [--confidence low|medium|high]
-plan-db.sh skill-list [--domain] [--min-confidence medium]
-plan-db.sh skill-promote <name>
-plan-db.sh skill-bump <name>
-```
-
-### Slash Commands & CLI
-
-| Command         | Purpose                                |
-| --------------- | -------------------------------------- |
-| `/teleport`     | Move current session to Claude web UI  |
-| `/debug`        | Troubleshoot session issues            |
-| `/copy`         | Copy last code block to clipboard      |
-| `/memory`       | Inspect or clear auto-memory entries   |
-| `claude agents` | List available agents and their status |
+**Planner model**: MUST be Opus. Sonnet planning = VIOLATION.
 
 @reference/operational/plan-scripts.md
 @reference/operational/digest-scripts.md
 @reference/operational/worktree-discipline.md
-@reference/operational/concurrency-control.md
 @reference/operational/execution-optimization.md
 @reference/operational/mesh-networking.md
-
-## Thor Gate (NON-NEGOTIABLE)
-
-See AGENTS.md for Thor validation rules.
-
-## Anti-Bypass (NON-NEGOTIABLE)
-
-Follow the Workflow above. Bypasses are enforced by hooks:
-
-| Hook | Blocks | Allowed Alternative |
-|---|---|---|
-| `enforce-planner-workflow.sh` (active) | `plan-db.sh create`, `plan-db.sh import`, `EnterPlanMode` | `planner-create.sh` (requires 3 registered reviews) |
-
-Archived hooks (`enforce-plan-db-safe.sh`, `enforce-plan-edit.sh`) — replaced by Rust `claude-core` enforcement.
-
-**Plan creation gate** (v2.0 — Plan 100026 learning): `planner-create.sh` is the ONLY way to create plans. It requires 3 registered reviews (standard + challenger + business) before allowing `plan-db.sh create/import`. No bypass, no `PLANNER_ACTIVE` env var. _Why: Plan 100026 — agent had planner skill active but skipped all 3 intelligence reviews and created plan directly._
-
-## Mandatory Routing (NON-NEGOTIABLE)
-
-| Trigger                    | Claude Code                                          | Copilot CLI     | NOT                        |
-| -------------------------- | ---------------------------------------------------- | --------------- | -------------------------- |
-| Multi-step work (3+ tasks) | `Skill(skill="planner")` **(SOLO con modello Opus)** | `@planner`      | EnterPlanMode, manual text |
-| Execute plan tasks         | `Skill(skill="execute", args="{id}")`                | `@execute {id}` | Direct file editing        |
-| Thor validation            | `Task(subagent_type="thor")`                         | `@validate`     | Self-declaring done        |
-| Single isolated fix        | Direct edit (no plan needed)                         | Direct edit     | Creating unnecessary plan  |
-
-**PLANNER MODEL (NON-NEGOTIABLE)**: `/planner` DEVE sempre girare su Opus (`model: opus` nel frontmatter — alias auto-risolto). Se il coordinator è Sonnet, BLOCCA e avvisa l'utente. Sonnet che pianifica = VIOLATION (vedi Plan 289). In Copilot CLI, `/plan` is the built-in lightweight planner and must not replace `@planner` / `cplanner`.
 
 ## Migration Validation
 
@@ -172,5 +111,7 @@ Tell the Explore agent to use codegraph tools for faster exploration.
 
 ### If `.codegraph/` does NOT exist
 
-Skip codegraph. Use Glob/Grep/Read instead. Do NOT suggest running `codegraph init` — there is no CLI binary (MCP server only).
+At the start of a session, ask the user if they'd like to initialize CodeGraph:
+
+"I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
 <!-- CODEGRAPH_END -->

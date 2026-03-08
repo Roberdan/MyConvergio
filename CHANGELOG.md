@@ -1,9 +1,9 @@
 # Changelog
 
-## [v11.4.11] - 08 Mar 2026
+## [v11.6.0] - 08 Mar 2026
 
-### Changed
-- remove hook-generated duplicate CHANGELOG entries
+### Added
+- unified workflow enforcement hooks — block violations automatically
 
 
 ## [v11.5.0] - 08 Mar 2026

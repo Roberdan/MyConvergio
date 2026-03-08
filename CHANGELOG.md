@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.4.4] - 08 Mar 2026
+
+### Fixed
+- mesh daemon INI parser, heartbeat DB persistence, brain script includes
+
+
 ## [v11.4.3] - 08 Mar 2026
 
 ### Fixed

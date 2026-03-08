@@ -96,12 +96,30 @@ pub fn detect_tailscale_ip() -> Option<String> {
 }
 
 pub(super) fn parse_peers_conf(content: &str) -> Vec<String> {
-    content
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty() && !line.starts_with('#'))
-        .map(str::to_string)
-        .collect()
+    // Parse INI-style peers.conf: extract tailscale_ip from each [peer] section
+    // and return as "ip:9420" entries for daemon TCP connections.
+    let mut peers = Vec::new();
+    let mut current_ip: Option<String> = None;
+    for line in content.lines().map(str::trim) {
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if line.starts_with('[') && line.ends_with(']') {
+            if let Some(ip) = current_ip.take() {
+                peers.push(format!("{ip}:9420"));
+            }
+            continue;
+        }
+        if let Some((key, value)) = line.split_once('=') {
+            if key.trim() == "tailscale_ip" {
+                current_ip = Some(value.trim().to_string());
+            }
+        }
+    }
+    if let Some(ip) = current_ip {
+        peers.push(format!("{ip}:9420"));
+    }
+    peers
 }
 
 pub(super) fn is_ws_brain_request(request_head: &str) -> bool {

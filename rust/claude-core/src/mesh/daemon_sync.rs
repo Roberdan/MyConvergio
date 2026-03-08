@@ -64,6 +64,14 @@ async fn process_frame(
         MeshSyncFrame::Heartbeat { node, ts } => {
             *sync_peer.write().await = node.clone();
             state.heartbeats.write().await.insert(node.clone(), *ts);
+            // Persist peer heartbeat to DB — resolve IP:port to peer name from peers.conf
+            if let Ok(conn) = rusqlite::Connection::open(&config.db_path) {
+                let peer_name = resolve_peer_name(&config.peers_conf_path, node);
+                let _ = conn.execute(
+                    "INSERT OR REPLACE INTO peer_heartbeats (peer_name, last_seen) VALUES (?1, ?2)",
+                    rusqlite::params![peer_name, ts],
+                );
+            }
             publish_event(state, "heartbeat", node, json!({ "ts": ts }));
         }
         MeshSyncFrame::Delta {
@@ -190,6 +198,25 @@ fn spawn_delta_loop(
             }
         }
     });
+}
+
+fn resolve_peer_name(peers_conf_path: &std::path::Path, node: &str) -> String {
+    let ip = node.split(':').next().unwrap_or(node);
+    if let Ok(content) = std::fs::read_to_string(peers_conf_path) {
+        let mut section_name: Option<String> = None;
+        for line in content.lines().map(str::trim) {
+            if line.starts_with('[') && line.ends_with(']') {
+                section_name = Some(line[1..line.len() - 1].to_string());
+            } else if let Some((key, value)) = line.split_once('=') {
+                if key.trim() == "tailscale_ip" && value.trim() == ip {
+                    if let Some(name) = &section_name {
+                        return name.clone();
+                    }
+                }
+            }
+        }
+    }
+    node.to_string()
 }
 
 async fn maybe_ws_request_head(stream: &mut TcpStream) -> Option<String> {

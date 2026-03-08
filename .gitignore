@@ -53,6 +53,7 @@ out/
 !.claude/scripts/
 !.claude/reference/
 !.claude/CLAUDE.md
+!.claude/settings.json
 .claude/logs/
 
 # Backup files

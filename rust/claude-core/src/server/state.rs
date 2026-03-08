@@ -16,6 +16,25 @@ pub struct ServerState {
 
 impl ServerState {
     pub fn new(db_path: PathBuf) -> Self {
+        if let Ok(conn) = Connection::open(&db_path) {
+            let _ = conn.execute_batch(
+                "CREATE TABLE IF NOT EXISTS agent_activity (id INTEGER PRIMARY KEY AUTOINCREMENT, agent_id TEXT NOT NULL, task_db_id INTEGER, plan_id INTEGER, agent_type TEXT NOT NULL, model TEXT, description TEXT, status TEXT NOT NULL DEFAULT 'running', tokens_in INTEGER DEFAULT 0, tokens_out INTEGER DEFAULT 0, tokens_total INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0, started_at TEXT NOT NULL DEFAULT (datetime('now')), completed_at TEXT, duration_s REAL, host TEXT, region TEXT, metadata TEXT, parent_session TEXT);
+                 CREATE INDEX IF NOT EXISTS idx_agent_activity_status ON agent_activity(status);
+                 CREATE INDEX IF NOT EXISTS idx_agent_activity_plan ON agent_activity(plan_id);
+                 CREATE INDEX IF NOT EXISTS idx_agent_activity_task ON agent_activity(task_db_id);
+                 CREATE TABLE IF NOT EXISTS agent_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, wave_id TEXT, task_id TEXT, agent_name TEXT, agent_role TEXT, model TEXT, peer_name TEXT, status TEXT DEFAULT 'running', started_at TEXT DEFAULT (datetime('now')), last_heartbeat TEXT, current_task TEXT);
+                 CREATE TABLE IF NOT EXISTS nightly_jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT, job_name TEXT DEFAULT 'guardian', started_at DATETIME DEFAULT CURRENT_TIMESTAMP, finished_at DATETIME, host TEXT, status TEXT NOT NULL CHECK(status IN ('running','ok','action_required','failed')), sentry_unresolved INTEGER DEFAULT 0, github_open_issues INTEGER DEFAULT 0, processed_items INTEGER DEFAULT 0, fixed_items INTEGER DEFAULT 0, branch_name TEXT, pr_url TEXT, summary TEXT, report_json TEXT);
+                 CREATE INDEX IF NOT EXISTS idx_nightly_jobs_started ON nightly_jobs(started_at DESC);
+                 CREATE TABLE IF NOT EXISTS nightly_job_definitions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, description TEXT, schedule TEXT NOT NULL DEFAULT '0 3 * * *', script_path TEXT NOT NULL, target_host TEXT DEFAULT 'local', enabled INTEGER NOT NULL DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);"
+            );
+            // Safe column additions for existing tables (ALTER TABLE ADD COLUMN is idempotent-safe via ignore)
+            for alter in &[
+                "ALTER TABLE nightly_jobs ADD COLUMN job_name TEXT DEFAULT 'guardian'",
+                "ALTER TABLE agent_activity ADD COLUMN parent_session TEXT",
+            ] {
+                let _ = conn.execute_batch(alter);
+            }
+        }
         let (ws_tx, _) = broadcast::channel(256);
         Self { db_path, ws_tx }
     }

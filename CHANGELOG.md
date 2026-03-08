@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.3.6] - 08 Mar 2026
+
+### Fixed
+- cancelled plans shown as active missions in dashboard
+
+
 ## [v11.3.5] - 08 Mar 2026
 
 ### Changed

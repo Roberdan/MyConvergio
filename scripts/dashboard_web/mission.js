@@ -171,12 +171,18 @@ function renderMission(data) {
   st.lastMissionData = data;
   st.allMissionPlans = data && data.plans ? data.plans : data && data.plan ? [data] : [];
   window._dashboardPlans = st.allMissionPlans;
-  if (!st.allMissionPlans.length) {
+  const activePlans = st.allMissionPlans.filter(m => m.plan && m.plan.status !== 'cancelled');
+  const cancelledPlans = st.allMissionPlans.filter(m => m.plan && m.plan.status === 'cancelled');
+  if (!activePlans.length && !cancelledPlans.length) {
     $('#mission-content').innerHTML = '<span style="color:#5a6080">No active mission</span>';
     $('#task-table tbody').innerHTML = '';
     return;
   }
-  $('#mission-content').innerHTML = st.allMissionPlans.map(_renderOnePlan).join('');
+  let html = activePlans.map(_renderOnePlan).join('');
+  if (cancelledPlans.length) {
+    html += `<details class="cancelled-parking-lot"><summary style="color:var(--text-dim);font-size:11px;cursor:pointer;margin-top:10px">Cancelled (${cancelledPlans.length})</summary><div style="opacity:0.5">${cancelledPlans.map(_renderOnePlan).join('')}</div></details>`;
+  }
+  $('#mission-content').innerHTML = html;
   renderTaskPipeline();
 }
 

@@ -146,15 +146,20 @@ upgrade_v11() {
 migrate_v10() {
 	info "v10.x installation detected in $INSTALL_DIR. Starting migration to v11..."
 	cd "$INSTALL_DIR"
-	info "Pulling latest code (v11) before migration..."
+	# Safety backup of v10 state BEFORE pulling v11 code
+	info "Creating pre-migration backup of v10 state..."
+	local pre_backup="$HOME/.myconvergio-backups/pre-v11-$(date +%Y%m%d-%H%M)"
+	mkdir -p "$pre_backup"
+	tar cf "$pre_backup/v10-state.tar" -C "$HOME" .myconvergio 2>/dev/null || true
+	tar cf "$pre_backup/claude-state.tar" -C "$HOME" .claude 2>/dev/null || true
+	info "Pre-migration backup saved to $pre_backup"
+	# Now pull v11 code (which has the migration scripts)
+	info "Pulling latest code (v11)..."
 	git fetch origin master
 	git checkout master
 	git pull --ff-only origin master 2>/dev/null || git pull origin master
-	local backup_script="$INSTALL_DIR/scripts/myconvergio-backup.sh"
 	local migrate_script="$INSTALL_DIR/scripts/migrate-v10-to-v11.sh"
-	[ -x "$backup_script" ] || fail "Mandatory backup script missing or not executable: $backup_script"
 	[ -x "$migrate_script" ] || fail "Migration script missing or not executable: $migrate_script"
-	"$backup_script"
 	"$migrate_script"
 	link_cli
 	run_doctor

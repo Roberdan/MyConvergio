@@ -1,5 +1,36 @@
 # Changelog
 
+## [11.0.0] — 2026-03-08
+
+### ⚠️ BREAKING CHANGES
+- Complete infrastructure alignment with .claude global — rules, hooks, commands, skills updated
+- Hooks expanded from 2 to 13 — new enforcement hooks may reject previously allowed operations  
+- Agent files optimized — reduced ~11K lines across 82 copilot agents
+- VERSION format unchanged but version jump from 10.7.0 to 11.0.0
+
+### Added
+- **Migration system**: myconvergio-backup.sh, myconvergio-restore.sh, migrate-v10-to-v11.sh
+- **Night maintenance agent**: automated GitHub issue triage and fix (omarchy-ts)
+- **Auto-sync agent**: myconvergio-claude-sync-agent.sh for .claude alignment
+- **Doctor command**: comprehensive health check (prerequisites, DB integrity, hook permissions)
+- 11 new hooks aligned with .claude global
+- 2 new rules: migration-checklist.md, problem-resolution.md
+- ADR-013: v11 migration strategy
+- Standalone migration guide: docs/MIGRATION-v10-to-v11.md
+
+### Changed
+- install.sh: detects version, routes to migration or fresh install, checks gh auth
+- CLAUDE.md, AGENTS.md: aligned with .claude global v11 patterns
+- All Claude agents optimized for token-aware writing (max 250 lines)
+- All Copilot agents optimized (82 files, -11K lines total)
+- Commands and skills synced with .claude global
+
+### Fixed
+- Version consistency across all documentation
+- Stale v10 references removed from docs
+
+
+
 ## [10.7.0] — 2026-03-05
 
 ### Added

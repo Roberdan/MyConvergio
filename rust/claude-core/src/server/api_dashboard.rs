@@ -77,20 +77,170 @@ async fn api_mission(State(state): State<ServerState>) -> Result<Json<Value>, Ap
 
 async fn api_organization(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
     let db = state.open_db()?;
-    let plans = query_rows(db.connection(), "SELECT id,name,status FROM plans ORDER BY id DESC LIMIT 10", [])?;
-    let peers = query_rows(db.connection(), "SELECT peer_name,last_seen FROM peer_heartbeats", [])?;
-    Ok(Json(json!({"plans": plans, "peers": peers})))
+    let peers = query_rows(
+        db.connection(),
+        "SELECT peer_name, last_seen, load_json, capabilities FROM peer_heartbeats",
+        [],
+    )?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs_f64())
+        .unwrap_or(0.0);
+    let agents = query_rows(
+        db.connection(),
+        "SELECT id,agent_id,agent_type,model,status,task_db_id,plan_id,description,host FROM agent_activity ORDER BY started_at DESC LIMIT 50",
+        [],
+    )
+    .unwrap_or_default();
+    let mut units: Vec<Value> = Vec::new();
+    let mut online_count = 0i64;
+    let mut agent_pods = 0i64;
+    let mut live_tasks = 0i64;
+    for peer in &peers {
+        let name = peer.get("peer_name").and_then(Value::as_str).unwrap_or("");
+        let seen = peer.get("last_seen").and_then(Value::as_f64).unwrap_or(0.0);
+        let is_online = now - seen < 300.0;
+        if is_online {
+            online_count += 1;
+        }
+        let mut mem_total: f64 = 0.0;
+        let mut mem_used: f64 = 0.0;
+        let mut cpu: f64 = 0.0;
+        if let Some(load_str) = peer.get("load_json").and_then(Value::as_str) {
+            if let Ok(load) = serde_json::from_str::<Value>(load_str) {
+                mem_total = load.get("mem_total_gb").and_then(Value::as_f64).unwrap_or(0.0);
+                mem_used = load.get("mem_used_gb").and_then(Value::as_f64).unwrap_or(0.0);
+                cpu = load.get("cpu").and_then(Value::as_f64).unwrap_or(0.0);
+            }
+        }
+        let node_role = if name.contains("m3max") || name.contains("local") {
+            "coordinator"
+        } else {
+            "worker"
+        };
+        let node_agents: Vec<Value> = agents
+            .iter()
+            .filter(|a| {
+                a.get("host").and_then(Value::as_str).unwrap_or("") == name
+                    || (name.contains("m3max")
+                        && a.get("host").and_then(Value::as_str).map_or(true, |h| h.is_empty()))
+            })
+            .map(|a| {
+                if a.get("status").and_then(Value::as_str) == Some("running") {
+                    agent_pods += 1;
+                    live_tasks += 1;
+                }
+                json!({
+                    "agent": a.get("agent_id").unwrap_or(&Value::Null),
+                    "role": a.get("agent_type").unwrap_or(&Value::Null),
+                    "model": a.get("model").unwrap_or(&Value::Null),
+                    "task_count": 1,
+                    "status": a.get("status").unwrap_or(&Value::Null)
+                })
+            })
+            .collect();
+        units.push(json!({
+            "peer_name": name,
+            "node_role": node_role,
+            "is_online": is_online,
+            "cpu": cpu,
+            "mem_total_gb": mem_total,
+            "mem_used_gb": mem_used,
+            "capabilities": peer.get("capabilities").unwrap_or(&Value::Null),
+            "agents": node_agents
+        }));
+    }
+    Ok(Json(json!({
+        "units": units,
+        "summary": {
+            "nodes_online": online_count,
+            "nodes_total": peers.len(),
+            "agent_pods": agent_pods,
+            "live_tasks": live_tasks
+        }
+    })))
 }
 
 async fn api_live_system(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
     let db = state.open_db()?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs_f64())
+        .unwrap_or(0.0);
+    let peers_raw = query_rows(
+        db.connection(),
+        "SELECT peer_name, last_seen, load_json, capabilities FROM peer_heartbeats",
+        [],
+    )?;
     let runs = query_rows(
         db.connection(),
         "SELECT id,plan_id,wave_id,task_id,agent_name,agent_role,model,peer_name,status,started_at,last_heartbeat,current_task FROM agent_runs ORDER BY COALESCE(last_heartbeat, started_at) DESC LIMIT 80",
         [],
     )
     .unwrap_or_default();
-    Ok(Json(json!({"agent_runs": runs})))
+    let events = query_rows(
+        db.connection(),
+        "SELECT id,event_type,plan_id,source_peer,status,created_at FROM mesh_events ORDER BY created_at DESC LIMIT 20",
+        [],
+    )
+    .unwrap_or_default();
+    let mut online_peers = 0i64;
+    let mut peer_nodes: Vec<Value> = Vec::new();
+    for peer in &peers_raw {
+        let name = peer.get("peer_name").and_then(Value::as_str).unwrap_or("");
+        let seen = peer.get("last_seen").and_then(Value::as_f64).unwrap_or(0.0);
+        let is_online = now - seen < 300.0;
+        if is_online {
+            online_peers += 1;
+        }
+        let mut cpu: f64 = 0.0;
+        if let Some(load_str) = peer.get("load_json").and_then(Value::as_str) {
+            if let Ok(load) = serde_json::from_str::<Value>(load_str) {
+                cpu = load.get("cpu").and_then(Value::as_f64).unwrap_or(0.0);
+            }
+        }
+        let active = runs
+            .iter()
+            .filter(|r| {
+                r.get("peer_name").and_then(Value::as_str).unwrap_or("") == name
+                    && r.get("status").and_then(Value::as_str) == Some("running")
+            })
+            .count();
+        let role = if name.contains("m3max") || name.contains("local") {
+            "coordinator"
+        } else {
+            "worker"
+        };
+        peer_nodes.push(json!({
+            "peer_name": name,
+            "is_online": is_online,
+            "role": role,
+            "active_runs": active,
+            "cpu": cpu,
+            "capabilities": peer.get("capabilities").unwrap_or(&Value::Null)
+        }));
+    }
+    let active_runs = runs
+        .iter()
+        .filter(|r| r.get("status").and_then(Value::as_str) == Some("running"))
+        .count();
+    let open_handoffs = events
+        .iter()
+        .filter(|e| e.get("status").and_then(Value::as_str) == Some("pending"))
+        .count();
+    Ok(Json(json!({
+        "peer_nodes": peer_nodes,
+        "run_nodes": runs,
+        "summary": {
+            "online_peers": online_peers,
+            "peer_nodes": peers_raw.len(),
+            "active_runs": active_runs,
+            "open_handoffs": open_handoffs,
+            "recent_events": events.len()
+        },
+        "synapses": [],
+        "recent_events": events
+    })))
 }
 
 async fn api_tokens_daily(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
@@ -178,11 +328,19 @@ async fn api_projects(State(state): State<ServerState>) -> Result<Json<Value>, A
 
 async fn api_nightly_jobs(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
     let db = state.open_db()?;
+    // Try with job_name first; fall back without it for pre-migration DBs
     let rows = query_rows(
         db.connection(),
         "SELECT id,run_id,job_name,started_at,finished_at,host,status,sentry_unresolved,github_open_issues,processed_items,fixed_items,branch_name,pr_url,summary,report_json FROM nightly_jobs ORDER BY started_at DESC LIMIT 10",
         [],
-    )?;
+    )
+    .or_else(|_| {
+        query_rows(
+            db.connection(),
+            "SELECT id,run_id,'guardian' AS job_name,started_at,finished_at,host,status,sentry_unresolved,github_open_issues,processed_items,fixed_items,branch_name,pr_url,summary,report_json FROM nightly_jobs ORDER BY started_at DESC LIMIT 10",
+            [],
+        )
+    })?;
     let definitions = query_rows(
         db.connection(),
         "SELECT id,name,description,schedule,script_path,target_host,enabled,created_at FROM nightly_job_definitions ORDER BY name",

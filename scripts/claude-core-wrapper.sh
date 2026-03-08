@@ -52,8 +52,8 @@ run_plan() {
 
 run_hook() {
 	local core_bin
-	if core_bin="$(resolve_claude_core)"; then
-		exec "$core_bin" hooks "$@"
+	if core_bin="$(resolve_claude_core)" && "$core_bin" hooks "$@" 2>/dev/null; then
+		exit 0
 	fi
 	exec "$REPO_ROOT/hooks/dispatcher.sh" "$@"
 }

@@ -39,8 +39,7 @@ run_hook_dispatch() {
 	local mode="${1:-pre}"
 	shift || true
 	local core_bin
-	if core_bin="$(resolve_claude_core)"; then
-		"$core_bin" hook "$mode" "$@"
+	if core_bin="$(resolve_claude_core)" && "$core_bin" hook "$mode" "$@" 2>/dev/null; then
 		return
 	fi
 	case "$mode" in

@@ -2,15 +2,15 @@
 function renderKanban() {
   const st = window.DashboardState;
   if (!st || !st.allMissionPlans) return;
-  const cols = { todo: [], doing: [], done: [] };
+  const cols = { todo: [], doing: [], done: [], cancelled: [] };
   st.allMissionPlans.forEach((m) => {
     const p = m.plan;
     if (!p) return;
-    const s = p.status === "cancelled" ? "done" : (p.status || "todo");
+    const s = p.status || "todo";
     if (cols[s]) cols[s].push(m);
     else cols.todo.push(m);
   });
-  ["todo", "doing", "done"].forEach((s) => {
+  ["todo", "doing", "done", "cancelled"].forEach((s) => {
     const el = document.getElementById(`kanban-${s}`);
     if (!el) return;
     el.innerHTML = cols[s].map((m) => _kanbanCard(m, s)).join("") ||
@@ -72,6 +72,8 @@ window.kanbanDrop = async function (e, targetStatus) {
     "doing→todo": true,
     "doing→done": true,
     "done→todo": true,
+    "todo→cancelled": true,
+    "doing→cancelled": true,
   };
   const key = `${currentStatus}→${targetStatus}`;
   if (!valid[key]) {
@@ -92,6 +94,9 @@ window.kanbanDrop = async function (e, targetStatus) {
   }
   if (targetStatus === "done" && currentStatus === "doing") {
     if (!confirm(`Mark plan #${planId} as complete?`)) return;
+  }
+  if (targetStatus === "cancelled") {
+    if (!confirm(`Cancel plan #${planId}? This moves it to parking lot.`)) return;
   }
 
   // Execute via API

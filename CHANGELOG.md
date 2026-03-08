@@ -1,5 +1,20 @@
 # Changelog
 
+## [v11.3.1] - 08 Mar 2026
+
+### Fixed
+- dashboard data accuracy — waves query, project_name, kanban parking lot
+- align schema CHECK constraints + resolve Dependabot vulnerability
+- resolve audit findings — version alignment, stale files, migrate sync
+- disable destructive legacy sync, deploy Rust daemon to all nodes
+
+### Changed
+- comprehensive audit and optimization for AI agent consumption
+- archive 126 obsolete hooks/agents/prompts/scripts
+- archive 32 obsolete scripts (Rust daemon replaces legacy sync)
+- add 20+ indexes, optimize overview query with CTEs
+
+
 ## [v11.3.0] - 08 Mar 2026
 
 ### Added

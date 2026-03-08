@@ -1,7 +1,7 @@
 /* Plan Kanban Board */
 .kanban-board {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 0.7fr;
   gap: 8px;
   min-height: 120px;
 }
@@ -13,6 +13,8 @@
   min-height: 100px;
   transition: border-color 0.2s;
 }
+.kanban-col.cancelled { opacity: 0.5; }
+.kanban-col.cancelled .kanban-card { cursor: default; }
 .kanban-col.drag-over {
   border-color: var(--cyan);
   background: rgba(0, 229, 255, 0.04);
@@ -37,6 +39,7 @@
 .kanban-dot.todo { background: var(--text-dim); }
 .kanban-dot.doing { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
 .kanban-dot.done { background: var(--green); }
+.kanban-dot.cancelled { background: #ee3344; opacity: 0.6; }
 .kanban-cards { display: flex; flex-direction: column; gap: 4px; }
 .kanban-card {
   background: rgba(20, 28, 50, 0.8);

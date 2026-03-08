@@ -68,7 +68,7 @@ async fn api_mission(State(state): State<ServerState>) -> Result<Json<Value>, Ap
     let db = state.open_db()?;
     let plans = query_rows(
         db.connection(),
-        "SELECT id,name,status,tasks_done,tasks_total,project_id,execution_host,human_summary FROM plans WHERE status IN ('todo','doing') ORDER BY id DESC",
+        "SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.execution_host,p.human_summary,pr.name AS project_name FROM plans p LEFT JOIN projects pr ON p.project_id=pr.id WHERE p.status IN ('todo','doing') UNION ALL SELECT * FROM (SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.execution_host,p.human_summary,pr.name AS project_name FROM plans p LEFT JOIN projects pr ON p.project_id=pr.id WHERE p.status='cancelled' ORDER BY p.id DESC LIMIT 10)",
         [],
     )?;
     let mut result = Vec::new();
@@ -76,7 +76,7 @@ async fn api_mission(State(state): State<ServerState>) -> Result<Json<Value>, Ap
         let plan_id = plan.get("id").and_then(Value::as_i64).unwrap_or(0);
         let waves = query_rows(
             db.connection(),
-            "SELECT wave_id,name,status,tasks_done,tasks_total,position,validated_at FROM waves WHERE plan_id=?1 ORDER BY position",
+            "SELECT wave_id,name,status,tasks_done,tasks_total,position FROM waves WHERE plan_id=?1 ORDER BY position",
             rusqlite::params![plan_id],
         ).unwrap_or_default();
         let tasks = query_rows(
@@ -279,7 +279,7 @@ async fn api_history(State(state): State<ServerState>) -> Result<Json<Value>, Ap
     let db = state.open_db()?;
     Ok(Json(Value::Array(query_rows(
         db.connection(),
-        "SELECT id,name,status,tasks_done,tasks_total,project_id,started_at,completed_at,human_summary,lines_added,lines_removed FROM plans WHERE status IN ('done','cancelled') ORDER BY id DESC LIMIT 20",
+        "SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.started_at,p.completed_at,p.human_summary,p.lines_added,p.lines_removed,pr.name AS project_name FROM plans p LEFT JOIN projects pr ON p.project_id=pr.id WHERE p.status IN ('done','cancelled') ORDER BY p.id DESC LIMIT 20",
         [],
     )?)))
 }
@@ -431,7 +431,7 @@ async fn api_plan_status(
     State(state): State<ServerState>,
     axum::Json(payload): axum::Json<PlanStatusPayload>,
 ) -> Result<Json<Value>, ApiError> {
-    if !matches!(payload.status.as_str(), "todo" | "doing" | "done") {
+    if !matches!(payload.status.as_str(), "todo" | "doing" | "done" | "cancelled") {
         return Err(ApiError::bad_request("Invalid status"));
     }
     let db = state.open_db()?;

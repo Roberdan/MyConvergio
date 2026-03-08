@@ -6,7 +6,7 @@ set -euo pipefail
 
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 DB="${CLAUDE_HOME}/data/dashboard.db"
-SSH_OPTS="-o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+SSH_OPTS=(-o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=accept-new)
 REMOTE_DB="~/.claude/data/dashboard.db"
 
 # Flush WAL before copy to ensure consistent DB state (C-04)
@@ -34,7 +34,7 @@ _migrate_db_copy() {
 
 	echo "==> Verifying integrity on target"
 	local result
-	result=$(ssh "$SSH_OPTS" "$dest" \
+	result=$(ssh "${SSH_OPTS[@]}" "$dest" \
 		"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' 'PRAGMA integrity_check;'" \
 		2>/dev/null || echo "error")
 	if [[ "$result" != "ok" ]]; then
@@ -62,26 +62,26 @@ _migrate_db_remap_paths() {
 
 	# Remap plans.worktree_path
 	local plan_count
-	plan_count=$(ssh "$SSH_OPTS" "$dest" \
+	plan_count=$(ssh "${SSH_OPTS[@]}" "$dest" \
 		"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' \
      \"SELECT COUNT(*) FROM plans WHERE worktree_path LIKE '${src_home}%';\"" \
 		2>/dev/null || echo "0")
 	echo "  Plans to remap: ${plan_count}"
 
-	ssh "$SSH_OPTS" "$dest" \
+	ssh "${SSH_OPTS[@]}" "$dest" \
 		"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' \
      \"UPDATE plans SET worktree_path=REPLACE(worktree_path,'${src_home}','${tgt_home}') \
        WHERE worktree_path LIKE '${src_home}%';\""
 
 	# Remap waves.worktree_path
 	local wave_count
-	wave_count=$(ssh "$SSH_OPTS" "$dest" \
+	wave_count=$(ssh "${SSH_OPTS[@]}" "$dest" \
 		"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' \
      \"SELECT COUNT(*) FROM waves WHERE worktree_path LIKE '${src_home}%';\"" \
 		2>/dev/null || echo "0")
 	echo "  Waves to remap: ${wave_count}"
 
-	ssh "$SSH_OPTS" "$dest" \
+	ssh "${SSH_OPTS[@]}" "$dest" \
 		"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' \
      \"UPDATE waves SET worktree_path=REPLACE(worktree_path,'${src_home}','${tgt_home}') \
        WHERE worktree_path LIKE '${src_home}%';\""
@@ -106,20 +106,20 @@ _migrate_transfer_plan() {
 
 	# Reset in_progress tasks to pending on target
 	local reset_count
-	reset_count=$(ssh "$SSH_OPTS" "$dest" \
+	reset_count=$(ssh "${SSH_OPTS[@]}" "$dest" \
 		"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' \
      \"SELECT COUNT(*) FROM tasks WHERE status='in_progress' \
        AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id=${plan_id});\"" \
 		2>/dev/null || echo "0")
 	echo "  Resetting ${reset_count} in_progress task(s) to pending"
 
-	ssh "$SSH_OPTS" "$dest" \
+	ssh "${SSH_OPTS[@]}" "$dest" \
 		"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' \
      \"UPDATE tasks SET status='pending' WHERE status='in_progress' \
        AND wave_id_fk IN (SELECT id FROM waves WHERE plan_id=${plan_id});\""
 
 	# Update execution_host on target
-	ssh "$SSH_OPTS" "$dest" \
+	ssh "${SSH_OPTS[@]}" "$dest" \
 		"sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' \
      \"UPDATE plans SET execution_host='${target_host}' WHERE id=${plan_id}; \
        UPDATE tasks SET executor_host='${target_host}' WHERE plan_id=${plan_id};\""
@@ -139,7 +139,7 @@ _migrate_db_rollback() {
 	local backup_path="$2"
 
 	echo "==> Rolling back target DB from ${backup_path}"
-	ssh "$SSH_OPTS" "$dest" \
+	ssh "${SSH_OPTS[@]}" "$dest" \
 		"cp '${backup_path}' ~/.claude/data/dashboard.db && \
      sqlite3 ~/.claude/data/dashboard.db '.timeout 5000' 'PRAGMA integrity_check;'" \
 		2>/dev/null || {

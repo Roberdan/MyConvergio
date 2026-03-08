@@ -144,9 +144,14 @@ upgrade_v11() {
 }
 
 migrate_v10() {
+	info "v10.x installation detected in $INSTALL_DIR. Starting migration to v11..."
+	cd "$INSTALL_DIR"
+	info "Pulling latest code (v11) before migration..."
+	git fetch origin master
+	git checkout master
+	git pull --ff-only origin master 2>/dev/null || git pull origin master
 	local backup_script="$INSTALL_DIR/scripts/myconvergio-backup.sh"
 	local migrate_script="$INSTALL_DIR/scripts/migrate-v10-to-v11.sh"
-	info "v10.x installation detected in $INSTALL_DIR. Starting migration to v11..."
 	[ -x "$backup_script" ] || fail "Mandatory backup script missing or not executable: $backup_script"
 	[ -x "$migrate_script" ] || fail "Migration script missing or not executable: $migrate_script"
 	"$backup_script"

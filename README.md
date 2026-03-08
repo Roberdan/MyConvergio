@@ -90,8 +90,17 @@ stateDiagram-v2
             Batch --> CommitKeep: commit, keep worktree
         }
     }
-    Execute --> PostMortem: All waves done
-    PostMortem --> [*]: plan-db.sh complete
+    Execute --> LearningLoop: All waves done
+    LearningLoop --> Complete: plan-db.sh complete
+
+    state LearningLoop {
+        [*] --> Analyze: What broke?
+        Analyze --> Propose: Concrete fixes
+        Propose --> ApplyGeneric: .claude/rules/
+        Propose --> ApplyProject: repo CLAUDE.md
+        ApplyGeneric --> Verify
+        ApplyProject --> Verify
+    }
 ```
 
 ---
@@ -166,6 +175,38 @@ flowchart LR
 ```
 
 Tasks grouped by theme. Batch waves accumulate on a shared branch. Sync waves trigger PR + CI + merge. A 6-wave plan creates 2-3 PRs instead of 6.
+
+---
+
+## Self-Learning System (Thor Gate 10)
+
+Every completed plan triggers a structured learning loop that makes the system progressively smarter. The loop operates at two levels, ensuring both universal improvements and project-specific knowledge accumulation.
+
+### How it works
+
+```
+Plan complete → Analyze failures → Propose fixes → Apply at correct level → Verify
+```
+
+### Two-level knowledge architecture
+
+| Level | Where | What | Survives |
+|---|---|---|---|
+| **Generic** | `.claude/rules/*.md` | Universal patterns (any repo, any language) | All projects, all sessions |
+| **Project** | Repo `CLAUDE.md` / `AGENTS.md` | Codebase-specific conventions and gotchas | All sessions on that repo |
+
+**Generic example** (from Plan 100027): _"When a function signature changes (new DI parameter), grep ALL direct callers including unit tests."_ — This applies to FastAPI, NestJS, Spring, Django — any framework with dependency injection.
+
+**Project example** (from Plan 100027): _"In VirtualBPM, `webapp/logging_config.get_logger` is mandatory — `logging.getLogger` triggers the observability pre-commit hook."_ — This only matters for this specific codebase.
+
+### Constraints
+
+- Max 3 new generic rules per plan (merge with existing when possible)
+- Every rule includes `_Why: Plan NNN — description_` for traceability
+- Generic rules MUST be language/framework agnostic
+- Protected from compaction (see `rules/compaction-preservation.md`)
+
+See [ADR-0039](docs/adr/0039-post-plan-learning-loop.md) for the full architectural decision.
 
 ---
 
@@ -309,6 +350,7 @@ agent-versions.sh [--json|--check]      # Agents indexed
 | 0010 | Multi-Provider Orchestration | 0022 | Session Reaper       |
 | 0011 | Anti-Bypass Protocol         | 0023 | Spotlight Exclusion  |
 | 0012 | Token Accounting             | 0024 | Overlapping Waves    |
+|      |                              | 0039 | Self-Learning Loop   |
 
 ---
 

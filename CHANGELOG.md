@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.1.1] - 08 Mar 2026
+
+### Changed
+- ADR-0039 post-plan learning loop + README self-learning section
+
+
 ## [v11.1.0] - 08 Mar 2026
 
 ### Added

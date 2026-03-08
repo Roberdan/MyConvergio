@@ -94,6 +94,9 @@ tasks/
 # Agent-memory created by subagents in subdirectories
 **/.claude/
 
+# Host-specific runtime configs (only .example is tracked)
+config/*.conf
+
 # Research report outputs (generated files, never commit)
 agents/research_report/Reports/
 agents/research_report/output/

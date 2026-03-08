@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.3.7] - 08 Mar 2026
+
+### Fixed
+- enable nightly guardian auto-fix and gitignore host configs
+
+
 ## [v11.3.6] - 08 Mar 2026
 
 ### Fixed

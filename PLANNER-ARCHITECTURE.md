@@ -1,13 +1,29 @@
-<!-- v3.0.0 | 15 Feb 2026 | Phase 2 token optimization -->
+<!-- v4.0.0 | 08 Mar 2026 | Rust-only architecture (v11.0+) -->
 
 # Planner Architecture
 
-**DB**: `~/.claude/data/dashboard.db` | **CLI**: `plan-db.sh`
+**DB**: `~/.claude/data/dashboard.db` | **CLI**: `plan-db.sh` | **Server**: `claude-core serve`
+
+## Runtime Stack (v11.0+)
+
+| Component | Technology | Location |
+|-----------|-----------|----------|
+| **API Server** | Rust/Axum (`claude-core serve`) | `rust/claude-core/src/server/` |
+| **Dashboard** | Vanilla JS + CSS | `scripts/dashboard_web/` |
+| **DB Schema** | SQLite WAL | `scripts/init-db.sql` (source of truth) |
+| **CLI** | Bash (`plan-db.sh`) | `scripts/plan-db.sh` |
+| **Mesh Daemon** | Rust (`claude-core daemon`) | `rust/claude-core/src/mesh/` |
+| **Hooks** | Rust (`claude-core hook`) | `rust/claude-core/src/hooks/` |
+| **Logging** | tracing crate | `~/.claude/logs/claude-core.log` |
+
+> Python server removed in v11.0.0 (Plan 100025). No fallback.
 
 ## Data Flow
 
 ```
-dashboard.db → plan-db.sh → Planner/Executor/Thor → Dashboard API
+dashboard.db → plan-db.sh → Planner/Executor/Thor → Rust API → JS Dashboard
+                                                   ↕
+                                              Mesh Daemon (heartbeats, sync)
 ```
 
 | Type          | Files                      | Authority |
@@ -61,9 +77,10 @@ plan-db-safe.sh update-task $TASK_ID done "Summary"  # auto-validates
 ## Verification
 
 ```bash
-piani -p <plan_id>                               # CLI dashboard
+piani                                # Launch dashboard (auto-starts server)
+curl localhost:8420/api/health       # Server health check
 sqlite3 ~/.claude/data/dashboard.db \
   "SELECT id, name, status FROM plans WHERE project_id='claude';"
 ```
 
-**DB vs files conflict**: Trust database.
+**DB vs files conflict**: Trust database. **Schema source of truth**: `scripts/init-db.sql`.

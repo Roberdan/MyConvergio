@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # MirrorBuddy nightly guardian: triage Sentry + GitHub issues and run safe auto-remediation.
-# Version: 1.1.0
+# Version: 1.2.0
 
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 CONFIG_FILE="${MIRRORBUDDY_NIGHTLY_CONFIG:-$CLAUDE_HOME/config/mirrorbuddy-nightly.conf}"
@@ -12,6 +12,7 @@ DEFAULT_BRANCH="${MIRRORBUDDY_DEFAULT_BRANCH:-main}"
 REPO_SLUG="${MIRRORBUDDY_GITHUB_REPO:-}"
 MODEL="${MIRRORBUDDY_MODEL:-gpt-5.3-codex}"
 MAX_ITEMS="${MIRRORBUDDY_MAX_ITEMS:-6}"
+PROJECT_AGENT_REL_PATH="${MIRRORBUDDY_PROJECT_AGENT_REL_PATH:-.github/agents/night-maintenance.agent.md}"
 RUN_FIXES="${MIRRORBUDDY_RUN_FIXES:-true}"
 RUN_RELEASE_GATE="${MIRRORBUDDY_RUN_RELEASE_GATE:-false}"
 AUTO_MERGE="${MIRRORBUDDY_AUTO_MERGE:-false}"
@@ -86,6 +87,11 @@ if [[ -z "$REPO_SLUG" ]]; then
   REPO_SLUG="$(printf '%s' "$ORIGIN_URL" | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##')"
 fi
 [[ -n "$REPO_SLUG" ]] || { log "Cannot determine GitHub repo slug"; exit 1; }
+PROJECT_AGENT_FILE="${REPO_PATH}/${PROJECT_AGENT_REL_PATH}"
+PROJECT_AGENT_CONTENT=""
+if [[ -f "$PROJECT_AGENT_FILE" ]]; then
+  PROJECT_AGENT_CONTENT="$(cat "$PROJECT_AGENT_FILE")"
+fi
 
 sqlite3 "$DB_FILE" <<'SQL'
 CREATE TABLE IF NOT EXISTS nightly_jobs (
@@ -201,6 +207,9 @@ EOF
 )
   if [[ "$RUN_RELEASE_GATE" == "true" ]]; then
     prompt="${prompt}"$'\n'"  - npm run release:gate"
+  fi
+  if [[ -n "$PROJECT_AGENT_CONTENT" ]]; then
+    prompt="${prompt}"$'\n\n'"Repository-specific NightMaintenance runbook (MUST follow exactly):"$'\n'"${PROJECT_AGENT_CONTENT}"
   fi
   prompt="${prompt}"$'\n\n'"4. Commit with: fix: nightly guardian remediation"$'\n'"5. Do not force push and do not merge main."
 

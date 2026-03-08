@@ -1,5 +1,21 @@
 # Changelog
 
+## [11.1.0] — 2026-03-08
+
+### Added
+- `workflow-enforcer.sh` PreToolUse hook — blocks EnterPlanMode, direct plan-db create, edits outside worktree
+- `post-task-enforce.sh` PostToolUse hook — auto-checkpoint + Thor reminder after task done
+- `rules/workflow-enforced.md` — single source of truth for enforced workflow steps
+- Hook enforcement table in both CLAUDE.md files (root + .claude/)
+
+### Changed
+- `.claude/CLAUDE.md` hook references updated from `enforce-planner-workflow.sh` to `workflow-enforcer.sh`
+- `copilot-instructions.md` already had workflow enforcement (added in prior commit)
+- `settings.json` already had hook configuration (added in prior commit)
+
+### Fixed
+- Stale hook reference (`enforce-planner-workflow.sh`) replaced with active `workflow-enforcer.sh`
+
 ## [11.0.0] — 2026-03-08
 
 ### ⚠️ BREAKING CHANGES

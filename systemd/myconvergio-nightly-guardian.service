@@ -1,0 +1,18 @@
+[Unit]
+Description=MyConvergio Nightly Copilot Guardian
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=CLAUDE_HOME=%h/.claude
+Environment=MYCONVERGIO_NIGHTLY_CONFIG=%h/.myconvergio/config/myconvergio-nightly.conf
+WorkingDirectory=%h/GitHub/MyConvergio
+ExecStart=%h/.myconvergio/scripts/myconvergio-nightly-guardian.sh
+TimeoutStartSec=3h
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=default.target

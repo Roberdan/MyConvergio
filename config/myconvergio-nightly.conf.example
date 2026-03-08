@@ -1,0 +1,15 @@
+# MyConvergio nightly guardian configuration
+# Copy to ~/.myconvergio/config/myconvergio-nightly.conf and edit as needed.
+
+MYCONVERGIO_REPO_PATH="$HOME/GitHub/MyConvergio"
+MYCONVERGIO_DEFAULT_BRANCH="master"
+MYCONVERGIO_GITHUB_REPO="Roberdan/MyConvergio"
+MYCONVERGIO_MODEL="gpt-5.3-codex"
+MYCONVERGIO_MAX_ITEMS=6
+MYCONVERGIO_PROJECT_AGENT_REL_PATH=".github/agents/night-maintenance.agent.md"
+MYCONVERGIO_RUN_FIXES=true
+MYCONVERGIO_REQUIRE_HUMAN_REVIEW=true
+MYCONVERGIO_AUTO_MERGE=false
+MYCONVERGIO_MAX_CHANGES_PER_RUN=3
+MYCONVERGIO_MAX_STALE_PR_DAYS=7
+MYCONVERGIO_FIX_TIMEOUT_SEC=5400

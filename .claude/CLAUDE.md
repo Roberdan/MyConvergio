@@ -1,4 +1,4 @@
-<!-- v11.0.0 -->
+<!-- v11.1.0 -->
 
 # Claude Config
 
@@ -64,18 +64,21 @@ Code, comments, and docs in English. Conversation in Italian or English unless u
 - No direct done transitions without Thor validation.
 - Do not skip DB state updates across compaction boundaries.
 
-## Hook References (v11)
+## Hook Enforcement (v11.1)
 
-Primary active enforcement is in `.claude/hooks/`, including:
+Active hooks in `.claude/hooks/`:
 
-- `enforce-planner-workflow.sh`
-- `inject-agent-context.sh`
-- `model-registry-refresh.sh`
-- `session-end-tokens.sh`, `track-tokens.sh`
-- `worktree-setup.sh`, `worktree-teardown.sh`
-- `env-vault-guard.sh`, `version-check.sh`
+| Hook | Event | Purpose |
+|---|---|---|
+| `workflow-enforcer.sh` | PreToolUse | Blocks EnterPlanMode, direct plan-db create, edit outside worktree |
+| `post-task-enforce.sh` | PostToolUse (Bash) | Auto-checkpoint + Thor reminder after task done |
+| `inject-agent-context.sh` | PreToolUse | Agent context injection |
+| `model-registry-refresh.sh` | PreToolUse | Model registry |
+| `session-end-tokens.sh` | Stop | Token tracking |
+| `worktree-setup.sh` / `worktree-teardown.sh` | Worktree lifecycle | Isolation |
+| `version-check.sh` | PreToolUse | Version alignment |
 
-Compatibility/legacy hooks remain in root `hooks/` for broader runtime support (`guard-plan-mode.sh`, `enforce-plan-db-safe.sh`, `enforce-plan-edit.sh`).
+Legacy hooks in root `hooks/` for broader runtime compatibility.
 
 ## Operational References
 
@@ -87,3 +90,4 @@ Compatibility/legacy hooks remain in root `hooks/` for broader runtime support (
 @reference/operational/mesh-networking.md
 @reference/operational/tool-preferences.md
 @rules/guardian.md
+@rules/workflow-enforced.md

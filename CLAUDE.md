@@ -1,4 +1,4 @@
-<!-- v11.0.0 -->
+<!-- v11.1.0 -->
 
 # CLAUDE.md
 
@@ -51,7 +51,14 @@ Mandatory execution chain:
 | Validate | Thor validator | `@validate {id}` |
 | Close | PR + CI + merge, or validated deliverable | PR + CI + merge, or validated deliverable |
 
-### Anti-Bypass
+### Anti-Bypass (Hook Enforced)
+
+Hooks block violations automatically — not just documentation:
+
+| Hook | Event | Blocks |
+|---|---|---|
+| `workflow-enforcer.sh` | PreToolUse | EnterPlanMode, direct `plan-db.sh create`, edit outside worktree |
+| `post-task-enforce.sh` | PostToolUse | Reminds checkpoint + Thor after task completion |
 
 - Multi-step work (3+ tasks) must go through planner workflow.
 - Do not self-declare done without verification artifacts.

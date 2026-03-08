@@ -18,7 +18,7 @@ set -euo pipefail
 # PATH hardening: ensure all tools are findable in non-login SSH shells
 export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$HOME/.claude/scripts:$PATH"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+EXECUTE_PLAN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_FILE="${HOME}/.claude/data/dashboard.db"
 LOG_DIR="${HOME}/.claude/logs/execute-plan"
 
@@ -37,8 +37,8 @@ _exec_cleanup() {
 trap _exec_cleanup EXIT INT TERM
 
 # Source shared libraries
-source "${SCRIPT_DIR}/lib/common.sh"
-source "${SCRIPT_DIR}/lib/execute-plan-engine.sh"
+source "${EXECUTE_PLAN_DIR}/lib/common.sh"
+source "${EXECUTE_PLAN_DIR}/lib/execute-plan-engine.sh"
 
 # Override log function for executor-specific prefix
 log() { echo -e "${BLUE}[EXECUTOR]${NC} $1"; }
@@ -152,7 +152,7 @@ if [[ -n "$PLAN_HOST" && "$PLAN_HOST" != "$(hostname -s)" ]]; then
 	# Check peer name from peers.conf
 	local_peer=""
 	if [[ -f "${CLAUDE_HOME:-$HOME/.claude}/config/peers.conf" ]]; then
-		source "${SCRIPT_DIR}/lib/peers.sh" 2>/dev/null || true
+		source "${EXECUTE_PLAN_DIR}/lib/peers.sh" 2>/dev/null || true
 		peers_load 2>/dev/null || true
 		local_peer="$(peers_self 2>/dev/null || echo "")"
 	fi
@@ -166,8 +166,8 @@ fi
 # ============================================================================
 # Engine availability checks
 # ============================================================================
-DELEGATE_SH="${SCRIPT_DIR}/delegate.sh"
-COPILOT_WORKER="${SCRIPT_DIR}/copilot-worker.sh"
+DELEGATE_SH="${EXECUTE_PLAN_DIR}/delegate.sh"
+COPILOT_WORKER="${EXECUTE_PLAN_DIR}/copilot-worker.sh"
 
 check_engine() {
 	# Auto-detect: pick the first available authenticated engine

@@ -13,6 +13,14 @@
 @import url('css/themes.css');
 @import url('css/components-4.css');
 @import url('css/components-5.css');
+@import url('css/chat.css');
+@import url('css/chat-tabs.css');
+@import url('css/chat-context.css');
+@import url('css/chat-monitor.css');
+@import url('css/repo-selector.css');
+@import url('css/github-panel.css');
+@import url('css/github-activity.css');
+@import url('css/nightly-jobs.css');
 @import url('css/animations.css');
 @import url('css/peer-crud.css');
 @import url('styles-mission.css');

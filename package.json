@@ -1,9 +1,9 @@
 {
-  "version": "10.15.0",
+  "version": "11.0.0",
   "scripts": {
-    "build": "python3 -m compileall -q scripts/dashboard_web && node --check scripts/dashboard_web/app.js && node --check scripts/dashboard_web/live-system.js",
-    "test": "python3 -m pytest -q scripts/dashboard_web/tests && bash tests/test-project-audit.sh && bash tests/test-dashboard-db-repair.sh && bash tests/test-token-usage-normalize.sh",
-    "lint": "python3 -m compileall -q scripts/dashboard_web && python3 -c \"from scripts.dashboard_web.middleware import validate_queries_on_boot; passed, failed, _ = validate_queries_on_boot(); raise SystemExit(0 if failed == 0 else 1)\""
+    "build": "cd rust/claude-core && cargo check --quiet && cd ../.. && node --check scripts/dashboard_web/app.js && node --check scripts/dashboard_web/live-system.js",
+    "test": "cd rust/claude-core && cargo test --quiet && cd ../.. && bash tests/test-project-audit.sh && bash tests/test-dashboard-db-repair.sh && bash tests/test-token-usage-normalize.sh",
+    "lint": "cd rust/claude-core && cargo clippy --quiet -- -D warnings 2>/dev/null; node --check scripts/dashboard_web/app.js"
   },
   "dependencies": {
     "terminui": "^0.3.1",

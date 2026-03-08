@@ -5,6 +5,11 @@
 # TTL: configurable per caller
 
 # Version: 1.2.0
+if [[ "${DIGEST_CACHE_LOADED:-0}" -eq 1 ]]; then
+	return 0
+fi
+readonly DIGEST_CACHE_LOADED=1
+
 DIGEST_CACHE_DIR="${TMPDIR:-/tmp}/claude-digest-cache"
 
 # Verify jq is available (required by all digest scripts)

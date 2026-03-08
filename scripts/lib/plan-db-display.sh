@@ -126,7 +126,7 @@ cmd_status() {
 	echo -e "${BLUE}=== Quick Status ===${NC}"
 
 	local safe_project_id=""
-	[[ -n "$project_id" ]] && safe_project_id="$(sql_escape "$project_id")"
+	[[ -n "$project_id" ]] && safe_project_id="$(sql_lit "$project_id")"
 
 	# Active plans
 	echo -e "\n${YELLOW}Active Plans:${NC}"

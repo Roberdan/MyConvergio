@@ -9,6 +9,9 @@ set -euo pipefail
 
 CLAUDE_HOME="${HOME}/.claude"
 DB_FILE="${CLAUDE_HOME}/data/dashboard.db"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./lib/sql-utils.sh
+source "$SCRIPT_DIR/lib/sql-utils.sh"
 
 # Required args
 PROJECT_ID="${1:-}"
@@ -61,13 +64,10 @@ done
 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# SQL escape helper
-sql_escape() { echo "${1//\'/\'\'}"; }
-
 # Get current version number
-SAFE_PROJECT_ID=$(sql_escape "$PROJECT_ID")
-SAFE_PLAN_NAME=$(sql_escape "$PLAN_NAME")
-CURRENT_VERSION=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) FROM plan_versions WHERE project_id='$SAFE_PROJECT_ID' AND plan_name='$SAFE_PLAN_NAME'")
+PROJECT_ID_SQL=$(sql_quote "$PROJECT_ID")
+PLAN_NAME_SQL=$(sql_quote "$PLAN_NAME")
+CURRENT_VERSION=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(version), 0) FROM plan_versions WHERE project_id=$PROJECT_ID_SQL AND plan_name=$PLAN_NAME_SQL")
 NEW_VERSION=$((CURRENT_VERSION + 1))
 
 # Get git commit hash if in repo
@@ -82,11 +82,12 @@ fi
 TASKS_BEFORE_SQL="${TASKS_BEFORE:-NULL}"
 TASKS_AFTER_SQL="${TASKS_AFTER:-NULL}"
 
-# Escape remaining string variables for SQL
-SAFE_CHANGE_TYPE=$(sql_escape "$CHANGE_TYPE")
-REASON_ESC=$(sql_escape "$REASON")
-DIFF_ESC=$(sql_escape "$DIFF_SUMMARY")
-SAFE_GIT_HASH=$(sql_escape "$GIT_HASH")
+# Quote string values for SQL
+CHANGE_TYPE_SQL=$(sql_quote "$CHANGE_TYPE")
+REASON_SQL=$(sql_quote_or_null "$REASON")
+DIFF_SQL=$(sql_quote_or_null "$DIFF_SUMMARY")
+GIT_HASH_SQL=$(sql_quote_or_null "$GIT_HASH")
+TIMESTAMP_SQL=$(sql_quote "$TIMESTAMP")
 
 # Insert version record
 sqlite3 "$DB_FILE" <<EOF
@@ -102,34 +103,34 @@ INSERT INTO plan_versions (
     git_commit_hash,
     created_at
 ) VALUES (
-    '$SAFE_PROJECT_ID',
-    '$SAFE_PLAN_NAME',
+    $PROJECT_ID_SQL,
+    $PLAN_NAME_SQL,
     $NEW_VERSION,
-    '$SAFE_CHANGE_TYPE',
-    $([ -n "$REASON" ] && echo "'$REASON_ESC'" || echo "NULL"),
+    $CHANGE_TYPE_SQL,
+    $REASON_SQL,
     $TASKS_BEFORE_SQL,
     $TASKS_AFTER_SQL,
-    $([ -n "$DIFF_SUMMARY" ] && echo "'$DIFF_ESC'" || echo "NULL"),
-    $([ -n "$GIT_HASH" ] && echo "'$SAFE_GIT_HASH'" || echo "NULL"),
-    '$TIMESTAMP'
+    $DIFF_SQL,
+    $GIT_HASH_SQL,
+    $TIMESTAMP_SQL
 );
 EOF
 
 # Also update plans table status if needed
 if [[ "$CHANGE_TYPE" == "created" ]]; then
 	PLAN_FILE="${PLAN_FOLDER}/${PLAN_NAME}.md"
-	SAFE_PLAN_FILE=$(sql_escape "$PLAN_FILE")
+	PLAN_FILE_SQL=$(sql_quote "$PLAN_FILE")
 	sqlite3 "$DB_FILE" <<EOF
 INSERT INTO plans (project_id, plan_name, plan_file, status, tasks_total, created_at)
-VALUES ('$SAFE_PROJECT_ID', '$SAFE_PLAN_NAME', '$SAFE_PLAN_FILE', 'active', ${TASKS_AFTER:-0}, '$TIMESTAMP')
+VALUES ($PROJECT_ID_SQL, $PLAN_NAME_SQL, $PLAN_FILE_SQL, 'active', ${TASKS_AFTER:-0}, $TIMESTAMP_SQL)
 ON CONFLICT(project_id, plan_name) DO UPDATE SET
     status = 'active',
     tasks_total = ${TASKS_AFTER:-tasks_total};
 EOF
 elif [[ "$CHANGE_TYPE" == "completed" ]]; then
 	sqlite3 "$DB_FILE" <<EOF
-UPDATE plans SET status = 'completed', completed_at = '$TIMESTAMP', tasks_done = tasks_total
-WHERE project_id = '$SAFE_PROJECT_ID' AND plan_name = '$SAFE_PLAN_NAME';
+UPDATE plans SET status = 'completed', completed_at = $TIMESTAMP_SQL, tasks_done = tasks_total
+WHERE project_id = $PROJECT_ID_SQL AND plan_name = $PLAN_NAME_SQL;
 EOF
 fi
 
@@ -142,7 +143,8 @@ if [[ -d "${CLAUDE_HOME}/.git" && -n "$GIT_HASH" ]]; then
 			-m "${REASON:-No reason provided}" \
 			-m "🤖 Generated with [Claude Code](https://claude.com/claude-code)" 2>/dev/null || true
 		NEW_GIT_HASH=$(git rev-parse HEAD)
-		sqlite3 "$DB_FILE" "UPDATE plan_versions SET git_commit_hash='$NEW_GIT_HASH' WHERE project_id='$SAFE_PROJECT_ID' AND plan_name='$SAFE_PLAN_NAME' AND version=$NEW_VERSION"
+		NEW_GIT_HASH_SQL=$(sql_quote "$NEW_GIT_HASH")
+		sqlite3 "$DB_FILE" "UPDATE plan_versions SET git_commit_hash=$NEW_GIT_HASH_SQL WHERE project_id=$PROJECT_ID_SQL AND plan_name=$PLAN_NAME_SQL AND version=$NEW_VERSION"
 	fi
 fi
 

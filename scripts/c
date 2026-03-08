@@ -5,8 +5,50 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=lib/c-compact.sh
 source "$SCRIPT_DIR/lib/c-compact.sh"
+
+resolve_claude_core() {
+	if [[ -n "${CLAUDE_CORE_BIN:-}" && -x "${CLAUDE_CORE_BIN}" ]]; then
+		printf '%s\n' "${CLAUDE_CORE_BIN}"
+		return 0
+	fi
+	if command -v claude-core >/dev/null 2>&1; then
+		command -v claude-core
+		return 0
+	fi
+	local local_release="$REPO_ROOT/rust/claude-core/target/release/claude-core"
+	if [[ -x "$local_release" ]]; then
+		printf '%s\n' "$local_release"
+		return 0
+	fi
+	return 1
+}
+
+run_plan_db() {
+	local core_bin
+	if core_bin="$(resolve_claude_core)"; then
+		"$core_bin" db "$@"
+		return
+	fi
+	plan-db.sh "$@"
+}
+
+run_hook_dispatch() {
+	local mode="${1:-pre}"
+	shift || true
+	local core_bin
+	if core_bin="$(resolve_claude_core)"; then
+		"$core_bin" hook "$mode" "$@"
+		return
+	fi
+	case "$mode" in
+	pre) hooks/dispatcher.sh "$@" ;;
+	post) hooks/post-dispatcher.sh "$@" ;;
+	*) _err_json "hook" "$mode" ;;
+	esac
+}
 
 _err_json() {
 	printf '{"err":"unknown","group":"%s","sub":"%s"}\n' "${1:-}" "${2:-}" >&2
@@ -17,7 +59,6 @@ GROUP="${1:-}"
 shift || true
 
 case "$GROUP" in
-
 d) # digest group → service-digest.sh | git-digest.sh | diff-digest.sh | build-digest.sh | test-digest.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -33,29 +74,36 @@ d) # digest group → service-digest.sh | git-digest.sh | diff-digest.sh | build
 	*) _err_json "d" "$SUBCMD" ;;
 	esac
 	;;
-
 p) # plan group → plan-db.sh | plan-db-safe.sh
 	SUBCMD="${1:-}"
 	shift || true
 	case "$SUBCMD" in
-	ctx) plan-db.sh get-context "$@" | c_out ;;
-	start) plan-db.sh start "$@" ;;
+	ctx) run_plan_db get-context "$@" | c_out ;;
+	start) run_plan_db start "$@" ;;
 	done) plan-db-safe.sh update-task "$@" ;;
-	val) plan-db.sh validate-task "$@" ;;
-	wave) plan-db.sh validate-wave "$@" ;;
-	import) plan-db.sh import "$@" ;;
-	complete) plan-db.sh complete "$@" ;;
-	tree) plan-db.sh execution-tree "$@" ;;
-	create) plan-db.sh create "$@" ;;
-	cancel) plan-db.sh cancel "$@" ;;
-	check) plan-db.sh check-readiness "$@" ;;
-	stale) plan-db.sh stale-check "$@" | c_out ;;
-	fail) plan-db.sh get-failures "$@" | c_out ;;
+	val) run_plan_db validate-task "$@" ;;
+	wave) run_plan_db validate-wave "$@" ;;
+	import) run_plan_db import "$@" ;;
+	complete) run_plan_db complete "$@" ;;
+	tree) run_plan_db execution-tree "$@" ;;
+	create) run_plan_db create "$@" ;;
+	cancel) run_plan_db cancel "$@" ;;
+	check) run_plan_db check-readiness "$@" ;;
+	stale) run_plan_db stale-check "$@" | c_out ;;
+	fail) run_plan_db get-failures "$@" | c_out ;;
 	--help | -h) echo "c p [ctx|start|done|val|wave|import|complete|tree|create|cancel|check|stale|fail] [args]" && echo "  equiv: plan-db.sh get-context | plan-db-safe.sh update-task | plan-db.sh create|cancel|check-readiness" ;;
 	*) _err_json "p" "$SUBCMD" ;;
 	esac
 	;;
-
+hook) # hook group → claude-core hook (preferred) | dispatcher fallback
+	SUBCMD="${1:-pre}"
+	shift || true
+	case "$SUBCMD" in
+	pre | post) run_hook_dispatch "$SUBCMD" "$@" ;;
+	--help | -h) echo "c hook [pre|post]" && echo "  equiv: claude-core hook pre|post (fallback: hooks/dispatcher.sh|hooks/post-dispatcher.sh)" ;;
+	*) _err_json "hook" "$SUBCMD" ;;
+	esac
+	;;
 db) # db-digest group → db-digest.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -67,7 +115,6 @@ db) # db-digest group → db-digest.sh
 	*) _err_json "db" "$SUBCMD" ;;
 	esac
 	;;
-
 w) # wave-worktree group → wave-worktree.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -77,7 +124,6 @@ w) # wave-worktree group → wave-worktree.sh
 	*) _err_json "w" "$SUBCMD" ;;
 	esac
 	;;
-
 lock) # file-lock group → file-lock.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -89,7 +135,6 @@ lock) # file-lock group → file-lock.sh
 	*) _err_json "lock" "$SUBCMD" ;;
 	esac
 	;;
-
 reap) # session-reaper group → session-reaper.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -101,7 +146,6 @@ reap) # session-reaper group → session-reaper.sh
 	*) _err_json "reap" "$SUBCMD" ;;
 	esac
 	;;
-
 ci) # CI group → ci-watch.sh | ci-digest.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -112,7 +156,6 @@ ci) # CI group → ci-watch.sh | ci-digest.sh
 	*) _err_json "ci" "$SUBCMD" ;;
 	esac
 	;;
-
 git) # git utility group → worktree-check.sh | worktree-guard.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -123,7 +166,6 @@ git) # git utility group → worktree-check.sh | worktree-guard.sh
 	*) _err_json "git" "$SUBCMD" ;;
 	esac
 	;;
-
 pr) # PR group → pr-ops.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -134,7 +176,6 @@ pr) # PR group → pr-ops.sh
 	*) _err_json "pr" "$SUBCMD" ;;
 	esac
 	;;
-
 tok) # token group → token-estimator.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -144,7 +185,6 @@ tok) # token group → token-estimator.sh
 	*) _err_json "tok" "$SUBCMD" ;;
 	esac
 	;;
-
 audit) # audit group → project-audit.sh | hardening-check.sh | code-pattern-check.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -156,7 +196,6 @@ audit) # audit group → project-audit.sh | hardening-check.sh | code-pattern-ch
 	*) _err_json "audit" "$SUBCMD" ;;
 	esac
 	;;
-
 branch) # branch group → branch-protect.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -167,10 +206,8 @@ branch) # branch group → branch-protect.sh
 	*) _err_json "branch" "$SUBCMD" ;;
 	esac
 	;;
-
 model) # model routing → model-router.sh
 	model-router.sh "$@" | c_out ;;
-
 mesh) # mesh networking → mesh-sync-all.sh | mesh-discover.sh | mesh-load-query.sh
 	SUBCMD="${1:-}"
 	shift || true
@@ -183,7 +220,6 @@ mesh) # mesh networking → mesh-sync-all.sh | mesh-discover.sh | mesh-load-quer
 	*) _err_json "mesh" "$SUBCMD" ;;
 	esac
 	;;
-
 --help | -h | "")
 	cat <<'EOF'
 c — unified CLI dispatcher (Version: 2.0.0)
@@ -203,11 +239,11 @@ Groups:
   c branch [check|protect]  branch-protect
   c model [--task-type T --effort N --executor-agent A]  model-router
   c mesh [sync|discover|status|load]  mesh networking
+  c hook [pre|post]  claude-core hook (fallback to shell dispatchers)
 
-Use `c <group> --help` for original script equivalents.
+ Use `c <group> --help` for original script equivalents.
 EOF
 	;;
-
 *)
 	_err_json "$GROUP" ""
 	;;

@@ -37,6 +37,9 @@ __pycache__/
 # Node modules
 node_modules/
 
+# Rust build artifacts
+rust/claude-core/target/
+
 # Editor files
 *.swp
 *.swo

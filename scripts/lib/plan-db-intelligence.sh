@@ -25,11 +25,11 @@ cmd_add_learning() {
 		esac
 	done
 
-	local safe_title="$(sql_escape "$title")"
-	local safe_detail="$(sql_escape "$detail")"
-	local safe_tags="$(sql_escape "$tags")"
-	local safe_task_id="$(sql_escape "$task_id")"
-	local safe_wave_id="$(sql_escape "$wave_id")"
+	local safe_title="$(sql_lit "$title")"
+	local safe_detail="$(sql_lit "$detail")"
+	local safe_tags="$(sql_lit "$tags")"
+	local safe_task_id="$(sql_lit "$task_id")"
+	local safe_wave_id="$(sql_lit "$wave_id")"
 
 	local id=$(sqlite3 "$DB_FILE" "
 		INSERT INTO plan_learnings (plan_id, category, severity, title, detail, task_id, wave_id, tags, actionable)
@@ -54,8 +54,8 @@ cmd_get_learnings() {
 	done
 
 	local where="WHERE plan_id = $plan_id"
-	[[ -n "$category" ]] && where="$where AND category = '$(sql_escape "$category")'"
-	[[ -n "$severity" ]] && where="$where AND severity = '$(sql_escape "$severity")'"
+	[[ -n "$category" ]] && where="$where AND category = '$(sql_lit "$category")'"
+	[[ -n "$severity" ]] && where="$where AND severity = '$(sql_lit "$severity")'"
 	[[ "$actionable_only" == "1" ]] && where="$where AND actionable = 1"
 
 	sqlite3 -header -column "$DB_FILE" "
@@ -99,11 +99,11 @@ cmd_add_review() {
 		esac
 	done
 
-	local safe_reviewer="$(sql_escape "$reviewer")"
-	local safe_suggestions="$(sql_escape "$suggestions")"
-	local safe_gaps="$(sql_escape "$gaps")"
-	local safe_risk="$(sql_escape "$risk")"
-	local safe_raw="$(sql_escape "$raw")"
+	local safe_reviewer="$(sql_lit "$reviewer")"
+	local safe_suggestions="$(sql_lit "$suggestions")"
+	local safe_gaps="$(sql_lit "$gaps")"
+	local safe_risk="$(sql_lit "$risk")"
+	local safe_raw="$(sql_lit "$raw")"
 
 	local id=$(sqlite3 "$DB_FILE" "
 		INSERT INTO plan_reviews (plan_id, reviewer_agent, verdict, fxx_coverage_score, completeness_score, suggestions, gaps, risk_assessment, raw_report)
@@ -135,8 +135,8 @@ cmd_add_assessment() {
 		esac
 	done
 
-	local safe_risk="$(sql_escape "$risk")"
-	local safe_by="$(sql_escape "$by")"
+	local safe_risk="$(sql_lit "$risk")"
+	local safe_by="$(sql_lit "$by")"
 
 	local id=$(sqlite3 "$DB_FILE" "
 		INSERT INTO plan_business_assessments (plan_id, traditional_effort_days, complexity_rating, business_value_score, risk_assessment, roi_projection, assessed_by)
@@ -209,10 +209,10 @@ cmd_estimate_tokens() {
 		esac
 	done
 
-	local safe_scope_id="$(sql_escape "$scope_id")"
-	local safe_model="$(sql_escape "$model")"
-	local safe_agent="$(sql_escape "$agent")"
-	local safe_notes="$(sql_escape "$notes")"
+	local safe_scope_id="$(sql_lit "$scope_id")"
+	local safe_model="$(sql_lit "$model")"
+	local safe_agent="$(sql_lit "$agent")"
+	local safe_notes="$(sql_lit "$notes")"
 
 	local id=$(sqlite3 "$DB_FILE" "
 		INSERT INTO plan_token_estimates (plan_id, scope, scope_id, estimated_tokens, estimated_cost_usd, model, executor_agent, notes)
@@ -253,7 +253,7 @@ cmd_update_token_actuals() {
 cmd_calibrate_estimates() {
 	local model="${1:-}"
 	local where=""
-	[[ -n "$model" ]] && where="WHERE model = '$(sql_escape "$model")'"
+	[[ -n "$model" ]] && where="WHERE model = '$(sql_lit "$model")'"
 	[[ -z "$where" ]] && where="WHERE actual_tokens IS NOT NULL" || where="$where AND actual_tokens IS NOT NULL"
 
 	sqlite3 -header -column "$DB_FILE" "

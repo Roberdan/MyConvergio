@@ -1,0 +1,18 @@
+[Unit]
+Description=MirrorBuddy Nightly Copilot Guardian
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=CLAUDE_HOME=%h/.claude
+Environment=MIRRORBUDDY_NIGHTLY_CONFIG=%h/.claude/config/mirrorbuddy-nightly.conf
+WorkingDirectory=%h/GitHub/MirrorBuddy
+ExecStart=%h/.claude/scripts/mirrorbuddy-nightly-guardian.sh
+TimeoutStartSec=3h
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=default.target

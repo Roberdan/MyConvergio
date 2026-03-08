@@ -44,7 +44,7 @@ cmd_claim() {
 	init_db
 
 	local safe_host
-	safe_host=$(sql_escape "$PLAN_DB_HOST")
+	safe_host=$(sql_lit "$PLAN_DB_HOST")
 
 	if [[ $force -eq 1 ]]; then
 		# Force claim: transition through non-doing status to satisfy execution_host protection trigger
@@ -107,7 +107,7 @@ cmd_release() {
 	init_db
 
 	local safe_host
-	safe_host=$(sql_escape "$PLAN_DB_HOST")
+	safe_host=$(sql_lit "$PLAN_DB_HOST")
 
 	local rows_updated
 	rows_updated=$(
@@ -155,7 +155,7 @@ cmd_heartbeat() {
 
 	# Insert or replace heartbeat
 	local safe_host
-	safe_host=$(sql_escape "$PLAN_DB_HOST")
+	safe_host=$(sql_lit "$PLAN_DB_HOST")
 	sqlite3 "$DB_FILE" <<-EOF
 		INSERT OR REPLACE INTO host_heartbeats (host, last_seen, plan_count, os)
 		VALUES ('${safe_host}', datetime('now'), $plan_count, '$os_name');
@@ -185,7 +185,7 @@ cmd_is_alive() {
 
 	# Check heartbeat table
 	local last_seen
-	last_seen=$(sqlite3 "$DB_FILE" "SELECT last_seen FROM host_heartbeats WHERE host = '$(sql_escape "$host")'")
+	last_seen=$(sqlite3 "$DB_FILE" "SELECT last_seen FROM host_heartbeats WHERE host = '$(sql_lit "$host")'")
 
 	if [[ -n "$last_seen" ]]; then
 		# Check if heartbeat is recent (within 5 minutes)

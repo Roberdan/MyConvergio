@@ -1,0 +1,59 @@
+.repo-selector-wrap {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+.repo-selector-label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.repo-selector-select {
+  min-width: 170px;
+}
+.repo-selector-btn {
+  font-size: 11px;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+.repo-modal {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(10, 14, 26, 0.98);
+  color: var(--text-main);
+  min-width: 360px;
+}
+.repo-modal::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+.repo-modal-form {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+.repo-modal-form h4 {
+  margin: 0;
+}
+.repo-modal-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+.repo-modal-form input,
+.repo-modal-form select {
+  background: rgba(10, 14, 26, 0.95);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  border-radius: 6px;
+  padding: 7px 9px;
+}
+.repo-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.repo-create-status {
+  min-height: 16px;
+  font-size: 11px;
+  color: var(--text-dim);
+}

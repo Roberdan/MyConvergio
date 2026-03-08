@@ -167,17 +167,20 @@ test.describe('History & Event Feed', () => {
     await expect(rows.nth(0)).toContainText('done');
   });
 
-  test('event feed renders events', async ({ page }) => {
+  test('github activity feed renders mixed GitHub events', async ({ page }) => {
     await page.waitForSelector('.event-row', { timeout: 5000 });
     const events = page.locator('.event-row');
-    await expect(events).toHaveCount(2);
-    await expect(events.nth(0)).toContainText('task status changed');
-    await expect(events.nth(1)).toContainText('wave completed');
+    await expect(events).toHaveCount(7);
+    await expect(page.locator('#event-feed-content')).toContainText('Release published');
+    await expect(page.locator('#event-feed-content')).toContainText('PR #43 opened');
+    await expect(page.locator('#event-feed-content')).toContainText('CI status update');
+    await expect(page.locator('#event-feed-content')).toContainText('Review approved');
+    await expect(page.locator('#event-feed-content')).toContainText('commits pushed');
   });
 
   test('event with plan_id has clickable link', async ({ page }) => {
     await page.waitForSelector('.event-row', { timeout: 5000 });
-    const event = page.locator('.event-row').first();
+    const event = page.locator('.event-row', { has: page.locator('.event-plan') }).first();
     await expect(event.locator('.event-plan')).toContainText('#300');
   });
 });

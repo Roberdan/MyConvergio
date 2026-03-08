@@ -6,7 +6,8 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOOKS_DIR="$SCRIPT_DIR/hooks"
 COPILOT_HOOKS_DIR="$SCRIPT_DIR/copilot-config/hooks"
-DATA_DIR="$SCRIPT_DIR/data"
+DATA_DIR="${HOME}/.claude/data"
+mkdir -p "$DATA_DIR"
 
 PASS=0
 FAIL=0

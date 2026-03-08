@@ -1,0 +1,62 @@
+# Per-role instruction profile mapping (F-29 / T14-01)
+# role -> required instruction sets grouped by rules, references, commands.
+
+executor:
+  rules:
+    - rules/guardian.md
+    - rules/compaction-preservation.md
+  references:
+    - reference/operational/tool-preferences.md
+    - reference/operational/plan-scripts.md
+    - reference/operational/worktree-discipline.md
+    - reference/operational/enforcement-hooks.md
+    - reference/operational/execution-optimization.md
+    - reference/operational/universal-orchestration.md
+  commands:
+    - commands/execute.md
+    - reference/commands/execute/initialize-and-readiness.md
+    - reference/commands/execute/task-routing-and-tracking.md
+    - reference/commands/execute/validation-merge-completion.md
+
+validator:
+  rules:
+    - rules/guardian.md
+    - rules/compaction-preservation.md
+  references:
+    - reference/operational/tool-preferences.md
+    - reference/operational/enforcement-hooks.md
+    - reference/operational/plan-db-schema.md
+    - reference/operational/copilot-alignment.md
+    - reference/operational/universal-orchestration.md
+  commands:
+    - copilot-agents/validate.agent.md
+    - commands/check.md
+
+planner:
+  rules:
+    - rules/guardian.md
+    - rules/compaction-preservation.md
+  references:
+    - reference/operational/plan-scripts.md
+    - reference/operational/plan-db-schema.md
+    - reference/operational/worktree-discipline.md
+    - reference/operational/universal-orchestration.md
+    - reference/operational/agent-routing.md
+  commands:
+    - commands/planner.md
+    - reference/commands/planner/core-workflow.md
+    - reference/commands/planner/quality-gates.md
+    - reference/commands/planner/merge-and-intelligence.md
+
+reviewer:
+  rules:
+    - rules/guardian.md
+    - rules/compaction-preservation.md
+  references:
+    - reference/operational/tool-preferences.md
+    - reference/operational/copilot-alignment.md
+    - reference/operational/agent-routing.md
+    - reference/operational/universal-orchestration.md
+  commands:
+    - copilot-agents/code-reviewer.agent.md
+    - commands/check.md

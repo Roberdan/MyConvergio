@@ -96,22 +96,22 @@ cmd_add_wave() {
 	local project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM plans WHERE id = $plan_id;")
 	local position=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(position), 0) + 1 FROM waves WHERE plan_id = $plan_id;")
 
-	local safe_planned_start="$(sql_escape "$planned_start")"
-	local safe_planned_end="$(sql_escape "$planned_end")"
-	local safe_depends_val="$(sql_escape "$depends_on")"
+	local safe_planned_start="$(sql_lit "$planned_start")"
+	local safe_planned_end="$(sql_lit "$planned_end")"
+	local safe_depends_val="$(sql_lit "$depends_on")"
 
 	local start_val="NULL" end_val="NULL" depends_val="NULL" precond_val="NULL"
 	[[ -n "$planned_start" ]] && start_val="'$safe_planned_start'"
 	[[ -n "$planned_end" ]] && end_val="'$safe_planned_end'"
 	[[ -n "$depends_on" ]] && depends_val="'$safe_depends_val'"
-	[[ -n "$precondition" ]] && precond_val="'$(sql_escape "$precondition")'"
+	[[ -n "$precondition" ]] && precond_val="'$(sql_lit "$precondition")'"
 
-	local safe_wave_id="$(sql_escape "$wave_id")"
-	local safe_name="$(sql_escape "$name")"
-	local safe_assignee="$(sql_escape "$assignee")"
-	local safe_merge_mode="$(sql_escape "$merge_mode")"
+	local safe_wave_id="$(sql_lit "$wave_id")"
+	local safe_name="$(sql_lit "$name")"
+	local safe_assignee="$(sql_lit "$assignee")"
+	local safe_merge_mode="$(sql_lit "$merge_mode")"
 	local theme_val="NULL"
-	[[ -n "$theme" ]] && theme_val="'$(sql_escape "$theme")'"
+	[[ -n "$theme" ]] && theme_val="'$(sql_lit "$theme")'"
 	sqlite3 "$DB_FILE" "
         INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position, estimated_hours, planned_start, planned_end, depends_on, precondition, merge_mode, theme)
         VALUES ('$project_id', $plan_id, '$safe_wave_id', '$safe_name', 'pending', '$safe_assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val, $precond_val, '$safe_merge_mode', $theme_val);
@@ -162,7 +162,7 @@ cmd_set_wave_worktree() {
 	local wave_db_id="$1"
 	local wt_path="$2"
 	local normalized="$(_normalize_path "$wt_path")"
-	local safe_path="$(sql_escape "$normalized")"
+	local safe_path="$(sql_lit "$normalized")"
 	sqlite3 "$DB_FILE" "UPDATE waves SET worktree_path = '$safe_path' WHERE id = $wave_db_id;"
 	log_info "Set wave worktree for wave $wave_db_id: $normalized"
 }
@@ -170,7 +170,7 @@ cmd_set_wave_worktree() {
 cmd_cancel_wave() {
 	local wave_db_id="$1"
 	local reason="${2:-Cancelled by user}"
-	local safe_reason="$(sql_escape "$reason")"
+	local safe_reason="$(sql_lit "$reason")"
 
 	local wave_status wave_id
 	IFS='|' read -r wave_status wave_id < <(sqlite3 "$DB_FILE" "SELECT status, wave_id FROM waves WHERE id = $wave_db_id;")

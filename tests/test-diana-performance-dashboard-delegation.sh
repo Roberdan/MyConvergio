@@ -11,13 +11,17 @@ if [[ ! -f "$AGENT_FILE" ]]; then
 fi
 
 FAIL=0
-grep -i 'delegation' "$AGENT_FILE" || {
-	echo "FAIL: no 'delegation' found"
+grep -q '^name: diana-performance-dashboard' "$AGENT_FILE" || {
+	echo "FAIL: missing agent name frontmatter"
 	FAIL=$((FAIL + 1))
 }
-grep -E 'KPI|model_effectiveness' "$AGENT_FILE" || {
-	echo "FAIL: no KPI/model_effectiveness found"
+grep -q '^## Rules' "$AGENT_FILE" || {
+	echo "FAIL: missing compact Rules section"
+	FAIL=$((FAIL + 1))
+}
+grep -q '^## Commands' "$AGENT_FILE" || {
+	echo "FAIL: missing compact Commands section"
 	FAIL=$((FAIL + 1))
 }
 
-[ "$FAIL" -eq 0 ] && echo "PASS: diana delegation checks" || exit 1
+[ "$FAIL" -eq 0 ] && echo "PASS: diana compact agent checks" || exit 1

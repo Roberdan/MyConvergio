@@ -197,13 +197,19 @@ test.describe("History panel", () => {
 });
 
 test.describe("Event feed", () => {
-  test("events render with correct icons", async ({ page, mockApis }) => {
+  test("events render as GitHub activity timeline", async ({ page, mockApis }) => {
     await mockApis();
     await page.goto("/");
     await page.waitForSelector(".kpi-bar .kpi-card", { timeout: 5000 });
 
     const eventRows = page.locator(".event-row");
-    await expect(eventRows).toHaveCount(2);
+    await expect(eventRows).toHaveCount(7);
+    await expect(page.locator("#event-feed-content")).toContainText(
+      "Release published",
+    );
+    await expect(page.locator("#event-feed-content")).toContainText(
+      "Review approved",
+    );
   });
 
   test("event with plan_id is clickable", async ({ page, mockApis }) => {
@@ -219,12 +225,20 @@ test.describe("Event feed", () => {
   });
 
   test("empty events show placeholder", async ({ page, mockApis }) => {
-    await mockApis({ events: [] });
+    await mockApis({
+      githubEvents: {
+        ok: true,
+        project_id: "proj-1",
+        repo: "test/repo",
+        local_events: [],
+        remote_events: [],
+      },
+    });
     await page.goto("/");
     await page.waitForSelector(".kpi-bar .kpi-card", { timeout: 5000 });
 
     await expect(page.locator("#event-feed-content")).toContainText(
-      "No events",
+      "No GitHub activity",
     );
   });
 });

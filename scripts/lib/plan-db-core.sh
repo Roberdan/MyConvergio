@@ -6,6 +6,8 @@
 DB_FILE="${HOME}/.claude/data/dashboard.db"
 AUDIT_LOG="${AUDIT_LOG:-${HOME}/.claude/data/thor-audit.jsonl}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=./sql-utils.sh
+source "$SCRIPT_DIR/lib/sql-utils.sh"
 
 # Resolve canonical peer name via Tailscale IP match (stable across hostname changes)
 if [[ -f "$SCRIPT_DIR/lib/peers.sh" ]] && ! declare -F peers_self &>/dev/null; then
@@ -139,11 +141,6 @@ _migrate_counter_triggers() {
 			END;
 		" 2>/dev/null || true
 	fi
-}
-
-# Escape single quotes for SQL
-sql_escape() {
-	printf '%s' "$1" | tr '\n\r' '  ' | sed "s/'/''/g"
 }
 
 # Convert YAML spec to temp JSON, or pass JSON through unchanged.

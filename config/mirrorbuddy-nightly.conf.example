@@ -1,0 +1,12 @@
+# MirrorBuddy nightly guardian configuration
+# Copy to ~/.claude/config/mirrorbuddy-nightly.conf and edit values as needed.
+
+MIRRORBUDDY_REPO_PATH="$HOME/GitHub/MirrorBuddy"
+MIRRORBUDDY_DEFAULT_BRANCH="main"
+MIRRORBUDDY_GITHUB_REPO="FightTheStroke/MirrorBuddy"
+MIRRORBUDDY_MODEL="gpt-5.3-codex"
+MIRRORBUDDY_MAX_ITEMS=6
+MIRRORBUDDY_RUN_FIXES=true
+MIRRORBUDDY_RUN_RELEASE_GATE=false
+MIRRORBUDDY_AUTO_MERGE=false
+MIRRORBUDDY_FIX_TIMEOUT_SEC=5400

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # test-helpers.sh: Common test utilities and assertions
-# Usage: source "$(dirname "${BASH_SOURCE[0]}")/lib/test-helpers.sh"
+# Usage:
+#   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/test-helpers.sh"
+#   setup_test_env
 
 # Colors
 export RED='\033[0;31m' GREEN='\033[0;32m' YELLOW='\033[1;33m'
@@ -10,6 +10,16 @@ export BLUE='\033[0;34m' NC='\033[0m' RESET='\033[0m'
 
 # Test counters
 export TESTS_RUN=0 TESTS_PASSED=0 TESTS_FAILED=0
+
+# Shared test environment setup.
+setup_test_env() {
+  local caller_dir
+  caller_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
+  export SCRIPT_DIR="$caller_dir"
+  export TESTS_DIR="$caller_dir"
+  export REPO_ROOT="$(cd "$caller_dir/.." && pwd)"
+  export WORKTREE_ROOT="$REPO_ROOT"
+}
 
 # Get script directory
 get_script_dir() { cd "$(dirname "${BASH_SOURCE[1]}")" && pwd; }

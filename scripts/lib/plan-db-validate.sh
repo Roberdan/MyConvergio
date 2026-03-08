@@ -12,6 +12,21 @@ source "${PLAN_DB_VALIDATE_LIB_DIR}/validate-wave.sh"
 source "${PLAN_DB_VALIDATE_LIB_DIR}/validate-plan.sh"
 source "${PLAN_DB_VALIDATE_LIB_DIR}/validate-fxx.sh"
 
+# VALIDATION OWNERSHIP MATRIX
+# - task-done-transition: scripts/plan-db.sh update-task guard (+ plan-db-safe.sh flow)
+# - plan-start-gates: cmd_start -> cmd_check_readiness (planner review gates)
+# - plan-complete-thor: cmd_complete (requires Thor plan validation + resolved tasks)
+# Hooks must stay advisory-only for these checks to avoid duplicate hard-fail paths.
+plan_db_validation_owner() {
+	local validation_key="${1:-}"
+	case "$validation_key" in
+	task-done-transition) echo "scripts/plan-db.sh:update-task-guard" ;;
+	plan-start-gates) echo "scripts/lib/plan-db-update.sh:cmd_start/cmd_check_readiness" ;;
+	plan-complete-thor) echo "scripts/lib/plan-db-update.sh:cmd_complete" ;;
+	*) return 1 ;;
+	esac
+}
+
 # Detect cycles in wave dependency graph (DFS 3-color)
 # Usage: detect_precondition_cycles <plan_id>
 # Returns 0 if no cycles, 1 if cycle found (prints path to stderr)

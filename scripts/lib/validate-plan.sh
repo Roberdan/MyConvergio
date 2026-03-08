@@ -188,7 +188,7 @@ cmd_auto_approve() {
 		return 1
 	fi
 	local safe_reason
-	safe_reason=$(sql_escape "$reason")
+	safe_reason=$(sql_lit "$reason")
 	# Insert missing reviews only (idempotent)
 	local review_count biz_count challenger_count approval_count
 	review_count=$(sqlite3 "$DB_FILE" \

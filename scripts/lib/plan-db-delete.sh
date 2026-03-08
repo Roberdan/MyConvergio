@@ -7,7 +7,7 @@
 cmd_cancel() {
 	local plan_id="$1"
 	local reason="${2:-Cancelled by user}"
-	local safe_reason="$(sql_escape "$reason")"
+	local safe_reason="$(sql_lit "$reason")"
 
 	local current_status
 	current_status=$(sqlite3 "$DB_FILE" "SELECT status FROM plans WHERE id = $plan_id;")
@@ -57,7 +57,7 @@ SQL
 cmd_cancel_wave() {
 	local wave_db_id="$1"
 	local reason="${2:-Cancelled by user}"
-	local safe_reason="$(sql_escape "$reason")"
+	local safe_reason="$(sql_lit "$reason")"
 
 	local wave_status wave_id
 	IFS='|' read -r wave_status wave_id < <(sqlite3 "$DB_FILE" "SELECT status, wave_id FROM waves WHERE id = $wave_db_id;")
@@ -95,7 +95,7 @@ SQL
 cmd_cancel_task() {
 	local task_db_id="$1"
 	local reason="${2:-Cancelled by user}"
-	local safe_reason="$(sql_escape "$reason")"
+	local safe_reason="$(sql_lit "$reason")"
 
 	local task_status task_id
 	IFS='|' read -r task_status task_id < <(sqlite3 "$DB_FILE" "SELECT status, task_id FROM tasks WHERE id = $task_db_id;")

@@ -81,15 +81,15 @@ cmd_add_task() {
 	local project_id wave_id_text plan_id
 	IFS='|' read -r project_id wave_id_text plan_id < <(sqlite3 "$DB_FILE" "SELECT project_id, wave_id, plan_id FROM waves WHERE id = $db_wave_id;")
 
-	local safe_task_id="$(sql_escape "$task_id")"
-	local safe_title="$(sql_escape "$title")"
-	local safe_priority="$(sql_escape "$priority")"
-	local safe_type="$(sql_escape "$type")"
-	local safe_assignee="$(sql_escape "$assignee")"
-	local safe_test_criteria="$(sql_escape "$test_criteria")"
-	local safe_model="$(sql_escape "$model")"
-	local safe_description="$(sql_escape "$description")"
-	local safe_executor_agent="$(sql_escape "$executor_agent")"
+	local safe_task_id="$(sql_lit "$task_id")"
+	local safe_title="$(sql_lit "$title")"
+	local safe_priority="$(sql_lit "$priority")"
+	local safe_type="$(sql_lit "$type")"
+	local safe_assignee="$(sql_lit "$assignee")"
+	local safe_test_criteria="$(sql_lit "$test_criteria")"
+	local safe_model="$(sql_lit "$model")"
+	local safe_description="$(sql_lit "$description")"
+	local safe_executor_agent="$(sql_lit "$executor_agent")"
 
 	local tc_val="NULL"
 	[[ -n "$test_criteria" ]] && tc_val="'$safe_test_criteria'"
@@ -138,7 +138,7 @@ cmd_update_task() {
 		esac
 	done
 
-	local notes_escaped=$(sql_escape "$notes")
+	local notes_escaped=$(sql_lit "$notes")
 
 	# Validate JSON if output_data provided
 	if [[ -n "$output_data" ]]; then
@@ -180,7 +180,7 @@ cmd_update_task() {
 	[[ -n "$tokens" ]] && tokens_sql=", tokens = $tokens"
 
 	local output_sql=""
-	[[ -n "$output_data" ]] && output_sql=", output_data = '$(sql_escape "$output_data")'"
+	[[ -n "$output_data" ]] && output_sql=", output_data = '$(sql_lit "$output_data")'"
 
 	if [[ "$status" == "in_progress" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
@@ -232,7 +232,7 @@ cmd_update_task() {
 cmd_cancel_task() {
 	local task_db_id="$1"
 	local reason="${2:-Cancelled by user}"
-	local safe_reason="$(sql_escape "$reason")"
+	local safe_reason="$(sql_lit "$reason")"
 
 	local task_status task_id
 	IFS='|' read -r task_status task_id < <(sqlite3 "$DB_FILE" "SELECT status, task_id FROM tasks WHERE id = $task_db_id;")

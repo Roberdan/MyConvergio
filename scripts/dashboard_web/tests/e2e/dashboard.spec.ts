@@ -23,7 +23,7 @@ test.describe('Dashboard Core', () => {
 
   test('KPI bar renders all cards with correct values', async ({ page }) => {
     const cards = page.locator('.kpi-bar .kpi-card');
-    await expect(cards).toHaveCount(5);
+    await expect(cards).toHaveCount(9);
 
     // Active plans
     await expect(cards.nth(0)).toContainText('Active');
@@ -45,6 +45,16 @@ test.describe('Dashboard Core', () => {
     await expect(cards.nth(4)).toContainText('STUCK');
     await expect(cards.nth(4).locator('.kpi-value')).toHaveText('1');
     await expect(cards.nth(4)).toHaveClass(/alert/);
+
+    // GitHub KPI metrics
+    await expect(cards.nth(5)).toContainText('Lines Changed');
+    await expect(cards.nth(5).locator('.kpi-value')).toContainText('1.5K');
+    await expect(cards.nth(6)).toContainText('Commits Today');
+    await expect(cards.nth(6).locator('.kpi-value')).toHaveText('4');
+    await expect(cards.nth(7)).toContainText('Open PRs');
+    await expect(cards.nth(7).locator('.kpi-value')).toHaveText('3');
+    await expect(cards.nth(8)).toContainText('PR Merge Velocity');
+    await expect(cards.nth(8).locator('.kpi-value')).toHaveText('1.5/day');
   });
 
   test('KPI card click scrolls to target widget', async ({ page }) => {
@@ -95,7 +105,7 @@ test.describe('Dashboard Core', () => {
     await expect(page.locator('.dash-col-right')).toBeVisible();
     // Left: mission panel, task pipeline, distribution, kanban
     await expect(page.locator('.dash-col-left .widget')).toHaveCount(4);
-    // Right: mesh, brain, agent-org, live-system, event-feed, tokens, cost, history
-    await expect(page.locator('.dash-col-right .widget')).toHaveCount(8);
+    // Right: mesh, brain, agent-org, live-system, event-feed, nightly, tokens, cost, history
+    await expect(page.locator('.dash-col-right .widget')).toHaveCount(9);
   });
 });

@@ -37,7 +37,7 @@ cmd_import() {
 	local constraints_json
 	constraints_json=$(jq -c '.constraints // []' "$effective_spec" 2>/dev/null)
 	if [[ "$constraints_json" != "[]" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE plans SET constraints_json = '$(sql_escape "$constraints_json")' WHERE id=$plan_id;"
+		sqlite3 "$DB_FILE" "UPDATE plans SET constraints_json = '$(sql_lit "$constraints_json")' WHERE id=$plan_id;"
 		local constraint_count
 		constraint_count=$(echo "$constraints_json" | jq 'length')
 		log_info "Stored $constraint_count constraints for plan #$plan_id"
@@ -50,7 +50,7 @@ cmd_import() {
 		local spec_desc
 		spec_desc=$(jq -r '.description // .user_request // empty' "$effective_spec" 2>/dev/null | head -1 | cut -c1-200)
 		if [[ -n "$spec_desc" ]]; then
-			sqlite3 "$DB_FILE" "UPDATE plans SET description = '$(sql_escape "$spec_desc")' WHERE id=$plan_id;"
+			sqlite3 "$DB_FILE" "UPDATE plans SET description = '$(sql_lit "$spec_desc")' WHERE id=$plan_id;"
 			log_info "Set plan description from spec"
 		fi
 	fi
@@ -171,7 +171,7 @@ cmd_import() {
 	local current_source
 	current_source=$(sqlite3 "$DB_FILE" "SELECT source_file FROM plans WHERE id=$plan_id;")
 	if [[ -z "$current_source" || "$current_source" == "" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE plans SET source_file = '$(sql_escape "$spec_file")' WHERE id=$plan_id;"
+		sqlite3 "$DB_FILE" "UPDATE plans SET source_file = '$(sql_lit "$spec_file")' WHERE id=$plan_id;"
 	fi
 
 	# Build plan file cache: extract all 'files' arrays from spec, deduplicate, resolve ~

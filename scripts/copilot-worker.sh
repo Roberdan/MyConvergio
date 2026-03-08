@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_FILE="${HOME}/.claude/data/dashboard.db"
+CONTEXT_LOADER="${SCRIPT_DIR}/lib/agent-context-loader.sh"
 
 # PATH hardening: ensure copilot CLI is findable in non-login SSH shells
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$HOME/.claude/scripts:$PATH"
@@ -48,6 +49,7 @@ MODEL="gpt-5.3-codex"
 TIMEOUT=600
 MAX_RETRIES=3
 RETRY_DELAYS=(5 15 30) # Exponential backoff: 5s, 15s, 30s
+AGENT_ROLE="executor"
 
 # Parse optional flags
 while [[ $# -gt 0 ]]; do
@@ -118,8 +120,11 @@ AGENT_ID="copilot-${TASK_ID}-$(date +%s)"
 "$SCRIPT_DIR/plan-db.sh" agent-start "$AGENT_ID" "copilot" "${TASK_TITLE:-task-$TASK_ID}" \
 	--task "$TASK_ID" --plan "$PLAN_ID" --model "$MODEL" --host "$(hostname -s)" 2>/dev/null || true
 
-# Generate prompt
-PROMPT=$("$SCRIPT_DIR/copilot-task-prompt.sh" "$TASK_ID")
+# Generate prompt with role-scoped context bundle (fallback handled in prompt script)
+if [[ ! -x "$CONTEXT_LOADER" ]]; then
+	echo "Warning: agent-context-loader.sh not executable, continuing with default prompt context." >&2
+fi
+PROMPT=$("$SCRIPT_DIR/copilot-task-prompt.sh" "$TASK_ID" "$AGENT_ROLE")
 PROMPT_TOKENS="$(_ap_tokens "$PROMPT" 2>/dev/null || echo 0)"
 
 echo "Launching Copilot worker for task $TASK_ID (timeout: ${TIMEOUT}s, max retries: $MAX_RETRIES)..."

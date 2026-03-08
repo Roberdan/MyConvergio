@@ -1,0 +1,23 @@
+.github-activity-row {
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+
+.github-activity-icon {
+  width: 16px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.github-activity-detail {
+  padding: 0 0 6px 24px;
+  margin-bottom: 2px;
+  color: var(--text-dim);
+  font-size: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  line-height: 1.3;
+}
+
+.github-activity-local .event-type {
+  text-transform: capitalize;
+}

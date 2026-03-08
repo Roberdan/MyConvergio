@@ -1,15 +1,22 @@
 #!/bin/bash
-# RED test: settings.json must reference model-registry-refresh.sh and env-vault-guard.sh
+# Test: hook registration — checks consolidated dispatcher includes required hooks
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 fail=0
-if ! grep -q 'model-registry-refresh' ./settings.json; then
-  echo 'FAIL: model-registry-refresh.sh not registered in settings.json'
-  fail=1
-fi
-if ! grep -q 'env-vault-guard' ./settings.json; then
-  echo 'FAIL: env-vault-guard.sh not registered in settings.json'
-  fail=1
-fi
+
+check_hook() {
+  local name="$1"
+  if grep -rq "$name" "$REPO_ROOT/settings.json" "$REPO_ROOT/hooks/dispatcher.sh" "$REPO_ROOT/hooks/lib/hook-checks.sh" 2>/dev/null; then
+    echo "PASS: $name registered"
+  else
+    echo "FAIL: $name not registered"
+    fail=1
+  fi
+}
+
+check_hook "model-registry-refresh"
+check_hook "env.vault.guard"
+
 exit $fail

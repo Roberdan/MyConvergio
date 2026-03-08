@@ -36,7 +36,7 @@ cmd_validate_task() {
 		task_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE id = $identifier;" 2>/dev/null || echo "")
 	fi
 	if [[ -z "$task_db_id" && -n "$plan_id" ]]; then
-		task_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE task_id = '$(sql_escape "$identifier")' AND plan_id = $plan_id;" 2>/dev/null || echo "")
+		task_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE task_id = '$(sql_lit "$identifier")' AND plan_id = $plan_id;" 2>/dev/null || echo "")
 	fi
 
 	if [[ -z "$task_db_id" ]]; then
@@ -83,14 +83,14 @@ cmd_validate_task() {
 
 	local report_clause=""
 	if [[ -n "$report" ]]; then
-		report_clause=", validation_report = '$(sql_escape "$report")'"
+		report_clause=", validation_report = '$(sql_lit "$report")'"
 	fi
 
 	local task_id_text
 	task_id_text=$(sqlite3 "$DB_FILE" "SELECT task_id FROM tasks WHERE id = $task_db_id;")
 
 	if [[ "$task_status" == "submitted" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')), validated_at = datetime('now'), validated_by = '$(sql_escape "$effective_validator")'${report_clause} WHERE id = $task_db_id AND status = 'submitted';"
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')), validated_at = datetime('now'), validated_by = '$(sql_lit "$effective_validator")'${report_clause} WHERE id = $task_db_id AND status = 'submitted';"
 
 		local wave_fk_id plan_fk_id
 		IFS='|' read -r wave_fk_id plan_fk_id < <(sqlite3 "$DB_FILE" "SELECT wave_id_fk, plan_id FROM tasks WHERE id = $task_db_id;")
@@ -109,7 +109,7 @@ cmd_validate_task() {
 		echo -e "${GREEN}Task $task_id_text: submitted → done (validated by $effective_validator)${NC}"
 	else
 		# Task already done — still set validated_at if not already set (prevents NULL timestamp bug)
-		sqlite3 "$DB_FILE" "UPDATE tasks SET validated_at = COALESCE(validated_at, datetime('now')), validated_by = '$(sql_escape "$effective_validator")'${report_clause} WHERE id = $task_db_id;"
+		sqlite3 "$DB_FILE" "UPDATE tasks SET validated_at = COALESCE(validated_at, datetime('now')), validated_by = '$(sql_lit "$effective_validator")'${report_clause} WHERE id = $task_db_id;"
 		echo -e "${GREEN}Task $task_id_text validated by $effective_validator (legacy re-validation)${NC}"
 	fi
 

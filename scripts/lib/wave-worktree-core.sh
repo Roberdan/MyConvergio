@@ -55,8 +55,8 @@ wave_set_db() {
 	local norm_path
 	norm_path=$(_normalize_path "$worktree_path")
 	local esc_path esc_branch
-	esc_path=$(sql_escape "$norm_path")
-	esc_branch=$(sql_escape "$branch_name")
+	esc_path=$(sql_lit "$norm_path")
+	esc_branch=$(sql_lit "$branch_name")
 	db_query "UPDATE waves SET worktree_path='${esc_path}', branch_name='${esc_branch}' WHERE id=${wave_db_id};"
 	log_info "Wave ${wave_db_id}: worktree_path='${norm_path}' branch_name='${branch_name}'"
 }

@@ -73,14 +73,14 @@ cmd_validate_task() {
 
 	local report_clause=""
 	if [[ -n "$report" ]]; then
-		report_clause=", validation_report = '$(sql_escape "$report")'"
+		report_clause=", validation_report = '$(sql_lit "$report")'"
 	fi
 
 	local task_id_text
 	task_id_text=$(sqlite3 "$DB_FILE" "SELECT task_id FROM tasks WHERE id = $task_db_id;")
 
 	if [[ "$task_status" == "submitted" ]]; then
-		sqlite3 "$DB_FILE" "UPDATE tasks SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')), validated_at = datetime('now'), validated_by = '$(sql_escape "$effective_validator")'${report_clause} WHERE id = $task_db_id AND status = 'submitted';"
+		sqlite3 "$DB_FILE" "UPDATE tasks SET status = 'done', completed_at = COALESCE(completed_at, datetime('now')), validated_at = datetime('now'), validated_by = '$(sql_lit "$effective_validator")'${report_clause} WHERE id = $task_db_id AND status = 'submitted';"
 
 		local wave_fk_id plan_fk_id
 		IFS='|' read -r wave_fk_id plan_fk_id < <(sqlite3 "$DB_FILE" "SELECT wave_id_fk, plan_id FROM tasks WHERE id = $task_db_id;")
@@ -106,14 +106,14 @@ UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done),0) FROM waves WHE
 			if [[ -n "$tu_started_at" ]]; then
 				local tu_end="${tu_completed_at:-$(date -u '+%Y-%m-%d %H:%M:%S')}"
 				local safe_pid
-				safe_pid=$(sql_escape "$tu_project_id")
+				safe_pid=$(sql_lit "$tu_project_id")
 				# Prefer exact task attribution first, then delegation_log fallback, then
 				# project/time-window aggregation as a last resort for legacy rows.
 				sqlite3 "$DB_FILE" "
     UPDATE tasks SET tokens = COALESCE(
       (SELECT SUM(input_tokens + output_tokens) FROM token_usage
        WHERE plan_id = $plan_fk_id
-         AND CAST(task_id AS TEXT) IN (CAST($task_db_id AS TEXT), '$(sql_escape "$task_id_text")')),
+         AND CAST(task_id AS TEXT) IN (CAST($task_db_id AS TEXT), '$(sql_lit "$task_id_text")')),
       (SELECT SUM(prompt_tokens + response_tokens) FROM delegation_log
        WHERE task_db_id = $task_db_id),
       (SELECT SUM(input_tokens + output_tokens) FROM token_usage
@@ -128,7 +128,7 @@ UPDATE plans SET tasks_done = (SELECT COALESCE(SUM(tasks_done),0) FROM waves WHE
 
 		echo -e "${GREEN}Task $task_id_text: submitted → done (validated by $effective_validator)${NC}"
 	else
-		sqlite3 "$DB_FILE" "UPDATE tasks SET validated_at = datetime('now'), validated_by = '$(sql_escape "$effective_validator")'${report_clause} WHERE id = $task_db_id;"
+		sqlite3 "$DB_FILE" "UPDATE tasks SET validated_at = datetime('now'), validated_by = '$(sql_lit "$effective_validator")'${report_clause} WHERE id = $task_db_id;"
 		echo -e "${GREEN}Task $task_id_text validated by $effective_validator (legacy re-validation)${NC}"
 	fi
 

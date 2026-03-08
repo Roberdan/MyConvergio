@@ -311,7 +311,7 @@ incremental_sync() {
 	local local_host="${LOCAL_CANONICAL_HOST:-${HOSTNAME:-$(hostname -s 2>/dev/null || hostname)}}"
 	local_host="${local_host%.local}"
 	local safe_local_host
-	safe_local_host=$(sql_escape "$local_host")
+	safe_local_host=$(sql_lit "$local_host")
 
 	# PUSH: locally-executed plans changed since last sync
 	local pid
@@ -361,9 +361,9 @@ incremental_sync() {
 	local heartbeat_sql=""
 	while IFS='|' read -r host seen count os; do
 		local safe_host safe_seen safe_os
-		safe_host=$(sql_escape "$host")
-		safe_seen=$(sql_escape "$seen")
-		safe_os=$(sql_escape "$os")
+		safe_host=$(sql_lit "$host")
+		safe_seen=$(sql_lit "$seen")
+		safe_os=$(sql_lit "$os")
 		heartbeat_sql="${heartbeat_sql}INSERT OR REPLACE INTO host_heartbeats (host, last_seen, plan_count, os) VALUES ('$safe_host', '$safe_seen', $count, '$safe_os');"
 	done < <(sqlite3 "$LOCAL_DB" "SELECT host, last_seen, plan_count, os FROM host_heartbeats;" 2>/dev/null)
 

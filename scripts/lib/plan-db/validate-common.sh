@@ -46,7 +46,7 @@ task_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE id = $identifier;" 2
 fi
 
 if [[ -z "$task_db_id" && -n "$plan_id" ]]; then
-task_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE task_id = '$(sql_escape "$identifier")' AND plan_id = $plan_id;" 2>/dev/null || echo "")
+task_db_id=$(sqlite3 "$DB_FILE" "SELECT id FROM tasks WHERE task_id = '$(sql_lit "$identifier")' AND plan_id = $plan_id;" 2>/dev/null || echo "")
 fi
 
 echo "$task_db_id"

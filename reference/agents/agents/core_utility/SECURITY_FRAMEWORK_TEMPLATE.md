@@ -1,0 +1,3 @@
+# Lazy include: SECURITY_FRAMEWORK_TEMPLATE
+
+@agents/core_utility/SECURITY_FRAMEWORK_TEMPLATE.md

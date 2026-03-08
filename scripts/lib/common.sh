@@ -3,6 +3,10 @@
 # Version: 1.0.0
 # Used by: execute-plan.sh, sync-dashboard-db.sh, pr-ops.sh, sync-to-myconvergio.sh
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./sql-utils.sh
+source "$SCRIPT_DIR/sql-utils.sh"
+
 # ============================================================================
 # Colors
 # ============================================================================
@@ -24,13 +28,6 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 step() { echo -e "${CYAN}  -->${NC} $1"; }
-
-# ============================================================================
-# SQL escape helper
-# ============================================================================
-sql_escape() {
-    echo "${1//\'/\'\'}"
-}
 
 # ============================================================================
 # SSH connectivity check

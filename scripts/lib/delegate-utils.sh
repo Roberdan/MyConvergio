@@ -4,9 +4,11 @@
 
 DELEGATE_UTILS_DB_FILE="${DELEGATE_UTILS_DB_FILE:-${CLAUDE_HOME:-$HOME/.claude}/data/dashboard.db}"
 DELEGATE_UTILS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=./sql-utils.sh
+source "$DELEGATE_UTILS_SCRIPT_DIR/lib/sql-utils.sh"
 
-delegate_utils_sql_escape() {
-	printf '%s' "$1" | sed "s/'/''/g"
+delegate_utils_sql_lit() {
+	sql_lit "$1"
 }
 
 validate_numeric() {
@@ -132,13 +134,13 @@ log_delegation() {
 	local provider="${4:-}" model="${5:-}" prompt_tokens="${6:-0}" response_tokens="${7:-0}"
 	local duration_ms="${8:-0}" exit_code="${9:-1}" thor_result="${10:-UNKNOWN}"
 	local cost_estimate="${11:-0}" privacy_level="${12:-public}"
-	local project_id_esc provider_esc model_esc thor_result_esc privacy_level_esc
+	local project_id_sql provider_sql model_sql thor_result_sql privacy_level_sql
 
-	project_id_esc="$(delegate_utils_sql_escape "$project_id")"
-	provider_esc="$(delegate_utils_sql_escape "$provider")"
-	model_esc="$(delegate_utils_sql_escape "$model")"
-	thor_result_esc="$(delegate_utils_sql_escape "$thor_result")"
-	privacy_level_esc="$(delegate_utils_sql_escape "$privacy_level")"
+	project_id_sql="$(sql_quote "$project_id")"
+	provider_sql="$(sql_quote "$provider")"
+	model_sql="$(sql_quote "$model")"
+	thor_result_sql="$(sql_quote "$thor_result")"
+	privacy_level_sql="$(sql_quote "$privacy_level")"
 
 	sqlite3 "$DELEGATE_UTILS_DB_FILE" "
 INSERT INTO delegation_log (
@@ -146,9 +148,9 @@ INSERT INTO delegation_log (
   prompt_tokens, response_tokens, duration_ms, exit_code,
   thor_result, cost_estimate, privacy_level
 ) VALUES (
-  $task_db_id, $plan_id, '$project_id_esc', '$provider_esc', '$model_esc',
+  $task_db_id, $plan_id, $project_id_sql, $provider_sql, $model_sql,
   $prompt_tokens, $response_tokens, $duration_ms, $exit_code,
-  '$thor_result_esc', $cost_estimate, '$privacy_level_esc'
+  $thor_result_sql, $cost_estimate, $privacy_level_sql
 );"
 }
 

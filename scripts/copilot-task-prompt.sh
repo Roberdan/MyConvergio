@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 # Generate self-contained prompt for Copilot CLI worker
-# Usage: copilot-task-prompt.sh <db_task_id>
+# Usage: copilot-task-prompt.sh <db_task_id> [agent_role]
 # Output: prompt string to stdout (pipe to copilot -p)
 
 # Version: 2.1.0
@@ -9,11 +9,14 @@ set -euo pipefail
 
 TASK_ID="${1:-}"
 if [[ -z "$TASK_ID" ]]; then
-	echo "Usage: copilot-task-prompt.sh <db_task_id>" >&2
+	echo "Usage: copilot-task-prompt.sh <db_task_id> [agent_role]" >&2
 	exit 1
 fi
+AGENT_ROLE="${2:-executor}"
 
 DB_FILE="${HOME}/.claude/data/dashboard.db"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONTEXT_LOADER="${SCRIPT_DIR}/lib/agent-context-loader.sh"
 
 # Fetch task + wave + plan info in one query
 TASK_JSON=$(sqlite3 "$DB_FILE" "
@@ -99,6 +102,11 @@ if [[ -x "${HOME}/.claude/scripts/execution-preflight.sh" ]]; then
 	PRECHECK_JSON="$("${HOME}/.claude/scripts/execution-preflight.sh" --plan-id "$PLAN_ID" "$WT" 2>/dev/null || echo '{}')"
 fi
 
+ROLE_CONTEXT=""
+if [[ -x "$CONTEXT_LOADER" ]]; then
+	ROLE_CONTEXT="$("$CONTEXT_LOADER" "$AGENT_ROLE" 2>/dev/null || true)"
+fi
+
 # Generate prompt
 cat <<PROMPT
 # Task Execution: $TID ($TITLE)
@@ -133,6 +141,9 @@ $PRECHECK_JSON
 3. TDD: tests FIRST, then implement
 4. If the snapshot warns about dirty worktree, missing troubleshooting, missing CI knowledge, or missing GH auth for PR/CI work, STOP and resolve before coding
 5. For auth/CI/deploy/permissions/version issues, read TROUBLESHOOTING.md, relevant ADRs, and CI knowledge before deciding the fix
+
+## Agent Instruction Context (Role: $AGENT_ROLE)
+$(if [[ -n "$ROLE_CONTEXT" ]]; then echo "$ROLE_CONTEXT"; else echo "_Role context unavailable; proceed with repository-local instructions only._"; fi)
 
 ## Task
 **Wave**: $WAVE | **Task**: $TID | **Framework**: $FW | **Plan**: $PLAN_ID

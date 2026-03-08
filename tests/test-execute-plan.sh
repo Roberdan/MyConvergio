@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXECUTE_SCRIPT="${SCRIPT_DIR}/../scripts/execute-plan.sh"
+ENGINE_LIB="${SCRIPT_DIR}/../scripts/lib/execute-plan-engine.sh"
 
 PASS=0
 FAIL=0
@@ -85,6 +86,7 @@ fi
 # -------------------------------------------------------------------
 echo "--- T5: Required components referenced ---"
 CONTENT=$(cat "$EXECUTE_SCRIPT")
+ENGINE_CONTENT="$(cat "$ENGINE_LIB")"
 
 if echo "$CONTENT" | grep -q "delegate.sh"; then
 	pass "References delegate.sh"
@@ -98,19 +100,19 @@ else
 	fail "Missing copilot-worker.sh reference"
 fi
 
-if echo "$CONTENT" | grep -q "validate_task"; then
+if echo "$ENGINE_CONTENT" | grep -q "validate_task"; then
 	pass "Has validate_task function"
 else
 	fail "Missing validate_task function"
 fi
 
-if echo "$CONTENT" | grep -q "validate_wave"; then
+if echo "$ENGINE_CONTENT" | grep -q "validate_wave"; then
 	pass "Has validate_wave function"
 else
 	fail "Missing validate_wave function"
 fi
 
-if echo "$CONTENT" | grep -q "plan-db.sh"; then
+if echo "$ENGINE_CONTENT" | grep -q "plan-db.sh"; then
 	pass "References plan-db.sh"
 else
 	fail "Missing plan-db.sh reference"
@@ -164,7 +166,7 @@ else
 	fail "Missing FROM_TASK variable"
 fi
 
-if echo "$CONTENT" | grep -q "should_skip_task"; then
+if echo "$ENGINE_CONTENT" | grep -q "should_skip_task"; then
 	pass "should_skip_task function exists"
 else
 	fail "Missing should_skip_task function"
@@ -190,19 +192,19 @@ fi
 # T10: Summary output
 # -------------------------------------------------------------------
 echo "--- T10: Summary section ---"
-if echo "$CONTENT" | grep -q "EXECUTION SUMMARY"; then
+if echo "$ENGINE_CONTENT" | grep -q "EXECUTION SUMMARY"; then
 	pass "Has execution summary section"
 else
 	fail "Missing execution summary"
 fi
 
-if echo "$CONTENT" | grep -q "TOTAL_TASKS"; then
+if echo "$ENGINE_CONTENT" | grep -q "TOTAL_TASKS"; then
 	pass "Tracks total tasks"
 else
 	fail "Missing total tasks tracking"
 fi
 
-if echo "$CONTENT" | grep -q "FAILED_TASKS"; then
+if echo "$ENGINE_CONTENT" | grep -q "FAILED_TASKS"; then
 	pass "Tracks failed tasks"
 else
 	fail "Missing failed tasks tracking"

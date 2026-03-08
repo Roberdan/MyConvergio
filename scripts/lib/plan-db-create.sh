@@ -33,14 +33,14 @@ esac
 done
 set -u
 
-local safe_project_id="$(sql_escape "$project_id")"
-local safe_name="$(sql_escape "$name")"
+local safe_project_id="$(sql_lit "$project_id")"
+local safe_name="$(sql_lit "$name")"
 [[ "$name" == *"-Main"* || "$name" == *"-Master"* ]] && is_master=1
 if [[ $is_master -eq 0 ]]; then
 local base_name="${name%%-Phase*}"
 base_name="${base_name%%-[0-9]*}"
 local master_id
-master_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name LIKE '$(sql_escape "$base_name")%' AND is_master=1 LIMIT 1;")
+master_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name LIKE '$(sql_lit "$base_name")%' AND is_master=1 LIMIT 1;")
 [[ -n "$master_id" ]] && parent_id="$master_id"
 fi
 if [[ -z "$description" && -n "$source_file" && -f "$source_file" ]]; then
@@ -48,14 +48,14 @@ description=$(grep -v '^\s*#' "$source_file" | grep -v '^\s*//' | grep -v '^\s*$
 fi
 
 local sf_val="NULL" mp_val="NULL" md_val="NULL" wp_val="NULL" desc_val="NULL" hs_val="NULL"
-[[ -n "$source_file" ]] && sf_val="'$(sql_escape "$source_file")'"
+[[ -n "$source_file" ]] && sf_val="'$(sql_lit "$source_file")'"
 if [[ -n "$markdown_path" ]]; then
-mp_val="'$(sql_escape "$markdown_path")'"
-md_val="'$(sql_escape "$(dirname "$markdown_path")")'"
+mp_val="'$(sql_lit "$markdown_path")'"
+md_val="'$(sql_lit "$(dirname "$markdown_path")")'"
 fi
-[[ -n "$worktree_path" ]] && wp_val="'$(sql_escape "$(_normalize_path "$worktree_path")")'"
-[[ -n "$description" ]] && desc_val="'$(sql_escape "$description")'"
-[[ -n "$human_summary" ]] && hs_val="'$(sql_escape "$human_summary")'"
+[[ -n "$worktree_path" ]] && wp_val="'$(sql_lit "$(_normalize_path "$worktree_path")")'"
+[[ -n "$description" ]] && desc_val="'$(sql_lit "$description")'"
+[[ -n "$human_summary" ]] && hs_val="'$(sql_lit "$human_summary")'"
 
 sqlite3 "$DB_FILE" "INSERT INTO plans (project_id, name, is_master, parent_plan_id, status, source_file, markdown_path, markdown_dir, worktree_path, description, human_summary) VALUES ('$safe_project_id', '$safe_name', $is_master, $parent_id, 'todo', $sf_val, $mp_val, $md_val, $wp_val, $desc_val, $hs_val);"
 local plan_id
@@ -81,7 +81,7 @@ mkdir -p "$plans_dir"
 markdown_path="$plans_dir/${name}-Main.md"
 norm_mp=$(_normalize_path "$markdown_path")
 norm_md=$(_normalize_path "$plans_dir")
-sqlite3 "$DB_FILE" "UPDATE plans SET markdown_path='$(sql_escape "$norm_mp")', markdown_dir='$(sql_escape "$norm_md")' WHERE id=$plan_id;"
+sqlite3 "$DB_FILE" "UPDATE plans SET markdown_path='$(sql_lit "$norm_mp")', markdown_dir='$(sql_lit "$norm_md")' WHERE id=$plan_id;"
 log_info "Auto-set markdown: $markdown_path"
 fi
 fi
@@ -112,12 +112,12 @@ local project_id position
 project_id=$(sqlite3 "$DB_FILE" "SELECT project_id FROM plans WHERE id = $plan_id;")
 position=$(sqlite3 "$DB_FILE" "SELECT COALESCE(MAX(position), 0) + 1 FROM waves WHERE plan_id = $plan_id;")
 local start_val="NULL" end_val="NULL" depends_val="NULL" precond_val="NULL" theme_val="NULL"
-[[ -n "$planned_start" ]] && start_val="'$(sql_escape "$planned_start")'"
-[[ -n "$planned_end" ]] && end_val="'$(sql_escape "$planned_end")'"
-[[ -n "$depends_on" ]] && depends_val="'$(sql_escape "$depends_on")'"
-[[ -n "$precondition" ]] && precond_val="'$(sql_escape "$precondition")'"
-[[ -n "$theme" ]] && theme_val="'$(sql_escape "$theme")'"
-local safe_wave_id="$(sql_escape "$wave_id")" safe_name="$(sql_escape "$name")" safe_assignee="$(sql_escape "$assignee")" safe_merge_mode="$(sql_escape "$merge_mode")"
+[[ -n "$planned_start" ]] && start_val="'$(sql_lit "$planned_start")'"
+[[ -n "$planned_end" ]] && end_val="'$(sql_lit "$planned_end")'"
+[[ -n "$depends_on" ]] && depends_val="'$(sql_lit "$depends_on")'"
+[[ -n "$precondition" ]] && precond_val="'$(sql_lit "$precondition")'"
+[[ -n "$theme" ]] && theme_val="'$(sql_lit "$theme")'"
+local safe_wave_id="$(sql_lit "$wave_id")" safe_name="$(sql_lit "$name")" safe_assignee="$(sql_lit "$assignee")" safe_merge_mode="$(sql_lit "$merge_mode")"
 sqlite3 "$DB_FILE" "INSERT INTO waves (project_id, plan_id, wave_id, name, status, assignee, position, estimated_hours, planned_start, planned_end, depends_on, precondition, merge_mode, theme) VALUES ('$project_id', $plan_id, '$safe_wave_id', '$safe_name', 'pending', '$safe_assignee', $position, $estimated_hours, $start_val, $end_val, $depends_val, $precond_val, '$safe_merge_mode', $theme_val);"
 local db_wave_id
 db_wave_id=$(sqlite3 "$DB_FILE" "SELECT id FROM waves WHERE plan_id=$plan_id AND wave_id='$safe_wave_id';")
@@ -147,8 +147,8 @@ set -u
 
 local project_id wave_id_text plan_id
 IFS='|' read -r project_id wave_id_text plan_id < <(sqlite3 "$DB_FILE" "SELECT project_id, wave_id, plan_id FROM waves WHERE id = $db_wave_id;")
-local safe_task_id="$(sql_escape "$task_id")" safe_title="$(sql_escape "$title")" safe_priority="$(sql_escape "$priority")" safe_type="$(sql_escape "$type")" safe_assignee="$(sql_escape "$assignee")"
-local safe_test_criteria="$(sql_escape "$test_criteria")" safe_model="$(sql_escape "$model")" safe_description="$(sql_escape "$description")" safe_executor_agent="$(sql_escape "$executor_agent")"
+local safe_task_id="$(sql_lit "$task_id")" safe_title="$(sql_lit "$title")" safe_priority="$(sql_lit "$priority")" safe_type="$(sql_lit "$type")" safe_assignee="$(sql_lit "$assignee")"
+local safe_test_criteria="$(sql_lit "$test_criteria")" safe_model="$(sql_lit "$model")" safe_description="$(sql_lit "$description")" safe_executor_agent="$(sql_lit "$executor_agent")"
 local tc_val="NULL" desc_val="NULL" exec_agent_val="NULL"
 [[ -n "$test_criteria" ]] && tc_val="'$safe_test_criteria'"
 [[ -n "$description" ]] && desc_val="'$safe_description'"

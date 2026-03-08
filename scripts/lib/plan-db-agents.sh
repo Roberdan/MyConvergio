@@ -26,21 +26,21 @@ cmd_agent_start() {
   local task_val="NULL" plan_val="NULL" model_val="NULL" region_val="NULL"
   [[ -n "$task_db_id" ]] && task_val="$task_db_id"
   [[ -n "$plan_id" ]]    && plan_val="$plan_id"
-  [[ -n "$model" ]]      && model_val="'$(sql_escape "$model")'"
-  [[ -n "$region" ]]     && region_val="'$(sql_escape "$region")'"
+  [[ -n "$model" ]]      && model_val="'$(sql_lit "$model")'"
+  [[ -n "$region" ]]     && region_val="'$(sql_lit "$region")'"
 
   local row_id
   row_id=$(sqlite3 "$DB_FILE" "
     INSERT INTO agent_activity (agent_id, task_db_id, plan_id, agent_type, model, description, status, host, region)
     VALUES (
-      '$(sql_escape "$agent_id")',
+      '$(sql_lit "$agent_id")',
       $task_val,
       $plan_val,
-      '$(sql_escape "$agent_type")',
+      '$(sql_lit "$agent_type")',
       $model_val,
-      '$(sql_escape "$description")',
+      '$(sql_lit "$description")',
       'running',
-      '$(sql_escape "$host")',
+      '$(sql_lit "$host")',
       $region_val
     );
     SELECT last_insert_rowid();
@@ -70,14 +70,14 @@ cmd_agent_complete() {
 
   sqlite3 "$DB_FILE" "
     UPDATE agent_activity SET
-      status = '$(sql_escape "$status")',
+      status = '$(sql_lit "$status")',
       tokens_in = $tokens_in,
       tokens_out = $tokens_out,
       tokens_total = $tokens_total,
       cost_usd = $cost,
       completed_at = datetime('now'),
       duration_s = ROUND((julianday('now') - julianday(started_at)) * 86400, 1)
-    WHERE agent_id = '$(sql_escape "$agent_id")' AND status = 'running';
+    WHERE agent_id = '$(sql_lit "$agent_id")' AND status = 'running';
   "
 
   # Propagate totals to parent task if linked
@@ -88,7 +88,7 @@ cmd_agent_complete() {
       agent_count = COALESCE(agent_count, 0) + 1
     WHERE id IN (
       SELECT task_db_id FROM agent_activity
-      WHERE agent_id = '$(sql_escape "$agent_id")' AND task_db_id IS NOT NULL
+      WHERE agent_id = '$(sql_lit "$agent_id")' AND task_db_id IS NOT NULL
     );
   "
 

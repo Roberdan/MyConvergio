@@ -1,398 +1,239 @@
-/* brain-canvas.js — Network graph renderer (force-directed) */
+/* brain-canvas.js — Global Agent Activity widget (standalone, all plans) */
 (() => {
   'use strict';
-  const PI2 = Math.PI * 2;
-
-  // Read CSS theme variables at init, fallback to hardcoded
-  function css(name, fb) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
-  }
-  let TH = {}; // theme cache
-  function loadTheme() {
-    const cyan = css('--cyan', '#00e5ff');
-    const green = css('--green', '#00ff88');
-    const gold = css('--gold', '#ffb700');
-    const red = css('--red', '#ff3355');
-    const dim = css('--text-dim', '#5a6080');
-    const border = css('--border', '#1a2040');
-    const bgDeep = css('--bg-deep', '#04060e');
-    const bgPanel = css('--bg-panel', '#0a0e1a');
-    const text = css('--text', '#c8d0e8');
-    TH = { cyan, green, gold, red, dim, border, bgDeep, bgPanel, text };
-  }
-
-  function statusColor(s) {
-    const map = {
-      agent_running: TH.green,
-      in_progress: TH.cyan,
-      waiting_thor: TH.gold,
-      done: TH.border,
-      pending: TH.bgPanel,
-      submitted: TH.dim,
-      blocked: TH.red,
-      waiting_ci: TH.cyan,
-      waiting_review: TH.cyan,
-      waiting_merge: TH.cyan,
-    };
-    return map[s] || TH.border;
-  }
-  function planColor(s) {
-    const map = {
-      doing: TH.cyan,
-      done: TH.green,
-      blocked: TH.red,
-      todo: TH.dim,
-    };
-    return map[s] || TH.dim;
-  }
-
+  const REGIONS = ['prefrontal', 'motor', 'parietalLeft', 'parietalRight', 'corpusCallosum', 'amygdala', 'hippocampus', 'visualCortex', 'cerebellum', 'brainstem'];
   const S = {
-    container: null,
-    canvas: null,
-    ctx: null,
-    ro: null,
-    w: 0,
-    h: 0,
-    layout: null,
-    _dataHash: '',
+    container: null, canvas: null, ctx: null, ro: null, raf: 0, w: 0, h: 0,
+    running: false, lastDataTick: 0, lastTs: 0, agents: [], clusters: [],
+    particles: [], anim: new Map(), layout: null, sessions: [], _sTick: 0, ws: null, wsRetry: 0, wsT: 0, pollT: 0, wsLive: false,
+    peerRegion: new Map(), peerStats: new Map(), activeModels: new Set(), tokenFlow: 0,
   };
-  let _raf = 0;
-  let _frozen = false;
-
-  // --- Data ---
-  function collectNodes() {
-    const plans = window._dashboardPlans || [],
-      nodes = [];
-    plans.forEach((m) => {
-      const p = m.plan || m,
-        tasks = m.tasks || p.tasks;
-      if (!tasks) return;
-      const pid = `p-${p.id}`;
-      nodes.push({
-        id: pid,
-        type: 'plan',
-        parentId: null,
-        _data: { name: p.name || `#${p.id}`, status: p.status, planId: p.id },
-      });
-      tasks.forEach((t) => {
+  const PAL = { cyan: '#00e5ff', green: '#00ff88', gold: '#ffd700', red: '#ff3366', dim: '#3a4466' };
+  const STATUS_COL = {
+    agent_running: PAL.green, in_progress: PAL.cyan, waiting_thor: PAL.gold,
+    waiting_ci: PAL.dim, waiting_review: PAL.dim, waiting_merge: PAL.dim,
+  };
+  const PLAN_COL = { doing: PAL.cyan, done: PAL.green, blocked: PAL.red };
+  const PI2 = Math.PI * 2;
+  function collectAgents() {
+    const plans = window._dashboardPlans || [], agents = [], clMap = new Map();
+    plans.forEach(p => {
+      if (!p?.tasks) return;
+      const color = PLAN_COL[p.status] || PAL.dim;
+      p.tasks.forEach(t => {
         const act = t.status === 'in_progress' || t.substatus === 'agent_running';
+        const show = act || t.substatus === 'waiting_thor' ||
+          ['waiting_ci', 'waiting_review', 'waiting_merge'].includes(t.substatus);
+        if (!show) return;
         const st = t.substatus || t.status;
-        let artifacts = [];
-        try {
-          const od =
-            typeof t.output_data === 'string'
-              ? JSON.parse(t.output_data || '{}')
-              : t.output_data || {};
-          artifacts = od.artifacts || [];
-        } catch (_) {}
-        nodes.push({
-          id: `t-${t.id}`,
-          type: 'agent',
-          parentId: pid,
-          _data: {
-            name: t.title || `Task ${t.id}`,
-            status: st,
-            isActive: act,
-            taskId: t.task_id,
-            host: t.executor_host,
-            model: t.model,
-            wave: t.wave_id,
-            planId: p.id,
-            artifacts,
-            linesAdded: t.lines_added || 0,
-            linesRemoved: t.lines_removed || 0,
-            filesChanged: t.files_changed || 0,
-          },
-        });
+        agents.push({ id: `t-${t.id}`, planId: p.id, name: t.title || `Task ${t.id}`,
+          host: t.execution_host, status: st, color: STATUS_COL[st] || PAL.dim, isActive: act });
+        if (!clMap.has(p.id)) clMap.set(p.id, { id: `p-${p.id}`, planId: p.id,
+          name: p.name || `#${p.id}`, color, status: p.status, hasActive: false });
       });
+      const cl = clMap.get(p.id);
+      if (cl) cl.hasActive = agents.some(a => a.planId === p.id && a.isActive);
     });
-    return nodes;
+    return { agents, clusters: [...clMap.values()] };
+  }
+  function an(id) {
+    if (!S.anim.has(id)) S.anim.set(id, {
+      scale: 0, alpha: 0, phase: Math.random() * PI2, state: 'appearing', t: 0, px: 0, py: 0 });
+    return S.anim.get(id);
+  }
+  function tickAnims(dt) {
+    for (const [id, a] of S.anim) {
+      a.t += dt; a.phase += dt * 0.003;
+      if (a.state === 'appearing') {
+        a.scale = Math.min(1, a.t / 300); a.alpha = a.scale;
+        if (a.scale >= 1) { a.state = 'active'; a.t = 0; }
+      } else if (a.state === 'active') { a.scale = 1 + 0.08 * Math.sin(a.phase); a.alpha = 1; }
+      else if (a.state === 'idle') {
+        a.scale = 0.85 + 0.03 * Math.sin(a.phase * 0.5); a.alpha = 0.35 + 0.1 * Math.sin(a.phase * 0.5);
+      } else if (a.state === 'completing') {
+        a.scale = Math.max(0, 1 - a.t / 500); a.alpha = a.scale;
+      }
+      if (a.state === 'completing' && a.scale <= 0) S.anim.delete(id);
+    }
   }
 
-  function dataHash(nodes) {
-    return nodes.map((n) => n.id + (n._data?.status || '')).join(',');
-  }
-
-  function syncLayout() {
-    const nodes = collectNodes();
-    const hash = dataHash(nodes);
-    if (hash === S._dataHash) return false;
-    S._dataHash = hash;
+  function doLayout() {
     if (!S.layout) S.layout = new BrainLayout(S.w, S.h);
-    S.layout.width = S.w;
-    S.layout.height = S.h;
-    S.layout.setNodes(nodes);
-    S.layout.settle();
-    return true;
+    S.layout.width = S.w; S.layout.height = S.h;
+    S.layout.setNodes([
+      ...S.clusters.map(c => ({ id: c.id, type: 'plan', parentId: null })),
+      ...S.agents.map(a => ({ id: a.id, type: 'agent', parentId: `p-${a.planId}` })),
+    ]);
+    for (let i = 0; i < 4; i++) S.layout.step();
+    for (const [id, p] of Object.entries(S.layout.getPositions())) { const a = an(id); a.px = p.x; a.py = p.y; }
   }
 
-  // --- Drawing ---
-  function drawBg(c) {
-    const g = c.createRadialGradient(S.w / 2, S.h / 2, 0, S.w / 2, S.h / 2, S.w * 0.7);
-    g.addColorStop(0, TH.bgPanel);
-    g.addColorStop(1, TH.bgDeep);
-    c.fillStyle = g;
-    c.fillRect(0, 0, S.w, S.h);
+  function tickParticles(dt) {
+    S.agents.forEach(a => {
+      if (!a.isActive) return;
+      const from = S.anim.get(a.id), to = S.anim.get(`p-${a.planId}`);
+      if (!from?.px || !to?.px) return;
+      if (Math.random() < dt * 0.003) S.particles.push({ sx: from.px, sy: from.py,
+        tx: to.px, ty: to.py, t: 0, spd: 0.7 + Math.random() * 0.5, col: a.color, sz: 1.5 + Math.random() * 1.5 });
+    });
+    for (let i = S.particles.length - 1; i >= 0; i--) {
+      const p = S.particles[i]; p.t += dt * p.spd * 0.002;
+      if (p.t >= 1) { S.particles.splice(i, 1); continue; }
+      const u = 1 - p.t, mx = (p.sx + p.tx) / 2 + (p.sy - p.ty) * 0.18, my = (p.sy + p.ty) / 2 - (p.sx - p.tx) * 0.18;
+      p.cx = u * u * p.sx + 2 * u * p.t * mx + p.t * p.t * p.tx;
+      p.cy = u * u * p.sy + 2 * u * p.t * my + p.t * p.t * p.ty;
+    }
+    if (S.particles.length > 200) S.particles.length = 200;
   }
-
-  function drawEdges(c) {
-    const L = S.layout;
-    if (!L) return;
-    L.nodes.forEach((n) => {
-      if (n.type !== 'agent' || !n.parentId) return;
-      const p = L.nodeMap.get(n.parentId);
-      if (!p) return;
-      const act = n._data?.isActive;
-      const col = statusColor(n._data?.status);
-      c.beginPath();
-      c.moveTo(n.x, n.y);
-      c.lineTo(p.x, p.y);
-      c.strokeStyle = act ? col + '88' : TH.border;
-      c.lineWidth = act ? 1.8 : 0.7;
-      c.stroke();
+  function drawGrid(c) {
+    c.strokeStyle = 'rgba(0,229,255,0.03)'; c.lineWidth = 0.5;
+    for (let x = 0; x < S.w; x += 40) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, S.h); c.stroke(); }
+    for (let y = 0; y < S.h; y += 40) { c.beginPath(); c.moveTo(0, y); c.lineTo(S.w, y); c.stroke(); }
+  }
+  function drawConns(c) {
+    S.agents.forEach(a => {
+      const fa = S.anim.get(a.id), ta = S.anim.get(`p-${a.planId}`);
+      if (!fa?.px || !ta?.px) return;
+      const mx = (fa.px + ta.px) / 2 + (fa.py - ta.py) * 0.18, my = (fa.py + ta.py) / 2 - (fa.px - ta.px) * 0.18;
+      c.beginPath(); c.moveTo(fa.px, fa.py); c.quadraticCurveTo(mx, my, ta.px, ta.py);
+      c.strokeStyle = a.isActive ? a.color + '44' : a.color + '15';
+      c.lineWidth = a.isActive ? 1.5 : 0.5; c.stroke();
     });
   }
-
-  function drawPlanNode(c, n) {
-    const d = n._data || {};
-    const col = planColor(d.status);
-    const r = 22;
-    // Glow
+  function drawParts(c) {
     c.save();
-    c.shadowBlur = 20;
-    c.shadowColor = col;
-    // Filled circle
-    c.fillStyle = col + 'cc';
-    c.beginPath();
-    c.arc(n.x, n.y, r, 0, PI2);
-    c.fill();
-    c.shadowBlur = 0;
-    // Ring
-    c.strokeStyle = col;
-    c.lineWidth = 2;
-    c.beginPath();
-    c.arc(n.x, n.y, r + 3, 0, PI2);
-    c.stroke();
-    // Label inside
-    c.fillStyle = TH.text;
-    c.font = 'bold 10px "JetBrains Mono",monospace';
-    c.textAlign = 'center';
-    c.textBaseline = 'middle';
-    c.fillText('#' + (d.planId || ''), n.x, n.y);
-    // Name below
-    const lbl = (d.name || '').length > 22 ? (d.name || '').slice(0, 20) + '..' : d.name || '';
-    c.font = '9px "JetBrains Mono",monospace';
-    c.fillStyle = TH.dim;
-    c.fillText(lbl, n.x, n.y + r + 14);
+    S.particles.forEach(p => {
+      c.globalAlpha = p.t > 0.8 ? (1 - p.t) / 0.2 : 0.9; c.fillStyle = p.col;
+      c.beginPath(); c.arc(p.cx, p.cy, p.sz, 0, PI2); c.fill();
+    });
     c.restore();
   }
-
-  function drawAgentNode(c, n) {
-    const d = n._data || {};
-    const act = d.isActive;
-    const col = statusColor(d.status);
-    const r = act ? 9 : 6;
-    c.save();
-    c.globalAlpha = act ? 1 : d.status === 'done' ? 0.35 : 0.6;
-    // Glow for active
-    if (act) {
-      c.shadowBlur = 12;
-      c.shadowColor = col;
-    }
-    // Circle
-    c.fillStyle = col;
-    c.beginPath();
-    c.arc(n.x, n.y, r, 0, PI2);
-    c.fill();
-    c.shadowBlur = 0;
-    // Thin ring
-    c.strokeStyle = col + '66';
-    c.lineWidth = 0.8;
-    c.beginPath();
-    c.arc(n.x, n.y, r + 2, 0, PI2);
-    c.stroke();
-    // Short label below
-    if (act || d.status !== 'done') {
-      const tid = d.taskId || '';
-      const short = tid.length > 8 ? tid.slice(0, 7) + '..' : tid;
-      c.font = '8px "JetBrains Mono",monospace';
-      c.textAlign = 'center';
-      c.fillStyle = TH.dim;
-      c.fillText(short, n.x, n.y + r + 10);
-    }
-    c.restore();
-  }
-
-  function drawNodes(c) {
-    const L = S.layout;
-    if (!L) return;
-    // Draw agents first, plans on top
-    L.nodes.forEach((n) => {
-      if (n.type === 'agent') drawAgentNode(c, n);
-    });
-    L.nodes.forEach((n) => {
-      if (n.type === 'plan') drawPlanNode(c, n);
+  function drawPlans(c) {
+    S.clusters.forEach(cl => {
+      const a = S.anim.get(cl.id); if (!a?.px) return;
+      const r = 22 * a.scale;
+      c.save(); c.shadowBlur = cl.hasActive ? 18 : 6; c.shadowColor = cl.color;
+      const g = c.createRadialGradient(a.px - 3, a.py - 3, 4, a.px, a.py, r);
+      g.addColorStop(0, cl.color + 'cc'); g.addColorStop(1, cl.color + '33');
+      c.fillStyle = g; c.beginPath(); c.arc(a.px, a.py, r, 0, PI2); c.fill();
+      c.strokeStyle = cl.color + '66'; c.lineWidth = 1.5;
+      const rr = r + 6 + (cl.hasActive ? 3 * Math.sin(a.phase) : 0);
+      c.beginPath(); c.arc(a.px, a.py, rr, 0, PI2); c.stroke(); c.shadowBlur = 0; c.restore();
+      const lbl = cl.name.length > 22 ? cl.name.slice(0, 20) + '\u2026' : cl.name;
+      c.font = '10px "JetBrains Mono",monospace'; c.textAlign = 'center';
+      const tw = c.measureText(lbl).width; c.fillStyle = 'rgba(10,16,36,0.6)';
+      if (c.roundRect) { c.beginPath(); c.roundRect(a.px - tw / 2 - 5, a.py + rr + 3, tw + 10, 14, 3); c.fill(); }
+      c.fillStyle = '#b0c4dd'; c.fillText(lbl, a.px, a.py + rr + 14);
     });
   }
-
+  function drawAgents(c) {
+    S.agents.forEach(ag => {
+      const a = S.anim.get(ag.id); if (!a || a.alpha < 0.01 || !a.px) return;
+      const r = 9 * a.scale;
+      c.save(); c.globalAlpha = a.alpha;
+      c.shadowBlur = ag.isActive ? 10 : 3; c.shadowColor = ag.color;
+      c.fillStyle = ag.color + (ag.isActive ? 'cc' : '55');
+      c.beginPath(); c.arc(a.px, a.py, r, 0, PI2); c.fill(); c.shadowBlur = 0;
+      c.fillStyle = '#0a1024'; c.font = `bold ${Math.max(7, 9 * a.scale)}px "JetBrains Mono",monospace`;
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(ag.status === 'waiting_thor' ? '\u26A1' : ag.isActive ? '\u25C6' : '\u25CF', a.px, a.py + 0.5);
+      c.restore();
+    });
+  }
+  function drawSessions(c, dt) {
+    const sr = window._sessionClusters;
+    if (!sr?.sessions.length) return;
+    sr.tickAnims(dt);
+    sr.render(c, sr.getSessionPositions(S.w, S.h), S.w, S.h);
+  }
   function drawStats(c) {
-    const L = S.layout;
-    if (!L) return;
-    const agents = L.nodes.filter((n) => n.type === 'agent');
-    const active = agents.filter((n) => n._data?.isActive).length;
-    const plans = L.nodes.filter((n) => n.type === 'plan').length;
-    const el = document.getElementById('brain-stats');
-    if (el) el.textContent = `${active} active \xB7 ${agents.length} tasks \xB7 ${plans} plans`;
+    const act = S.agents.filter(a => a.isActive).length;
+    const ps = (window._dashboardPlans || []).reduce((a, p) => ({ done: a.done + ((p.tasks || []).filter(t => t.status === 'done').length || 0), total: a.total + ((p.tasks || []).length || 0) }), { done: 0, total: 0 });
+    const nodes = [...S.peerStats.entries()].slice(0, 3).map(([n, v]) => `${String(n).split(':')[0]}:${v.agents}`).join(', ');
+    const txt = `${act} active \xB7 ${S.clusters.length} plan${S.clusters.length !== 1 ? 's' : ''} \xB7 nodes ${nodes || 'n/a'} \xB7 ${S.tokenFlow} tok \xB7 ${S.activeModels.size} model${S.activeModels.size !== 1 ? 's' : ''} \xB7 pipeline ${ps.done}/${ps.total}`;
+    const el = document.getElementById('brain-stats'); if (el) el.textContent = txt;
   }
+  const wsUrl = () => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/brain`;
+  const mapPeerRegion = (peer) => { if (S.peerRegion.has(peer)) return S.peerRegion.get(peer); const r = REGIONS[S.peerRegion.size % REGIONS.length]; S.peerRegion.set(peer, r); return r; };
+  const regionPos = (k) => { const d = window.BrainRegions?.[k]?.center || { x: 0.5, y: 0.5 }; return { x: d.x * S.w, y: d.y * S.h }; };
+  function pulse(from, to, col) { const a = regionPos(from), b = regionPos(to); S.particles.push({ sx: a.x, sy: a.y, tx: b.x, ty: b.y, t: 0, spd: 0.9 + Math.random() * 0.6, col: col || PAL.cyan, sz: 1.4 + Math.random() * 1.2 }); }
+  function pollSessions() { fetch('/api/sessions').then(r => r.json()).then(d => { S.sessions = d || []; }).catch(() => {}); }
+  function fallbackPolling(on) { if (on && !S.pollT) { pollSessions(); S.pollT = setInterval(pollSessions, 10000); } if (!on && S.pollT) { clearInterval(S.pollT); S.pollT = 0; } }
+  function onBrainEvent(m) { if (!m) return; if (Array.isArray(m.sessions)) { S.sessions = m.sessions; if (window._sessionClusters) window._sessionClusters.update(m.sessions || [], m.orphan_agents || []); } if (m.kind !== 'agent_heartbeat') return; const p = m.payload || {}, peer = m.node || p.host || 'local', region = mapPeerRegion(peer), type = p.event_type || 'heartbeat'; const st = S.peerStats.get(peer) || { agents: 0, tokens: 0, models: new Set() }; st.agents = Math.max(1, st.agents + (type === 'start' ? 1 : type === 'complete' ? -1 : 0)); const tok = Number(p.tokens_total ?? ((p.tokens_in || 0) + (p.tokens_out || 0))) || 0; st.tokens = Math.max(0, st.tokens + tok); if (p.model) { st.models.add(p.model); S.activeModels.add(p.model); } S.peerStats.set(peer, st); S.tokenFlow = [...S.peerStats.values()].reduce((n, x) => n + (x.tokens || 0), 0); pulse(region, p.status === 'running' ? 'motor' : type === 'complete' ? 'hippocampus' : 'corpusCallosum', p.status === 'failed' ? PAL.red : p.status === 'completed' ? PAL.green : PAL.cyan); }
+  function connectBrainWs() { try { S.ws = new WebSocket(wsUrl()); } catch { S.ws = null; } if (!S.ws) { fallbackPolling(true); return; } S.ws.onopen = () => { S.wsRetry = 0; S.wsLive = true; fallbackPolling(false); }; S.ws.onmessage = (e) => { try { onBrainEvent(JSON.parse(e.data)); } catch {} }; S.ws.onerror = () => S.ws?.close(); S.ws.onclose = () => { S.wsLive = false; fallbackPolling(true); clearTimeout(S.wsT); S.wsT = setTimeout(connectBrainWs, Math.min(30000, 1000 * Math.pow(2, S.wsRetry++))); }; }
 
-  function drawIdle(c) {
-    c.save();
-    c.fillStyle = TH.dim + '44';
-    c.font = '13px "JetBrains Mono",monospace';
-    c.textAlign = 'center';
-    c.fillText('No active plans', S.w / 2, S.h / 2);
-    c.restore();
+  function drawIdle(c, ts) {
+    const p = 0.5 + 0.5 * Math.sin(ts * 0.001), cx = S.w / 2, cy = S.h / 2;
+    c.save(); c.strokeStyle = `rgba(0,229,255,${0.04 + p * 0.06})`; c.lineWidth = 1;
+    c.beginPath(); c.arc(cx, cy, 35 + p * 8, 0, PI2); c.stroke();
+    c.fillStyle = `rgba(176,196,221,${0.15 + p * 0.12})`; c.font = '12px "JetBrains Mono",monospace';
+    c.textAlign = 'center'; c.fillText('No active agents', cx, cy + 55); c.restore();
   }
-
-  // --- Render loop (on-demand) ---
-  function drawFrame(ts) {
-    if (!S.ctx) return;
-    loadTheme();
-    const c = S.ctx;
-    c.clearRect(0, 0, S.w, S.h);
-    drawBg(c);
-    const L = S.layout;
-    if (!L || !L.nodes.length) {
-      drawIdle(c);
-      drawStats(c);
-      return;
-    }
-    if (!_frozen && !L.stable) L.step();
-    drawEdges(c);
-    drawNodes(c);
-    if (window._brainDrawHover) window._brainDrawHover(c);
-    drawStats(c);
-  }
-
-  function frame(ts) {
-    _raf = 0;
-    drawFrame(ts);
-    if (!_frozen && S.layout && !S.layout.stable) {
-      _raf = requestAnimationFrame(frame);
-    }
-  }
-
-  function requestFrame() {
-    if (_raf) return;
-    _raf = requestAnimationFrame(frame);
-  }
-  window._brainRequestFrame = requestFrame;
-
-  // Pause / Play toggle
-  window.toggleBrainFreeze = function () {
-    _frozen = !_frozen;
-    if (_frozen && S.layout) S.layout.stable = true;
-    if (!_frozen && S.layout) {
-      S.layout.kick();
-      requestFrame();
-    }
-    const btn = document.getElementById('brain-pause-btn');
-    if (btn) {
-      btn.textContent = _frozen ? '▶' : '❚❚';
-      btn.title = _frozen ? 'Resume simulation' : 'Pause simulation';
-      btn.classList.toggle('active', !_frozen);
-    }
-  };
-
-  // Rewind — reset layout from scratch
-  window.rewindBrain = function () {
-    if (!S.layout) return;
-    _frozen = false;
-    S._dataHash = '';
-    S.layout = null;
-    syncLayout();
-    requestFrame();
-    const btn = document.getElementById('brain-pause-btn');
-    if (btn) {
-      btn.textContent = '❚❚';
-      btn.title = 'Pause simulation';
-      btn.classList.add('active');
-    }
-  };
-
-  // --- Resize ---
   function resize() {
     if (!S.container || !S.canvas) return;
-    const nw = Math.max(10, S.container.clientWidth);
-    const nh = Math.max(10, S.container.clientHeight);
-    if (nw === S.w && nh === S.h) return;
-    S.w = nw;
-    S.h = nh;
-    const dpr = window.devicePixelRatio || 1;
-    S.canvas.width = nw * dpr;
-    S.canvas.height = nh * dpr;
-    S.canvas.style.width = nw + 'px';
-    S.canvas.style.height = nh + 'px';
+    const r = S.container.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    S.w = Math.max(10, r.width); S.h = Math.max(10, r.height);
+    S.canvas.width = Math.floor(S.w * dpr); S.canvas.height = Math.floor(S.h * dpr);
+    S.canvas.style.width = S.w + 'px'; S.canvas.style.height = S.h + 'px';
     S.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    requestFrame();
   }
-
-  function refreshBrain() {
-    if (!S.ctx) return;
-    if (syncLayout()) requestFrame();
-  }
-
-  // --- Lifecycle ---
-  window.initBrainCanvas = function (id) {
-    window.destroyBrainCanvas();
-    loadTheme();
-    S.container = document.getElementById(id || 'brain-canvas-container');
-    if (!S.container) return;
-    S.canvas = document.createElement('canvas');
-    S.canvas.className = 'brain-canvas';
-    S.canvas.style.cssText = 'display:block;border-radius:8px;';
-    S.container.appendChild(S.canvas);
-    S.ctx = S.canvas.getContext('2d', { alpha: true });
-    window._brainState = S;
-    if (window._brainInteract) window._brainInteract.init(S.canvas);
-    resize();
-    S.ro = new ResizeObserver(() => resize());
-    S.ro.observe(S.container);
-    document.addEventListener('visibilitychange', onVis);
-    // Redraw on theme change
-    S._themeObs = new MutationObserver(() => requestFrame());
-    S._themeObs.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
+  function refreshData(ts) {
+    if (ts - S.lastDataTick < 500) return;
+    const { agents, clusters } = collectAgents();
+    const curIds = new Set([...agents.map(a => a.id), ...clusters.map(c => c.id)]);
+    [...S.agents, ...S.clusters].forEach(n => {
+      if (!curIds.has(n.id)) { const a = S.anim.get(n.id); if (a && a.state !== 'completing') { a.state = 'completing'; a.t = 0; } }
     });
-    syncLayout();
-    requestFrame();
-  };
-
-  window.destroyBrainCanvas = function () {
-    if (window._brainInteract) window._brainInteract.destroy();
-    window._brainState = null;
-    if (_raf) {
-      cancelAnimationFrame(_raf);
-      _raf = 0;
+    S.agents = agents; S.clusters = clusters; S.lastDataTick = ts;
+    agents.forEach(a => {
+      const na = an(a.id);
+      if (a.isActive && na.state !== 'appearing') na.state = 'active';
+      else if (!a.isActive && na.state === 'active') na.state = 'idle';
+    });
+    clusters.forEach(c => an(c.id));
+    const sr = window._sessionClusters;
+    if (sr && window._dashboardAgentData) {
+      const d = window._dashboardAgentData;
+      sr.update(d.sessions || [], d.orphan_agents || []);
+      sr.detectChanges();
     }
-    if (S.ro) S.ro.disconnect();
-    S.ro = null;
-    if (S._themeObs) S._themeObs.disconnect();
-    S._themeObs = null;
-    document.removeEventListener('visibilitychange', onVis);
-    if (S.canvas?.parentNode) S.canvas.parentNode.removeChild(S.canvas);
-    S.container = S.canvas = S.ctx = S.layout = null;
-    S.w = S.h = 0;
-    S._dataHash = '';
-  };
-
-  window.updateBrainData = refreshBrain;
-
-  function onVis() {
-    if (!document.hidden) refreshBrain();
   }
-
+  function render(ts) {
+    if (!S.ctx || !S.running) return;
+    const dt = Math.min(50, ts - (S.lastTs || ts)); S.lastTs = ts;
+    refreshData(ts);
+    const c = S.ctx; c.clearRect(0, 0, S.w, S.h); drawGrid(c);
+    drawSessions(c, dt);
+    if (!S.agents.length && !S.clusters.length && !S.sessions.length) { drawIdle(c, ts); drawStats(c); }
+    else if (S.agents.length || S.clusters.length) { doLayout(); tickAnims(dt); tickParticles(dt); drawConns(c); drawParts(c); drawPlans(c); drawAgents(c); drawStats(c); }
+    else { drawStats(c); }
+    S.raf = requestAnimationFrame(render);
+  }
+  function onVis() {
+    S.running = !document.hidden;
+    if (S.running && !S.raf) S.raf = requestAnimationFrame(render);
+    if (!S.running && S.raf) { cancelAnimationFrame(S.raf); S.raf = 0; }
+  }
+  window.initBrainCanvas = function(id) {
+    window.destroyBrainCanvas();
+    S.container = document.getElementById(id || 'brain-canvas-container'); if (!S.container) return;
+    S.canvas = document.createElement('canvas'); S.canvas.className = 'brain-canvas';
+    S.canvas.style.cssText = 'width:100%;height:100%;display:block;border-radius:8px;';
+    S.container.appendChild(S.canvas); S.ctx = S.canvas.getContext('2d', { alpha: true }); resize();
+    S.ro = new ResizeObserver(resize); S.ro.observe(S.container);
+    window.addEventListener('resize', resize); document.addEventListener('visibilitychange', onVis);
+    connectBrainWs(); fallbackPolling(true);
+    S.running = !document.hidden; S.raf = requestAnimationFrame(render);
+  };
+  window.destroyBrainCanvas = function() {
+    if (S.raf) cancelAnimationFrame(S.raf); S.raf = 0;
+    if (S.ro) S.ro.disconnect(); S.ro = null;
+    if (S.ws) S.ws.close(); S.ws = null; clearTimeout(S.wsT); S.wsT = 0; fallbackPolling(false);
+    window.removeEventListener('resize', resize); document.removeEventListener('visibilitychange', onVis);
+    if (S.canvas?.parentNode) S.canvas.parentNode.removeChild(S.canvas);
+    S.container = S.canvas = S.ctx = null; S.particles = []; S.anim.clear(); S.layout = null; S.running = false; S.peerRegion.clear(); S.peerStats.clear(); S.activeModels.clear(); S.tokenFlow = 0;
+  };
+  window.updateBrainData = function() {};
   const _boot = () => window.initBrainCanvas('brain-canvas-container');
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _boot);
   else setTimeout(_boot, 100);

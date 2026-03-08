@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Post-commit: auto-version bump + async push to Linux
+# Runs entirely in background — NEVER blocks git.
+
+(
+  REMOTE="linux"
+  BRANCH="main"
+  LOG="$HOME/.claude/data/config-sync.log"
+  LOCK="/tmp/.claude-post-commit-lock"
+
+  log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >>"$LOG" 2>/dev/null; }
+
+  # --- Version bump (with recursion guard, main only) ---
+  if [[ ! -f "$LOCK" ]]; then
+    touch "$LOCK"
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
+      "$HOME/.claude/scripts/auto-version-bump.sh" 2>/dev/null && \
+        log "AUTO-VERSION: $(git describe --tags --abbrev=0 2>/dev/null || echo 'no tag')" || \
+        log "AUTO-VERSION: skipped"
+    fi
+    rm -f "$LOCK"
+  fi
+
+  # --- Async push to Linux remote ---
+  git remote get-url "$REMOTE" &>/dev/null || exit 0
+  REMOTE_HOST=$(git remote get-url "$REMOTE" | cut -d: -f1)
+  if timeout 3 ssh -o ConnectTimeout=2 -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$REMOTE_HOST" "echo ok" &>/dev/null; then
+    timeout 15 git push "$REMOTE" "$BRANCH" --quiet --tags 2>/dev/null && \
+      log "AUTO-PUSH: $(git log --oneline -1) -> $REMOTE" || \
+      log "AUTO-PUSH FAILED: $(git log --oneline -1)"
+  else
+    log "AUTO-PUSH SKIPPED: $REMOTE_HOST unreachable"
+  fi
+) &>/dev/null &
+disown
+exit 0

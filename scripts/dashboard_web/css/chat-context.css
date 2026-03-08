@@ -1,0 +1,124 @@
+.chat-context {
+  margin-top: 6px;
+  border-top: 1px solid rgba(46, 58, 110, 0.45);
+  padding-top: 8px;
+}
+.chat-context-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.chat-context-card {
+  border: 1px solid rgba(46, 58, 110, 0.45);
+  border-radius: 8px;
+  background: rgba(8, 12, 28, 0.55);
+  padding: 8px;
+  min-height: 88px;
+}
+.chat-context-card h4 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.chat-context-list {
+  font-size: 11px;
+  display: grid;
+  gap: 4px;
+}
+.chat-context-empty {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.chat-req-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.chat-req-key {
+  color: var(--cyan);
+  font-weight: 600;
+}
+.chat-req-status {
+  color: var(--text-dim);
+}
+.chat-req-row.done .chat-req-status {
+  color: #37d67a;
+}
+.chat-req-row.approved .chat-req-status {
+  color: #ffc940;
+}
+.chat-req-row.removed .chat-req-status {
+  color: #ff6b8a;
+}
+.chat-req-text {
+  color: var(--text-dim);
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+.chat-wave-lane {
+  border: 1px solid rgba(46, 58, 110, 0.35);
+  border-radius: 6px;
+  padding: 5px;
+}
+.chat-wave-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+}
+.chat-wave-swim {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.chat-task-pill {
+  border: 1px solid rgba(90, 104, 160, 0.55);
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 10px;
+}
+.chat-task-pill.done {
+  border-color: rgba(55, 214, 122, 0.8);
+  color: #37d67a;
+}
+.chat-task-pill.in_progress,
+.chat-task-pill.submitted {
+  border-color: rgba(255, 201, 64, 0.8);
+  color: #ffc940;
+}
+.chat-task-pill.blocked {
+  border-color: rgba(255, 107, 138, 0.8);
+  color: #ff6b8a;
+}
+.chat-phase-indicator {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.chat-phase-indicator.phase-capture {
+  color: var(--cyan);
+}
+.chat-phase-indicator.phase-clarify {
+  color: #74d0ff;
+}
+.chat-phase-indicator.phase-research {
+  color: #9d8eff;
+}
+.chat-phase-indicator.phase-plan {
+  color: #ffc940;
+}
+.chat-phase-indicator.phase-approve {
+  color: #37d67a;
+}
+.chat-phase-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+@media (max-width: 1200px) {
+  .chat-context-grid {
+    grid-template-columns: 1fr;
+  }
+}

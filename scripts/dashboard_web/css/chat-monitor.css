@@ -1,0 +1,86 @@
+.chat-monitor-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-monitor-kpi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.chat-monitor-kpi span {
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.chat-monitor-progress {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.chat-monitor-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00aaff, #00cc66);
+  transition: width 0.35s ease;
+}
+
+.chat-monitor-waves {
+  display: grid;
+  gap: 4px;
+}
+
+.chat-monitor-wave {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 8px;
+  font-size: 10px;
+}
+
+.chat-monitor-wave-name {
+  color: var(--text-dim);
+}
+
+.chat-monitor-wave-pct {
+  color: var(--cyan);
+}
+
+.chat-monitor-table-wrap {
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.chat-monitor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.chat-monitor-table th,
+.chat-monitor-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+}
+
+.chat-monitor-table th {
+  position: sticky;
+  top: 0;
+  background: rgba(10, 16, 30, 0.95);
+  color: var(--text-dim);
+}
+
+.chat-monitor-empty {
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 8px 0;
+}

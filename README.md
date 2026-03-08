@@ -312,4 +312,4 @@ agent-versions.sh [--json|--check]      # Agents indexed
 
 ---
 
-**Version**: 3.1.0 (28 Feb 2026)
+**Version**: 4.0.0 (08 Mar 2026)

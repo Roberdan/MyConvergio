@@ -253,6 +253,38 @@ CREATE TABLE IF NOT EXISTS mesh_events (
 CREATE INDEX IF NOT EXISTS idx_mesh_events_pending ON mesh_events(status, created_at) WHERE status = 'pending';
 CREATE INDEX IF NOT EXISTS idx_mesh_events_plan ON mesh_events(plan_id, event_type);
 
+-- Nightly job runs (generic: guardian, backups, audits, custom)
+CREATE TABLE IF NOT EXISTS nightly_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id TEXT,
+  job_name TEXT DEFAULT 'guardian',
+  started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  finished_at DATETIME,
+  host TEXT,
+  status TEXT NOT NULL CHECK(status IN ('running','ok','action_required','failed')),
+  sentry_unresolved INTEGER DEFAULT 0,
+  github_open_issues INTEGER DEFAULT 0,
+  processed_items INTEGER DEFAULT 0,
+  fixed_items INTEGER DEFAULT 0,
+  branch_name TEXT,
+  pr_url TEXT,
+  summary TEXT,
+  report_json TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_nightly_jobs_started ON nightly_jobs(started_at DESC);
+
+-- Nightly job definitions (templates for recurring jobs)
+CREATE TABLE IF NOT EXISTS nightly_job_definitions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  schedule TEXT NOT NULL DEFAULT '0 3 * * *',
+  script_path TEXT NOT NULL,
+  target_host TEXT DEFAULT 'local',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Live orchestration telemetry for dashboard neural/system view
 CREATE TABLE IF NOT EXISTS agent_runs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

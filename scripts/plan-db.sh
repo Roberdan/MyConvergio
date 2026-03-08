@@ -29,22 +29,92 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source modules
+# Core is always required for DB bootstrap and shared helpers.
 source "$SCRIPT_DIR/lib/plan-db-core.sh"
-source "$SCRIPT_DIR/lib/plan-db-crud.sh"
-source "$SCRIPT_DIR/lib/plan-db-validate.sh"
-source "$SCRIPT_DIR/lib/plan-db-display.sh"
-source "$SCRIPT_DIR/lib/plan-db-import.sh"
-source "$SCRIPT_DIR/lib/plan-db-drift.sh"
-source "$SCRIPT_DIR/lib/plan-db-conflicts.sh"
-source "$SCRIPT_DIR/lib/plan-db-cluster.sh"
-source "$SCRIPT_DIR/lib/plan-db-remote.sh"
-source "$SCRIPT_DIR/lib/plan-db-delegate.sh"
-source "$SCRIPT_DIR/lib/plan-db-intelligence.sh"
-# Knowledge Base module
-[[ -f "$SCRIPT_DIR/lib/plan-db-knowledge.sh" ]] && source "$SCRIPT_DIR/lib/plan-db-knowledge.sh"
-# Agent activity tracking module
-[[ -f "$SCRIPT_DIR/lib/plan-db-agents.sh" ]] && source "$SCRIPT_DIR/lib/plan-db-agents.sh"
+
+LOADED_MODULES=" plan-db-core.sh "
+
+source_module() {
+	local module_file="$1"
+	[[ "$LOADED_MODULES" == *" ${module_file} "* ]] && return 0
+	local module_path="$SCRIPT_DIR/lib/$module_file"
+	if [[ ! -f "$module_path" ]]; then
+		echo "[ERROR] Missing required module: $module_file" >&2
+		exit 1
+	fi
+	# shellcheck disable=SC1090
+	source "$module_path"
+	LOADED_MODULES="${LOADED_MODULES}${module_file} "
+}
+
+source_optional_module() {
+	local module_file="$1"
+	[[ "$LOADED_MODULES" == *" ${module_file} "* ]] && return 0
+	local module_path="$SCRIPT_DIR/lib/$module_file"
+	[[ -f "$module_path" ]] || return 1
+	# shellcheck disable=SC1090
+	source "$module_path"
+	LOADED_MODULES="${LOADED_MODULES}${module_file} "
+	return 0
+}
+
+load_modules_for_command() {
+	local cmd="${1:-help}"
+	case "$cmd" in
+	delegation-report | delegation-log | delegation-cost)
+		source_module "plan-db-delegate.sh"
+		;;
+	list | create | add-wave | add-task | update-task | update-wave | complete | cancel | cancel-wave | cancel-task | get-worktree | set-worktree | get-wave-worktree | set-wave-worktree | where)
+		source_module "plan-db-crud.sh"
+		;;
+	start)
+		source_module "plan-db-crud.sh"
+		source_module "plan-db-cluster.sh"
+		source_module "plan-db-validate.sh"
+		;;
+	validate | validate-task | validate-wave | validate-fxx | check-readiness | evaluate-wave | sync | auto-approve)
+		source_module "plan-db-validate.sh"
+		;;
+	kanban | kanban-json | json | status | execution-tree)
+		source_module "plan-db-display.sh"
+		;;
+	import | render | get-context)
+		source_module "plan-db-import.sh"
+		source_module "plan-db-create.sh"
+		;;
+	drift-check | rebase-plan)
+		source_module "plan-db-drift.sh"
+		;;
+	conflict-check | conflict-check-spec)
+		source_module "plan-db-conflicts.sh"
+		;;
+	claim | release | heartbeat)
+		source_module "plan-db-cluster.sh"
+		;;
+	remote-status | cluster-status | cluster-tasks | token-report)
+		source_module "plan-db-remote.sh"
+		source_module "plan-db-display.sh"
+		;;
+	add-learning | get-learnings | get-actionable-learnings | add-review | add-assessment | add-actuals | estimate-tokens | update-token-actuals | calibrate-estimates)
+		source_module "plan-db-intelligence.sh"
+		;;
+	kb-write | kb-search | kb-hit | skill-earn | skill-list | skill-promote | skill-bump)
+		source_optional_module "plan-db-knowledge.sh" || {
+			echo "[ERROR] Knowledge module unavailable: plan-db-knowledge.sh" >&2
+			exit 1
+		}
+		;;
+	agent-start | agent-complete | agent-status | agent-tokens)
+		source_optional_module "plan-db-agents.sh" || {
+			echo "[ERROR] Agent tracking module unavailable: plan-db-agents.sh" >&2
+			exit 1
+		}
+		;;
+	*)
+		# No additional module required for help/standalone script delegations.
+		;;
+	esac
+}
 
 # Host identification for cross-machine tracking
 if [[ -z "${PLAN_DB_HOST:-}" ]]; then
@@ -54,6 +124,8 @@ export PLAN_DB_HOST
 
 # Initialize DB
 init_db
+
+load_modules_for_command "${1:-help}"
 
 # Dispatch
 case "${1:-help}" in

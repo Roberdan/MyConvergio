@@ -171,7 +171,7 @@ TODAY_PREMIUM_COUNT=0
 if [[ "${#PREMIUM_PROVIDERS[@]}" -gt 0 ]]; then
 	SQL_LIST=""
 	for provider in "${PREMIUM_PROVIDERS[@]}"; do
-		escaped="$(delegate_utils_sql_escape "$provider")"
+		escaped="$(delegate_utils_sql_lit "$provider")"
 		[[ -n "$SQL_LIST" ]] && SQL_LIST+=","
 		SQL_LIST+="'$escaped'"
 	done
@@ -204,7 +204,7 @@ claude)
 	elif command -v claude >/dev/null 2>&1; then
 		# Fallback: direct claude CLI invocation
 		echo "task-executor not found, falling back to claude CLI" >&2
-		_DELEGATE_PROMPT="$("${SCRIPT_DIR}/copilot-task-prompt.sh" "$TASK_DB_ID" 2>/dev/null || echo "Execute task $TASK_DB_ID")"
+		_DELEGATE_PROMPT="$("${SCRIPT_DIR}/copilot-task-prompt.sh" "$TASK_DB_ID" "executor" 2>/dev/null || echo "Execute task $TASK_DB_ID")"
 		_DELEGATE_DIR_FLAG=""
 		[[ -n "$WORKTREE_PATH" && -d "$WORKTREE_PATH" ]] && _DELEGATE_DIR_FLAG="--add-dir $WORKTREE_PATH"
 		_DELEGATE_MODEL_FLAG=""

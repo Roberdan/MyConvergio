@@ -9,6 +9,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_FILE="${HOME}/.claude/data/dashboard.db"
+# shellcheck source=./lib/sql-utils.sh
+source "$SCRIPT_DIR/lib/sql-utils.sh"
 
 PROJECT_PATH="${1:-$(pwd)}"
 PROJECT_PATH="$(cd "$PROJECT_PATH" && pwd)"
@@ -17,8 +19,6 @@ PROJECT_PATH="$(cd "$PROJECT_PATH" && pwd)"
 FOLDER_NAME=$(basename "$PROJECT_PATH")
 PROJECT_ID=$(echo "$FOLDER_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-')
 
-# SQL escape helper
-sql_escape() { echo "${1//\'/\'\'}"; }
 SAFE_PROJECT_ID=$(sql_escape "$PROJECT_ID")
 
 # Auto-register if not in DB

@@ -18,9 +18,10 @@ grep -q -- '--cyan:' "$CSS" || fail "accent variables missing"
 grep -q "@import url('css/base.css');" "$STYLE" || fail "style.css missing base import"
 grep -q ':root' "$BASE" || fail "base.css missing root variables"
 python3 -m py_compile "$PY" || fail "textual themes syntax error"
-python3 - <<'PY' || exit 1
+python3 - "$PY" <<'PY' || exit 1
+import sys
 from pathlib import Path
-src = Path("/Users/roberdan/.claude/scripts/dashboard_textual/themes.py").read_text()
+src = Path(sys.argv[1]).read_text(encoding="utf-8")
 assert "NEON_GRID" in src
 assert "SYNTHWAVE" in src
 assert "GHOST_SHELL" in src

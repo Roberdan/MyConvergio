@@ -5,9 +5,9 @@
 set -uo pipefail
 
 source ~/.claude/hooks/lib/common.sh 2>/dev/null || true
-
-# Escape single quotes for safe SQL interpolation
-sql_escape() { printf '%s' "$1" | sed "s/'/''/g"; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=../scripts/lib/sql-utils.sh
+source "$SCRIPT_DIR/scripts/lib/sql-utils.sh"
 
 DB_FILE="$HOME/.claude/data/dashboard.db"
 LOG_FILE="$HOME/.claude/logs/token-tracking.log"

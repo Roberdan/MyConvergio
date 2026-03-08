@@ -1,5 +1,74 @@
 # Changelog
 
+## [v11.0.0] - 08 Mar 2026
+
+### Added — ConvergioEvolution (Plan 100025)
+
+#### P0a: Conversational Plan Builder
+- Chat DB schema with sessions, messages, attachments (ADR-0034)
+- Chat API endpoints (CRUD, streaming SSE)
+- Phase detector, agent router, requirement accumulator
+- Chat panel UI, tab bar, context sidebar
+
+#### P0b: GitHub Integration
+- GitHub DB migration (commits, PRs, reviews tables)
+- Commit tracking API, repo selector, KPI bar
+- GitHub panel with activity timeline widget
+
+#### P0c: Execute + Monitor
+- EXECUTE phase with real-time task dispatch
+- MONITOR view with mesh delegation UI
+
+#### P1: Token Diet
+- Lazy-load agent definitions (AGENTS.md → compact index)
+- Document compaction (CLAUDE.md table-only references)
+- Agent file trimming (<1500 bytes each)
+
+#### P2: Hook Consolidation
+- Single PreToolUse/PostToolUse dispatchers (ADR-0036)
+- Consolidated hook checks in hooks/lib/hook-checks.sh
+- Hook latency benchmark (<50ms target)
+
+#### P3: Script Consolidation
+- Unified digest.sh dispatcher (16 subcommands)
+- Lazy-source modules in plan-db.sh
+- Canonical sql_escape/sql_lit/sql_quote helpers
+
+#### P4a: Rust Core (ADR-0037)
+- Full Rust crate `claude-core` with plan-db, hooks, digest, lock modules
+- CR-SQLite CRDT extension for mesh DB replication
+- Mesh daemon with TCP/WebSocket, delta sync, heartbeat relay
+- Cross-platform build (darwin/linux × aarch64/x86_64)
+- Python legacy server removed — Rust-only architecture
+
+#### P4b: Rust Server + TUI
+- Axum HTTP server with all API endpoint groups ported
+- SSE streaming and WebSocket support
+- Mesh handoff via ssh2-rs
+- Brain canvas wired to /ws/brain WebSocket
+- Tailscale direct IP, socket tuning, delta batching
+- Ratatui TUI with kanban, pipeline, mesh, org views
+- Makefile with install tiers (minimal/standard/full)
+- 99 Rust integration tests (Python tests migrated + new routes)
+
+#### P5: Smart Agent Architecture (ADR-0038)
+- Per-role instruction profiles (config/agent-profiles.yaml)
+- Context loader script with token-budget capping
+- Wired into copilot-worker.sh and delegate.sh
+- Token benchmark enforces <12K per role
+
+#### Nightly Jobs
+- Dashboard widget with job history and create form
+- nightly_job_definitions table for recurring job templates
+- /api/nightly/jobs and /api/nightly/jobs/create Rust routes
+
+#### Closure
+- ADRs 0034-0038 for all phases
+- Test suite consolidation (categorized naming, shared helpers)
+- env-vault-guard added to consolidated dispatcher
+- Post-commit hook made async and timeout-safe
+
+
 ## [v10.20.2] - 07 Mar 2026
 
 ### Fixed
@@ -40,8 +109,6 @@
 
 ### Added
 - interactive brain graph + plan stop/reset/cancel buttons
-
-
 ## [v10.17.4] - 07 Mar 2026
 
 ### Fixed
@@ -65,7 +132,6 @@
 ### Changed
 - auto-commit before mesh sync
 
-
 ## [v10.17.0] - 07 Mar 2026
 
 ### Added
@@ -75,12 +141,10 @@
 ### Changed
 - auto-commit before mesh sync
 
-
 ## [v10.16.1] - 07 Mar 2026
 
 ### Changed
 - auto-commit before mesh sync
-
 
 ## [v10.16.0] - 07 Mar 2026
 
@@ -89,7 +153,6 @@
 
 ### Changed
 - Add performance optimization roadmap
-
 
 ## [Unreleased] — Brain Visualization & Agent Tracking
 
@@ -111,6 +174,13 @@
 - Wave labels + mini Gantt with dependency arrows
 - Executor completion hooks (P2.5, P2.6 in execute.md)
 
+### Documentation
+- Added ADR-0034: P0 Conversational Plan Builder (`docs/adr/0034-conversational-plan-builder.md`)
+- Added ADR-0035: P1 Token Diet (`docs/adr/0035-token-diet.md`)
+- Added ADR-0036: P2+P3 Consolidation (`docs/adr/0036-consolidation.md`)
+- Added ADR-0037: P4 Rust Migration (`docs/adr/0037-rust-migration.md`)
+- Added ADR-0038: P5 Smart Agents (`docs/adr/0038-smart-agent-architecture.md`)
+
 ### Fixed
 - Node identity chaos: 5 different hostnames for same machine → canonical peers_self()
 - Coordinator spam: grace counter infinite loop, reassign dedup
@@ -124,7 +194,6 @@
 
 ### Added
 - harden dashboard audit and telemetry
-
 
 ## [v10.15.0] - 07 Mar 2026
 
@@ -148,108 +217,90 @@
 ### Changed
 - auto-commit before mesh sync
 
-
 ## [v10.14.8] - 06 Mar 2026
 
 ### Changed
 - Add assessment coverage and schema migration gates
-
 
 ## [v10.14.7] - 06 Mar 2026
 
 ### Fixed
 - live CPU+RAM from remote peers + fix local CPU field name
 
-
 ## [v10.14.6] - 06 Mar 2026
 
 ### Changed
 - enforce: zero tolerance for technical debt across all agents
-
 
 ## [v10.14.5] - 06 Mar 2026
 
 ### Fixed
 - correct plan-to-node mapping + compact mesh cards + RAM heartbeat
 
-
 ## [v10.14.4] - 06 Mar 2026
 
 ### Changed
 - Update plan-db-safe.sh to remove unused variable declaration
-
 
 ## [v10.14.3] - 06 Mar 2026
 
 ### Fixed
 - make peers.sh compatible with zsh sourcing
 
-
 ## [v10.14.2] - 06 Mar 2026
 
 ### Fixed
 - batch worktree support + plan-db-safe fallback chain
-
 
 ## [v10.14.1] - 06 Mar 2026
 
 ### Changed
 - ADR 0033 + fix test paths after UX refactor
 
-
 ## [v10.14.0] - 06 Mar 2026
 
 ### Added
 - STUCK counter, Run Thor button, wave collapse, task pipeline colors
-
 
 ## [v10.13.0] - 06 Mar 2026
 
 ### Added
 - live CPU+RAM gauges in mesh peer cards
 
-
 ## [v10.12.3] - 06 Mar 2026
 
 ### Changed
 - split frontend JS — kpi.js, mission.js, task-pipeline.js, mesh-actions split, formatters.js
-
 
 ## [v10.12.2] - 06 Mar 2026
 
 ### Changed
 - split oversized backend files + dedup server.py
 
-
 ## [v10.12.1] - 06 Mar 2026
 
 ### Changed
 - extract shared modules lib/ssh.py, lib/sse.py, lib/jsonl_scraper.py
-
 
 ## [v10.12.0] - 06 Mar 2026
 
 ### Added
 - documentation governance — TROUBLESHOOTING.md, per-wave ADR mandate, Thor gate 9b
 
-
 ## [v10.11.0] - 06 Mar 2026
 
 ### Added
 - remote Claude auth via setup-token + credential sync improvements
-
 
 ## [v10.10.2] - 06 Mar 2026
 
 ### Fixed
 - discover hostname sanitization + copilot gh-extension detection + auth sync
 
-
 ## [v10.10.1] - 06 Mar 2026
 
 ### Changed
 - auto-commit before mesh sync
-
 
 ## [v10.10.0] - 06 Mar 2026
 
@@ -258,7 +309,6 @@
 
 ### Fixed
 - send JSON object in SSE phase event to prevent parse error
-
 
 ## [v10.9.0] - 05 Mar 2026
 

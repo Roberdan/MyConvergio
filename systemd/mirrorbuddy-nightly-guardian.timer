@@ -1,0 +1,11 @@
+[Unit]
+Description=Run MirrorBuddy Nightly Copilot Guardian
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+RandomizedDelaySec=20m
+Persistent=true
+Unit=mirrorbuddy-nightly-guardian.service
+
+[Install]
+WantedBy=timers.target

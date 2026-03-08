@@ -1,7 +1,7 @@
 const $ = (s) => document.querySelector(s);
 const state = (window.DashboardState = window.DashboardState || {
   hostToPeer: {},
-  localPeerName: 'local',
+  localPeerName: "local",
   lastMissionData: null,
   lastMeshData: null,
   lastOrganizationData: null,
@@ -12,15 +12,15 @@ const state = (window.DashboardState = window.DashboardState || {
   notifLastId: 0,
   refreshTimer: null,
   refreshIdx: 2,
-  currentZoom: parseInt(localStorage.getItem('dashZoom') || '100', 10),
+  currentZoom: parseInt(localStorage.getItem("dashZoom") || "100", 10),
 });
 
-Object.defineProperty(window, 'lastMissionData', {
+Object.defineProperty(window, "lastMissionData", {
   get: () => state.lastMissionData,
   set: (v) => (state.lastMissionData = v),
   configurable: true,
 });
-Object.defineProperty(window, 'lastMeshData', {
+Object.defineProperty(window, "lastMeshData", {
   get: () => state.lastMeshData,
   set: (v) => (state.lastMeshData = v),
   configurable: true,
@@ -35,18 +35,12 @@ async function fetchJson(url) {
 }
 
 function _resolveHost(host) {
-  if (!host) return 'unknown';
+  if (!host) return "unknown";
   if (state.hostToPeer[host]) return state.hostToPeer[host];
   // Fuzzy: strip suffixes and special chars
-  const clean = host
-    .toLowerCase()
-    .replace(/[-_]/g, '')
-    .replace(/\.(lan|local|tailnet)$/i, '');
+  const clean = host.toLowerCase().replace(/[-_]/g, "").replace(/\.(lan|local|tailnet)$/i, "");
   for (const [k, n] of Object.entries(state.hostToPeer)) {
-    const cleanKey = k
-      .toLowerCase()
-      .replace(/[-_]/g, '')
-      .replace(/\.(lan|local|tailnet)$/i, '');
+    const cleanKey = k.toLowerCase().replace(/[-_]/g, "").replace(/\.(lan|local|tailnet)$/i, "");
     if (cleanKey === clean) return n;
   }
   return host;
@@ -56,14 +50,14 @@ async function _pullRemoteDb() {
   if (state.pullInProgress) return;
   state.pullInProgress = true;
   try {
-    const r = await fetchJson('/api/mesh/pull-db');
+    const r = await fetchJson("/api/mesh/pull-db");
     if (r && r.count > 0) {
       const ok = r.synced.filter((s) => s.ok).length;
-      const badge = document.getElementById('sync-badge');
+      const badge = document.getElementById("sync-badge");
       if (ok > 0 && badge) {
         badge.textContent = `↓ ${ok} synced`;
-        badge.style.display = 'inline';
-        setTimeout(() => (badge.style.display = 'none'), 3000);
+        badge.style.display = "inline";
+        setTimeout(() => (badge.style.display = "none"), 3000);
       }
     }
   } finally {
@@ -72,25 +66,25 @@ async function _pullRemoteDb() {
 }
 
 async function refreshAll() {
-  const [ov, mission, organization, liveSystem, daily, models, mesh, history, dist] =
-    await Promise.all([
-      fetchJson('/api/overview'),
-      fetchJson('/api/mission'),
-      fetchJson('/api/organization'),
-      fetchJson('/api/live-system'),
-      fetchJson('/api/tokens/daily'),
-      fetchJson('/api/tokens/models'),
-      fetchJson('/api/mesh'),
-      fetchJson('/api/history'),
-      fetchJson('/api/tasks/distribution'),
-    ]);
+  const [ov, mission, organization, liveSystem, daily, models, mesh, history, dist, nightly] = await Promise.all([
+    fetchJson("/api/overview"),
+    fetchJson("/api/mission"),
+    fetchJson("/api/organization"),
+    fetchJson("/api/live-system"),
+    fetchJson("/api/tokens/daily"),
+    fetchJson("/api/tokens/models"),
+    fetchJson("/api/mesh"),
+    fetchJson("/api/history"),
+    fetchJson("/api/tasks/distribution"),
+    fetchJson("/api/nightly/jobs"),
+  ]);
   if (ov) {
     ov.mesh_online = mesh ? mesh.filter((p) => p.is_online).length : 0;
     ov.mesh_total = mesh ? mesh.length : 0;
-    if (typeof renderKpi === 'function') renderKpi(ov);
+    if (typeof renderKpi === "function") renderKpi(ov);
   }
   if (Array.isArray(mesh)) {
-    state.localPeerName = mesh.find((p) => p.is_local)?.peer_name || 'local';
+    state.localPeerName = mesh.find((p) => p.is_local)?.peer_name || "local";
     state.hostToPeer = {};
     mesh.forEach((p) => {
       const name = p.peer_name || p.name;
@@ -109,40 +103,43 @@ async function refreshAll() {
       }
     });
   }
-  if (typeof renderMission === 'function') renderMission(mission);
-  if (typeof renderKanban === 'function') renderKanban();
-  if (daily && typeof renderTokenChart === 'function') renderTokenChart(daily);
-  if (models && typeof renderModelChart === 'function') renderModelChart(models);
-  if (mesh && typeof renderMeshStrip === 'function') {
+  if (typeof renderMission === "function") renderMission(mission);
+  // Re-render KPI after mission state is populated so GitHub stats resolve active plan context.
+  if (ov && typeof renderKpi === "function") renderKpi(ov);
+  if (typeof renderKanban === "function") renderKanban();
+  if (daily && typeof renderTokenChart === "function") renderTokenChart(daily);
+  if (models && typeof renderModelChart === "function") renderModelChart(models);
+  if (mesh && typeof renderMeshStrip === "function") {
     renderMeshStrip(mesh);
-    if (typeof renderEventFeed === 'function') renderEventFeed();
-    fetch('/api/mesh/sync-status')
+    if (typeof renderGitHubActivity === "function") renderGitHubActivity();
+    else if (typeof renderEventFeed === "function") renderEventFeed();
+    fetch("/api/mesh/sync-status")
       .then((r) => r.json())
-      .then((items) => typeof applyMeshSyncBadges === 'function' && applyMeshSyncBadges(items))
+      .then((items) => typeof applyMeshSyncBadges === "function" && applyMeshSyncBadges(items))
       .catch(() => null);
   }
   if (organization) state.lastOrganizationData = organization;
-  if (typeof renderAgentOrganization === 'function') renderAgentOrganization(organization);
+  if (typeof renderAgentOrganization === "function") renderAgentOrganization(organization);
   if (liveSystem) state.lastLiveSystemData = liveSystem;
-  if (typeof renderLiveSystem === 'function') renderLiveSystem(liveSystem);
-  if (history && typeof renderHistory === 'function') renderHistory(history);
-  if (dist && typeof renderDist === 'function') renderDist(dist);
-  if (typeof updateBrainData === 'function') updateBrainData();
-  const lu = $('#last-update');
+  if (typeof renderLiveSystem === "function") renderLiveSystem(liveSystem);
+  if (history && typeof renderHistory === "function") renderHistory(history);
+  if (dist && typeof renderDist === "function") renderDist(dist);
+  if (typeof renderNightlyJobs === "function") renderNightlyJobs(nightly);
+  const lu = $("#last-update");
   if (lu) lu.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
   _pullRemoteDb();
 }
 
 function updateClock() {
-  const el = $('#clock');
+  const el = $("#clock");
   if (!el) return;
-  el.textContent = new Date().toLocaleString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  el.textContent = new Date().toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 }
 
@@ -152,29 +149,19 @@ const ZOOM_MAX = 160;
 function applyZoom(z) {
   state.currentZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
   document.body.style.zoom = state.currentZoom / 100;
-  const label = document.getElementById('zoom-level');
+  const label = document.getElementById("zoom-level");
   if (label) label.textContent = `${state.currentZoom}%`;
-  localStorage.setItem('dashZoom', String(state.currentZoom));
+  localStorage.setItem("dashZoom", String(state.currentZoom));
 }
-window.dashZoom = (dir) =>
-  dir === 0 ? applyZoom(100) : applyZoom(state.currentZoom + dir * ZOOM_STEP);
+window.dashZoom = (dir) => (dir === 0 ? applyZoom(100) : applyZoom(state.currentZoom + dir * ZOOM_STEP));
 
 const REFRESH_STEPS = [10, 15, 30, 60, 120];
-const HOST_NORMALIZATION_TOAST_KEY = 'hostNormalizationToastCount';
-state.refreshIdx = REFRESH_STEPS.indexOf(parseInt(localStorage.getItem('dashRefresh') || '30', 10));
+state.refreshIdx = REFRESH_STEPS.indexOf(parseInt(localStorage.getItem("dashRefresh") || "30", 10));
 if (state.refreshIdx === -1) state.refreshIdx = 2;
-
-function shouldShowHostNormalizationToast(count) {
-  const previousRaw = parseInt(localStorage.getItem(HOST_NORMALIZATION_TOAST_KEY) || '0', 10);
-  const previousCount = Number.isNaN(previousRaw) ? 0 : previousRaw;
-  localStorage.setItem(HOST_NORMALIZATION_TOAST_KEY, String(count));
-  return count > 0 && count !== previousCount;
-}
-
 function applyRefresh() {
   const sec = REFRESH_STEPS[state.refreshIdx];
-  localStorage.setItem('dashRefresh', String(sec));
-  const label = document.getElementById('refresh-label');
+  localStorage.setItem("dashRefresh", String(sec));
+  const label = document.getElementById("refresh-label");
   if (label) label.textContent = sec < 60 ? `${sec}s` : `${sec / 60}m`;
   if (state.refreshTimer) clearInterval(state.refreshTimer);
   state.refreshTimer = setInterval(refreshAll, sec * 1000);
@@ -185,59 +172,75 @@ window.changeRefresh = (dir) => {
 };
 
 window.openAllTerminals = function () {
-  if (typeof termMgr === 'undefined') return;
+  if (typeof termMgr === "undefined") return;
   const online = (state.lastMeshData || []).filter((p) => p.is_online);
-  if (!online.length)
-    return (
-      typeof showOutputModal === 'function' && showOutputModal('Terminals', 'No online mesh nodes')
-    );
-  online.forEach((p) => termMgr.open(p.peer_name, p.peer_name, 'Convergio'));
-  termMgr.setMode(online.length > 1 ? 'grid' : 'dock');
+  if (!online.length) return typeof showOutputModal === "function" && showOutputModal("Terminals", "No online mesh nodes");
+  online.forEach((p) => termMgr.open(p.peer_name, p.peer_name, "Convergio"));
+  termMgr.setMode(online.length > 1 ? "grid" : "dock");
 };
 
 function handleHashRoute() {
   const m = location.hash.match(/^#plan\/(\d+)/);
   if (!m) return;
   const id = parseInt(m[1], 10);
-  if (typeof filterTasks === 'function') filterTasks(id);
+  if (typeof filterTasks === "function") filterTasks(id);
   const card = document.querySelector(`.mission-plan[onclick*="${id}"]`);
   if (!card) return;
-  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  card.classList.add('highlight-pulse');
-  setTimeout(() => card.classList.remove('highlight-pulse'), 3000);
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+  card.classList.add("highlight-pulse");
+  setTimeout(() => card.classList.remove("highlight-pulse"), 3000);
+}
+
+const DASH_SECTIONS = ["dashboard-main-section", "dashboard-chat-section"];
+function showDashboardSection(sectionId) {
+  const target = DASH_SECTIONS.includes(sectionId) ? sectionId : "dashboard-main-section";
+  DASH_SECTIONS.forEach((id) => {
+    const section = document.getElementById(id);
+    if (section) section.hidden = id !== target;
+  });
+  document.querySelectorAll("#dashboard-nav [data-section]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.section === target);
+  });
+  localStorage.setItem("dashboardSection", target);
+}
+
+function initDashboardNavigation() {
+  const nav = document.getElementById("dashboard-nav");
+  if (!nav) return;
+  nav.querySelectorAll("[data-section]").forEach((button) => {
+    button.addEventListener("click", () => showDashboardSection(button.dataset.section));
+  });
+  const saved = localStorage.getItem("dashboardSection");
+  showDashboardSection(saved || "dashboard-main-section");
 }
 
 window.$ = $;
 window.fetchJson = fetchJson;
 window.refreshAll = refreshAll;
 window._resolveHost = _resolveHost;
+window.showDashboardSection = showDashboardSection;
 
-window.addEventListener('hashchange', handleHashRoute);
+window.addEventListener("hashchange", handleHashRoute);
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
+  initDashboardNavigation();
   applyZoom(state.currentZoom);
   updateClock();
   setInterval(updateClock, 1000);
   // First-load only — NOT in periodic refreshAll
-  fetch('/api/mesh/init', { method: 'POST' })
+  fetch("/api/mesh/init", { method: "POST" })
     .then((r) => r.json())
     .then((data) => {
       if (data.daemons_restarted && data.daemons_restarted.length > 0) {
-        showToast('Mesh', `Restarted: ${data.daemons_restarted.join(', ')}`, null, 'info');
+        showToast(`Restarted: ${data.daemons_restarted.join(", ")}`, "info");
       }
-      const hostsNeedingNormalization = parseInt(data.hosts_needing_normalization || 0, 10);
-      if (shouldShowHostNormalizationToast(hostsNeedingNormalization)) {
-        showToast(
-          'Mesh',
-          `${hostsNeedingNormalization} plans need host normalization`,
-          null,
-          'warn',
-        );
+      if (data.hosts_needing_normalization > 0) {
+        showToast(`${data.hosts_needing_normalization} plans need host normalization`, "warn");
       }
     })
     .catch(() => {});
   refreshAll();
   applyRefresh();
   setTimeout(handleHashRoute, 1200);
-  if (typeof initDashboardWebSocket === 'function') initDashboardWebSocket();
+  if (typeof initDashboardWebSocket === "function") initDashboardWebSocket();
 });

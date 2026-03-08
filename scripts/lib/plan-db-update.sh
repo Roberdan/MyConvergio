@@ -31,6 +31,91 @@ cmd_start() {
 	fi
 	log_info "Started plan ID: $plan_id (host: $PLAN_DB_HOST)"
 }
+
+_capture_task_commit_tracking() {
+	local task_id="$1"
+	local plan_id git_dir commit_sha commit_message authored_at diff_stat short_stat
+	local files_changed=0 lines_added=0 lines_removed=0
+
+	plan_id=$(sqlite3 "$DB_FILE" "SELECT plan_id FROM tasks WHERE id = $task_id;" 2>/dev/null || echo "")
+	[[ -z "$plan_id" ]] && return 0
+
+	git_dir=$(sqlite3 "$DB_FILE" "SELECT w.worktree_path FROM waves w JOIN tasks t ON t.wave_id_fk = w.id WHERE t.id = $task_id AND w.worktree_path IS NOT NULL AND w.worktree_path <> '' LIMIT 1;" 2>/dev/null || echo "")
+	if [[ -z "$git_dir" ]]; then
+		git_dir=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM waves WHERE plan_id = $plan_id AND worktree_path IS NOT NULL AND worktree_path <> '' ORDER BY position DESC LIMIT 1;" 2>/dev/null || echo "")
+	fi
+	if [[ -z "$git_dir" ]]; then
+		git_dir=$(sqlite3 "$DB_FILE" "SELECT worktree_path FROM plans WHERE id = $plan_id;" 2>/dev/null || echo "")
+	fi
+
+	if [[ -z "$git_dir" || ! -d "$git_dir" || (! -d "$git_dir/.git" && ! -f "$git_dir/.git") ]]; then
+		return 0
+	fi
+
+	commit_sha=$(git -C "$git_dir" rev-parse HEAD 2>/dev/null || echo "")
+	[[ -z "$commit_sha" ]] && return 0
+
+	commit_message=$(git -C "$git_dir" log -1 --pretty=%s 2>/dev/null || echo "")
+	authored_at=$(git -C "$git_dir" show -s --format=%cI HEAD 2>/dev/null || echo "")
+	diff_stat=$(git -C "$git_dir" diff --stat 2>/dev/null || echo "")
+	short_stat=$(git -C "$git_dir" diff --shortstat 2>/dev/null || echo "")
+
+	if [[ -n "$short_stat" ]]; then
+		IFS='|' read -r files_changed lines_added lines_removed < <(
+			echo "$short_stat" | awk '
+				{
+					for (i = 1; i <= NF; i++) {
+						if ($i ~ /^[0-9]+$/ && $(i+1) ~ /^file/) f += $i
+						if ($i ~ /^[0-9]+$/ && $(i+1) ~ /^insertion/) a += $i
+						if ($i ~ /^[0-9]+$/ && $(i+1) ~ /^deletion/) r += $i
+					}
+				}
+				END { printf "%d|%d|%d\n", f+0, a+0, r+0 }
+			'
+		)
+	fi
+
+	local has_commit_sha has_lines_added has_lines_removed has_files_changed
+	has_commit_sha=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM pragma_table_info('tasks') WHERE name='commit_sha';" 2>/dev/null || echo "0")
+	has_lines_added=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM pragma_table_info('tasks') WHERE name='lines_added';" 2>/dev/null || echo "0")
+	has_lines_removed=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM pragma_table_info('tasks') WHERE name='lines_removed';" 2>/dev/null || echo "0")
+	has_files_changed=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM pragma_table_info('tasks') WHERE name='files_changed';" 2>/dev/null || echo "0")
+
+	if [[ "$has_commit_sha" == "1" || "$has_lines_added" == "1" || "$has_lines_removed" == "1" || "$has_files_changed" == "1" ]]; then
+		local set_parts=()
+		[[ "$has_commit_sha" == "1" ]] && set_parts+=("commit_sha = '$(sql_lit "$commit_sha")'")
+		[[ "$has_lines_added" == "1" ]] && set_parts+=("lines_added = $lines_added")
+		[[ "$has_lines_removed" == "1" ]] && set_parts+=("lines_removed = $lines_removed")
+		[[ "$has_files_changed" == "1" ]] && set_parts+=("files_changed = $files_changed")
+		sqlite3 "$DB_FILE" "UPDATE tasks SET $(IFS=', '; echo "${set_parts[*]}") WHERE id = $task_id;" 2>/dev/null || true
+	fi
+
+	local has_plan_commits
+	has_plan_commits=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='plan_commits';" 2>/dev/null || echo "0")
+	if [[ "$has_plan_commits" == "1" ]]; then
+		local authored_at_sql="NULL"
+		[[ -n "$authored_at" ]] && authored_at_sql="'$(sql_lit "$authored_at")'"
+		sqlite3 "$DB_FILE" "
+			INSERT INTO plan_commits (
+				plan_id, task_id, commit_sha, commit_message, lines_added, lines_removed, files_changed, authored_at, created_at
+			) VALUES (
+				$plan_id, $task_id, '$(sql_lit "$commit_sha")', '$(sql_lit "$commit_message")', $lines_added, $lines_removed, $files_changed, $authored_at_sql, datetime('now')
+			)
+			ON CONFLICT(plan_id, commit_sha) DO UPDATE SET
+				task_id = COALESCE(plan_commits.task_id, excluded.task_id),
+				commit_message = COALESCE(excluded.commit_message, plan_commits.commit_message),
+				lines_added = excluded.lines_added,
+				lines_removed = excluded.lines_removed,
+				files_changed = excluded.files_changed,
+				authored_at = COALESCE(plan_commits.authored_at, excluded.authored_at);
+		" 2>/dev/null || true
+	fi
+
+	local escaped_diff_stat
+	escaped_diff_stat=$(sql_lit "$diff_stat")
+	log_info "Task $task_id commit tracking captured: $commit_sha (+$lines_added/-$lines_removed, files=$files_changed, diff_stat='${escaped_diff_stat}')"
+}
+
 cmd_update_task() {
 	local task_id="$1"
 	local status="$2"
@@ -52,7 +137,7 @@ cmd_update_task() {
 			;;
 		esac
 	done
-	local notes_escaped=$(sql_escape "$notes")
+	local notes_escaped=$(sql_lit "$notes")
 	if [[ -n "$output_data" ]]; then
 		echo "$output_data" | jq -e . >/dev/null 2>&1 || {
 			log_error "Invalid JSON in --output-data"
@@ -89,11 +174,12 @@ cmd_update_task() {
 	local tokens_sql=""
 	[[ -n "$tokens" ]] && tokens_sql=", tokens = $tokens"
 	local output_sql=""
-	[[ -n "$output_data" ]] && output_sql=", output_data = '$(sql_escape "$output_data")'"
+	[[ -n "$output_data" ]] && output_sql=", output_data = '$(sql_lit "$output_data")'"
 	if [[ "$status" == "in_progress" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
 	elif [[ "$status" == "submitted" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE tasks SET status = 'submitted', completed_at = datetime('now'), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
+		_capture_task_commit_tracking "$task_id"
 		log_info "Task $task_id submitted — awaiting Thor validation"
 	elif [[ "$status" == "done" ]]; then
 		sqlite3 "$DB_FILE" "UPDATE tasks SET status = '$status', started_at = COALESCE(started_at, datetime('now')), completed_at = COALESCE(completed_at, datetime('now')), executor_host = '$PLAN_DB_HOST', notes = '$notes_escaped'$tokens_sql$output_sql WHERE id = $task_id;"
@@ -170,7 +256,7 @@ cmd_approve() {
 		return 1
 	fi
 	local safe_notes
-	safe_notes=$(sql_escape "$notes")
+	safe_notes=$(sql_lit "$notes")
 	sqlite3 "$DB_FILE" "
 		INSERT INTO plan_reviews (plan_id, reviewer_agent, verdict, suggestions, reviewed_at)
 		VALUES ($plan_id, 'user-approval', 'approved', '$safe_notes', datetime('now'));
@@ -305,7 +391,7 @@ cmd_set_worktree() {
 	local plan_id="$1"
 	local wt_path="$2"
 	local normalized="$(_normalize_path "$wt_path")"
-	local safe_path="$(sql_escape "$normalized")"
+	local safe_path="$(sql_lit "$normalized")"
 	sqlite3 "$DB_FILE" "UPDATE plans SET worktree_path = '$safe_path' WHERE id = $plan_id;"
 	log_info "Set worktree for plan $plan_id: $normalized"
 }
@@ -313,7 +399,7 @@ cmd_set_wave_worktree() {
 	local wave_db_id="$1"
 	local wt_path="$2"
 	local normalized="$(_normalize_path "$wt_path")"
-	local safe_path="$(sql_escape "$normalized")"
+	local safe_path="$(sql_lit "$normalized")"
 	sqlite3 "$DB_FILE" "UPDATE waves SET worktree_path = '$safe_path' WHERE id = $wave_db_id;"
 	log_info "Set wave worktree for wave $wave_db_id: $normalized"
 }

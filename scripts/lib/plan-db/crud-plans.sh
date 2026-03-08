@@ -4,7 +4,7 @@
 
 cmd_list() {
 	local project_id="$1"
-	local safe_project_id="$(sql_escape "$project_id")"
+	local safe_project_id="$(sql_lit "$project_id")"
 	echo -e "${BLUE}Plans for project: ${project_id}${NC}"
 	echo ""
 	sqlite3 -header -column "$DB_FILE" "
@@ -61,15 +61,15 @@ cmd_create() {
 	done
 	set -u
 
-	local safe_project_id="$(sql_escape "$project_id")"
-	local safe_name="$(sql_escape "$name")"
+	local safe_project_id="$(sql_lit "$project_id")"
+	local safe_name="$(sql_lit "$name")"
 
 	[[ "$name" == *"-Main"* ]] || [[ "$name" == *"-Master"* ]] && is_master=1
 
 	if [[ $is_master -eq 0 ]]; then
 		local base_name="${name%%-Phase*}"
 		base_name="${base_name%%-[0-9]*}"
-		local master_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name LIKE '$(sql_escape "$base_name")%' AND is_master=1 LIMIT 1;")
+		local master_id=$(sqlite3 "$DB_FILE" "SELECT id FROM plans WHERE project_id='$safe_project_id' AND name LIKE '$(sql_lit "$base_name")%' AND is_master=1 LIMIT 1;")
 		[[ -n "$master_id" ]] && parent_id="$master_id"
 	fi
 
@@ -80,21 +80,21 @@ cmd_create() {
 
 	local sf_val="NULL" mp_val="NULL" md_val="NULL" wp_val="NULL" desc_val="NULL"
 	if [[ -n "$source_file" ]]; then
-		sf_val="'$(sql_escape "$source_file")'"
+		sf_val="'$(sql_lit "$source_file")'"
 	fi
 	if [[ -n "$markdown_path" ]]; then
-		mp_val="'$(sql_escape "$markdown_path")'"
-		md_val="'$(sql_escape "$(dirname "$markdown_path")")'"
+		mp_val="'$(sql_lit "$markdown_path")'"
+		md_val="'$(sql_lit "$(dirname "$markdown_path")")'"
 	fi
 	if [[ -n "$worktree_path" ]]; then
-		wp_val="'$(sql_escape "$(_normalize_path "$worktree_path")")'"
+		wp_val="'$(sql_lit "$(_normalize_path "$worktree_path")")'"
 	fi
 	if [[ -n "$description" ]]; then
-		desc_val="'$(sql_escape "$description")'"
+		desc_val="'$(sql_lit "$description")'"
 	fi
 	local hs_val="NULL"
 	if [[ -n "$human_summary" ]]; then
-		hs_val="'$(sql_escape "$human_summary")'"
+		hs_val="'$(sql_lit "$human_summary")'"
 	fi
 
 	sqlite3 "$DB_FILE" "
@@ -136,8 +136,8 @@ cmd_create() {
 			norm_mp=$(_normalize_path "$markdown_path")
 			norm_md=$(_normalize_path "$plans_dir")
 			sqlite3 "$DB_FILE" "UPDATE plans SET \
-				markdown_path='$(sql_escape "$norm_mp")', \
-				markdown_dir='$(sql_escape "$norm_md")' \
+				markdown_path='$(sql_lit "$norm_mp")', \
+				markdown_dir='$(sql_lit "$norm_md")' \
 				WHERE id=$plan_id;"
 			log_info "Auto-set markdown: $markdown_path"
 		fi
@@ -214,7 +214,7 @@ cmd_approve() {
 
 	# Record approval
 	local safe_notes
-	safe_notes=$(sql_escape "$notes")
+	safe_notes=$(sql_lit "$notes")
 	sqlite3 "$DB_FILE" "
 		INSERT INTO plan_reviews (plan_id, reviewer_agent, verdict, suggestions, reviewed_at)
 		VALUES ($plan_id, 'user-approval', 'approved', '$safe_notes', datetime('now'));
@@ -239,7 +239,7 @@ cmd_set_worktree() {
 	local plan_id="$1"
 	local wt_path="$2"
 	local normalized="$(_normalize_path "$wt_path")"
-	local safe_path="$(sql_escape "$normalized")"
+	local safe_path="$(sql_lit "$normalized")"
 	sqlite3 "$DB_FILE" "UPDATE plans SET worktree_path = '$safe_path' WHERE id = $plan_id;"
 	log_info "Set worktree for plan $plan_id: $normalized"
 }
@@ -247,7 +247,7 @@ cmd_set_worktree() {
 cmd_cancel() {
 	local plan_id="$1"
 	local reason="${2:-Cancelled by user}"
-	local safe_reason="$(sql_escape "$reason")"
+	local safe_reason="$(sql_lit "$reason")"
 
 	local current_status
 	current_status=$(sqlite3 "$DB_FILE" "SELECT status FROM plans WHERE id = $plan_id;")

@@ -5,7 +5,7 @@
 # List plans for a project
 cmd_list() {
 	local project_id="$1"
-	local safe_project_id="$(sql_escape "$project_id")"
+	local safe_project_id="$(sql_lit "$project_id")"
 	echo -e "${BLUE}Plans for project: ${project_id}${NC}"
 	echo ""
 	sqlite3 -header -column "$DB_FILE" "

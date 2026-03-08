@@ -1,0 +1,49 @@
+.chat-tabbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.chat-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.chat-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(26, 32, 64, 0.9);
+  border-radius: 8px;
+  background: rgba(10, 14, 26, 0.7);
+  color: var(--text-main);
+  padding: 5px 8px;
+  min-height: 28px;
+  cursor: pointer;
+}
+.chat-tab.active {
+  border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 229, 255, 0.12);
+}
+.chat-tab-title {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.chat-tab-rename,
+.chat-tab-close {
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1;
+}
+.chat-tab-rename:hover,
+.chat-tab-close:hover {
+  color: var(--text-main);
+}
+.chat-tab-add {
+  white-space: nowrap;
+  min-width: 66px;
+}

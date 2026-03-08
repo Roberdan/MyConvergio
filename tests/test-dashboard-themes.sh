@@ -13,12 +13,33 @@ for theme in "${themes[@]}"; do
 done
 
 cd "$ROOT/scripts"
-python3 - <<'PY'
-from dashboard_textual.themes import THEMES, THEME_NAMES
-assert "neon-grid" in THEMES
-assert "synthwave" in THEMES
-assert "ghost-shell" in THEMES
-assert len(THEME_NAMES) >= 3
+python3 - "$PY" <<'PY'
+import ast
+import sys
+from pathlib import Path
+
+themes_path = Path(sys.argv[1])
+module = ast.parse(themes_path.read_text(encoding="utf-8"))
+
+theme_keys = set()
+theme_names_declared = False
+for node in module.body:
+    if isinstance(node, ast.Assign):
+        for target in node.targets:
+            if isinstance(target, ast.Name) and target.id == "THEMES":
+                if isinstance(node.value, ast.Dict):
+                    for key in node.value.keys:
+                        if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                            theme_keys.add(key.value)
+            if isinstance(target, ast.Name) and target.id == "THEME_NAMES":
+                if isinstance(node.value, ast.Call):
+                    theme_names_declared = True
+
+assert "neon-grid" in theme_keys
+assert "synthwave" in theme_keys
+assert "ghost-shell" in theme_keys
+assert len(theme_keys) >= 3
+assert theme_names_declared
 print("PASS textual themes")
 PY
 cd "$ROOT"

@@ -11,6 +11,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_HOME="${HOME}/.claude"
 REGISTRY_FILE="${CLAUDE_HOME}/plans/registry.json"
 DB_FILE="${CLAUDE_HOME}/data/dashboard.db"
+# shellcheck source=./lib/sql-utils.sh
+source "$SCRIPT_DIR/lib/sql-utils.sh"
 
 PROJECT_PATH="${1:-.}"
 PROJECT_PATH="$(cd "$PROJECT_PATH" && pwd)"
@@ -121,9 +123,6 @@ UPDATED_REGISTRY=$(jq --arg id "$PROJECT_ID" \
     ' "$REGISTRY_FILE")
 
 echo "$UPDATED_REGISTRY" >"$REGISTRY_FILE"
-
-# SQL escape helper
-sql_escape() { echo "${1//\'/\'\'}"; }
 
 # Update SQLite database
 if [[ -f "$DB_FILE" ]]; then

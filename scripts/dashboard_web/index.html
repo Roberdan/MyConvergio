@@ -17,6 +17,13 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="themes.css">
 <link rel="stylesheet" href="brain-styles.css">
+<link rel="stylesheet" href="css/chat.css">
+<link rel="stylesheet" href="css/chat-tabs.css">
+<link rel="stylesheet" href="css/chat-context.css">
+<link rel="stylesheet" href="css/chat-monitor.css">
+<link rel="stylesheet" href="css/github-panel.css">
+<link rel="stylesheet" href="css/github-activity.css">
+<link rel="stylesheet" href="css/nightly-jobs.css">
 </head>
 <body>
 
@@ -51,7 +58,13 @@
 
 <div class="kpi-bar" id="kpi-bar"></div>
 
+<div id="dashboard-nav" class="dashboard-nav" aria-label="Dashboard views">
+  <button class="widget-action-btn active" data-section="dashboard-main-section" type="button">Overview</button>
+  <button class="widget-action-btn" data-section="dashboard-chat-section" type="button">Chat</button>
+</div>
+
 <!-- Two-column dashboard layout -->
+<section id="dashboard-main-section" class="dashboard-section">
 <div class="dash-columns">
   <div class="dash-col-left">
     <div class="widget" id="mission-panel">
@@ -150,8 +163,12 @@
       </div>
     </div>
     <div class="widget" id="event-feed-widget">
-      <div class="widget-header">◈ EVENT FEED</div>
+      <div class="widget-header">◈ GITHUB ACTIVITY</div>
       <div class="widget-body" id="event-feed-content"></div>
+    </div>
+    <div class="widget" id="nightly-jobs-widget">
+      <div class="widget-header"><span class="widget-title">Nightly Jobs</span></div>
+      <div class="widget-body" id="nightly-jobs-content"><span style="color:var(--text-dim)">Loading...</span></div>
     </div>
     <div class="widget" id="widget-tokens">
       <div class="widget-header">
@@ -170,6 +187,18 @@
     </div>
   </div>
 </div>
+</section>
+
+<section id="dashboard-chat-section" class="dashboard-section" hidden>
+  <div class="widget" id="chat-widget">
+    <div class="widget-header">
+      <span class="widget-title">Task Chat</span>
+    </div>
+    <div class="widget-body">
+      <div id="chat-panel-root"></div>
+    </div>
+  </div>
+</section>
 
 <!-- Plan Detail Sidebar -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -200,6 +229,8 @@
 <script src="plan-kanban.js"></script>
 <script src="charts.js"></script>
 <script src="activity.js"></script>
+<script src="github-activity.js"></script>
+<script src="nightly-jobs.js"></script>
 <script src="kpi-modals.js"></script>
 <script src="websocket.js"></script>
 <script src="brain-layout.js"></script>
@@ -215,5 +246,11 @@
 <script src="peer-crud.js"></script>
 <script src="widget-drag.js"></script>
 <script src="terminal.js"></script>
+<script src="chat-tabs.js"></script>
+<script src="chat-panel.js"></script>
+<script src="repo-selector.js"></script>
+<script src="chat-context.js"></script>
+<script src="chat-monitor.js"></script>
+<script src="github-panel.js"></script>
 </body>
 </html>

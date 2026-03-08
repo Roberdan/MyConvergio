@@ -11,6 +11,9 @@ pub mod state;
 pub mod sse;
 pub mod ws;
 
+#[cfg(test)]
+mod api_tests;
+
 use axum::Router;
 use std::path::{Path, PathBuf};
 

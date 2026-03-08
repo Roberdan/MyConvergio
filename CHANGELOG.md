@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.3.5] - 08 Mar 2026
+
+### Changed
+- add 21 integration tests for all dashboard API endpoints
+
+
 ## [v11.3.4] - 08 Mar 2026
 
 ### Fixed

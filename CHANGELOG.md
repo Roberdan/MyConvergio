@@ -1,9 +1,9 @@
 # Changelog
 
-## [v11.4.0] - 08 Mar 2026
+## [v11.4.1] - 08 Mar 2026
 
-### Added
-- Idea Jar system — capture, elaborate, promote ideas
+### Changed
+- deduplicate CHANGELOG v11.4.0 entry
 
 
 ## [v11.4.0] - 08 Mar 2026

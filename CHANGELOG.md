@@ -1,5 +1,14 @@
 # Changelog
 
+## [v11.3.0] - 08 Mar 2026
+
+### Added
+- gated plan creation — 3 mandatory reviews before create/import
+
+### Changed
+- update architecture for Rust v11, add ADR 0040
+
+
 ## [v11.2.0] - 08 Mar 2026
 
 ### Added

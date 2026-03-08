@@ -89,7 +89,15 @@ See AGENTS.md for Thor validation rules.
 
 ## Anti-Bypass (NON-NEGOTIABLE)
 
-Follow the Workflow above. Bypasses are enforced by hooks: `guard-plan-mode.sh` (blocks EnterPlanMode), `enforce-plan-db-safe.sh` (blocks direct plan-db.sh done), `enforce-plan-edit.sh` (blocks direct edits on plan-tracked files). No `plan_id` in DB = `/execute` BLOCKED.
+Follow the Workflow above. Bypasses are enforced by hooks:
+
+| Hook | Blocks | Allowed Alternative |
+|---|---|---|
+| `enforce-planner-workflow.sh` | `plan-db.sh create`, `plan-db.sh import`, `EnterPlanMode` | `planner-create.sh` (requires 3 registered reviews) |
+| `enforce-plan-db-safe.sh` | `plan-db.sh update-task ... done` | `plan-db-safe.sh` (Thor audit trail) |
+| `enforce-plan-edit.sh` | Direct edits on plan-tracked files | Task-executor only |
+
+**Plan creation gate** (v2.0 — Plan 100026 learning): `planner-create.sh` is the ONLY way to create plans. It requires 3 registered reviews (standard + challenger + business) before allowing `plan-db.sh create/import`. No bypass, no `PLANNER_ACTIVE` env var. _Why: Plan 100026 — agent had planner skill active but skipped all 3 intelligence reviews and created plan directly._
 
 ## Mandatory Routing (NON-NEGOTIABLE)
 

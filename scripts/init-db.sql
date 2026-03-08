@@ -701,11 +701,13 @@ CREATE TABLE IF NOT EXISTS tasks_new (
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
-INSERT INTO tasks_new SELECT * FROM tasks;
-DROP TABLE IF EXISTS tasks;
-ALTER TABLE tasks_new RENAME TO tasks;
+-- MIGRATION: tasks_new → tasks rebuild (APPLIED, DO NOT RE-RUN)
+-- This was a one-time migration. On fresh DBs, tasks_new won't exist.
+-- On already-migrated DBs, tasks already has the correct schema.
+INSERT OR IGNORE INTO tasks SELECT * FROM tasks_new WHERE EXISTS (SELECT 1 FROM sqlite_master WHERE name='tasks_new');
+DROP TABLE IF EXISTS tasks_new;
 
--- Recreate indexes on rebuilt tasks table
+-- Recreate indexes on tasks table
 CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id, wave_id, task_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_wave_fk ON tasks(wave_id_fk);
 CREATE INDEX IF NOT EXISTS idx_tasks_plan ON tasks(plan_id);

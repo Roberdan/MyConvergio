@@ -46,6 +46,7 @@ Works with ANY repository - auto-detects project context.
 | 4    | TDD Mandatory - Every task has test_criteria                                                         |
 | 5    | NO SILENT EXCLUSIONS - NEVER exclude/defer F-xx without user approval. Silently dropping = VIOLATION |
 | 6    | DB GATE - NEVER proceed to User Approval without verifying plan exists in plan-db (Step 4.1). Skipping = plan lost |
+| 7    | **HOLISTIC IMPACT** - Before generating tasks, ANALYZE: mesh nodes (deploy?), legacy scripts (obsolete?), DB schema (all nodes?), daemon lifecycle, frontend contracts. If ANY infrastructure is affected, the plan MUST include deploy/disable/verify tasks for ALL nodes. **If scope is unclear → ASK the user.** See `rules/migration-checklist.md`. Failure: Plan 100025 (lost a full day debugging missing tables, broken sync, undeployed binaries). |
 
 ## Workflow
 

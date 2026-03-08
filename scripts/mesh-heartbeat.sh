@@ -122,20 +122,12 @@ _daemon_loop() {
 		_check_plan_events 2>/dev/null || true
 		pulse=$((pulse + 1))
 		# Every 4 beats (~2 min): pull task updates from peers
-		if ((pulse % 4 == 0)); then
-			local dbsync_script="$SCRIPT_DIR/mesh-db-sync-tasks.sh"
-			if [[ -x "$dbsync_script" ]]; then
-				"$dbsync_script" >>"$CLAUDE_HOME/data/mesh-dbsync.log" 2>&1 &
-			fi
-		fi
-		# Every 10 beats (~5 min): pull config (Mac only — Linux peers are push targets) + cleanup
+		# DISABLED: Rust daemon (port 9420) handles CRDT sync now.
+		# Legacy bash sync does destructive full-DB copy that wipes tables.
+		# if ((pulse % 4 == 0)); then ... fi
+
+		# Every 10 beats (~5 min): cleanup only (NO config sync — git handles that)
 		if ((pulse % 10 == 0)); then
-			local sync_script="$SCRIPT_DIR/sync-claude-config.sh"
-			local current_os
-			current_os="$(uname -s 2>/dev/null || echo "Unknown")"
-			if [[ -x "$sync_script" && "$current_os" == "Darwin" ]]; then
-				"$sync_script" pull >>"$CLAUDE_HOME/data/mesh-heartbeat.log" 2>&1 &
-			fi
 			local cleanup_script="$SCRIPT_DIR/mesh-cleanup.sh"
 			if [[ -x "$cleanup_script" ]]; then
 				"$cleanup_script" --reset-stale --json >>"$CLAUDE_HOME/data/mesh-cleanup.log" 2>&1 &
@@ -181,12 +173,9 @@ cmd_start() {
 	ok "Started (PID $pid). Writing heartbeat every ${INTERVAL}s."
 	ok "Log: $CLAUDE_HOME/data/mesh-heartbeat.log"
 
-	# Auto-sync: pull latest config from coordinator on startup
-	local sync_script="$SCRIPT_DIR/sync-claude-config.sh"
-	if [[ -x "$sync_script" ]]; then
-		info "Pulling latest config from coordinator..."
-		"$sync_script" pull >>"$CLAUDE_HOME/data/mesh-heartbeat.log" 2>&1 &
-	fi
+	# Auto-sync disabled: Rust daemon handles CRDT sync on port 9420.
+	# Legacy config sync via git bundle was doing destructive DB overwrites.
+	info "Rust mesh daemon handles sync (port 9420). Legacy sync disabled."
 }
 
 cmd_stop() {

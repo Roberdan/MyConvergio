@@ -27,6 +27,12 @@ enum Commands {
         /// pre or post
         mode: String,
     },
+    Serve {
+        #[arg(long, default_value = "0.0.0.0:8420")]
+        bind: String,
+        #[arg(long)]
+        static_dir: Option<PathBuf>,
+    },
     Daemon {
         #[command(subcommand)]
         command: DaemonCommands,
@@ -107,6 +113,17 @@ async fn main() {
                             std::process::exit(1);
                         }
                     }
+                }
+            }
+            Commands::Serve { bind, static_dir } => {
+                let dir = static_dir.unwrap_or_else(|| {
+                    let home = env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                    claude_core::server::resolve_dashboard_static_dir(PathBuf::from(home).join(".claude"))
+                });
+                eprintln!("claude-core serve → {bind} (static: {dir:?})");
+                if let Err(err) = claude_core::server::run(&bind, dir).await {
+                    eprintln!("server failed: {err}");
+                    std::process::exit(2);
                 }
             }
             Commands::Daemon { command } => match command {

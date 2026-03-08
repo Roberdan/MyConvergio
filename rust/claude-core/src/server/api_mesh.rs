@@ -17,10 +17,28 @@ async fn api_mesh(State(state): State<ServerState>) -> Result<Json<Value>, ApiEr
     let db = state.open_db()?;
     let rows = query_rows(
         db.connection(),
-        "SELECT peer_name, cpu_load AS cpu, tasks_in_progress AS active_tasks, mem_used_gb, mem_total_gb, last_seen FROM peer_heartbeats",
+        "SELECT peer_name, last_seen, load_json, capabilities FROM peer_heartbeats",
         [],
     )?;
-    Ok(Json(Value::Array(rows)))
+    let peers: Vec<Value> = rows.into_iter().map(|mut row| {
+        if let Some(load_str) = row.get("load_json").and_then(Value::as_str).map(str::to_owned) {
+            if let Ok(load) = serde_json::from_str::<Value>(&load_str) {
+                if let Some(obj) = load.as_object() {
+                    for (k, v) in obj { row.as_object_mut().unwrap().insert(k.clone(), v.clone()); }
+                }
+            }
+        }
+        let name = row.get("peer_name").and_then(Value::as_str).unwrap_or("").to_owned();
+        let seen = row.get("last_seen").and_then(Value::as_f64).unwrap_or(0.0);
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0);
+        let obj = row.as_object_mut().unwrap();
+        if !obj.contains_key("is_online") { obj.insert("is_online".to_string(), json!(now - seen < 300.0)); }
+        if !obj.contains_key("is_local") { obj.insert("is_local".to_string(), json!(name.contains("m3max") || name.contains("local"))); }
+        if !obj.contains_key("cpu") { obj.insert("cpu".to_string(), json!(0)); }
+        if !obj.contains_key("active_tasks") { obj.insert("active_tasks".to_string(), json!(0)); }
+        row
+    }).collect();
+    Ok(Json(Value::Array(peers)))
 }
 
 async fn api_mesh_sync_status(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {

@@ -41,7 +41,9 @@ async fn api_overview(State(state): State<ServerState>) -> Result<Json<Value>, A
           COALESCE((SELECT SUM(input_tokens + output_tokens) FROM token_usage),0) AS total_tokens,\
           COALESCE((SELECT SUM(cost_usd) FROM token_usage),0) AS total_cost,\
           COALESCE((SELECT SUM(input_tokens + output_tokens) FROM token_usage WHERE date(created_at)=date('now')),0) AS today_tokens,\
-          COALESCE((SELECT SUM(cost_usd) FROM token_usage WHERE date(created_at)=date('now')),0) AS today_cost",
+          COALESCE((SELECT SUM(cost_usd) FROM token_usage WHERE date(created_at)=date('now')),0) AS today_cost,\
+          (SELECT COUNT(*) FROM peer_heartbeats) AS mesh_total,\
+          (SELECT COUNT(*) FROM peer_heartbeats WHERE (strftime('%s','now') - COALESCE(last_seen,0)) < 300) AS mesh_online",
         [],
     )?
     .unwrap_or_else(|| json!({}));
@@ -52,10 +54,25 @@ async fn api_mission(State(state): State<ServerState>) -> Result<Json<Value>, Ap
     let db = state.open_db()?;
     let plans = query_rows(
         db.connection(),
-        "SELECT id,name,status,tasks_done,tasks_total,project_id,execution_host FROM plans WHERE status IN ('todo','doing') ORDER BY id DESC",
+        "SELECT id,name,status,tasks_done,tasks_total,project_id,execution_host,human_summary FROM plans WHERE status IN ('todo','doing') ORDER BY id DESC",
         [],
     )?;
-    Ok(Json(json!({"plans": plans})))
+    let mut result = Vec::new();
+    for plan in plans {
+        let plan_id = plan.get("id").and_then(Value::as_i64).unwrap_or(0);
+        let waves = query_rows(
+            db.connection(),
+            "SELECT wave_id,name,status,tasks_done,tasks_total,position,validated_at FROM waves WHERE plan_id=?1 ORDER BY position",
+            rusqlite::params![plan_id],
+        ).unwrap_or_default();
+        let tasks = query_rows(
+            db.connection(),
+            "SELECT task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id FROM tasks WHERE plan_id=?1 ORDER BY id",
+            rusqlite::params![plan_id],
+        ).unwrap_or_default();
+        result.push(json!({"plan": plan, "waves": waves, "tasks": tasks}));
+    }
+    Ok(Json(json!({"plans": result})))
 }
 
 async fn api_organization(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {

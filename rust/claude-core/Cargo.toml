@@ -1,6 +1,6 @@
 [package]
 name = "claude-core"
-version = "11.3.0"
+version = "11.5.0"
 edition = "2021"
 
 [lib]

@@ -1,0 +1,748 @@
+{
+  "timestamp": "2026-03-08T19:13:08.142353Z",
+  "claude_git_sha": "6aa7939061f463d05d8a54029c4ce22e9d323a9b",
+  "claude_md_version": "<!-- v2.0.0 -->",
+  "agents_md_version": "# AGENTS.md",
+  "rules": [
+    {
+      "path": "rules/README.md",
+      "sha256": "4aea9b1ee6b97cf1b45eff827b9b6299748901245c6dc027a19897d31ac076a8"
+    },
+    {
+      "path": "rules/agent-discovery.md",
+      "sha256": "107e08ee775b8fdd1e5e3078149a09a0323c5241e003515a8a00024b22f44190"
+    },
+    {
+      "path": "rules/api-development.md",
+      "sha256": "5a98b9058b151c86724be5abae717853230b3acc859082ab86f22bd802481294"
+    },
+    {
+      "path": "rules/coding-standards.md",
+      "sha256": "7cf9043f60e23be953f069eb2fe252aca87a4840db720848b379f719c508c338"
+    },
+    {
+      "path": "rules/compaction-preservation.md",
+      "sha256": "2a25050ce7e4c33a70ddd587f717b39bd8699c6882865bd776a4d91ef9a39716"
+    },
+    {
+      "path": "rules/documentation-standards.md",
+      "sha256": "0b72f38899f4fb3e605e8f7192bc0fe2069c25958f65d9355bfcf97f7da46a53"
+    },
+    {
+      "path": "rules/ethical-guidelines.md",
+      "sha256": "1dc9d8a07848b0507312e1b9e07a14777a44db6d31c68e4ca276b819edc57862"
+    },
+    {
+      "path": "rules/file-size-limits.md",
+      "sha256": "588da2176b31d7a9ee2c838a017c9550f092a9f74e078a9efe1a7ee08fb24f7a"
+    },
+    {
+      "path": "rules/guardian.md",
+      "sha256": "2cd7fd0f3fff4c6190ec2a75578f713394eeb681a022151e7cd8579a1a350eb8"
+    },
+    {
+      "path": "rules/lean-coordinator.md",
+      "sha256": "c1cb26e91d558c16c9fdeced30c021b257dff883f8942a93ef2da4ca65d97f19"
+    },
+    {
+      "path": "rules/migration-checklist.md",
+      "sha256": "fcc87aece3a33a139c40d8ccfa2331fc013b5777ba4f998a0894ff8a3941b057"
+    },
+    {
+      "path": "rules/problem-resolution.md",
+      "sha256": "6db2d6fdc5260227557152c5a7a3a7b35bfc96c91ae992e6a1615ae437162060"
+    },
+    {
+      "path": "rules/security-requirements.md",
+      "sha256": "f4eb1de359941f222c1ebec5eeb6af60e9f4348d78b88d3167add660a114191d"
+    },
+    {
+      "path": "rules/testing-standards.md",
+      "sha256": "31ee44f6a90c372cc50dbc295082f23e2a92d3576ed7dfd3ffa681385efc30f5"
+    },
+    {
+      "path": "rules/token-budget.md",
+      "sha256": "a80d471d18bc707e4fcf00c13e8b70da90983d730afbd269c114d168b3f8491b"
+    }
+  ],
+  "hooks": [
+    {
+      "path": "hooks/README.md",
+      "sha256": "88fe3e7892d404eb9b88977243273cc182442235f6b5dfbec2ce1de2b15f95e6"
+    },
+    {
+      "path": "hooks/archive/advisory-suggest-alternatives.sh",
+      "sha256": "d3886f1617ad9798c84285291f6a9115e6167b384a3c109729d0987eb8a22718"
+    },
+    {
+      "path": "hooks/archive/auto-format.sh",
+      "sha256": "98a8662c4fc047d25baf5647327be32e56b84bdd6e297b66f922994a41c17c7c"
+    },
+    {
+      "path": "hooks/archive/debug-hook-input.sh",
+      "sha256": "81f746309ef0be9e89924d8307cbb535b7c13fb2c24dead029673e3a6d4af7cd"
+    },
+    {
+      "path": "hooks/archive/dispatcher.sh",
+      "sha256": "0e34a919351d509d65c9095416a6078ad0feb2f02f837cb589f7e49bc426b45d"
+    },
+    {
+      "path": "hooks/archive/enforce-execution-preflight.sh",
+      "sha256": "9011513c2941345be57c12a2655318c87766cde0aec6ea14593e0e230ef2a75c"
+    },
+    {
+      "path": "hooks/archive/enforce-line-limit.sh",
+      "sha256": "7db152caa9c5025c1061459479d32ef655350ca2e98226db63b000e4b42d11be"
+    },
+    {
+      "path": "hooks/archive/enforce-plan-db-safe.sh",
+      "sha256": "a95b606613026713362810146957e8e326119b4d1b01d343b6c04bb25b3ea8e5"
+    },
+    {
+      "path": "hooks/archive/enforce-plan-edit.sh",
+      "sha256": "3d8c7f7c22782c59ea5f2aa14660390cbfb97efd4aafe31e766f96136e94f521"
+    },
+    {
+      "path": "hooks/archive/enforce-plan-reviews.sh",
+      "sha256": "655847f3a79bc660efaff3d53576b9263ce22fa1af82c0d6742172dea5a7b942"
+    },
+    {
+      "path": "hooks/archive/enforce-standards.sh",
+      "sha256": "8380de41ae8ef3745a01783f2a8503031e35131f414edb29584b35facebeeab5"
+    },
+    {
+      "path": "hooks/archive/enforce-thor-completion.sh",
+      "sha256": "5c276a63eadff80a44e3fb77362fa76c0bdb953070efeaf1cb8081400f000410"
+    },
+    {
+      "path": "hooks/archive/enforce-worktree-boundary.sh",
+      "sha256": "05e766d5562b990745842a62853fab96f6a0f6013713e93dcb55e87d97cc1ced"
+    },
+    {
+      "path": "hooks/archive/env-vault-guard.sh",
+      "sha256": "14856c9f5f3e6b84009dfc43e6faac8549d478a83821c9eacd3781914936c9fd"
+    },
+    {
+      "path": "hooks/archive/gh-auto-token.sh",
+      "sha256": "c797b8be00550c785ea9806b7907303609f23ae1c175e08980eea8c22311d8e0"
+    },
+    {
+      "path": "hooks/archive/guard-plan-mode.sh",
+      "sha256": "d5899251a85d1b8993f8cfc2d3ba3a3806f10fdf82602b4c2c4cab9e3907555a"
+    },
+    {
+      "path": "hooks/archive/guard-settings.sh",
+      "sha256": "4a08666765ea04ebb0caa01d096eaf305794c079977d8f5eaa5d5f406058ed61"
+    },
+    {
+      "path": "hooks/archive/hook-checks.sh",
+      "sha256": "fb37d02a0a57eea44a119880ad179cd473e5137ac94bb6567cff9f4fc8ba3120"
+    },
+    {
+      "path": "hooks/archive/pii-advisory.sh",
+      "sha256": "4db8e40a9bf6af503e506e0f0fe299dd48bf94ec91d0fbc8784f989233676067"
+    },
+    {
+      "path": "hooks/archive/post-dispatcher.sh",
+      "sha256": "78113057667b6d0c813b321571671062be6d7450b48a4723989af4ee37a41dbb"
+    },
+    {
+      "path": "hooks/archive/prefer-ci-summary.sh",
+      "sha256": "6b60b1c91b06b8fec279386560ff394a0f6fab2893dc8dbe074bd0a57e317cbe"
+    },
+    {
+      "path": "hooks/archive/reviewer-lockout.sh",
+      "sha256": "ef446a4a27622337be17971693e6c96955781f8705ecee885ee2b9a029e49d7c"
+    },
+    {
+      "path": "hooks/archive/secret-scanner.sh",
+      "sha256": "43c6e2a14139aa170bd56ade7c48e72ddd6edcb9504898b377d80556a91e4caa"
+    },
+    {
+      "path": "hooks/archive/session-file-lock.sh",
+      "sha256": "fccc49879440c782a946417997a676c0bb1fd50bd3124250d44c8ccf1175334f"
+    },
+    {
+      "path": "hooks/archive/session-task-recovery.sh",
+      "sha256": "8f7b780a9abdd5152bb8a19a184f651e5ca620b56f209a9291b05b8c23b068ca"
+    },
+    {
+      "path": "hooks/archive/session-tokens.sh",
+      "sha256": "789e21e0bf4cab00dfc5e965ad2e526c2a1290f5206759c56b23a0eab3948a20"
+    },
+    {
+      "path": "hooks/archive/test-enforce-plan-edit.sh",
+      "sha256": "40308b3dbd0ffceb0d33560d24e14f2d5ecb30968c57fbeaeab9e2679ade60a5"
+    },
+    {
+      "path": "hooks/archive/track-agent-activity.sh",
+      "sha256": "80f2d54f5ad18ebd97d3e5f60cab1675c1b65670bed120e748a068e4eb9da1f8"
+    },
+    {
+      "path": "hooks/archive/track-precompact.sh",
+      "sha256": "1a301598702cefa0c8c527a8e3c17b8e072187b12477b3bc11ec2b6ab979317e"
+    },
+    {
+      "path": "hooks/archive/track-session-stop.sh",
+      "sha256": "94a3eb17ea1c96bf6f1b24e00cfeed240679e4bf410637e7f9f4edf0817992dd"
+    },
+    {
+      "path": "hooks/archive/verify-before-claim.sh",
+      "sha256": "b2c69f88ca2215b4f16ee5b94fec79960d50d52f5e245b16d8b0059c4829c271"
+    },
+    {
+      "path": "hooks/archive/warn-bash-antipatterns.sh",
+      "sha256": "f8baa7e6f584fc90085dd21f0473d9cfa45fa40562bb762359ebc4842eabe392"
+    },
+    {
+      "path": "hooks/archive/warn-infra-plan-drift.sh",
+      "sha256": "50d81f63f0d88bf6f4b28ab205dc06091a8c29887a0b6bd05ebcb15fc138b1df"
+    },
+    {
+      "path": "hooks/archive/worktree-guard.sh",
+      "sha256": "8b644667a18c8ec976728019f5c8a3145f5754279dbbadb39d20102b55d938c6"
+    },
+    {
+      "path": "hooks/enforce-planner-workflow.sh",
+      "sha256": "f81d4f6e0c004b1a64908adadb1dd40e761d8351db8254a5d250843107a49e65"
+    },
+    {
+      "path": "hooks/inject-agent-context.sh",
+      "sha256": "f6302a1bf34e0be4a927f41f2cdfa1dbf3c72b6824ea58f00d06a9ce6e35398d"
+    },
+    {
+      "path": "hooks/lib/common.sh",
+      "sha256": "610d072cb7124d3bede133506aa178560208668397b9110031a427c5060d9a6c"
+    },
+    {
+      "path": "hooks/lib/file-lock-common.sh",
+      "sha256": "e356d360b7cefbabb42bd308a4fb99b3f22e880e44c0a30ca0c0691f49c6e4e3"
+    },
+    {
+      "path": "hooks/model-registry-refresh.sh",
+      "sha256": "b30b04ad390a01315a3906bf75a8e9142b65c34d5b53b4744780eb2e2bd74e19"
+    },
+    {
+      "path": "hooks/notify-app.sh",
+      "sha256": "bf233c67a0a5a563791ba706a35317ebf1d0b8c06da7528ee0e81b5f7612e47c"
+    },
+    {
+      "path": "hooks/preserve-context.sh",
+      "sha256": "d2611cf0fad7c613c382ae5388842a4ff307eea59f7356c79a3d22d0b901b460"
+    },
+    {
+      "path": "hooks/session-end-tokens.sh",
+      "sha256": "d40619a7e57226ffb453d9cb670a5d653987dc4cc5576a30612cb6cd9789a351"
+    },
+    {
+      "path": "hooks/session-file-unlock.sh",
+      "sha256": "ae80acec20abf3f8cedc2322f5c5affdd7bf454af8e257ee397b1fa27d21726f"
+    },
+    {
+      "path": "hooks/session-reaper.sh",
+      "sha256": "ad374b007bbfa46998c2e28d1bd72eb0e1ced4213018f72414d1fef249c5e14e"
+    },
+    {
+      "path": "hooks/track-agent-activity.sh",
+      "sha256": "80f2d54f5ad18ebd97d3e5f60cab1675c1b65670bed120e748a068e4eb9da1f8"
+    },
+    {
+      "path": "hooks/track-precompact.sh",
+      "sha256": "1a301598702cefa0c8c527a8e3c17b8e072187b12477b3bc11ec2b6ab979317e"
+    },
+    {
+      "path": "hooks/track-session-stop.sh",
+      "sha256": "94a3eb17ea1c96bf6f1b24e00cfeed240679e4bf410637e7f9f4edf0817992dd"
+    },
+    {
+      "path": "hooks/track-tokens.sh",
+      "sha256": "241c5b247b700c1563036e05c270be500fb114370b26ad34bfab3fad8297f766"
+    },
+    {
+      "path": "hooks/version-check.sh",
+      "sha256": "272d09816ee00b7074bd0eb5dfe22de79aff796cbeb672e5ee37100504a3eaae"
+    },
+    {
+      "path": "hooks/worktree-setup.sh",
+      "sha256": "b9003273a914e84dda7a2ae7f303ae4005434be2bd27e5758558119913a31474"
+    },
+    {
+      "path": "hooks/worktree-teardown.sh",
+      "sha256": "061e3aaab54b9419e6bce23ee96e366205c3aa8edb8bfa19e4a561813abec359"
+    }
+  ],
+  "commands": [
+    {
+      "path": "commands/check.md",
+      "sha256": "845c7e3baeda5e9edc20d7482e46b84a4896e19dd9fb64bd6fafe625fe80107b"
+    },
+    {
+      "path": "commands/execute-modules/error-handling.md",
+      "sha256": "852c926f7829eb06964d07e3945ecc377c2a9c7578d37ad4547bb5b7a9083c82"
+    },
+    {
+      "path": "commands/execute.md",
+      "sha256": "706bd985a3fe0b00cf69e804665154e617243b1bbb9fe13da5e7b2a9ffc4551b"
+    },
+    {
+      "path": "commands/optimize-instructions.md",
+      "sha256": "5dd05e23e92f14023b41646c709fe0a5a8bf8f6ecc7510fd199ade2d01ddc4ce"
+    },
+    {
+      "path": "commands/planner-modules/knowledge-codification.md",
+      "sha256": "be02ae1f05423aad72761f830dd86fcc4adc5a8138c60aa1c60ebb8cc2eb438f"
+    },
+    {
+      "path": "commands/planner-modules/model-strategy.md",
+      "sha256": "834b8f8e016670a796175c87cbdddf351f44a110d04e74609c2bb5be8ec86243"
+    },
+    {
+      "path": "commands/planner-modules/parallelization-modes.md",
+      "sha256": "f45e1408b691dd372f7304a4831c0a932ee35ad638dec7ccb593a8d891fe0e81"
+    },
+    {
+      "path": "commands/planner.md",
+      "sha256": "0acacfa050368059840b36deca43214928aca2174b9b90b030ef91e35963ec8d"
+    },
+    {
+      "path": "commands/prepare.md",
+      "sha256": "70669588807f2471720f234b6647dffa06b038a8c604dc341a6892461bf0a701"
+    },
+    {
+      "path": "commands/prompt.md",
+      "sha256": "585aa01a391efcd57ee094c26f1fa8466dfe77f30151c3615962f3074cefa58d"
+    },
+    {
+      "path": "commands/release.md",
+      "sha256": "9cfb03d23ac52091b555eae6dac30c6274869cc7a17ff75402d47b4a65f5d1ec"
+    },
+    {
+      "path": "commands/research.md",
+      "sha256": "0db78733d60036eafea26ee61dba246d66eff66bd98e20a2b6c36a618ef8013d"
+    }
+  ],
+  "skills": [
+    ".disabled",
+    "architecture",
+    "brand-identity",
+    "code-review",
+    "creative-strategy",
+    "debugging",
+    "design-quality",
+    "design-systems",
+    "documentation",
+    "hardening",
+    "optimize-project",
+    "orchestration",
+    "performance",
+    "presentation-builder",
+    "project-management",
+    "release-management",
+    "review-pr",
+    "security-audit",
+    "strategic-analysis",
+    "ui-design"
+  ],
+  "agents": [
+    {
+      "path": "agents/archive/business_operations/andrea-customer-success-manager.md",
+      "sha256": "3ca122260626096bb6d8b496fda4ea2f5017ab2cbc7d569295e2f56584d8351e"
+    },
+    {
+      "path": "agents/archive/business_operations/anna-executive-assistant.md",
+      "sha256": "868d2496e74e7a315635f1e3c308ff9e4abb35413cd3bbae3f2e7be2f991c383"
+    },
+    {
+      "path": "agents/archive/business_operations/dave-change-management-specialist.md",
+      "sha256": "7fd7f13392d95b7609b486bb3de8398d2adfa8085bc200ee1e0de0f21795bb7e"
+    },
+    {
+      "path": "agents/archive/business_operations/davide-project-manager.md",
+      "sha256": "a9522648e96d6ba4ad0c07107fed090539c969854695ab2cb4aee35bdef228b5"
+    },
+    {
+      "path": "agents/archive/business_operations/enrico-business-process-engineer.md",
+      "sha256": "44583a11659252745934e9635b8c1496c3602c9cada82bac41de30953d25651a"
+    },
+    {
+      "path": "agents/archive/business_operations/fabio-sales-business-development.md",
+      "sha256": "708dfbd0e989ef4808f7d7d98bb11adeed1505277721bf6bb0c397ccbc14a6b0"
+    },
+    {
+      "path": "agents/archive/business_operations/luke-program-manager.md",
+      "sha256": "2e404a9ac37eed014393713584c33cc06650ed15fbe8e567c10eb297854161c2"
+    },
+    {
+      "path": "agents/archive/business_operations/marcello-pm.md",
+      "sha256": "409e59ca28a6131c6aa57f07c60eb60eb3acfd9dc5adcae8a449373b03e7daf0"
+    },
+    {
+      "path": "agents/archive/business_operations/oliver-pm.md",
+      "sha256": "d157dbe697c785bda6a6fac6ded42180adf83244eb8574feba2993622327de39"
+    },
+    {
+      "path": "agents/archive/business_operations/sofia-marketing-strategist.md",
+      "sha256": "02b8eb412ad661feaa39f217ad03f2eab50b2fb37dbf00ec0a00b210975ce9c4"
+    },
+    {
+      "path": "agents/archive/business_operations/steve-executive-communication-strategist.md",
+      "sha256": "ebc6486a8dc84db2ecd75583c6a4f25d10c610069ae639eae7315d0026057b7f"
+    },
+    {
+      "path": "agents/archive/compliance_legal/dr-enzo-healthcare-compliance-manager.md",
+      "sha256": "d0e35b6cc7156f5bd2246c047c7134021cc275b816a52a92a1236613a5a638a7"
+    },
+    {
+      "path": "agents/archive/compliance_legal/elena-legal-compliance-expert.md",
+      "sha256": "fbeb64afec1920b6a402a5f3bfb0961421f4f8ebe7d07f2dfd7862e0b6b329c6"
+    },
+    {
+      "path": "agents/archive/compliance_legal/guardian-ai-security-validator.md",
+      "sha256": "9b6a075f5c5db4896e48b818b0d3e077618541dc5cdee76d5121203189845476"
+    },
+    {
+      "path": "agents/archive/compliance_legal/luca-security-expert.md",
+      "sha256": "96012466b88551aef7a54bc5a773419f45069796f80eca5149444f8898a9da48"
+    },
+    {
+      "path": "agents/archive/compliance_legal/sophia-govaffairs.md",
+      "sha256": "dd8cdd8c88e259d415a2a49e62b9c76c56c50e01f5a52015a1e40fc2341c2e9b"
+    },
+    {
+      "path": "agents/archive/design_ux/jony-creative-director.md",
+      "sha256": "11a5bc88117891935d595602815e0df772d4c522d15df5c2cbe75c52e2340695"
+    },
+    {
+      "path": "agents/archive/design_ux/sara-ux-ui-designer.md",
+      "sha256": "50eef4fb36494c5b15a74b884b7425806f3fb7f90e85a43eec592bcab16f6abb"
+    },
+    {
+      "path": "agents/archive/design_ux/stefano-design-thinking-facilitator.md",
+      "sha256": "250c973d75774e502b2e01a266137fd8cefab688af1b4ddef44e1e72d6530dc7"
+    },
+    {
+      "path": "agents/archive/leadership_strategy/ali-chief-of-staff.md",
+      "sha256": "6d48b7fcd3a824e4ebd1d6e35be77dad28f37dd2f8dc87ee86263a5c55d446c9"
+    },
+    {
+      "path": "agents/archive/leadership_strategy/amy-cfo.md",
+      "sha256": "ad82a87545de6a2e27324a012557ef4b00e9486e6dcf5ec1a09999b1ec6c2acb"
+    },
+    {
+      "path": "agents/archive/leadership_strategy/antonio-strategy-expert.md",
+      "sha256": "9654c6dd263585b98b30a9f650c0096cd309d2b841c34af23d374c8e29f6300d"
+    },
+    {
+      "path": "agents/archive/leadership_strategy/dan-engineering-gm.md",
+      "sha256": "c3d5a959ce5f85a49987f579b43e8c2de5bb5a9720e26bb4952312bf3066f670"
+    },
+    {
+      "path": "agents/archive/leadership_strategy/domik-mckinsey-strategic-decision-maker.md",
+      "sha256": "a4d5ecf446cc2d9bda52ee82b942de6b281a6b47349f9f2f2d09e9df9e649329"
+    },
+    {
+      "path": "agents/archive/leadership_strategy/matteo-strategic-business-architect.md",
+      "sha256": "e692b2581ee250c68fc93f08c8f2df88ff5a49e9930295fe9f57fb278a00dee2"
+    },
+    {
+      "path": "agents/archive/leadership_strategy/satya-board-of-directors.md",
+      "sha256": "10dbca26203e23babe8f8442925deb8389845d6dc9bc1baf3befe4f4f36d3a33"
+    },
+    {
+      "path": "agents/archive/release_management/app-release-manager-execution.md",
+      "sha256": "f54d899744740b9de7dee777df5f920c5f2ec3cc0f97906b98ce5a9cc54ef797"
+    },
+    {
+      "path": "agents/archive/release_management/app-release-manager.md",
+      "sha256": "5e4504289a12ed762abedef7ff7ffd460757adca708e9219bbc4fb9d24179fdd"
+    },
+    {
+      "path": "agents/archive/release_management/ecosystem-sync.md",
+      "sha256": "98aa52238c7581c4fc735157ffbddf64a37463943ce58838d8b886fad8ce766d"
+    },
+    {
+      "path": "agents/archive/release_management/feature-release-manager.md",
+      "sha256": "088920e0a4035187461f2611590c41f37f6a9fa5d6fe07b6abb0cd5c3fe115f4"
+    },
+    {
+      "path": "agents/archive/release_management/mirrorbuddy-hardening-checks.md",
+      "sha256": "68c66382b06630a7c0de583731797c975f34fc0620f8a03ebf7ab9cb63c0159a"
+    },
+    {
+      "path": "agents/archive/research_report/.DS_Store",
+      "sha256": "05328f62e77467b8a37f97fab63503ad8b2f6ed0a54404b9648f133178e05d6a"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/.gitignore",
+      "sha256": "69742f03757ec3813c9d956bf03f9756cb964e732feba0a6e11155cc8095a6bc"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/agentic-ai-healthcare-europe-2026-02-04.pdf",
+      "sha256": "56b4e92d62c96e1276f72a5c618573000a70178f0dbbab80ae94b2396c57cd21"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/agentic-ai-healthcare-europe-2026-02-04.tex",
+      "sha256": "75f980dafdcd3bf0b35e69ad5b8e66451dd02379a179772faa3f58591d919b17"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/apple-aapl-2026-02-04.pdf",
+      "sha256": "c3e0e7443a14e8a9fb2b6641fd3324dcab4dad6fd83786faae78343ca81c9c63"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/apple-aapl-2026-02-04.tex",
+      "sha256": "da1ec2f93a61161e0e414178b020d19ca155a30117c60cf849b1e8be9d837b3e"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/dominik-wee-executive-profile-2026-02-17.tex",
+      "sha256": "5ed6dab84b592f602a469b278d1dd5af473529cc5f409c04aaa0c2c06dd3c6d3"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/fde-sections/01-title-executive.tex",
+      "sha256": "7212520931a95a2cf88617ca7ad6fda44dd8095d968bb7293ba9ff0b0168bf29"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/fde-sections/02-origins-model.tex",
+      "sha256": "fc7f42a60b3d91612b14c2d62d3ef3d90979163578a2ec2577207a24b8b518bb"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/fde-sections/03-companies-talent.tex",
+      "sha256": "d7b772d4508226d7b8bcacd9c266a5eee0092210ccfecaebb55bedc724d91d51"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/fde-sections/04-cases-risks.tex",
+      "sha256": "05fc1b82f45a0750232d98c967736859f9e98dce00c78e6a4482e66e78f72bad"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/fde-sections/05-practices-future.tex",
+      "sha256": "70b55a9361a84df78dc3e276b72824d0c58eb7abdd04caedce4770c262b9e4df"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/fde-sections/06-sources-disclaimer.tex",
+      "sha256": "1ae76463c3d45b9d2c855ebe74fb7bd8e668f190d40c396ddc55de7a1a7169c5"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/forward-deployed-engineering-2026-02-06.pdf",
+      "sha256": "b81abfd81b2ffbf9f6512ef94332402d28cac78940f28a12cc21fb1e4318e365"
+    },
+    {
+      "path": "agents/archive/research_report/Reports/forward-deployed-engineering-2026-02-06.tex",
+      "sha256": "fe17e99011aaf9b1d5b32cbb482bf826ac977847f6abcd65ed19d1b4f734fcd5"
+    },
+    {
+      "path": "agents/archive/research_report/config/report-config.yaml",
+      "sha256": "baa47e0c669cc3770adbdf0e1fb995c6b8332e5600e5a96545e6125fbe76a45d"
+    },
+    {
+      "path": "agents/archive/research_report/research-report-generator.md",
+      "sha256": "954ce6e3cba7e799be310a1e87902917c5007b7c60e6d469b73b7674470d332e"
+    },
+    {
+      "path": "agents/archive/research_report/scripts/compile-report.sh",
+      "sha256": "114db5f622a19301a9e251912ea21836dc91ef25e6a02c7e12683549a72baeb6"
+    },
+    {
+      "path": "agents/archive/research_report/templates/morgan-stanley-report.tex",
+      "sha256": "9c132a1febcaa09d13858366a9d44341432b270ff8c0a9366b54343146ffce1d"
+    },
+    {
+      "path": "agents/archive/specialized_experts/angela-da.md",
+      "sha256": "d68fc6532967aab7901b587315380670bfa4455654de4ca76f5185fcd77bafd2"
+    },
+    {
+      "path": "agents/archive/specialized_experts/ava-analytics-insights-virtuoso.md",
+      "sha256": "65cadd90a3d6c44e3e721a139c964ed4ff6f96ad661415be0d5886864e4611de"
+    },
+    {
+      "path": "agents/archive/specialized_experts/behice-cultural-coach.md",
+      "sha256": "79d585e4cb4e69eea80628c59f5428ea9af33d4e885c47ca80c6dad073c845e6"
+    },
+    {
+      "path": "agents/archive/specialized_experts/coach-team-coach.md",
+      "sha256": "3b56d86ffbdbf27f4023ead175896378abd2f972fa7e5cd07b963921efe67954"
+    },
+    {
+      "path": "agents/archive/specialized_experts/ethan-da.md",
+      "sha256": "d40bd63ee24ed5db142b65986b6fd9ad7c47ac5de7a38c0b000bada56458912e"
+    },
+    {
+      "path": "agents/archive/specialized_experts/evan-ic6da.md",
+      "sha256": "1ddc599c4d497afb16658dc5240d748801a370d63b1d32a055aea0b9c09096ac"
+    },
+    {
+      "path": "agents/archive/specialized_experts/fiona-market-analyst.md",
+      "sha256": "b90668ea030b621e047c0bbaa5431fc3f1e9695a805e84c0274baa7dcfb9f5f9"
+    },
+    {
+      "path": "agents/archive/specialized_experts/giulia-hr-talent-acquisition.md",
+      "sha256": "c011c2ff1d69825c832df56bddab1c847fa818d3c1b04992d934ba73913779ac"
+    },
+    {
+      "path": "agents/archive/specialized_experts/jenny-inclusive-accessibility-champion.md",
+      "sha256": "727c852d3c5b9fcf4d8551c8a5cdd0db045c11824c814b2df0d9b66361b6e645"
+    },
+    {
+      "path": "agents/archive/specialized_experts/michael-vc.md",
+      "sha256": "d3b948bd526b15b48c1c1fd6967b1d1f219d51ac2f06d254de591b1bb40dd768"
+    },
+    {
+      "path": "agents/archive/specialized_experts/research-report-generator.md",
+      "sha256": "f2ee213d655c79152992e808b81e60b95c9c06371c43319f61ed2687812cdd36"
+    },
+    {
+      "path": "agents/archive/specialized_experts/riccardo-storyteller.md",
+      "sha256": "af5c33289f2cd4bbb0df5e66b5798224d06a78b6bd89a0d2c317b59367bc4a40"
+    },
+    {
+      "path": "agents/archive/specialized_experts/sam-startupper.md",
+      "sha256": "46544c14a39cd8d809a6a4dc6dd70b843d0f9a91cb48b271a874e221cbf1edbb"
+    },
+    {
+      "path": "agents/archive/specialized_experts/wiz-investor-venture-capital.md",
+      "sha256": "6c831a87ea7a450177bc7800a2d372ea9f2e1800b5de75192d529ac705b64539"
+    },
+    {
+      "path": "agents/core_utility/CONSTITUTION.md",
+      "sha256": "4944f47579f3969d2dd3753e6d519c060673e5534a0352529a679130bd42e80f"
+    },
+    {
+      "path": "agents/core_utility/CommonValuesAndPrinciples.md",
+      "sha256": "047e7bf310be15d1df18955b8c07ceea5ae2fc9fd52c7551b3d397d5035a5a97"
+    },
+    {
+      "path": "agents/core_utility/EXECUTION_DISCIPLINE.md",
+      "sha256": "fcc6abf7615aeecd017439d931b34b7823b0b2de781033a35ec1b20fd4dc2700"
+    },
+    {
+      "path": "agents/core_utility/MICROSOFT_VALUES.md",
+      "sha256": "e5fa259a09d3324516a7c79fb4104cf2531416501721f852444663bfea9826b6"
+    },
+    {
+      "path": "agents/core_utility/SECURITY_FRAMEWORK_TEMPLATE.md",
+      "sha256": "fb2157f1a94a25acec6eb672e07125079ee8aaccb531199192c3ba2426d3d095"
+    },
+    {
+      "path": "agents/core_utility/deep-repo-auditor.md",
+      "sha256": "e925c9144ef36f5ca9a8233c1987aab7e829d9dce2770e6e57c97b796e567080"
+    },
+    {
+      "path": "agents/core_utility/diana-performance-dashboard.md",
+      "sha256": "67aa711fcdf344f4cac16fc122fd919b2530dcf85d88e4e7ce10d06c1d91d632"
+    },
+    {
+      "path": "agents/core_utility/marcus-context-memory-keeper.md",
+      "sha256": "11014ed681653b368116421dc486d5e588f40d2c90c69505f8e20328f78ba861"
+    },
+    {
+      "path": "agents/core_utility/plan-business-advisor.md",
+      "sha256": "2516c89f454ca3b2b7ef009704da3f48e76cb1219c417e5886830d6f7a4d3440"
+    },
+    {
+      "path": "agents/core_utility/plan-post-mortem.md",
+      "sha256": "fa4f4763d09f9f3bc7b321372254ab6cd611ad6abf9146be7f031e6f6a788190"
+    },
+    {
+      "path": "agents/core_utility/plan-reviewer.md",
+      "sha256": "984259ef83a79650b536ae2ccae37995142affb93dbdc6d2773c556bf0c5637b"
+    },
+    {
+      "path": "agents/core_utility/po-prompt-optimizer.md",
+      "sha256": "74d929405668d4576f7e453933e72a10181d1393bdba7ea387a4a3a662876e65"
+    },
+    {
+      "path": "agents/core_utility/sentinel-ecosystem-guardian.md",
+      "sha256": "ad9b3344464fdf000e4c4eb58b3b40258442a3dda42e910959e72105718c4ed6"
+    },
+    {
+      "path": "agents/core_utility/socrates-first-principles-reasoning.md",
+      "sha256": "bf037b2f0b77d783357c52fcee80990dc0b7f3c561d4d3735dc90ddcbd945b07"
+    },
+    {
+      "path": "agents/core_utility/strategic-planner-git.md",
+      "sha256": "e80a9c2d4c98fa3bbaa1aef8e8d95ba856e68dae31a1787c4f9100677bebc3c5"
+    },
+    {
+      "path": "agents/core_utility/strategic-planner-templates.md",
+      "sha256": "b523a6b91cea2cd1babf654ea38b892e24d383596f9d29005877a67a05d2d591"
+    },
+    {
+      "path": "agents/core_utility/strategic-planner-thor.md",
+      "sha256": "75c9d0793f335c87917d42e1ac620badbc454d88728cd9b8109402c3a648e2b8"
+    },
+    {
+      "path": "agents/core_utility/strategic-planner.md",
+      "sha256": "5d8192108ea4dc5249b3693b5ecc281f1fba575811bc86364d44340ca7dce03b"
+    },
+    {
+      "path": "agents/core_utility/taskmaster-strategic-task-decomposition-master.md",
+      "sha256": "a72ec20d1852ec99cc849243782859b09c6917a937f88ec2abac595bc1949594"
+    },
+    {
+      "path": "agents/core_utility/thor-quality-assurance-guardian.md",
+      "sha256": "56e3feeec7978818f04b92511a6d1b434beeb3e6313a0fe92946923faf94a13a"
+    },
+    {
+      "path": "agents/core_utility/thor-validation-gates.md",
+      "sha256": "a3423590d8943c24c9ea564062ab5355a06456309ac5b89a0a44895104bdb111"
+    },
+    {
+      "path": "agents/core_utility/wanda-workflow-orchestrator.md",
+      "sha256": "72cd7f08af836438939d7a24de65c9bc8c80e4ded69cdecfa99a161ba881b4e6"
+    },
+    {
+      "path": "agents/core_utility/xavier-coordination-patterns.md",
+      "sha256": "489f4e4ebe65ea8c34c08668fb654d4d9db33da1488cfc9e5231374ac063aa48"
+    },
+    {
+      "path": "agents/pr-comment-resolver.md",
+      "sha256": "6db75d7c8e78178ca9a5e8480aad76452c25900fdcc923181222ee8afa64d5b3"
+    },
+    {
+      "path": "agents/technical_development/adversarial-debugger.md",
+      "sha256": "19333da8cd415e760d7644f2bd97f5315fd3cfd97b119b917c3a467886250bf2"
+    },
+    {
+      "path": "agents/technical_development/baccio-tech-architect.md",
+      "sha256": "70f12a98a0ffd4252761aea6822c817a415e2d213086b5f35a1ae1d178bd8377"
+    },
+    {
+      "path": "agents/technical_development/dario-debugger.lean.md",
+      "sha256": "32760df8728d7a9f586e1ce3300bda6ee550c77c57616707dbb975795b5bf361"
+    },
+    {
+      "path": "agents/technical_development/dario-debugger.md",
+      "sha256": "1f3b27673f50bab1ef75a9a03f5bda7f0ca91da8e1268a308718bbcb8f791a57"
+    },
+    {
+      "path": "agents/technical_development/marco-devops-engineer.md",
+      "sha256": "bf9a2480b791600e3a6197270bd98972c3d7ac5d5e3c39b8f264acf0fab706ea"
+    },
+    {
+      "path": "agents/technical_development/omri-data-scientist.md",
+      "sha256": "fd73d26898a29fb24840bf36db9885cdefc02ec3ff2dcd170e822352cc41cda4"
+    },
+    {
+      "path": "agents/technical_development/otto-performance-optimizer.md",
+      "sha256": "66ca5a6beae4de79de2e0fc91ae5bd4cea600fb8dd9dceab9661975e42128eec"
+    },
+    {
+      "path": "agents/technical_development/paolo-best-practices-enforcer.md",
+      "sha256": "8d3d2bff80c83cb1d1d11664b1fcaf35052b774c08fe71e571fd57159dd08748"
+    },
+    {
+      "path": "agents/technical_development/rex-code-reviewer.md",
+      "sha256": "2fa9b7a60814454da5da0ca2ea8ed0a7a4a96e27598852b50f393558e6152f2d"
+    },
+    {
+      "path": "agents/technical_development/task-executor-selfheal.md",
+      "sha256": "c750361288bdf5e67ecd2e31fa9593bab39527edb8fc78f6b990fba2839d3e30"
+    },
+    {
+      "path": "agents/technical_development/task-executor-tdd.md",
+      "sha256": "da6e3762972d302e2fbb3dbb22b725fb65e21bcfbd28215aae68942aff049d1a"
+    },
+    {
+      "path": "agents/technical_development/task-executor.md",
+      "sha256": "1d6746f1edb86acc2306f1298c74420a6ad2cd8243e5aa205b38ab4dfa16d9a3"
+    }
+  ]
+}

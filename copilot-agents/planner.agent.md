@@ -117,14 +117,9 @@ For EVERY task creating new code: plan a companion wiring task that connects it 
 ### 3.1 Schema Validation (MANDATORY)
 
 ```bash
-python3 -c "
-from jsonschema import validate
-import json, sys
-schema = json.load(open('$HOME/.claude/config/plan-spec-schema.json'))
-spec = json.load(open('/path/to/spec.json'))
-validate(spec, schema)
-print('PASS: spec.json valid')
-" || { echo "BLOCK: spec.json validation failed. Fix errors before proceeding."; exit 1; }
+npx ajv validate -s "$HOME/.claude/config/plan-spec-schema.json" -d /path/to/spec.json 2>&1 \
+  && echo "PASS: spec.json valid" \
+  || { echo "BLOCK: spec.json validation failed. Fix errors before proceeding."; exit 1; }
 ```
 
 ### 3.1b Consumer Enforcement (MANDATORY — BLOCK if fails)
@@ -132,13 +127,7 @@ print('PASS: spec.json valid')
 After schema validation, verify every feature/refactor task has consumers:
 
 ```bash
-python3 -c "
-import json, yaml, sys
-spec = yaml.safe_load(open('SPEC')) if 'SPEC'.endswith('.yaml') else json.load(open('SPEC'))
-bad = [f\"{t['id']}: {t['type']} without consumers\" for w in spec.get('waves',[]) for t in w.get('tasks',[]) if t.get('type') in ('feature','refactor') and not t.get('consumers')]
-if bad: print('BLOCK:', *bad, sep='\n  '); sys.exit(1)
-print('PASS: All feature/refactor tasks have consumers')
-"
+jq -e '[.waves[].tasks[] | select(.type == "feature" or .type == "refactor") | select(.consumers == null or (.consumers | length) == 0)] | if length > 0 then "BLOCK: \(.[].id): \(.[].type) without consumers" | halt_error else "PASS: All feature/refactor tasks have consumers" end' /path/to/spec.json
 ```
 
 ### 3.2 F-xx Exclusion Gate (MANDATORY)

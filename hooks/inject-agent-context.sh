@@ -31,14 +31,14 @@ task-executor* | Bash | app-release-manager* | mirrorbuddy*)
 	;;
 esac
 
-# Add v2.1.x platform capabilities for all agents
+# Add platform capabilities for all agents
 CONTEXT="${CONTEXT}
-## Platform Capabilities (v2.1.x)
-- LSP: go-to-definition and find-references available for code navigation
-- Worktree isolation: Task tool supports isolation: worktree for per-task git isolation
+## Platform Capabilities (v11)
+- Rust runtime: claude-core (DB, hooks, mesh daemon, Axum server)
+- LSP: go-to-definition and find-references for code navigation
+- Worktree isolation: Task tool supports isolation: worktree
 - Agent Teams: TeamCreate/SendMessage for multi-agent coordination
-- Auto-memory: Claude retains cross-session context automatically alongside manual memory
-- /debug: troubleshoot current session issues"
+- Auto-memory: cross-session context via git-common-dir"
 
 # Output JSON with additionalContext
 jq -n --arg ctx "$CONTEXT" '{"additionalContext": $ctx}'

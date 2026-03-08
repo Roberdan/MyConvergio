@@ -41,7 +41,7 @@ See `rules/guardian.md` "Post-Plan Learning Loop" and `reference/commands/execut
 | Step | Claude Code | Copilot CLI | Notes |
 | --- | --- | --- | --- |
 | Capture goal | `/prompt "<goal>"` | `@prompt "<goal>"` | Structured requirements |
-| Create plan | `/planner` | `@planner` or `cplanner "<goal>"` | Use MyConvergio planner, not Copilot `/plan` |
+| Create plan | `/planner` | `@planner` or `cplanner "<goal>"` | Use custom planner, not Copilot `/plan` |
 | Execute plan | `/execute {id}` | `@execute {id}` | Plan-db execution flow |
 | Validate | Thor / project validator | `@validate {plan_id or task}` | Independent quality gate |
 | Close | PR + CI + merge, or validated deliverable approval | PR + CI + merge, or validated deliverable approval | Depends on artifact type |
@@ -93,9 +93,9 @@ Follow the Workflow above. Bypasses are enforced by hooks:
 
 | Hook | Blocks | Allowed Alternative |
 |---|---|---|
-| `enforce-planner-workflow.sh` | `plan-db.sh create`, `plan-db.sh import`, `EnterPlanMode` | `planner-create.sh` (requires 3 registered reviews) |
-| `enforce-plan-db-safe.sh` | `plan-db.sh update-task ... done` | `plan-db-safe.sh` (Thor audit trail) |
-| `enforce-plan-edit.sh` | Direct edits on plan-tracked files | Task-executor only |
+| `enforce-planner-workflow.sh` (active) | `plan-db.sh create`, `plan-db.sh import`, `EnterPlanMode` | `planner-create.sh` (requires 3 registered reviews) |
+
+Archived hooks (`enforce-plan-db-safe.sh`, `enforce-plan-edit.sh`) — replaced by Rust `claude-core` enforcement.
 
 **Plan creation gate** (v2.0 — Plan 100026 learning): `planner-create.sh` is the ONLY way to create plans. It requires 3 registered reviews (standard + challenger + business) before allowing `plan-db.sh create/import`. No bypass, no `PLANNER_ACTIVE` env var. _Why: Plan 100026 — agent had planner skill active but skipped all 3 intelligence reviews and created plan directly._
 
@@ -172,7 +172,5 @@ Tell the Explore agent to use codegraph tools for faster exploration.
 
 ### If `.codegraph/` does NOT exist
 
-At the start of a session, ask the user if they'd like to initialize CodeGraph:
-
-"I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
+Skip codegraph. Use Glob/Grep/Read instead. Do NOT suggest running `codegraph init` — there is no CLI binary (MCP server only).
 <!-- CODEGRAPH_END -->

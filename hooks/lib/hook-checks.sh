@@ -19,22 +19,14 @@ check_gh_auto_token() {
 	*) return 0 ;;
 	esac
 	local account token
-	account="$(python3 - "$config_file" "$PWD" <<'PY' 2>/dev/null || true
-import json, os, sys
-cfg = json.load(open(sys.argv[1]))
-cwd = sys.argv[2].rstrip('/')
-home = os.path.expanduser('~')
-best = ''
-acc = cfg.get('default_account') or ''
-for m in cfg.get('mappings', []):
-    p = m.get('path','').replace('~', home).rstrip('/')
-    if cwd == p or cwd.startswith(p + '/'):
-        if len(p) > len(best):
-            best = p
-            acc = m.get('account','')
-print(acc)
-PY
-)"
+	account="$(jq -r --arg cwd "$PWD" --arg home "$HOME" '
+		(.default_account // "") as $default |
+		[.mappings[]? | select(
+			($cwd == (.path | gsub("~"; $home) | rtrimstr("/"))) or
+			($cwd | startswith((.path | gsub("~"; $home) | rtrimstr("/")) + "/"))
+		) | {path: (.path | gsub("~"; $home) | length), account}] |
+		sort_by(-.path) | .[0].account // $default
+	' "$config_file" 2>/dev/null || true)"
 	[[ -n "$account" ]] || return 0
 	token="$(gh auth token --user "$account" 2>/dev/null || true)"
 	[[ -n "$token" ]] || return 0
@@ -49,8 +41,8 @@ check_worktree_guard() {
 		git_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 		wt_path="$(echo "$COMMAND" | sed -E 's/.*git worktree add (-b [^ ]+ )?//' | awk '{print $1}')"
 		if [[ -n "$wt_path" && -n "$git_root" ]]; then
-			resolved="$(python3 -c "import os,sys;print(os.path.realpath(os.path.join(os.getcwd(),sys.argv[1])))" "$wt_path" 2>/dev/null || true)"
-			real_root="$(python3 -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "$git_root" 2>/dev/null || echo "$git_root")"
+			resolved="$(cd "$(dirname "$wt_path")" 2>/dev/null && echo "$(pwd -P)/$(basename "$wt_path")" || true)"
+			real_root="$(cd "$git_root" 2>/dev/null && pwd -P || echo "$git_root")"
 			if [[ -n "$resolved" && "$resolved" == "$real_root"/* ]]; then
 				deny_permission "WORKTREE GUARD: Path is INSIDE the repo. Use a SIBLING path instead."
 				return 1

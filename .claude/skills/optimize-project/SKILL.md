@@ -48,7 +48,7 @@ Report detected stack, dominant language, test command, and docs/instruction loc
 Run the standard audit first (machine-first, JSON output):
 
 ```bash
-~/.claude/scripts/project-audit.sh --project-root . --json
+${CLAUDE_HOME:-.claude}/scripts/project-audit.sh --project-root . --json
 ```
 
 Use this output as baseline counts for debt, risk, and comment-density flags.
@@ -127,7 +127,7 @@ Only safe, low-risk fixes are allowed automatically:
 After fixes, rerun:
 
 ```bash
-~/.claude/scripts/project-audit.sh --project-root . --json
+${CLAUDE_HOME:-.claude}/scripts/project-audit.sh --project-root . --json
 ```
 
 Report before/after deltas and updated token-savings estimate.
@@ -153,6 +153,6 @@ Bootstrap optimize-project baseline:
 
 ## References
 
-- Pattern baseline: `~/.claude/skills/review-pr/SKILL.md`
-- Audit script: `~/.claude/scripts/project-audit.sh`
-- Hardening context: `~/.claude/skills/hardening/SKILL.md`
+- Pattern baseline: `${CLAUDE_HOME:-.claude}/skills/review-pr/SKILL.md`
+- Audit script: `${CLAUDE_HOME:-.claude}/scripts/project-audit.sh`
+- Hardening context: `${CLAUDE_HOME:-.claude}/skills/hardening/SKILL.md`

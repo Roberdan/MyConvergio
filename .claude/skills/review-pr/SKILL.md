@@ -47,7 +47,7 @@ If no changed files detected, report "No changes found" and exit.
 Run the mechanical pattern checker first:
 
 ```bash
-~/.claude/scripts/code-pattern-check.sh --diff-base "$BASE" --json
+${CLAUDE_HOME:-.claude}/scripts/code-pattern-check.sh --diff-base "$BASE" --json
 ```
 
 Parse the JSON output. Report P1/P2 counts immediately.
@@ -138,9 +138,9 @@ Output a structured report with this format:
 
 ## Reference
 
-- Pattern knowledge base: `~/.claude/reference/copilot-patterns.md`
-- Automated checker: `~/.claude/scripts/code-pattern-check.sh`
-- Copilot feedback digest: `~/.claude/scripts/copilot-review-digest.sh`
+- Pattern knowledge base: `${CLAUDE_HOME:-.claude}/reference/copilot-patterns.md`
+- Automated checker: `${CLAUDE_HOME:-.claude}/scripts/code-pattern-check.sh`
+- Copilot feedback digest: `${CLAUDE_HOME:-.claude}/scripts/copilot-review-digest.sh`
 - Full code review: `/code-review` skill
 
 ## Integration with Thor

@@ -31,7 +31,7 @@ Standardize quality gates across any repository. Detects project type, audits ex
 For a fast pass/fail assessment without applying changes:
 
 ```bash
-~/.claude/scripts/hardening-check.sh --project-root .
+${CLAUDE_HOME:-.claude}/scripts/hardening-check.sh --project-root .
 ```
 
 Returns JSON with `status: "pass"|"gaps_found"`, `score`, and `gaps[]` with severity levels. Used by planner (step 1.7) to decide if Wave 0 hardening is needed.
@@ -108,7 +108,7 @@ Check each category and report status:
 For each unchecked item, report:
 
 - **Severity**: critical (security/data loss risk), warning (quality risk), info (improvement)
-- **Template available**: yes/no (reference from `~/.claude/templates/repo-hardening/`)
+- **Template available**: yes/no (reference from `${CLAUDE_HOME:-.claude}/templates/repo-hardening/`)
 - **Effort**: quick (copy template), medium (adapt template), custom (write from scratch)
 
 Format as a markdown table.
@@ -117,7 +117,7 @@ Format as a markdown table.
 
 For each gap with a template available, adapt and apply:
 
-1. Read the template from `~/.claude/templates/repo-hardening/`
+1. Read the template from `${CLAUDE_HOME:-.claude}/templates/repo-hardening/`
 2. Identify `# ADAPT:` comments in the template
 3. Replace with project-specific values (paths, commands, thresholds)
 4. Write to the project directory
@@ -127,15 +127,15 @@ For each gap with a template available, adapt and apply:
 
 | Template        | Source                                                               |
 | --------------- | -------------------------------------------------------------------- |
-| Pre-commit hook | `~/.claude/templates/repo-hardening/hooks/pre-commit.sh`             |
-| Pre-push hook   | `~/.claude/templates/repo-hardening/hooks/pre-push.sh`               |
-| Smart test      | `~/.claude/templates/repo-hardening/scripts/smart-test.sh`           |
-| Debt check      | `~/.claude/templates/repo-hardening/scripts/debt-check.sh`           |
-| Env-var audit   | `~/.claude/templates/repo-hardening/scripts/env-var-audit.sh`        |
-| Secrets scan    | `~/.claude/templates/repo-hardening/scripts/secrets-scan.sh`         |
-| PR template     | `~/.claude/templates/repo-hardening/github/pull_request_template.md` |
-| ADR template    | `~/.claude/templates/repo-hardening/docs/adr-template.md`            |
-| ADR index       | `~/.claude/templates/repo-hardening/docs/adr-index-template.md`      |
+| Pre-commit hook | `${CLAUDE_HOME:-.claude}/templates/repo-hardening/hooks/pre-commit.sh`             |
+| Pre-push hook   | `${CLAUDE_HOME:-.claude}/templates/repo-hardening/hooks/pre-push.sh`               |
+| Smart test      | `${CLAUDE_HOME:-.claude}/templates/repo-hardening/scripts/smart-test.sh`           |
+| Debt check      | `${CLAUDE_HOME:-.claude}/templates/repo-hardening/scripts/debt-check.sh`           |
+| Env-var audit   | `${CLAUDE_HOME:-.claude}/templates/repo-hardening/scripts/env-var-audit.sh`        |
+| Secrets scan    | `${CLAUDE_HOME:-.claude}/templates/repo-hardening/scripts/secrets-scan.sh`         |
+| PR template     | `${CLAUDE_HOME:-.claude}/templates/repo-hardening/github/pull_request_template.md` |
+| ADR template    | `${CLAUDE_HOME:-.claude}/templates/repo-hardening/docs/adr-template.md`            |
+| ADR index       | `${CLAUDE_HOME:-.claude}/templates/repo-hardening/docs/adr-index-template.md`      |
 
 **Adaptation rules by project type**:
 

@@ -92,6 +92,6 @@ Requires Kitty terminal installed locally; does not work in headless/remote/CI e
 ## Store Mode
 
 ```bash
-sqlite3 ~/.claude/data/dashboard.db \
+sqlite3 ${CLAUDE_HOME:-.claude}/data/dashboard.db \
   "UPDATE plans SET parallel_mode='$MODE' WHERE id=$PLAN_ID;"
 ```

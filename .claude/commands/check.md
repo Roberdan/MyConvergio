@@ -12,7 +12,8 @@ version: "1.0.0"
 ## Data Source
 
 ```bash
-export PATH="$HOME/.claude/scripts:$PATH"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+export PATH="${CLAUDE_HOME:-$REPO_ROOT/.claude}/scripts:$PATH"
 SESSION_DATA=$(session-check.sh 2>/dev/null || echo '{}')
 ```
 

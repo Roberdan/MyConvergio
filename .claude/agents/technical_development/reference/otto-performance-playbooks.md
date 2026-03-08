@@ -1,3 +1,8 @@
+---
+name: otto-performance-playbooks
+description: Reference document
+type: reference
+---
 # Otto — Extended Performance Playbooks
 
 ## Profiling Coverage

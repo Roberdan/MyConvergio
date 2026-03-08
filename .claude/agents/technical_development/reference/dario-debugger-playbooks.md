@@ -1,3 +1,8 @@
+---
+name: dario-debugger-playbooks
+description: Reference document
+type: reference
+---
 # Dario — Extended Debugging Playbooks
 
 ## Incident Response

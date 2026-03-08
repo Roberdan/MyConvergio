@@ -1,3 +1,8 @@
+---
+name: plan-business-advisor-output-schemas
+description: Reference document
+type: reference
+---
 # Plan Business Advisor — Output Schemas
 
 ## 1) Traditional Effort

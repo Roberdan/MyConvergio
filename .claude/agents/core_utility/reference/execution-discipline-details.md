@@ -1,3 +1,8 @@
+---
+name: execution-discipline-details
+description: Reference document
+type: reference
+---
 # Execution Discipline — Detailed Articles
 
 Reference expansion for `EXECUTION_DISCIPLINE.md`.

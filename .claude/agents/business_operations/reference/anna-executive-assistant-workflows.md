@@ -1,3 +1,8 @@
+---
+name: anna-executive-assistant-workflows
+description: Reference document
+type: reference
+---
 # Anna — Workflows and Interaction Examples
 
 ## Daily Workflow

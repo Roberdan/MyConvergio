@@ -1,205 +1,77 @@
-# MyConvergio Workflow
+# MyConvergio Workflow (v11)
 
-Complete pipeline from user intent to shipped code.
+Canonical flow aligned with global `.claude` execution policy.
 
-```mermaid
-graph LR
-    P[Step 1<br/>Prompt] --> PL[Step 2<br/>Plan]
-    PL --> EX[Step 3<br/>Execute]
-    EX --> TH[Step 4<br/>Thor Verify]
-    TH -->|PASS| SH[Step 5<br/>Ship]
-    TH -->|FAIL max 3x| EX
-    style P fill:#e3f2fd
-    style SH fill:#c8e6c9
-```
+## Mandatory Chain
 
----
+`/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → Thor per-task validation → Thor per-wave validation → closure (all F-xx verified) → learning loop.
 
-## Step 1: `/prompt` — Extract Requirements
+Any bypass of this chain is a policy violation for multi-step work.
 
-Transform user intent into traceable F-xx requirements.
+## Command Mapping
 
-```bash
-@prompt Add real-time notifications with WebSocket support
-```
+| Step | Claude Code | Copilot CLI |
+| --- | --- | --- |
+| Capture goal | `/prompt "<goal>"` | `@prompt "<goal>"` |
+| Research (optional) | `/research` | `@research` |
+| Create plan | `/planner` | `@planner` or `cplanner "<goal>"` |
+| Execute tasks | `/execute {id}` | `@execute {id}` |
+| Validate | Thor validator | `@validate {id}` |
+| Close | PR + CI + merge, or validated non-code deliverable | Same |
 
-**What happens**:
+## Phase Breakdown
 
-| Action             | Output                                     |
-| ------------------ | ------------------------------------------ |
-| Parse user intent  | Identify features, constraints, edge cases |
-| Generate F-xx list | F-01 through F-xx with acceptance criteria |
-| Confirm scope      | User approves/edits before planning        |
-| Save               | `.copilot-tracking/{name}-prompt.md`       |
+### 1) Requirements
 
----
+- Extract F-xx requirements from user intent.
+- Persist prompt artifact in `.copilot-tracking/`.
 
-## Step 2: `/planner` — Create Execution Plan
+### 2) Planning
 
-Generate multi-wave plan with tasks mapped to F-xx requirements.
+- Generate waves and tasks mapped to F-xx.
+- Require explicit review/approval before execution.
 
-```bash
-@planner Create plan from .copilot-tracking/notifications-prompt.md
-```
+### 3) Execution (TDD)
 
-**What happens**:
+Per task: RED → GREEN → REFACTOR.
 
-| Action               | Output                                   |
-| -------------------- | ---------------------------------------- |
-| Decompose into waves | Wave 1: Infrastructure, Wave 2: UI, etc. |
-| Create tasks         | T1-01, T1-02... with F-xx mapping        |
-| Generate spec.json   | Machine-readable plan specification      |
-| Store in SQLite      | `plan-db.sh create` → dashboard.db       |
-| Create worktree      | `git worktree add plan/{id}-W1`          |
-| **User approval**    | Review plan before execution begins      |
+Required checks before submission:
+- Relevant tests pass
+- Type/lint checks pass where applicable
+- Artifacts are present and scoped
 
----
+### 4) Thor Validation
 
-## Step 3: `/execute` — TDD Cycle + Enforcement
+Thor validates task submissions independently and blocks progression on failed gates.
 
-Execute tasks with strict TDD and enforcement policies.
+### 5) Wave/Plan Closure
 
-```mermaid
-graph TD
-    START[Task Start] --> RED[RED: Write Failing Test]
-    RED --> GREEN[GREEN: Implement Minimum Code]
-    GREEN --> REFACTOR[REFACTOR: Clean Up]
-    REFACTOR --> THOR[Thor Per-Task Validation]
-    THOR -->|PASS| NEXT[Next Task]
-    THOR -->|FAIL| RED
-```
+- Validate wave completion
+- Ensure CI green before merge
+- Complete plan only when all F-xx are verifiably satisfied
 
-### TDD Cycle (Per Task)
+### 6) Learning Loop
 
-| Phase    | What Happens                                      |
-| -------- | ------------------------------------------------- |
-| RED      | Write test that fails — proves requirement exists |
-| GREEN    | Write minimum code to make test pass              |
-| REFACTOR | Clean up while keeping tests green                |
+Capture reusable lessons after closure:
+- Generic rules in `.claude/rules/` (bounded, justified)
+- Project-specific conventions in repo docs
 
-### Copilot `--yolo` Mode
+## Operational Agents in Workflow
 
-For autonomous delegation, Copilot workers run without confirmation:
+- **night-agent** (`night-maintenance`): off-hours hygiene, triage, bounded remediation.
+- **sync-agent** (`claude-sync` flow): environment alignment and sync continuity.
 
-```bash
-copilot-worker.sh ${task_id} --model gpt-5 --timeout 600
-# Uses copilot --yolo internally — no prompts, maximum throughput
-```
+These operational flows support the main chain; they do not replace planner/execute/validate for feature work.
 
-### Parallel Execution
+## Non-Negotiable Constraints
 
-Multiple tasks can execute in parallel across providers:
+- Max 250 lines per file
+- No self-declared completion without evidence
+- Batch CI fix policy
+- Zero deferred technical debt at task completion
 
-```bash
-# Claude handles T1-01 (review), Copilot handles T1-02 (code), Gemini handles T1-03 (research)
-```
+## References
 
-### Worktree Isolation
-
-Each plan runs in a dedicated git worktree. No branch conflicts. No cross-plan interference.
-
-### CI Batch Fix Policy
-
-**NON-NEGOTIABLE** — After pushing changes:
-
-1. Wait for FULL CI pipeline to complete (do not push again)
-2. Collect ALL failures (lint, type, test, build)
-3. Fix ALL failures in ONE commit
-4. Push once
-5. Maximum 3 rounds — escalate if still failing
-
-Prevents the push-fix-push-fix antipattern that creates noisy history and wastes CI resources.
-
-### Zero Technical Debt Policy
-
-**NON-NEGOTIABLE** — Before marking any task done:
-
-- Resolve ALL issues, not just high-priority ones
-- Never defer to "later" or "follow-up PR"
-- Accumulated debt = violation, triggers Thor rejection
-
----
-
-## Step 4: Thor Validation
-
-Independent 10-gate quality validation per task and per wave.
-
-```mermaid
-sequenceDiagram
-    participant EX as Executor
-    participant TH as Thor
-    participant DB as SQLite DB
-    EX->>TH: Task T1-01 complete
-    TH->>TH: Gate 1: F-xx Compliance
-    TH->>TH: Gate 2: Code Quality
-    TH->>TH: Gate 3: Credential Scan
-    TH->>TH: Gate 4: Repo Standards
-    TH->>TH: Gate 5: Docs Updated
-    TH->>TH: Gate 6: Git Hygiene
-    TH->>TH: Gate 7: Performance
-    TH->>TH: Gate 8: TDD Evidence
-    TH->>TH: Gate 9: Constitution
-    TH-->>EX: PASS ✓ / FAIL ✗
-    TH->>DB: Record result
-    Note over EX,TH: On FAIL: executor fixes + resubmits (max 3x)
-    EX->>TH: Wave W1 complete
-    TH->>TH: All 10 gates (wave-level)
-    TH-->>EX: Wave PASS ✓
-```
-
-**Key**: Thor reads files directly. It never trusts agent self-reports. This is why independent validation matters — it catches what agents miss.
-
----
-
-## Step 5: Ship
-
-Merge validated work into the main branch.
-
-```bash
-wave-worktree.sh merge {plan_id} W1
-```
-
-**What happens**:
-
-| Action       | Detail                                   |
-| ------------ | ---------------------------------------- |
-| Auto-commit  | Squash commits with conventional message |
-| Push         | Push to remote branch                    |
-| Create PR    | `gh pr create` with summary + test plan  |
-| Wait for CI  | CI batch fix policy applies here too     |
-| Squash merge | Clean single commit on main              |
-
----
-
-## Dashboard
-
-Monitor everything from the terminal:
-
-```bash
-dashboard-mini.sh              # Full project overview
-dashboard-mini.sh --overview   # Cross-project summary
-plan-db.sh list-tasks {id}     # Task-level drilldown
-plan-db.sh sync {id}           # Refresh status from DB
-```
-
-```mermaid
-graph LR
-    DB[(SQLite DB)] --> DM[dashboard-mini.sh]
-    DM --> PO[Project Overview]
-    DM --> TK[Token Tracking]
-    DM --> WS[Wave Status]
-    DM --> GI[Git Integration]
-```
-
----
-
-[README](../README.md) | [Getting Started](getting-started.md) | [Concepts](concepts.md) | [Workflow](workflow.md) | [Use Cases](use-cases.md) | [Infrastructure](infrastructure.md) | [Comparison](agents/comparison.md)
-
-## v11 Automation Components
-
-```mermaid
-flowchart LR
-    NM["Night Maintenance Agent<br/>systemd → triage → PR"] --> ORCH["Orchestrator + Thor"]
-    AS["Auto-Sync Agent<br/>.claude watcher → diff → PR"] --> ORCH
-    MP["Migration Pipeline<br/>backup → migrate → verify → rollback"] --> ORCH
-```
+- [Getting Started](./getting-started.md)
+- [Infrastructure](./infrastructure.md)
+- [Agent Orchestration Architecture](./AGENT_ORCHESTRATION_ARCHITECTURE.md)

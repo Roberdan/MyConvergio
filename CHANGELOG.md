@@ -1,9 +1,9 @@
 # Changelog
 
-## [v11.4.10] - 08 Mar 2026
+## [v11.4.11] - 08 Mar 2026
 
 ### Changed
-- v11.5.0 — mesh daemon fixes, CHANGELOG consolidation, TROUBLESHOOTING
+- remove hook-generated duplicate CHANGELOG entries
 
 
 ## [v11.5.0] - 08 Mar 2026

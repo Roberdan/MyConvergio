@@ -106,6 +106,27 @@ Plans touching auth, RBAC, tokens, or data access MUST include a smoke test that
 
 **Silent empty data = BUG.** If an endpoint returns empty when it shouldn't, the test MUST fail loudly.
 
+## Signature Change Impact (NON-NEGOTIABLE — Plan 100027 incident)
+
+When a task adds/removes/renames a parameter on an existing function:
+
+1. **Grep ALL direct callers** — not just HTTP clients, but unit tests that call the function directly
+2. **Update every caller** with the new parameter (or mock/patch the new dependency)
+3. **Framework DI is invisible to direct callers**: `Depends()`, `@Inject()`, `@Autowired` resolve via framework at runtime — unit tests calling the function directly get the raw DI wrapper object, not the resolved value
+
+| Framework | DI pattern | Direct caller gets |
+|---|---|---|
+| FastAPI | `param: T = Depends(fn)` | `Depends(fn)` object (no `.method()`) |
+| NestJS | `@Inject(TOKEN)` | undefined / wrong type |
+| Spring | `@Autowired` | null |
+| Django | N/A (views are different) | N/A |
+
+**Executor MUST**: after adding a DI param, run `grep -rn "function_name(" tests/` and update every match.
+
+**Thor MUST verify**: if function signature changed in diff, `grep` for direct callers in test files. Unpatched callers = REJECT.
+
+_Why: Plan 100027 — added `cache_svc: CacheService = Depends(get_cache_service)` to 6 routers. 4 existing tests called those functions directly without the new param → `AttributeError: 'Depends' object has no attribute 'invalidate_pattern'`._
+
 ## Test Quality Checklist (Thor Gate 8 Extension)
 
 | Check | REJECT if |

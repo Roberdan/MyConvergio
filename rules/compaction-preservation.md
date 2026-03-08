@@ -15,6 +15,7 @@ When rewriting, compacting, or optimizing ANY instruction/config/rule file, thes
 | **Worktree discipline**          | "NEVER git checkout on main", worktree-create.sh, isolation rules                                                    | Silent branch corruption without these                                 |
 | **Mandatory routing table**      | `/planner` for plans, `/execute` for tasks, EnterPlanMode = VIOLATION, cross-platform mapping                        | Plan 225: bypassed planner = no DB = broken Thor/tracking              |
 | **Documentation governance**     | TROUBLESHOOTING.md requirement, per-wave ADR mandate, documentation closure gate 9b, problem-resolution search order | Agents skip doc updates without explicit mandate; Plan 100002 learning |
+| **Post-Plan Learning Loop**      | Thor 10, Analyze → Propose → Apply → Verify, two-level updates (`.claude/` generic + repo-specific), `_Why:` annotations | Without explicit loop, same mistakes repeat across plans; Plan 100027 learning |
 
 ## Compaction Checklist
 

@@ -1,5 +1,24 @@
 # Changelog
 
+## [v11.1.0] - 08 Mar 2026
+
+### Added
+- post-plan learning loop (Thor 10) — two-level auto-learning system
+- add serve subcommand for Axum dashboard server
+- add hook subcommand + cargo cache CI + rebuild release binary
+
+### Fixed
+- align API response shapes with frontend expectations
+- auto-migrate DB schema on server start + fix all endpoint queries
+- update piani alias to use Rust claude-core serve
+- align API response shapes with frontend expectations
+- fallback to shell dispatcher when claude-core lacks hook subcommand
+- remove Python from E2E, use static server
+
+### Changed
+- apply stashed config updates (CLAUDE.md, shell-aliases, copilot-config)
+
+
 ## [v11.0.0] - 08 Mar 2026
 
 ### Added — ConvergioEvolution (Plan 100025)

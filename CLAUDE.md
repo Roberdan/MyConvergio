@@ -26,7 +26,15 @@ Claude stores cross-session context in `~/.claude/projects/{project-slug}/memory
 
 ## Workflow (MANDATORY)
 
-`/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → thor per-task → thor per-wave → closure (all F-xx verified) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
+`/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → thor per-task → thor per-wave → closure (all F-xx verified) → **learning loop** (Thor 10) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
+
+### Post-Plan Learning Loop (Thor 10)
+
+After every plan closure, two-level learning update:
+- **Generic (`.claude/rules/`)**: New rules valid for any repo/platform. Max 3/plan. `_Why: Plan NNN_` annotation required.
+- **Project-specific (repo `CLAUDE.md` / `AGENTS.md`)**: Conventions, gotchas, patterns specific to this codebase.
+
+See `rules/guardian.md` "Post-Plan Learning Loop" and `reference/commands/execute/validation-merge-completion.md` for full protocol.
 
 ### Practical Command Mapping
 

@@ -60,6 +60,12 @@ When plan implementation changes break existing tests, **update tests to match n
 
 New code MUST be wired into at least one consumer. New components MUST have a render site. Changed interfaces MUST have ALL consumers updated. Orphan code (created but never imported) = REJECTION. See `~/.claude/rules/testing-standards.md` for mock boundaries and fail-loud patterns.
 
+**Wiring Coverage Gate**: When a shared helper/utility is created for N target files (specified in task description or inferable from context), verify it's imported and called in ALL N files, not a subset. Partial wiring = REJECTION.
+
+**Thor MUST verify**: `grep -rn "import.*helper_name" target_dir/ | wc -l` matches expected count. If task says "add to 6 routers" and grep shows 3, REJECT.
+
+_Why: Plan 100027 — `invalidate_admin_write_cache` helper created for 6 admin routers, but only wired into 3. Tests expected all 6 → 5 failures._
+
 ## Versioning Discipline (NON-NEGOTIABLE)
 
 Every repo MUST have a versioning system. Every push to main MUST increment the version.
@@ -157,6 +163,45 @@ Plans touching authentication, authorization, data access, or storage MUST inclu
 **Empty data on authenticated endpoint = FAIL.** The smoke test must distinguish "no data because empty DB" from "no data because auth/token/scope is broken".
 
 _Why: v19.1.0 deployed with broken PAT storage. All dashboards showed zero. No smoke test caught it._
+
+## Post-Plan Learning Loop — Thor 10 (NON-NEGOTIABLE)
+
+After every plan closure (PR merged, deploy verified), before marking the plan complete:
+
+**Step 1: Analyze** — Review the execution for recurring patterns:
+
+| Question | Look for |
+|---|---|
+| What broke that shouldn't have? | Test failures from our changes, not pre-existing |
+| What was manually fixed that a rule could prevent? | Wiring gaps, missing params, import mismatches |
+| What did hooks/CI catch that agents missed? | Formatting, lint, observability, workflow proof |
+| What took multiple attempts? | Merge conflicts, signature mismatches, false CI signals |
+
+**Step 2: Propose** — For each finding, propose a CONCRETE fix:
+
+| Fix type | Where | Example |
+|---|---|---|
+| New rule/gate | `rules/*.md` or `guardian.md` | "Signature Change Impact" gate |
+| KB entry | `plan-db.sh kb-write learning ...` | Reusable pattern for future plans |
+| Script/hook fix | `~/.claude/scripts/` | ci-watch.sh false positive bug |
+| Planner constraint | Task spec template | "Include caller update count" |
+
+**Step 3: Apply** — Two-level update, commit separately from plan code:
+
+| Level | Target | Content | Examples |
+|---|---|---|---|
+| Generic | `.claude/rules/*.md` | Universal rules (any repo/platform/language) | Signature impact gate, wiring coverage gate |
+| Project-specific | Repo `CLAUDE.md`, `AGENTS.md` | Codebase conventions, gotchas, patterns | DI param pattern, test infra quirks |
+
+**Step 4: Verify** — Confirm the new rule would have caught the original issue:
+- Re-read the rule and mentally replay the failure scenario
+- If the rule is too vague to be actionable, sharpen it
+
+**Constraints**:
+- `.claude/` rules MUST be generic (any repo, any platform, any language)
+- Project-specific learnings go in repo `CLAUDE.md` "Project Learnings" section, `AGENTS.md`, or `MEMORY.md`
+- Max 3 new generic rules per plan (merge with existing when possible)
+- Every new rule MUST include a `_Why: Plan NNN — description_` annotation
 
 ## Guardrails
 

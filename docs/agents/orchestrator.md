@@ -148,3 +148,12 @@ hardening-check.sh --fix   # Auto-sanitize where possible
 ---
 
 For detailed workflow instructions, see [../workflow.md](../workflow.md).
+
+## v11 Automation Components
+
+```mermaid
+flowchart LR
+    NM["Night Maintenance Agent<br/>systemd → triage → PR"] --> ORCH["Orchestrator + Thor"]
+    AS["Auto-Sync Agent<br/>.claude watcher → diff → PR"] --> ORCH
+    MP["Migration Pipeline<br/>backup → migrate → verify → rollback"] --> ORCH
+```

@@ -187,7 +187,7 @@ sequenceDiagram
     U->>EX: Execute plan 42
     EX->>EX: TDD cycle per task
     EX->>TH: Validate task
-    TH->>TH: 9-gate check
+    TH->>TH: 10-gate check
     TH-->>EX: PASS/FAIL
     EX->>DB: Update status
     EX->>U: Wave complete
@@ -207,3 +207,12 @@ sequenceDiagram
 ---
 
 [README](../README.md) | [Getting Started](getting-started.md) | [Concepts](concepts.md) | [Workflow](workflow.md) | [Use Cases](use-cases.md) | [Infrastructure](infrastructure.md) | [Comparison](agents/comparison.md)
+
+## v11 Automation Components
+
+```mermaid
+flowchart LR
+    NM["Night Maintenance Agent<br/>systemd → triage → PR"] --> ORCH["Orchestrator + Thor"]
+    AS["Auto-Sync Agent<br/>.claude watcher → diff → PR"] --> ORCH
+    MP["Migration Pipeline<br/>backup → migrate → verify → rollback"] --> ORCH
+```

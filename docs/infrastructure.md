@@ -9,6 +9,9 @@ graph TD
     HK[12 Hooks] -->|enforce rules| SC
     DB -->|feeds| DM[Dashboard]
     SC -->|routed by| MP[Multi-Provider<br/>Routing]
+    NM[Night Maintenance Agent<br/>systemd → triage → PR] --> SC
+    AS[Auto-Sync Agent<br/>.claude watcher → diff → PR] --> SC
+    MG[Migration Pipeline<br/>backup → migrate → verify → rollback] --> SC
 ```
 
 ---
@@ -144,3 +147,12 @@ Three NON-NEGOTIABLE policies with specific enforcement locations:
 ---
 
 [README](../README.md) | [Getting Started](getting-started.md) | [Concepts](concepts.md) | [Workflow](workflow.md) | [Use Cases](use-cases.md) | [Infrastructure](infrastructure.md) | [Comparison](agents/comparison.md)
+
+## v11 Automation Components
+
+```mermaid
+flowchart LR
+    NM["Night Maintenance Agent<br/>systemd → triage → PR"] --> ORCH["Orchestrator + Thor"]
+    AS["Auto-Sync Agent<br/>.claude watcher → diff → PR"] --> ORCH
+    MP["Migration Pipeline<br/>backup → migrate → verify → rollback"] --> ORCH
+```

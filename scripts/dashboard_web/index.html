@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="css/github-panel.css">
 <link rel="stylesheet" href="css/github-activity.css">
 <link rel="stylesheet" href="css/nightly-jobs.css">
+<link rel="stylesheet" href="css/idea-jar.css">
 </head>
 <body>
 
@@ -61,6 +62,7 @@
 <div id="dashboard-nav" class="dashboard-nav" aria-label="Dashboard views">
   <button class="widget-action-btn active" data-section="dashboard-main-section" type="button">Overview</button>
   <button class="widget-action-btn" data-section="dashboard-chat-section" type="button">Chat</button>
+  <button class="widget-action-btn" data-section="dashboard-ideajar-section" type="button">Idea Jar</button>
 </div>
 
 <!-- Two-column dashboard layout -->
@@ -120,6 +122,11 @@
           </div>
         </div>
       </div>
+    </div>
+    <div class="widget" id="ideajar-widget">
+      <div class="widget-header"><span class="widget-title">Idea Jar</span>
+        <span class="widget-count" id="ideajar-count">0</span></div>
+      <div class="widget-body" id="ideajar-mini-jar" style="min-height:180px"></div>
     </div>
   </div>
   <div class="dash-col-right">
@@ -204,6 +211,10 @@
   </div>
 </section>
 
+<section id="dashboard-ideajar-section" class="dashboard-section" style="display:none">
+  <div id="ideajar-content">Loading...</div>
+</section>
+
 <!-- Plan Detail Sidebar -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 <div class="sidebar" id="sidebar">
@@ -256,5 +267,8 @@
 <script src="chat-context.js"></script>
 <script src="chat-monitor.js"></script>
 <script src="github-panel.js"></script>
+<script src="idea-jar-physics.js?v=1"></script>
+<script src="idea-jar-canvas.js?v=1"></script>
+<script src="idea-jar.js?v=1"></script>
 </body>
 </html>

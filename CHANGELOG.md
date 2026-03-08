@@ -1,5 +1,24 @@
 # Changelog
 
+## [v11.4.0] - 08 Mar 2026
+
+### Added
+- Idea Jar system — capture, elaborate, promote ideas
+
+
+## [v11.4.0] - 08 Mar 2026
+
+### Added
+- Idea Jar system: capture, elaborate, and promote ideas to plans
+- REST API: CRUD + notes + promote endpoints for ideas (api_ideas.rs)
+- Dashboard: Idea Jar tab with filter bar, idea cards, create/edit modal
+- Animated glass jar canvas with floating paper slips (priority-colored)
+- Global hotkey Cmd/Ctrl+I for quick idea creation
+- Overview widget with compact jar visualization
+- CLI script idea-jar.sh (add, list, edit, note, promote, delete)
+- Promote-to-plan flow with clipboard copy
+- 7 integration tests for ideas API
+
 ## [v11.3.8] - 08 Mar 2026
 
 ### Fixed

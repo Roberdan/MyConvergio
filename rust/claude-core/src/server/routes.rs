@@ -1,4 +1,5 @@
 use super::api_agents;
+use super::api_ideas;
 use super::api_chat;
 use super::api_dashboard;
 use super::api_github;
@@ -17,6 +18,9 @@ use std::path::PathBuf;
 use tower_http::services::ServeDir;
 
 pub const GET_ROUTES: &[&str] = &[
+    "/api/ideas",
+    "/api/ideas/:id",
+    "/api/ideas/:id/notes",
     "/api/overview",
     "/api/mission",
     "/api/organization",
@@ -44,6 +48,9 @@ pub const GET_ROUTES: &[&str] = &[
     "/api/chat/sessions",
 ];
 pub const POST_ROUTES: &[&str] = &[
+    "/api/ideas",
+    "/api/ideas/:id/notes",
+    "/api/ideas/:id/promote",
     "/api/chat/session",
     "/api/chat/message",
     "/api/chat/approve",
@@ -56,8 +63,8 @@ pub const POST_ROUTES: &[&str] = &[
     "/api/peers/ssh-check",
     "/api/plans/:plan_id/validate",
 ];
-pub const PUT_ROUTES: &[&str] = &["/api/chat/requirement", "/api/peers/:name"];
-pub const DELETE_ROUTES: &[&str] = &["/api/chat/session", "/api/peers/:name"];
+pub const PUT_ROUTES: &[&str] = &["/api/ideas/:id", "/api/chat/requirement", "/api/peers/:name"];
+pub const DELETE_ROUTES: &[&str] = &["/api/ideas/:id", "/api/chat/session", "/api/peers/:name"];
 pub const SSE_ROUTES: &[&str] = &[
     "/api/chat/stream/:sid",
     "/api/mesh/action/stream",
@@ -83,6 +90,7 @@ pub fn build_router_with_db(static_dir: PathBuf, db_path: PathBuf) -> Router {
 
     Router::new()
         .merge(api_dashboard::router())
+        .merge(api_ideas::router())
         .merge(api_plans::router())
         .merge(api_agents::router())
         .merge(api_mesh::router())

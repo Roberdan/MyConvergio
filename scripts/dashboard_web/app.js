@@ -127,6 +127,7 @@ async function refreshAll() {
   _safe("history", () => { if (history && typeof renderHistory === "function") renderHistory(history); });
   _safe("dist", () => { if (dist && typeof renderDist === "function") renderDist(dist); });
   _safe("nightlyJobs", () => { if (typeof renderNightlyJobs === "function") renderNightlyJobs(nightly); });
+  _safe("ideaJarWidget", () => { if (typeof renderIdeaJarWidget === "function") renderIdeaJarWidget(); });
   const lu = $("#last-update");
   if (lu) lu.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
   _pullRemoteDb();
@@ -193,13 +194,20 @@ function handleHashRoute() {
   setTimeout(() => card.classList.remove("highlight-pulse"), 3000);
 }
 
-const DASH_SECTIONS = ["dashboard-main-section", "dashboard-chat-section"];
+const DASH_SECTIONS = ["dashboard-main-section", "dashboard-chat-section", "dashboard-ideajar-section"];
 function showDashboardSection(sectionId) {
+  const prev = DASH_SECTIONS.find(id => { const s = document.getElementById(id); return s && !s.hidden && s.style.display !== 'none'; });
+  if (prev === 'dashboard-ideajar-section' && sectionId !== 'dashboard-ideajar-section') {
+    if (window.JarCanvas) JarCanvas.destroyJarCanvas('idea-jar-canvas');
+  }
   const target = DASH_SECTIONS.includes(sectionId) ? sectionId : "dashboard-main-section";
   DASH_SECTIONS.forEach((id) => {
     const section = document.getElementById(id);
-    if (section) section.hidden = id !== target;
+    if (section) { section.hidden = id !== target; section.style.display = id !== target ? 'none' : ''; }
   });
+  if (target === 'dashboard-ideajar-section' && typeof renderIdeaJarTab === 'function') {
+    renderIdeaJarTab();
+  }
   document.querySelectorAll("#dashboard-nav [data-section]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.section === target);
   });

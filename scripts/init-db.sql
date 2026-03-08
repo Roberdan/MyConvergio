@@ -735,6 +735,37 @@ BEGIN
     UPDATE plans SET tasks_done = tasks_done - 1 WHERE id = NEW.plan_id;
 END;
 
+-- ============================================================
+-- Ideas capture system
+-- ============================================================
+
+-- Ideas table for capturing and tracking ideas
+CREATE TABLE IF NOT EXISTS ideas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  tags TEXT,
+  priority TEXT DEFAULT 'P2' CHECK(priority IN ('P0','P1','P2','P3')),
+  status TEXT DEFAULT 'draft' CHECK(status IN ('draft','elaborating','ready','promoted','archived')),
+  project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
+  links TEXT,
+  plan_id INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notes attached to ideas
+CREATE TABLE IF NOT EXISTS idea_notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  idea_id INTEGER NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_ideas_status ON ideas(status);
+CREATE INDEX IF NOT EXISTS idx_ideas_project ON ideas(project_id);
+CREATE INDEX IF NOT EXISTS idx_idea_notes_idea ON idea_notes(idea_id);
+
 -- Auto-complete wave when all tasks are done
 CREATE TRIGGER IF NOT EXISTS wave_auto_complete
 AFTER UPDATE OF tasks_done ON waves

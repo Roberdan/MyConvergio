@@ -1,4 +1,5 @@
 pub mod api_agents;
+pub mod api_ideas;
 pub mod api_chat;
 pub mod api_dashboard;
 pub mod api_github;
@@ -13,6 +14,8 @@ pub mod ws;
 
 #[cfg(test)]
 mod api_tests;
+#[cfg(test)]
+mod api_ideas_tests;
 
 use axum::Router;
 use std::path::{Path, PathBuf};

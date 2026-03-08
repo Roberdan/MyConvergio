@@ -25,30 +25,8 @@
     "defaultMode": "bypassPermissions"
   },
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/c hook pre",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash|Shell|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/c hook post",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
+    "PreToolUse": [],
+    "PostToolUse": [],
     "Stop": [
       {
         "hooks": [

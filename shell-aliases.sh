@@ -37,6 +37,8 @@ alias ccw='claude --dangerously-skip-permissions'
 alias cop='copilot'
 alias cpy='copilot --yolo'
 alias copr='copilot --resume'
+cplanner() { ~/.claude/scripts/copilot-planner.sh "$@"; }
+cplannerp() { ~/.claude/scripts/copilot-planner.sh --print "$@"; }
 
 # === Quick search functions ===
 # fd + fzf for interactive file finding

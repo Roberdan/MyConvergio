@@ -1,69 +1,158 @@
-<!-- v2.1.0 -->
+<!-- v2.0.0 -->
 
 # Claude Config
 
-**Identity**: Principal Software Engineer | Sonnet 4.6 (coordinator) · Opus 4.6 (planning) · Haiku 4.5 (utility)  
-**Style**: Concise, action-first, no emojis | Datetime: DD Mese YYYY, HH:MM CET  
-**Language**: Code/comments/docs in English; conversation in Italian or English unless explicitly requested.
+**Identity**: Principal Software Engineer | ISE Fundamentals | Sonnet 4.6 (coordinator) · Opus 4.6 (planning) · Haiku 4.5 (utility)
+**Style**: Concise, action-first, no emojis | Datetime: DD Mese YYYY, HH:MM CET
+**Shell**: zsh. `cat` is standard (use `bat`/`catp` for highlighting). Prefer `Read` tool over Bash. **NEVER pipe to `tail`/`head`/`grep`/`cat` in Bash** — hooks block these (use Read/Grep tools, or remove the pipe). See `reference/operational/tool-preferences.md` for full shell safety rules.
 
-## Non-Negotiables (Compact)
+## Language (NON-NEGOTIABLE)
 
-| Area | Rule |
-| --- | --- |
-| Verify before claim | Read files before answering or changing anything. |
-| Act, don’t suggest | Implement requested work end-to-end; avoid advice-only responses. |
-| Complexity | Keep solutions minimal and scoped to the ask. |
-| Completion | Started plans/tasks must be fully executed and verified. |
-| Proof | “Done” requires objective evidence (tests/checks/commands). |
-| File size | Max 250 lines per file; split before exceeding. |
-| Planner model | `/planner` must run on Opus; Sonnet planning is blocked. |
-| Plan DB continuity | Use `plan-db-safe.sh` updates in real time for task state. |
-| Anti-bypass | No direct bypass of hooks/workflow gates; respect enforced scripts. |
+**Code/comments/docs**: ALWAYS English | **Conversation**: Italian or English | **Override**: Only if user explicitly requests
 
-## Workflow & Routing (Compact)
+## Core Rules (NON-NEGOTIABLE)
 
-| Trigger | Required route | Disallowed |
-| --- | --- | --- |
-| Multi-step work (3+ tasks) | `Skill(skill="planner")` / `@planner` | Manual planning text or bypass mode |
-| Execute approved plan tasks | `Skill(skill="execute", args="{id}")` / `@execute {id}` | Direct edits without plan execution |
-| Thor validation | `Task(subagent_type="thor")` / `@validate` | Self-declaring completion |
-| Single isolated fix | Direct edit | Creating unnecessary plan workflow |
+1. **Verify before claim**: Read file before answering. _Why: agents hallucinate file contents._
+2. **Act, don't suggest**: Implement changes, don't describe them.
+3. **Minimum complexity**: Only what's requested. No over-engineering.
+4. **Complete execution**: Plan started = plan finished. No skipping tasks.
+5. **Proof required**: "done" needs evidence. User approves closure.
+6. **Max 250 lines/file**: Check before writing. Split if exceeds. _Why: agents lose context in long files, merge conflicts multiply, and review becomes unreliable._
+7. **Compaction preservation**: When rewriting/compacting ANY file, NEVER remove workflow-critical content. See `rules/compaction-preservation.md`.
 
-## Essential Commands
+## Auto Memory
 
-| Command | Purpose |
-| --- | --- |
-| `/teleport` | Move current session to Claude web UI |
-| `/debug` | Troubleshoot session issues |
-| `/copy` | Copy last code block to clipboard |
-| `/memory` | Inspect or clear auto-memory entries |
-| `claude agents` | List available agents and status |
+Claude stores cross-session context in `~/.claude/projects/{project-slug}/memory/`. Since v2.1.63, auto-memory is **shared across git worktrees** — wave worktree sessions resolve to the main repo's project directory (via `git-common-dir`). Decisions from Wave N are available to Wave N+1 automatically. Manual memory in `~/.claude/agent-memory/` for durable architectural knowledge. `/memory` command to inspect/clear.
 
-## Reference Index (@reference)
+## Workflow (MANDATORY)
 
-All detailed operational content is intentionally moved behind `@reference` documents.
+`/prompt` → F-xx extraction → `/research` (optional) → `/planner` → DB approval → `/execute {id}` (TDD) → thor per-task → thor per-wave → closure (all F-xx verified) | **Skip any step = BLOCKED. Self-declare done = REJECTED.**
 
-| Domain | Reference |
-| --- | --- |
-| Tooling and shell safety | `@reference/operational/tool-preferences.md` |
-| Plan scripts and lifecycle | `@reference/operational/plan-scripts.md` |
-| Digest and closure checks | `@reference/operational/digest-scripts.md` |
-| Worktree governance | `@reference/operational/worktree-discipline.md` |
-| Concurrency discipline | `@reference/operational/concurrency-control.md` |
-| Execution optimization | `@reference/operational/execution-optimization.md` |
-| Mesh networking operations | `@reference/operational/mesh-networking.md` |
-| Agent routing matrix | `@reference/operational/agent-routing.md` |
-| CodeGraph operating guide | `@reference/operational/codegraph.md` |
-| Enforcement hooks | `@reference/operational/enforcement-hooks.md` |
-| External integrations | `@reference/operational/external-services.md` |
-| Compact format rules | `@reference/operational/compact-format-guide.md` |
-| Prompt caching | `@reference/operational/prompt-caching-guide.md` |
-| Memory protocol | `@reference/operational/memory-protocol.md` |
-| Plan DB schema reference | `@reference/operational/plan-db-schema.md` |
-| Copilot alignment | `@reference/operational/copilot-alignment.md` |
-| Universal orchestration | `@reference/operational/universal-orchestration.md` |
-| Continuous optimization | `@reference/operational/continuous-optimization.md` |
-| Guardian rules | `@rules/guardian.md` |
-| Compaction preservation | `@rules/compaction-preservation.md` |
+### Practical Command Mapping
 
-For agent catalogs and lazy-load manifests, see `AGENTS.md` and `@reference/agents/INDEX.md`.
+| Step | Claude Code | Copilot CLI | Notes |
+| --- | --- | --- | --- |
+| Capture goal | `/prompt "<goal>"` | `@prompt "<goal>"` | Structured requirements |
+| Create plan | `/planner` | `@planner` or `cplanner "<goal>"` | Use MyConvergio planner, not Copilot `/plan` |
+| Execute plan | `/execute {id}` | `@execute {id}` | Plan-db execution flow |
+| Validate | Thor / project validator | `@validate {plan_id or task}` | Independent quality gate |
+| Close | PR + CI + merge, or validated deliverable approval | PR + CI + merge, or validated deliverable approval | Depends on artifact type |
+
+**Non-code objectives** use the same workflow. The difference is closure: business/design/research/process plans end on validated deliverables and approval, while repo-backed plans continue through PR + CI + merge.
+
+### Plan DB Continuity (NON-NEGOTIABLE — Plan 298 learning)
+
+**Update plan DB in real-time** — every task completion MUST call `plan-db-safe.sh` immediately, not deferred. Before context compaction, write active plan state to auto-memory (`MEMORY.md`): `ACTIVE_PLAN`, `BRANCH`, `WAVE`, task statuses, PR number. Resumed sessions read this and reconcile with `plan-db.sh execution-tree`. _Why: Plan 298 — tasks executed across compaction boundary with no DB updates = stale DB, user had to remind._
+
+### Plan DB Commands
+
+### Knowledge Base Commands
+
+```bash
+plan-db.sh kb-write <domain> <title> <content> [--tags json] [--confidence 0.5] [--source-type plan|task|manual] [--source-ref id] [--project-id id]
+plan-db.sh kb-search <query> [--domain] [--limit 10]
+plan-db.sh kb-hit <id>
+plan-db.sh skill-earn <name> <domain> <content> [--confidence low|medium|high]
+plan-db.sh skill-list [--domain] [--min-confidence medium]
+plan-db.sh skill-promote <name>
+plan-db.sh skill-bump <name>
+```
+
+### Slash Commands & CLI
+
+| Command         | Purpose                                |
+| --------------- | -------------------------------------- |
+| `/teleport`     | Move current session to Claude web UI  |
+| `/debug`        | Troubleshoot session issues            |
+| `/copy`         | Copy last code block to clipboard      |
+| `/memory`       | Inspect or clear auto-memory entries   |
+| `claude agents` | List available agents and their status |
+
+@reference/operational/plan-scripts.md
+@reference/operational/digest-scripts.md
+@reference/operational/worktree-discipline.md
+@reference/operational/concurrency-control.md
+@reference/operational/execution-optimization.md
+@reference/operational/mesh-networking.md
+
+## Thor Gate (NON-NEGOTIABLE)
+
+See AGENTS.md for Thor validation rules.
+
+## Anti-Bypass (NON-NEGOTIABLE)
+
+Follow the Workflow above. Bypasses are enforced by hooks: `guard-plan-mode.sh` (blocks EnterPlanMode), `enforce-plan-db-safe.sh` (blocks direct plan-db.sh done), `enforce-plan-edit.sh` (blocks direct edits on plan-tracked files). No `plan_id` in DB = `/execute` BLOCKED.
+
+## Mandatory Routing (NON-NEGOTIABLE)
+
+| Trigger                    | Claude Code                                          | Copilot CLI     | NOT                        |
+| -------------------------- | ---------------------------------------------------- | --------------- | -------------------------- |
+| Multi-step work (3+ tasks) | `Skill(skill="planner")` **(SOLO con modello Opus)** | `@planner`      | EnterPlanMode, manual text |
+| Execute plan tasks         | `Skill(skill="execute", args="{id}")`                | `@execute {id}` | Direct file editing        |
+| Thor validation            | `Task(subagent_type="thor")`                         | `@validate`     | Self-declaring done        |
+| Single isolated fix        | Direct edit (no plan needed)                         | Direct edit     | Creating unnecessary plan  |
+
+**PLANNER MODEL (NON-NEGOTIABLE)**: `/planner` DEVE sempre girare su Opus (`model: opus` nel frontmatter — alias auto-risolto). Se il coordinator è Sonnet, BLOCCA e avvisa l'utente. Sonnet che pianifica = VIOLATION (vedi Plan 289). In Copilot CLI, `/plan` is the built-in lightweight planner and must not replace `@planner` / `cplanner`.
+
+## Pre-Closure Checklist (MANDATORY)
+
+```bash
+git-digest.sh                   # Must show clean:true
+ls -la {files} && wc -l {files} # Verify existence + line counts
+```
+
+## Build / Test / Lint
+
+Config repo — no build step. Validate: `project-audit.sh --project-root $(pwd)`. Hooks enforce lint rules automatically.
+
+@rules/guardian.md
+
+## Tool Priority
+
+LSP (if available) → Glob/Grep/Read/Edit → Subagents → Bash (git/npm only)
+
+@reference/operational/tool-preferences.md
+
+## Agents & Delegation
+
+**Extended**: baccio, dario, marco, otto, rex, luca (technical) | ali, amy, antonio, dan (leadership) | **Maturity**: Stable: strategic-planner, thor, task-executor, marcus, socrates, wanda, xavier | Preview: diana, po, taskmaster, app-release-manager, adversarial-debugger | **Codex**: Suggest for mechanical/repetitive bulk tasks. Never for architecture, security, debugging.
+
+**Agent Teams**: Use `TeamCreate` to spin up a named team of agents for parallel multi-agent work; `SendMessage` to communicate between team members. Prefer over sequential single-agent for independent parallel tasks.
+
+@reference/operational/agent-routing.md
+
+@reference/operational/codegraph.md
+
+<!-- CODEGRAPH_START -->
+## CodeGraph
+
+CodeGraph builds a semantic knowledge graph of codebases for faster, smarter code exploration.
+
+### If `.codegraph/` exists in the project
+
+**Use codegraph tools for faster exploration.** These tools provide instant lookups via the code graph instead of scanning files:
+
+| Tool | Use For |
+|------|---------|
+| `codegraph_search` | Find symbols by name (functions, classes, types) |
+| `codegraph_context` | Get relevant code context for a task |
+| `codegraph_callers` | Find what calls a function |
+| `codegraph_callees` | Find what a function calls |
+| `codegraph_impact` | See what's affected by changing a symbol |
+| `codegraph_node` | Get details + source code for a symbol |
+
+**When spawning Explore agents in a codegraph-enabled project:**
+
+Tell the Explore agent to use codegraph tools for faster exploration.
+
+**For quick lookups in the main session:**
+- Use `codegraph_search` instead of grep for finding symbols
+- Use `codegraph_callers`/`codegraph_callees` to trace code flow
+- Use `codegraph_impact` before making changes to see what's affected
+
+### If `.codegraph/` does NOT exist
+
+At the start of a session, ask the user if they'd like to initialize CodeGraph:
+
+"I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph?"
+<!-- CODEGRAPH_END -->

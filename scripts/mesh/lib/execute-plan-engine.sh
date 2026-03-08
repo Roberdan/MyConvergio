@@ -65,11 +65,11 @@ run_task() {
 	# --- Strategy 1: delegate.sh (preferred) ---
 	if [[ -x "$DELEGATE_SH" ]]; then
 		step "Executing via delegate.sh (engine: $ENGINE)"
-		local model_flag=""
-		[[ -n "$MODEL" ]] && model_flag="--model $MODEL"
+		local -a model_args=()
+		[[ -n "$MODEL" ]] && model_args=(--model "$MODEL")
 		# delegate.sh accepts: delegate.sh <task_db_id> [--engine <e>] [--model <m>]
 		timeout "$TASK_TIMEOUT" "$DELEGATE_SH" "$task_db_id" \
-			--engine "$ENGINE" "$model_flag" || exit_code=$?
+			--engine "$ENGINE" "${model_args[@]}" || exit_code=$?
 		return $exit_code
 	fi
 

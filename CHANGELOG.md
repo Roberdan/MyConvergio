@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.15.3] - 09 Mar 2026
+
+### Fixed
+- cache bust kpi.js?v=2
+
+
 ## [v11.15.2] - 09 Mar 2026
 
 ### Changed

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.16.1] - 09 Mar 2026
+
+### Changed
+- update Cargo.lock (libc dependency)
+
+
 ## [v11.16.0] - 09 Mar 2026
 
 ### Added

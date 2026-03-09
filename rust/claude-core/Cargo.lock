@@ -318,6 +318,7 @@ version = "11.5.0"
 dependencies = [
  "axum",
  "clap",
+ "libc",
  "ratatui",
  "rmp-serde",
  "rusqlite",

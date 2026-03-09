@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.16.4] - 09 Mar 2026
+
+### Fixed
+- cache-bust terminal.js, update error messages to Rust server
+
+
 ## [v11.16.3] - 09 Mar 2026
 
 ### Fixed

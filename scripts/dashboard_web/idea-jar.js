@@ -93,25 +93,25 @@ async function openIdeaModal(id) {
   const tagsVal = _parseTags(idea.tags).join(', ');
   const projOpts = projects.map(p => `<option value="${p.id}"${idea.project_id==p.id?' selected':''}>${esc(p.name)}</option>`).join('');
   const pris = ['P0','P1','P2','P3'].map(p => `<option${idea.priority===p?' selected':''}>${p}</option>`).join('');
-  const _f = (lbl, html) => `<label style="display:block"><span style="${_L}">${lbl}</span>${html}</label>`;
-  overlay.innerHTML = `<div class="widget" style="width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 0 60px rgba(0,229,255,0.1)">
+  const _f = (lbl, html) => `<div style="display:flex;flex-direction:column;gap:4px"><span style="${_L}">${lbl}</span>${html}</div>`;
+  overlay.innerHTML = `<div class="widget" style="width:640px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 0 60px rgba(0,229,255,0.1)">
     <div class="widget-header"><span class="widget-title">${id?'Edit Idea':'New Idea'}</span><span style="cursor:pointer;color:var(--red);font-size:16px" onclick="document.getElementById('idea-modal-overlay').remove()">✕</span></div>
-    <div class="widget-body">
-    <form id="idea-form" style="display:flex;flex-direction:column;gap:10px">
-      ${_f('Title *',`<input name="title" required value="${esc(idea.title||'')}" style="${_I}">`)}
-      ${_f('Description',`<textarea name="description" rows="3" style="${_I}">${esc(idea.description||'')}</textarea>`)}
-      ${_f('Tags (comma separated)',`<input name="tags" value="${esc(tagsVal)}" style="${_I}">`)}
-      <div style="display:flex;gap:12px">
-        ${_f('Priority',`<select name="priority" style="${_I};width:auto">${pris}</select>`)}
-        ${_f('Project',`<select name="project_id" style="${_I};width:auto"><option value="">—</option>${projOpts}</select>`)}
+    <div class="widget-body" style="padding:20px 24px">
+    <form id="idea-form" style="display:flex;flex-direction:column;gap:16px">
+      ${_f('Title',`<input name="title" required value="${esc(idea.title||'')}" placeholder="What's the idea?" style="${_I};font-size:14px;padding:10px 12px">`)}
+      ${_f('Description',`<textarea name="description" rows="5" placeholder="Describe the idea in detail…" style="${_I};font-size:13px;padding:10px 12px;resize:vertical">${esc(idea.description||'')}</textarea>`)}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${_f('Priority',`<select name="priority" style="${_I}">${pris}</select>`)}
+        ${_f('Project',`<select name="project_id" style="${_I}"><option value="">— None —</option>${projOpts}</select>`)}
       </div>
-      ${_f('Links',`<textarea name="links" rows="2" placeholder="One URL per line" style="${_I}">${esc(idea.links||'')}</textarea>`)}
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border)">
+      ${_f('Tags',`<input name="tags" value="${esc(tagsVal)}" placeholder="comma separated, e.g. backend, auth, v2" style="${_I}">`)}
+      ${_f('Links',`<textarea name="links" rows="2" placeholder="One URL per line" style="${_I};resize:vertical">${esc(idea.links||'')}</textarea>`)}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
         <span>${_statusDot(idea.status)}</span>
-        <div style="display:flex;gap:6px">
-          ${idea.status==='ready'?`<button type="button" class="widget-action-btn" style="color:var(--gold);border-color:rgba(255,183,0,0.3)" onclick="document.getElementById('idea-modal-overlay').remove();promoteIdea(${id})">Promote</button>`:''}
-          <button type="button" class="widget-action-btn" onclick="document.getElementById('idea-modal-overlay').remove()">Cancel</button>
-          <button type="submit" class="widget-action-btn" style="background:rgba(0,229,255,0.15)">Save</button>
+        <div style="display:flex;gap:8px">
+          ${idea.status==='ready'?`<button type="button" class="widget-action-btn" style="color:var(--gold);border-color:rgba(255,183,0,0.3);padding:6px 14px" onclick="document.getElementById('idea-modal-overlay').remove();promoteIdea(${id})">Promote</button>`:''}
+          <button type="button" class="widget-action-btn" style="padding:6px 14px" onclick="document.getElementById('idea-modal-overlay').remove()">Cancel</button>
+          <button type="submit" class="widget-action-btn" style="background:rgba(0,229,255,0.15);padding:6px 20px;font-weight:600">Save</button>
         </div>
       </div>
     </form></div></div>`;

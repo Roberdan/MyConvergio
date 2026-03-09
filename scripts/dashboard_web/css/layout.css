@@ -1,5 +1,6 @@
 .header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 8px 20px;
   border-bottom: 1px solid var(--border);
@@ -12,9 +13,39 @@
 .header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+  gap: 10px;
 }
+.header h1 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin: 0;
+  text-align: center;
+  background: var(--gradient-h1, linear-gradient(90deg, var(--cyan), var(--magenta)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.header-term-btn {
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  color: var(--cyan);
+  border-radius: 6px;
+  width: 30px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.header-term-btn:hover {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+}
+.header-term-btn svg { stroke: currentColor; }
 .header-nav {
   display: flex;
   align-items: center;
@@ -108,21 +139,6 @@
 @keyframes sectionFadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
-}
-.header h1 {
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 900;
-  letter-spacing: 5px;
-  text-transform: uppercase;
-  white-space: nowrap;
-  margin: 0;
-  background: var(
-    --gradient-h1,
-    linear-gradient(90deg, var(--cyan), var(--magenta))
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 .status-dot {
   display: inline-block;

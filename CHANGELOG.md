@@ -1,5 +1,15 @@
 # Changelog
 
+## [v11.15.0] - 09 Mar 2026
+
+### Added
+- centered title, terminal btn prominent, 3-col grid
+- redesign header + bigger idea form
+
+### Fixed
+- inline button/input reset for dark theme nav
+
+
 ## [v11.14.1] - 09 Mar 2026
 
 ### Fixed

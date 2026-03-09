@@ -36,29 +36,29 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 
 <div class="header">
   <div class="header-left">
-    <h1>Convergio</h1>
+    <nav id="dashboard-nav" class="header-nav" aria-label="Dashboard views">
+      <button class="header-nav-item active" data-section="dashboard-main-section" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Overview
+      </button>
+      <button class="header-nav-item" data-section="dashboard-chat-section" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Planner
+      </button>
+      <button class="header-nav-item" data-section="dashboard-ideajar-section" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg>
+        Idea Jar
+      </button>
+    </nav>
+    <button class="header-term-btn" onclick="openAllTerminals()" title="Open terminals on all online mesh nodes"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 12l4-4M6 12l4 4"/><line x1="14" y1="16" x2="18" y2="16"/></svg></button>
   </div>
-  <nav id="dashboard-nav" class="header-nav" aria-label="Dashboard views">
-    <button class="header-nav-item active" data-section="dashboard-main-section" type="button">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-      Overview
-    </button>
-    <button class="header-nav-item" data-section="dashboard-chat-section" type="button">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-      Planner
-    </button>
-    <button class="header-nav-item" data-section="dashboard-ideajar-section" type="button">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg>
-      Idea Jar
-    </button>
-  </nav>
+  <h1>Convergio</h1>
   <div class="header-right">
     <div class="header-status">
       <span class="status-dot"></span>
       <span id="clock"></span>
     </div>
     <div class="header-controls">
-      <button class="header-ctrl-btn" onclick="openAllTerminals()" title="Open terminals"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 12l4-4M6 12l4 4"/><line x1="14" y1="16" x2="18" y2="16"/></svg></button>
       <div class="refresh-stepper">
         <button class="stepper-btn" onclick="changeRefresh(-1)" title="Decrease">&#x25C0;</button>
         <span id="refresh-label">30s</span>

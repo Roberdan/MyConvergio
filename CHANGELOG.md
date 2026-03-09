@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.9.1] - 09 Mar 2026
+
+### Fixed
+- stronger gravity, soft bounds, same-tool-only synapses
+
+
 ## [v11.9.0] - 09 Mar 2026
 
 ### Added

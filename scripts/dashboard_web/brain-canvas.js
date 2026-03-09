@@ -57,22 +57,23 @@
   function applyForces() {
     const nodes = [...S.neurons.values()].filter(n => !n.dying);
     const cx = S.w / 2, cy = S.h / 2;
-    const k = 120; // ideal spacing
+    const k = 90;
 
     for (const n of nodes) {
-      // Gravity toward center
+      // Strong gravity toward center (proportional to distance)
       const dx = cx - n.x, dy = cy - n.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      n.vx += dx * 0.0008;
-      n.vy += dy * 0.0008;
+      const grav = 0.003 + (dist > S.w * 0.35 ? 0.008 : 0);
+      n.vx += dx * grav;
+      n.vy += dy * grav;
 
-      // Repulsion between all nodes
+      // Repulsion — only between nearby nodes, softer force
       for (const m of nodes) {
         if (m === n) continue;
         const rx = n.x - m.x, ry = n.y - m.y;
         const d = Math.sqrt(rx * rx + ry * ry) || 1;
-        if (d < k * 2.5) {
-          const f = (k * k) / (d * d) * 0.5;
+        if (d < k * 2) {
+          const f = (k * k) / (d * d) * 0.25;
           n.vx += (rx / d) * f;
           n.vy += (ry / d) * f;
         }
@@ -90,13 +91,18 @@
       a.vx += fx; a.vy += fy;
       b.vx -= fx; b.vy -= fy;
     }
-    // Integrate with damping + bounds
+    // Integrate with damping + soft bounds
     for (const n of nodes) {
-      n.vx *= 0.88; n.vy *= 0.88;
+      n.vx *= 0.85; n.vy *= 0.85;
       n.x += n.vx; n.y += n.vy;
-      const pad = 40;
-      n.x = Math.max(pad, Math.min(S.w - pad, n.x));
-      n.y = Math.max(pad, Math.min(S.h - pad, n.y));
+      // Soft boundary — push back if near edges
+      const pad = 60;
+      if (n.x < pad) n.vx += (pad - n.x) * 0.05;
+      if (n.x > S.w - pad) n.vx -= (n.x - (S.w - pad)) * 0.05;
+      if (n.y < pad) n.vy += (pad - n.y) * 0.05;
+      if (n.y > S.h - pad) n.vy -= (n.y - (S.h - pad)) * 0.05;
+      n.x = Math.max(20, Math.min(S.w - 20, n.x));
+      n.y = Math.max(20, Math.min(S.h - 20, n.y));
     }
   }
 
@@ -256,8 +262,9 @@
         n.y = S.h / 2 + Math.sin(angle) * radius;
         n.targetRadius = radius; n.targetAngle = angle;
         S.neurons.set(sess.session_id, n);
+        // Connect to same-tool sessions only (Claude↔Claude, Copilot↔Copilot) — not all-to-all
         for (const [oid, other] of S.neurons) {
-          if (oid !== sess.session_id && other.type === 'session' && !other.dying) {
+          if (oid !== sess.session_id && other.type === 'session' && !other.dying && other.tool === tool) {
             S.synapses.push(new Synapse(sess.session_id, oid));
           }
         }

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.16.2] - 09 Mar 2026
+
+### Fixed
+- update E2E for current dashboard — selectors, widget counts, API 404 tolerance
+
+
 ## [v11.16.1] - 09 Mar 2026
 
 ### Changed

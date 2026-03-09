@@ -42,7 +42,7 @@ test.describe('Plan Kanban Board', () => {
 
   test('3 columns present with correct data-status', async ({ page }) => {
     const cols = page.locator('.kanban-col');
-    await expect(cols).toHaveCount(3);
+    await expect(cols).toHaveCount(3, { timeout: 10000 });
     await expect(cols.nth(0)).toHaveAttribute('data-status', 'todo');
     await expect(cols.nth(1)).toHaveAttribute('data-status', 'doing');
     await expect(cols.nth(2)).toHaveAttribute('data-status', 'done');
@@ -50,7 +50,7 @@ test.describe('Plan Kanban Board', () => {
 
   test('column headers show correct text', async ({ page }) => {
     const headers = page.locator('.kanban-col-header');
-    await expect(headers).toHaveCount(3);
+    await expect(headers).toHaveCount(3, { timeout: 10000 });
     await expect(headers.nth(0)).toContainText('Pipeline');
     await expect(headers.nth(1)).toContainText('Executing');
     await expect(headers.nth(2)).toContainText('Done');

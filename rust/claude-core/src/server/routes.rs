@@ -35,6 +35,7 @@ pub const GET_ROUTES: &[&str] = &[
     "/api/plans/assignable",
     "/api/notifications",
     "/api/nightly/jobs",
+    "/api/nightly/config/:project_id",
     "/api/nightly/jobs/:id",
     "/api/projects",
     "/api/events",
@@ -59,12 +60,20 @@ pub const POST_ROUTES: &[&str] = &[
     "/api/github/repo/create",
     "/api/mesh/init",
     "/api/nightly/jobs/create",
+    "/api/nightly/jobs/trigger",
+    "/api/nightly/jobs/definitions/:id/toggle",
+    "/api/nightly/jobs/:id/retry",
     "/api/plan-status",
     "/api/peers",
     "/api/peers/ssh-check",
     "/api/plans/:plan_id/validate",
 ];
-pub const PUT_ROUTES: &[&str] = &["/api/ideas/:id", "/api/chat/requirement", "/api/peers/:name"];
+pub const PUT_ROUTES: &[&str] = &[
+    "/api/ideas/:id",
+    "/api/chat/requirement",
+    "/api/peers/:name",
+    "/api/nightly/config/:project_id",
+];
 pub const DELETE_ROUTES: &[&str] = &["/api/ideas/:id", "/api/chat/session", "/api/peers/:name"];
 pub const SSE_ROUTES: &[&str] = &[
     "/api/chat/stream/:sid",
@@ -158,5 +167,9 @@ mod tests {
         assert!(GET_ROUTES.contains(&"/api/chat/sessions"));
         assert!(GET_ROUTES.contains(&"/api/projects"));
         assert!(GET_ROUTES.contains(&"/api/nightly/jobs/:id"));
+        assert!(GET_ROUTES.contains(&"/api/nightly/config/:project_id"));
+        assert!(POST_ROUTES.contains(&"/api/nightly/jobs/trigger"));
+        assert!(POST_ROUTES.contains(&"/api/nightly/jobs/:id/retry"));
+        assert!(POST_ROUTES.contains(&"/api/nightly/jobs/definitions/:id/toggle"));
     }
 }

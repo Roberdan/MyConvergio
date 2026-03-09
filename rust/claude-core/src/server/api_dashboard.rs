@@ -5,7 +5,10 @@ use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::env;
 use std::path::Path as FsPath;
+use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn router() -> Router<ServerState> {
     Router::new()
@@ -20,9 +23,19 @@ pub fn router() -> Router<ServerState> {
         .route("/api/tasks/blocked", get(api_tasks_blocked))
         .route("/api/plans/assignable", get(api_plans_assignable))
         .route("/api/notifications", get(api_notifications))
+        .route("/api/nightly/jobs/trigger", post(api_nightly_job_trigger))
+        .route(
+            "/api/nightly/jobs/definitions/:id/toggle",
+            post(api_nightly_def_toggle),
+        )
         .route("/api/nightly/jobs", get(api_nightly_jobs))
-        .route("/api/nightly/jobs/:id", get(api_nightly_job_detail))
         .route("/api/nightly/jobs/create", post(api_nightly_job_create))
+        .route("/api/nightly/jobs/:id/retry", post(api_nightly_job_retry))
+        .route("/api/nightly/jobs/:id", get(api_nightly_job_detail))
+        .route(
+            "/api/nightly/config/:project_id",
+            get(api_nightly_config_get).put(api_nightly_config_update),
+        )
         .route("/api/projects", get(api_projects))
         .route("/api/events", get(api_events))
         .route("/api/coordinator/status", get(api_coordinator_status))
@@ -389,6 +402,79 @@ fn parse_json_text_field(row: &mut Value, field: &str) -> Result<(), ApiError> {
     Ok(())
 }
 
+fn compact_utc_timestamp() -> String {
+    let from_date = Command::new("date")
+        .args(["-u", "+%Y%m%d-%H%M%S"])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .filter(|value| !value.is_empty());
+    from_date.unwrap_or_else(|| {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_secs().to_string())
+            .unwrap_or_else(|_| "0".to_string())
+    })
+}
+
+fn current_hostname() -> String {
+    env::var("HOSTNAME")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| {
+            Command::new("hostname")
+                .arg("-s")
+                .output()
+                .ok()
+                .filter(|output| output.status.success())
+                .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+                .filter(|value| !value.is_empty())
+                .unwrap_or_else(|| "unknown".to_string())
+        })
+}
+
+fn spawn_nightly_guardian(trigger_source: &str, parent_run_id: Option<&str>) {
+    #[cfg(test)]
+    {
+        let _ = (trigger_source, parent_run_id);
+        return;
+    }
+
+    #[cfg(not(test))]
+    {
+    let claude_home = env::var("CLAUDE_HOME")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| {
+            env::var("HOME")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|_| std::path::PathBuf::from("."))
+                .join(".claude")
+        });
+    let script_path = claude_home.join("scripts/mirrorbuddy-nightly-guardian.sh");
+    if !script_path.exists() {
+        eprintln!(
+            "[api_dashboard] nightly guardian script not found: {}",
+            script_path.display()
+        );
+        return;
+    }
+
+    let mut command = Command::new(script_path);
+    command
+        .arg(format!("--trigger={trigger_source}"))
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    if let Some(parent_run_id) = parent_run_id.filter(|value| !value.is_empty()) {
+        command.arg(format!("--parent-run-id={parent_run_id}"));
+    }
+    if let Err(err) = command.spawn() {
+        eprintln!("[api_dashboard] failed to spawn nightly guardian: {err}");
+    }
+    }
+}
+
 async fn api_nightly_jobs(
     State(state): State<ServerState>,
     Query(qs): Query<HashMap<String, String>>,
@@ -503,6 +589,18 @@ async fn api_nightly_job_detail(
 }
 
 #[derive(Deserialize)]
+struct TriggerPayload {
+    project_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ConfigUpdate {
+    run_fixes: Option<i32>,
+    schedule: Option<String>,
+    timeout_sec: Option<i32>,
+}
+
+#[derive(Deserialize)]
 struct NightlyJobCreatePayload {
     name: String,
     script_path: String,
@@ -515,6 +613,155 @@ struct NightlyJobCreatePayload {
 }
 fn default_schedule() -> String { "0 3 * * *".to_string() }
 fn default_host() -> String { "local".to_string() }
+
+async fn api_nightly_job_retry(
+    State(state): State<ServerState>,
+    Path(id): Path<i64>,
+) -> Result<Json<Value>, ApiError> {
+    let db = state.open_db()?;
+    let original = query_one(
+        db.connection(),
+        "SELECT run_id, host, job_name FROM nightly_jobs WHERE id=?1",
+        rusqlite::params![id],
+    )?
+    .ok_or_else(|| ApiError::bad_request(format!("nightly job {id} not found")))?;
+    let parent_run_id = original
+        .get("run_id")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned);
+    let host = original
+        .get("host")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("unknown")
+        .to_string();
+    let job_name = original
+        .get("job_name")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("guardian")
+        .to_string();
+    let new_run_id = format!("retry-{id}-{}", compact_utc_timestamp());
+
+    db.connection()
+        .execute(
+            "INSERT INTO nightly_jobs (run_id, host, job_name, status, trigger_source, parent_run_id) VALUES (?1,?2,?3,'running','retry',?4)",
+            rusqlite::params![&new_run_id, host, job_name, parent_run_id.as_deref()],
+        )
+        .map_err(|err| ApiError::internal(format!("retry insert failed: {err}")))?;
+
+    spawn_nightly_guardian("retry", parent_run_id.as_deref());
+    Ok(Json(json!({"ok": true, "run_id": new_run_id})))
+}
+
+async fn api_nightly_job_trigger(
+    State(state): State<ServerState>,
+    axum::Json(payload): axum::Json<TriggerPayload>,
+) -> Result<Json<Value>, ApiError> {
+    let project_id = payload
+        .project_id
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "mirrorbuddy".to_string());
+    let run_id = format!("manual-{project_id}-{}", compact_utc_timestamp());
+    let host = current_hostname();
+    let db = state.open_db()?;
+
+    db.connection()
+        .execute(
+            "INSERT INTO nightly_jobs (run_id, host, job_name, status, trigger_source) VALUES (?1,?2,?3,'running','manual')",
+            rusqlite::params![&run_id, host, &project_id],
+        )
+        .map_err(|err| ApiError::internal(format!("manual trigger insert failed: {err}")))?;
+
+    spawn_nightly_guardian("manual", None);
+    Ok(Json(json!({"ok": true, "run_id": run_id})))
+}
+
+async fn api_nightly_config_get(
+    State(state): State<ServerState>,
+    Path(project_id): Path<String>,
+) -> Result<Json<Value>, ApiError> {
+    let db = state.open_db()?;
+    let rows = query_rows(
+        db.connection(),
+        "SELECT id, name, description, schedule, script_path, target_host, enabled, run_fixes, timeout_sec FROM nightly_job_definitions WHERE project_id=?1 ORDER BY name",
+        rusqlite::params![&project_id],
+    )?;
+    Ok(Json(json!({"ok": true, "project_id": project_id, "definitions": rows})))
+}
+
+async fn api_nightly_config_update(
+    State(state): State<ServerState>,
+    Path(project_id): Path<String>,
+    axum::Json(payload): axum::Json<ConfigUpdate>,
+) -> Result<Json<Value>, ApiError> {
+    let db = state.open_db()?;
+    let mut updated_fields = 0usize;
+
+    if let Some(run_fixes) = payload.run_fixes {
+        updated_fields += db
+            .connection()
+            .execute(
+                "UPDATE nightly_job_definitions SET run_fixes=?1 WHERE project_id=?2",
+                rusqlite::params![run_fixes, &project_id],
+            )
+            .map_err(|err| ApiError::internal(format!("config update failed: {err}")))?;
+    }
+    if let Some(schedule) = payload.schedule {
+        let schedule = schedule.trim().to_string();
+        if schedule.is_empty() {
+            return Err(ApiError::bad_request("schedule must not be empty"));
+        }
+        updated_fields += db
+            .connection()
+            .execute(
+                "UPDATE nightly_job_definitions SET schedule=?1 WHERE project_id=?2",
+                rusqlite::params![schedule, &project_id],
+            )
+            .map_err(|err| ApiError::internal(format!("config update failed: {err}")))?;
+    }
+    if let Some(timeout_sec) = payload.timeout_sec {
+        updated_fields += db
+            .connection()
+            .execute(
+                "UPDATE nightly_job_definitions SET timeout_sec=?1 WHERE project_id=?2",
+                rusqlite::params![timeout_sec, &project_id],
+            )
+            .map_err(|err| ApiError::internal(format!("config update failed: {err}")))?;
+    }
+
+    Ok(Json(json!({"ok": true, "updated": project_id, "rows_affected": updated_fields})))
+}
+
+async fn api_nightly_def_toggle(
+    State(state): State<ServerState>,
+    Path(id): Path<i64>,
+) -> Result<Json<Value>, ApiError> {
+    let db = state.open_db()?;
+    let updated = db
+        .connection()
+        .execute(
+            "UPDATE nightly_job_definitions SET enabled = CASE WHEN enabled=1 THEN 0 ELSE 1 END WHERE id=?1",
+            rusqlite::params![id],
+        )
+        .map_err(|err| ApiError::internal(format!("toggle failed: {err}")))?;
+    if updated == 0 {
+        return Err(ApiError::bad_request(format!(
+            "nightly job definition {id} not found"
+        )));
+    }
+    let enabled: i64 = db
+        .connection()
+        .query_row(
+            "SELECT enabled FROM nightly_job_definitions WHERE id=?1",
+            rusqlite::params![id],
+            |row| row.get(0),
+        )
+        .map_err(|err| ApiError::internal(format!("toggle readback failed: {err}")))?;
+    Ok(Json(json!({"ok": true, "id": id, "enabled": enabled == 1})))
+}
 
 async fn api_nightly_job_create(
     State(state): State<ServerState>,

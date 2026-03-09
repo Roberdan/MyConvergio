@@ -78,6 +78,29 @@ CREATE TABLE IF NOT EXISTS notifications (
   source TEXT, link TEXT, link_type TEXT, is_read INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP, read_at DATETIME
 );
+CREATE TABLE IF NOT EXISTS nightly_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id TEXT, job_name TEXT DEFAULT 'guardian',
+  started_at DATETIME DEFAULT CURRENT_TIMESTAMP, finished_at DATETIME,
+  host TEXT, status TEXT NOT NULL
+    CHECK(status IN ('running','ok','action_required','failed')),
+  sentry_unresolved INTEGER DEFAULT 0, github_open_issues INTEGER DEFAULT 0,
+  processed_items INTEGER DEFAULT 0, fixed_items INTEGER DEFAULT 0,
+  branch_name TEXT, pr_url TEXT, summary TEXT, report_json TEXT,
+  log_stdout TEXT, log_stderr TEXT, log_file_path TEXT, duration_sec INTEGER,
+  config_snapshot TEXT, exit_code INTEGER, error_detail TEXT,
+  trigger_source TEXT DEFAULT 'scheduled', parent_run_id TEXT
+);
+CREATE TABLE IF NOT EXISTS nightly_job_definitions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id TEXT DEFAULT 'mirrorbuddy',
+  name TEXT NOT NULL UNIQUE, description TEXT,
+  schedule TEXT NOT NULL DEFAULT '0 3 * * *',
+  script_path TEXT NOT NULL, target_host TEXT DEFAULT 'local',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  run_fixes INTEGER DEFAULT 1, timeout_sec INTEGER DEFAULT 5400,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS mesh_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL,
   plan_id INTEGER, source_peer TEXT NOT NULL, payload TEXT,
@@ -149,6 +172,22 @@ INSERT INTO token_usage(project_id,plan_id,agent,model,input_tokens,output_token
 -- Notifications
 INSERT INTO notifications(type,title,message,is_read)
   VALUES('info','Test notification','Hello world',0);
+
+-- Nightly jobs
+INSERT INTO nightly_jobs(
+  id, run_id, job_name, started_at, finished_at, host, status,
+  sentry_unresolved, github_open_issues, processed_items, fixed_items,
+  summary, trigger_source, parent_run_id, report_json
+) VALUES
+  (1, 'mirrorbuddy-nightly-20260308-030000', 'guardian', '2026-03-08 03:00:00', '2026-03-08 03:20:00', 'local', 'ok',
+   1, 2, 3, 1, 'Nightly run completed', 'scheduled', NULL, '{\"status\":\"ok\"}');
+
+INSERT INTO nightly_job_definitions(
+  id, project_id, name, description, schedule, script_path, target_host, enabled, run_fixes, timeout_sec
+) VALUES
+  (1, 'mirrorbuddy', 'guardian-main', 'Primary nightly guardian', '0 3 * * *', '/tmp/guardian.sh', 'local', 1, 1, 5400),
+  (2, 'mirrorbuddy', 'guardian-secondary', 'Secondary nightly guardian', '30 3 * * *', '/tmp/guardian-secondary.sh', 'remote', 0, 0, 7200),
+  (3, 'proj1', 'proj1-guardian', 'Project specific guardian', '0 1 * * *', '/tmp/proj1-guardian.sh', 'local', 1, 1, 1800);
 ";
 
 async fn get(router: &axum::Router, uri: &str) -> (StatusCode, Value) {
@@ -164,6 +203,20 @@ async fn post(router: &axum::Router, uri: &str, payload: Value) -> (StatusCode, 
     let req = Request::builder()
         .uri(uri)
         .method("POST")
+        .header("Content-Type", "application/json")
+        .body(Body::from(serde_json::to_string(&payload).unwrap()))
+        .unwrap();
+    let resp = router.clone().oneshot(req).await.unwrap();
+    let status = resp.status();
+    let body = axum::body::to_bytes(resp.into_body(), 1_000_000).await.unwrap();
+    let json: Value = serde_json::from_slice(&body).unwrap_or(Value::Null);
+    (status, json)
+}
+
+async fn put(router: &axum::Router, uri: &str, payload: Value) -> (StatusCode, Value) {
+    let req = Request::builder()
+        .uri(uri)
+        .method("PUT")
         .header("Content-Type", "application/json")
         .body(Body::from(serde_json::to_string(&payload).unwrap()))
         .unwrap();
@@ -388,4 +441,92 @@ async fn plans_assignable_returns_active() {
     assert_eq!(s, StatusCode::OK);
     let arr = j.as_array().unwrap();
     assert!(arr.iter().any(|p| p["status"] == "doing" || p["status"] == "todo"));
+}
+
+#[tokio::test]
+async fn nightly_retry_creates_child_run() {
+    let r = test_router();
+    let (s, j) = post(&r, "/api/nightly/jobs/1/retry", serde_json::json!({})).await;
+    assert_eq!(s, StatusCode::OK);
+    let run_id = j["run_id"].as_str().expect("retry run id");
+    assert!(run_id.starts_with("retry-1-"));
+
+    let (_, jobs) = get(&r, "/api/nightly/jobs").await;
+    let history = jobs["history"].as_array().expect("history array");
+    assert!(history.iter().any(|row| {
+        row["run_id"] == run_id
+            && row["trigger_source"] == "retry"
+            && row["parent_run_id"] == "mirrorbuddy-nightly-20260308-030000"
+    }));
+}
+
+#[tokio::test]
+async fn nightly_trigger_creates_manual_run() {
+    let r = test_router();
+    let (s, j) = post(
+        &r,
+        "/api/nightly/jobs/trigger",
+        serde_json::json!({"project_id": "mirrorbuddy"}),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    let run_id = j["run_id"].as_str().expect("manual run id");
+    assert!(run_id.starts_with("manual-mirrorbuddy-"));
+
+    let (_, jobs) = get(&r, "/api/nightly/jobs").await;
+    let history = jobs["history"].as_array().expect("history array");
+    assert!(history.iter().any(|row| {
+        row["run_id"] == run_id && row["trigger_source"] == "manual"
+    }));
+}
+
+#[tokio::test]
+async fn nightly_config_get_filters_by_project() {
+    let r = test_router();
+    let (s, j) = get(&r, "/api/nightly/config/mirrorbuddy").await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(j["project_id"], "mirrorbuddy");
+    let definitions = j["definitions"].as_array().expect("definitions array");
+    assert_eq!(definitions.len(), 2);
+    assert!(definitions.iter().all(|row| row["name"] != "proj1-guardian"));
+    assert!(definitions[0].get("run_fixes").is_some());
+    assert!(definitions[0].get("timeout_sec").is_some());
+}
+
+#[tokio::test]
+async fn nightly_config_update_and_toggle_persist_changes() {
+    let r = test_router();
+    let (s, j) = put(
+        &r,
+        "/api/nightly/config/mirrorbuddy",
+        serde_json::json!({
+            "run_fixes": 0,
+            "schedule": "15 4 * * *",
+            "timeout_sec": 3600
+        }),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(j["ok"], true);
+    assert!(j["rows_affected"].as_u64().unwrap() >= 2);
+
+    let (toggle_status, toggle_json) = post(
+        &r,
+        "/api/nightly/jobs/definitions/1/toggle",
+        serde_json::json!({}),
+    )
+    .await;
+    assert_eq!(toggle_status, StatusCode::OK);
+    assert_eq!(toggle_json["enabled"], false);
+
+    let (_, updated) = get(&r, "/api/nightly/config/mirrorbuddy").await;
+    let definitions = updated["definitions"].as_array().expect("definitions array");
+    let primary = definitions
+        .iter()
+        .find(|row| row["id"].as_i64() == Some(1))
+        .expect("primary definition");
+    assert_eq!(primary["run_fixes"], 0);
+    assert_eq!(primary["schedule"], "15 4 * * *");
+    assert_eq!(primary["timeout_sec"], 3600);
+    assert_eq!(primary["enabled"], 0);
 }

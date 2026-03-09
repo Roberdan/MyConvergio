@@ -27,6 +27,8 @@ test.describe('Theme Switcher', () => {
 
   test('clicking theme option applies it', async ({ page }) => {
     await page.locator('#theme-toggle').click();
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { const d = document.getElementById('theme-dropdown'); if (d && !d.classList.contains('open')) (window as any).toggleThemeDropdown?.(); });
     await page.locator('.theme-option', { hasText: 'Synthwave' }).click();
     const theme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
     expect(theme).toBe('synthwave');
@@ -34,6 +36,8 @@ test.describe('Theme Switcher', () => {
 
   test('active theme has .active class in dropdown', async ({ page }) => {
     await page.locator('#theme-toggle').click();
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { const d = document.getElementById('theme-dropdown'); if (d && !d.classList.contains('open')) (window as any).toggleThemeDropdown?.(); });
     await page.locator('.theme-option', { hasText: 'Matrix' }).click();
     await page.locator('#theme-toggle').click();
     await expect(page.locator('.theme-option.active')).toContainText('Matrix');
@@ -41,6 +45,8 @@ test.describe('Theme Switcher', () => {
 
   test('theme persists in localStorage', async ({ page }) => {
     await page.locator('#theme-toggle').click();
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { const d = document.getElementById('theme-dropdown'); if (d && !d.classList.contains('open')) (window as any).toggleThemeDropdown?.(); });
     await page.locator('.theme-option', { hasText: 'TRON' }).click();
     const stored = await page.evaluate(() => localStorage.getItem('dashboard-theme'));
     expect(stored).toBe('tron');

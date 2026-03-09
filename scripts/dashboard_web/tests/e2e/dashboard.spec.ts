@@ -64,8 +64,8 @@ test.describe('Dashboard Core', () => {
   });
 
   test('zoom controls adjust body zoom', async ({ page }) => {
-    const zoomIn = page.locator('.zoom-btn', { hasText: '+' });
-    const zoomOut = page.locator('.zoom-btn', { hasText: '-' });
+    const zoomIn = page.locator('.header-ctrl-btn', { hasText: '+' });
+    const zoomOut = page.locator('.header-ctrl-btn', { hasText: '-' });
     const label = page.locator('#zoom-level');
 
     await expect(label).toHaveText('100%');
@@ -76,7 +76,7 @@ test.describe('Dashboard Core', () => {
     await expect(label).toHaveText('90%');
 
     // Reset
-    const reset = page.locator('.zoom-btn', { hasText: 'R' });
+    const reset = page.locator('.header-ctrl-btn', { hasText: 'R' });
     await reset.click();
     await expect(label).toHaveText('100%');
   });

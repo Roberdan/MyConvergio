@@ -540,44 +540,52 @@
     });
   }
 
-  /* ─── Mouse interaction ─── */
+  /* ─── Mouse / Touch interaction ─── */
+  function canvasXY(e) {
+    const rect = S.canvas.getBoundingClientRect();
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    return { x: cx * S.w / rect.width, y: cy * S.h / rect.height };
+  }
   function hitTest(x, y) {
     for (const [id, n] of S.neurons) {
+      if (n.dying) continue;
       const dx = x - n.x, dy = y - n.y;
-      if (dx * dx + dy * dy < (n.radius + 12) * (n.radius + 12)) return id;
+      if (dx * dx + dy * dy < (n.radius + 14) * (n.radius + 14)) return id;
     }
     return null;
   }
   function onMouseMove(e) {
-    const r = S.canvas.getBoundingClientRect();
-    S.mouse.x = e.clientX - r.left; S.mouse.y = e.clientY - r.top;
-    S.hover = hitTest(S.mouse.x, S.mouse.y);
+    const p = canvasXY(e);
+    S.mouse.x = p.x; S.mouse.y = p.y;
+    S.hover = hitTest(p.x, p.y);
     S.canvas.style.cursor = S.hover ? 'pointer' : 'default';
   }
   function onMouseLeave() { S.hover = null; S.mouse.x = -1; S.mouse.y = -1; }
   function onClick(e) {
-    const r = S.canvas.getBoundingClientRect();
-    const x = e.clientX - r.left, y = e.clientY - r.top;
-    const hit = hitTest(x, y);
-    if (hit) {
-      showDetailPanel(hit);
-      // Fire synapses from clicked neuron
-      fireSynapsesFor(hit);
-      const n = S.neurons.get(hit); if (n) n.fire();
-    } else {
-      const panel = document.getElementById('brain-detail');
-      if (panel) panel.remove();
-    }
+    const p = canvasXY(e);
+    const hit = hitTest(p.x, p.y);
+    if (hit) { fireSynapsesFor(hit); const n = S.neurons.get(hit); if (n) n.fire(); }
   }
+  function onTouchStart(e) {
+    if (!e.touches || !e.touches.length) return;
+    const p = canvasXY(e);
+    const hit = hitTest(p.x, p.y);
+    S.hover = hit;
+    if (hit) { fireSynapsesFor(hit); const n = S.neurons.get(hit); if (n) n.fire(); e.preventDefault(); }
+  }
+  function onTouchEnd() { setTimeout(() => { S.hover = null; }, 2000); }
 
   /* ─── Resize ─── */
   function resize() {
     if (!S.container || !S.canvas) return;
-    const r = S.container.getBoundingClientRect();
     S.dpr = window.devicePixelRatio || 1;
-    S.w = Math.max(10, r.width); S.h = Math.max(10, r.height);
-    S.canvas.width = Math.floor(S.w * S.dpr); S.canvas.height = Math.floor(S.h * S.dpr);
-    S.canvas.style.width = S.w + 'px'; S.canvas.style.height = S.h + 'px';
+    S.w = Math.max(10, S.container.clientWidth);
+    S.h = Math.max(10, S.container.clientHeight);
+    S.canvas.width = Math.floor(S.w * S.dpr);
+    S.canvas.height = Math.floor(S.h * S.dpr);
+    S.canvas.style.width = S.w + 'px';
+    S.canvas.style.height = S.h + 'px';
     S.ctx.setTransform(S.dpr, 0, 0, S.dpr, 0, 0);
   }
 
@@ -590,6 +598,31 @@
     S.ws.onmessage = () => pollData();
     S.ws.onerror = () => S.ws?.close();
     S.ws.onclose = () => { clearTimeout(S.wsT); S.wsT = setTimeout(connectWs, Math.min(30000, 1000 * Math.pow(2, S.wsRetry++))); };
+  }
+
+  /* ─── ⓘ Help/Legend toggle ─── */
+  function addHelpButton() {
+    const controls = document.getElementById('brain-controls');
+    if (!controls || document.getElementById('brain-help-btn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'brain-help-btn'; btn.className = 'brain-ctrl-btn'; btn.title = 'Legend';
+    btn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M6.5 6.2a1.8 1.8 0 0 1 3.3.9c0 1.2-1.8 1-1.8 2.4M8 11.5v.01"/></svg>';
+    btn.onclick = function() {
+      var leg = document.getElementById('brain-legend');
+      if (leg) { leg.remove(); return; }
+      leg = document.createElement('div'); leg.id = 'brain-legend';
+      leg.style.cssText = 'position:absolute;left:12px;bottom:12px;background:rgba(8,12,32,0.92);border:1px solid rgba(0,229,255,0.15);border-radius:6px;padding:10px 14px;z-index:15;font:9px "JetBrains Mono",monospace;color:#5a6080;backdrop-filter:blur(10px);line-height:1.8;cursor:pointer;';
+      leg.onclick = function() { leg.remove(); };
+      leg.innerHTML = '<span style="color:#8899bb;font-size:10px;letter-spacing:1px">NEURAL GRAPH</span><br><br>'
+        + '<span style="color:#ffb020">●</span> Claude &nbsp; <span style="color:#20a0ff">●</span> Copilot &nbsp; <span style="color:#00e5ff">●</span> Sub-agent<br>'
+        + '<span style="color:#00ff88">●</span> Plan &nbsp; <span style="color:#ffd700">●</span> Task<br><br>'
+        + '<span style="color:#8899bb">Brightness</span> = CPU activity<br>'
+        + '<span style="color:#8899bb">Size</span> = sub-agents count<br>'
+        + '<span style="color:#8899bb">Lines</span> = synapses<br><br>'
+        + '<span style="color:#5a6080">Hover → details | Tap on mobile</span>';
+      S.container.appendChild(leg);
+    };
+    controls.insertBefore(btn, controls.firstChild);
   }
 
   /* ─── Lifecycle ─── */
@@ -610,9 +643,11 @@
     S.canvas.addEventListener('mousemove', onMouseMove);
     S.canvas.addEventListener('mouseleave', onMouseLeave);
     S.canvas.addEventListener('click', onClick);
+    S.canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    S.canvas.addEventListener('touchend', onTouchEnd);
     document.addEventListener('visibilitychange', onVis);
     pollData(); S.pollT = setInterval(pollData, 8000);
-    connectWs();
+    connectWs(); addHelpButton();
     S.running = true; S.raf = requestAnimationFrame(render);
   };
   window.destroyBrainCanvas = function() {
@@ -620,7 +655,13 @@
     if (S.ro) S.ro.disconnect(); S.ro = null;
     if (S.ws) S.ws.close(); S.ws = null; clearTimeout(S.wsT); S.wsT = 0;
     if (S.pollT) clearInterval(S.pollT); S.pollT = 0;
-    if (S.canvas) { S.canvas.removeEventListener('mousemove', onMouseMove); S.canvas.removeEventListener('mouseleave', onMouseLeave); S.canvas.removeEventListener('click', onClick); }
+    if (S.canvas) {
+      S.canvas.removeEventListener('mousemove', onMouseMove);
+      S.canvas.removeEventListener('mouseleave', onMouseLeave);
+      S.canvas.removeEventListener('click', onClick);
+      S.canvas.removeEventListener('touchstart', onTouchStart);
+      S.canvas.removeEventListener('touchend', onTouchEnd);
+    }
     document.removeEventListener('visibilitychange', onVis);
     if (S.container) S.container.innerHTML = '';
     S.container = S.canvas = S.ctx = null;

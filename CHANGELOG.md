@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.15.4] - 09 Mar 2026
+
+### Fixed
+- restore full brain-canvas.js after other agent overwrote it
+
+
 ## [v11.15.3] - 09 Mar 2026
 
 ### Fixed

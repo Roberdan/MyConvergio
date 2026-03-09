@@ -57,6 +57,18 @@ impl ServerState {
                 "CREATE INDEX IF NOT EXISTS idx_idea_notes_idea ON idea_notes(idea_id)",
                 // ALTER TABLE migrations
                 "ALTER TABLE nightly_jobs ADD COLUMN job_name TEXT DEFAULT 'guardian'",
+                "ALTER TABLE nightly_jobs ADD COLUMN log_stdout TEXT",
+                "ALTER TABLE nightly_jobs ADD COLUMN log_stderr TEXT",
+                "ALTER TABLE nightly_jobs ADD COLUMN log_file_path TEXT",
+                "ALTER TABLE nightly_jobs ADD COLUMN duration_sec INTEGER",
+                "ALTER TABLE nightly_jobs ADD COLUMN config_snapshot TEXT",
+                "ALTER TABLE nightly_jobs ADD COLUMN exit_code INTEGER",
+                "ALTER TABLE nightly_jobs ADD COLUMN error_detail TEXT",
+                "ALTER TABLE nightly_jobs ADD COLUMN trigger_source TEXT DEFAULT 'scheduled'",
+                "ALTER TABLE nightly_jobs ADD COLUMN parent_run_id TEXT",
+                "ALTER TABLE nightly_job_definitions ADD COLUMN project_id TEXT DEFAULT 'mirrorbuddy'",
+                "ALTER TABLE nightly_job_definitions ADD COLUMN run_fixes INTEGER DEFAULT 1",
+                "ALTER TABLE nightly_job_definitions ADD COLUMN timeout_sec INTEGER DEFAULT 5400",
                 "ALTER TABLE agent_activity ADD COLUMN parent_session TEXT",
             ];
             let mut ok = 0;

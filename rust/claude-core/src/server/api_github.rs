@@ -168,11 +168,26 @@ fn fetch_live_stats(nwo: &str) -> Value {
         .unwrap_or(0.0);
     let velocity = merged_week / 7.0;
 
+    // Lines changed this week (from GitHub code_frequency stats — weekly granularity)
+    // Returns [timestamp, additions, deletions] for last week
+    let lines_changed: i64 = std::process::Command::new("gh")
+        .args(["api", &format!("repos/{nwo}/stats/code_frequency")])
+        .output()
+        .ok()
+        .and_then(|o| if o.status.success() { serde_json::from_slice::<Value>(&o.stdout).ok() } else { None })
+        .and_then(|v| v.as_array().and_then(|a| a.last().cloned()))
+        .map(|week| {
+            let add = week.get(1).and_then(|v| v.as_i64()).unwrap_or(0);
+            let del = week.get(2).and_then(|v| v.as_i64()).unwrap_or(0);
+            add + del.abs()
+        })
+        .unwrap_or(0);
+
     json!({
         "open_prs": open_prs,
         "commits_today": commits_today,
         "pr_merge_velocity": velocity,
-        "lines_changed": 0,
+        "lines_changed": lines_changed,
     })
 }
 

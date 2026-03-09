@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.22.1] - 09 Mar 2026
+
+### Fixed
+- Lines Changed uses GitHub code_frequency API (was hardcoded 0)
+
+
 ## [v11.22.0] - 09 Mar 2026
 
 ### Added

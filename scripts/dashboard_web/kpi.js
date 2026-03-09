@@ -82,7 +82,7 @@ function renderKpi(d, skipGithubFetch = false) {
       d.blocked > 0,
     );
   if (hasGithub) {
-    html += _kpiCard("Lines Changed", fmt(github.lines_changed), "from plan commits", "history-widget") +
+    html += _kpiCard("Lines Changed", fmt(github.lines_changed), "this week", "history-widget") +
       _kpiCard("Commits Today", github.commits_today, "GitHub activity", "mission-panel") +
       _kpiCard("Open PRs", github.open_prs, "repo backlog", "event-feed-widget") +
       _kpiCard("PR Merge Velocity", mergeVelocityLabel, "merged PR/day", "event-feed-widget");

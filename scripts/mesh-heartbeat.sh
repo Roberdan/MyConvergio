@@ -68,6 +68,11 @@ _write_heartbeat() {
 	local peer_name load_json caps
 	peers_load 2>/dev/null || true
 	peer_name="$(peers_self 2>/dev/null || echo "$(hostname -s 2>/dev/null || hostname)")"
+	# Guard: never write empty peer_name
+	if [[ -z "$peer_name" ]]; then
+		warn "peer_name is empty — skipping heartbeat write"
+		return 1
+	fi
 	load_json="$(_load_json)"
 	caps="$(_capabilities)"
 
@@ -114,6 +119,38 @@ _check_plan_events() {
 		fi
 	done < <(_db "SELECT w.wave_id, w.name, w.plan_id, w.tasks_done, w.tasks_total FROM waves w JOIN plans p ON w.plan_id=p.id WHERE p.status='doing' AND w.status='in_progress' AND (p.execution_host LIKE '%${peer_name}%' OR p.execution_host='${peer_name}');" 2>/dev/null || true)
 }
+_poll_remote_peers() {
+	# Coordinator-only: SSH into remote peers, read their heartbeat, merge locally
+	peers_load 2>/dev/null || return 0
+	local self
+	self="$(peers_self 2>/dev/null || echo "")"
+	local my_role
+	my_role="$(peers_get "$self" "role" 2>/dev/null || echo "worker")"
+	[[ "$my_role" != "coordinator" ]] && return 0
+
+	for name in $_PEERS_ACTIVE; do
+		[[ "$name" == "$self" ]] && continue
+		local alias
+		alias="$(_peers_get_raw "$name" "ssh_alias")"
+		[[ -z "$alias" ]] && continue
+		# Async SSH: read remote heartbeat (timeout 5s, non-blocking)
+		(
+			local row
+			row="$(ssh -o ConnectTimeout=4 -o BatchMode=yes "$alias" \
+				"sqlite3 ~/.claude/data/dashboard.db \"SELECT peer_name, last_seen, load_json, capabilities FROM peer_heartbeats WHERE peer_name='$name' LIMIT 1;\"" 2>/dev/null || echo "")"
+			[[ -z "$row" ]] && return
+			local rp rl rj rc
+			IFS='|' read -r rp rl rj rc <<< "$row"
+			[[ -z "$rp" || -z "$rl" ]] && return
+			# Escape single quotes for SQL
+			rj="${rj//\'/\'\'}"
+			rc="${rc//\'/\'\'}"
+			_db "INSERT OR REPLACE INTO peer_heartbeats (peer_name, last_seen, load_json, capabilities) VALUES ('${rp}', ${rl}, '${rj}', '${rc}');" 2>/dev/null || true
+		) &
+	done
+	# Don't wait — background SSH calls clean up on their own
+}
+
 _daemon_loop() {
 	local pulse=0
 	while true; do
@@ -121,10 +158,10 @@ _daemon_loop() {
 		# Check for plan/wave/task events (non-fatal)
 		_check_plan_events 2>/dev/null || true
 		pulse=$((pulse + 1))
-		# Every 4 beats (~2 min): pull task updates from peers
-		# DISABLED: Rust daemon (port 9420) handles CRDT sync now.
-		# Legacy bash sync does destructive full-DB copy that wipes tables.
-		# if ((pulse % 4 == 0)); then ... fi
+		# Every 2 beats (~1 min): poll remote peers (coordinator only)
+		if ((pulse % 2 == 0)); then
+			_poll_remote_peers 2>/dev/null || true
+		fi
 
 		# Every 10 beats (~5 min): cleanup only (NO config sync — git handles that)
 		if ((pulse % 10 == 0)); then
@@ -248,27 +285,42 @@ cmd_status() {
 	echo ""
 }
 
+cmd_daemon() {
+	# Foreground mode for service managers (launchd, systemd).
+	# Runs the heartbeat loop WITHOUT forking — the OS manages the process.
+	if [[ ! -f "$DB" ]]; then
+		err "Database not found: $DB"
+		return 1
+	fi
+	info "Running in foreground (service mode). PID=$$"
+	echo "$$" >"$PID_FILE"
+	trap 'rm -f "$PID_FILE"; info "Daemon stopped."; exit 0' SIGTERM SIGINT
+	_daemon_loop
+}
+
 # Main
 
 case "${1:-}" in
 start) cmd_start ;;
 stop) cmd_stop ;;
 status) cmd_status ;;
+daemon) cmd_daemon ;;
 ping) _write_heartbeat && ok "Heartbeat written" ;;
 -h | --help | help)
-	echo "Usage: $(basename "$0") [start|stop|status|ping]"
+	echo "Usage: $(basename "$0") [start|stop|status|daemon|ping]"
 	echo "  start  — start heartbeat daemon (every ${INTERVAL}s)"
 	echo "  stop   — stop heartbeat daemon"
 	echo "  status — show last_seen for all peers"
+	echo "  daemon — foreground mode for launchd/systemd"
 	echo "  ping   — write a single heartbeat now"
 	;;
 "")
-	err "No command given. Use: start|stop|status"
-	echo "Usage: $(basename "$0") [start|stop|status]" >&2
+	err "No command given. Use: start|stop|status|daemon"
+	echo "Usage: $(basename "$0") [start|stop|status|daemon]" >&2
 	exit 1
 	;;
 *)
-	err "Unknown command: $1. Use: start|stop|status"
+	err "Unknown command: $1. Use: start|stop|status|daemon"
 	exit 1
 	;;
 esac

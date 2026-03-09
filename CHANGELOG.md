@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.6.1] - 09 Mar 2026
+
+### Fixed
+- heartbeat persistence, peers.conf enrichment, remote poll
+
+
 ## [v11.6.0] - 08 Mar 2026
 
 ### Added

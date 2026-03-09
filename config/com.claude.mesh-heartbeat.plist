@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchDaemon for mesh-heartbeat — runs at BOOT, before user login.
+  Install: sudo cp this /Library/LaunchDaemons/ && sudo launchctl load /Library/LaunchDaemons/com.claude.mesh-heartbeat.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.claude.mesh-heartbeat</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>exec "$CLAUDE_HOME/scripts/mesh-heartbeat.sh" daemon</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CLAUDE_HOME</key>
+    <string>__CLAUDE_HOME__</string>
+    <key>HOME</key>
+    <string>__USER_HOME__</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <key>UserName</key>
+  <string>__USERNAME__</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>__CLAUDE_HOME__/data/mesh-heartbeat-launchd.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>__CLAUDE_HOME__/data/mesh-heartbeat-launchd.log</string>
+</dict>
+</plist>

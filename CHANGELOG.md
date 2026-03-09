@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.6.2] - 09 Mar 2026
+
+### Changed
+- replace brain canvas bubbles with agent card grid
+
+
 ## [v11.6.1] - 09 Mar 2026
 
 ### Fixed

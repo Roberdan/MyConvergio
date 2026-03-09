@@ -46,20 +46,12 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-left: 10px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px;
 }
 .stepper-btn {
-  background: none;
-  border: none;
   color: var(--text-dim);
   font-size: 10px;
-  width: 18px;
-  height: 20px;
-  cursor: pointer;
+  width: 20px;
+  height: 24px;
   border-radius: 3px;
   display: flex;
   align-items: center;

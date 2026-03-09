@@ -179,6 +179,7 @@ export const MOCK = {
     latest: {
       id: 910,
       run_id: 'mirrorbuddy-nightly-20260308-023000',
+      job_name: 'guardian',
       started_at: '2026-03-08T02:30:00Z',
       finished_at: '2026-03-08T03:02:00Z',
       host: 'omarchy',
@@ -190,21 +191,26 @@ export const MOCK = {
       branch_name: 'nightly/guardian-20260308-0230',
       pr_url: 'https://github.com/test/repo/pull/91',
       summary: 'Fix PR opened for high-impact Sentry/GitHub regressions.',
-      report: {
-        deploy: { status: 'ready' },
-        top_sentry_issues: [
-          { id: '9876543', short: 'MB-API-500', title: 'POST /api/chat returns 500 for null profile' },
-        ],
-        top_github_issues: [
-          { number: 501, title: 'Regression: chat API timeout on trial users' },
-        ],
-      },
+      report_json: '{"sentry_unresolved":4,"github_open_issues":7,"top_sentry_issues":[{"id":"123","short":"MB-1K","title":"Error: WebRTC failed","level":"error"}],"top_github_issues":[],"deploy":{"status":"ready"}}',
+      duration_sec: 1920,
+      trigger_source: 'scheduled',
+      exit_code: 0,
+      error_detail: null,
+      log_file_path: '/data/nightly-jobs/logs/mirrorbuddy-nightly-20260308-023000.log',
+      parent_run_id: null,
+      config_snapshot: '{"MIRRORBUDDY_RUN_FIXES":"true","MIRRORBUDDY_MODEL":"gpt-5.3-codex"}',
     },
     history: [
-      { id: 910, started_at: '2026-03-08T02:30:00Z', status: 'action_required', sentry_unresolved: 4, github_open_issues: 7, fixed_items: 3, pr_url: 'https://github.com/test/repo/pull/91' },
-      { id: 909, started_at: '2026-03-07T02:30:00Z', status: 'ok', sentry_unresolved: 0, github_open_issues: 1, fixed_items: 0, pr_url: '' },
-      { id: 908, started_at: '2026-03-06T02:30:00Z', status: 'failed', sentry_unresolved: 6, github_open_issues: 8, fixed_items: 0, pr_url: '' },
+      { id: 910, run_id: 'mirrorbuddy-nightly-20260308-023000', job_name: 'guardian', status: 'action_required', started_at: '2026-03-08T02:30:00Z', host: 'omarchy', processed_items: 5, fixed_items: 3, pr_url: 'https://github.com/test/repo/pull/91', duration_sec: 1920, trigger_source: 'scheduled', exit_code: 0 },
+      { id: 909, run_id: 'mirrorbuddy-nightly-20260307-023000', job_name: 'guardian', status: 'ok', started_at: '2026-03-07T02:30:00Z', host: 'omarchy', processed_items: 0, fixed_items: 0, pr_url: null, duration_sec: 45, trigger_source: 'scheduled', exit_code: 0 },
+      { id: 908, run_id: 'mirrorbuddy-nightly-20260306-023000', job_name: 'guardian', status: 'failed', started_at: '2026-03-06T02:30:00Z', host: 'omarchy', processed_items: 3, fixed_items: 0, pr_url: null, duration_sec: 3600, trigger_source: 'scheduled', exit_code: 1, error_detail: 'npm run ci:summary:full failed with exit code 1' },
     ],
+    definitions: [
+      { id: 1, name: 'guardian', description: 'Nightly triage + auto-fix', schedule: '0 2 * * *', script_path: 'scripts/mirrorbuddy-nightly-guardian.sh', target_host: 'omarchy', enabled: 1, run_fixes: 1, timeout_sec: 5400 },
+    ],
+    page: 1,
+    per_page: 50,
+    total: 3,
   },
   sessions: [
     { session_id: 'sess-001', plan_id: 300, agent_id: 'agent-001', model: 'gpt-5.3-codex', host: 'm3max', status: 'running', started_at: Date.now() / 1000 - 142 },

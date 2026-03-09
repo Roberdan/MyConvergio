@@ -127,6 +127,15 @@ async function refreshAll() {
   _safe("history", () => { if (history && typeof renderHistory === "function") renderHistory(history); });
   _safe("dist", () => { if (dist && typeof renderDist === "function") renderDist(dist); });
   _safe("nightlyJobs", () => { if (typeof renderNightlyJobs === "function") renderNightlyJobs(nightly); });
+  if (nightly && nightly.latest && nightly.latest.status === "running" && !window._njPollTimer) {
+    window._njPollTimer = setInterval(async () => {
+      try {
+        const fresh = await fetchJson("/api/nightly/jobs");
+        _safe("nightlyJobs", () => { if (typeof renderNightlyJobs === "function") renderNightlyJobs(fresh); });
+        if (!fresh || !fresh.latest || fresh.latest.status !== "running") { clearInterval(window._njPollTimer); window._njPollTimer = null; }
+      } catch (e) { clearInterval(window._njPollTimer); window._njPollTimer = null; }
+    }, 30000);
+  }
   _safe("ideaJarWidget", () => { if (typeof renderIdeaJarWidget === "function") renderIdeaJarWidget(); });
   const lu = $("#last-update");
   if (lu) lu.textContent = `Updated: ${new Date().toLocaleTimeString()}`;

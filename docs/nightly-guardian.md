@@ -26,6 +26,50 @@ Timer (systemd)          Script                        Dashboard DB
 | Reports | `data/nightly-jobs/*.json` |
 | DB tables | `nightly_jobs`, `notifications` in `data/dashboard.db` |
 
+### New DB Columns (v2.0.0)
+| Column | Type | Description |
+|---|---|---|
+| log_stdout | TEXT | Truncated stdout (max 64KB) |
+| log_stderr | TEXT | Truncated stderr (max 64KB) |
+| log_file_path | TEXT | Full log file on disk |
+| duration_sec | INTEGER | Run duration in seconds |
+| config_snapshot | TEXT | JSON of MIRRORBUDDY_* vars at runtime |
+| exit_code | INTEGER | Process exit code |
+| error_detail | TEXT | Last 50 lines + failed command on error |
+| trigger_source | TEXT | 'scheduled', 'manual', or 'retry' |
+| parent_run_id | TEXT | Original run_id if this is a retry |
+
+### New API Endpoints
+| Method | Path | Description |
+|---|---|---|
+| GET | /api/nightly/jobs | List runs (paginated: ?page=1&per_page=50) |
+| GET | /api/nightly/jobs/:id | Full run detail with logs |
+| POST | /api/nightly/jobs/:id/retry | Retry a failed run |
+| POST | /api/nightly/jobs/trigger | Manual trigger |
+| GET | /api/nightly/config/:project_id | Read project config |
+| PUT | /api/nightly/config/:project_id | Update config |
+| POST | /api/nightly/jobs/definitions/:id/toggle | Enable/disable job |
+
+### Debugging a Failed Run
+1. Open Control Room dashboard -> Nightly Jobs widget
+2. Find failed run in history table (red row)
+3. Click row to expand detail panel (shows error_detail, config snapshot)
+4. Click "View Logs" for full stdout/stderr in modal
+5. Click "Retry" to re-run with same config
+6. Or click "Run Now" in header to trigger fresh manual run
+
+### CLI Flags (v2.0.0)
+```bash
+# Scheduled run (default)
+scripts/mirrorbuddy-nightly-guardian.sh
+
+# Manual trigger
+scripts/mirrorbuddy-nightly-guardian.sh --trigger=manual
+
+# Retry a previous run
+scripts/mirrorbuddy-nightly-guardian.sh --trigger=retry --parent-run-id=mirrorbuddy-nightly-20260308-023000
+```
+
 ## Configuration
 
 `config/mirrorbuddy-nightly.conf` — host-specific, **gitignored** (only `.example` tracked).

@@ -35,6 +35,7 @@ pub const GET_ROUTES: &[&str] = &[
     "/api/plans/assignable",
     "/api/notifications",
     "/api/nightly/jobs",
+    "/api/nightly/jobs/:id",
     "/api/projects",
     "/api/events",
     "/api/coordinator/status",
@@ -156,5 +157,6 @@ mod tests {
         assert!(GET_ROUTES.contains(&"/api/overview"));
         assert!(GET_ROUTES.contains(&"/api/chat/sessions"));
         assert!(GET_ROUTES.contains(&"/api/projects"));
+        assert!(GET_ROUTES.contains(&"/api/nightly/jobs/:id"));
     }
 }

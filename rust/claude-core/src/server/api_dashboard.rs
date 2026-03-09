@@ -1,9 +1,11 @@
 use super::state::{query_one, query_rows, ApiError, ServerState};
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::path::Path as FsPath;
 
 pub fn router() -> Router<ServerState> {
     Router::new()
@@ -19,6 +21,7 @@ pub fn router() -> Router<ServerState> {
         .route("/api/plans/assignable", get(api_plans_assignable))
         .route("/api/notifications", get(api_notifications))
         .route("/api/nightly/jobs", get(api_nightly_jobs))
+        .route("/api/nightly/jobs/:id", get(api_nightly_job_detail))
         .route("/api/nightly/jobs/create", post(api_nightly_job_create))
         .route("/api/projects", get(api_projects))
         .route("/api/events", get(api_events))
@@ -357,28 +360,146 @@ async fn api_projects(State(state): State<ServerState>) -> Result<Json<Value>, A
     )?)))
 }
 
-async fn api_nightly_jobs(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
+fn parse_positive_i64(qs: &HashMap<String, String>, key: &str, default_value: i64) -> Result<i64, ApiError> {
+    let value = qs
+        .get(key)
+        .map(|raw| raw.parse::<i64>().map_err(|_| ApiError::bad_request(format!("invalid {key}"))))
+        .transpose()?
+        .unwrap_or(default_value);
+    if value < 1 {
+        return Err(ApiError::bad_request(format!("{key} must be >= 1")));
+    }
+    Ok(value)
+}
+
+fn parse_json_text_field(row: &mut Value, field: &str) -> Result<(), ApiError> {
+    let raw = row
+        .get(field)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned);
+    if let Some(raw) = raw {
+        let parsed = serde_json::from_str::<Value>(&raw)
+            .map_err(|err| ApiError::internal(format!("invalid {field}: {err}")))?;
+        if let Some(object) = row.as_object_mut() {
+            object.insert(field.to_string(), parsed);
+        }
+    }
+    Ok(())
+}
+
+async fn api_nightly_jobs(
+    State(state): State<ServerState>,
+    Query(qs): Query<HashMap<String, String>>,
+) -> Result<Json<Value>, ApiError> {
     let db = state.open_db()?;
-    // Try with job_name first; fall back without it for pre-migration DBs
+    let page = parse_positive_i64(&qs, "page", 1)?;
+    let per_page = parse_positive_i64(&qs, "per_page", 50)?.min(100);
+    let offset = (page - 1) * per_page;
+    let list_sql = "SELECT id, run_id, job_name, started_at, finished_at, host, status,
+            sentry_unresolved, github_open_issues, processed_items, fixed_items,
+            branch_name, pr_url, summary, report_json,
+            duration_sec, trigger_source, exit_code, error_detail, log_file_path, parent_run_id
+        FROM nightly_jobs ORDER BY started_at DESC LIMIT ?1 OFFSET ?2";
+    let fallback_list_sql = "SELECT id, run_id, 'guardian' AS job_name, started_at, finished_at, host, status,
+            sentry_unresolved, github_open_issues, processed_items, fixed_items,
+            branch_name, pr_url, summary, report_json,
+            NULL AS duration_sec, 'scheduled' AS trigger_source, NULL AS exit_code, NULL AS error_detail,
+            NULL AS log_file_path, NULL AS parent_run_id
+        FROM nightly_jobs ORDER BY started_at DESC LIMIT ?1 OFFSET ?2";
     let rows = query_rows(
         db.connection(),
-        "SELECT id,run_id,job_name,started_at,finished_at,host,status,sentry_unresolved,github_open_issues,processed_items,fixed_items,branch_name,pr_url,summary,report_json FROM nightly_jobs ORDER BY started_at DESC LIMIT 10",
-        [],
+        list_sql,
+        rusqlite::params![per_page, offset],
     )
     .or_else(|_| {
         query_rows(
             db.connection(),
-            "SELECT id,run_id,'guardian' AS job_name,started_at,finished_at,host,status,sentry_unresolved,github_open_issues,processed_items,fixed_items,branch_name,pr_url,summary,report_json FROM nightly_jobs ORDER BY started_at DESC LIMIT 10",
+            fallback_list_sql,
+            rusqlite::params![per_page, offset],
+        )
+    })?;
+    let latest = query_one(
+        db.connection(),
+        "SELECT id, run_id, job_name, started_at, finished_at, host, status,
+            sentry_unresolved, github_open_issues, processed_items, fixed_items,
+            branch_name, pr_url, summary, report_json,
+            duration_sec, trigger_source, exit_code, error_detail, log_file_path, parent_run_id
+        FROM nightly_jobs ORDER BY started_at DESC LIMIT 1",
+        [],
+    )
+    .or_else(|_| {
+        query_one(
+            db.connection(),
+            "SELECT id, run_id, 'guardian' AS job_name, started_at, finished_at, host, status,
+                sentry_unresolved, github_open_issues, processed_items, fixed_items,
+                branch_name, pr_url, summary, report_json,
+                NULL AS duration_sec, 'scheduled' AS trigger_source, NULL AS exit_code, NULL AS error_detail,
+                NULL AS log_file_path, NULL AS parent_run_id
+            FROM nightly_jobs ORDER BY started_at DESC LIMIT 1",
             [],
         )
     })?;
+    let total = query_one(db.connection(), "SELECT COUNT(*) AS total FROM nightly_jobs", [])?
+        .and_then(|row| row.get("total").and_then(Value::as_i64))
+        .unwrap_or(0);
     let definitions = query_rows(
         db.connection(),
         "SELECT id,name,description,schedule,script_path,target_host,enabled,created_at FROM nightly_job_definitions ORDER BY name",
         [],
     ).unwrap_or_default();
-    let latest = rows.first().cloned();
-    Ok(Json(json!({"ok": true, "latest": latest, "history": rows, "definitions": definitions})))
+    Ok(Json(json!({
+        "ok": true,
+        "latest": latest,
+        "history": rows,
+        "definitions": definitions,
+        "page": page,
+        "per_page": per_page,
+        "total": total
+    })))
+}
+
+async fn api_nightly_job_detail(
+    State(state): State<ServerState>,
+    Path(id): Path<i64>,
+) -> Result<Json<Value>, ApiError> {
+    let db = state.open_db()?;
+    let mut row = query_one(
+        db.connection(),
+        "SELECT id, run_id, job_name, started_at, finished_at, host, status,
+            sentry_unresolved, github_open_issues, processed_items, fixed_items,
+            branch_name, pr_url, summary, report_json,
+            duration_sec, trigger_source, exit_code, error_detail, log_file_path, parent_run_id,
+            log_stdout, log_stderr, config_snapshot
+        FROM nightly_jobs WHERE id = ?1",
+        rusqlite::params![id],
+    )
+    .or_else(|_| {
+        query_one(
+            db.connection(),
+            "SELECT id, run_id, 'guardian' AS job_name, started_at, finished_at, host, status,
+                sentry_unresolved, github_open_issues, processed_items, fixed_items,
+                branch_name, pr_url, summary, report_json,
+                NULL AS duration_sec, 'scheduled' AS trigger_source, NULL AS exit_code, NULL AS error_detail,
+                NULL AS log_file_path, NULL AS parent_run_id,
+                NULL AS log_stdout, NULL AS log_stderr, NULL AS config_snapshot
+            FROM nightly_jobs WHERE id = ?1",
+            rusqlite::params![id],
+        )
+    })?
+    .ok_or_else(|| ApiError::bad_request(format!("nightly job {id} not found")))?;
+    parse_json_text_field(&mut row, "report_json")?;
+    parse_json_text_field(&mut row, "config_snapshot")?;
+    let log_available = row
+        .get("log_file_path")
+        .and_then(Value::as_str)
+        .map(|path| !path.is_empty() && FsPath::new(path).exists())
+        .unwrap_or(false);
+    if let Some(object) = row.as_object_mut() {
+        object.insert("log_available".to_string(), Value::Bool(log_available));
+    }
+    Ok(Json(row))
 }
 
 #[derive(Deserialize)]

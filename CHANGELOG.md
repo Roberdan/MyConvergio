@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.16.3] - 09 Mar 2026
+
+### Fixed
+- restore hover-actions CSS (was lost in previous commit)
+
+
 ## [v11.16.2] - 09 Mar 2026
 
 ### Fixed

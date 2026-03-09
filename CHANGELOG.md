@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.22.2] - 09 Mar 2026
+
+### Fixed
+- SHA comparison uses 7-char prefix for cross-platform compat
+
+
 ## [v11.22.1] - 09 Mar 2026
 
 ### Fixed

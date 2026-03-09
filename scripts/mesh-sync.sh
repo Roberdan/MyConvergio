@@ -45,7 +45,7 @@ _sync_peer() {
   local remote_sha
   remote_sha="$(_ssh_cmd "$peer" "cd ~/.claude && git rev-parse --short HEAD 2>/dev/null" || echo "?")"
 
-  if [[ "$remote_sha" == "$LOCAL_SHA" ]]; then
+  if [[ "${remote_sha:0:7}" == "$LOCAL_SHA" ]]; then
     echo "  ✓ $peer: already at $LOCAL_SHA"
     return 0
   fi
@@ -82,7 +82,7 @@ _sync_peer() {
 
   # Verify
   remote_sha="$(_ssh_cmd "$peer" "cd ~/.claude && git rev-parse --short HEAD" || echo "?")"
-  if [[ "$remote_sha" == "$LOCAL_SHA" ]]; then
+  if [[ "${remote_sha:0:7}" == "$LOCAL_SHA" ]]; then
     echo "  ✓ $peer: synced to $LOCAL_SHA"
   else
     echo "  ✗ $peer: expected $LOCAL_SHA, got $remote_sha"

@@ -51,6 +51,7 @@ pub const GET_ROUTES: &[&str] = &[
     "/api/sessions",
     "/api/chat/models",
     "/api/chat/sessions",
+    "/api/optimize/signals",
 ];
 pub const POST_ROUTES: &[&str] = &[
     "/api/ideas",
@@ -70,6 +71,7 @@ pub const POST_ROUTES: &[&str] = &[
     "/api/peers",
     "/api/peers/ssh-check",
     "/api/plans/:plan_id/validate",
+    "/api/optimize/clear",
 ];
 pub const PUT_ROUTES: &[&str] = &[
     "/api/ideas/:id",

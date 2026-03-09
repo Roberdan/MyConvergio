@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.25.0] - 09 Mar 2026
+
+### Added
+- Optimize .claude button with session learning signals
+
+
 ## [v11.24.0] - 09 Mar 2026
 
 ### Added

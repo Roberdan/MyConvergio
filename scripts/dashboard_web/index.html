@@ -25,6 +25,7 @@
 <link rel="stylesheet" href="css/github-activity.css">
 <link rel="stylesheet" href="css/nightly-jobs.css">
 <link rel="stylesheet" href="css/idea-jar.css">
+<link rel="stylesheet" href="css/optimize.css">
 <style>
 button,select{background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer}
 button{-webkit-appearance:none;appearance:none}
@@ -54,6 +55,11 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
   </div>
   <h1>Convergio</h1>
   <div class="header-right">
+    <button class="header-optimize-btn" onclick="openOptimizeModal()" title="Optimize .claude — session learning signals">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Optimize
+      <span class="optimize-badge" id="optimize-badge" style="display:none">0</span>
+    </button>
     <div class="header-status">
       <span class="status-dot"></span>
       <span id="clock"></span>
@@ -313,5 +319,6 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 <script src="idea-jar-physics.js?v=2"></script>
 <script src="idea-jar-canvas.js?v=2"></script>
 <script src="idea-jar.js?v=2"></script>
+<script src="optimize.js"></script>
 </body>
 </html>

@@ -1,0 +1,176 @@
+/* optimize.css — Optimize .claude button + modal */
+
+/* Header button */
+.header-optimize-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 229, 255, 0.06);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  color: var(--cyan, #00e5ff);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  position: relative;
+  margin-right: 8px;
+}
+.header-optimize-btn:hover {
+  background: rgba(0, 229, 255, 0.15);
+  border-color: var(--cyan, #00e5ff);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.25);
+  color: #fff;
+}
+.header-optimize-btn svg { stroke: currentColor; flex-shrink: 0; }
+
+/* Badge */
+.optimize-badge {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  background: var(--magenta, #ff2daa);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  box-shadow: 0 0 8px rgba(255, 45, 170, 0.5);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* Modal */
+.opt-modal {
+  width: min(600px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.opt-meta {
+  display: flex;
+  gap: 16px;
+  padding: 8px 20px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--text-dim, #5a6080);
+  border-bottom: 1px solid var(--border, #1a2040);
+}
+.opt-meta b { color: var(--text, #c8d0e8); }
+.opt-timerange {
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+/* Signals list */
+.opt-signals {
+  padding: 12px 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.opt-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--green, #00ff88);
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* Signal card */
+.opt-signal-card {
+  background: var(--bg-deep, #04060e);
+  border: 1px solid var(--border, #1a2040);
+  border-radius: 6px;
+  padding: 10px 14px;
+  transition: border-color 0.2s;
+}
+.opt-signal-card:hover {
+  border-color: rgba(0, 229, 255, 0.3);
+}
+.opt-signal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 600;
+}
+.opt-signal-label { color: var(--text, #c8d0e8); }
+.opt-signal-count {
+  margin-left: auto;
+  background: rgba(255, 45, 170, 0.15);
+  color: var(--magenta, #ff2daa);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+.opt-signal-samples {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.opt-signal-samples code {
+  display: block;
+  font-size: 10px;
+  color: var(--text-dim, #5a6080);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 3px 8px;
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Action buttons */
+.opt-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border, #1a2040);
+  justify-content: flex-end;
+}
+.opt-btn {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+}
+.opt-btn-refresh {
+  border: 1px solid var(--border, #1a2040);
+  color: var(--text-dim, #5a6080);
+}
+.opt-btn-refresh:hover {
+  border-color: var(--cyan, #00e5ff);
+  color: var(--cyan, #00e5ff);
+}
+.opt-btn-clear {
+  background: rgba(255, 45, 170, 0.1);
+  border: 1px solid rgba(255, 45, 170, 0.3);
+  color: var(--magenta, #ff2daa);
+}
+.opt-btn-clear:hover {
+  background: rgba(255, 45, 170, 0.2);
+  border-color: var(--magenta, #ff2daa);
+  box-shadow: 0 0 10px rgba(255, 45, 170, 0.2);
+}

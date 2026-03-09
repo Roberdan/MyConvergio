@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.9.0] - 09 Mar 2026
+
+### Added
+- interactive neural network graph with full operational data
+
+
 ## [v11.8.2] - 09 Mar 2026
 
 ### Fixed

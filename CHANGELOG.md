@@ -1,5 +1,14 @@
 # Changelog
 
+## [v11.21.0] - 09 Mar 2026
+
+### Added
+- sync, exec, health, migrations — learnings from Plan 384
+
+### Fixed
+- disambiguate Reset zoom selector (.header-ctrl-btn)
+
+
 ## [v11.20.0] - 09 Mar 2026
 
 ### Added

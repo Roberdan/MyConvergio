@@ -43,6 +43,7 @@ Location: `~/.claude/config/peers.conf` (override: `PEERS_CONF` env var)
 | `role`           | yes      | `coordinator` \| `worker` \| `hybrid`           | Affects dispatcher scoring           |
 | `status`         | no       | `active` \| `inactive` (default: `active`)      | Inactive peers are ignored           |
 | `mac_address`    | no       | `AA:BB:CC:DD:EE:FF`                             | Wake-on-LAN magic packet             |
+| `gh_account`     | no       | GitHub username                                  | Used by mesh-sync/exec for `gh auth switch` |
 | `default_engine` | no       | `claude` \| `copilot` \| `opencode` \| `ollama` | Preferred engine for mesh delegation |
 | `default_model`  | no       | any model string                                | Pre-filled in delegation UI          |
 
@@ -51,6 +52,22 @@ Location: `~/.claude/config/peers.conf` (override: `PEERS_CONF` env var)
 ## Peer Management UI
 
 Dashboard CRUD: GET/POST/PUT/DELETE `/api/peers[/<name>]`, POST `/api/peers/ssh-check`, GET `/api/peers/discover` (Tailscale auto-discovery). Delegation engine reads `default_engine` from peers.conf (fallback: `copilot` → first capability). Preflight detects OAuth vs API key (warning).
+
+## Quick Operations
+
+| Need | Command |
+|---|---|
+| Sync all nodes to master | `mesh-sync.sh` |
+| Sync one node | `mesh-sync.sh --peer omarchy` |
+| Run task on remote peer | `mesh-exec.sh m1mario prompt.md --model gpt-5.4` |
+| Run with Claude instead | `mesh-exec.sh m1mario prompt.md --tool claude` |
+| Health check all nodes | `mesh-health.sh` |
+| Health check one node | `mesh-health.sh --peer omarchy` |
+| Apply DB migrations locally | `apply-migrations.sh` |
+| Dry-run sync (preview) | `mesh-sync.sh --dry-run` |
+| Force sync (reset hard) | `mesh-sync.sh --force` |
+
+All scripts use `lib/peers.sh` for peer discovery. All handle `gh auth switch` automatically via `gh_account` field in peers.conf.
 
 ## Unified Sync (mesh-sync-all.sh)
 

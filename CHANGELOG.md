@@ -1,5 +1,26 @@
 # Changelog
 
+## [v11.22.0] - 09 Mar 2026
+
+### Added
+- wire scripts to agents, tests, ADR, docs
+
+
+## [v11.22.0] - 09 Mar 2026
+
+### Added
+- `mesh-sync.sh`: one-command sync all nodes to master (git + DB migrations + cleanup)
+- `mesh-exec.sh`: run copilot/claude tasks on remote peers with auto auth
+- `mesh-health.sh`: compact health table for all mesh nodes
+- `apply-migrations.sh`: standalone DB migration from Rust state.rs
+- `gh_account` field in peers.conf for SSH auth persistence
+- ADR 0041: mesh quick operations scripts
+- 36-test suite for mesh scripts
+
+### Changed
+- digest-scripts.md: added mesh script mappings
+- migration-checklist.md: requires mesh-sync + mesh-health post-migration
+
 ## [v11.21.0] - 09 Mar 2026
 
 ### Added

@@ -24,8 +24,9 @@ Rules for ANY change that touches infrastructure: backend migrations, new servic
 
 ## Post-Migration
 - [ ] Full Playwright navigation audit — zero errors
-- [ ] Deploy binary/config to ALL mesh nodes
+- [ ] Deploy binary/config to ALL mesh nodes: `mesh-sync.sh`
+- [ ] Verify DB migrations applied on all nodes: `mesh-health.sh` (DB column count)
 - [ ] Start/restart daemons on ALL nodes
 - [ ] Disable/archive obsolete scripts
-- [ ] Health endpoint returns ok:true on ALL nodes
+- [ ] Health endpoint returns ok:true on ALL nodes: `mesh-health.sh` (SERVER column)
 - [ ] Write KB entries for every issue discovered

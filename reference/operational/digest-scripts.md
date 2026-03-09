@@ -24,6 +24,10 @@
 | Manual audit scripts such as hardening-check + linters | `project-audit.sh --project-root $(pwd)` |
 | `gh pr checks`                                         | `ci-digest.sh checks <pr>`               |
 | Manual CI polling (`gh pr checks --watch`, run loops) | `ci-watch.sh <branch> --repo owner/repo` |
+| Manual SSH sync to peers                               | `mesh-sync.sh [--peer NAME]`             |
+| Running tasks on remote peers via SSH                  | `mesh-exec.sh <peer> <prompt> [--model]` |
+| Manual peer health checks                              | `mesh-health.sh [--peer NAME]`           |
+| Manual ALTER TABLE for DB migrations                   | `apply-migrations.sh`                    |
 
 ## Options
 

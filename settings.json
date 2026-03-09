@@ -56,6 +56,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "codegraph mark-dirty",
+            "async": true
+          }
+        ]
       }
     ],
     "Stop": [
@@ -123,6 +133,15 @@
             "type": "command",
             "command": "~/.claude/hooks/track-precompact.sh",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/precompact-db-audit.sh",
+            "timeout": 10
           }
         ]
       },
@@ -205,6 +224,15 @@
             "type": "command",
             "command": "~/.claude/hooks/track-tokens.sh task-completed",
             "async": true
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/enforce-task-db-update.sh",
+            "timeout": 10
           }
         ]
       }

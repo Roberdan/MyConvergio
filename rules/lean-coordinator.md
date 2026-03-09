@@ -1,4 +1,4 @@
-<!-- v1.0.0 -->
+<!-- v1.1.0 -->
 
 # Lean Coordinator Protocol
 
@@ -40,6 +40,22 @@ After compaction, the coordinator MUST:
 2. Verify: `plan-db.sh execution-tree <plan_id>`
 3. Resume from last known state — do NOT re-read files or re-verify completed work
 4. Trust task-executor + Thor results — they ran in isolated contexts
+
+## DB Update IMMEDIATELY After Task (NON-NEGOTIABLE — Plan 382 incident)
+
+`plan-db-safe.sh update-task` MUST be called **in the same message** as reading the task-executor result. NOT "later", NOT "after all tasks". If compaction happens between task completion and DB update, the update is lost forever.
+
+**Hooks enforce this**:
+- `enforce-task-db-update.sh` (TaskCompleted): BLOCKS if tasks are stuck in `in_progress`
+- `precompact-db-audit.sh` (PreCompact): Injects warning about orphaned `in_progress` tasks
+
+**Sequence per task** (atomic, no interruptions):
+1. Task-executor returns → read summary
+2. `plan-db-safe.sh update-task <id> done "summary"` ← SAME MESSAGE
+3. `plan-checkpoint.sh save <plan_id>`
+4. Launch next task or Thor
+
+_Why: Plan 382 — 13 tasks executed, 0/13 in DB. Compaction wiped coordinator memory. Session resumed with blank DB._
 
 ## Anti-Patterns (VIOLATION)
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.8.0] - 09 Mar 2026
+
+### Added
+- enforce DB update after task completion, prevent Plan 382 regression
+
+
 ## [v11.7.0] - 09 Mar 2026
 
 ### Added

@@ -1,5 +1,12 @@
 # Changelog
 
+## [v11.14.1] - 09 Mar 2026
+
+### Fixed
+- fallback metrics when GitHub stats unavailable
+- uniform 32px height, bigger title, consistent controls
+
+
 ## [v11.14.0] - 09 Mar 2026
 
 ### Added

@@ -64,51 +64,34 @@ function renderKpi(d, skipGithubFetch = false) {
   if (!skipGithubFetch) _refreshGithubStats(planId);
   const githubStats = _githubKpi.planId === planId ? _githubKpi.stats : null;
   const github = _githubMetrics(githubStats);
+  const hasGithub = githubStats && (github.lines_changed > 0 || github.commits_today > 0 || github.open_prs > 0);
   const mergeVelocityLabel =
-    github.pr_merge_velocity > 0 ? `${github.pr_merge_velocity.toFixed(1)}/day` : "n/a";
+    github.pr_merge_velocity > 0 ? `${github.pr_merge_velocity.toFixed(1)}/day` : "—";
   const online = d.mesh_online || 0,
     total = d.mesh_total || 0;
-  $("#kpi-bar").innerHTML =
+  let html =
     _kpiCard("Active", d.plans_active, "plans running", "mission-panel") +
-    _kpiCard(
-      "Plans",
-      d.plans_total,
-      `${d.plans_active} active`,
-      "history-widget",
-    ) +
+    _kpiCard("Plans", d.plans_total, `${d.plans_done || 0} done`, "history-widget") +
     _kpiCard("Mesh", `${online}/${total}`, "nodes online", "mesh-panel") +
-    _kpiCard(
-      "Tokens",
-      fmt(d.total_tokens),
-      `Today: ${fmt(d.today_tokens)}`,
-      "widget-tokens",
-    ) +
+    _kpiCard("Tokens", fmt(d.total_tokens), `Today: ${fmt(d.today_tokens)}`, "widget-tokens") +
     _kpiCard(
       d.blocked > 0 ? "STUCK" : "Blocked",
-      d.blocked,
+      d.blocked || "0",
       d.blocked > 0 ? "needs attention" : "",
       "task-pipeline-widget",
       d.blocked > 0,
-    ) +
-    _kpiCard(
-      "Lines Changed",
-      fmt(github.lines_changed),
-      "from plan commits",
-      "history-widget",
-    ) +
-    _kpiCard(
-      "Commits Today",
-      github.commits_today,
-      "GitHub activity",
-      "mission-panel",
-    ) +
-    _kpiCard("Open PRs", github.open_prs, "repo backlog", "event-feed-widget") +
-    _kpiCard(
-      "PR Merge Velocity",
-      mergeVelocityLabel,
-      "merged PR/day",
-      "event-feed-widget",
     );
+  if (hasGithub) {
+    html += _kpiCard("Lines Changed", fmt(github.lines_changed), "from plan commits", "history-widget") +
+      _kpiCard("Commits Today", github.commits_today, "GitHub activity", "mission-panel") +
+      _kpiCard("Open PRs", github.open_prs, "repo backlog", "event-feed-widget") +
+      _kpiCard("PR Merge Velocity", mergeVelocityLabel, "merged PR/day", "event-feed-widget");
+  } else {
+    html += _kpiCard("Tasks Done", d.plans_done || 0, "total completed", "history-widget") +
+      _kpiCard("Cost Today", `$${(d.today_cost || 0).toFixed(0)}`, "token spend", "widget-cost") +
+      _kpiCard("Total Cost", `$${((d.total_cost || 0) / 1000).toFixed(1)}K`, "all time", "widget-cost");
+  }
+  $("#kpi-bar").innerHTML = html;
 }
 
 window.renderKpi = renderKpi;

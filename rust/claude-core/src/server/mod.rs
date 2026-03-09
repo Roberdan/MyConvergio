@@ -11,11 +11,14 @@ pub mod routes;
 pub mod state;
 pub mod sse;
 pub mod ws;
+pub mod ws_pty;
 
 #[cfg(test)]
 mod api_tests;
 #[cfg(test)]
 mod api_ideas_tests;
+#[cfg(test)]
+mod ws_pty_tests;
 
 use axum::Router;
 use std::path::{Path, PathBuf};

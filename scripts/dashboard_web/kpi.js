@@ -87,9 +87,9 @@ function renderKpi(d, skipGithubFetch = false) {
       _kpiCard("Open PRs", github.open_prs, "repo backlog", "event-feed-widget") +
       _kpiCard("PR Merge Velocity", mergeVelocityLabel, "merged PR/day", "event-feed-widget");
   } else {
-    html += _kpiCard("Tasks Done", d.plans_done || 0, "total completed", "history-widget") +
-      _kpiCard("Cost Today", `$${(d.today_cost || 0).toFixed(0)}`, "token spend", "widget-cost") +
-      _kpiCard("Total Cost", `$${((d.total_cost || 0) / 1000).toFixed(1)}K`, "all time", "widget-cost");
+    html += _kpiCard("Plans Done", d.plans_done || 0, "all time total", "history-widget") +
+      _kpiCard("Cost Today", `$${(d.today_cost || 0).toFixed(0)}`, "token spend today", "widget-cost") +
+      _kpiCard("Total Cost", `$${((d.total_cost || 0) / 1000).toFixed(1)}K`, "cumulative spend", "widget-cost");
   }
   $("#kpi-bar").innerHTML = html;
 }

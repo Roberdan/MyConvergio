@@ -10,6 +10,7 @@ use super::middleware;
 use super::sse;
 use super::state::ServerState;
 use super::ws;
+use super::ws_pty;
 use axum::extract::State;
 use axum::routing::{get, get_service};
 use axum::{Json, Router};
@@ -84,7 +85,7 @@ pub const SSE_ROUTES: &[&str] = &[
     "/api/plan/start",
     "/api/mesh/pull-db",
 ];
-pub const WS_ROUTES: &[&str] = &["/ws/brain", "/ws/dashboard"];
+pub const WS_ROUTES: &[&str] = &["/ws/brain", "/ws/dashboard", "/ws/pty"];
 
 pub fn build_router(static_dir: PathBuf) -> Router {
     let db_path = env::var("HOME")
@@ -116,6 +117,7 @@ pub fn build_router_with_db(static_dir: PathBuf, db_path: PathBuf) -> Router {
         .route("/api/mesh/pull-db", get(sse::mesh_action_sse))
         .route("/ws/brain", get(ws::ws_brain))
         .route("/ws/dashboard", get(ws::ws_dashboard))
+        .route("/ws/pty", get(ws_pty::ws_pty))
         .route("/api/health", get(api_health))
         .layer(middleware::cors_layer())
         .layer(tower_http::trace::TraceLayer::new_for_http())

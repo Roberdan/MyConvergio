@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.16.0] - 09 Mar 2026
+
+### Added
+- WebSocket PTY in Rust + 18 tests + KPI label fix
+
+
 ## [v11.15.4] - 09 Mar 2026
 
 ### Fixed

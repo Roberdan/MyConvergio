@@ -102,7 +102,8 @@ class TerminalManager {
     }
 
     const wsParams = `peer=${encodeURIComponent(peer)}${tmuxSession ? `&tmux_session=${encodeURIComponent(tmuxSession)}` : ""}`;
-    const wsUrl = `ws://localhost:${TERM_WS_PORT}/ws?${wsParams}`;
+    const wsProt = location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${wsProt}://${location.host}/ws/pty?${wsParams}`;
     const ws = new WebSocket(wsUrl);
     ws.binaryType = "arraybuffer";
 

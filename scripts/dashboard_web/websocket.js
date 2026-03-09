@@ -191,8 +191,12 @@ async function pollNotifications() {
   const data = await fetchJson("/api/notifications").catch(() => null);
   if (!data || !data.length) return;
   const st = window.DashboardState;
+  if (!st.notifLastId) {
+    st.notifLastId = Math.max(...data.map(n => n.id));
+    return;
+  }
   data.forEach((n) => {
-    if (n.id > st.notifLastId) {
+    if (n.id > st.notifLastId && !n.is_read) {
       st.notifLastId = n.id;
       showToast(n.title, n.message, n.link, n.type);
     }

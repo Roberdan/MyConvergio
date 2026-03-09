@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.15.1] - 09 Mar 2026
+
+### Fixed
+- mesh notification flapping + create terminal_server.py
+
+
 ## [v11.15.0] - 09 Mar 2026
 
 ### Added

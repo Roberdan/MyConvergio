@@ -1,62 +1,64 @@
-/* brain-styles.css — Agent Activity card grid */
-#brain-widget { min-height: 180px; }
+/* brain-styles.css — Augmented Brain: neural aesthetic + readable cards */
+#brain-widget { min-height: 380px; }
 #brain-widget .widget-header { display: flex; justify-content: space-between; align-items: center; }
 #brain-widget .brain-stats { font: 11px 'JetBrains Mono', monospace; color: var(--text-dim, #5a6080); }
-#brain-canvas-container { border-radius: 0 0 8px 8px; padding: 12px; }
+#brain-canvas-container {
+  background: linear-gradient(180deg, var(--bg-panel, #0c1228), var(--bg-deep, #060a18));
+  border-radius: 0 0 8px 8px; position: relative; min-height: 380px;
+}
 .brain-controls { display: flex; gap: 4px; margin-left: auto; margin-right: 12px; }
 .brain-ctrl-btn {
   background: none; border: 1px solid var(--border, #1a2040); border-radius: 4px;
   color: var(--text-dim, #5a6080); font-size: 13px; width: 28px; height: 24px;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color 0.15s, border-color 0.15s;
 }
 .brain-ctrl-btn:hover { color: var(--cyan, #00e5ff); border-color: var(--cyan, #00e5ff); }
 .brain-ctrl-btn.active { color: var(--cyan, #00e5ff); }
 
-/* Agent card grid */
-.agent-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px; width: 100%;
+/* Overlay for DOM cards on top of canvas */
+.brain-overlay {
+  position: relative; z-index: 1; padding: 80px 20px 20px; pointer-events: auto;
 }
-.agent-node {
-  background: var(--bg-card, rgba(12, 18, 40, 0.7));
-  border: 1px solid var(--border, #1a2040); border-radius: 8px;
-  padding: 12px 14px; transition: border-color 0.2s, box-shadow 0.2s;
+.an-grid {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
 }
-.agent-node.online { border-color: color-mix(in srgb, var(--cyan, #00e5ff) 40%, transparent); }
-.agent-node.online.claude { border-color: color-mix(in srgb, #ffb020 40%, transparent); }
-.agent-node.online.copilot { border-color: color-mix(in srgb, #20a0ff 40%, transparent); }
-.agent-node.done { border-color: color-mix(in srgb, var(--green, #00ff88) 25%, transparent); opacity: 0.6; }
-.agent-node.failed { border-color: color-mix(in srgb, var(--red, #ff3366) 25%, transparent); opacity: 0.6; }
-.agent-node:hover { box-shadow: 0 0 16px rgba(0, 229, 255, 0.08); }
-.an-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.an-icon { display: flex; align-items: center; color: var(--text-dim, #5a6080); }
-.an-icon.claude { color: #ffb020; }
-.an-icon.copilot { color: #20a0ff; }
-.an-name { font: bold 13px 'JetBrains Mono', monospace; color: var(--text, #e0e4f0); flex: 1; }
-.an-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Neural node cards */
+.an-node {
+  background: rgba(10, 16, 40, 0.75); backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 229, 255, 0.12); border-radius: 10px;
+  padding: 10px 14px; min-width: 140px; max-width: 180px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.an-node.online {
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.08), inset 0 0 20px rgba(0, 229, 255, 0.03);
+}
+.an-node.online.claude {
+  border-color: rgba(255, 176, 32, 0.3);
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.1), inset 0 0 20px rgba(255, 176, 32, 0.03);
+}
+.an-node.online.copilot {
+  border-color: rgba(32, 160, 255, 0.3);
+  box-shadow: 0 0 14px rgba(32, 160, 255, 0.1), inset 0 0 20px rgba(32, 160, 255, 0.03);
+}
+.an-node:hover {
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
+  border-color: rgba(0, 229, 255, 0.35);
+}
+.an-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.an-label {
+  font: bold 12px 'JetBrains Mono', monospace; flex: 1;
+  color: var(--text, #e0e4f0);
+}
+.an-node.claude .an-label { color: #ffb020; }
+.an-node.copilot .an-label { color: #20a0ff; }
+.an-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .an-dot.on { background: var(--green, #00ff88); box-shadow: 0 0 6px var(--green, #00ff88); }
-.an-dot.off { background: var(--red, #ff3366); }
-.an-dot.done { background: var(--green, #00ff88); opacity: 0.5; }
-.an-dot.fail { background: var(--red, #ff3366); }
-.an-meta { font: 10px 'JetBrains Mono', monospace; color: var(--text-dim, #5a6080); margin-bottom: 4px; }
-.an-stats { font: 10px 'JetBrains Mono', monospace; color: var(--cyan, #00e5ff); margin-bottom: 4px; }
-.an-agents { font: 10px 'JetBrains Mono', monospace; color: var(--green, #00ff88); margin-bottom: 4px; }
-.an-agents.idle-text { color: var(--text-dim, #5a6080); }
-.an-desc { font: 10px 'JetBrains Mono', monospace; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.an-children { border-top: 1px solid var(--border, #1a2040); margin-top: 6px; padding-top: 6px; }
-.an-child {
-  font: 9px 'JetBrains Mono', monospace; color: var(--text-dim, #5a6080);
-  padding: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  display: flex; align-items: center; gap: 6px;
-}
-.an-child-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green, #00ff88); flex-shrink: 0; }
-.an-child-model { color: var(--cyan, #00e5ff); }
-.an-divider {
-  grid-column: 1 / -1; font: 10px 'JetBrains Mono', monospace; color: var(--text-dim, #5a6080);
-  text-transform: uppercase; letter-spacing: 1px; padding: 4px 0; border-top: 1px solid var(--border, #1a2040);
-}
-.an-empty {
-  grid-column: 1 / -1; text-align: center; padding: 40px 0;
-  font: 12px 'JetBrains Mono', monospace; color: var(--text-dim, #5a6080);
+.an-dot.off { background: var(--red, #ff3366); opacity: 0.6; }
+.an-info { font: 10px 'JetBrains Mono', monospace; color: var(--text-dim, #5a6080); line-height: 1.5; }
+.an-info.bright { color: var(--cyan, #00e5ff); }
+.an-badge {
+  display: inline-block; margin-top: 4px; padding: 1px 6px; border-radius: 4px; font: 9px 'JetBrains Mono', monospace;
+  background: rgba(0, 255, 136, 0.1); color: var(--green, #00ff88); border: 1px solid rgba(0, 255, 136, 0.2);
 }

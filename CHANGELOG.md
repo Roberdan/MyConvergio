@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.8.1] - 09 Mar 2026
+
+### Fixed
+- restore neural aesthetic with canvas glow + readable session cards
+
+
 ## [v11.8.0] - 09 Mar 2026
 
 ### Added

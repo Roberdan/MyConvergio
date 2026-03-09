@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.7.0] - 09 Mar 2026
+
+### Added
+- header nav, idea jar redesign, planner section
+
+
 ## [v11.6.3] - 09 Mar 2026
 
 ### Fixed

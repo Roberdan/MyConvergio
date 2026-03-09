@@ -208,10 +208,68 @@ function showDashboardSection(sectionId) {
   if (target === 'dashboard-ideajar-section' && typeof renderIdeaJarTab === 'function') {
     renderIdeaJarTab();
   }
+  if (target === 'dashboard-chat-section') {
+    renderProjectList();
+  }
   document.querySelectorAll("#dashboard-nav [data-section]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.section === target);
   });
   localStorage.setItem("dashboardSection", target);
+}
+
+async function renderProjectList() {
+  const el = document.getElementById('project-list-content');
+  if (!el) return;
+  const data = await fetchJson('/api/projects');
+  const projects = Array.isArray(data) ? data : (data?.projects || []);
+  if (!projects.length) {
+    el.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:8px">No projects yet.</div>';
+    return;
+  }
+  el.innerHTML = projects.map(p => `<div class="project-list-item" onclick="selectProject('${esc(p.id || p.name)}')" title="${esc(p.description || '')}">
+    <div style="font-weight:600;font-size:12px;color:var(--text)">${esc(p.name)}</div>
+    ${p.description ? `<div style="font-size:10px;color:var(--text-dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.description.slice(0, 60))}</div>` : ''}
+  </div>`).join('');
+}
+
+function selectProject(projectId) {
+  document.querySelectorAll('.project-list-item').forEach(el => el.classList.remove('selected'));
+  const clicked = event?.target?.closest('.project-list-item');
+  if (clicked) clicked.classList.add('selected');
+}
+
+async function openNewProjectModal() {
+  const existing = document.getElementById('new-project-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'new-project-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:24px;width:420px;max-width:95vw">
+    <h3 style="margin:0 0 16px;color:var(--text)">New Project</h3>
+    <form id="new-project-form">
+      <label style="display:block;margin-bottom:10px;font-size:12px;color:var(--text-dim)">Name *<input name="name" required style="display:block;width:100%;margin-top:4px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box;font-family:inherit"></label>
+      <label style="display:block;margin-bottom:10px;font-size:12px;color:var(--text-dim)">Description<textarea name="description" rows="3" style="display:block;width:100%;margin-top:4px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box;font-family:inherit"></textarea></label>
+      <label style="display:block;margin-bottom:12px;font-size:12px;color:var(--text-dim)">Repository<input name="repo" placeholder="owner/repo" style="display:block;width:100%;margin-top:4px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box;font-family:inherit"></label>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button type="button" class="idea-action-btn" style="opacity:1" onclick="document.getElementById('new-project-overlay').remove()">Cancel</button>
+        <button type="submit" class="idea-action-btn" style="opacity:1;background:rgba(0,229,255,0.15)">Create</button>
+      </div>
+    </form></div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#new-project-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = Object.fromEntries(fd.entries());
+    try {
+      await fetch('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      overlay.remove();
+      renderProjectList();
+      if (typeof showToast === 'function') showToast('Project created', '', document.body, 'success');
+    } catch (err) {
+      if (typeof showToast === 'function') showToast('Error', err.message, document.body, 'error');
+    }
+  });
 }
 
 function initDashboardNavigation() {
@@ -229,6 +287,9 @@ window.fetchJson = fetchJson;
 window.refreshAll = refreshAll;
 window._resolveHost = _resolveHost;
 window.showDashboardSection = showDashboardSection;
+window.renderProjectList = renderProjectList;
+window.openNewProjectModal = openNewProjectModal;
+window.selectProject = selectProject;
 
 window.addEventListener("hashchange", handleHashRoute);
 

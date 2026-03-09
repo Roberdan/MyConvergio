@@ -5,7 +5,8 @@
   padding: 10px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--header-bg, linear-gradient(180deg, #0a0e1a, #04060e));
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 100;
   gap: 12px;
 }
@@ -13,23 +14,66 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 0;
 }
-.header-center {
+.header-nav {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-dim);
-  white-space: nowrap;
+  gap: 2px;
+  background: rgba(10, 14, 26, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
 }
+.header-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+.header-nav-item svg {
+  stroke: currentColor;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+.header-nav-item:hover {
+  color: var(--text);
+  background: rgba(0, 229, 255, 0.06);
+}
+.header-nav-item:hover svg { opacity: 1; }
+.header-nav-item.active {
+  color: var(--cyan);
+  background: rgba(0, 229, 255, 0.1);
+  border-color: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.08), inset 0 1px 0 rgba(0, 229, 255, 0.1);
+}
+.header-nav-item.active svg { opacity: 1; stroke: var(--cyan); }
 .header-right {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+/* Dashboard sections */
+.dashboard-section {
+  animation: sectionFadeIn 0.25s ease-out;
+}
+@keyframes sectionFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .header h1 {
   font-family: var(--font-display);
@@ -183,5 +227,23 @@
 }
 .full-w {
   padding: 0 24px 16px;
+}
+
+/* Project list sidebar */
+.project-list-item {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 2px;
+}
+.project-list-item:hover {
+  background: rgba(0, 229, 255, 0.04);
+  border-left-color: rgba(0, 229, 255, 0.3);
+}
+.project-list-item.selected {
+  background: rgba(0, 229, 255, 0.08);
+  border-left-color: var(--cyan);
 }
 

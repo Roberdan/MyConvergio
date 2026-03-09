@@ -56,19 +56,65 @@
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
-.idea-card:hover { background: var(--bg-hover); border-color: var(--cyan); }
+.idea-card:hover { background: var(--bg-hover, rgba(0,229,255,0.03)); border-color: var(--cyan); }
 .idea-card[data-priority="P0"] { border-left-color: #ee3344; }
 .idea-card[data-priority="P1"] { border-left-color: #ff8800; }
 .idea-card[data-priority="P2"] { border-left-color: #00d4ff; }
 .idea-card[data-priority="P3"] { border-left-color: #556677; }
-.idea-card-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.idea-card-header { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
 .idea-card-title {
   flex: 1;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.idea-card-desc {
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.idea-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.idea-card-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.idea-card:hover .idea-card-actions { opacity: 1; }
+.idea-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 229, 255, 0.06);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.idea-action-btn svg { stroke: currentColor; flex-shrink: 0; }
+.idea-action-btn:hover {
+  background: rgba(0, 229, 255, 0.15);
+  border-color: var(--cyan);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.15);
+}
+.idea-action-danger {
+  color: var(--red);
+  border-color: rgba(255, 51, 85, 0.15);
+  background: rgba(255, 51, 85, 0.06);
+}
+.idea-action-danger:hover {
+  background: rgba(255, 51, 85, 0.15);
+  border-color: var(--red);
+  box-shadow: 0 0 8px rgba(255, 51, 85, 0.15);
 }
 .idea-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .idea-tag {

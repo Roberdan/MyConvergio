@@ -27,19 +27,27 @@ function _statusBadge(s) {
 }
 
 function _ideaCard(idea) {
-  const tags = (idea.tags || []).map(t => `<span style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1px 6px;font-size:11px">${esc(t)}</span>`).join(' ');
-  return `<div class="idea-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer" data-id="${idea.id}">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-      <strong style="flex:1">${esc(idea.title)}</strong>
-      <span>${_priorityLabel(idea.priority)}</span>
-      ${_statusBadge(idea.status)}
+  const tags = (idea.tags || []).map(t => `<span class="idea-tag">${esc(t)}</span>`).join('');
+  return `<div class="idea-card" data-id="${idea.id}" data-priority="${idea.priority || ''}">
+    <div class="idea-card-header">
+      <span class="idea-card-title">${esc(idea.title)}</span>
+      ${idea.priority ? `<span class="idea-priority-badge" data-priority="${idea.priority}">${idea.priority}</span>` : ''}
+      <span class="idea-status-badge" data-status="${idea.status || 'active'}">${esc(idea.status || 'active')}</span>
     </div>
-    ${idea.description ? `<div style="color:var(--text-dim);font-size:13px;margin-top:4px">${esc(idea.description.slice(0, 120))}${idea.description.length > 120 ? '…' : ''}</div>` : ''}
-    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${tags}</div>
-    <div style="margin-top:8px;display:flex;gap:8px">
-      <button class="btn-secondary" style="font-size:12px" onclick="event.stopPropagation();openIdeaModal(${idea.id})">Edit</button>
-      <button class="btn-secondary" style="font-size:12px" onclick="event.stopPropagation();openNoteModal(${idea.id})">Notes</button>
-      <button class="btn-secondary" style="font-size:12px;color:var(--red)" onclick="event.stopPropagation();deleteIdea(${idea.id})">Delete</button>
+    ${idea.description ? `<div class="idea-card-desc">${esc(idea.description.slice(0, 140))}${idea.description.length > 140 ? '…' : ''}</div>` : ''}
+    ${tags ? `<div class="idea-card-tags">${tags}</div>` : ''}
+    <div class="idea-card-actions">
+      <button class="idea-action-btn" onclick="event.stopPropagation();openIdeaModal(${idea.id})" title="Edit">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Edit
+      </button>
+      <button class="idea-action-btn" onclick="event.stopPropagation();openNoteModal(${idea.id})" title="Notes">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        Notes
+      </button>
+      <button class="idea-action-btn idea-action-danger" onclick="event.stopPropagation();deleteIdea(${idea.id})" title="Delete">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      </button>
     </div>
   </div>`;
 }
@@ -48,22 +56,31 @@ function renderIdeaJarTab() {
   const el = $('#ideajar-content') || $('#ideas-section') || $('#section-ideas');
   if (!el) return;
   el.innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-      <input id="idea-search" placeholder="Search…" style="flex:1;min-width:140px;padding:6px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text)">
-      <select id="idea-filter-status" style="padding:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text)">
-        <option value="">All statuses</option>
-        <option value="active">Active</option>
-        <option value="promoted">Promoted</option>
-        <option value="archived">Archived</option>
-      </select>
-      <select id="idea-filter-priority" style="padding:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text)">
-        <option value="">All priorities</option>
-        <option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option>
-      </select>
-      <button class="btn-primary" onclick="openIdeaModal()">+ New Idea</button>
-    </div>
-    <div id="idea-list"></div>
-    <div id="idea-jar-canvas"></div>`;
+    <div class="idea-jar-tab" style="padding:16px 24px">
+      <div class="idea-jar-list-col">
+        <div class="idea-filters">
+          <input id="idea-search" type="search" placeholder="Search ideas…" style="flex:1;min-width:140px">
+          <select id="idea-filter-status">
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="promoted">Promoted</option>
+            <option value="archived">Archived</option>
+          </select>
+          <select id="idea-filter-priority">
+            <option value="">All priorities</option>
+            <option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option>
+          </select>
+          <button class="idea-action-btn" style="opacity:1;padding:5px 12px;font-size:11px" onclick="openIdeaModal()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Idea
+          </button>
+        </div>
+        <div id="idea-list" class="idea-list"></div>
+      </div>
+      <div class="idea-jar-canvas-col">
+        <div id="idea-jar-canvas"></div>
+      </div>
+    </div>`;
   el.querySelector('#idea-search').addEventListener('input', _debounceFilter);
   el.querySelector('#idea-filter-status').addEventListener('change', _debounceFilter);
   el.querySelector('#idea-filter-priority').addEventListener('change', _debounceFilter);
@@ -201,7 +218,18 @@ function renderIdeaJarWidget() {
   fetchIdeas({ status: 'active' }).then(ideas => {
     const cnt = document.getElementById('ideajar-count');
     if (cnt) cnt.textContent = ideas.length;
-    el.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer" onclick="switchTab('ideas')"><div style="color:var(--gold);font-size:22px;font-weight:700">${ideas.length}</div><div style="color:var(--text-dim);font-size:12px">Active Ideas</div></div>`;
+    const topIdeas = ideas.slice(0, 3).map(i =>
+      `<div class="idea-card" style="margin-bottom:6px;padding:8px 10px" data-priority="${i.priority || ''}" onclick="showDashboardSection('dashboard-ideajar-section');setTimeout(()=>openIdeaModal(${i.id}),200)">
+        <div class="idea-card-header"><span class="idea-card-title">${esc(i.title)}</span>${i.priority ? `<span class="idea-priority-badge" data-priority="${i.priority}">${i.priority}</span>` : ''}</div>
+      </div>`
+    ).join('');
+    el.innerHTML = `<div style="cursor:pointer" onclick="showDashboardSection('dashboard-ideajar-section')">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
+        <span style="color:var(--gold);font-size:22px;font-weight:700">${ideas.length}</span>
+        <span style="color:var(--text-dim);font-size:12px">active ideas</span>
+      </div>
+      ${topIdeas || '<div style="color:var(--text-dim);font-size:12px">No ideas yet — press ⌘I</div>'}
+    </div>`;
     if (window.JarCanvas) JarCanvas.initJarCanvas('ideajar-mini-jar', ideas, { onSlipClick: id => openIdeaModal(id), compact: true });
   });
 }

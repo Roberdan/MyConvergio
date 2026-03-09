@@ -1,5 +1,14 @@
 # Changelog
 
+## [v11.14.0] - 09 Mar 2026
+
+### Added
+- W4 closure — tests, docs, app.js polling fix
+
+### Fixed
+- complete rewrite — inline styles, tags fix, error handling
+
+
 ## [v11.9.1] - 09 Mar 2026
 
 ### Fixed

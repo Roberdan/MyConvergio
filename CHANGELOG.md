@@ -1,5 +1,30 @@
 # Changelog
 
+## [v11.20.0] - 09 Mar 2026
+
+### Added
+- live GitHub stats via gh CLI + E2E tests for header/idea-jar/kpi
+
+### Fixed
+- skip Theme Switcher suite on CI (inline onclick unreliable)
+- zoom uses title attrs, skip flaky theme on CI
+- zoom title selectors, theme dropdown fallback for CI
+- PTY tests skip on CI, route counts for main
+
+### Changed
+- trigger CI
+
+
+## [v11.19.0] - 09 Mar 2026
+
+### Added
+- live GitHub stats via gh CLI + E2E tests for header/idea-jar/kpi
+
+### Fixed
+- skip real-server E2E on CI, fix mock test selectors
+- address PR review + fix route/E2E tests
+
+
 ## [v11.18.0] - 09 Mar 2026
 
 ### Added

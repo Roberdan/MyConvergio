@@ -274,6 +274,11 @@ export async function mockAllApis(page: Page, overrides: MockOverrides = {}) {
     '/api/nightly/jobs': data.nightlyJobs,
     '/api/agents': data.agents,
     '/api/peers/heartbeats': data.peerHeartbeats,
+    '/api/mesh/provision': { ok: true, peers: [
+      { peer: 'm3max', ip: '100.98.147.10', user: 'roberdan', online: true, ssh_ok: true, tmux_ok: true, session_ok: true, error: null },
+      { peer: 'omarchy', ip: '100.127.138.62', user: 'roberdan', online: true, ssh_ok: true, tmux_ok: true, session_ok: true, error: null },
+      { peer: 'm1mario', ip: '100.106.173.118', user: 'mariodan', online: true, ssh_ok: true, tmux_ok: true, session_ok: true, error: null },
+    ]},
   };
   for (const [path, body] of Object.entries(routes)) {
     await page.route(`**${path}`, (route: Route) =>

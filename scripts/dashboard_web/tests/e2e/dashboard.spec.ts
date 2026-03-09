@@ -76,7 +76,7 @@ test.describe('Dashboard Core', () => {
     await expect(label).toHaveText('90%');
 
     // Reset
-    const reset = page.locator("button[title=\"Reset zoom\"]");
+    const reset = page.locator(".header-ctrl-btn[title=\"Reset zoom\"]");
     await reset.click();
     await expect(label).toHaveText('100%');
   });

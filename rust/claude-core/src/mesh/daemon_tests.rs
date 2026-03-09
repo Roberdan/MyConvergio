@@ -7,7 +7,8 @@ use tokio::sync::{broadcast, RwLock};
 
 #[test]
 fn parses_peers_file_and_skips_comments() {
-    let peers = parse_peers_conf("\n# primary\n100.101.102.10:9420\n100.101.102.11:9420\n");
+    let ini = "\n# primary peers\n[peer1]\ntailscale_ip=100.101.102.10\n\n[peer2]\ntailscale_ip=100.101.102.11\n";
+    let peers = parse_peers_conf(ini);
     assert_eq!(peers, vec!["100.101.102.10:9420", "100.101.102.11:9420"]);
 }
 

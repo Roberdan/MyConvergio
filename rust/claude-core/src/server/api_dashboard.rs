@@ -5,10 +5,11 @@ use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+#[cfg(not(test))]
 use std::env;
 use std::path::Path as FsPath;
+#[cfg(not(test))]
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn router() -> Router<ServerState> {
     Router::new()
@@ -402,38 +403,6 @@ fn parse_json_text_field(row: &mut Value, field: &str) -> Result<(), ApiError> {
     Ok(())
 }
 
-fn compact_utc_timestamp() -> String {
-    let from_date = Command::new("date")
-        .args(["-u", "+%Y%m%d-%H%M%S"])
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
-        .filter(|value| !value.is_empty());
-    from_date.unwrap_or_else(|| {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_secs().to_string())
-            .unwrap_or_else(|_| "0".to_string())
-    })
-}
-
-fn current_hostname() -> String {
-    env::var("HOSTNAME")
-        .ok()
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| {
-            Command::new("hostname")
-                .arg("-s")
-                .output()
-                .ok()
-                .filter(|output| output.status.success())
-                .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
-                .filter(|value| !value.is_empty())
-                .unwrap_or_else(|| "unknown".to_string())
-        })
-}
-
 fn spawn_nightly_guardian(trigger_source: &str, parent_run_id: Option<&str>) {
     #[cfg(test)]
     {
@@ -621,7 +590,7 @@ async fn api_nightly_job_retry(
     let db = state.open_db()?;
     let original = query_one(
         db.connection(),
-        "SELECT run_id, host, job_name FROM nightly_jobs WHERE id=?1",
+        "SELECT run_id FROM nightly_jobs WHERE id=?1",
         rusqlite::params![id],
     )?
     .ok_or_else(|| ApiError::bad_request(format!("nightly job {id} not found")))?;
@@ -630,33 +599,11 @@ async fn api_nightly_job_retry(
         .and_then(Value::as_str)
         .filter(|value| !value.is_empty())
         .map(str::to_owned);
-    let host = original
-        .get("host")
-        .and_then(Value::as_str)
-        .filter(|value| !value.is_empty())
-        .unwrap_or("unknown")
-        .to_string();
-    let job_name = original
-        .get("job_name")
-        .and_then(Value::as_str)
-        .filter(|value| !value.is_empty())
-        .unwrap_or("guardian")
-        .to_string();
-    let new_run_id = format!("retry-{id}-{}", compact_utc_timestamp());
-
-    db.connection()
-        .execute(
-            "INSERT INTO nightly_jobs (run_id, host, job_name, status, trigger_source, parent_run_id) VALUES (?1,?2,?3,'running','retry',?4)",
-            rusqlite::params![&new_run_id, host, job_name, parent_run_id.as_deref()],
-        )
-        .map_err(|err| ApiError::internal(format!("retry insert failed: {err}")))?;
-
     spawn_nightly_guardian("retry", parent_run_id.as_deref());
-    Ok(Json(json!({"ok": true, "run_id": new_run_id})))
+    Ok(Json(json!({"ok": true, "triggered": true, "parent_run_id": parent_run_id})))
 }
 
 async fn api_nightly_job_trigger(
-    State(state): State<ServerState>,
     axum::Json(payload): axum::Json<TriggerPayload>,
 ) -> Result<Json<Value>, ApiError> {
     let project_id = payload
@@ -664,19 +611,8 @@ async fn api_nightly_job_trigger(
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| "mirrorbuddy".to_string());
-    let run_id = format!("manual-{project_id}-{}", compact_utc_timestamp());
-    let host = current_hostname();
-    let db = state.open_db()?;
-
-    db.connection()
-        .execute(
-            "INSERT INTO nightly_jobs (run_id, host, job_name, status, trigger_source) VALUES (?1,?2,?3,'running','manual')",
-            rusqlite::params![&run_id, host, &project_id],
-        )
-        .map_err(|err| ApiError::internal(format!("manual trigger insert failed: {err}")))?;
-
     spawn_nightly_guardian("manual", None);
-    Ok(Json(json!({"ok": true, "run_id": run_id})))
+    Ok(Json(json!({"ok": true, "triggered": true, "project_id": project_id})))
 }
 
 async fn api_nightly_config_get(

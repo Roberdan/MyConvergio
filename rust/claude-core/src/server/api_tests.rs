@@ -448,16 +448,8 @@ async fn nightly_retry_creates_child_run() {
     let r = test_router();
     let (s, j) = post(&r, "/api/nightly/jobs/1/retry", serde_json::json!({})).await;
     assert_eq!(s, StatusCode::OK);
-    let run_id = j["run_id"].as_str().expect("retry run id");
-    assert!(run_id.starts_with("retry-1-"));
-
-    let (_, jobs) = get(&r, "/api/nightly/jobs").await;
-    let history = jobs["history"].as_array().expect("history array");
-    assert!(history.iter().any(|row| {
-        row["run_id"] == run_id
-            && row["trigger_source"] == "retry"
-            && row["parent_run_id"] == "mirrorbuddy-nightly-20260308-030000"
-    }));
+    assert_eq!(j["triggered"], true);
+    assert_eq!(j["parent_run_id"], "mirrorbuddy-nightly-20260308-030000");
 }
 
 #[tokio::test]
@@ -470,14 +462,8 @@ async fn nightly_trigger_creates_manual_run() {
     )
     .await;
     assert_eq!(s, StatusCode::OK);
-    let run_id = j["run_id"].as_str().expect("manual run id");
-    assert!(run_id.starts_with("manual-mirrorbuddy-"));
-
-    let (_, jobs) = get(&r, "/api/nightly/jobs").await;
-    let history = jobs["history"].as_array().expect("history array");
-    assert!(history.iter().any(|row| {
-        row["run_id"] == run_id && row["trigger_source"] == "manual"
-    }));
+    assert_eq!(j["triggered"], true);
+    assert_eq!(j["project_id"], "mirrorbuddy");
 }
 
 #[tokio::test]

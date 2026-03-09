@@ -94,7 +94,7 @@
           <div>${pill(`GitHub: ${github.count}`, github.count ? "nightly-action" : "nightly-ok")}${github.titles.length ? `<ul class="nightly-issues">${github.titles.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}</div>
           ${deploy ? `<div>${pill(`Deploy: ${deploy}`, String(deploy).toLowerCase().includes("ok") || String(deploy).toLowerCase().includes("success") ? "nightly-ok" : "nightly-action")}</div>` : ""}
         </div>
-        ${latest.parent_run_id ? `<div class="nightly-meta"><a href="#" data-action="parent" data-id="${esc(latest.parent_run_id)}" style="color:var(--cyan)">Retry of: ${esc(latest.parent_run_id)}</a></div>` : ""}
+        ${latest.parent_run_id ? `<div class="nightly-meta">Retry of: <span style="color:var(--cyan)">${esc(latest.parent_run_id)}</span></div>` : ""}
         ${String(latest.status).toLowerCase() === "failed" && latest.error_detail ? `<pre style="margin:0;padding:8px;border-radius:6px;background:color-mix(in srgb,var(--red) 10%,transparent);border:1px solid color-mix(in srgb,var(--red) 40%,transparent);color:var(--red);font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap">${esc(latest.error_detail)}</pre>` : ""}
         ${actionRow}
       </div>
@@ -151,7 +151,7 @@
           if (action.dataset.action === "refresh") await refreshWidget();
           if (action.dataset.action === "load-more") await loadMore();
           if (action.dataset.action === "run-now") { await api("/api/nightly/jobs/trigger", "POST", { project_id: "mirrorbuddy" }); toast("Nightly run triggered", "", "success"); await refreshWidget(); }
-          if (action.dataset.action === "toggle-fixes") { await api("/api/nightly/config/mirrorbuddy", "PUT", { run_fixes: !(state.definitions.find((d) => String(d.id || "").toLowerCase() === "mirrorbuddy" || String(d.name || "").toLowerCase().includes("mirrorbuddy") || String(d.script_path || "").toLowerCase().includes("mirrorbuddy"))?.run_fixes) }); await refreshWidget(); }
+          if (action.dataset.action === "toggle-fixes") { const def = state.definitions.find((d) => String(d.id || "").toLowerCase() === "mirrorbuddy" || String(d.name || "").toLowerCase().includes("mirrorbuddy") || String(d.script_path || "").toLowerCase().includes("mirrorbuddy")); await api("/api/nightly/config/mirrorbuddy", "PUT", { run_fixes: def?.run_fixes ? 0 : 1 }); await refreshWidget(); }
           if (action.dataset.action === "retry") { await api(`/api/nightly/jobs/${encodeURIComponent(id)}/retry`, "POST"); toast("Retry queued", `Run ${id}`, "success"); await refreshWidget(); }
           if (action.dataset.action === "logs" && window._njShowLogs) window._njShowLogs(id);
           if (action.dataset.action === "open-pr") window.open(action.dataset.url, "_blank", "noopener");

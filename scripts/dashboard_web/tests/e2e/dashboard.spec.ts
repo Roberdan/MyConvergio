@@ -9,7 +9,7 @@ test.describe('Dashboard Core', () => {
 
   test('page loads with title and header', async ({ page }) => {
     await expect(page).toHaveTitle('Convergio Control Room');
-    await expect(page.locator('h1')).toContainText('Convergio');
+    await expect(page.locator('h1')).toHaveText('Convergio');
   });
 
   test('clock updates every second', async ({ page }) => {
@@ -75,6 +75,7 @@ test.describe('Dashboard Core', () => {
     await zoomOut.click();
     await expect(label).toHaveText('90%');
 
+    // Reset
     const reset = page.locator('.header-ctrl-btn', { hasText: 'R' });
     await reset.click();
     await expect(label).toHaveText('100%');
@@ -101,9 +102,9 @@ test.describe('Dashboard Core', () => {
   test('two-column layout renders left and right columns', async ({ page }) => {
     await expect(page.locator('.dash-col-left')).toBeVisible();
     await expect(page.locator('.dash-col-right')).toBeVisible();
-    const leftCount = await page.locator('.dash-col-left .widget').count();
-    const rightCount = await page.locator('.dash-col-right .widget').count();
-    expect(leftCount).toBeGreaterThanOrEqual(4);
-    expect(rightCount).toBeGreaterThanOrEqual(9);
+    // Left: mission panel, task pipeline, distribution, kanban
+    expect(await page.locator('.dash-col-left .widget').count()).toBeGreaterThanOrEqual(4);
+    // Right: mesh, brain, agent-org, live-system, event-feed, nightly, tokens, cost, history
+    expect(await page.locator('.dash-col-right .widget').count()).toBeGreaterThanOrEqual(9);
   });
 });

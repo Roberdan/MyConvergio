@@ -6,12 +6,15 @@ use claude_core::server::routes::{
 
 #[test]
 fn get_route_count_matches_python_port_contract() {
-    assert_eq!(GET_ROUTES.len(), 25);
+    assert_eq!(GET_ROUTES.len(), 30);
 }
 
 #[test]
 fn non_get_route_count_matches_python_port_contract() {
-    assert_eq!(POST_ROUTES.len() + PUT_ROUTES.len() + DELETE_ROUTES.len() + SSE_ROUTES.len() + WS_ROUTES.len(), 24);
+    assert_eq!(
+        POST_ROUTES.len() + PUT_ROUTES.len() + DELETE_ROUTES.len() + SSE_ROUTES.len() + WS_ROUTES.len(),
+        33
+    );
 }
 
 #[test]

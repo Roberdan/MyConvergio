@@ -27,7 +27,6 @@ function attachErrorCollectors(page: Page): CollectedError[] {
   page.on('response', (res) => {
     const url = res.url();
     if (url.includes('jsdelivr') || url.includes('fonts.g')) return;
-    // Ignore API 404s — test server has minimal seed data
     if (url.includes('/api/') && res.status() === 404) return;
     if (res.status() >= 400) {
       errors.push({ type: 'network', message: `${res.status()} ${url}` });

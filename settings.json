@@ -106,6 +106,16 @@
         ]
       },
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/session-learning-collector.sh",
+            "timeout": 15,
+            "async": true
+          }
+        ]
+      },
+      {
         "matcher": ".*",
         "hooks": [
           {

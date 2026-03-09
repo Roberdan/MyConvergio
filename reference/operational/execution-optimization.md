@@ -107,6 +107,21 @@ After ALL tasks in a wave are Thor-validated:
    - Wave DB status = `done`
 8. **Proceed to next wave**: Only after merge + cleanup succeeds
 
+## Dashboard DB → Runner Sync (MANDATORY for CI compliance)
+
+After updating plan DB locally (task/wave status changes), sync to ALL self-hosted runners if CI compliance checks read from `dashboard.db`:
+
+```bash
+# Sync to all runner hosts
+for host in mario-mac-m1-pro omarchy-ts; do
+  scp ~/.claude/data/dashboard.db "$host":~/.claude/data/dashboard.db
+done
+```
+
+CI script `check_agent_workflow_compliance.py` reads `dashboard.db` locally on the runner. Stale DB = CI failure even with correct code.
+
+_Why: Plan 387 — CI compliance failed on m1mario because runner had stale DB (8/12 tasks done vs 12/12 locally)._
+
 ## CI Watch (Token-Efficient)
 
 | Need              | Use command                                                 |

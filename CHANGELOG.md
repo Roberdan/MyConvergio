@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.24.0] - 09 Mar 2026
+
+### Added
+- auto-collect session signals + plan closure prompt
+
+
 ## [v11.23.0] - 09 Mar 2026
 
 ### Added

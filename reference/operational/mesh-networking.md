@@ -46,8 +46,12 @@ Location: `~/.claude/config/peers.conf` (override: `PEERS_CONF` env var)
 | `gh_account`     | no       | GitHub username                                  | Used by mesh-sync/exec for `gh auth switch` |
 | `default_engine` | no       | `claude` \| `copilot` \| `opencode` \| `ollama` | Preferred engine for mesh delegation |
 | `default_model`  | no       | any model string                                | Pre-filled in delegation UI          |
+| `runners`        | no       | integer                                          | Number of CI runners on this peer    |
+| `runner_paths`   | no       | comma-separated paths                            | Paths to runner directories          |
 
 **Capabilities reference**: `claude` = Claude Code MCP | `copilot` = Copilot CLI | `ollama` = local LLM | `opencode` = OpenCode agent
+
+**CI Runner docs**: See `reference/operational/ci-runners.md` for runner setup, npm cache isolation, and troubleshooting.
 
 ## Peer Management UI
 

@@ -141,6 +141,16 @@ Test data containing URLs, emails, or hostnames MUST use safe domains to avoid t
 
 _Why: Plan 100028 — pre-commit `check-no-hardcoded-secrets` hook blocked commit because test files contained `dev.azure.com/myorg` URLs. Required manual `# noqa: secrets` annotation or domain replacement._
 
+## Field Addition Impact (NON-NEGOTIABLE)
+
+When adding fields to a data model, schema, or API response:
+1. Grep ALL test files that create instances or assert on that model/response shape
+2. Add the new field to ALL test fixtures and expected dicts
+3. Update line count thresholds if implementation file grew beyond threshold
+4. If adding N new exported functions without tests, estimate coverage impact — add test task if coverage drops below threshold
+
+_Why: Plans 383+387 — adding `eng_status`, `dev_lead`, `region`, `activities` to backlog broke 2 test files post-merge._
+
 ## Test Quality Checklist (Thor Gate 8 Extension)
 
 | Check | REJECT if |

@@ -146,6 +146,21 @@ cmd_complete() {
     "
 	log_info "Plan $plan_id completed! (host: $PLAN_DB_HOST)"
 
+	# Post-plan learning prompt
+	local signal_count=0
+	if [[ -x "$HOME/.claude/scripts/session-learnings.sh" ]]; then
+		signal_count=$("$HOME/.claude/scripts/session-learnings.sh" count 2>/dev/null || echo 0)
+	fi
+	if [[ "$signal_count" -gt 0 ]]; then
+		echo ""
+		echo "=== POST-PLAN LEARNING (Thor 10) ==="
+		echo "$signal_count session signal(s) collected. Run:"
+		echo "  session-learnings.sh summary    # Review signals"
+		echo "  session-learnings.sh clear      # After applying learnings"
+		echo "===================================="
+		echo ""
+	fi
+
 	# Cleanup enforce-plan-edit cache files
 	_cleanup_plan_file_cache "$plan_id"
 

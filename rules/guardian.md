@@ -166,9 +166,21 @@ Plans touching authentication, authorization, data access, or storage MUST inclu
 
 _Why: v19.1.0 deployed with broken PAT storage. All dashboards showed zero. No smoke test caught it._
 
+## Cross-Plan Conflict Prevention (NON-NEGOTIABLE)
+
+Before executing 2+ plans in parallel on the same repo:
+1. Run `plan-db.sh conflict-check-spec {proj} spec.yaml` for each
+2. Shared files (CHANGELOG.md, VERSION.md, workflow-proof.json) = ALWAYS conflict
+3. If overlap: serialize wave merges (Plan A merge → Plan B merge), never parallel merge
+4. Post-merge of plan A: run tests before starting plan B merge — fields/tests may need updating
+
+_Why: Plans 383+387 — parallel merge broke tests because Plan 383 added fields (eng_status, dev_lead, region, activities) that Plan 387 tests didn't include._
+
 ## Post-Plan Learning Loop — Thor 10 (NON-NEGOTIABLE)
 
 After every plan closure (PR merged, deploy verified), before marking the plan complete:
+
+**Automated signal collection**: `session-learning-collector.sh` (Stop hook) collects mechanical signals per session into `~/.claude/data/session-learnings.jsonl`. At plan closure, agent MUST run `session-learnings.sh summary` and address any accumulated signals before closing.
 
 **Step 1: Analyze** — Review the execution for recurring patterns:
 

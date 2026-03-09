@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.18.0] - 09 Mar 2026
+
+### Added
+- node provisioning — verify SSH, tmux, Convergio session on all peers
+
+
 ## [v11.17.0] - 09 Mar 2026
 
 ### Added

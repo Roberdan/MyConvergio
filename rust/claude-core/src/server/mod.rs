@@ -12,6 +12,7 @@ pub mod state;
 pub mod sse;
 pub mod ws;
 pub mod ws_pty;
+pub mod mesh_provision;
 
 #[cfg(test)]
 mod api_tests;

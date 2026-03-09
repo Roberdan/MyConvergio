@@ -11,6 +11,7 @@ use super::sse;
 use super::state::ServerState;
 use super::ws;
 use super::ws_pty;
+use super::mesh_provision;
 use axum::extract::State;
 use axum::routing::{get, get_service};
 use axum::{Json, Router};
@@ -30,6 +31,7 @@ pub const GET_ROUTES: &[&str] = &[
     "/api/tokens/models",
     "/api/mesh",
     "/api/mesh/sync-status",
+    "/api/mesh/provision",
     "/api/history",
     "/api/tasks/distribution",
     "/api/tasks/blocked",
@@ -118,6 +120,7 @@ pub fn build_router_with_db(static_dir: PathBuf, db_path: PathBuf) -> Router {
         .route("/ws/brain", get(ws::ws_brain))
         .route("/ws/dashboard", get(ws::ws_dashboard))
         .route("/ws/pty", get(ws_pty::ws_pty))
+        .route("/api/mesh/provision", get(mesh_provision::provision_all))
         .route("/api/health", get(api_health))
         .layer(middleware::cors_layer())
         .layer(tower_http::trace::TraceLayer::new_for_http())

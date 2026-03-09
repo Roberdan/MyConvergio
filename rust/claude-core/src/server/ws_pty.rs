@@ -195,9 +195,15 @@ async fn handle_pty(mut socket: WebSocket, params: PtyParams, state: ServerState
     } else {
         let host = peer_ssh_alias(&state, &params.peer).unwrap_or_else(|| params.peer.clone());
         if params.tmux_session.is_empty() {
-            ("ssh".into(), vec!["-t".into(), host])
+            // Login shell via SSH to get full PATH
+            ("ssh".into(), vec!["-t".into(), host, "exec $SHELL -l".into()])
         } else {
-            ("ssh".into(), vec!["-t".into(), host, format!("tmux new-session -A -s {}", params.tmux_session)])
+            // Login shell ensures PATH includes /opt/homebrew/bin (macOS) etc.
+            let tmux_cmd = format!(
+                "exec $SHELL -lc 'tmux new-session -A -s {}'",
+                params.tmux_session
+            );
+            ("ssh".into(), vec!["-t".into(), host, tmux_cmd])
         }
     };
 

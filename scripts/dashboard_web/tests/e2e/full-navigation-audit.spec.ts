@@ -36,6 +36,7 @@ function attachErrorCollectors(page: Page): CollectedError[] {
 }
 
 test.describe('Full dashboard navigation audit', () => {
+  test.skip(!!process.env.CI, 'Requires real server with data — skipped on CI');
   test('Overview tab — all widgets render without errors', async ({ page }) => {
     const errors = attachErrorCollectors(page);
     await page.goto('/', { waitUntil: 'networkidle' });

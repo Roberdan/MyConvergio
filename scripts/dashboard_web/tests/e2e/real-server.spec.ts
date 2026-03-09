@@ -29,6 +29,7 @@ const API_ENDPOINTS = [
 ];
 
 test.describe('Real server integration', () => {
+  test.skip(!!process.env.CI, 'Requires real server — skipped on CI');
   test('all API endpoints return 200', async ({ request }) => {
     const failures: string[] = [];
     for (const ep of API_ENDPOINTS) {

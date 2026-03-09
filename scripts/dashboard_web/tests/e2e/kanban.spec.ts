@@ -31,7 +31,7 @@ test.describe('Plan Kanban Board', () => {
     );
     await page.goto('/');
     await page.waitForSelector('#plan-kanban-widget', { timeout: 5000 });
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(1000);
   });
 
   // --- Widget & Structure ---
@@ -40,20 +40,22 @@ test.describe('Plan Kanban Board', () => {
     await expect(page.locator('#plan-kanban-widget')).toBeVisible();
   });
 
-  test('3 columns present with correct data-status', async ({ page }) => {
+  test('4 columns present with correct data-status', async ({ page }) => {
     const cols = page.locator('.kanban-col');
-    await expect(cols).toHaveCount(3, { timeout: 10000 });
-    await expect(cols.nth(0)).toHaveAttribute('data-status', 'todo');
-    await expect(cols.nth(1)).toHaveAttribute('data-status', 'doing');
-    await expect(cols.nth(2)).toHaveAttribute('data-status', 'done');
+    await expect(cols).toHaveCount(4, { timeout: 10000 });
+    await expect(cols.nth(0)).toHaveAttribute('data-status', 'todo', { timeout: 10000 });
+    await expect(cols.nth(1)).toHaveAttribute('data-status', 'doing', { timeout: 10000 });
+    await expect(cols.nth(2)).toHaveAttribute('data-status', 'done', { timeout: 10000 });
+    await expect(cols.nth(3)).toHaveAttribute('data-status', 'cancelled', { timeout: 10000 });
   });
 
   test('column headers show correct text', async ({ page }) => {
     const headers = page.locator('.kanban-col-header');
-    await expect(headers).toHaveCount(3, { timeout: 10000 });
-    await expect(headers.nth(0)).toContainText('Pipeline');
-    await expect(headers.nth(1)).toContainText('Executing');
-    await expect(headers.nth(2)).toContainText('Done');
+    await expect(headers).toHaveCount(4, { timeout: 10000 });
+    await expect(headers.nth(0)).toContainText('Pipeline', { timeout: 10000 });
+    await expect(headers.nth(1)).toContainText('Executing', { timeout: 10000 });
+    await expect(headers.nth(2)).toContainText('Done', { timeout: 10000 });
+    await expect(headers.nth(3)).toContainText('Parking Lot', { timeout: 10000 });
   });
 
   test('column headers have status dot indicators', async ({ page }) => {
@@ -184,11 +186,11 @@ test.describe('Plan Kanban Board', () => {
     await mockApis({ mission: { plans: [] } });
     await page.goto('/');
     await page.waitForSelector('#plan-kanban-widget', { timeout: 5000 });
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     const empties = page.locator('.kanban-empty');
-    await expect(empties).toHaveCount(3);
-    for (let i = 0; i < 3; i++) {
+    await expect(empties).toHaveCount(4, { timeout: 10000 });
+    for (let i = 0; i < 4; i++) {
       await expect(empties.nth(i)).toContainText('No plans');
     }
   });

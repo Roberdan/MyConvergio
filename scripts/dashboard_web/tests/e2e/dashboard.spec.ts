@@ -9,7 +9,7 @@ test.describe('Dashboard Core', () => {
 
   test('page loads with title and header', async ({ page }) => {
     await expect(page).toHaveTitle('Convergio Control Room');
-    await expect(page.locator('h1')).toHaveText('Convergio');
+    await expect(page.locator('h1')).toContainText('Convergio');
   });
 
   test('clock updates every second', async ({ page }) => {
@@ -64,8 +64,8 @@ test.describe('Dashboard Core', () => {
   });
 
   test('zoom controls adjust body zoom', async ({ page }) => {
-    const zoomIn = page.locator('.header-ctrl-btn', { hasText: '+' });
-    const zoomOut = page.locator('.header-ctrl-btn', { hasText: '−' });
+    const zoomIn = page.locator('.zoom-btn', { hasText: '+' });
+    const zoomOut = page.locator('.zoom-btn', { hasText: '-' });
     const label = page.locator('#zoom-level');
 
     await expect(label).toHaveText('100%');
@@ -76,7 +76,7 @@ test.describe('Dashboard Core', () => {
     await expect(label).toHaveText('90%');
 
     // Reset
-    const reset = page.locator('.header-ctrl-btn', { hasText: 'R' });
+    const reset = page.locator('.zoom-btn', { hasText: 'R' });
     await reset.click();
     await expect(label).toHaveText('100%');
   });

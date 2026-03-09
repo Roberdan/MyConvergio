@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.15.2] - 09 Mar 2026
+
+### Changed
+- remove Python terminal_server.py (will be implemented in Rust)
+
+
 ## [v11.15.1] - 09 Mar 2026
 
 ### Fixed

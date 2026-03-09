@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.17.0] - 09 Mar 2026
+
+### Added
+- dynamic Tailscale peer resolution for terminal SSH
+
+
 ## [v11.16.4] - 09 Mar 2026
 
 ### Fixed

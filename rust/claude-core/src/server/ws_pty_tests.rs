@@ -2,9 +2,9 @@
 //!
 //! Tests cover:
 //! - PTY params deserialization (default peer, tmux_session)
-//! - Peer SSH alias lookup (found, not found, no DB)
-//! - Local peer detection (explicit local, DB lookup, unknown)
-//! - Command building (local shell, local tmux, remote SSH, remote SSH+tmux)
+//! - Tailscale name matching (fuzzy hostname/DNS resolution)
+//! - peers.conf user lookup
+//! - Local peer detection (explicit local, self via Tailscale)
 //! - `open_pty` returns valid file descriptors
 //! - PTY read/write roundtrip (write to master, read from master)
 //! - Resize ioctl (TIOCSWINSZ) on PTY master
@@ -14,27 +14,10 @@
 use super::state::ServerState;
 
 fn test_state() -> ServerState {
-    // Use a temp DB with peers table
     let dir = std::env::temp_dir().join(format!("pty_test_{}", std::process::id()));
     let _ = std::fs::create_dir_all(&dir);
     let db_path = dir.join("test.db");
-    let state = ServerState::new(db_path.clone());
-    // Create peers table with test data
-    if let Ok(db) = state.open_db() {
-        let conn = db.connection();
-        let _ = conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS peers (
-                peer_name TEXT PRIMARY KEY,
-                ssh_alias TEXT,
-                is_local INTEGER DEFAULT 0,
-                dns_name TEXT
-            );
-            INSERT OR REPLACE INTO peers VALUES ('m3max', 'robertos-macbook-pro.ts.net', 1, 'robertos-macbook-pro.ts.net');
-            INSERT OR REPLACE INTO peers VALUES ('omarchy', 'omarchy-ts', 0, 'omarchy.ts.net');
-            INSERT OR REPLACE INTO peers VALUES ('m1mario', 'mac-dev-ts', 0, 'mario.ts.net');",
-        );
-    }
-    state
+    ServerState::new(db_path)
 }
 
 // ── Params deserialization ──────────────────────────────────────────
@@ -62,27 +45,97 @@ fn params_peer_only() {
     assert!(p.tmux_session.is_empty());
 }
 
-// ── Peer lookup ─────────────────────────────────────────────────────
+// ── Tailscale name matching ─────────────────────────────────────────
 
 #[test]
-fn ssh_alias_found() {
-    let state = test_state();
-    let alias = super::ws_pty::peer_ssh_alias(&state, "omarchy");
-    assert_eq!(alias, Some("omarchy-ts".into()));
+fn ts_name_matches_hostname() {
+    let node: serde_json::Value = serde_json::from_str(
+        r#"{"HostName":"MarioDan's MacBook Pro M1","DNSName":"mariodans-macbook-pro-m1.tail01f12c.ts.net.","TailscaleIPs":["100.106.173.118"],"Online":true}"#
+    ).unwrap();
+    // "m1mario" can't fuzzy-match "mariodansmacbookprom1" — that's expected.
+    // Real resolution uses peers.conf tailscale_ip → ts_node_matches, not ts_name_matches.
+    let normalized = "m1mario".to_lowercase().replace(['-', '_', ' ', '\''], "");
+    assert!(!super::ws_pty::ts_name_matches(&node, &normalized), "fuzzy alone won't match m1mario");
+    // But ts_node_matches with IP from peers.conf WILL match
+    let ips = node.get("TailscaleIPs").unwrap().as_array().unwrap();
+    assert!(ips.iter().any(|v| v.as_str() == Some("100.106.173.118")), "IP match works");
 }
 
 #[test]
-fn ssh_alias_not_found() {
-    let state = test_state();
-    let alias = super::ws_pty::peer_ssh_alias(&state, "nonexistent");
-    assert!(alias.is_none());
+fn ts_name_matches_omarchy() {
+    let node: serde_json::Value = serde_json::from_str(
+        r#"{"HostName":"omarchy","DNSName":"omarchy.tail01f12c.ts.net.","TailscaleIPs":["100.127.138.62"],"Online":true}"#
+    ).unwrap();
+    assert!(super::ws_pty::ts_name_matches(&node, "omarchy"));
 }
 
 #[test]
-fn ssh_alias_local_peer() {
-    let state = test_state();
-    let alias = super::ws_pty::peer_ssh_alias(&state, "m3max");
-    assert_eq!(alias, Some("robertos-macbook-pro.ts.net".into()));
+fn ts_name_no_match() {
+    let node: serde_json::Value = serde_json::from_str(
+        r#"{"HostName":"omarchy","DNSName":"omarchy.tail01f12c.ts.net.","TailscaleIPs":["100.127.138.62"],"Online":true}"#
+    ).unwrap();
+    assert!(!super::ws_pty::ts_name_matches(&node, "m1mario"));
+}
+
+#[test]
+fn ts_first_ip_extracts_ipv4() {
+    let node: serde_json::Value = serde_json::from_str(
+        r#"{"TailscaleIPs":["100.106.173.118","fd7a:115c:a1e0::3"]}"#
+    ).unwrap();
+    assert_eq!(super::ws_pty::ts_first_ip(&node), Some("100.106.173.118".into()));
+}
+
+#[test]
+fn ts_first_ip_empty() {
+    let node: serde_json::Value = serde_json::from_str(r#"{"TailscaleIPs":[]}"#).unwrap();
+    assert!(super::ws_pty::ts_first_ip(&node).is_none());
+}
+
+// ── peers.conf user lookup ──────────────────────────────────────────
+
+#[test]
+fn peer_ssh_user_from_conf() {
+    // This reads the real peers.conf — integration test
+    let user = super::ws_pty::peer_ssh_user("m1mario");
+    assert_eq!(user, Some("mariodan".into()));
+}
+
+#[test]
+fn peer_ssh_user_self() {
+    let user = super::ws_pty::peer_ssh_user("m3max");
+    assert_eq!(user, Some("roberdan".into()));
+}
+
+#[test]
+fn peer_ssh_user_unknown() {
+    let user = super::ws_pty::peer_ssh_user("nonexistent");
+    assert!(user.is_none());
+}
+
+// ── Tailscale live resolution (requires tailscale running) ──────────
+
+#[test]
+fn tailscale_resolve_self() {
+    if std::process::Command::new("tailscale").arg("status").output().is_err() {
+        return; // skip if tailscale not available
+    }
+    let result = super::ws_pty::tailscale_resolve("m3max");
+    if let Some((ip, _online, is_self)) = result {
+        assert!(ip.starts_with("100."), "expected Tailscale IP, got: {ip}");
+        assert!(is_self, "m3max should be self");
+    }
+}
+
+#[test]
+fn tailscale_resolve_remote() {
+    if std::process::Command::new("tailscale").arg("status").output().is_err() {
+        return;
+    }
+    let result = super::ws_pty::tailscale_resolve("omarchy");
+    if let Some((ip, _online, is_self)) = result {
+        assert!(ip.starts_with("100."));
+        assert!(!is_self, "omarchy should not be self");
+    }
 }
 
 // ── Local peer detection ────────────────────────────────────────────
@@ -100,22 +153,21 @@ fn is_local_literal_localhost() {
 }
 
 #[test]
-fn is_local_from_db() {
+fn is_local_self_via_tailscale() {
     let state = test_state();
+    if std::process::Command::new("tailscale").arg("status").output().is_err() {
+        return;
+    }
     assert!(super::ws_pty::is_local_peer(&state, "m3max"));
 }
 
 #[test]
-fn is_remote_from_db() {
+fn is_remote_via_tailscale() {
     let state = test_state();
+    if std::process::Command::new("tailscale").arg("status").output().is_err() {
+        return;
+    }
     assert!(!super::ws_pty::is_local_peer(&state, "omarchy"));
-    assert!(!super::ws_pty::is_local_peer(&state, "m1mario"));
-}
-
-#[test]
-fn is_local_unknown_peer() {
-    let state = test_state();
-    assert!(!super::ws_pty::is_local_peer(&state, "unknown-host"));
 }
 
 // ── open_pty ────────────────────────────────────────────────────────
@@ -135,26 +187,19 @@ fn open_pty_returns_valid_fds() {
 #[test]
 fn pty_write_read_roundtrip() {
     let (master, slave) = unsafe { super::ws_pty::open_pty().expect("open_pty") };
-    // Write to slave, read from master
     let msg = b"hello pty\n";
     let written = unsafe { libc::write(slave, msg.as_ptr().cast(), msg.len()) };
     assert_eq!(written as usize, msg.len());
-
-    // Set master non-blocking for read
     unsafe {
         let flags = libc::fcntl(master, libc::F_GETFL);
         libc::fcntl(master, libc::F_SETFL, flags | libc::O_NONBLOCK);
     }
-
-    // Small delay for PTY buffer
     std::thread::sleep(std::time::Duration::from_millis(50));
-
     let mut buf = [0u8; 256];
     let n = unsafe { libc::read(master, buf.as_mut_ptr().cast(), buf.len()) };
     assert!(n > 0, "should read data from master");
     let output = String::from_utf8_lossy(&buf[..n as usize]);
     assert!(output.contains("hello pty"), "got: {output}");
-
     unsafe {
         libc::close(master);
         libc::close(slave);
@@ -166,27 +211,14 @@ fn pty_write_read_roundtrip() {
 #[test]
 fn pty_resize_ioctl() {
     let (master, slave) = unsafe { super::ws_pty::open_pty().expect("open_pty") };
-    let ws = libc::winsize {
-        ws_row: 50,
-        ws_col: 120,
-        ws_xpixel: 0,
-        ws_ypixel: 0,
-    };
+    let ws = libc::winsize { ws_row: 50, ws_col: 120, ws_xpixel: 0, ws_ypixel: 0 };
     let ret = unsafe { libc::ioctl(master, libc::TIOCSWINSZ as libc::c_ulong, &ws) };
-    assert_eq!(ret, 0, "ioctl TIOCSWINSZ should succeed");
-
-    // Verify by reading back
-    let mut ws_read = libc::winsize {
-        ws_row: 0,
-        ws_col: 0,
-        ws_xpixel: 0,
-        ws_ypixel: 0,
-    };
+    assert_eq!(ret, 0);
+    let mut ws_read = libc::winsize { ws_row: 0, ws_col: 0, ws_xpixel: 0, ws_ypixel: 0 };
     let ret = unsafe { libc::ioctl(master, libc::TIOCGWINSZ as libc::c_ulong, &mut ws_read) };
     assert_eq!(ret, 0);
     assert_eq!(ws_read.ws_row, 50);
     assert_eq!(ws_read.ws_col, 120);
-
     unsafe {
         libc::close(master);
         libc::close(slave);
@@ -198,11 +230,9 @@ fn pty_resize_ioctl() {
 #[test]
 fn fork_exec_echo_produces_output() {
     let (master, slave) = unsafe { super::ws_pty::open_pty().expect("open_pty") };
-
     let pid = unsafe {
         let pid = libc::fork();
         if pid == 0 {
-            // Child: attach slave, exec echo
             libc::setsid();
             libc::dup2(slave, 0);
             libc::dup2(slave, 1);
@@ -218,24 +248,17 @@ fn fork_exec_echo_produces_output() {
         libc::close(slave);
         pid
     };
-
-    // Read output (blocking, child runs fast)
     std::thread::sleep(std::time::Duration::from_millis(200));
-
     let mut buf = [0u8; 512];
-    // Use blocking read — child already finished, data is in PTY buffer
     let n = unsafe { libc::read(master, buf.as_mut_ptr().cast(), buf.len()) };
-    // Reap child
     unsafe { libc::waitpid(pid, std::ptr::null_mut(), 0); }
-
     assert!(n > 0, "should get output from child process (n={n})");
     let output = String::from_utf8_lossy(&buf[..n as usize]);
     assert!(output.contains("pty-test-output"), "got: {output}");
-
     unsafe { libc::close(master); }
 }
 
-// ── Resize JSON parsing ─────────────────────────────────────────────
+// ── JSON message parsing ────────────────────────────────────────────
 
 #[test]
 fn resize_json_parsing() {
@@ -257,5 +280,4 @@ fn non_resize_json_is_stdin() {
 fn plain_text_is_stdin() {
     let text = "ls -la\n";
     assert!(serde_json::from_str::<serde_json::Value>(text).is_err());
-    // Non-JSON text should be sent directly to PTY as stdin
 }

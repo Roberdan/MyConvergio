@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.25.1] - 09 Mar 2026
+
+### Changed
+- Pre-hypervelocity mesh optimization checkpoint
+
+
 ## [v11.25.0] - 09 Mar 2026
 
 ### Added

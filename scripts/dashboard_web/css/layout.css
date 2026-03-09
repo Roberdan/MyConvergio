@@ -230,7 +230,7 @@
 
 .dash-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 2fr;
   gap: 16px;
   padding: 0 24px 16px;
   align-items: start;

@@ -1,55 +1,6 @@
 function _kpiCard(label, value, sub, target, alert) {
   return `<div class="kpi-card${alert ? " alert" : ""}" onclick="scrollToWidget('${target}')"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${sub ? `<div class="kpi-sub">${sub}</div>` : ""}</div>`;
 }
-const _githubKpi = {
-  planId: 0,
-  stats: null,
-  lastFetchAt: 0,
-  inFlight: null,
-};
-
-function _activePlanId() {
-  const mission = window.DashboardState?.lastMissionData;
-  if (!mission) return 0;
-  if (Array.isArray(mission.plans) && mission.plans.length) {
-    return Number(mission.plans[0]?.plan?.id || 0) || 0;
-  }
-  return Number(mission.plan?.id || 0) || 0;
-}
-
-function _githubMetrics(stats) {
-  const commitTotals = stats?.commit_totals || {};
-  const linesAdded = Number(commitTotals.lines_added || 0);
-  const linesRemoved = Number(commitTotals.lines_removed || 0);
-  return {
-    lines_changed: Number(stats?.lines_changed ?? linesAdded + linesRemoved),
-    commits_today: Number(stats?.commits_today || 0),
-    open_prs: Number(stats?.open_prs || 0),
-    pr_merge_velocity: Number(stats?.pr_merge_velocity || 0),
-  };
-}
-
-function _refreshGithubStats(planId) {
-  if (!planId) return;
-  const now = Date.now();
-  const isFresh = _githubKpi.planId === planId && now - _githubKpi.lastFetchAt < 30000;
-  if (isFresh || _githubKpi.inFlight) return;
-  _githubKpi.planId = planId;
-  _githubKpi.inFlight = fetch(`/api/github/stats/${planId}`)
-    .then((r) => r.json())
-    .then((payload) => {
-      _githubKpi.lastFetchAt = Date.now();
-      _githubKpi.stats = payload && payload.ok ? payload : null;
-      if (window.__kpiOverviewData) renderKpi(window.__kpiOverviewData, true);
-    })
-    .catch(() => {
-      _githubKpi.lastFetchAt = Date.now();
-      _githubKpi.stats = null;
-    })
-    .finally(() => {
-      _githubKpi.inFlight = null;
-    });
-}
 
 window.scrollToWidget = function (id) {
   const el = document.getElementById(id);
@@ -58,18 +9,15 @@ window.scrollToWidget = function (id) {
   el.classList.add("widget-flash");
   setTimeout(() => el.classList.remove("widget-flash"), 1200);
 };
-function renderKpi(d, skipGithubFetch = false) {
+
+function renderKpi(d) {
   window.__kpiOverviewData = d;
-  const planId = _activePlanId();
-  if (!skipGithubFetch) _refreshGithubStats(planId);
-  const githubStats = _githubKpi.planId === planId ? _githubKpi.stats : null;
-  const github = _githubMetrics(githubStats);
-  const hasGithub = githubStats && (github.lines_changed > 0 || github.commits_today > 0 || github.open_prs > 0);
-  const mergeVelocityLabel =
-    github.pr_merge_velocity > 0 ? `${github.pr_merge_velocity.toFixed(1)}/day` : "—";
-  const online = d.mesh_online || 0,
-    total = d.mesh_total || 0;
-  let html =
+  const online = d.mesh_online || 0, total = d.mesh_total || 0;
+  const linesToday = Number(d.today_lines_changed || 0);
+  const linesWeek = Number(d.week_lines_changed || 0);
+  const costToday = Number(d.today_cost || 0);
+
+  const html =
     _kpiCard("Active", d.plans_active, "plans running", "mission-panel") +
     _kpiCard("Plans", d.plans_total, `${d.plans_done || 0} done`, "history-widget") +
     _kpiCard("Mesh", `${online}/${total}`, "nodes online", "mesh-panel") +
@@ -80,17 +28,11 @@ function renderKpi(d, skipGithubFetch = false) {
       d.blocked > 0 ? "needs attention" : "",
       "task-pipeline-widget",
       d.blocked > 0,
-    );
-  if (hasGithub) {
-    html += _kpiCard("Lines Changed", fmt(github.lines_changed), "this week", "history-widget") +
-      _kpiCard("Commits Today", github.commits_today, "GitHub activity", "mission-panel") +
-      _kpiCard("Open PRs", github.open_prs, "repo backlog", "event-feed-widget") +
-      _kpiCard("PR Merge Velocity", mergeVelocityLabel, "merged PR/day", "event-feed-widget");
-  } else {
-    html += _kpiCard("Plans Done", d.plans_done || 0, "all time total", "history-widget") +
-      _kpiCard("Cost Today", `$${(d.today_cost || 0).toFixed(0)}`, "token spend today", "widget-cost") +
-      _kpiCard("Total Cost", `$${((d.total_cost || 0) / 1000).toFixed(1)}K`, "cumulative spend", "widget-cost");
-  }
+    ) +
+    _kpiCard("Lines Today", fmt(linesToday), "all repos", "history-widget") +
+    _kpiCard("Lines / Week", fmt(linesWeek), "week over week", "history-widget") +
+    _kpiCard("Cost Today", `$${costToday.toFixed(0)}`, "token spend", "widget-cost");
+
   $("#kpi-bar").innerHTML = html;
 }
 

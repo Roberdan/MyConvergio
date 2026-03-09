@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.23.0] - 09 Mar 2026
+
+### Added
+- Lines Today + Lines/Week from git, remove Plans Done duplicate
+
+
 ## [v11.22.2] - 09 Mar 2026
 
 ### Fixed

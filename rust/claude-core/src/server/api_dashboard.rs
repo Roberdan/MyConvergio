@@ -47,7 +47,6 @@ pub fn router() -> Router<ServerState> {
 
 async fn api_overview(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
     let db = state.open_db()?;
-    // Use CTEs to avoid repeated full table scans
     let row = query_one(
         db.connection(),
         "WITH plan_stats AS (
@@ -78,7 +77,58 @@ async fn api_overview(State(state): State<ServerState>) -> Result<Json<Value>, A
         [],
     )?
     .unwrap_or_else(|| json!({}));
-    Ok(Json(row))
+
+    let (today_lines, week_lines) = today_lines_changed();
+
+    let mut result = row;
+    if let Some(obj) = result.as_object_mut() {
+        obj.insert("today_lines_changed".to_string(), json!(today_lines));
+        obj.insert("week_lines_changed".to_string(), json!(week_lines));
+    }
+    Ok(Json(result))
+}
+
+fn today_lines_changed() -> (i64, i64) {
+    let home = env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+    let mut repos = vec![format!("{home}/.claude")];
+    if let Ok(conn) = rusqlite::Connection::open(format!("{home}/.claude/data/dashboard.db")) {
+        if let Ok(mut stmt) = conn.prepare("SELECT DISTINCT project_path FROM projects WHERE project_path IS NOT NULL AND project_path != ''") {
+            if let Ok(rows) = stmt.query_map([], |r| r.get::<_, String>(0)) {
+                for path in rows.flatten() {
+                    if !path.is_empty() && std::path::Path::new(&path).join(".git").exists() {
+                        repos.push(path);
+                    }
+                }
+            }
+        }
+    }
+    let mut today: i64 = 0;
+    let mut week: i64 = 0;
+    for repo in &repos {
+        for (since, is_today) in [("midnight", true), ("1 week ago", false)] {
+            let out = Command::new("git")
+                .args(["-C", repo, "log", &format!("--since={since}"), "--shortstat", "--format="])
+                .output();
+            if let Ok(o) = out {
+                if o.status.success() {
+                    let text = String::from_utf8_lossy(&o.stdout);
+                    let mut sub: i64 = 0;
+                    for line in text.lines() {
+                        for part in line.split(',') {
+                            let part = part.trim();
+                            if part.contains("insertion") || part.contains("deletion") {
+                                if let Some(n) = part.split_whitespace().next().and_then(|s| s.parse::<i64>().ok()) {
+                                    sub += n;
+                                }
+                            }
+                        }
+                    }
+                    if is_today { today += sub; } else { week += sub; }
+                }
+            }
+        }
+    }
+    (today, week)
 }
 
 async fn api_mission(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {

@@ -16,7 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="themes.css">
-<link rel="stylesheet" href="brain-styles.css">
+<link rel="stylesheet" href="brain-styles.css?v=1773068775">
 <link rel="stylesheet" href="css/chat.css">
 <link rel="stylesheet" href="css/chat-tabs.css">
 <link rel="stylesheet" href="css/chat-context.css">
@@ -33,11 +33,23 @@
     <h1>Convergio Control Room</h1>
     <button class="header-term-btn" onclick="openAllTerminals()" title="Open terminals on all online mesh nodes"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 12l4-4M6 12l4 4"/><line x1="14" y1="16" x2="18" y2="16"/></svg></button>
   </div>
-  <div class="header-center">
+  <nav id="dashboard-nav" class="header-nav" aria-label="Dashboard views">
+    <button class="header-nav-item active" data-section="dashboard-main-section" type="button">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Overview
+    </button>
+    <button class="header-nav-item" data-section="dashboard-chat-section" type="button">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      Planner
+    </button>
+    <button class="header-nav-item" data-section="dashboard-ideajar-section" type="button">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg>
+      Idea Jar
+    </button>
+  </nav>
+  <div class="header-right">
     <span class="status-dot"></span>
     <span id="clock"></span>
-  </div>
-  <div class="header-right">
     <div class="refresh-stepper">
       <button class="stepper-btn" onclick="changeRefresh(-1)" title="Decrease interval">&#x25C0;</button>
       <span id="refresh-label">30s</span>
@@ -58,12 +70,6 @@
 </div>
 
 <div class="kpi-bar" id="kpi-bar"></div>
-
-<div id="dashboard-nav" class="dashboard-nav" aria-label="Dashboard views">
-  <button class="widget-action-btn active" data-section="dashboard-main-section" type="button">Overview</button>
-  <button class="widget-action-btn" data-section="dashboard-chat-section" type="button">Chat</button>
-  <button class="widget-action-btn" data-section="dashboard-ideajar-section" type="button">Idea Jar</button>
-</div>
 
 <!-- Two-column dashboard layout -->
 <section id="dashboard-main-section" class="dashboard-section">
@@ -155,7 +161,7 @@
         </div>
         <div class="brain-stats" id="brain-stats"></div>
       </div>
-      <div id="brain-canvas-container" style="width:100%;height:480px;position:relative;"></div>
+      <div id="brain-canvas-container" style="width:100%;position:relative;"></div>
     </div>
     <div class="widget" id="agent-organization-widget">
       <div class="widget-header">
@@ -201,12 +207,25 @@
 </section>
 
 <section id="dashboard-chat-section" class="dashboard-section" hidden>
-  <div class="widget" id="chat-widget">
-    <div class="widget-header">
-      <span class="widget-title">Task Chat</span>
+  <div style="display:grid;grid-template-columns:260px 1fr;gap:16px;padding:0 24px 16px;align-items:start">
+    <div class="widget" id="project-list-widget">
+      <div class="widget-header">
+        <span class="widget-title">Projects</span>
+        <button class="idea-action-btn" style="opacity:1" onclick="openNewProjectModal()" title="New project">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="widget-body" id="project-list-content" style="padding:8px;max-height:calc(100vh - 220px);overflow-y:auto">
+        <span style="color:var(--text-dim);font-size:12px">Loading projects…</span>
+      </div>
     </div>
-    <div class="widget-body">
-      <div id="chat-panel-root"></div>
+    <div class="widget" id="chat-widget">
+      <div class="widget-header">
+        <span class="widget-title">Planner Chat</span>
+      </div>
+      <div class="widget-body">
+        <div id="chat-panel-root"></div>
+      </div>
     </div>
   </div>
 </section>
@@ -248,14 +267,14 @@
 <script src="nightly-jobs.js?v=1772974473"></script>
 <script src="kpi-modals.js"></script>
 <script src="websocket.js"></script>
-<script src="brain-regions.js"></script>
-<script src="brain-organism.js"></script>
-<script src="brain-sessions.js"></script>
-<script src="brain-consciousness.js"></script>
-<script src="brain-effects.js"></script>
-<script src="brain-layout.js"></script>
-<script src="brain-interact.js"></script>
-<script src="brain-canvas.js"></script>
+<script src="brain-regions.js?v=1773068775"></script>
+<script src="brain-organism.js?v=1773068775"></script>
+<script src="brain-sessions.js?v=1773068775"></script>
+<script src="brain-consciousness.js?v=1773068775"></script>
+<script src="brain-effects.js?v=1773068775"></script>
+<script src="brain-layout.js?v=1773068775"></script>
+<script src="brain-interact.js?v=1773068775"></script>
+<script src="brain-canvas.js?v=1773068775"></script>
 <script src="app.js?v=1772974473"></script>
 <script src="mesh.js"></script>
 <script src="mesh-animation.js"></script>

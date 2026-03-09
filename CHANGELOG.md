@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.6.3] - 09 Mar 2026
+
+### Fixed
+- cache-bust brain scripts, remove fixed canvas height
+
+
 ## [v11.6.2] - 09 Mar 2026
 
 ### Changed

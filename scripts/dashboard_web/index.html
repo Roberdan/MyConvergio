@@ -211,8 +211,8 @@
     <div class="widget" id="project-list-widget">
       <div class="widget-header">
         <span class="widget-title">Projects</span>
-        <button class="idea-action-btn" style="opacity:1" onclick="openNewProjectModal()" title="New project">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <button class="widget-action-btn" onclick="openNewProjectModal()" title="New project">
+          <svg width="10" height="10" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
       <div class="widget-body" id="project-list-content" style="padding:8px;max-height:calc(100vh - 220px);overflow-y:auto">
@@ -231,7 +231,17 @@
 </section>
 
 <section id="dashboard-ideajar-section" class="dashboard-section" style="display:none">
-  <div id="ideajar-content">Loading...</div>
+  <div style="padding:0 24px 16px">
+    <div class="widget" id="ideajar-main-widget">
+      <div class="widget-header">
+        <span class="widget-title">Idea Jar</span>
+        <div class="widget-actions" id="ideajar-header-actions"></div>
+      </div>
+      <div class="widget-body" id="ideajar-content" style="padding:0">
+        <span style="color:var(--text-dim);padding:16px;display:block">Loading...</span>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- Plan Detail Sidebar -->
@@ -275,7 +285,7 @@
 <script src="brain-layout.js?v=1773068775"></script>
 <script src="brain-interact.js?v=1773068775"></script>
 <script src="brain-canvas.js?v=1773069248"></script>
-<script src="app.js?v=1772974473"></script>
+<script src="app.js?v=1773258936"></script>
 <script src="mesh.js"></script>
 <script src="mesh-animation.js"></script>
 <script src="mesh-actions.js"></script>
@@ -291,8 +301,8 @@
 <script src="chat-context.js"></script>
 <script src="chat-monitor.js"></script>
 <script src="github-panel.js"></script>
-<script src="idea-jar-physics.js?v=1"></script>
-<script src="idea-jar-canvas.js?v=1"></script>
-<script src="idea-jar.js?v=1"></script>
+<script src="idea-jar-physics.js?v=2"></script>
+<script src="idea-jar-canvas.js?v=2"></script>
+<script src="idea-jar.js?v=2"></script>
 </body>
 </html>

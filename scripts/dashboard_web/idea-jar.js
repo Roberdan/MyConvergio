@@ -16,74 +16,58 @@ async function _fetchProjects() {
   return _projects;
 }
 
-function _priorityLabel(p) {
-  return { P0: '🔴 P0', P1: '🟠 P1', P2: '🟡 P2', P3: '⚪ P3' }[p] || p || '';
-}
-
-function _statusBadge(s) {
-  const colors = { active: 'var(--cyan)', promoted: 'var(--green)', archived: 'var(--text-dim)' };
+function _statusDot(s) {
+  const colors = { active: 'var(--cyan)', draft: 'var(--text-dim)', promoted: 'var(--green)', archived: 'var(--text-dim)', ready: 'var(--gold)' };
   const c = colors[s] || 'var(--text-dim)';
-  return `<span style="border:1px solid ${c};color:${c};padding:1px 6px;border-radius:10px;font-size:11px">${esc(s || 'active')}</span>`;
+  return `<span class="badge" style="background:${c}22;color:${c}">${esc(s || 'draft')}</span>`;
 }
 
 function _ideaCard(idea) {
-  const tags = (idea.tags || []).map(t => `<span class="idea-tag">${esc(t)}</span>`).join('');
-  return `<div class="idea-card" data-id="${idea.id}" data-priority="${idea.priority || ''}">
-    <div class="idea-card-header">
-      <span class="idea-card-title">${esc(idea.title)}</span>
-      ${idea.priority ? `<span class="idea-priority-badge" data-priority="${idea.priority}">${idea.priority}</span>` : ''}
-      <span class="idea-status-badge" data-status="${idea.status || 'active'}">${esc(idea.status || 'active')}</span>
+  const tags = (idea.tags || []).map(t => `<span class="badge" style="background:rgba(90,96,128,0.15);color:var(--text-dim)">${esc(t)}</span>`).join('');
+  const priColors = { P0: 'var(--red)', P1: 'var(--gold)', P2: 'var(--cyan)', P3: 'var(--text-dim)' };
+  const priC = priColors[idea.priority] || 'var(--text-dim)';
+  return `<div class="mission-plan" onclick="openIdeaModal(${idea.id})" style="border-left:3px solid ${priC}">
+    <div style="margin-bottom:4px">
+      <span style="font-weight:600;color:#e0e4f0;font-size:14px">${esc(idea.title)}</span>
+      ${_statusDot(idea.status)}
+      ${idea.priority ? `<span class="badge" style="background:${priC}22;color:${priC}">${idea.priority}</span>` : ''}
     </div>
-    ${idea.description ? `<div class="idea-card-desc">${esc(idea.description.slice(0, 140))}${idea.description.length > 140 ? '…' : ''}</div>` : ''}
-    ${tags ? `<div class="idea-card-tags">${tags}</div>` : ''}
-    <div class="idea-card-actions">
-      <button class="idea-action-btn" onclick="event.stopPropagation();openIdeaModal(${idea.id})" title="Edit">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        Edit
-      </button>
-      <button class="idea-action-btn" onclick="event.stopPropagation();openNoteModal(${idea.id})" title="Notes">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-        Notes
-      </button>
-      <button class="idea-action-btn idea-action-danger" onclick="event.stopPropagation();deleteIdea(${idea.id})" title="Delete">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-      </button>
+    ${idea.description ? `<div class="mission-summary" style="margin:4px 0 6px">${esc(idea.description.slice(0, 160))}${idea.description.length > 160 ? '…' : ''}</div>` : ''}
+    ${tags ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">${tags}</div>` : ''}
+    <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+      <button class="widget-action-btn" onclick="openIdeaModal(${idea.id})" title="Edit"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit</button>
+      <button class="widget-action-btn" onclick="openNoteModal(${idea.id})" title="Notes"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> Notes</button>
+      ${idea.status === 'ready' ? `<button class="widget-action-btn" style="color:var(--gold);border-color:rgba(255,183,0,0.3)" onclick="promoteIdea(${idea.id})" title="Promote to plan"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg> Promote</button>` : ''}
+      <button class="widget-action-btn" style="color:var(--red);border-color:rgba(255,51,85,0.2)" onclick="deleteIdea(${idea.id})" title="Delete"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
     </div>
   </div>`;
 }
 
 function renderIdeaJarTab() {
-  const el = $('#ideajar-content') || $('#ideas-section') || $('#section-ideas');
+  const headerActions = document.getElementById('ideajar-header-actions');
+  if (headerActions) {
+    headerActions.innerHTML = `
+      <input id="idea-search" type="search" placeholder="Search…" style="padding:3px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:inherit;font-size:11px;width:160px;outline:none">
+      <select id="idea-filter-status" style="padding:3px 6px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:inherit;font-size:11px">
+        <option value="">All statuses</option>
+        <option value="active">Active</option><option value="draft">Draft</option>
+        <option value="ready">Ready</option><option value="promoted">Promoted</option>
+        <option value="archived">Archived</option>
+      </select>
+      <select id="idea-filter-priority" style="padding:3px 6px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:inherit;font-size:11px">
+        <option value="">All priorities</option>
+        <option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option>
+      </select>
+      <button class="widget-action-btn" onclick="openIdeaModal()"><svg width="10" height="10" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Idea</button>`;
+    headerActions.querySelector('#idea-search').addEventListener('input', _debounceFilter);
+    headerActions.querySelector('#idea-filter-status').addEventListener('change', _debounceFilter);
+    headerActions.querySelector('#idea-filter-priority').addEventListener('change', _debounceFilter);
+  }
+
+  const el = document.getElementById('ideajar-content');
   if (!el) return;
-  el.innerHTML = `
-    <div class="idea-jar-tab" style="padding:16px 24px">
-      <div class="idea-jar-list-col">
-        <div class="idea-filters">
-          <input id="idea-search" type="search" placeholder="Search ideas…" style="flex:1;min-width:140px">
-          <select id="idea-filter-status">
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="promoted">Promoted</option>
-            <option value="archived">Archived</option>
-          </select>
-          <select id="idea-filter-priority">
-            <option value="">All priorities</option>
-            <option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option>
-          </select>
-          <button class="idea-action-btn" style="opacity:1;padding:5px 12px;font-size:11px" onclick="openIdeaModal()">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Idea
-          </button>
-        </div>
-        <div id="idea-list" class="idea-list"></div>
-      </div>
-      <div class="idea-jar-canvas-col">
-        <div id="idea-jar-canvas"></div>
-      </div>
-    </div>`;
-  el.querySelector('#idea-search').addEventListener('input', _debounceFilter);
-  el.querySelector('#idea-filter-status').addEventListener('change', _debounceFilter);
-  el.querySelector('#idea-filter-priority').addEventListener('change', _debounceFilter);
+  el.innerHTML = '<div id="idea-list" style="padding:12px 16px"></div><div id="idea-jar-canvas" style="padding:0 16px 16px"></div>';
+
   fetchIdeas().then(ideas => {
     _renderIdeaList(ideas);
     if (window.JarCanvas) JarCanvas.initJarCanvas('idea-jar-canvas', ideas, { onSlipClick: id => openIdeaModal(id), compact: false });
@@ -101,9 +85,8 @@ function _debounceFilter() {
 function _renderIdeaList(ideas) {
   const el = $('#idea-list');
   if (!el) return;
-  if (!ideas.length) { el.innerHTML = '<div style="color:var(--text-dim);padding:20px 0">No ideas yet — press Cmd/Ctrl+I to add one.</div>'; return; }
+  if (!ideas.length) { el.innerHTML = '<div style="color:var(--text-dim);padding:12px 0;font-size:12px">No ideas yet — press <kbd style="background:var(--bg-card);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:10px">⌘I</kbd> to add one.</div>'; return; }
   el.innerHTML = ideas.map(_ideaCard).join('');
-  el.querySelectorAll('.idea-card').forEach(card => card.addEventListener('click', () => openIdeaModal(+card.dataset.id)));
 }
 
 async function filterIdeas(params) {
@@ -115,9 +98,7 @@ async function filterIdeas(params) {
 async function openIdeaModal(id) {
   const projects = await _fetchProjects();
   let idea = {};
-  if (id) {
-    idea = await fetchJson(`/api/ideas/${id}`) || {};
-  }
+  if (id) idea = await fetchJson(`/api/ideas/${id}`) || {};
   const existing = document.getElementById('idea-modal-overlay');
   if (existing) existing.remove();
   const overlay = document.createElement('div');
@@ -126,26 +107,28 @@ async function openIdeaModal(id) {
   const tagsVal = Array.isArray(idea.tags) ? idea.tags.join(', ') : (idea.tags || '');
   const projOpts = projects.map(p => `<option value="${p.id}"${idea.project_id == p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
   const priorities = ['P0','P1','P2','P3'].map(p => `<option${idea.priority === p ? ' selected' : ''}>${p}</option>`).join('');
-  overlay.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto">
-    <h3 style="margin:0 0 16px">${id ? 'Edit Idea' : 'New Idea'}</h3>
-    <form id="idea-form">
-      <label style="display:block;margin-bottom:10px">Title *<input name="title" required value="${esc(idea.title||'')}" style="display:block;width:100%;margin-top:4px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box"></label>
-      <label style="display:block;margin-bottom:10px">Description<textarea name="description" rows="3" style="display:block;width:100%;margin-top:4px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box">${esc(idea.description||'')}</textarea></label>
-      <label style="display:block;margin-bottom:10px">Tags (comma separated)<input name="tags" value="${esc(tagsVal)}" style="display:block;width:100%;margin-top:4px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box"></label>
-      <div style="display:flex;gap:12px;margin-bottom:10px">
-        <label style="flex:1">Priority<select name="priority" style="display:block;width:100%;margin-top:4px;padding:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text)">${priorities}</select></label>
-        <label style="flex:1">Project<select name="project_id" style="display:block;width:100%;margin-top:4px;padding:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text)"><option value="">—</option>${projOpts}</select></label>
+  const _f = (label, content) => `<label class="modal-field"><span class="modal-field-label">${label}</span>${content}</label>`;
+  overlay.innerHTML = `<div class="widget" style="width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 0 60px rgba(0,229,255,0.1)">
+    <div class="widget-header"><span class="widget-title">${id ? 'Edit Idea' : 'New Idea'}</span><span style="cursor:pointer;color:var(--red);font-size:16px" onclick="document.getElementById('idea-modal-overlay').remove()">✕</span></div>
+    <div class="widget-body">
+    <form id="idea-form" style="display:flex;flex-direction:column;gap:10px">
+      ${_f('Title *', `<input name="title" required value="${esc(idea.title||'')}" class="modal-input">`)}
+      ${_f('Description', `<textarea name="description" rows="3" class="modal-input">${esc(idea.description||'')}</textarea>`)}
+      ${_f('Tags (comma separated)', `<input name="tags" value="${esc(tagsVal)}" class="modal-input">`)}
+      <div style="display:flex;gap:12px">
+        ${_f('Priority', `<select name="priority" class="modal-input">${priorities}</select>`)}
+        ${_f('Project', `<select name="project_id" class="modal-input"><option value="">—</option>${projOpts}</select>`)}
       </div>
-      <label style="display:block;margin-bottom:10px">Links<textarea name="links" rows="2" placeholder="One URL per line" style="display:block;width:100%;margin-top:4px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box">${esc(idea.links||'')}</textarea></label>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-        <span>Status: ${_statusBadge(idea.status)}</span>
-        <div style="display:flex;gap:8px">
-          ${idea.status === 'ready' ? `<button type="button" style="color:var(--gold);border-color:var(--gold)" onclick="document.getElementById('idea-modal-overlay').remove();promoteIdea(${id})">📋 Promote to Plan</button>` : ''}
-          <button type="button" onclick="document.getElementById('idea-modal-overlay').remove()">Cancel</button>
-          <button type="submit" class="btn-primary">Save</button>
+      ${_f('Links', `<textarea name="links" rows="2" placeholder="One URL per line" class="modal-input">${esc(idea.links||'')}</textarea>`)}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border)">
+        <span>${_statusDot(idea.status)}</span>
+        <div style="display:flex;gap:6px">
+          ${idea.status === 'ready' ? `<button type="button" class="widget-action-btn" style="color:var(--gold);border-color:rgba(255,183,0,0.3)" onclick="document.getElementById('idea-modal-overlay').remove();promoteIdea(${id})">Promote</button>` : ''}
+          <button type="button" class="widget-action-btn" onclick="document.getElementById('idea-modal-overlay').remove()">Cancel</button>
+          <button type="submit" class="widget-action-btn" style="background:rgba(0,229,255,0.15)">Save</button>
         </div>
       </div>
-    </form></div>`;
+    </form></div></div>`;
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   overlay.querySelector('#idea-form').addEventListener('submit', async e => {
@@ -191,15 +174,14 @@ async function openNoteModal(ideaId) {
   const overlay = document.createElement('div');
   overlay.id = 'note-modal-overlay';
   overlay.className = 'modal-overlay';
-  const noteItems = notes.map(n => `<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:12px;color:var(--text-dim)">${esc(n.created_at||'')}</div><div>${esc(n.content||'')}</div></div>`).join('') || '<div style="color:var(--text-dim)">No notes yet.</div>';
-  overlay.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:24px;width:420px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column">
-    <h3 style="margin:0 0 12px">Notes</h3>
-    <div style="flex:1;overflow-y:auto;margin-bottom:12px">${noteItems}</div>
-    <form id="note-form" style="display:flex;gap:8px">
-      <textarea name="content" rows="2" placeholder="Add a note…" required style="flex:1;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text)"></textarea>
-      <button type="submit" class="btn-primary" style="align-self:flex-end">Add</button>
+  const noteItems = notes.map(n => `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text-dim);font-size:10px">${esc(n.created_at||'')}</span><div style="margin-top:2px">${esc(n.content||'')}</div></div>`).join('') || '<div style="color:var(--text-dim);font-size:12px">No notes yet.</div>';
+  overlay.innerHTML = `<div class="widget" style="width:440px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(0,229,255,0.1)">
+    <div class="widget-header"><span class="widget-title">Notes</span><span style="cursor:pointer;color:var(--red);font-size:16px" onclick="document.getElementById('note-modal-overlay').remove()">✕</span></div>
+    <div class="widget-body" style="flex:1;overflow-y:auto">${noteItems}</div>
+    <form id="note-form" style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border)">
+      <textarea name="content" rows="2" placeholder="Add a note…" required class="modal-input" style="flex:1"></textarea>
+      <button type="submit" class="widget-action-btn" style="align-self:flex-end;background:rgba(0,229,255,0.15)">Add</button>
     </form>
-    <button type="button" style="margin-top:8px" onclick="document.getElementById('note-modal-overlay').remove()">Close</button>
   </div>`;
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
@@ -218,15 +200,17 @@ function renderIdeaJarWidget() {
   fetchIdeas({ status: 'active' }).then(ideas => {
     const cnt = document.getElementById('ideajar-count');
     if (cnt) cnt.textContent = ideas.length;
-    const topIdeas = ideas.slice(0, 3).map(i =>
-      `<div class="idea-card" style="margin-bottom:6px;padding:8px 10px" data-priority="${i.priority || ''}" onclick="showDashboardSection('dashboard-ideajar-section');setTimeout(()=>openIdeaModal(${i.id}),200)">
-        <div class="idea-card-header"><span class="idea-card-title">${esc(i.title)}</span>${i.priority ? `<span class="idea-priority-badge" data-priority="${i.priority}">${i.priority}</span>` : ''}</div>
-      </div>`
-    ).join('');
+    const topIdeas = ideas.slice(0, 3).map(i => {
+      const priC = { P0: 'var(--red)', P1: 'var(--gold)', P2: 'var(--cyan)', P3: 'var(--text-dim)' }[i.priority] || 'var(--text-dim)';
+      return `<div class="mission-plan" style="border-left:3px solid ${priC};margin-bottom:6px;padding:8px 10px" onclick="showDashboardSection('dashboard-ideajar-section');setTimeout(()=>openIdeaModal(${i.id}),200)">
+        <span style="font-weight:600;font-size:12px">${esc(i.title)}</span>
+        ${i.priority ? `<span class="badge" style="background:${priC}22;color:${priC};margin-left:6px">${i.priority}</span>` : ''}
+      </div>`;
+    }).join('');
     el.innerHTML = `<div style="cursor:pointer" onclick="showDashboardSection('dashboard-ideajar-section')">
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
-        <span style="color:var(--gold);font-size:22px;font-weight:700">${ideas.length}</span>
-        <span style="color:var(--text-dim);font-size:12px">active ideas</span>
+        <span style="color:var(--gold);font-family:var(--font-display);font-size:24px;font-weight:700">${ideas.length}</span>
+        <span style="color:var(--text-dim);font-size:11px;letter-spacing:1px;text-transform:uppercase">active ideas</span>
       </div>
       ${topIdeas || '<div style="color:var(--text-dim);font-size:12px">No ideas yet — press ⌘I</div>'}
     </div>`;
@@ -239,30 +223,7 @@ function _isInputFocused() { const el = document.activeElement; return el && (el
 document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'i' && !_isInputFocused()) {
     e.preventDefault();
-    const overlay = document.createElement('div');
-    overlay.id = 'idea-quick-overlay';
-    overlay.className = 'modal-overlay';
-    overlay.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:24px;width:400px;max-width:95vw">
-      <h3 style="margin:0 0 16px">Quick Idea</h3>
-      <form id="idea-quick-form">
-        <input name="title" required placeholder="Title *" autofocus style="display:block;width:100%;margin-bottom:10px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box">
-        <textarea name="description" rows="3" placeholder="Description" style="display:block;width:100%;margin-bottom:12px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box"></textarea>
-        <div style="display:flex;justify-content:flex-end;gap:8px">
-          <button type="button" onclick="document.getElementById('idea-quick-overlay').remove()">Cancel</button>
-          <button type="submit" class="btn-primary">Save</button>
-        </div>
-      </form></div>`;
-    const prev = document.getElementById('idea-quick-overlay');
-    if (prev) prev.remove();
-    document.body.appendChild(overlay);
-    overlay.addEventListener('click', ev => { if (ev.target === overlay) overlay.remove(); });
-    overlay.querySelector('#idea-quick-form').addEventListener('submit', async ev => {
-      ev.preventDefault();
-      const fd = new FormData(ev.target);
-      await saveIdea(null, { title: fd.get('title'), description: fd.get('description') });
-      overlay.remove();
-    });
-    setTimeout(() => overlay.querySelector('input[name=title]')?.focus(), 50);
+    openIdeaModal();
   }
 });
 

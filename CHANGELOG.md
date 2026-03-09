@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.8.2] - 09 Mar 2026
+
+### Fixed
+- unify Idea Jar and modals with shared widget system
+
+
 ## [v11.8.1] - 09 Mar 2026
 
 ### Fixed

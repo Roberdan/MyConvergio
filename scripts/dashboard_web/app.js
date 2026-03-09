@@ -244,17 +244,19 @@ async function openNewProjectModal() {
   const overlay = document.createElement('div');
   overlay.id = 'new-project-overlay';
   overlay.className = 'modal-overlay';
-  overlay.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:24px;width:420px;max-width:95vw">
-    <h3 style="margin:0 0 16px;color:var(--text)">New Project</h3>
-    <form id="new-project-form">
-      <label style="display:block;margin-bottom:10px;font-size:12px;color:var(--text-dim)">Name *<input name="name" required style="display:block;width:100%;margin-top:4px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box;font-family:inherit"></label>
-      <label style="display:block;margin-bottom:10px;font-size:12px;color:var(--text-dim)">Description<textarea name="description" rows="3" style="display:block;width:100%;margin-top:4px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box;font-family:inherit"></textarea></label>
-      <label style="display:block;margin-bottom:12px;font-size:12px;color:var(--text-dim)">Repository<input name="repo" placeholder="owner/repo" style="display:block;width:100%;margin-top:4px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);box-sizing:border-box;font-family:inherit"></label>
-      <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button type="button" class="idea-action-btn" style="opacity:1" onclick="document.getElementById('new-project-overlay').remove()">Cancel</button>
-        <button type="submit" class="idea-action-btn" style="opacity:1;background:rgba(0,229,255,0.15)">Create</button>
+  const _f = (label, content) => `<label class="modal-field"><span class="modal-field-label">${label}</span>${content}</label>`;
+  overlay.innerHTML = `<div class="widget" style="width:420px;max-width:95vw;box-shadow:0 0 60px rgba(0,229,255,0.1)">
+    <div class="widget-header"><span class="widget-title">New Project</span><span style="cursor:pointer;color:var(--red);font-size:16px" onclick="document.getElementById('new-project-overlay').remove()">✕</span></div>
+    <div class="widget-body">
+    <form id="new-project-form" style="display:flex;flex-direction:column;gap:10px">
+      ${_f('Name *', '<input name="name" required class="modal-input">')}
+      ${_f('Description', '<textarea name="description" rows="3" class="modal-input"></textarea>')}
+      ${_f('Repository', '<input name="repo" placeholder="owner/repo" class="modal-input">')}
+      <div style="display:flex;justify-content:flex-end;gap:6px;padding-top:8px;border-top:1px solid var(--border)">
+        <button type="button" class="widget-action-btn" onclick="document.getElementById('new-project-overlay').remove()">Cancel</button>
+        <button type="submit" class="widget-action-btn" style="background:rgba(0,229,255,0.15)">Create</button>
       </div>
-    </form></div>`;
+    </form></div></div>`;
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   overlay.querySelector('#new-project-form').addEventListener('submit', async e => {

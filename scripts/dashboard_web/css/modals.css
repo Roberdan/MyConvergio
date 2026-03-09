@@ -48,6 +48,31 @@
   word-break: break-all;
 }
 
+/* Shared form inputs for modals */
+.modal-input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.modal-input:focus { border-color: var(--cyan); }
+.modal-field { display: block; flex: 1; }
+.modal-field-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
 /* KPI modal overlay */
 .kpi-modal-overlay {
   position: fixed;

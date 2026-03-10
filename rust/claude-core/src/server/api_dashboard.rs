@@ -80,17 +80,21 @@ async fn api_overview(State(state): State<ServerState>) -> Result<Json<Value>, A
     )?
     .unwrap_or_else(|| json!({}));
 
-    let (today_lines, week_lines) = today_lines_changed();
+    let (today_lines, week_lines, yesterday_lines, prev_week_lines) = today_lines_changed();
+    let agents_today = agents_today_count();
 
     let mut result = row;
     if let Some(obj) = result.as_object_mut() {
         obj.insert("today_lines_changed".to_string(), json!(today_lines));
         obj.insert("week_lines_changed".to_string(), json!(week_lines));
+        obj.insert("yesterday_lines_changed".to_string(), json!(yesterday_lines));
+        obj.insert("prev_week_lines_changed".to_string(), json!(prev_week_lines));
+        obj.insert("agents_today".to_string(), json!(agents_today));
     }
     Ok(Json(result))
 }
 
-fn today_lines_changed() -> (i64, i64) {
+fn today_lines_changed() -> (i64, i64, i64, i64) {
     let home = env::var("HOME").unwrap_or_else(|_| "/tmp".into());
     let mut repos = vec![format!("{home}/.claude")];
     if let Ok(conn) = rusqlite::Connection::open(format!("{home}/.claude/data/dashboard.db")) {
@@ -106,11 +110,23 @@ fn today_lines_changed() -> (i64, i64) {
     }
     let mut today: i64 = 0;
     let mut week: i64 = 0;
+    let mut yesterday: i64 = 0;
+    let mut prev_week: i64 = 0;
     for repo in &repos {
-        for (since, is_today) in [("midnight", true), ("1 week ago", false)] {
-            let out = Command::new("git")
-                .args(["-C", repo, "log", &format!("--since={since}"), "--shortstat", "--format="])
-                .output();
+        let periods: &[(&str, Option<&str>, usize)] = &[
+            ("midnight", None, 0),          // today
+            ("1 week ago", None, 1),         // this week
+            ("1 day ago", Some("midnight"), 2), // yesterday only
+            ("2 weeks ago", Some("1 week ago"), 3), // prev week
+        ];
+        for &(since, until, idx) in periods {
+            let since_flag = format!("--since={since}");
+            let until_flag = format!("--until={}", until.unwrap_or(""));
+            let mut args = vec!["-C", repo, "log", "--all", &since_flag, "--shortstat", "--format="];
+            if until.is_some() {
+                args.push(&until_flag);
+            }
+            let out = Command::new("git").args(&args).output();
             if let Ok(o) = out {
                 if o.status.success() {
                     let text = String::from_utf8_lossy(&o.stdout);
@@ -125,12 +141,30 @@ fn today_lines_changed() -> (i64, i64) {
                             }
                         }
                     }
-                    if is_today { today += sub; } else { week += sub; }
+                    match idx {
+                        0 => today += sub,
+                        1 => week += sub,
+                        2 => yesterday += sub,
+                        3 => prev_week += sub,
+                        _ => {}
+                    }
                 }
             }
         }
     }
-    (today, week)
+    (today, week, yesterday, prev_week)
+}
+
+fn agents_today_count() -> i64 {
+    let home = env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+    if let Ok(conn) = rusqlite::Connection::open(format!("{home}/.claude/data/dashboard.db")) {
+        if let Ok(mut stmt) = conn.prepare("SELECT COUNT(*) FROM agent_runs WHERE date(started_at)=date('now')") {
+            if let Ok(count) = stmt.query_row([], |r| r.get::<_, i64>(0)) {
+                return count;
+            }
+        }
+    }
+    0
 }
 
 async fn api_mission(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.28.0] - 10 Mar 2026
+
+### Added
+- KPI deltas, color fix, agents today
+
+
 ## [v11.27.0] - 10 Mar 2026
 
 ### Added

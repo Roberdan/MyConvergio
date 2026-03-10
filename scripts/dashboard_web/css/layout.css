@@ -216,9 +216,7 @@
 .kpi-card:nth-child(5) .kpi-value {
   color: var(--gold);
 }
-.kpi-card:nth-child(6) .kpi-value {
-  color: var(--text-dim);
-}
+
 .kpi-card.alert .kpi-value {
   color: var(--red);
 }
@@ -230,16 +228,20 @@
 
 .dash-columns {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 33% calc(67% - 16px);
   gap: 16px;
   padding: 0 24px 16px;
   align-items: start;
+  overflow: hidden;
 }
 .dash-col-left,
 .dash-col-right {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .grid-2 {
   display: grid;

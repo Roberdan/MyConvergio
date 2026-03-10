@@ -239,6 +239,7 @@ function _initMeshFlow() {
   let lastSpawn = 0;
   function animate(ts) {
     if (!document.getElementById('mesh-flow-cvs')) return;
+    if (document.hidden) { _meshFlowRAF = requestAnimationFrame(animate); return; }
     if (cvs.width !== hub.offsetWidth || cvs.height !== hub.offsetHeight) {
       cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
     }
@@ -366,6 +367,7 @@ function scheduleReconnect() {
   );
 }
 function connectDashboardWs() {
+  if (ws) { ws.onclose = null; ws.onerror = null; ws.close(); ws = null; }
   try {
     ws = new WebSocket(wsUrl());
   } catch {

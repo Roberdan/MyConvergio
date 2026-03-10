@@ -167,6 +167,7 @@
 
   /** Animation loop for one instance. */
   function animLoop(inst) {
+    if (document.hidden) { inst.rafId = requestAnimationFrame(function () { animLoop(inst); }); return; }
     var now = performance.now();
     var ctx = inst.ctx;
     var canvas = inst.canvas;

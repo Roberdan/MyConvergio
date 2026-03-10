@@ -1,11 +1,18 @@
 /**
  * Mesh Network Canvas — animation and drawing logic.
  */
+let _meshAnimPaused = false;
 
 function animateMesh() {
+  if (_meshAnimPaused) return;
   drawMesh();
   animFrame = requestAnimationFrame(animateMesh);
 }
+
+document.addEventListener('visibilitychange', () => {
+  _meshAnimPaused = document.hidden;
+  if (!_meshAnimPaused && !animFrame) animFrame = requestAnimationFrame(animateMesh);
+});
 
 function drawMesh() {
   if (!meshCtx || !meshCanvas) return;

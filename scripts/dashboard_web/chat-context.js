@@ -196,7 +196,7 @@
 
   function boot() {
     ensureRoot();
-    setInterval(refresh, 900);
+    setInterval(refresh, 5000);
     refresh();
     window.chatContext = { renderRequirements, renderPlanViz, refresh };
   }

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.30.1] - 10 Mar 2026
+
+### Changed
+- pause animations when tab hidden, fix polling
+
+
 ## [v11.30.0] - 10 Mar 2026
 
 ### Added

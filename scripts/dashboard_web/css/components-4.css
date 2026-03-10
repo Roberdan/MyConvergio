@@ -65,9 +65,30 @@
 #refresh-label {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--text-dim);
-  min-width: 28px;
+  min-width: 42px;
   text-align: center;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: all 0.2s;
+}
+.refresh-label-manual {
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.refresh-label-auto {
+  color: #00e5ff;
+  background: rgba(0,229,255,0.1);
+  border: 1px solid rgba(0,229,255,0.3);
+  animation: auto-pulse 2s ease-in-out infinite;
+}
+@keyframes auto-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.refresh-manual-btn {
+  font-size: 14px !important;
+  width: 24px !important;
 }
 
 /* Theme switcher */

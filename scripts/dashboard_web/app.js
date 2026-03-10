@@ -167,16 +167,20 @@ function applyZoom(z) {
 }
 window.dashZoom = (dir) => (dir === 0 ? applyZoom(100) : applyZoom(state.currentZoom + dir * ZOOM_STEP));
 
-const REFRESH_STEPS = [0.5, 1, 2, 5, 10, 15, 30, 60, 120];
-state.refreshIdx = REFRESH_STEPS.indexOf(parseInt(localStorage.getItem("dashRefresh") || "5", 10));
-if (state.refreshIdx === -1) state.refreshIdx = 3; // default to 5s
+const REFRESH_STEPS = [0, 1, 2, 5, 10, 15, 30, 60, 120]; // 0 = manual
+state.refreshIdx = REFRESH_STEPS.indexOf(parseInt(localStorage.getItem("dashRefresh") || "0", 10));
+if (state.refreshIdx === -1) state.refreshIdx = 0; // default to manual
 function applyRefresh() {
   const sec = REFRESH_STEPS[state.refreshIdx];
   localStorage.setItem("dashRefresh", String(sec));
   const label = document.getElementById("refresh-label");
-  if (label) label.textContent = sec < 60 ? `${sec}s` : `${sec / 60}m`;
-  if (state.refreshTimer) clearInterval(state.refreshTimer);
-  state.refreshTimer = setInterval(refreshAll, sec * 1000);
+  if (state.refreshTimer) { clearInterval(state.refreshTimer); state.refreshTimer = null; }
+  if (sec === 0) {
+    if (label) { label.textContent = "Manual"; label.className = "refresh-label-manual"; }
+  } else {
+    if (label) { label.textContent = sec < 60 ? `${sec}s` : `${sec / 60}m`; label.className = "refresh-label-auto"; }
+    state.refreshTimer = setInterval(refreshAll, sec * 1000);
+  }
 }
 window.changeRefresh = (dir) => {
   state.refreshIdx = Math.max(0, Math.min(REFRESH_STEPS.length - 1, state.refreshIdx + dir));

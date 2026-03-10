@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.31.0] - 10 Mar 2026
+
+### Added
+- manual refresh default + auto/manual toggle
+
+
 ## [v11.30.1] - 10 Mar 2026
 
 ### Changed

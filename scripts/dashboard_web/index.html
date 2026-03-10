@@ -70,9 +70,10 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
     </div>
     <div class="header-controls">
       <div class="refresh-stepper">
-        <button class="stepper-btn" onclick="changeRefresh(-1)" title="Decrease">&#x25C0;</button>
-        <span id="refresh-label">30s</span>
-        <button class="stepper-btn" onclick="changeRefresh(1)" title="Increase">&#x25B6;</button>
+        <button class="stepper-btn refresh-manual-btn" onclick="refreshAll()" title="Refresh now">⟳</button>
+        <button class="stepper-btn" onclick="changeRefresh(-1)" title="Slower / Manual">◀</button>
+        <span id="refresh-label" class="refresh-label-manual">Manual</span>
+        <button class="stepper-btn" onclick="changeRefresh(1)" title="Faster / Auto">▶</button>
       </div>
       <button class="header-ctrl-btn" onclick="dashZoom(-1)" title="Zoom out">−</button>
       <span class="zoom-level" id="zoom-level">100%</span>

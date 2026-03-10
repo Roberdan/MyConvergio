@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.29.5] - 10 Mar 2026
+
+### Changed
+- fix hot loop - delta sync 2s interval (was 10ms)
+
+
 ## [v11.29.4] - 10 Mar 2026
 
 ### Changed

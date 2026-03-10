@@ -148,7 +148,7 @@ fn spawn_delta_loop(
     config: DaemonConfig,
 ) {
     tokio::spawn(async move {
-        let mut ticker = tokio::time::interval(Duration::from_millis(10));
+        let mut ticker = tokio::time::interval(Duration::from_secs(2));
         let mut db_cursor = 0_i64;
         let mut batch_window = sync::SyncBatchWindow::new(50);
         let mut staged_changes = Vec::new();

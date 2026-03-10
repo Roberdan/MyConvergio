@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=1773145813">
 <link rel="stylesheet" href="themes.css">
 <link rel="stylesheet" href="brain-styles.css?v=1773070404">
 <link rel="stylesheet" href="css/chat.css">
@@ -91,8 +91,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 
 <!-- Two-column dashboard layout -->
 <section id="dashboard-main-section" class="dashboard-section">
-<div class="dash-columns">
-  <div class="dash-col-left">
+<div class="dash-columns" style="display:grid;grid-template-columns:33% 1fr;gap:16px;padding:0 24px 16px;align-items:start;overflow:hidden;">
+  <div class="dash-col-left" style="min-width:0;overflow:hidden;">
     <div class="widget" id="mission-panel">
       <div class="widget-header"><span class="widget-title">Active Missions</span></div>
       <div class="widget-body" id="mission-content"><span style="color:var(--text-dim)">Loading...</span></div>
@@ -153,7 +153,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
       <div class="widget-body" id="ideajar-mini-jar" style="min-height:180px"></div>
     </div>
   </div>
-  <div class="dash-col-right">
+  <div class="dash-col-right" style="min-width:0;overflow:hidden;">
     <div class="widget" id="mesh-panel">
       <div class="widget-header">
         <span class="widget-title">Mesh Network</span>
@@ -165,6 +165,9 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
           <span class="legend-item"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--red);vertical-align:middle"></span>Down</span>
           <button class="mesh-toolbar-btn" onclick="showPeerForm('create')" title="Add Peer">+ Add Peer</button>
           <button class="mesh-toolbar-btn" onclick="showDiscoverOverlay()" title="Discover"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg> Discover</button>
+          <button class="mesh-toolbar-btn" onclick="meshAction('fullsync','__all__')" title="Full Sync">⟳ Full Sync</button>
+          <button class="mesh-toolbar-btn" onclick="meshAction('sync','__all__')" title="Push">↑ Push</button>
+          <span class="mesh-count" id="mesh-online-count"></span>
         </div>
         <div class="widget-actions" id="mesh-actions-bar"></div>
       </div>
@@ -290,7 +293,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 <script src="utils.js"></script>
 <script src="formatters.js"></script>
 <script src="kpi.js?v=2"></script>
-<script src="mission.js?v=2"></script>
+<script src="mission.js?v=1773145813"></script>
 <script src="mission-details.js"></script>
 <script src="org-chart.js?v=1772974473"></script>
 <script src="live-system.js?v=1772974473"></script>
@@ -302,7 +305,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 <script src="nightly-jobs-detail.js?v=1773074987"></script>
 <script src="nightly-jobs.js?v=1773074987"></script>
 <script src="kpi-modals.js"></script>
-<script src="websocket.js"></script>
+<script src="brain-canvas.js?v=1773143652"></script>
+<script src="websocket.js?v=1773145813"></script>
 <script src="brain-regions.js?v=1773068775"></script>
 <script src="brain-organism.js?v=1773068775"></script>
 <script src="brain-sessions.js?v=1773068775"></script>
@@ -310,10 +314,9 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 <script src="brain-effects.js?v=1773068775"></script>
 <script src="brain-layout.js?v=1773068775"></script>
 <script src="brain-interact.js?v=1773068775"></script>
-<script src="brain-canvas.js?v=1773139841"></script>
-<script src="app.js?v=1773138805"></script>
-<script src="mesh.js"></script>
-<script src="mesh-animation.js"></script>
+<script src="app.js?v=1773142703"></script>
+<script src="mesh.js?v=1773142651"></script>
+<script src="mesh-animation.js?v=1773142651"></script>
 <script src="mesh-actions.js"></script>
 <script src="mesh-delegate.js"></script>
 <script src="mesh-preflight.js"></script>

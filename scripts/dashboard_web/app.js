@@ -168,8 +168,8 @@ function applyZoom(z) {
 window.dashZoom = (dir) => (dir === 0 ? applyZoom(100) : applyZoom(state.currentZoom + dir * ZOOM_STEP));
 
 const REFRESH_STEPS = [0.5, 1, 2, 5, 10, 15, 30, 60, 120];
-state.refreshIdx = REFRESH_STEPS.indexOf(parseInt(localStorage.getItem("dashRefresh") || "30", 10));
-if (state.refreshIdx === -1) state.refreshIdx = 2;
+state.refreshIdx = REFRESH_STEPS.indexOf(parseInt(localStorage.getItem("dashRefresh") || "5", 10));
+if (state.refreshIdx === -1) state.refreshIdx = 3; // default to 5s
 function applyRefresh() {
   const sec = REFRESH_STEPS[state.refreshIdx];
   localStorage.setItem("dashRefresh", String(sec));

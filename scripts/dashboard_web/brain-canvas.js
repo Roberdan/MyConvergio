@@ -6,18 +6,38 @@
     claude: { h: 35, core: '#ffb020', glow: 'rgba(255,176,32,', ring: '#ffd06088' },
     copilot: { h: 210, core: '#20a0ff', glow: 'rgba(32,160,255,', ring: '#60c0ff88' },
     sub: { core: '#00e5ff', glow: 'rgba(0,229,255,' },
-    plan: { core: '#00ff88', glow: 'rgba(0,255,136,' },
-    task: { core: '#ffd700', glow: 'rgba(255,215,0,' },
     synapse: 'rgba(0,229,255,', green: '#00ff88', dim: '#2a3456'
   };
-  // Mesh node color palette — each node gets a distinct hue
-  const MESH_PAL = {
-    m3max:   { core: '#00e5ff', glow: 'rgba(0,229,255,',   ring: '#00e5ff88', label: 'm3max' },
-    omarchy: { core: '#ff6b9d', glow: 'rgba(255,107,157,', ring: '#ff6b9d88', label: 'omarchy' },
-    m1mario: { core: '#a78bfa', glow: 'rgba(167,139,250,', ring: '#a78bfa88', label: 'm1mario' },
-    _default:{ core: '#ffd700', glow: 'rgba(255,215,0,',   ring: '#ffd70088', label: '?' },
-  };
-  function meshPal(host) { return MESH_PAL[host] || MESH_PAL._default; }
+
+  // Hash-based color generator — same name always produces same color
+  const _meshColorCache = {};
+  // Deterministic vivid colors — hash-seeded with high hue separation
+  function meshColor(name) {
+    if (!name) name = '?';
+    if (_meshColorCache[name]) return _meshColorCache[name];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+    // Use golden ratio to spread hues maximally from hash seed
+    const hue = ((Math.abs(hash) * 137.508) % 360);
+    const sat = 82;
+    const lit = 62;
+    const core = `hsl(${hue},${sat}%,${lit}%)`;
+    // Pre-compute rgba prefix for glow (approximate from HSL)
+    const c = hslToRgb(hue, sat, lit);
+    const glow = `rgba(${c[0]},${c[1]},${c[2]},`;
+    const ring = `rgba(${c[0]},${c[1]},${c[2]},0.5)`;
+    _meshColorCache[name] = { core, glow, ring, hue, label: name };
+    return _meshColorCache[name];
+  }
+  function hslToRgb(h, s, l) {
+    s /= 100; l /= 100;
+    const k = n => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+    return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+  }
+  // Export for mesh panel to use the same colors
+  window.brainMeshColor = meshColor;
 
   /* ─── Node / Edge state ─── */
   class Neuron {
@@ -33,9 +53,8 @@
       this.fireT = 0;
     }
     get pal() {
-      if ((this.type === 'plan' || this.type === 'task') && this.meta.executor_host) return meshPal(this.meta.executor_host);
-      if (this.type === 'plan') return PAL.plan;
-      if (this.type === 'task') return PAL.task;
+      if ((this.type === 'plan' || this.type === 'task') && this.meta.executor_host) return meshColor(this.meta.executor_host);
+      if (this.type === 'plan' || this.type === 'task') return meshColor(this.meta.executor_host || '?');
       return PAL[this.tool] || PAL.claude;
     }
     fire() { this.fireT = performance.now(); }
@@ -44,11 +63,19 @@
     constructor(from, to) {
       this.from = from; this.to = to;
       this.particles = []; this.lastFire = 0; this.strength = 0.3;
+      this.flowRate = 0; // 0=dormant, 1=max flow (continuous particles)
     }
     fire() {
       this.lastFire = performance.now();
-      for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) {
-        this.particles.push({ t: 0, speed: 0.3 + Math.random() * 0.6, size: 1 + Math.random() * 2 });
+      for (let i = 0; i < 3 + Math.floor(Math.random() * 4); i++) {
+        this.particles.push({ t: 0, speed: 0.2 + Math.random() * 0.5, size: 1.5 + Math.random() * 2.5, trail: [] });
+      }
+    }
+    // Continuous flow — spawns particles at a rate
+    flow(rate) {
+      this.flowRate = rate;
+      if (rate > 0 && Math.random() < rate * 0.08) {
+        this.particles.push({ t: 0, speed: 0.15 + Math.random() * 0.35, size: 1 + Math.random() * 2, trail: [] });
       }
     }
   }
@@ -62,27 +89,46 @@
     hover: null, mouse: { x: -1, y: -1 }
   };
 
+  /* ─── Scale factor — adapts all sizes to canvas area ─── */
+   function scaleFactor() {
+    const area = S.w * S.h;
+    const refArea = 480 * 800; // widget reference size
+    return Math.sqrt(area / refArea);
+  }
+  // Dampened scale for fonts — grows much slower than node sizes
+  function fontScale() {
+    const sf = scaleFactor();
+    return Math.max(0.7, Math.min(1.4, Math.pow(sf, 0.35)));
+  }
+
   /* ─── Force-directed layout ─── */
   function applyForces() {
     const nodes = [...S.neurons.values()].filter(n => !n.dying);
     const cx = S.w / 2, cy = S.h / 2;
-    const k = 90;
+    const sf = scaleFactor();
+    // Adaptive k — shrink repulsion when many nodes to fit within canvas
+    const nodeCount = nodes.length;
+    const densityFactor = nodeCount > 40 ? Math.max(0.4, 40 / nodeCount) : 1;
+    const k = 90 * sf * densityFactor;
+    // Elliptical spread — use BOTH dimensions, not just the smaller one
+    const spreadX = S.w * 0.38;
+    const spreadY = S.h * 0.38;
 
     for (const n of nodes) {
-      // Strong gravity toward center (proportional to distance)
+      // Elliptical gravity — normalized distance to center ellipse
       const dx = cx - n.x, dy = cy - n.y;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      const grav = 0.003 + (dist > S.w * 0.35 ? 0.008 : 0);
+      const normDist = Math.sqrt((dx * dx) / (spreadX * spreadX) + (dy * dy) / (spreadY * spreadY));
+      const grav = normDist > 1 ? 0.01 : 0.0015;
       n.vx += dx * grav;
       n.vy += dy * grav;
 
-      // Repulsion — only between nearby nodes, softer force
+      // Repulsion
       for (const m of nodes) {
         if (m === n) continue;
         const rx = n.x - m.x, ry = n.y - m.y;
         const d = Math.sqrt(rx * rx + ry * ry) || 1;
-        if (d < k * 2) {
-          const f = (k * k) / (d * d) * 0.25;
+        if (d < k * 3.5) {
+          const f = (k * k) / (d * d) * 0.5;
           n.vx += (rx / d) * f;
           n.vy += (ry / d) * f;
         }
@@ -94,24 +140,24 @@
       if (!a || !b) continue;
       const dx = b.x - a.x, dy = b.y - a.y;
       const d = Math.sqrt(dx * dx + dy * dy) || 1;
-      const ideal = (a.type === 'session' && b.type === 'session') ? k * 1.8 : k * 0.9;
-      const f = (d - ideal) * 0.003;
+      const ideal = (a.type === 'session' && b.type === 'session') ? k * 2.2 : k * 1.4;
+      const f = (d - ideal) * 0.002;
       const fx = (dx / d) * f, fy = (dy / d) * f;
       a.vx += fx; a.vy += fy;
       b.vx -= fx; b.vy -= fy;
     }
-    // Integrate with damping + soft bounds
+    // Integrate with damping + hard bounds
+    const sf2 = scaleFactor();
     for (const n of nodes) {
-      n.vx *= 0.85; n.vy *= 0.85;
+      n.vx *= 0.82; n.vy *= 0.82;
       n.x += n.vx; n.y += n.vy;
-      // Soft boundary — push back if near edges
-      const pad = 60;
-      if (n.x < pad) n.vx += (pad - n.x) * 0.05;
-      if (n.x > S.w - pad) n.vx -= (n.x - (S.w - pad)) * 0.05;
-      if (n.y < pad) n.vy += (pad - n.y) * 0.05;
-      if (n.y > S.h - pad) n.vy -= (n.y - (S.h - pad)) * 0.05;
-      n.x = Math.max(20, Math.min(S.w - 20, n.x));
-      n.y = Math.max(20, Math.min(S.h - 20, n.y));
+      const margin = Math.max(20, n.radius * sf2 + 15);
+      const xMin = margin, xMax = S.w - margin;
+      const yMin = margin, yMax = S.h - margin;
+      if (n.x < xMin) { n.vx += (xMin - n.x) * 0.3; n.x = xMin; }
+      if (n.x > xMax) { n.vx -= (n.x - xMax) * 0.3; n.x = xMax; }
+      if (n.y < yMin) { n.vy += (yMin - n.y) * 0.3; n.y = yMin; }
+      if (n.y > yMax) { n.vy -= (n.y - yMax) * 0.3; n.y = yMax; }
     }
   }
 
@@ -125,22 +171,65 @@
   function drawSynapses(c, ts) {
     for (const syn of S.synapses) {
       const a = S.neurons.get(syn.from), b = S.neurons.get(syn.to);
-      if (!a || !b) continue;
+      if (!a || !b || a.scale < 0.1 || b.scale < 0.1) continue;
+
+      // Determine flow state from connected neurons
+      const aActive = a.meta.status === 'in_progress' || a.meta.status === 'submitted';
+      const bActive = b.meta.status === 'in_progress' || b.meta.status === 'submitted';
+      const aDone = a.meta.status === 'done';
+      const bDone = b.meta.status === 'done';
+      const anyActive = aActive || bActive;
+      const bothDone = aDone && bDone;
+
+      // Continuous flow for active connections
+      if (anyActive) syn.flow(aActive && bActive ? 1.0 : 0.6);
+      else if (bothDone) syn.flow(0.1); // gentle trickle for completed
+      else syn.flow(0);
+
       const age = ts - syn.lastFire;
-      const glow = age < 800 ? 1 - age / 800 : 0;
-      const baseAlpha = 0.06 + syn.strength * 0.1 + glow * 0.3;
+      const fireGlow = age < 1200 ? 1 - age / 1200 : 0;
 
-      // Curved synapse
-      const mx = (a.x + b.x) / 2 + (a.y - b.y) * 0.12;
-      const my = (a.y + b.y) / 2 - (a.x - b.x) * 0.12;
+      // Synapse color — blend from source node color
+      const srcPal = a.pal;
+      const baseAlpha = anyActive ? 0.2 + fireGlow * 0.4
+        : bothDone ? 0.12
+        : 0.04 + syn.strength * 0.06 + fireGlow * 0.3;
 
+      // Curved path
+      const curvature = 0.1 + (anyActive ? 0.05 * Math.sin(ts * 0.001) : 0);
+      const mx = (a.x + b.x) / 2 + (a.y - b.y) * curvature;
+      const my = (a.y + b.y) / 2 - (a.x - b.x) * curvature;
+
+      // Draw main line — use source node color
       c.beginPath(); c.moveTo(a.x, a.y); c.quadraticCurveTo(mx, my, b.x, b.y);
-      c.strokeStyle = `${PAL.synapse}${baseAlpha.toFixed(3)})`;
-      c.lineWidth = 0.8 + glow * 2;
-      if (glow > 0) { c.shadowBlur = 8; c.shadowColor = `${PAL.synapse}${(glow * 0.5).toFixed(2)})`; }
+      const lineWidth = anyActive ? 1.5 + fireGlow * 2.5 : bothDone ? 0.8 : 0.5;
+      c.lineWidth = lineWidth;
+
+      if (anyActive || fireGlow > 0) {
+        // Gradient along synapse — source color to dest color
+        const grad = c.createLinearGradient(a.x, a.y, b.x, b.y);
+        grad.addColorStop(0, `${srcPal.glow}${baseAlpha.toFixed(3)})`);
+        grad.addColorStop(1, `${b.pal.glow}${(baseAlpha * 0.6).toFixed(3)})`);
+        c.strokeStyle = grad;
+        c.shadowBlur = 6 + fireGlow * 12;
+        c.shadowColor = `${srcPal.glow}${(fireGlow * 0.4).toFixed(2)})`;
+      } else {
+        c.strokeStyle = `${srcPal.glow}${baseAlpha.toFixed(3)})`;
+        c.shadowBlur = 0;
+      }
       c.stroke(); c.shadowBlur = 0;
 
-      // Particles along synapse
+      // Pulsing glow ring at midpoint for active connections
+      if (anyActive && Math.sin(ts * 0.003 + syn.strength * 10) > 0.3) {
+        const pulseR = 2 + Math.sin(ts * 0.005) * 1.5;
+        c.save(); c.globalAlpha = 0.3 + fireGlow * 0.4;
+        c.fillStyle = srcPal.core;
+        c.shadowBlur = 8; c.shadowColor = srcPal.core;
+        c.beginPath(); c.arc(mx, my, pulseR, 0, PI2); c.fill();
+        c.restore();
+      }
+
+      // Particles — with trails
       for (let i = syn.particles.length - 1; i >= 0; i--) {
         const p = syn.particles[i];
         p.t += p.speed * 0.016;
@@ -148,9 +237,31 @@
         const u = 1 - p.t;
         const px = u * u * a.x + 2 * u * p.t * mx + p.t * p.t * b.x;
         const py = u * u * a.y + 2 * u * p.t * my + p.t * p.t * b.y;
-        const alpha = p.t > 0.8 ? (1 - p.t) / 0.2 : 0.9;
+
+        // Store trail positions
+        p.trail.push({ x: px, y: py });
+        if (p.trail.length > 6) p.trail.shift();
+
+        // Draw trail
+        if (p.trail.length > 1) {
+          c.save();
+          for (let t = 0; t < p.trail.length - 1; t++) {
+            const trailAlpha = (t / p.trail.length) * 0.4;
+            c.beginPath();
+            c.moveTo(p.trail[t].x, p.trail[t].y);
+            c.lineTo(p.trail[t + 1].x, p.trail[t + 1].y);
+            c.strokeStyle = `${srcPal.glow}${trailAlpha.toFixed(2)})`;
+            c.lineWidth = p.size * (t / p.trail.length) * 0.8;
+            c.stroke();
+          }
+          c.restore();
+        }
+
+        // Draw particle head
+        const alpha = p.t > 0.85 ? (1 - p.t) / 0.15 : Math.min(1, p.t / 0.1);
         c.save(); c.globalAlpha = alpha;
-        c.fillStyle = a.pal.core; c.shadowBlur = 6; c.shadowColor = a.pal.core;
+        c.fillStyle = srcPal.core;
+        c.shadowBlur = 8; c.shadowColor = srcPal.core;
         c.beginPath(); c.arc(px, py, p.size, 0, PI2); c.fill();
         c.restore();
       }
@@ -158,6 +269,7 @@
   }
 
   function drawNeurons(c, ts) {
+    const sf = scaleFactor();
     for (const [, n] of S.neurons) {
       // Animate scale
       if (n.dying) {
@@ -168,7 +280,7 @@
       }
       n.phase += 0.003;
       const pulse = 1 + 0.06 * Math.sin(n.phase * 3);
-      const r = n.radius * n.scale * pulse;
+      const r = n.radius * sf * n.scale * pulse;
       if (r < 0.5) continue;
 
       const fireAge = ts - n.fireT;
@@ -176,35 +288,38 @@
       const pal = n.pal;
 
       c.save();
-      // Outer glow
-      c.shadowBlur = 12 + fireGlow * 20;
-      c.shadowColor = `${pal.glow}${(0.3 + fireGlow * 0.5).toFixed(2)})`;
-      // Core gradient
-      const g = c.createRadialGradient(n.x - r * 0.2, n.y - r * 0.2, r * 0.1, n.x, n.y, r);
-      g.addColorStop(0, `${pal.glow}${(0.9 + fireGlow * 0.1).toFixed(2)})`);
-      g.addColorStop(0.7, `${pal.glow}0.4)`);
-      g.addColorStop(1, `${pal.glow}0.05)`);
+      // Crisp solid fill — minimal glow
+      c.shadowBlur = fireGlow > 0 ? 4 + fireGlow * 6 : 0;
+      c.shadowColor = fireGlow > 0 ? pal.core : 'transparent';
+      // Solid gradient (not washed out)
+      const g = c.createRadialGradient(n.x - r * 0.25, n.y - r * 0.25, r * 0.05, n.x, n.y, r);
+      g.addColorStop(0, `${pal.glow}0.95)`);
+      g.addColorStop(0.6, pal.core);
+      g.addColorStop(1, `${pal.glow}0.7)`);
       c.fillStyle = g;
       c.beginPath(); c.arc(n.x, n.y, r, 0, PI2); c.fill();
-      // Ring
+      // Crisp ring
       c.shadowBlur = 0;
-      c.strokeStyle = `${pal.glow}${(0.15 + fireGlow * 0.4 + 0.08 * Math.sin(n.phase * 2)).toFixed(3)})`;
-      c.lineWidth = n.type === 'session' ? 1.5 : 0.8;
-      c.beginPath(); c.arc(n.x, n.y, r + 4 + 2 * Math.sin(n.phase), 0, PI2); c.stroke();
+      c.strokeStyle = `${pal.glow}${(0.4 + fireGlow * 0.5 + 0.1 * Math.sin(n.phase * 2)).toFixed(3)})`;
+      c.lineWidth = n.type === 'session' ? 2 : 1.2;
+      c.beginPath(); c.arc(n.x, n.y, r + 2, 0, PI2); c.stroke();
       c.restore();
 
       // Label
       if (n.type === 'session') {
         const isHover = S.hover === n.id;
-        c.font = `${isHover ? 'bold ' : ''}11px "JetBrains Mono",monospace`;
+        const fsf = fontScale();
+        const fs = Math.round(11 * fsf);
+        c.font = `${isHover ? 'bold ' : ''}${fs}px "JetBrains Mono",monospace`;
         c.textAlign = 'center';
-        const ly = n.y + r + 16;
+        const ly = n.y + r + 14 * fsf;
         const lbl = n.label;
         const tw = c.measureText(lbl).width;
         c.fillStyle = `rgba(10,16,36,${isHover ? 0.85 : 0.65})`;
         c.beginPath();
-        if (c.roundRect) c.roundRect(n.x - tw / 2 - 6, ly - 9, tw + 12, 16, 4);
-        else { c.rect(n.x - tw / 2 - 6, ly - 9, tw + 12, 16); }
+        const ph = fs + 4;
+        if (c.roundRect) c.roundRect(n.x - tw / 2 - 6, ly - ph / 2 - 2, tw + 12, ph, 4);
+        else { c.rect(n.x - tw / 2 - 6, ly - ph / 2 - 2, tw + 12, ph); }
         c.fill();
         c.fillStyle = isHover ? '#fff' : '#b0c4dd';
         c.fillText(lbl, n.x, ly + 3);
@@ -212,45 +327,49 @@
           const info = [n.meta.tty, `PID ${n.meta.pid || '?'}`,
             n.meta.cpu != null ? `CPU ${n.meta.cpu}%` : '',
             n.meta.mem != null ? `MEM ${n.meta.mem}%` : ''].filter(Boolean).join(' · ');
-          c.font = '9px "JetBrains Mono",monospace';
+          c.font = `${Math.round(9 * fsf)}px "JetBrains Mono",monospace`;
           c.fillStyle = PAL.sub.core;
-          c.fillText(info, n.x, ly + 16);
+          c.fillText(info, n.x, ly + 14 * fsf);
         }
       }
       // Plan/task labels with mesh node badge
       if (n.type === 'plan' || (n.type === 'task' && (S.hover === n.id || n.meta.status === 'in_progress'))) {
         const isHover = S.hover === n.id;
         const host = n.meta.executor_host || n.meta.host || '';
-        const mp = meshPal(host);
+        const mp = meshColor(host || '?');
+        const fsf = fontScale();
         c.textAlign = 'center';
-        const ly = n.y + r + 14;
-        // Main label
-        c.font = `${isHover ? 'bold ' : ''}${n.type === 'plan' ? 10 : 9}px "JetBrains Mono",monospace`;
-        const lbl = n.label.substring(0, 28);
+        const ly = n.y + r + 10 * fsf;
+        const fs = Math.round((n.type === 'plan' ? 10 : 8) * fsf);
+        c.font = `${isHover ? 'bold ' : ''}${fs}px "JetBrains Mono",monospace`;
+        const lbl = n.label.substring(0, 22);
         const tw = c.measureText(lbl).width;
+        const ph = fs + 3;
         c.fillStyle = 'rgba(10,16,36,0.7)';
         c.beginPath();
-        if (c.roundRect) c.roundRect(n.x - tw / 2 - 6, ly - 9, tw + 12, 16, 4);
-        else c.rect(n.x - tw / 2 - 6, ly - 9, tw + 12, 16);
+        if (c.roundRect) c.roundRect(n.x - tw / 2 - 4, ly - ph / 2 - 1, tw + 8, ph, 3);
+        else c.rect(n.x - tw / 2 - 4, ly - ph / 2 - 1, tw + 8, ph);
         c.fill();
         c.fillStyle = isHover ? '#fff' : '#c8d0e8';
-        c.fillText(lbl, n.x, ly + 3);
-        // Mesh node badge below
+        c.fillText(lbl, n.x, ly + 2);
+        // Mesh node badge below — compact
         if (host) {
-          c.font = 'bold 8px "JetBrains Mono",monospace';
+          const bfs = Math.round(7 * fsf);
+          c.font = `bold ${bfs}px "JetBrains Mono",monospace`;
           const badge = host;
           const bw = c.measureText(badge).width;
-          const bx = n.x - bw / 2 - 4, by = ly + 6;
+          const bx = n.x - bw / 2 - 3, by = ly + 4 * fsf;
+          const bh = bfs + 3;
           c.fillStyle = `${mp.glow}0.25)`;
           c.beginPath();
-          if (c.roundRect) c.roundRect(bx, by, bw + 8, 12, 3);
-          else c.rect(bx, by, bw + 8, 12);
+          if (c.roundRect) c.roundRect(bx, by, bw + 6, bh, 2);
+          else c.rect(bx, by, bw + 6, bh);
           c.fill();
           c.strokeStyle = `${mp.glow}0.5)`;
           c.lineWidth = 0.5;
           c.stroke();
           c.fillStyle = mp.core;
-          c.fillText(badge, n.x, by + 9);
+          c.fillText(badge, n.x, by + bfs - 1);
         }
       }
     }
@@ -339,10 +458,13 @@
       }
     }
 
-    // Plan neurons — radius proportional to task count, colored by mesh node
+    // Plan neurons — radius proportional to sqrt(task count), colored by mesh node
     for (const plan of (S.brainData?.plans || [])) {
       const pid = `plan-${plan.id}`;
       activeIds.add(pid);
+      const tc = plan.tasks_total || 1;
+      // Dramatic sizing: sqrt scale, 14 base → up to 36 for 10+ tasks
+      const planRadius = Math.max(14, Math.min(36, 10 + Math.sqrt(tc) * 8));
       if (!S.neurons.has(pid)) {
         const pn = new Neuron(pid, 'plan', `#${plan.id} ${(plan.name || '').substring(0, 20)}`, {
           name: plan.name, status: plan.status, progress: plan.progress_pct,
@@ -350,19 +472,24 @@
           host: plan.execution_host, executor_host: plan.execution_host
         });
         pn.tool = 'claude';
-        pn.radius = Math.max(12, Math.min(28, 10 + (plan.tasks_total || 1) * 2.5));
-        pn.x = S.w / 2 + (Math.random() - 0.5) * 60;
-        pn.y = S.h / 2 + (Math.random() - 0.5) * 60;
+        pn.radius = planRadius;
+        // Distribute plans in an orbital ring around center
+        const planIdx = (S.brainData?.plans || []).indexOf(plan);
+        const totalPlans = (S.brainData?.plans || []).length;
+        const angle = (planIdx / Math.max(1, totalPlans)) * PI2 + Math.random() * 0.3;
+        const orbitX = S.w * 0.32;
+        const orbitY = S.h * 0.32;
+        pn.x = S.w / 2 + Math.cos(angle) * orbitX + (Math.random() - 0.5) * 40;
+        pn.y = S.h / 2 + Math.sin(angle) * orbitY + (Math.random() - 0.5) * 40;
         S.neurons.set(pid, pn);
       } else {
         const en = S.neurons.get(pid);
         en.meta = { name: plan.name, progress: plan.progress_pct, tasks_done: plan.tasks_done, tasks_total: plan.tasks_total, host: plan.execution_host, executor_host: plan.execution_host };
-        en.radius = Math.max(12, Math.min(28, 10 + (plan.tasks_total || 1) * 2.5));
+        en.radius = planRadius;
       }
     }
 
-    // Task neurons — radius proportional to tokens/lines, colored by executor_host
-    // Also connect same-wave tasks to each other (representing relationships)
+    // Task neurons — radius proportional to lines changed, colored by executor_host
     const waveGroups = {};
     for (const task of (S.brainData?.tasks || [])) {
       const tid = `task-${task.id}`;
@@ -371,12 +498,13 @@
       const waveKey = `${task.plan_id}-${task.wave_id || 'W0'}`;
       if (!waveGroups[waveKey]) waveGroups[waveKey] = [];
       waveGroups[waveKey].push(tid);
-      // Parse lines from output_data
       let linesAdded = 0;
       try { const od = typeof task.output_data === 'string' ? JSON.parse(task.output_data) : task.output_data; linesAdded = od?.lines_added || 0; } catch {}
-      const tokK = (task.tokens || 0) / 1000;
-      // Radius: base 4, scale by tokens (0-40k → 4-16) and lines (0-200 → 0-6)
-      const dynRadius = Math.max(4, Math.min(18, 4 + tokK * 0.3 + linesAdded * 0.03));
+      // Radius driven by lines: pending=3, active=sqrt(lines)*0.8, min 5, max 22
+      const dynRadius = linesAdded > 0
+        ? Math.max(5, Math.min(22, 4 + Math.sqrt(linesAdded) * 0.8))
+        : Math.max(5, Math.min(14, 4 + (task.tokens || 0) / 5000));
+      const taskRadius = task.status === 'pending' ? 3 : dynRadius;
       if (!S.neurons.has(tid)) {
         const tn = new Neuron(tid, 'task', (task.title || '').substring(0, 25), {
           title: task.title, status: task.status, priority: task.priority,
@@ -385,10 +513,13 @@
           tokens: task.tokens, lines_added: linesAdded
         });
         tn.tool = 'claude';
-        tn.radius = task.status === 'pending' ? 4 : dynRadius;
+        tn.radius = taskRadius;
+        // Tasks orbit their parent plan like moons
         const planN = S.neurons.get(planNid);
-        tn.x = (planN?.x || S.w / 2) + (Math.random() - 0.5) * 40;
-        tn.y = (planN?.y || S.h / 2) + (Math.random() - 0.5) * 40;
+        const tAngle = Math.random() * PI2;
+        const tDist = 40 + Math.random() * 60;
+        tn.x = (planN?.x || S.w / 2) + Math.cos(tAngle) * tDist;
+        tn.y = (planN?.y || S.h / 2) + Math.sin(tAngle) * tDist;
         S.neurons.set(tid, tn);
         if (S.neurons.has(planNid)) S.synapses.push(new Synapse(planNid, tid));
         if (task.executor_session_id && S.neurons.has(task.executor_session_id)) {
@@ -397,9 +528,10 @@
       } else {
         const en = S.neurons.get(tid);
         en.meta = { ...en.meta, status: task.status, executor_host: task.executor_host, model: task.model, tokens: task.tokens, lines_added: linesAdded };
-        en.radius = task.status === 'pending' ? 4 : dynRadius;
-        // Fire on status transition
-        if (en.meta._prevStatus && en.meta._prevStatus !== task.status) en.fire();
+        en.radius = taskRadius;
+        if (en.meta._prevStatus && en.meta._prevStatus !== task.status) {
+          en.fire(); fireSynapsesFor(tid);
+        }
         en.meta._prevStatus = task.status;
       }
     }
@@ -497,7 +629,7 @@
     c.save();
     c.fillStyle = 'rgba(8,12,32,0.92)';
     c.strokeStyle = `${n.pal.glow}0.3)`;
-    c.lineWidth = 1; c.shadowBlur = 12; c.shadowColor = `${n.pal.glow}0.2)`;
+    c.lineWidth = 1; c.shadowBlur = 4; c.shadowColor = `${n.pal.glow}0.15)`;
     c.beginPath();
     if (c.roundRect) c.roundRect(tx, ty, tw, th, 6);
     else c.rect(tx, ty, tw, th);

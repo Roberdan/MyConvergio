@@ -171,8 +171,8 @@ function renderMission(data) {
   st.lastMissionData = data;
   st.allMissionPlans = data && data.plans ? data.plans : data && data.plan ? [data] : [];
   window._dashboardPlans = st.allMissionPlans;
-  const activePlans = st.allMissionPlans.filter(m => m.plan && m.plan.status !== 'cancelled');
-  const cancelledPlans = st.allMissionPlans.filter(m => m.plan && m.plan.status === 'cancelled');
+  const activePlans = st.allMissionPlans.filter(m => m.plan && m.plan.status !== 'cancelled' && m.plan.status !== 'done');
+  const cancelledPlans = st.allMissionPlans.filter(m => m.plan && (m.plan.status === 'cancelled' || m.plan.status === 'done'));
   if (!activePlans.length && !cancelledPlans.length) {
     $('#mission-content').innerHTML = '<span style="color:#5a6080">No active mission</span>';
     $('#task-table tbody').innerHTML = '';

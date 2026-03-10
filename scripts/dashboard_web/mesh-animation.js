@@ -49,13 +49,15 @@ function drawMesh() {
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
-    ctx.strokeStyle = p.is_online ? "rgba(0,229,255,0.15)" : "rgba(90,96,128,0.08)";
+    const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(p.peer_name) : null;
+    const lineCol = mc ? mc.glow : 'rgba(0,229,255,';
+    ctx.strokeStyle = p.is_online ? `${lineCol}0.15)` : "rgba(90,96,128,0.08)";
     ctx.lineWidth = p.is_online ? 1.5 : 0.5;
     ctx.stroke();
 
     if (p.is_online) {
       ctx.setLineDash([4, 8]);
-      ctx.strokeStyle = "rgba(0,229,255,0.08)";
+      ctx.strokeStyle = `${lineCol}0.08)`;
       ctx.stroke();
       ctx.setLineDash([]);
     }
@@ -94,12 +96,14 @@ function drawMesh() {
     ctx.roundRect(pos.x - r, pos.y - r, r * 2, r * 2, 8);
     ctx.fillStyle = COLORS.nodeBg;
     ctx.fill();
-    ctx.strokeStyle = p.is_online ? (pos.isCoord ? COLORS.magenta : COLORS.green) : COLORS.dim;
+    // Use brain-aligned mesh color per node
+    const nodeColor = (typeof brainMeshColor === 'function') ? brainMeshColor(p.peer_name).core : (p.is_online ? COLORS.green : COLORS.dim);
+    ctx.strokeStyle = p.is_online ? nodeColor : COLORS.dim;
     ctx.lineWidth = pos.isCoord ? 2 : 1;
     ctx.stroke();
 
     if (p.is_online) {
-      ctx.shadowColor = pos.isCoord ? COLORS.magenta : COLORS.green;
+      ctx.shadowColor = nodeColor;
       ctx.shadowBlur = isHover ? 20 : 8;
       ctx.stroke();
       ctx.shadowBlur = 0;
@@ -119,7 +123,7 @@ function drawMesh() {
     }
 
     const iconY = pos.y - 10;
-    ctx.fillStyle = p.is_online ? COLORS.cyan : COLORS.dim;
+    ctx.fillStyle = p.is_online ? nodeColor : COLORS.dim;
     ctx.fillRect(pos.x - 10, iconY - 6, 20, 14);
     ctx.strokeStyle = COLORS.nodeBg;
     ctx.lineWidth = 1;
@@ -136,7 +140,7 @@ function drawMesh() {
     ctx.fillText(p.peer_name, pos.x, pos.y + r - 8);
 
     if (p.is_online) {
-      ctx.fillStyle = COLORS.gold;
+      ctx.fillStyle = nodeColor;
       ctx.font = '9px "JetBrains Mono"';
       ctx.fillText(`${p.active_tasks} tasks`, pos.x, pos.y + r - 0);
     } else {
@@ -146,7 +150,7 @@ function drawMesh() {
     }
 
     if (pos.isCoord) {
-      ctx.fillStyle = COLORS.magenta;
+      ctx.fillStyle = nodeColor;
       ctx.font = 'bold 8px "Orbitron"';
       ctx.fillText("COORDINATOR", pos.x, pos.y - r + 8);
     }

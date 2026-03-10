@@ -1,5 +1,5 @@
 const _SVG = (p) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">${p}</svg>`;
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor">${p}</svg>`;
 const OS_ICON = {
   macos: _SVG(
     '<path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>',
@@ -15,6 +15,13 @@ const OS_ICON = {
   ),
 };
 function _meshNodeHtml(p) {
+  // Get brain-aligned color for this node
+  const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(p.peer_name) : null;
+  const nodeCol = mc ? mc.core : null;
+  const nodeGlow = mc ? mc.glow : null;
+  const borderStyle = (p.is_online && nodeCol)
+    ? `border-color:${nodeCol};box-shadow:0 0 14px ${nodeGlow}0.15);`
+    : '';
   const cls = [
       "mesh-node",
       p.is_online ? "online" : "offline",
@@ -64,7 +71,7 @@ function _meshNodeHtml(p) {
   const actions = p.is_online
     ? `<div class="mn-actions">${a("terminal", "Terminal", '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.5 7l2 1.5-2 1.5M8 10.5h3"/>')}${a("sync", "Sync", '<path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/>')}${a("heartbeat", "Heartbeat", '<path d="M2 8h2l1.5-3 2 6 2-4.5 1.5 1.5h3"/>')}${a("auth", "Auth", '<rect x="4" y="7" width="8" height="6" rx="1"/><path d="M6 7V5a2 2 0 014 0v2"/><circle cx="8" cy="10" r="0.5"/>')}${a("status", "Status", '<circle cx="8" cy="8" r="5.5"/><path d="M8 5v3.5l2.5 1.5"/>')}${a("movehere", "Move Here", '<path d="M3 8h10M10 5l3 3-3 3"/>')}${a("reboot", "Reboot", '<path d="M8 2v4M4.5 4.2A5.5 5.5 0 108 2.5"/>')}</div>`
     : `<div class="mn-actions">${a("wake", "Wake (WoL)", '<circle cx="8" cy="8" r="5.5" fill="none"/><path d="M8 5v3M8 10v0.5"/>')}</div>`;
-  return `<div class="${cls}" data-peer="${esc(p.peer_name)}"><div class="mn-top"><span class="mn-os">${OS_ICON[p.os] || OS_ICON.unknown}</span><span class="mn-name">${esc(p.peer_name)}</span><span class="mn-dot ${p.is_online ? "on" : "off"}"></span></div><div class="mn-role">${p.role.toUpperCase()}${p.is_local ? " · LOCAL" : ""}</div><div class="mn-caps">${caps.map((c) => `<span class="mn-cap${c === "ollama" ? " accent" : ""}">${c}</span>`).join("")}</div>${p.is_online ? `<div class="mn-stats">${p.active_tasks} tasks · CPU ${Math.round(p.cpu)}%${memTotal > 0 ? ` · RAM ${memUsed.toFixed(1)}/${memTotal.toFixed(0)}GB` : ""}</div><div class="mn-gauges"><div class="mn-gauge-group"><span class="mn-gauge-label">CPU</span><canvas id="spark-cpu-${peerKey}" class="mn-sparkline" width="120" height="28" data-history="${hist.cpu.join(",")}" data-color="${loadColor}" data-pct="${loadPct}"></canvas><span class="mn-gauge-val" style="color:${loadColor}">${Math.round(loadPct)}%</span></div>${memTotal > 0 ? `<div class="mn-gauge-group"><span class="mn-gauge-label">RAM</span><canvas id="spark-mem-${peerKey}" class="mn-sparkline" width="120" height="28" data-history="${hist.mem.join(",")}" data-color="${memColor}" data-pct="${memPct}"></canvas><span class="mn-gauge-val" style="color:${memColor}">${memPct}%</span></div>` : ""}</div>` : '<div class="mn-stats offline-text">No heartbeat</div>'}${planHtml}${actions}</div>`;
+  return `<div class="${cls}" data-peer="${esc(p.peer_name)}" style="${borderStyle}"><div class="mn-top"><span class="mn-os">${OS_ICON[p.os] || OS_ICON.unknown}</span><span class="mn-name"${nodeCol ? ` style="color:${nodeCol}"` : ''}>${esc(p.peer_name)}</span><span class="mn-dot ${p.is_online ? "on" : "off"}"${nodeCol ? ` style="background:${nodeCol};box-shadow:0 0 6px ${nodeCol}"` : ''}></span></div><div class="mn-role"${nodeCol ? ` style="color:${nodeCol}"` : ''}>${p.role.toUpperCase()}${p.is_local ? " · LOCAL" : ""}</div><div class="mn-caps">${caps.map((c) => `<span class="mn-cap${c === "ollama" ? " accent" : ""}">${c}</span>`).join("")}</div>${p.is_online ? `<div class="mn-stats">${p.active_tasks} tasks · CPU ${Math.round(p.cpu)}%${memTotal > 0 ? ` · RAM ${memUsed.toFixed(1)}/${memTotal.toFixed(0)}GB` : ""}</div><div class="mn-gauges"><div class="mn-gauge-group"><span class="mn-gauge-label">CPU</span><canvas id="spark-cpu-${peerKey}" class="mn-sparkline" width="120" height="28" data-history="${hist.cpu.join(",")}" data-color="${loadColor}" data-pct="${loadPct}"></canvas><span class="mn-gauge-val" style="color:${loadColor}">${Math.round(loadPct)}%</span></div>${memTotal > 0 ? `<div class="mn-gauge-group"><span class="mn-gauge-label">RAM</span><canvas id="spark-mem-${peerKey}" class="mn-sparkline" width="120" height="28" data-history="${hist.mem.join(",")}" data-color="${memColor}" data-pct="${memPct}"></canvas><span class="mn-gauge-val" style="color:${memColor}">${memPct}%</span></div>` : ""}</div>` : '<div class="mn-stats offline-text">No heartbeat</div>'}${planHtml}${actions}</div>`;
 }
 function _drawSparklines() {
   document.querySelectorAll(".mn-sparkline").forEach((c) => {
@@ -147,18 +154,156 @@ function renderMeshStrip(peers) {
     if (el) el.innerHTML = "";
     return;
   }
+  // Sort peers deterministically: coordinator first, then alphabetical
+  peers.sort((a, b) => {
+    if (a.role === 'coordinator' && b.role !== 'coordinator') return -1;
+    if (b.role === 'coordinator' && a.role !== 'coordinator') return 1;
+    return a.peer_name.localeCompare(b.peer_name);
+  });
   window.DashboardState.lastMeshData = peers;
-  const online = peers.filter((p) => p.is_online).length,
-    coord = peers.find((p) => p.role === "coordinator"),
-    workers = peers.filter((p) => p.role !== "coordinator"),
-    actionsBar = `<div class="mesh-actions-inline"><span class="mesh-count">${online}/${peers.length} online</span><button class="widget-action-btn" data-action="fullsync" data-peer="__all__" onclick="meshAction('fullsync','__all__')" title="Bidirectional sync all repos + config"><svg viewBox="0 0 16 16" width="12" height="12"><path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/></svg> Full Sync</button><button class="widget-action-btn" data-action="sync" data-peer="__all__" onclick="meshAction('sync','__all__')" title="Push config to all peers"><svg viewBox="0 0 16 16" width="12" height="12"><path d="M8 2v12M2 8l6-6 6 6"/></svg> Push</button></div>`;
+  const online = peers.filter((p) => p.is_online).length;
+  const coord = peers.find((p) => p.role === "coordinator");
+  const workers = peers.filter((p) => p.role !== "coordinator");
+  // Update count in header
+  const countEl = document.getElementById('mesh-online-count');
+  if (countEl) countEl.textContent = `${online}/${peers.length} online`;
   const bar = $("#mesh-actions-bar");
   if (bar) bar.innerHTML = "";
   if (coord && workers.length) {
-    el.innerHTML = `<div class="mesh-hub"><div class="mesh-hub-workers">${workers.map(_meshNodeHtml).join("")}</div><div class="mesh-hub-spokes" id="mesh-spokes"></div><div class="mesh-hub-coord">${_meshNodeHtml(coord)}</div></div>${actionsBar}`;
+    const left = workers.slice(0, Math.ceil(workers.length / 2));
+    const right = workers.slice(Math.ceil(workers.length / 2));
+    el.innerHTML = `<div class="mesh-hub">${left.map(_meshNodeHtml).join("")}<div class="mesh-hub-coord">${_meshNodeHtml(coord)}</div>${right.map(_meshNodeHtml).join("")}<canvas class="mesh-flow-canvas" id="mesh-flow-cvs"></canvas></div>`;
   } else
-    el.innerHTML = `<div class="mesh-nodes">${peers.map(_meshNodeHtml).join("")}</div>${actionsBar}`;
-  requestAnimationFrame(() => { _drawSpokes(); _drawSparklines(); });
+    el.innerHTML = `<div class="mesh-nodes">${peers.map(_meshNodeHtml).join("")}</div>`;
+  requestAnimationFrame(() => { _drawSpokes(); _drawSparklines(); _initMeshFlow(); });
+}
+// Mesh flow animation — particles flowing between node cards
+let _meshFlowRAF = 0;
+const _meshFlowParticles = [];
+function _initMeshFlow() {
+  const cvs = document.getElementById('mesh-flow-cvs');
+  if (!cvs) return;
+  const hub = cvs.parentElement;
+  if (!hub) return;
+  cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
+  const ctx = cvs.getContext('2d');
+  const nodes = hub.querySelectorAll('.mesh-node');
+  if (nodes.length < 2) return;
+  // Get center positions of each node card relative to hub
+  function nodeCenter(el) {
+    const r = el.getBoundingClientRect(), hr = hub.getBoundingClientRect();
+    return {
+      x: r.left - hr.left + r.width / 2,
+      y: r.top - hr.top + r.height / 2,
+      top: r.top - hr.top,
+      bottom: r.top - hr.top + r.height,
+      left: r.left - hr.left,
+      right: r.left - hr.left + r.width,
+      name: el.dataset.peer
+    };
+  }
+  const centers = Array.from(nodes).map(nodeCenter);
+  const pairs = [];
+  for (let i = 0; i < centers.length; i++)
+    for (let j = i + 1; j < centers.length; j++)
+      pairs.push([centers[i], centers[j]]);
+  _meshFlowParticles.length = 0;
+  // Compute edge connection points (border midpoints facing the other node)
+  function edgePoint(from, to) {
+    // Route along bottom edge then across
+    const fy = from.bottom + 12; // below node
+    const ty = to.bottom + 12;
+    return { sx: from.x, sy: fy, tx: to.x, ty: ty };
+  }
+  function spawnParticle() {
+    const pair = pairs[Math.floor(Math.random() * pairs.length)];
+    const rev = Math.random() > 0.5;
+    const from = rev ? pair[1] : pair[0], to = rev ? pair[0] : pair[1];
+    const ep = edgePoint(from, to);
+    const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(from.name) : null;
+    const midY = Math.max(ep.sy, ep.ty) + 10 + Math.random() * 20;
+    _meshFlowParticles.push({
+      // Bezier path: start → dip below → end
+      sx: ep.sx, sy: ep.sy, tx: ep.tx, ty: ep.ty,
+      cx: (ep.sx + ep.tx) / 2, cy: midY,
+      progress: 0, speed: 0.006 + Math.random() * 0.008,
+      color: mc ? mc.core : 'rgba(0,229,255,0.8)',
+      size: 3 + Math.random() * 4,
+      trail: []
+    });
+  }
+  if (_meshFlowRAF) cancelAnimationFrame(_meshFlowRAF);
+  let lastSpawn = 0;
+  function animate(ts) {
+    if (!document.getElementById('mesh-flow-cvs')) return;
+    if (cvs.width !== hub.offsetWidth || cvs.height !== hub.offsetHeight) {
+      cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
+    }
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    // Draw bold connection curves below nodes
+    pairs.forEach(([a, b]) => {
+      const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(a.name) : null;
+      const col = mc ? mc.core : '#00e5ff';
+      const glowCol = mc ? mc.glow + '0.3)' : 'rgba(0,229,255,0.3)';
+      const ay = a.bottom + 15, by = b.bottom + 15;
+      const midY = Math.max(ay, by) + 25;
+      // Glow layer
+      ctx.globalAlpha = 0.25;
+      ctx.strokeStyle = glowCol;
+      ctx.lineWidth = 6;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(a.x, ay);
+      ctx.quadraticCurveTo((a.x + b.x) / 2, midY, b.x, by);
+      ctx.stroke();
+      // Main line
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(a.x, ay);
+      ctx.quadraticCurveTo((a.x + b.x) / 2, midY, b.x, by);
+      ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    // Spawn particles more frequently
+    if (ts - lastSpawn > 60) { spawnParticle(); lastSpawn = ts; }
+    // Cap particles
+    while (_meshFlowParticles.length > 60) _meshFlowParticles.shift();
+    // Draw particles along bezier curves
+    for (let i = _meshFlowParticles.length - 1; i >= 0; i--) {
+      const p = _meshFlowParticles[i];
+      p.progress += p.speed;
+      const t2 = p.progress, it = 1 - t2;
+      p.x = it * it * p.sx + 2 * it * t2 * p.cx + t2 * t2 * p.tx;
+      p.y = it * it * p.sy + 2 * it * t2 * p.cy + t2 * t2 * p.ty;
+      p.trail.push({ x: p.x, y: p.y });
+      if (p.trail.length > 12) p.trail.shift();
+      // Draw trail with glow
+      for (let t = 0; t < p.trail.length; t++) {
+        const alpha = (t / p.trail.length) * 0.6;
+        const sz = p.size * 0.4 + p.size * 0.6 * (t / p.trail.length);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.trail[t].x, p.trail[t].y, sz, 0, Math.PI * 2); ctx.fill();
+      }
+      // Draw bright head with glow
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      if (p.progress >= 1) _meshFlowParticles.splice(i, 1);
+    }
+    _meshFlowRAF = requestAnimationFrame(animate);
+  }
+  _meshFlowRAF = requestAnimationFrame(animate);
 }
 function applyMeshSyncBadges(items) {
   if (!items || !items.length) return;

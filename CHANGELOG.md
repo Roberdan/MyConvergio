@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.29.0] - 10 Mar 2026
+
+### Added
+- mesh network redesign, brain visualization, demo system
+
+
 ## [v11.28.0] - 10 Mar 2026
 
 ### Added

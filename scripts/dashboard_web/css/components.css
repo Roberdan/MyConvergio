@@ -29,6 +29,7 @@
   border-radius: 8px;
   position: relative;
   overflow: hidden;
+  min-width: 0;
   animation: widgetFadeIn 0.4s ease-out both;
 }
 .widget::before {
@@ -183,6 +184,8 @@
   margin-bottom: 10px;
   background: rgba(10, 14, 26, 0.6);
   cursor: pointer;
+  overflow: hidden;
+  word-break: break-word;
   transition:
     border-color 0.15s,
     background 0.15s;

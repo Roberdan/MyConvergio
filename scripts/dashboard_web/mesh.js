@@ -84,13 +84,17 @@ function updateMeshPeers(peers) {
   if (coordIdx === -1) coordIdx = 0;
   meshPeers.forEach((p, i) => {
     if (i !== coordIdx && p.is_online) {
+      const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(p.peer_name) : null;
+      const pColor = mc ? mc.core : COLORS.cyan;
+      const coordMc = (typeof brainMeshColor === 'function') ? brainMeshColor(meshPeers[coordIdx].peer_name) : null;
+      const cColor = coordMc ? coordMc.core : COLORS.magenta;
       for (let j = 0; j < 3; j++) {
         particles.push({
           from: coordIdx,
           to: i,
           t: Math.random(),
           speed: 0.003 + Math.random() * 0.004,
-          color: j % 2 === 0 ? COLORS.cyan : COLORS.magenta,
+          color: j % 2 === 0 ? cColor : pColor,
           size: 2 + Math.random() * 2,
         });
       }
@@ -100,7 +104,7 @@ function updateMeshPeers(peers) {
           to: coordIdx,
           t: Math.random(),
           speed: 0.002 + Math.random() * 0.003,
-          color: COLORS.gold,
+          color: pColor,
           size: 1.5 + Math.random() * 1.5,
         });
       }

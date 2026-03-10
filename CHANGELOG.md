@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.32.2] - 10 Mar 2026
+
+### Fixed
+- use serde_bytes for native BLOB serialization in CRDT replication
+
+
 ## [v11.32.1] - 10 Mar 2026
 
 ### Fixed

@@ -15,28 +15,16 @@ const MAX_FRAME_BYTES: u32 = 16 * 1024 * 1024;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeltaChange {
     pub table_name: String,
-    #[serde(with = "base64_bytes")]
+    #[serde(with = "serde_bytes")]
     pub pk: Vec<u8>,
     pub cid: String,
     pub val: Option<String>,
     pub col_version: i64,
     pub db_version: i64,
-    #[serde(with = "base64_bytes")]
+    #[serde(with = "serde_bytes")]
     pub site_id: Vec<u8>,
     pub cl: i64,
     pub seq: i64,
-}
-
-mod base64_bytes {
-    use serde::{Deserialize, Deserializer, Serializer};
-    use base64::Engine;
-    pub fn serialize<S: Serializer>(bytes: &Vec<u8>, s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_str(&base64::engine::general_purpose::STANDARD.encode(bytes))
-    }
-    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u8>, D::Error> {
-        let s = String::deserialize(d)?;
-        base64::engine::general_purpose::STANDARD.decode(&s).map_err(serde::de::Error::custom)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

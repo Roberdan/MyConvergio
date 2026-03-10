@@ -230,12 +230,18 @@ pub fn read_changes_since_from_conn(conn: &Connection, last_db_version: i64) -> 
 }
 
 fn apply_changes_to_conn(conn: &Connection, changes: &[DeltaChange]) -> rusqlite::Result<usize> {
+    if changes.is_empty() {
+        return Ok(0);
+    }
+    conn.execute_batch("BEGIN")?;
     let mut applied = 0;
-    for change in changes {
-        conn.execute(
+    let result = (|| -> rusqlite::Result<usize> {
+        let mut stmt = conn.prepare_cached(
             r#"INSERT INTO crsql_changes ("table", pk, cid, val, col_version, db_version, site_id, cl, seq)
                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"#,
-            params![
+        )?;
+        for change in changes {
+            stmt.execute(params![
                 change.table_name,
                 change.pk,
                 change.cid,
@@ -245,20 +251,72 @@ fn apply_changes_to_conn(conn: &Connection, changes: &[DeltaChange]) -> rusqlite
                 change.site_id,
                 change.cl,
                 change.seq
-            ],
-        )?;
-        applied += 1;
+            ])?;
+            applied += 1;
+        }
+        Ok(applied)
+    })();
+    match result {
+        Ok(count) => { conn.execute_batch("COMMIT")?; Ok(count) }
+        Err(e) => { let _ = conn.execute_batch("ROLLBACK"); Err(e) }
     }
-    Ok(applied)
+}
+
+/// Open a long-lived sync connection (call once, reuse across ticks)
+pub fn open_persistent_sync_conn(db_path: &Path, crsqlite_ext: Option<&str>) -> Result<Connection, String> {
+    open_sync_conn(db_path, crsqlite_ext)
+}
+
+/// Collect local changes using an existing connection (avoids opening new one per tick)
+pub fn collect_changes_with_conn(conn: &Connection, last_db_version: i64) -> Result<(Vec<DeltaChange>, i64), String> {
+    let changes = read_local_changes_since(conn, last_db_version).map_err(|e| e.to_string())?;
+    let max_db_version = changes.iter().map(|c| c.db_version).max().unwrap_or(last_db_version);
+    Ok((changes, max_db_version))
+}
+
+/// Record sent stats using an existing connection
+pub fn record_sent_stats_with_conn(conn: &Connection, peer_name: &str, sent_count: usize, last_db_version: i64) -> Result<(), String> {
+    ensure_sync_schema(conn).map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO mesh_sync_stats(peer_name,total_sent,last_sent_at,last_db_version,last_error)
+         VALUES(?1, ?2, strftime('%s','now'), ?3, NULL)
+         ON CONFLICT(peer_name) DO UPDATE SET
+           total_sent = total_sent + excluded.total_sent,
+           last_sent_at = excluded.last_sent_at,
+           last_db_version = MAX(mesh_sync_stats.last_db_version, excluded.last_db_version),
+           last_error = NULL",
+        params![peer_name, sent_count as i64, last_db_version],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+pub fn current_db_version_with_conn(conn: &Connection) -> Result<i64, String> {
+    conn.query_row(
+        "SELECT COALESCE(MAX(db_version), 0) FROM crsql_changes",
+        [],
+        |r| r.get(0),
+    )
+    .map_err(|e| e.to_string())
 }
 
 fn open_sync_conn(db_path: &Path, crsqlite_ext: Option<&str>) -> Result<Connection, String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
+    // Performance tuning for sync operations
+    conn.execute_batch(
+        "PRAGMA journal_mode=WAL;
+         PRAGMA synchronous=NORMAL;
+         PRAGMA busy_timeout=5000;
+         PRAGMA cache_size=-2000;"
+    ).map_err(|e| e.to_string())?;
     if let Some(ext) = crsqlite_ext {
         let _guard = unsafe { conn.load_extension_enable() }.map_err(|e| e.to_string())?;
         unsafe { conn.load_extension(ext, None::<&str>) }.map_err(|e| e.to_string())?;
     }
     Ok(conn)
+}
+
+pub fn ensure_sync_schema_pub(conn: &Connection) -> rusqlite::Result<()> {
+    ensure_sync_schema(conn)
 }
 
 fn ensure_sync_schema(conn: &Connection) -> rusqlite::Result<()> {

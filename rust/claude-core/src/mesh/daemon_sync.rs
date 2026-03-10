@@ -10,17 +10,20 @@ use super::{
     handle_ws_client, is_ws_brain_request, now_ts, publish_event, relay_agent_activity_changes, DaemonConfig, DaemonState,
 };
 
+/// Handle a peer connection. `is_outbound` = true spawns the delta loop (only outbound sends changes).
+/// Inbound connections only receive frames and send heartbeats/acks.
 pub(super) async fn handle_socket(
     mut stream: TcpStream,
     conn_id: String,
     state: DaemonState,
     config: DaemonConfig,
+    is_outbound: bool,
 ) -> Result<(), String> {
     if let Some(head) = maybe_ws_request_head(&mut stream).await {
         return handle_ws_client(stream, &head, state).await;
     }
     let (mut read_half, mut write_half) = stream.into_split();
-    let (out_tx, mut out_rx) = mpsc::channel::<MeshSyncFrame>(256);
+    let (out_tx, mut out_rx) = mpsc::channel::<MeshSyncFrame>(64);
     let writer = tokio::spawn(async move {
         while let Some(frame) = out_rx.recv().await {
             if sync::write_frame(&mut write_half, &frame).await.is_err() {
@@ -36,7 +39,10 @@ pub(super) async fn handle_socket(
         .await;
     let sync_peer = Arc::new(RwLock::new(conn_id.clone()));
     spawn_heartbeat_loop(out_tx.clone(), state.node_id.clone());
-    spawn_delta_loop(out_tx.clone(), sync_peer.clone(), state.node_id.clone(), config.clone());
+    // Only outbound connections send deltas — prevents duplicate delta loops
+    if is_outbound {
+        spawn_delta_loop(out_tx.clone(), sync_peer.clone(), state.node_id.clone(), config.clone());
+    }
     loop {
         let frame = match sync::read_frame(&mut read_half).await? {
             Some(frame) => frame,
@@ -141,34 +147,82 @@ fn spawn_heartbeat_loop(out_tx: mpsc::Sender<MeshSyncFrame>, node_id: String) {
     });
 }
 
+use std::sync::mpsc as std_mpsc;
+
+/// Messages for the dedicated DB sync thread
+enum SyncDbCmd {
+    CollectChanges { cursor: i64, reply: std_mpsc::Sender<Result<(Vec<sync::DeltaChange>, i64, i64), String>> },
+    RecordSent { peer: String, count: usize, version: i64 },
+}
+
+/// Spawn a single DB thread that owns one persistent connection
+fn spawn_sync_db_thread(config: &DaemonConfig) -> std_mpsc::Sender<SyncDbCmd> {
+    let (tx, rx) = std_mpsc::channel::<SyncDbCmd>();
+    let db_path = config.db_path.clone();
+    let crsql_path = config.crsqlite_path.clone();
+    std::thread::Builder::new().name("mesh-sync-db".into()).spawn(move || {
+        let conn = match sync::open_persistent_sync_conn(&db_path, crsql_path.as_deref()) {
+            Ok(c) => c,
+            Err(e) => { eprintln!("mesh-sync-db: failed to open DB: {e}"); return; }
+        };
+        let _ = sync::ensure_sync_schema_pub(&conn);
+        while let Ok(cmd) = rx.recv() {
+            match cmd {
+                SyncDbCmd::CollectChanges { cursor, reply } => {
+                    let init_cursor = if cursor < 0 {
+                        sync::current_db_version_with_conn(&conn).unwrap_or(0)
+                    } else {
+                        cursor
+                    };
+                    let result = sync::collect_changes_with_conn(&conn, init_cursor)
+                        .map(|(changes, checkpoint)| (changes, checkpoint, init_cursor));
+                    let _ = reply.send(result);
+                }
+                SyncDbCmd::RecordSent { peer, count, version } => {
+                    let _ = sync::record_sent_stats_with_conn(&conn, &peer, count, version);
+                }
+            }
+        }
+    }).expect("spawn mesh-sync-db thread");
+    tx
+}
+
 fn spawn_delta_loop(
     out_tx: mpsc::Sender<MeshSyncFrame>,
     sync_peer: Arc<RwLock<String>>,
     node_id: String,
     config: DaemonConfig,
 ) {
+    let db_tx = spawn_sync_db_thread(&config);
     tokio::spawn(async move {
         let mut ticker = tokio::time::interval(Duration::from_secs(2));
-        // Start cursor at current max version — don't re-sync historical changes
-        let mut db_cursor = sync::current_db_version(&config.db_path, config.crsqlite_path.as_deref())
-            .unwrap_or(0);
+        let mut db_cursor: i64 = -1; // -1 = needs initialization
         let mut batch_window = sync::SyncBatchWindow::new(50);
         let mut staged_changes = Vec::new();
         let mut idle_ticks: u32 = 0;
         loop {
             ticker.tick().await;
-            // Exponential backoff when idle (2s, 4s, 8s, max 30s)
             if idle_ticks > 0 {
                 let extra_wait = Duration::from_secs((2u64.pow(idle_ticks.min(4))).min(30));
                 tokio::time::sleep(extra_wait).await;
             }
             let peer_name = sync_peer.read().await.clone();
-            match sync::collect_changes_since(
-                &config.db_path,
-                config.crsqlite_path.as_deref(),
-                db_cursor,
-            ) {
-                Ok((changes, checkpoint)) => {
+            // Send collect command to DB thread
+            let (reply_tx, reply_rx) = std_mpsc::channel();
+            if db_tx.send(SyncDbCmd::CollectChanges { cursor: db_cursor, reply: reply_tx }).is_err() {
+                break; // DB thread died
+            }
+            // Wait for reply (blocking but the DB work is fast)
+            let db_result = tokio::task::spawn_blocking(move || reply_rx.recv())
+                .await
+                .ok()
+                .and_then(|r| r.ok())
+                .unwrap_or(Err("DB thread unavailable".into()));
+            match db_result {
+                Ok((changes, checkpoint, effective_cursor)) => {
+                    if db_cursor < 0 {
+                        db_cursor = effective_cursor;
+                    }
                     if !changes.is_empty() {
                         db_cursor = checkpoint;
                         batch_window.observe_change(checkpoint);
@@ -184,27 +238,16 @@ fn spawn_delta_loop(
                             last_db_version: batch_window.take_checkpoint(),
                             changes: std::mem::take(&mut staged_changes),
                         };
-                        if sync::record_sent_stats(
-                            &config.db_path,
-                            config.crsqlite_path.as_deref(),
-                            &peer_name,
-                            match &frame { MeshSyncFrame::Delta { changes, .. } => changes.len(), _ => 0 },
-                            batch_window.take_checkpoint(),
-                        )
-                        .is_ok()
-                            && out_tx.send(frame).await.is_ok()
-                        {
+                        if out_tx.send(frame).await.is_ok() {
+                            let _ = db_tx.send(SyncDbCmd::RecordSent {
+                                peer: peer_name, count: 0, version: batch_window.take_checkpoint()
+                            });
                             batch_window.clear();
                         }
                     }
                 }
-                Err(err) => {
-                    let _ = sync::record_sync_error(
-                        &config.db_path,
-                        config.crsqlite_path.as_deref(),
-                        &peer_name,
-                        &err,
-                    );
+                Err(_) => {
+                    idle_ticks = idle_ticks.saturating_add(1);
                 }
             }
         }

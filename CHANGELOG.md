@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.29.8] - 10 Mar 2026
+
+### Changed
+- eliminate FD/memory leak + full socket optimization
+
+
 ## [v11.29.7] - 10 Mar 2026
 
 ### Changed

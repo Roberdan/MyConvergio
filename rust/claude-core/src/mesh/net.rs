@@ -31,7 +31,22 @@ pub fn apply_socket_tuning(stream: &TcpStream) -> Result<(), String> {
     let socket = SockRef::from(stream);
     socket
         .set_tcp_keepalive(&keepalive)
-        .map_err(|e| format!("set SO_KEEPALIVE failed: {e}"))
+        .map_err(|e| format!("set SO_KEEPALIVE failed: {e}"))?;
+    // Optimize buffer sizes for Tailscale (WireGuard MTU ~1280, aim for good throughput)
+    let _ = socket.set_send_buffer_size(256 * 1024);
+    let _ = socket.set_recv_buffer_size(256 * 1024);
+    // Linux: disable delayed ACKs for lower latency
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::io::AsRawFd;
+        let fd = socket.as_raw_fd();
+        let val: libc::c_int = 1;
+        unsafe {
+            libc::setsockopt(fd, libc::IPPROTO_TCP, libc::TCP_QUICKACK,
+                &val as *const _ as *const libc::c_void, std::mem::size_of_val(&val) as libc::socklen_t);
+        }
+    }
+    Ok(())
 }
 
 pub fn load_tailscale_peer_ips() -> HashMap<String, String> {

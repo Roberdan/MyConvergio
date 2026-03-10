@@ -49,7 +49,7 @@ pub async fn run_service(config: DaemonConfig) -> Result<(), String> {
     let listener = TcpListener::bind(&bind_addr)
         .await
         .map_err(|e| format!("mesh listen failed on {bind_addr}: {e}"))?;
-    let (tx, _) = broadcast::channel(2048);
+    let (tx, _) = broadcast::channel(256);
     let state = DaemonState {
         node_id: bind_addr.clone(),
         tx,
@@ -64,6 +64,17 @@ pub async fn run_service(config: DaemonConfig) -> Result<(), String> {
     {
         tokio::spawn(connect_peer_loop(peer, state.clone(), config.clone()));
     }
+    // Prune stale heartbeats every 60s (remove entries older than 5 minutes)
+    let hb_state = state.clone();
+    tokio::spawn(async move {
+        let mut ticker = tokio::time::interval(Duration::from_secs(60));
+        loop {
+            ticker.tick().await;
+            let now = now_ts();
+            let mut hb = hb_state.heartbeats.write().await;
+            hb.retain(|_, ts| now.saturating_sub(*ts) < 300);
+        }
+    });
     loop {
         let (stream, remote) = listener
             .accept()
@@ -74,7 +85,7 @@ pub async fn run_service(config: DaemonConfig) -> Result<(), String> {
         let st = state.clone();
         tokio::spawn(async move {
             let conn_id = format!("inbound-{remote}");
-            let _ = daemon_sync::handle_socket(stream, conn_id, st, cfg).await;
+            let _ = daemon_sync::handle_socket(stream, conn_id, st, cfg, false).await;
         });
     }
 }
@@ -242,13 +253,18 @@ fn read_peers_conf(path: &PathBuf) -> Vec<String> {
 }
 
 async fn connect_peer_loop(peer: String, state: DaemonState, config: DaemonConfig) {
+    let mut backoff_secs = 3u64;
     loop {
         match TcpStream::connect(&peer).await {
             Ok(stream) => {
+                backoff_secs = 3; // reset on success
                 let _ = apply_socket_tuning(&stream);
-                let _ = daemon_sync::handle_socket(stream, format!("peer-{peer}"), state.clone(), config.clone()).await;
+                let _ = daemon_sync::handle_socket(stream, format!("peer-{peer}"), state.clone(), config.clone(), true).await;
             }
-            Err(_) => tokio::time::sleep(Duration::from_secs(3)).await,
+            Err(_) => {
+                tokio::time::sleep(Duration::from_secs(backoff_secs)).await;
+                backoff_secs = (backoff_secs * 2).min(60); // exponential backoff, max 60s
+            }
         }
     }
 }

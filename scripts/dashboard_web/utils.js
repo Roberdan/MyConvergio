@@ -9,3 +9,13 @@ function esc(s) {
   d.textContent = s;
   return d.innerHTML;
 }
+
+/** Debounce a function — returns a wrapper that delays execution until ms have passed */
+function debounce(fn, ms = 1000) {
+  let timer;
+  return function (...args) {
+    const ctx = this;
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(ctx, args), ms);
+  };
+}

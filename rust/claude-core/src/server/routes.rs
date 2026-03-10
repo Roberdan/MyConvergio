@@ -161,6 +161,7 @@ pub fn build_router_with_db(static_dir: PathBuf, db_path: PathBuf) -> Router {
         .route("/api/health", get(api_health))
         .layer(from_fn_with_state(rate_limiter, basic_rate_limit))
         .layer(from_fn(server_mw::require_auth))
+        .layer(from_fn(server_mw::set_cache_headers))
         .layer(DefaultBodyLimit::max(1_048_576))
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,

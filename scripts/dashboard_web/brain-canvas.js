@@ -79,13 +79,45 @@
       }
     }
   }
+  class SpatialHash {
+    constructor(cellSize) {
+      this.cellSize = Math.max(1, cellSize);
+      this.grid = new Map();
+    }
+    clear() {
+      this.grid.clear();
+    }
+    insert(node) {
+      const key = this._key(node.x, node.y);
+      const bucket = this.grid.get(key);
+      if (bucket) bucket.push(node);
+      else this.grid.set(key, [node]);
+    }
+    getNearby(x, y, radius) {
+      const minX = Math.floor((x - radius) / this.cellSize);
+      const maxX = Math.floor((x + radius) / this.cellSize);
+      const minY = Math.floor((y - radius) / this.cellSize);
+      const maxY = Math.floor((y + radius) / this.cellSize);
+      const nearby = [];
+      for (let gx = minX; gx <= maxX; gx++) {
+        for (let gy = minY; gy <= maxY; gy++) {
+          const bucket = this.grid.get(`${gx},${gy}`);
+          if (bucket) nearby.push(...bucket);
+        }
+      }
+      return nearby;
+    }
+    _key(x, y) {
+      return `${Math.floor(x / this.cellSize)},${Math.floor(y / this.cellSize)}`;
+    }
+  }
 
   const S = {
     container: null, canvas: null, ctx: null, w: 0, h: 0, dpr: 1,
     raf: 0, running: true, lastTs: 0,
     neurons: new Map(), synapses: [], coreNeuron: null,
     pollT: 0, ws: null, wsRetry: 0, wsT: 0,
-    sessions: [], agents: [], brainData: null,
+    sessions: [], agents: [], brainData: null, forceTick: 0,
     hover: null, mouse: { x: -1, y: -1 }
   };
 
@@ -106,15 +138,27 @@
     const nodes = [...S.neurons.values()].filter(n => !n.dying);
     const cx = S.w / 2, cy = S.h / 2;
     const sf = scaleFactor();
+    const frameStart = performance.now();
+    const frameBudgetMs = 8;
     // Adaptive k — shrink repulsion when many nodes to fit within canvas
     const nodeCount = nodes.length;
     const densityFactor = nodeCount > 40 ? Math.max(0.4, 40 / nodeCount) : 1;
     const k = 90 * sf * densityFactor;
+    const repulsionRadius = k * 3.5;
+    const spatialHash = new SpatialHash(repulsionRadius);
+    for (const node of nodes) spatialHash.insert(node);
+    const throttleStride = nodeCount > 50 ? 2 : 1;
+    const runRepulsion = throttleStride === 1 || (++S.forceTick % throttleStride) === 0;
+    let budgetExceeded = false;
     // Elliptical spread — use BOTH dimensions, not just the smaller one
     const spreadX = S.w * 0.38;
     const spreadY = S.h * 0.38;
 
     for (const n of nodes) {
+      if (performance.now() - frameStart > frameBudgetMs) {
+        budgetExceeded = true;
+        break;
+      }
       // Elliptical gravity — normalized distance to center ellipse
       const dx = cx - n.x, dy = cy - n.y;
       const normDist = Math.sqrt((dx * dx) / (spreadX * spreadX) + (dy * dy) / (spreadY * spreadY));
@@ -122,29 +166,41 @@
       n.vx += dx * grav;
       n.vy += dy * grav;
 
+      if (!runRepulsion) continue;
       // Repulsion
-      for (const m of nodes) {
+      for (const m of spatialHash.getNearby(n.x, n.y, repulsionRadius)) {
+        if (performance.now() - frameStart > frameBudgetMs) {
+          budgetExceeded = true;
+          break;
+        }
         if (m === n) continue;
         const rx = n.x - m.x, ry = n.y - m.y;
         const d = Math.sqrt(rx * rx + ry * ry) || 1;
-        if (d < k * 3.5) {
+        if (d < repulsionRadius) {
           const f = (k * k) / (d * d) * 0.5;
           n.vx += (rx / d) * f;
           n.vy += (ry / d) * f;
         }
       }
+      if (budgetExceeded) break;
     }
     // Spring force along synapses
-    for (const syn of S.synapses) {
-      const a = S.neurons.get(syn.from), b = S.neurons.get(syn.to);
-      if (!a || !b) continue;
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const d = Math.sqrt(dx * dx + dy * dy) || 1;
-      const ideal = (a.type === 'session' && b.type === 'session') ? k * 2.2 : k * 1.4;
-      const f = (d - ideal) * 0.002;
-      const fx = (dx / d) * f, fy = (dy / d) * f;
-      a.vx += fx; a.vy += fy;
-      b.vx -= fx; b.vy -= fy;
+    if (!budgetExceeded) {
+      for (const syn of S.synapses) {
+        if (performance.now() - frameStart > frameBudgetMs) {
+          budgetExceeded = true;
+          break;
+        }
+        const a = S.neurons.get(syn.from), b = S.neurons.get(syn.to);
+        if (!a || !b) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        const ideal = (a.type === 'session' && b.type === 'session') ? k * 2.2 : k * 1.4;
+        const f = (d - ideal) * 0.002;
+        const fx = (dx / d) * f, fy = (dy / d) * f;
+        a.vx += fx; a.vy += fy;
+        b.vx -= fx; b.vy -= fy;
+      }
     }
     // Integrate with damping + hard bounds
     const sf2 = scaleFactor();

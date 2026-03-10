@@ -106,6 +106,20 @@ pub async fn require_auth(req: Request<Body>, next: Next) -> Response {
     }
 }
 
+/// Middleware that ensures responses include a Cache-Control header when absent.
+/// Simple default: private, max-age=10
+pub async fn set_cache_headers(req: Request<Body>, next: Next) -> Response {
+    use axum::http::header::CACHE_CONTROL;
+    use axum::http::HeaderValue;
+
+    let mut res = next.run(req).await;
+    if !res.headers().contains_key(CACHE_CONTROL) {
+        res.headers_mut()
+            .insert(CACHE_CONTROL, HeaderValue::from_static("private, max-age=10"));
+    }
+    res
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

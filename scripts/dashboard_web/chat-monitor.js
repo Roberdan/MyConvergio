@@ -2,7 +2,7 @@
   const byId = (id) => document.getElementById(id);
   const esc = (v) =>
     String(v ?? '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
-  const state = { key: '', timer: null, sse: null, sseKey: '' };
+  const state = { key: '', sse: null, sseKey: '' };
   const PLAN_SSE_ENDPOINT = '/api/plan/start';
 
   async function jsonFetch(url) {
@@ -159,8 +159,11 @@
   }
 
   function boot() {
-    if (state.timer) clearInterval(state.timer);
-    state.timer = setInterval(refreshMonitor, 4000);
+    if (window.PollScheduler) {
+      window.PollScheduler.register('chat.monitor.refresh', refreshMonitor, 4000, ['chat']);
+    } else {
+      setInterval(refreshMonitor, 4000);
+    }
     refreshMonitor();
     window.chatMonitor = { refresh: refreshMonitor };
   }

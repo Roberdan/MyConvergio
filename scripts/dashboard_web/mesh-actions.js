@@ -3,6 +3,8 @@
  * XSS-safe: uses data-peer / data-action attributes with event delegation.
  */
 
+let _meshActionInFlight = false;
+
 window.meshAction = async function (action, peer) {
   if (action === "edit") {
     const peers = Array.isArray(lastMeshData) ? lastMeshData : [];
@@ -39,7 +41,14 @@ window.meshAction = async function (action, peer) {
   }
   if (action === "reboot" && !confirm("Are you sure?")) return;
   // Stream all other actions via SSE
-  streamMeshAction(action, peer);
+  if (_meshActionInFlight) return; // prevent double clicks
+  _meshActionInFlight = true;
+  try {
+    streamMeshAction(action, peer);
+  } finally {
+    // release after short delay to avoid accidental re-trigger
+    setTimeout(() => { _meshActionInFlight = false; }, 500);
+  }
 };
 
 /**

@@ -196,7 +196,11 @@
 
   function boot() {
     ensureRoot();
-    setInterval(refresh, 5000);
+    if (window.PollScheduler) {
+      window.PollScheduler.register("chat.context.refresh", refresh, 5000, ["chat"]);
+    } else {
+      setInterval(refresh, 5000);
+    }
     refresh();
     window.chatContext = { renderRequirements, renderPlanViz, refresh };
   }

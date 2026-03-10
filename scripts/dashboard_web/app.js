@@ -182,15 +182,6 @@ async function refreshAll() {
   _safe("history", () => { if (history && typeof renderHistory === "function") renderHistory(history); });
   _safe("dist", () => { if (dist && typeof renderDist === "function") renderDist(dist); });
   _safe("nightlyJobs", () => { if (typeof renderNightlyJobs === "function") renderNightlyJobs(nightly); });
-  if (nightly && nightly.latest && nightly.latest.status === "running" && !window._njPollTimer) {
-    window._njPollTimer = setInterval(async () => {
-      try {
-        const fresh = await fetchJson("/api/nightly/jobs");
-        _safe("nightlyJobs", () => { if (typeof renderNightlyJobs === "function") renderNightlyJobs(fresh); });
-        if (!fresh || !fresh.latest || fresh.latest.status !== "running") { clearInterval(window._njPollTimer); window._njPollTimer = null; }
-      } catch (e) { clearInterval(window._njPollTimer); window._njPollTimer = null; }
-    }, 30000);
-  }
   _safe("ideaJarWidget", () => { if (typeof renderIdeaJarWidget === "function") renderIdeaJarWidget(); });
   const lu = $("#last-update");
   if (lu) lu.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
@@ -232,9 +223,15 @@ function applyRefresh() {
   if (state.refreshTimer) { clearInterval(state.refreshTimer); state.refreshTimer = null; }
   if (sec === 0) {
     if (label) { label.textContent = "Manual"; label.className = "refresh-label-manual"; }
+    if (window.PollScheduler) window.PollScheduler.unregister("dashboard.refreshAll");
   } else {
     if (label) { label.textContent = sec < 60 ? `${sec}s` : `${sec / 60}m`; label.className = "refresh-label-auto"; }
-    state.refreshTimer = setInterval(refreshAll, sec * 1000);
+    if (window.PollScheduler) {
+      window.PollScheduler.register("dashboard.refreshAll", refreshAll, sec * 1000, ["overview", "admin", "brain", "ideajar"]);
+      window.PollScheduler.setInterval("dashboard.refreshAll", sec * 1000);
+    } else {
+      state.refreshTimer = setInterval(refreshAll, sec * 1000);
+    }
   }
 }
 window.changeRefresh = (dir) => {
@@ -263,6 +260,13 @@ function handleHashRoute() {
 }
 
 const DASH_SECTIONS = ["dashboard-main-section", "dashboard-admin-section", "dashboard-chat-section", "dashboard-brain-section", "dashboard-ideajar-section"];
+const SECTION_MAP = {
+  "dashboard-main-section": "overview",
+  "dashboard-admin-section": "admin",
+  "dashboard-chat-section": "chat",
+  "dashboard-brain-section": "brain",
+  "dashboard-ideajar-section": "ideajar",
+};
 function showDashboardSection(sectionId) {
   const prev = DASH_SECTIONS.find(id => { const s = document.getElementById(id); return s && !s.hidden && s.style.display !== 'none'; });
   if (prev === 'dashboard-ideajar-section' && sectionId !== 'dashboard-ideajar-section') {
@@ -305,6 +309,7 @@ function showDashboardSection(sectionId) {
     btn.classList.toggle("active", btn.dataset.section === target);
   });
   localStorage.setItem("dashboardSection", target);
+  if (window.PollScheduler) window.PollScheduler.setSection(SECTION_MAP[target] || "overview");
 }
 
 async function renderProjectList() {
@@ -386,6 +391,7 @@ window.selectProject = selectProject;
 window.addEventListener("hashchange", handleHashRoute);
 
 document.addEventListener("DOMContentLoaded", () => {
+  if (window.PollScheduler) window.PollScheduler.start();
   if (typeof window.initAdminPanel === "function") window.initAdminPanel();
   initDashboardNavigation();
   applyZoom(state.currentZoom);

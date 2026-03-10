@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.6] - 10 Mar 2026
+
+### Changed
+- T3-02: add Cache-Control middleware; T3-04: add debounce and inflight guards to dashboard actions\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+
+
 ## [v11.36.5] - 10 Mar 2026
 
 ### Changed

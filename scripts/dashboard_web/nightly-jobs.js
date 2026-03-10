@@ -1,4 +1,5 @@
 (function () {
+  window._njRunNowInFlight = window._njRunNowInFlight || false;
   const state = { latest: null, history: [], definitions: [], page: 1, perPage: 50, total: 0, unavailable: false };
   const byId = (id) => document.getElementById(id);
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[m]);
@@ -213,7 +214,18 @@
         try {
           if (action.dataset.action === "refresh") await refreshWidget();
           if (action.dataset.action === "load-more") await loadMore();
-          if (action.dataset.action === "run-now") { if (!confirm("Are you sure?")) return; await api("/api/nightly/jobs/trigger", "POST", { project_id: "mirrorbuddy" }); toast("Nightly run triggered", "", "success"); await refreshWidget(); }
+          if (action.dataset.action === "run-now") { 
+            if (window._njRunNowInFlight) return; 
+            if (!confirm("Are you sure?")) return; 
+            window._njRunNowInFlight = true;
+            try {
+              await api("/api/nightly/jobs/trigger", "POST", { project_id: "mirrorbuddy" });
+              toast("Nightly run triggered", "", "success");
+              await refreshWidget();
+            } finally {
+              setTimeout(() => { window._njRunNowInFlight = false; }, 500);
+            }
+          }
           if (action.dataset.action === "toggle-fixes") { const def = state.definitions.find((d) => String(d.id || "").toLowerCase() === "mirrorbuddy" || String(d.name || "").toLowerCase().includes("mirrorbuddy") || String(d.script_path || "").toLowerCase().includes("mirrorbuddy")); await api("/api/nightly/config/mirrorbuddy", "PUT", { run_fixes: def?.run_fixes ? 0 : 1 }); await refreshWidget(); }
           if (action.dataset.action === "retry") { await api(`/api/nightly/jobs/${encodeURIComponent(id)}/retry`, "POST"); toast("Retry queued", `Run ${id}`, "success"); await refreshWidget(); }
           if (action.dataset.action === "logs" && window._njShowLogs) window._njShowLogs(id);

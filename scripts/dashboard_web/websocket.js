@@ -264,6 +264,7 @@ function _initMeshFlow() {
       _startTrafficPolling();
       return;
     }
+    _stopTrafficPolling();
     if (_meshDaemonWs) { _meshDaemonWs.onclose = null; _meshDaemonWs.close(); }
     try {
       _meshDaemonWs = new WebSocket(wsUrl);
@@ -302,9 +303,9 @@ function _initMeshFlow() {
   let _trafficPollTimer = null;
   let _trafficPrev = {};
   function _startTrafficPolling() {
-    if (_trafficPollTimer) return;
     const localNode = (typeof state !== 'undefined' && state.localPeerName) || '';
     async function poll() {
+      if (!document.getElementById('mesh-flow-cvs')) return;
       try {
         const r = await fetch('/api/mesh/traffic');
         const d = await r.json();
@@ -326,7 +327,22 @@ function _initMeshFlow() {
       } catch { /* silent */ }
     }
     poll();
-    _trafficPollTimer = setInterval(poll, 5000);
+    if (window.PollScheduler) {
+      window.PollScheduler.register('websocket.meshTraffic', poll, 5000, ['overview', 'brain']);
+    } else if (!_trafficPollTimer) {
+      _trafficPollTimer = setInterval(poll, 5000);
+    }
+  }
+
+  function _stopTrafficPolling() {
+    if (window.PollScheduler) {
+      window.PollScheduler.unregister('websocket.meshTraffic');
+      return;
+    }
+    if (_trafficPollTimer) {
+      clearInterval(_trafficPollTimer);
+      _trafficPollTimer = null;
+    }
   }
 
   // Delayed connect: wait for state.daemonWsUrl to be populated from /api/mesh
@@ -335,7 +351,7 @@ function _initMeshFlow() {
   if (_meshFlowRAF) cancelAnimationFrame(_meshFlowRAF);
   function animate(ts) {
     if (!document.getElementById('mesh-flow-cvs')) {
-      if (_trafficPollTimer) clearInterval(_trafficPollTimer);
+      _stopTrafficPolling();
       if (_meshDaemonWs) { _meshDaemonWs.onclose = null; _meshDaemonWs.close(); }
       return;
     }
@@ -486,7 +502,11 @@ function connectDashboardWs() {
 }
 function initDashboardWebSocket() {
   connectDashboardWs();
-  setInterval(pollNotifications, 30000);
+  if (window.PollScheduler) {
+    window.PollScheduler.register('websocket.notifications', pollNotifications, 30000, ['all']);
+  } else {
+    setInterval(pollNotifications, 30000);
+  }
 }
 window.renderMeshStrip = renderMeshStrip;
 window.applyMeshSyncBadges = applyMeshSyncBadges;

@@ -145,9 +145,33 @@ step_aliases() {
 	done
 }
 
-# ---- step 7: verify ----------------------------------------------------------
+# ---- step 7: persistent tmux session (convergio) ----------------------------
+step_persistent_tmux() {
+	_log "Step 7: Configuring persistent Convergio tmux session..."
+	local snippet='# auto-tmux-attach: persistent Convergio session for SSH connections
+if [[ -n "$SSH_CONNECTION" && -z "$TMUX" && $- == *i* ]]; then
+  exec tmux new-session -As convergio
+fi'
+	local rc_files=("$HOME/.zshrc" "$HOME/.bashrc")
+	local added=false
+
+	for rc in "${rc_files[@]}"; do
+		if [[ -f "$rc" ]] && ! grep -q 'auto-tmux-attach' "$rc" 2>/dev/null; then
+			printf '\n%s\n' "$snippet" >>"$rc"
+			_ok "Persistent tmux session added to $rc"
+			added=true
+		elif [[ -f "$rc" ]]; then
+			_ok "$rc already has auto-tmux-attach"
+			added=true
+		fi
+	done
+
+	[[ "$added" == "false" ]] && _warn "No shell rc files found — add auto-tmux-attach manually"
+}
+
+# ---- step 8: verify ----------------------------------------------------------
 step_verify() {
-	_log "Step 7: Verification table"
+	_log "Step 8: Verification table"
 	print_check_table
 }
 
@@ -170,6 +194,7 @@ full)
 	step_hooks
 	step_shell_path
 	step_aliases
+	step_persistent_tmux
 	step_verify
 	;;
 esac

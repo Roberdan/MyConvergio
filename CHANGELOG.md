@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.30.0] - 10 Mar 2026
+
+### Added
+- persistent convergio tmux sessions on all nodes
+
+
 ## [v11.29.8] - 10 Mar 2026
 
 ### Changed

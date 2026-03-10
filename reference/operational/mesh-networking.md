@@ -22,12 +22,28 @@ status=active
 # 2. Verify connectivity
 mesh-load-query.sh --peer my-vm --json
 
-# 3. Push credentials (Copilot, OpenCode, Ollama)
+# 3. Full environment setup (includes persistent tmux session)
+mesh-env-setup.sh --full   # run ON the peer or via SSH
+
+# 4. Push credentials (Copilot, OpenCode, Ollama)
 mesh-auth-sync.sh push --peer my-vm
 
-# 4. Deploy Claude OAuth token (requires setup-token first)
+# 5. Deploy Claude OAuth token (requires setup-token first)
 mesh-claude-login.sh my-vm --token sk-ant-oat01-YOUR_TOKEN
 ```
+
+### Persistent Sessions (auto-configured by step 3)
+
+Every SSH connection to a mesh peer auto-attaches to a persistent `convergio` tmux session. This is configured in each node's `.zshrc` by `mesh-env-setup.sh --full` (step 7). With Warp's "Warpify SSH + Tmux Warpification" enabled, tmux is invisible — you get full Warp features with session persistence.
+
+| Shortcut | What it does |
+|----------|-------------|
+| `ssh <peer>` | Auto-attaches to `convergio` session |
+| `tlm` | SSH to m1mario (alias) |
+| `tlx` | SSH to omarchy (alias) |
+| `tl` | Local `convergio` session |
+
+Guard: only triggers for interactive SSH (`$SSH_CONNECTION` + `$- == *i*` + no `$TMUX`). Non-interactive commands (`ssh -n`) and mesh scripts are unaffected.
 
 ## peers.conf Format
 
@@ -242,7 +258,7 @@ mesh-migrate.sh <plan_id> <peer_name> [--dry-run] [--no-launch]
 
 **Prerequisites**: SSH access, Claude CLI + auth (`setup-token`), tmux, no-sleep (macOS: `sudo pmset -a sleep 0`).
 
-**First-time setup**: `mesh-env-setup.sh --full` → `mesh-auth-sync.sh push --peer NAME` → `mesh-claude-login.sh NAME --token TOKEN` → `mesh-sync-all.sh --peer NAME`.
+**First-time setup**: `mesh-env-setup.sh --full` (on peer — includes persistent tmux) → `mesh-auth-sync.sh push --peer NAME` → `mesh-claude-login.sh NAME --token TOKEN` → `mesh-sync-all.sh --peer NAME`.
 
 **Migration task status**: `done` stays done, `in_progress` → `pending`, `pending` unchanged.
 
@@ -260,4 +276,4 @@ Preflight checks (auto-fix where possible): plan status, SSH, heartbeat, config 
 
 Sync triggers: plan complete (push all), heartbeat start/loop (pull every ~5min), delegation (Phase 0 full sync). Conflict resolution: auto-stash, force-reset, rsync fallback.
 
-Delegated plans run in `tmux plan-{ID}`. Attach: `ssh <peer> -t "tmux attach -t plan-{ID}"`. Aliases: `tlm` (M1), `tlx` (Linux).
+Delegated plans run in `tmux plan-{ID}` inside the persistent `convergio` session. SSH to any node lands in the `convergio` session automatically (configured by `mesh-env-setup.sh --full`). Aliases: `tlm` (m1mario), `tlx` (omarchy), `tl` (local).

@@ -2,12 +2,45 @@
 # Plan DB Core - Shared utilities
 # Sourced by plan-db.sh
 
-# Version: 1.5.0
+# Version: 1.6.0
 DB_FILE="${HOME}/.claude/data/dashboard.db"
 AUDIT_LOG="${AUDIT_LOG:-${HOME}/.claude/data/thor-audit.jsonl}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=./sql-utils.sh
 source "$SCRIPT_DIR/lib/sql-utils.sh"
+
+# ── CRR-aware SQLite wrapper ──────────────────────────────
+# CRR triggers need crsqlite loaded. Override sqlite3 as shell
+# function so ALL 145+ calls in plan-db modules auto-load it.
+# Cross-platform: brew sqlite3 (macOS), system sqlite3 (Linux)
+_CRSQLITE_EXT="${HOME}/.claude/lib/crsqlite/crsqlite"
+
+_find_capable_sqlite3() {
+	# 1. brew sqlite3 (macOS — system sqlite3 has OMIT_LOAD_EXTENSION)
+	for p in /opt/homebrew/opt/sqlite/bin/sqlite3 /usr/local/opt/sqlite/bin/sqlite3; do
+		[[ -x "$p" ]] && echo "$p" && return
+	done
+	# 2. Linux system sqlite3 (supports .load by default)
+	local sys; sys="$(command -v sqlite3 2>/dev/null)"
+	if [[ -n "$sys" ]]; then
+		# Quick probe: can it load extensions?
+		if "$sys" ":memory:" ".load $_CRSQLITE_EXT" "SELECT 1;" &>/dev/null; then
+			echo "$sys" && return
+		fi
+	fi
+	# 3. Rust binary as fallback (claude-core db)
+	echo "${sys:-sqlite3}"
+}
+_REAL_SQLITE3="$(_find_capable_sqlite3)"
+
+sqlite3() {
+	if [[ -f "$_CRSQLITE_EXT.dylib" || -f "$_CRSQLITE_EXT.so" || -f "$_CRSQLITE_EXT" ]]; then
+		"$_REAL_SQLITE3" -cmd ".load $_CRSQLITE_EXT" "$@" 2>/dev/null
+	else
+		"$_REAL_SQLITE3" "$@"
+	fi
+}
+export -f sqlite3 2>/dev/null || true
 
 # Resolve canonical peer name via Tailscale IP match (stable across hostname changes)
 if [[ -f "$SCRIPT_DIR/lib/peers.sh" ]] && ! declare -F peers_self &>/dev/null; then
@@ -28,7 +61,7 @@ log_info() { echo -e "${GREEN}[OK]${NC} $1" >&2; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1" >&2; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 
-# SQLite wrapper with busy timeout and performance PRAGMAs
+# SQLite wrapper with crsqlite + busy timeout + performance PRAGMAs
 db_query() {
 	sqlite3 -cmd ".timeout 5000" \
 		-cmd "PRAGMA cache_size = -8000" \

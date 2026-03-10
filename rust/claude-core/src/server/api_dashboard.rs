@@ -5,10 +5,8 @@ use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-#[cfg(not(test))]
 use std::env;
 use std::path::Path as FsPath;
-#[cfg(not(test))]
 use std::process::Command;
 
 pub fn router() -> Router<ServerState> {

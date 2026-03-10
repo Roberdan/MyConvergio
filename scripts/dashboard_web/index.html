@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="css/nightly-jobs.css">
 <link rel="stylesheet" href="css/idea-jar.css">
 <link rel="stylesheet" href="css/optimize.css">
+<link rel="stylesheet" href="css/admin.css">
 <style>
 button,select{background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer}
 button{-webkit-appearance:none;appearance:none}
@@ -41,6 +42,10 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
       <button class="header-nav-item active" data-section="dashboard-main-section" type="button">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         Overview
+      </button>
+      <button class="header-nav-item" data-section="dashboard-admin-section" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 4.9L20 8l-4 3.9L17 18l-5-2.8L7 18l1-6.1L4 8l5.6-.9L12 2z"/></svg>
+        Admin
       </button>
       <button class="header-nav-item" data-section="dashboard-chat-section" type="button">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
@@ -228,6 +233,53 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 </div>
 </section>
 
+<section id="dashboard-admin-section" class="dashboard-section" hidden>
+  <div class="admin-layout">
+    <div class="widget admin-widget">
+      <div class="widget-header">
+        <span class="widget-title">Node Management</span>
+        <span class="admin-meta" id="admin-node-summary">Loading...</span>
+      </div>
+      <div class="widget-body" id="admin-node-content">
+        <span style="color:var(--text-dim)">Loading nodes...</span>
+      </div>
+    </div>
+    <div class="widget admin-widget">
+      <div class="widget-header">
+        <span class="widget-title">Monitoring</span>
+      </div>
+      <div class="widget-body">
+        <div class="admin-metrics-grid" id="admin-metrics-grid"></div>
+      </div>
+    </div>
+    <div class="widget admin-widget">
+      <div class="widget-header">
+        <span class="widget-title">Distributed Tracing</span>
+      </div>
+      <div class="widget-body" id="admin-tracing-content">
+        <span style="color:var(--text-dim)">Loading sync stats...</span>
+      </div>
+    </div>
+    <div class="widget admin-widget admin-logs-widget">
+      <div class="widget-header">
+        <span class="widget-title">Log Viewer</span>
+        <div class="widget-actions">
+          <label class="admin-filter-label" for="admin-log-level">Level</label>
+          <select id="admin-log-level">
+            <option value="ALL">ALL</option>
+            <option value="INFO">INFO</option>
+            <option value="WARN">WARN</option>
+            <option value="ERROR">ERROR</option>
+          </select>
+        </div>
+      </div>
+      <div class="widget-body admin-logs-body" id="admin-logs-content">
+        <span style="color:var(--text-dim)">Loading logs...</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="dashboard-chat-section" class="dashboard-section" hidden>
   <div style="display:grid;grid-template-columns:260px 1fr;gap:16px;padding:0 24px 16px;align-items:start">
     <div class="widget" id="project-list-widget">
@@ -323,6 +375,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 <script src="mesh-preflight.js"></script>
 <script src="mesh-plan-ops.js"></script>
 <script src="peer-crud.js"></script>
+<script src="admin.js"></script>
 <script src="widget-drag.js"></script>
 <script src="terminal.js?v=3"></script>
 <script src="chat-tabs.js"></script>

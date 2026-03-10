@@ -8,10 +8,13 @@ const URL = 'http://localhost:8420';
 const DURATION = parseInt(process.env.DURATION || '90', 10);
 const FPS = 2;
 const FRAMES_DIR = '/tmp/demo-frames';
-const OUTPUT = '/tmp/hyperDemo-dashboard.mp4';
+const DEMO_DIR = `${process.env.HOME}/Downloads/ConvergioDemo`;
+const timestamp = new Date().toISOString().replace(/[T:]/g, '-').slice(0, 16);
+const OUTPUT = `${DEMO_DIR}/hyperDemo-dashboard-${timestamp}.mp4`;
 
 (async () => {
   mkdirSync(FRAMES_DIR, { recursive: true });
+  mkdirSync(DEMO_DIR, { recursive: true });
   const browser = await chromium.launch({ headless: true });
   // NO recordVideo — that causes crashes
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });

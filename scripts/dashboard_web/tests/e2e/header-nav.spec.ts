@@ -11,12 +11,14 @@ test.describe('Header Navigation', () => {
     await expect(page.locator('h1')).toContainText('Convergio');
   });
 
-  test('header nav has Overview, Planner, Idea Jar items', async ({ page }) => {
+  test('header nav includes Overview, Admin, Planner and Idea Jar', async ({ page }) => {
     const navItems = page.locator('.header-nav-item');
-    await expect(navItems).toHaveCount(3);
-    await expect(navItems.nth(0)).toContainText('Overview');
-    await expect(navItems.nth(1)).toContainText('Planner');
-    await expect(navItems.nth(2)).toContainText('Idea Jar');
+    const labels = await navItems.allTextContents();
+    expect(labels.length).toBeGreaterThanOrEqual(4);
+    expect(labels.join(' ')).toContain('Overview');
+    expect(labels.join(' ')).toContain('Admin');
+    expect(labels.join(' ')).toContain('Planner');
+    expect(labels.join(' ')).toContain('Idea Jar');
   });
 
   test('Overview nav item is active by default', async ({ page }) => {

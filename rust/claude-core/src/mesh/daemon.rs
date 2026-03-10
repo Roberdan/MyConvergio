@@ -31,10 +31,10 @@ pub struct DaemonConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(super) struct MeshEvent {
-    kind: String,
-    node: String,
-    ts: u64,
-    payload: Value,
+    pub(super) kind: String,
+    pub(super) node: String,
+    pub(super) ts: u64,
+    pub(super) payload: Value,
 }
 
 #[derive(Clone)]
@@ -45,6 +45,9 @@ pub(super) struct DaemonState {
 }
 
 pub async fn run_service(config: DaemonConfig) -> Result<(), String> {
+    // T1-07: Validate config before starting
+    validate_config(&config)?;
+
     // Ensure ALL tables are CRR-enabled at daemon startup
     {
         let conn = crate::mesh::sync::open_persistent_sync_conn(&config.db_path, config.crsqlite_path.as_deref())?;
@@ -81,6 +84,37 @@ pub async fn run_service(config: DaemonConfig) -> Result<(), String> {
             hb.retain(|_, ts| now.saturating_sub(*ts) < 300);
         }
     });
+
+    // T2-00: HTTP API server on port+1 (e.g. 9421)
+    let mesh_metrics = Arc::new(crate::mesh::observability::MeshMetrics::new());
+    let log_buffer = Arc::new(crate::mesh::observability::LogBuffer::new(1000));
+    let http_state = Arc::new(super::http_api::HttpState {
+        daemon: state.clone(),
+        db_path: config.db_path.clone(),
+        crsqlite_path: config.crsqlite_path.clone(),
+        start_time: std::time::Instant::now(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        metrics: mesh_metrics,
+        logs: log_buffer,
+    });
+    let http_addr = format!("{}:{}", config.bind_ip, config.port + 1);
+    let http_router = super::http_api::api_router().with_state(http_state);
+    tokio::spawn(async move {
+        let listener = tokio::net::TcpListener::bind(&http_addr).await
+            .unwrap_or_else(|e| panic!("HTTP API bind failed on {http_addr}: {e}"));
+        axum::serve(listener, http_router).await.ok();
+    });
+
+    // T2-03: Graceful shutdown handler
+    let shutdown_state = state.clone();
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.ok();
+        publish_event(&shutdown_state, "shutdown", &shutdown_state.node_id, serde_json::json!({}));
+        // Give broadcast subscribers time to receive shutdown event
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        std::process::exit(0);
+    });
+
     loop {
         let (stream, remote) = listener
             .accept()
@@ -94,6 +128,38 @@ pub async fn run_service(config: DaemonConfig) -> Result<(), String> {
             let _ = daemon_sync::handle_socket(stream, conn_id, st, cfg, false).await;
         });
     }
+}
+
+/// T1-07: Validate daemon config — fail fast with clear errors
+fn validate_config(config: &DaemonConfig) -> Result<(), String> {
+    // bind_ip must be a Tailscale IP (100.x.x.x) or localhost for security
+    if !config.bind_ip.starts_with("100.") && config.bind_ip != "127.0.0.1" && config.bind_ip != "::1" {
+        return Err(format!(
+            "SECURITY: bind_ip '{}' is not a Tailscale IP (100.x.x.x) or localhost. \
+             Binding to 0.0.0.0 would expose the mesh daemon to untrusted networks.",
+            config.bind_ip
+        ));
+    }
+    // DB path must exist
+    if !config.db_path.exists() {
+        return Err(format!("DB path does not exist: {:?}", config.db_path));
+    }
+    // crsqlite extension must exist if specified
+    if let Some(ref ext) = config.crsqlite_path {
+        let ext_path = std::path::Path::new(ext);
+        // Check with platform extensions (.dylib, .so)
+        let exists = ext_path.exists()
+            || ext_path.with_extension("dylib").exists()
+            || ext_path.with_extension("so").exists();
+        if !exists {
+            return Err(format!("crsqlite extension not found: {ext}"));
+        }
+    }
+    // peers.conf must exist and be readable
+    if !config.peers_conf_path.exists() {
+        return Err(format!("peers.conf not found: {:?}", config.peers_conf_path));
+    }
+    Ok(())
 }
 
 pub fn detect_tailscale_ip() -> Option<String> {
@@ -213,7 +279,7 @@ fn parse_i64(value: Option<&String>) -> Option<i64> {
     value.and_then(|v| v.parse::<i64>().ok())
 }
 
-pub(super) fn now_ts() -> u64 {
+pub fn now_ts() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())

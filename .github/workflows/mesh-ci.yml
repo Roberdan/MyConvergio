@@ -1,0 +1,51 @@
+name: Mesh CI — Build + Test + Cross-compile
+on:
+  push:
+    paths: ['rust/**']
+  pull_request:
+    paths: ['rust/**']
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test (macOS arm64)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: rust/claude-core }
+      - run: cd rust/claude-core && cargo test --lib mesh -- --test-threads=4
+
+  cross-linux:
+    name: Build (Linux x86_64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: x86_64-unknown-linux-gnu }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: rust/claude-core }
+      - run: cd rust/claude-core && cargo build --release --target x86_64-unknown-linux-gnu
+      - uses: actions/upload-artifact@v4
+        with:
+          name: claude-core-linux-x86_64
+          path: rust/claude-core/target/x86_64-unknown-linux-gnu/release/claude-core
+          if-no-files-found: warn
+
+  cross-macos-arm:
+    name: Build (macOS arm64)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: rust/claude-core }
+      - run: cd rust/claude-core && cargo build --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: claude-core-macos-arm64
+          path: rust/claude-core/target/release/claude-core
+          if-no-files-found: warn

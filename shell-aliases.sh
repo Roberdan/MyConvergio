@@ -110,8 +110,8 @@ alias dbsync='~/.claude/scripts/sync-dashboard-db.sh'
 # lands in the persistent "convergio" tmux session. These aliases are just
 # shortcuts for convenience.
 alias tl='tmux new-session -A -s convergio'       # local
-alias tlm='ssh mac-dev-ts'                         # m1mario
-alias tlx='ssh omarchy'                            # omarchy
+# tlm: defined as function in .zshrc (tmux + kitty-aware)
+# tlx: defined as function in .zshrc (presync + kitty-aware)
 
 # === GitHub account switch ===
 # Usage: ghs           → toggle between accounts

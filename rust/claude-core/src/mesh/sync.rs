@@ -1,5 +1,6 @@
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::io::ErrorKind;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -42,6 +43,10 @@ pub enum MeshSyncFrame {
         latency_ms: u64,
         last_db_version: i64,
     },
+    /// T1-09: Authentication frames — challenge-response with HMAC-SHA256
+    AuthChallenge { nonce: Vec<u8>, node: String },
+    AuthResponse { hmac: Vec<u8>, node: String },
+    AuthResult { ok: bool, reason: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -235,6 +240,14 @@ fn apply_changes_to_conn(conn: &Connection, changes: &[DeltaChange]) -> rusqlite
     if changes.is_empty() {
         return Ok(0);
     }
+    // T1-08: CRDT table allowlist — only apply changes for known CRR tables
+    let allowed = get_crr_table_allowlist(conn);
+    let valid: Vec<&DeltaChange> = changes.iter()
+        .filter(|c| allowed.contains(&c.table_name))
+        .collect();
+    if valid.is_empty() {
+        return Ok(0);
+    }
     conn.execute_batch("BEGIN")?;
     let mut applied = 0;
     let result = (|| -> rusqlite::Result<usize> {
@@ -242,7 +255,7 @@ fn apply_changes_to_conn(conn: &Connection, changes: &[DeltaChange]) -> rusqlite
             r#"INSERT INTO crsql_changes ("table", pk, cid, val, col_version, db_version, site_id, cl, seq)
                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"#,
         )?;
-        for change in changes {
+        for change in &valid {
             stmt.execute(params![
                 change.table_name,
                 change.pk,
@@ -262,6 +275,23 @@ fn apply_changes_to_conn(conn: &Connection, changes: &[DeltaChange]) -> rusqlite
         Ok(count) => { conn.execute_batch("COMMIT")?; Ok(count) }
         Err(e) => { let _ = conn.execute_batch("ROLLBACK"); Err(e) }
     }
+}
+
+/// Query local DB for CRR-tracked tables (tables with __crsql_clock counterpart)
+fn get_crr_table_allowlist(conn: &Connection) -> HashSet<String> {
+    let mut set = HashSet::new();
+    if let Ok(mut stmt) = conn.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%\\_\\_crsql\\_clock' ESCAPE '\\'"
+    ) {
+        if let Ok(rows) = stmt.query_map([], |row| row.get::<_, String>(0)) {
+            for name in rows.flatten() {
+                if let Some(table) = name.strip_suffix("__crsql_clock") {
+                    set.insert(table.to_string());
+                }
+            }
+        }
+    }
+    set
 }
 
 /// Open a long-lived sync connection (call once, reuse across ticks)

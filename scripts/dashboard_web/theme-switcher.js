@@ -25,6 +25,7 @@ function getTheme() {
 }
 
 function setTheme(id) {
+  if (!THEMES.some((theme) => theme.id === id)) return;
   localStorage.setItem(STORAGE_KEY, id);
   applyTheme(id);
   renderDropdown();
@@ -61,7 +62,7 @@ function toggleThemeDropdown() {
 document.addEventListener('click', (e) => {
   const dd = document.getElementById('theme-dropdown');
   const btn = document.getElementById('theme-toggle');
-  if (dd && !dd.contains(e.target) && e.target !== btn) {
+  if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
     dd.classList.remove('open');
   }
 });
@@ -80,3 +81,6 @@ document.addEventListener('keydown', (e) => {
 // Init on load
 applyTheme(getTheme());
 renderDropdown();
+
+window.setTheme = setTheme;
+window.toggleThemeDropdown = toggleThemeDropdown;

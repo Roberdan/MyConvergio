@@ -7,6 +7,38 @@ Configuration and runtime for multi-agent AI development workflows. Adds indepen
 **Dashboard**: http://localhost:8420 (`claude-core serve`)
 **Version**: 11.3.0
 
+## Mesh System
+
+### Architecture overview
+- Rust mesh daemon (`claude-core daemon`) over TCP on `:9420`
+- CRDT replication with `crsqlite` + anti-entropy cursor recovery
+- HTTP API on `:9421` for health, peers, metrics, sync stats, and logs
+- WebSocket brain stream (`/ws/brain`) for real-time visualization
+
+### Quick start
+```bash
+cd ~/.claude/rust/claude-core
+cargo build --release
+cargo run -- daemon start --port 9420
+curl http://127.0.0.1:9421/health
+```
+
+### Wiki documentation
+- `docs/wiki/Home.md`
+- `docs/wiki/Architecture.md`
+- `docs/wiki/Getting-Started.md`
+- `docs/wiki/Configuration.md`
+- `docs/wiki/API-Reference.md`
+- `docs/wiki/Security.md`
+- `docs/wiki/Observability.md`
+- `docs/wiki/Troubleshooting.md`
+
+### Current status
+- Mesh topology active across **m3max**, **omarchy**, **m1mario**
+- CRDT synchronization and anti-entropy implemented
+- HMAC-SHA256 peer authentication enabled
+- HTTP observability endpoints available on daemon `port + 1`
+
 ---
 
 ## Architecture

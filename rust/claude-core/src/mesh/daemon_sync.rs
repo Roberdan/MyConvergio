@@ -1,3 +1,4 @@
+use crate::mesh::auth;
 use crate::mesh::sync::{self, MeshSyncFrame};
 use serde_json::json;
 use std::sync::Arc;
@@ -12,6 +13,7 @@ use super::{
 
 /// Handle a peer connection. `is_outbound` = true spawns the delta loop (only outbound sends changes).
 /// Inbound connections only receive frames and send heartbeats/acks.
+/// T1-09: Challenge-response auth required before any data exchange.
 pub(super) async fn handle_socket(
     mut stream: TcpStream,
     conn_id: String,
@@ -23,6 +25,54 @@ pub(super) async fn handle_socket(
         return handle_ws_client(stream, &head, state).await;
     }
     let (mut read_half, mut write_half) = stream.into_split();
+
+    // T1-09: Peer authentication — shared secret from [mesh] section of peers.conf
+    let secret = auth::load_shared_secret(&config.peers_conf_path);
+    if let Some(ref key) = secret {
+        if is_outbound {
+            // Outbound: wait for challenge, respond with HMAC
+            match sync::read_frame(&mut read_half).await? {
+                Some(MeshSyncFrame::AuthChallenge { nonce, .. }) => {
+                    let hmac = auth::compute_hmac(key, &nonce);
+                    sync::write_frame(&mut write_half, &MeshSyncFrame::AuthResponse {
+                        hmac, node: state.node_id.clone(),
+                    }).await?;
+                    match sync::read_frame(&mut read_half).await? {
+                        Some(MeshSyncFrame::AuthResult { ok: true, .. }) => {}
+                        Some(MeshSyncFrame::AuthResult { ok: false, reason, .. }) => {
+                            return Err(format!("auth rejected: {reason}"));
+                        }
+                        _ => return Err("unexpected frame during auth".into()),
+                    }
+                }
+                _ => return Err("expected AuthChallenge".into()),
+            }
+        } else {
+            // Inbound: send challenge, verify response
+            let nonce = auth::generate_nonce();
+            sync::write_frame(&mut write_half, &MeshSyncFrame::AuthChallenge {
+                nonce: nonce.clone(), node: state.node_id.clone(),
+            }).await?;
+            match sync::read_frame(&mut read_half).await? {
+                Some(MeshSyncFrame::AuthResponse { hmac, node }) => {
+                    if auth::verify_hmac(key, &nonce, &hmac) {
+                        sync::write_frame(&mut write_half, &MeshSyncFrame::AuthResult {
+                            ok: true, reason: String::new(),
+                        }).await?;
+                        publish_event(&state, "auth_ok", &node, json!({}));
+                    } else {
+                        sync::write_frame(&mut write_half, &MeshSyncFrame::AuthResult {
+                            ok: false, reason: "HMAC mismatch".into(),
+                        }).await?;
+                        return Err(format!("auth failed for {node}: HMAC mismatch"));
+                    }
+                }
+                _ => return Err("expected AuthResponse".into()),
+            }
+        }
+    }
+    // Auth passed (or no secret configured — backward compatible)
+
     let (out_tx, mut out_rx) = mpsc::channel::<MeshSyncFrame>(64);
     let writer = tokio::spawn(async move {
         while let Some(frame) = out_rx.recv().await {
@@ -70,8 +120,8 @@ async fn process_frame(
         MeshSyncFrame::Heartbeat { node, ts } => {
             *sync_peer.write().await = node.clone();
             state.heartbeats.write().await.insert(node.clone(), *ts);
-            // Persist peer heartbeat to DB — resolve IP:port to peer name from peers.conf
-            if let Ok(conn) = rusqlite::Connection::open(&config.db_path) {
+            // T1-06: Persist heartbeat to DB with crsqlite loaded (CRR triggers need it)
+            if let Ok(conn) = sync::open_persistent_sync_conn(&config.db_path, config.crsqlite_path.as_deref()) {
                 let peer_name = resolve_peer_name(&config.peers_conf_path, node);
                 let _ = conn.execute(
                     "INSERT OR REPLACE INTO peer_heartbeats (peer_name, last_seen) VALUES (?1, ?2)",
@@ -124,6 +174,10 @@ async fn process_frame(
                 json!({"applied": applied, "latency_ms": latency_ms, "last_db_version": last_db_version}),
             );
         }
+        // Auth frames are handled in handshake, not in main loop
+        MeshSyncFrame::AuthChallenge { .. }
+        | MeshSyncFrame::AuthResponse { .. }
+        | MeshSyncFrame::AuthResult { .. } => {}
     }
     Ok(())
 }
@@ -153,6 +207,8 @@ use std::sync::mpsc as std_mpsc;
 enum SyncDbCmd {
     CollectChanges { cursor: i64, reply: std_mpsc::Sender<Result<(Vec<sync::DeltaChange>, i64, i64), String>> },
     RecordSent { peer: String, count: usize, version: i64 },
+    /// T1-01: Anti-entropy — get peer's last known db_version for catch-up
+    GetPeerCursor { peer: String, reply: std_mpsc::Sender<i64> },
 }
 
 /// Spawn a single DB thread that owns one persistent connection
@@ -181,6 +237,15 @@ fn spawn_sync_db_thread(config: &DaemonConfig) -> std_mpsc::Sender<SyncDbCmd> {
                 SyncDbCmd::RecordSent { peer, count, version } => {
                     let _ = sync::record_sent_stats_with_conn(&conn, &peer, count, version);
                 }
+                SyncDbCmd::GetPeerCursor { peer, reply } => {
+                    // T1-01: Anti-entropy — resume from peer's last known version
+                    let cursor = conn.query_row(
+                        "SELECT COALESCE(last_db_version, 0) FROM mesh_sync_stats WHERE peer_name = ?1",
+                        rusqlite::params![peer],
+                        |r| r.get::<_, i64>(0),
+                    ).unwrap_or(0);
+                    let _ = reply.send(cursor);
+                }
             }
         }
     }).expect("spawn mesh-sync-db thread");
@@ -196,10 +261,11 @@ fn spawn_delta_loop(
     let db_tx = spawn_sync_db_thread(&config);
     tokio::spawn(async move {
         let mut ticker = tokio::time::interval(Duration::from_secs(2));
-        let mut db_cursor: i64 = -1; // -1 = needs initialization
+        let mut db_cursor: i64 = -1; // -1 = needs initialization from anti-entropy
         let mut batch_window = sync::SyncBatchWindow::new(50);
         let mut staged_changes = Vec::new();
         let mut idle_ticks: u32 = 0;
+        let mut anti_entropy_done = false;
         loop {
             ticker.tick().await;
             if idle_ticks > 0 {
@@ -207,6 +273,19 @@ fn spawn_delta_loop(
                 tokio::time::sleep(extra_wait).await;
             }
             let peer_name = sync_peer.read().await.clone();
+
+            // T1-01: Anti-entropy — on first tick, get peer's last known cursor
+            if !anti_entropy_done && db_cursor < 0 {
+                let (reply_tx, reply_rx) = std_mpsc::channel();
+                if db_tx.send(SyncDbCmd::GetPeerCursor { peer: peer_name.clone(), reply: reply_tx }).is_ok() {
+                    if let Ok(Ok(cursor)) = tokio::task::spawn_blocking(move || reply_rx.recv()).await {
+                        if cursor > 0 {
+                            db_cursor = cursor;
+                        }
+                    }
+                }
+                anti_entropy_done = true;
+            }
             // Send collect command to DB thread
             let (reply_tx, reply_rx) = std_mpsc::channel();
             if db_tx.send(SyncDbCmd::CollectChanges { cursor: db_cursor, reply: reply_tx }).is_err() {
@@ -232,6 +311,7 @@ fn spawn_delta_loop(
                         idle_ticks = idle_ticks.saturating_add(1);
                     }
                     if !staged_changes.is_empty() && batch_window.should_flush(sync::current_time_ms()) {
+                        let send_count = staged_changes.len(); // T1-03: capture count BEFORE take
                         let frame = MeshSyncFrame::Delta {
                             node: node_id.clone(),
                             sent_at_ms: sync::current_time_ms(),
@@ -240,7 +320,7 @@ fn spawn_delta_loop(
                         };
                         if out_tx.send(frame).await.is_ok() {
                             let _ = db_tx.send(SyncDbCmd::RecordSent {
-                                peer: peer_name, count: 0, version: batch_window.take_checkpoint()
+                                peer: peer_name, count: send_count, version: batch_window.take_checkpoint()
                             });
                             batch_window.clear();
                         }

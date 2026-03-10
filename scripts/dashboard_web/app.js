@@ -207,7 +207,7 @@ function handleHashRoute() {
   setTimeout(() => card.classList.remove("highlight-pulse"), 3000);
 }
 
-const DASH_SECTIONS = ["dashboard-main-section", "dashboard-chat-section", "dashboard-brain-section", "dashboard-ideajar-section"];
+const DASH_SECTIONS = ["dashboard-main-section", "dashboard-admin-section", "dashboard-chat-section", "dashboard-brain-section", "dashboard-ideajar-section"];
 function showDashboardSection(sectionId) {
   const prev = DASH_SECTIONS.find(id => { const s = document.getElementById(id); return s && !s.hidden && s.style.display !== 'none'; });
   if (prev === 'dashboard-ideajar-section' && sectionId !== 'dashboard-ideajar-section') {
@@ -242,6 +242,9 @@ function showDashboardSection(sectionId) {
   }
   if (target === 'dashboard-chat-section') {
     renderProjectList();
+  }
+  if (typeof window.setAdminActive === "function") {
+    window.setAdminActive(target === "dashboard-admin-section");
   }
   document.querySelectorAll("#dashboard-nav [data-section]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.section === target);
@@ -328,6 +331,7 @@ window.selectProject = selectProject;
 window.addEventListener("hashchange", handleHashRoute);
 
 document.addEventListener("DOMContentLoaded", () => {
+  if (typeof window.initAdminPanel === "function") window.initAdminPanel();
   initDashboardNavigation();
   applyZoom(state.currentZoom);
   updateClock();

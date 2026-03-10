@@ -35,34 +35,34 @@ fn relays_agent_start_as_agent_heartbeat_event() {
     let changes = vec![
         DeltaChange {
             table_name: "agent_activity".to_string(),
-            pk: "id=1".to_string(),
+            pk: b"id=1".to_vec(),
             cid: "agent_id".to_string(),
             val: Some("agent-123".to_string()),
             col_version: 1,
             db_version: 11,
-            site_id: "peer-a".to_string(),
+            site_id: b"peer-a".to_vec(),
             cl: 1,
             seq: 1,
         },
         DeltaChange {
             table_name: "agent_activity".to_string(),
-            pk: "id=1".to_string(),
+            pk: b"id=1".to_vec(),
             cid: "status".to_string(),
             val: Some("running".to_string()),
             col_version: 1,
             db_version: 12,
-            site_id: "peer-a".to_string(),
+            site_id: b"peer-a".to_vec(),
             cl: 1,
             seq: 2,
         },
         DeltaChange {
             table_name: "agent_activity".to_string(),
-            pk: "id=1".to_string(),
+            pk: b"id=1".to_vec(),
             cid: "model".to_string(),
             val: Some("gpt-5.3-codex".to_string()),
             col_version: 1,
             db_version: 12,
-            site_id: "peer-a".to_string(),
+            site_id: b"peer-a".to_vec(),
             cl: 1,
             seq: 3,
         },
@@ -87,45 +87,45 @@ fn relays_agent_complete_tokens_and_task_transition() {
     let changes = vec![
         DeltaChange {
             table_name: "agent_activity".to_string(),
-            pk: "id=9".to_string(),
+            pk: b"id=9".to_vec(),
             cid: "agent_id".to_string(),
             val: Some("agent-9".to_string()),
             col_version: 1,
             db_version: 21,
-            site_id: "peer-b".to_string(),
+            site_id: b"peer-b".to_vec(),
             cl: 1,
             seq: 1,
         },
         DeltaChange {
             table_name: "agent_activity".to_string(),
-            pk: "id=9".to_string(),
+            pk: b"id=9".to_vec(),
             cid: "status".to_string(),
             val: Some("completed".to_string()),
             col_version: 1,
             db_version: 21,
-            site_id: "peer-b".to_string(),
+            site_id: b"peer-b".to_vec(),
             cl: 1,
             seq: 2,
         },
         DeltaChange {
             table_name: "agent_activity".to_string(),
-            pk: "id=9".to_string(),
+            pk: b"id=9".to_vec(),
             cid: "task_db_id".to_string(),
             val: Some("6810".to_string()),
             col_version: 1,
             db_version: 21,
-            site_id: "peer-b".to_string(),
+            site_id: b"peer-b".to_vec(),
             cl: 1,
             seq: 3,
         },
         DeltaChange {
             table_name: "agent_activity".to_string(),
-            pk: "id=9".to_string(),
+            pk: b"id=9".to_vec(),
             cid: "tokens_total".to_string(),
             val: Some("1200".to_string()),
             col_version: 1,
             db_version: 22,
-            site_id: "peer-b".to_string(),
+            site_id: b"peer-b".to_vec(),
             cl: 1,
             seq: 4,
         },
@@ -152,4 +152,75 @@ fn perf_socket_tuning_enables_nodelay_and_keepalive() {
     assert!(tuning.nodelay);
     assert_eq!(tuning.keepalive_idle_secs, 30);
     assert_eq!(tuning.keepalive_interval_secs, 10);
+}
+
+// === W7: Node failure & resilience tests ===
+
+#[test]
+fn peers_conf_empty_returns_empty_vec() {
+    let peers = parse_peers_conf("");
+    assert!(peers.is_empty());
+}
+
+#[test]
+fn peers_conf_only_comments() {
+    let ini = "# comment\n# another comment\n";
+    let peers = parse_peers_conf(ini);
+    assert!(peers.is_empty());
+}
+
+#[test]
+fn peers_conf_malformed_no_ip() {
+    let ini = "[peer1]\nname=test\n";
+    let peers = parse_peers_conf(ini);
+    assert!(peers.is_empty(), "peer without tailscale_ip should be skipped");
+}
+
+#[test]
+fn daemon_state_broadcast_full_channel_does_not_panic() {
+    let (tx, _rx) = broadcast::channel(1);
+    let state = super::DaemonState {
+        node_id: "test".to_string(),
+        tx,
+        heartbeats: Arc::new(RwLock::new(HashMap::new())),
+    };
+    // Fill channel beyond capacity — should not panic
+    for i in 0..10 {
+        let _ = state.tx.send(super::MeshEvent {
+            kind: "test".into(),
+            node: format!("n{i}"),
+            ts: 0,
+            payload: serde_json::json!({}),
+        });
+    }
+}
+
+#[test]
+fn empty_delta_changes_relay_no_events() {
+    let (tx, mut rx) = broadcast::channel(16);
+    let state = super::DaemonState {
+        node_id: "local".to_string(),
+        tx,
+        heartbeats: Arc::new(RwLock::new(HashMap::new())),
+    };
+    super::relay_agent_activity_changes(&state, "peer-a:9420", &[]);
+    assert!(rx.try_recv().is_err(), "no events from empty changes");
+}
+
+#[test]
+fn non_agent_table_changes_ignored_by_relay() {
+    let (tx, mut rx) = broadcast::channel(16);
+    let state = super::DaemonState {
+        node_id: "local".to_string(),
+        tx,
+        heartbeats: Arc::new(RwLock::new(HashMap::new())),
+    };
+    let changes = vec![DeltaChange {
+        table_name: "plans".to_string(),
+        pk: b"id=1".to_vec(), cid: "name".to_string(),
+        val: Some("test-plan".to_string()),
+        col_version: 1, db_version: 1, site_id: b"peer".to_vec(), cl: 1, seq: 1,
+    }];
+    super::relay_agent_activity_changes(&state, "peer-a:9420", &changes);
+    assert!(rx.try_recv().is_err(), "non-agent_activity changes should not emit events");
 }

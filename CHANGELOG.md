@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.4] - 10 Mar 2026
+
+### Fixed
+- Plan 601 W2 — Rust tests green (238/0), Playwright green (231/0), Clippy clean
+
+
 ## [v11.36.3] - 10 Mar 2026
 
 ### Fixed

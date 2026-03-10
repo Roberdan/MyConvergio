@@ -336,7 +336,7 @@ async fn plan_status_rejects_invalid() {
 #[tokio::test]
 async fn cancel_plan_cascades() {
     let r = test_router();
-    let (s, j) = get(&r, "/api/plan/cancel?plan_id=1").await;
+    let (s, j) = post(&r, "/api/plan/cancel?plan_id=1", serde_json::json!({})).await;
     assert_eq!(s, StatusCode::OK);
     assert_eq!(j["ok"], true);
     assert_eq!(j["action"], "cancelled");
@@ -347,7 +347,7 @@ async fn cancel_plan_cascades() {
 #[tokio::test]
 async fn reset_plan_resets_waves() {
     let r = test_router();
-    let (s, j) = get(&r, "/api/plan/reset?plan_id=1").await;
+    let (s, j) = post(&r, "/api/plan/reset?plan_id=1", serde_json::json!({})).await;
     assert_eq!(s, StatusCode::OK);
     assert_eq!(j["ok"], true);
     let (_, detail) = get(&r, "/api/plan/1").await;

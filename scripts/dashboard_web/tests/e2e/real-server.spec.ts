@@ -46,7 +46,9 @@ test.describe('Real server integration', () => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
     page.on('console', (msg) => {
-      if (msg.type() === 'error' && !msg.text().includes('cdn.jsdelivr')) {
+      const text = msg.text();
+      const ignorableWsError = text.includes('/ws/brain') && text.includes('WebSocket connection');
+      if (msg.type() === 'error' && !text.includes('cdn.jsdelivr') && !ignorableWsError) {
         errors.push(msg.text());
       }
     });

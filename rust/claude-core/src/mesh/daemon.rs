@@ -45,6 +45,12 @@ pub(super) struct DaemonState {
 }
 
 pub async fn run_service(config: DaemonConfig) -> Result<(), String> {
+    // Ensure ALL tables are CRR-enabled at daemon startup
+    {
+        let conn = crate::mesh::sync::open_persistent_sync_conn(&config.db_path, config.crsqlite_path.as_deref())?;
+        crate::mesh::sync::ensure_sync_schema_pub(&conn).map_err(|e| e.to_string())?;
+    }
+
     let bind_addr = format!("{}:{}", config.bind_ip, config.port);
     let listener = TcpListener::bind(&bind_addr)
         .await

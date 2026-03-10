@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.32.0] - 10 Mar 2026
+
+### Added
+- full CRR migration — 42/43 tables auto-replicated
+
+
 ## [v11.31.0] - 10 Mar 2026
 
 ### Added

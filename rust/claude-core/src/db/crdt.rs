@@ -4,7 +4,52 @@ use serde::{Deserialize, Serialize};
 use std::io::{Error as IoError, ErrorKind, Write};
 use std::process::{Command, Stdio};
 
-const REQUIRED_CRDT_TABLES: [&str; 4] = ["plan_reviews", "tasks", "waves", "host_heartbeats"];
+// ALL operational tables CRR-enabled for automatic row-level replication.
+// Excluded: plan_versions_backup (no PK — it's a raw dump backup table)
+const REQUIRED_CRDT_TABLES: [&str; 42] = [
+    "agent_activity",
+    "agent_runs",
+    "chat_messages",
+    "chat_requirements",
+    "chat_sessions",
+    "collector_runs",
+    "conversation_logs",
+    "debt_items",
+    "delegation_log",
+    "env_vault_log",
+    "file_locks",
+    "file_snapshots",
+    "github_events",
+    "host_heartbeats",
+    "idea_notes",
+    "ideas",
+    "knowledge_base",
+    "merge_queue",
+    "mesh_events",
+    "mesh_sync_stats",
+    "metrics_history",
+    "nightly_job_definitions",
+    "nightly_jobs",
+    "notification_triggers",
+    "notifications",
+    "peer_heartbeats",
+    "plan_actuals",
+    "plan_approvals",
+    "plan_business_assessments",
+    "plan_commits",
+    "plan_learnings",
+    "plan_reviews",
+    "plan_token_estimates",
+    "plan_versions",
+    "plans",
+    "projects",
+    "schema_metadata",
+    "session_state",
+    "snapshots",
+    "tasks",
+    "token_usage",
+    "waves",
+];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CrdtChange {
@@ -38,11 +83,234 @@ pub fn load_crsqlite(conn: &Connection, extension: &str) -> rusqlite::Result<()>
 }
 
 pub fn mark_required_tables(conn: &Connection) -> rusqlite::Result<()> {
+    // Clean up any leftover temp tables from failed migrations
+    let temps: Vec<String> = {
+        let mut stmt = conn.prepare(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '_crr_rebuild_%'"
+        )?;
+        let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+        let v: Vec<String> = rows.filter_map(|r| r.ok()).collect();
+        v
+    };
+    for tmp in &temps {
+        let _ = conn.execute_batch(&format!("DROP TABLE IF EXISTS \"{tmp}\""));
+    }
+    // Check if any tables need migration
+    let needs_migration: bool = required_crdt_tables().iter().any(|table| {
+        let clock = format!("{table}__crsql_clock");
+        let already: bool = conn.query_row(
+            "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name=?1",
+            [&clock], |r| r.get(0),
+        ).unwrap_or(false);
+        !already
+    });
+    if !needs_migration { return Ok(()); }
+    // Save and drop ALL views and user triggers before rebuilding tables.
+    // Views/triggers reference tables and crsqlite validates schema — 
+    // temporarily dropped tables cause errors during rebuild.
+    let views: Vec<(String, String)> = {
+        let mut stmt = conn.prepare(
+            "SELECT name, sql FROM sqlite_master WHERE type='view'"
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        let v: Vec<_> = rows.filter_map(|r| r.ok()).collect();
+        v
+    };
+    let triggers: Vec<(String, String)> = {
+        let mut stmt = conn.prepare(
+            "SELECT name, sql FROM sqlite_master WHERE type='trigger' AND name NOT LIKE '%__crsql_%' AND sql IS NOT NULL"
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        let v: Vec<_> = rows.filter_map(|r| r.ok()).collect();
+        v
+    };
+    for (name, _) in &views {
+        let _ = conn.execute_batch(&format!("DROP VIEW IF EXISTS \"{name}\""));
+    }
+    for (name, _) in &triggers {
+        let _ = conn.execute_batch(&format!("DROP TRIGGER IF EXISTS \"{name}\""));
+    }
     for table in required_crdt_tables() {
-        let sql = format!("SELECT crsql_as_crr('{table}')");
-        conn.query_row(&sql, [], |_| Ok(()))?;
+        let clock_table = format!("{table}__crsql_clock");
+        let already: bool = conn.query_row(
+            "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name=?1",
+            [&clock_table], |r| r.get(0),
+        )?;
+        if already { continue; }
+        let exists: bool = conn.query_row(
+            "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name=?1",
+            [table], |r| r.get(0),
+        )?;
+        if !exists { continue; }
+        let crr_sql = format!("SELECT crsql_as_crr('{table}')");
+        if conn.query_row(&crr_sql, [], |_| Ok(())).is_ok() {
+            continue;
+        }
+        drop_unique_indices(conn, table)?;
+        if conn.query_row(&crr_sql, [], |_| Ok(())).is_ok() {
+            continue;
+        }
+        rebuild_crr_compatible(conn, table)?;
+        conn.query_row(&crr_sql, [], |_| Ok(()))?;
+    }
+    // Restore views and triggers
+    for (_, sql) in &views {
+        let _ = conn.execute_batch(sql);
+    }
+    for (_, sql) in &triggers {
+        let _ = conn.execute_batch(sql);
     }
     Ok(())
+}
+
+fn drop_unique_indices(conn: &Connection, table: &str) -> rusqlite::Result<()> {
+    let indices: Vec<String> = {
+        let mut stmt = conn.prepare(
+            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=?1 AND sql LIKE '%UNIQUE%'"
+        )?;
+        let rows = stmt.query_map([table], |row| row.get::<_, String>(0))?;
+        let v: Vec<String> = rows.filter_map(|r| r.ok()).collect();
+        v
+    };
+    for idx in &indices {
+        conn.execute_batch(&format!("DROP INDEX IF EXISTS \"{idx}\""))?;
+    }
+    Ok(())
+}
+
+/// Rebuild table to be CRR-compatible:
+/// 1. Remove UNIQUE constraints
+/// 2. Add DEFAULT values to NOT NULL columns (crsqlite requires this)
+fn rebuild_crr_compatible(conn: &Connection, table: &str) -> rusqlite::Result<()> {
+    // Get column info
+    let mut cols: Vec<(String, String, bool, Option<String>, bool)> = Vec::new();
+    {
+        let mut stmt = conn.prepare(&format!("PRAGMA table_info(\"{}\")", table))?;
+        let rows = stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, bool>(3)?,
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, bool>(5)?,
+            ))
+        })?;
+        let v: Vec<_> = rows.collect();
+        for row in v {
+            cols.push(row?);
+        }
+    }
+    // Get FK info
+    let mut fks: Vec<(String, String, String)> = Vec::new();
+    {
+        let mut stmt = conn.prepare(&format!("PRAGMA foreign_key_list(\"{}\")", table))?;
+        let rows = stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })?;
+        let v: Vec<_> = rows.collect();
+        for row in v {
+            fks.push(row?);
+        }
+    }
+    // Get CHECK constraints from original SQL
+    let original_sql: String = conn.query_row(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name=?1",
+        [table],
+        |r| r.get(0),
+    )?;
+    // Build new CREATE TABLE
+    let tmp = format!("_crr_rebuild_{table}");
+    let mut col_defs: Vec<String> = Vec::new();
+    for (name, typ, notnull, dflt, pk) in &cols {
+        let mut def = format!("\"{}\" {}", name, typ);
+        if *pk {
+            def.push_str(" PRIMARY KEY");
+            // NOTE: AUTOINCREMENT is intentionally NOT added for CRR tables.
+            // crsqlite requires coordinated PKs; AUTOINCREMENT causes ID conflicts
+            // between nodes. Bare INTEGER PRIMARY KEY still auto-assigns rowid.
+            def.push_str(" NOT NULL");
+        }
+        if *notnull && !pk {
+            def.push_str(" NOT NULL");
+            if dflt.is_none() {
+                let default = default_for_type(typ);
+                def.push_str(&format!(" DEFAULT {default}"));
+            }
+        }
+        if let Some(d) = dflt {
+            if !pk {
+                // Expression defaults (containing function calls) need parentheses
+                if d.contains('(') {
+                    def.push_str(&format!(" DEFAULT ({d})"));
+                } else {
+                    def.push_str(&format!(" DEFAULT {d}"));
+                }
+            }
+        }
+        // Extract CHECK constraint for this column from original SQL
+        let upper_orig = original_sql.to_uppercase();
+        let check_needle = format!("\"{}\"", name.to_uppercase());
+        if let Some(pos) = upper_orig.find(&check_needle) {
+            let rest = &original_sql[pos..];
+            if let Some(check_start) = rest.to_uppercase().find("CHECK(") {
+                let check_rest = &rest[check_start..];
+                if let Some(end) = find_matching_paren(check_rest, 5) {
+                    def.push_str(&format!(" {}", &check_rest[..=end]));
+                }
+            }
+        }
+        col_defs.push(def);
+    }
+    // NOTE: Foreign keys are intentionally NOT added for CRR tables.
+    // crsqlite does not allow checked FK constraints in CRR tables because
+    // replication can temporarily violate referential integrity.
+    let create = format!(
+        "CREATE TABLE \"{}\" ({})",
+        tmp,
+        col_defs.join(", ")
+    );
+    // Use SAVEPOINT for atomicity — if any step fails, rollback all changes
+    conn.execute_batch(&format!(
+        "SAVEPOINT crr_rebuild; {}; INSERT INTO \"{}\" SELECT * FROM \"{}\"; DROP TABLE \"{}\"; ALTER TABLE \"{}\" RENAME TO \"{}\"; RELEASE crr_rebuild;",
+        create, tmp, table, table, tmp, table
+    )).map_err(|e| {
+        let _ = conn.execute_batch("ROLLBACK TO crr_rebuild; RELEASE crr_rebuild;");
+        let _ = conn.execute_batch(&format!("DROP TABLE IF EXISTS \"{}\"", tmp));
+        e
+    })?;
+    Ok(())
+}
+
+fn default_for_type(typ: &str) -> &'static str {
+    let upper = typ.to_uppercase();
+    if upper.contains("INT") { "'0'" }
+    else if upper.contains("REAL") || upper.contains("FLOAT") || upper.contains("DOUBLE") { "'0.0'" }
+    else if upper.contains("BOOL") { "'0'" }
+    else { "''" }  // TEXT, BLOB, JSON, DATETIME, etc.
+}
+
+fn find_matching_paren(s: &str, open_pos: usize) -> Option<usize> {
+    let bytes = s.as_bytes();
+    let mut depth = 0;
+    for i in open_pos..bytes.len() {
+        match bytes[i] {
+            b'(' => depth += 1,
+            b')' => {
+                depth -= 1;
+                if depth == 0 { return Some(i); }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 impl PlanDb {

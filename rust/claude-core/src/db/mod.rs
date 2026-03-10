@@ -1,5 +1,5 @@
 mod cli;
-mod crdt;
+pub mod crdt;
 mod models;
 mod queries;
 mod service;

@@ -115,6 +115,26 @@ pub async fn run_service(config: DaemonConfig) -> Result<(), String> {
         std::process::exit(0);
     });
 
+    // Local self-heartbeat: write own node to peer_heartbeats with system stats
+    let local_config = config.clone();
+    let local_node = resolve_local_node_name(&config.peers_conf_path, &config.bind_ip);
+    tokio::spawn(async move {
+        let mut ticker = tokio::time::interval(Duration::from_secs(10));
+        loop {
+            ticker.tick().await;
+            let load = collect_system_stats();
+            if let Ok(conn) = crate::mesh::sync::open_persistent_sync_conn(
+                &local_config.db_path, local_config.crsqlite_path.as_deref()
+            ) {
+                let load_json = serde_json::to_string(&load).unwrap_or_default();
+                let _ = conn.execute(
+                    "INSERT OR REPLACE INTO peer_heartbeats (peer_name, last_seen, load_json) VALUES (?1, ?2, ?3)",
+                    rusqlite::params![local_node, now_ts(), load_json],
+                );
+            }
+        }
+    });
+
     loop {
         let (stream, remote) = listener
             .accept()
@@ -340,4 +360,87 @@ async fn connect_peer_loop(peer: String, state: DaemonState, config: DaemonConfi
             }
         }
     }
+}
+
+/// Resolve this node's friendly name from peers.conf by matching bind_ip
+fn resolve_local_node_name(peers_conf_path: &std::path::Path, bind_ip: &str) -> String {
+    if let Ok(content) = fs::read_to_string(peers_conf_path) {
+        let mut section_name: Option<String> = None;
+        for line in content.lines().map(str::trim) {
+            if line.starts_with('[') && line.ends_with(']') {
+                let name = line[1..line.len() - 1].to_string();
+                if name == "mesh" { section_name = None; continue; }
+                section_name = Some(name);
+            } else if let Some((key, value)) = line.split_once('=') {
+                if key.trim() == "tailscale_ip" && value.trim() == bind_ip {
+                    if let Some(name) = &section_name { return name.clone(); }
+                }
+            }
+        }
+    }
+    bind_ip.to_string()
+}
+
+/// Collect CPU and memory stats for local heartbeat
+fn collect_system_stats() -> serde_json::Value {
+    #[cfg(target_os = "macos")]
+    {
+        let cpu = std::process::Command::new("sh")
+            .args(["-c", "ps -A -o %cpu | awk '{s+=$1} END {printf \"%.1f\", s}'"])
+            .output().ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .and_then(|s| s.trim().parse::<f64>().ok())
+            .unwrap_or(0.0);
+        let mem_total = std::process::Command::new("sysctl")
+            .args(["-n", "hw.memsize"])
+            .output().ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .and_then(|s| s.trim().parse::<f64>().ok())
+            .map(|b| b / 1073741824.0) // bytes to GB
+            .unwrap_or(0.0);
+        let mem_used = std::process::Command::new("sh")
+            .args(["-c", "vm_stat | awk '/Pages active/ {a=$3} /Pages wired/ {w=$4} END {gsub(/\\./,\"\",a); gsub(/\\./,\"\",w); printf \"%.1f\", (a+w)*4096/1073741824}'"])
+            .output().ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .and_then(|s| s.trim().parse::<f64>().ok())
+            .unwrap_or(0.0);
+        json!({ "cpu": cpu.min(100.0), "mem_total_gb": mem_total, "mem_used_gb": mem_used })
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let cpu = std::fs::read_to_string("/proc/loadavg").ok()
+            .and_then(|s| s.split_whitespace().next().and_then(|v| v.parse::<f64>().ok()))
+            .map(|load| (load * 100.0 / num_cpus()).min(100.0))
+            .unwrap_or(0.0);
+        let (mem_total, mem_used) = linux_mem_info();
+        json!({ "cpu": cpu, "mem_total_gb": mem_total, "mem_used_gb": mem_used })
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    {
+        json!({ "cpu": 0.0, "mem_total_gb": 0.0, "mem_used_gb": 0.0 })
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn num_cpus() -> f64 {
+    std::fs::read_to_string("/proc/cpuinfo").ok()
+        .map(|s| s.matches("processor").count().max(1) as f64)
+        .unwrap_or(1.0)
+}
+
+#[cfg(target_os = "linux")]
+fn linux_mem_info() -> (f64, f64) {
+    let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
+    let mut total_kb = 0u64;
+    let mut available_kb = 0u64;
+    for line in content.lines() {
+        if line.starts_with("MemTotal:") {
+            total_kb = line.split_whitespace().nth(1).and_then(|v| v.parse().ok()).unwrap_or(0);
+        } else if line.starts_with("MemAvailable:") {
+            available_kb = line.split_whitespace().nth(1).and_then(|v| v.parse().ok()).unwrap_or(0);
+        }
+    }
+    let total_gb = total_kb as f64 / 1048576.0;
+    let used_gb = (total_kb.saturating_sub(available_kb)) as f64 / 1048576.0;
+    (total_gb, used_gb)
 }

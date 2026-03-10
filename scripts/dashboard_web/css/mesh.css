@@ -40,7 +40,7 @@
   gap: 32px;
   position: relative;
   width: 100%;
-  padding: 12px 16px 50px 16px;
+  padding: 12px 16px 20px 16px;
   overflow: visible;
 }
 .mesh-hub > .mesh-node {
@@ -73,7 +73,7 @@
   position: absolute;
   top: 0; left: 0;
   width: 100%;
-  height: calc(100% + 50px);
+  height: calc(100% + 20px);
   pointer-events: none;
   z-index: 2;
 }

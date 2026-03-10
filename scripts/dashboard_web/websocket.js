@@ -213,9 +213,8 @@ function _initMeshFlow() {
   _meshFlowParticles.length = 0;
   // Compute edge connection points (border midpoints facing the other node)
   function edgePoint(from, to) {
-    // Route along bottom edge then across
-    const fy = from.bottom + 12; // below node
-    const ty = to.bottom + 12;
+    const fy = from.bottom + 4;
+    const ty = to.bottom + 4;
     return { sx: from.x, sy: fy, tx: to.x, ty: ty };
   }
   function spawnParticle() {
@@ -224,7 +223,7 @@ function _initMeshFlow() {
     const from = rev ? pair[1] : pair[0], to = rev ? pair[0] : pair[1];
     const ep = edgePoint(from, to);
     const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(from.name) : null;
-    const midY = Math.max(ep.sy, ep.ty) + 10 + Math.random() * 20;
+    const midY = Math.max(ep.sy, ep.ty) + 4 + Math.random() * 10;
     _meshFlowParticles.push({
       // Bezier path: start → dip below → end
       sx: ep.sx, sy: ep.sy, tx: ep.tx, ty: ep.ty,

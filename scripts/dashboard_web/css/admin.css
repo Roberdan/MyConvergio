@@ -131,3 +131,100 @@
   color: var(--text-dim);
   font-size: 12px;
 }
+
+.admin-node-actions {
+  margin-top: 12px;
+}
+
+.admin-btn {
+  background: var(--cyan, #00e5ff);
+  color: #0a0e1a;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-btn:hover { opacity: 0.85; }
+
+.admin-btn-secondary {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.admin-btn-sm {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.admin-btn-danger:hover {
+  background: rgba(238, 51, 68, 0.3);
+  color: #ff6b7a;
+}
+
+.admin-local-badge {
+  font-size: 9px;
+  background: rgba(0, 229, 255, 0.15);
+  color: var(--cyan);
+  padding: 1px 5px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.admin-add-form {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-card) 90%, transparent);
+}
+
+.admin-add-form h4 {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.admin-hint {
+  color: var(--text-dim);
+  font-size: 11px;
+  margin: 0 0 12px;
+}
+
+.admin-add-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.admin-add-form input, .admin-add-form select {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  padding: 5px 8px;
+  margin-top: 2px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.admin-form-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}

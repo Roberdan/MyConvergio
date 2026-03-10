@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.33.1] - 10 Mar 2026
+
+### Fixed
+- ghost node, CPU/memory stats, admin console, synapse positioning
+
+
 ## [v11.33.0] - 10 Mar 2026
 
 ### Added

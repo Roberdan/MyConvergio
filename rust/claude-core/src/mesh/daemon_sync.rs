@@ -124,7 +124,9 @@ async fn process_frame(
             if let Ok(conn) = sync::open_persistent_sync_conn(&config.db_path, config.crsqlite_path.as_deref()) {
                 let peer_name = resolve_peer_name(&config.peers_conf_path, node);
                 let _ = conn.execute(
-                    "INSERT OR REPLACE INTO peer_heartbeats (peer_name, last_seen) VALUES (?1, ?2)",
+                    "INSERT OR REPLACE INTO peer_heartbeats (peer_name, last_seen) \
+                     VALUES (?1, ?2) \
+                     ON CONFLICT(peer_name) DO UPDATE SET last_seen = excluded.last_seen",
                     rusqlite::params![peer_name, ts],
                 );
             }

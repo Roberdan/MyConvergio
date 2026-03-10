@@ -21,9 +21,12 @@ fn parse_peers_conf(content: &str) -> HashMap<String, HashMap<String, String>> {
         if line.is_empty() { continue; }
         if line.starts_with('[') && line.ends_with(']') {
             current = line.trim_start_matches('[').trim_end_matches(']').to_string();
+            // Skip [mesh] section — it's config, not a peer node
+            if current == "mesh" { current.clear(); continue; }
             peers.insert(current.clone(), HashMap::new());
             continue;
         }
+        if current.is_empty() { continue; }
         if let Some((k, v)) = line.split_once('=') {
             if let Some(fields) = peers.get_mut(&current) {
                 fields.insert(k.trim().to_string(), v.trim().to_string());
@@ -216,5 +219,56 @@ async fn handle_mesh_action(Query(qs): Query<HashMap<String, String>>) -> Json<V
     if action.is_empty() || peer.is_empty() {
         return Json(json!({"error": "missing action or peer", "output": ""}));
     }
-    Json(json!({"output": format!("{action} -> {peer}"), "exit_code": 0}))
+    match action.as_str() {
+        "add-node" => {
+            let ip = qs.get("ip").cloned().unwrap_or_default();
+            let os = qs.get("os").cloned().unwrap_or("linux".into());
+            let role = qs.get("role").cloned().unwrap_or("worker".into());
+            let caps = qs.get("caps").cloned().unwrap_or("claude,copilot".into());
+            let ssh = qs.get("ssh").cloned().unwrap_or_default();
+            if ip.is_empty() {
+                return Json(json!({"error": "Tailscale IP is required"}));
+            }
+            // Append to peers.conf
+            let conf_path = std::env::var("HOME").unwrap_or_default() + "/.claude/config/peers.conf";
+            let entry = format!(
+                "\n[{peer}]\nssh_alias={ssh}\nos={os}\ntailscale_ip={ip}\ncapabilities={caps}\nrole={role}\nstatus=active\n"
+            );
+            match std::fs::OpenOptions::new().append(true).open(&conf_path) {
+                Ok(mut f) => {
+                    use std::io::Write;
+                    let _ = f.write_all(entry.as_bytes());
+                    Json(json!({"ok": true, "output": format!("Added {peer} ({ip}) to peers.conf")}))
+                }
+                Err(e) => Json(json!({"error": format!("Failed to write peers.conf: {e}")})),
+            }
+        }
+        "remove-node" => {
+            let conf_path = std::env::var("HOME").unwrap_or_default() + "/.claude/config/peers.conf";
+            match std::fs::read_to_string(&conf_path) {
+                Ok(content) => {
+                    let mut result = String::new();
+                    let mut skip_section = false;
+                    for line in content.lines() {
+                        let trimmed = line.trim();
+                        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+                            let section = &trimmed[1..trimmed.len() - 1];
+                            skip_section = section == peer;
+                            if skip_section { continue; }
+                        }
+                        if skip_section && !trimmed.starts_with('[') { continue; }
+                        skip_section = false;
+                        result.push_str(line);
+                        result.push('\n');
+                    }
+                    match std::fs::write(&conf_path, &result) {
+                        Ok(_) => Json(json!({"ok": true, "output": format!("Removed {peer} from peers.conf")})),
+                        Err(e) => Json(json!({"error": format!("Failed to write: {e}")})),
+                    }
+                }
+                Err(e) => Json(json!({"error": format!("Failed to read peers.conf: {e}")})),
+            }
+        }
+        _ => Json(json!({"output": format!("{action} -> {peer}"), "exit_code": 0})),
+    }
 }

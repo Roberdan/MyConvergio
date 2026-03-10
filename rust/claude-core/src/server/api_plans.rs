@@ -7,8 +7,8 @@ use std::collections::HashMap;
 
 pub fn router() -> Router<ServerState> {
     Router::new()
-        .route("/api/plan/cancel", get(handle_plan_cancel))
-        .route("/api/plan/reset", get(handle_plan_reset))
+        .route("/api/plan/cancel", post(handle_plan_cancel))
+        .route("/api/plan/reset", post(handle_plan_reset))
         .route("/api/plan/move", get(handle_plan_move))
         .route("/api/plans/:plan_id/validate", post(handle_plan_validate))
 }

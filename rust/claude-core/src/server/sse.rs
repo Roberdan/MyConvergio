@@ -191,22 +191,39 @@ pub async fn plan_start_sse(
         .unwrap_or_else(|| "copilot".to_string());
 
     let db = state.open_db()?;
-    db.connection()
-        .execute(
-            "UPDATE plans SET status='doing', execution_host=?1 WHERE id=?2 AND status IN ('todo','doing')",
-            rusqlite::params![target, plan_id],
+    let status: Option<String> = db
+        .connection()
+        .query_row(
+            "SELECT status FROM plans WHERE id=?1",
+            rusqlite::params![plan_id],
+            |row| row.get(0),
         )
-        .map_err(|err| ApiError::internal(format!("plan claim failed: {err}")))?;
+        .ok();
+    let first_connect = status.as_deref() != Some("doing");
+    if first_connect {
+        db.connection()
+            .execute(
+                "UPDATE plans SET status='doing', execution_host=?1 WHERE id=?2 AND status='todo'",
+                rusqlite::params![target, plan_id],
+            )
+            .map_err(|err| ApiError::internal(format!("plan claim failed: {err}")))?;
+    }
 
-    let events = vec![
+    let mut events = vec![
         Event::default()
             .event("log")
             .data(format!("Starting plan #{plan_id} with {cli}")),
-        Event::default()
-            .event("log")
-            .data(format!("Plan claimed by {target}")),
-        Event::default().event("done").data(json!({"ok": true, "plan_id": plan_id}).to_string()),
     ];
+    if first_connect {
+        events.push(Event::default().event("log").data(format!("Plan claimed by {target}")));
+    } else {
+        events.push(
+            Event::default()
+                .event("log")
+                .data(format!("Plan #{plan_id} already doing; reconnect acknowledged")),
+        );
+    }
+    events.push(Event::default().event("done").data(json!({"ok": true, "plan_id": plan_id}).to_string()));
     Ok(Sse::new(iter(events.into_iter().map(Ok::<Event, Infallible>))))
 }
 

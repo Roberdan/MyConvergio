@@ -6,18 +6,28 @@ use super::api_github;
 use super::api_mesh;
 use super::api_peers;
 use super::api_plans;
-use super::middleware;
+use super::middleware as server_mw;
 use super::sse;
 use super::state::ServerState;
 use super::ws;
 use super::ws_pty;
 use super::mesh_provision;
+use axum::body::Body;
+use axum::extract::DefaultBodyLimit;
 use axum::extract::State;
+use axum::http::{Request, StatusCode};
+use axum::middleware::{from_fn, from_fn_with_state, Next};
+use axum::response::{IntoResponse, Response};
 use axum::routing::{get, get_service};
 use axum::{Json, Router};
+use std::collections::HashMap;
 use std::env;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
+use tower_http::timeout::TimeoutLayer;
 
 pub const GET_ROUTES: &[&str] = &[
     "/api/ideas",
@@ -92,6 +102,25 @@ pub const SSE_ROUTES: &[&str] = &[
 ];
 pub const WS_ROUTES: &[&str] = &["/ws/brain", "/ws/dashboard", "/ws/pty"];
 
+#[derive(Clone, Default)]
+struct RateLimiter {
+    buckets: Arc<Mutex<HashMap<String, Vec<Instant>>>>,
+}
+
+impl RateLimiter {
+    async fn allow(&self, category: String, limit: usize, window: Duration) -> bool {
+        let now = Instant::now();
+        let mut buckets = self.buckets.lock().await;
+        let entries = buckets.entry(category).or_default();
+        entries.retain(|seen| now.duration_since(*seen) <= window);
+        if entries.len() >= limit {
+            return false;
+        }
+        entries.push(now);
+        true
+    }
+}
+
 pub fn build_router(static_dir: PathBuf) -> Router {
     let db_path = env::var("HOME")
         .map(PathBuf::from)
@@ -103,6 +132,7 @@ pub fn build_router(static_dir: PathBuf) -> Router {
 pub fn build_router_with_db(static_dir: PathBuf, db_path: PathBuf) -> Router {
     let static_files = ServeDir::new(static_dir).append_index_html_on_directories(true);
     let state = ServerState::new(db_path);
+    let rate_limiter = RateLimiter::default();
 
     Router::new()
         .merge(api_dashboard::router())
@@ -125,10 +155,42 @@ pub fn build_router_with_db(static_dir: PathBuf, db_path: PathBuf) -> Router {
         .route("/ws/pty", get(ws_pty::ws_pty))
         .route("/api/mesh/provision", get(mesh_provision::provision_all))
         .route("/api/health", get(api_health))
-        .layer(middleware::cors_layer())
+        .layer(from_fn_with_state(rate_limiter, basic_rate_limit))
+        .layer(from_fn(server_mw::require_auth))
+        .layer(DefaultBodyLimit::max(1_048_576))
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            Duration::from_secs(30),
+        ))
+        .layer(server_mw::cors_layer())
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(state)
         .fallback_service(get_service(static_files))
+}
+
+async fn basic_rate_limit(
+    State(rate_limiter): State<RateLimiter>,
+    request: Request<Body>,
+    next: Next,
+) -> Response {
+    let path = request.uri().path();
+    let category = endpoint_category(path);
+    let allowed = rate_limiter
+        .allow(category, 120, Duration::from_secs(60))
+        .await;
+    if !allowed {
+        return (StatusCode::TOO_MANY_REQUESTS, "rate limit exceeded").into_response();
+    }
+    next.run(request).await
+}
+
+fn endpoint_category(path: &str) -> String {
+    let mut segments = path.split('/').filter(|segment| !segment.is_empty());
+    match (segments.next(), segments.next()) {
+        (Some("api"), Some(category)) => format!("api:{category}"),
+        (Some(segment), _) => segment.to_string(),
+        _ => "root".to_string(),
+    }
 }
 
 async fn api_health(State(state): State<ServerState>) -> Json<serde_json::Value> {

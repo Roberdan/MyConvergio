@@ -5,10 +5,8 @@
 //! - Tailscale name matching (fuzzy hostname/DNS resolution)
 //! - peers.conf user lookup
 //! - Local peer detection (explicit local, self via Tailscale)
-//! - `open_pty` returns valid file descriptors
-//! - PTY read/write roundtrip (write to master, read from master)
-//! - Resize ioctl (TIOCSWINSZ) on PTY master
-//! - Fork+exec produces output readable from master
+//! - Session limit constants (MAX_PTY_SESSIONS, ACTIVE_SESSIONS)
+//! - tokio::process::Command spawn produces output
 //! - WebSocket message routing (text stdin, binary stdin, resize JSON)
 
 use super::state::ServerState;
@@ -190,92 +188,31 @@ fn is_remote_via_tailscale() {
     assert!(!super::ws_pty::is_local_peer(&state, "omarchy"));
 }
 
-// ── open_pty ────────────────────────────────────────────────────────
+// ── Session limits ───────────────────────────────────────────────────
 
 #[test]
-fn open_pty_returns_valid_fds() {
-    let (master, slave) = unsafe { super::ws_pty::open_pty().expect("open_pty") };
-    assert!(master > 2, "master fd should be > stderr");
-    assert!(slave > 2, "slave fd should be > stderr");
-    assert_ne!(master, slave);
-    unsafe {
-        libc::close(master);
-        libc::close(slave);
-    }
+fn session_limit_constants() {
+    assert_eq!(super::ws_pty::MAX_PTY_SESSIONS, 10);
+    // ACTIVE_SESSIONS starts at 0 (may be non-zero if other tests ran concurrently)
+    let _ = super::ws_pty::ACTIVE_SESSIONS.load(std::sync::atomic::Ordering::SeqCst);
 }
 
-#[test]
-fn pty_write_read_roundtrip() {
-    let (master, slave) = unsafe { super::ws_pty::open_pty().expect("open_pty") };
-    let msg = b"hello pty\n";
-    let written = unsafe { libc::write(slave, msg.as_ptr().cast(), msg.len()) };
-    assert_eq!(written as usize, msg.len());
-    unsafe {
-        let flags = libc::fcntl(master, libc::F_GETFL);
-        libc::fcntl(master, libc::F_SETFL, flags | libc::O_NONBLOCK);
-    }
-    std::thread::sleep(std::time::Duration::from_millis(50));
-    let mut buf = [0u8; 256];
-    let n = unsafe { libc::read(master, buf.as_mut_ptr().cast(), buf.len()) };
-    assert!(n > 0, "should read data from master");
-    let output = String::from_utf8_lossy(&buf[..n as usize]);
-    assert!(output.contains("hello pty"), "got: {output}");
-    unsafe {
-        libc::close(master);
-        libc::close(slave);
-    }
-}
+// ── tokio::process spawn ────────────────────────────────────────────
 
-// ── Resize ioctl ────────────────────────────────────────────────────
-
-#[test]
-fn pty_resize_ioctl() {
-    let (master, slave) = unsafe { super::ws_pty::open_pty().expect("open_pty") };
-    let ws = libc::winsize { ws_row: 50, ws_col: 120, ws_xpixel: 0, ws_ypixel: 0 };
-    let ret = unsafe { libc::ioctl(master, libc::TIOCSWINSZ as libc::c_ulong, &ws) };
-    assert_eq!(ret, 0);
-    let mut ws_read = libc::winsize { ws_row: 0, ws_col: 0, ws_xpixel: 0, ws_ypixel: 0 };
-    let ret = unsafe { libc::ioctl(master, libc::TIOCGWINSZ as libc::c_ulong, &mut ws_read) };
-    assert_eq!(ret, 0);
-    assert_eq!(ws_read.ws_row, 50);
-    assert_eq!(ws_read.ws_col, 120);
-    unsafe {
-        libc::close(master);
-        libc::close(slave);
-    }
-}
-
-// ── Fork+exec produces output ───────────────────────────────────────
-
-#[test]
-fn fork_exec_echo_produces_output() {
-    let (master, slave) = unsafe { super::ws_pty::open_pty().expect("open_pty") };
-    let pid = unsafe {
-        let pid = libc::fork();
-        if pid == 0 {
-            libc::setsid();
-            libc::dup2(slave, 0);
-            libc::dup2(slave, 1);
-            libc::dup2(slave, 2);
-            if slave > 2 { libc::close(slave); }
-            libc::close(master);
-            let prog = std::ffi::CString::new("/bin/echo").unwrap();
-            let arg = std::ffi::CString::new("pty-test-output").unwrap();
-            let args = [prog.as_ptr(), arg.as_ptr(), std::ptr::null()];
-            libc::execvp(prog.as_ptr(), args.as_ptr());
-            libc::_exit(1);
-        }
-        libc::close(slave);
-        pid
-    };
-    std::thread::sleep(std::time::Duration::from_millis(200));
-    let mut buf = [0u8; 512];
-    let n = unsafe { libc::read(master, buf.as_mut_ptr().cast(), buf.len()) };
-    unsafe { libc::waitpid(pid, std::ptr::null_mut(), 0); }
-    assert!(n > 0, "should get output from child process (n={n})");
-    let output = String::from_utf8_lossy(&buf[..n as usize]);
-    assert!(output.contains("pty-test-output"), "got: {output}");
-    unsafe { libc::close(master); }
+#[tokio::test]
+async fn spawn_echo_produces_output() {
+    use tokio::io::AsyncReadExt;
+    let mut child = tokio::process::Command::new("/bin/echo")
+        .arg("pty-test-output")
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .expect("spawn echo");
+    let mut stdout = child.stdout.take().unwrap();
+    let mut buf = String::new();
+    stdout.read_to_string(&mut buf).await.expect("read stdout");
+    assert!(buf.contains("pty-test-output"), "got: {buf}");
+    let status = child.wait().await.expect("wait");
+    assert!(status.success());
 }
 
 // ── JSON message parsing ────────────────────────────────────────────

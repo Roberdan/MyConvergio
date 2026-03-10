@@ -37,6 +37,7 @@ window.meshAction = async function (action, peer) {
     runFullSync(peer === "__all__" ? "" : peer);
     return;
   }
+  if (action === "reboot" && !confirm("Are you sure?")) return;
   // Stream all other actions via SSE
   streamMeshAction(action, peer);
 };

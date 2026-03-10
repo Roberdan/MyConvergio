@@ -13,17 +13,17 @@ function showPeerForm(mode = "create", data = null) {
   overlay.innerHTML = `<div class="peer-modal">
     <h3>${title}</h3>
     <form id="peer-form" autocomplete="off">
-      <label>Name<input name="peer_name" required pattern="^[a-zA-Z0-9_.-]+$" value="${d.peer_name || ""}" ${nameRO}></label>
-      <label>SSH Alias<input name="ssh_alias" required value="${d.ssh_alias || ""}"></label>
-      <label>User<input name="user" required value="${d.user || ""}"></label>
+      <label>Name<input name="peer_name" required pattern="^[a-zA-Z0-9_.-]+$" value="${esc(d.peer_name || "")}" ${nameRO}></label>
+      <label>SSH Alias<input name="ssh_alias" required value="${esc(d.ssh_alias || "")}"></label>
+      <label>User<input name="user" required value="${esc(d.user || "")}"></label>
       <label>OS<select name="os"><option value="macos"${d.os === "macos" ? " selected" : ""}>macOS</option><option value="linux"${d.os === "linux" ? " selected" : ""}>Linux</option></select></label>
-      <label>Tailscale IP<input name="tailscale_ip" pattern="^100\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$" value="${d.tailscale_ip || ""}"></label>
-      <label>DNS Name<input name="dns_name" value="${d.dns_name || ""}"></label>
+      <label>Tailscale IP<input name="tailscale_ip" pattern="^100\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$" value="${esc(d.tailscale_ip || "")}"></label>
+      <label>DNS Name<input name="dns_name" value="${esc(d.dns_name || "")}"></label>
       <label>Role<select name="role"><option value="worker"${d.role === "worker" ? " selected" : ""}>Worker</option><option value="coordinator"${d.role === "coordinator" ? " selected" : ""}>Coordinator</option><option value="hybrid"${d.role === "hybrid" ? " selected" : ""}>Hybrid</option></select></label>
       <label>Status<select name="status"><option value="active"${d.status === "active" ? " selected" : ""}>Active</option><option value="inactive"${d.status === "inactive" ? " selected" : ""}>Inactive</option></select></label>
-      <label>MAC Address<input name="mac_address" pattern="^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$" value="${d.mac_address || ""}"></label>
+      <label>MAC Address<input name="mac_address" pattern="^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$" value="${esc(d.mac_address || "")}"></label>
       <label>Engine<select name="default_engine"><option value="">—</option><option value="copilot"${d.default_engine === "copilot" ? " selected" : ""}>Copilot</option><option value="claude"${d.default_engine === "claude" ? " selected" : ""}>Claude</option><option value="opencode"${d.default_engine === "opencode" ? " selected" : ""}>OpenCode</option><option value="ollama"${d.default_engine === "ollama" ? " selected" : ""}>Ollama</option></select></label>
-      <label>Model<input name="default_model" value="${d.default_model || ""}"></label>
+      <label>Model<input name="default_model" value="${esc(d.default_model || "")}"></label>
       <div class="peer-form-actions">
         <button type="button" id="peer-ssh-btn" class="btn-secondary">Test SSH</button>
         <span id="peer-ssh-status"></span>

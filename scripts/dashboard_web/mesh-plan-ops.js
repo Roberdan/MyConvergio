@@ -190,6 +190,7 @@ window.startPlanExecution = function (planId, planName, cli, target, model) {
  * Full Sync action — bidirectional mesh sync via SSE.
  */
 window.runFullSync = function (peer) {
+  if (!confirm("Are you sure?")) return;
   const target = peer || 'all nodes';
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -310,7 +311,8 @@ window.cancelPlan = async function (planId) {
     if (e.target === overlay) overlay.remove();
   });
   document.getElementById('confirm-cancel-btn').addEventListener('click', async () => {
-    const res = await fetchJson(`/api/plan/cancel?plan_id=${planId}`);
+    const resp = await fetch(`/api/plan/cancel?plan_id=${planId}`, { method: 'POST' });
+    const res = await resp.json();
     overlay.remove();
     if (res && res.ok) {
       closeSidebar();
@@ -342,7 +344,8 @@ window.resetPlan = async function (planId) {
     if (e.target === overlay) overlay.remove();
   });
   document.getElementById('confirm-reset-btn').addEventListener('click', async () => {
-    const res = await fetchJson(`/api/plan/reset?plan_id=${planId}`);
+    const resp = await fetch(`/api/plan/reset?plan_id=${planId}`, { method: 'POST' });
+    const res = await resp.json();
     overlay.remove();
     if (res && res.ok) {
       closeSidebar();

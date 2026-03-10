@@ -663,7 +663,7 @@
       html += row('Total Tok', fmtTok(m.tokens_total)); html += row('Cost', m.cost_usd ? '$' + Number(m.cost_usd).toFixed(4) : '');
       html += row('Started', m.started_at || '');
       if (m.description && m.description.trim().length > 2) {
-        html += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1a2040"><span style="color:#5a6080">Last command</span><div style="color:#00e5ff;margin-top:4px;word-break:break-all">${m.description.trim().substring(0, 120)}</div></div>`;
+        html += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1a2040"><span style="color:#5a6080">Last command</span><div style="color:#00e5ff;margin-top:4px;word-break:break-all">${esc(m.description.trim().substring(0, 120))}</div></div>`;
       }
       // Show related recent agents
       const children = (S.sessions.find(s => s.session_id === id)?.children || []);
@@ -707,7 +707,7 @@
     } else {
       html += row('Model', m.model); html += row('Duration', fmtDur(m.duration_s));
       html += row('Tokens', fmtTok(m.tokens_total));
-      if (m.description) html += `<div style="margin-top:6px;color:#00e5ff;word-break:break-all">${m.description.substring(0, 120)}</div>`;
+      if (m.description) html += `<div style="margin-top:6px;color:#00e5ff;word-break:break-all">${esc(m.description.substring(0, 120))}</div>`;
     }
     panel.innerHTML = html;
   }

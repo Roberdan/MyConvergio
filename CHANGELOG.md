@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.0] - 10 Mar 2026
+
+### Added
+- Plan 601 W1 — auth middleware, CORS hardening, PTY refactor, mutating GETs, timeout/limits, XSS fixes
+
+
 ## [v11.35.1] - 10 Mar 2026
 
 ### Fixed

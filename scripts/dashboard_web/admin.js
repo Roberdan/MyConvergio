@@ -102,7 +102,7 @@ async function addNode() {
   const resp = await fetch("/api/mesh/action?action=add-node&peer=" + encodeURIComponent(name) +
     "&ip=" + encodeURIComponent(ip) + "&os=" + encodeURIComponent(os) +
     "&role=" + encodeURIComponent(role) + "&caps=" + encodeURIComponent(caps) +
-    "&ssh=" + encodeURIComponent(ssh));
+    "&ssh=" + encodeURIComponent(ssh), { method: "POST" });
   const result = await resp.json();
   if (result.error) alert("Error: " + result.error);
   else { hideAddNodeForm(); refreshAdminNodes(); }
@@ -110,7 +110,7 @@ async function addNode() {
 
 async function removeNode(name) {
   if (!confirm(`Remove "${name}" from the mesh? This will stop syncing with this node.`)) return;
-  const resp = await fetch("/api/mesh/action?action=remove-node&peer=" + encodeURIComponent(name));
+  const resp = await fetch("/api/mesh/action?action=remove-node&peer=" + encodeURIComponent(name), { method: "POST" });
   const result = await resp.json();
   if (result.error) alert("Error: " + result.error);
   else refreshAdminNodes();

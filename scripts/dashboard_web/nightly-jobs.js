@@ -213,7 +213,7 @@
         try {
           if (action.dataset.action === "refresh") await refreshWidget();
           if (action.dataset.action === "load-more") await loadMore();
-          if (action.dataset.action === "run-now") { await api("/api/nightly/jobs/trigger", "POST", { project_id: "mirrorbuddy" }); toast("Nightly run triggered", "", "success"); await refreshWidget(); }
+          if (action.dataset.action === "run-now") { if (!confirm("Are you sure?")) return; await api("/api/nightly/jobs/trigger", "POST", { project_id: "mirrorbuddy" }); toast("Nightly run triggered", "", "success"); await refreshWidget(); }
           if (action.dataset.action === "toggle-fixes") { const def = state.definitions.find((d) => String(d.id || "").toLowerCase() === "mirrorbuddy" || String(d.name || "").toLowerCase().includes("mirrorbuddy") || String(d.script_path || "").toLowerCase().includes("mirrorbuddy")); await api("/api/nightly/config/mirrorbuddy", "PUT", { run_fixes: def?.run_fixes ? 0 : 1 }); await refreshWidget(); }
           if (action.dataset.action === "retry") { await api(`/api/nightly/jobs/${encodeURIComponent(id)}/retry`, "POST"); toast("Retry queued", `Run ${id}`, "success"); await refreshWidget(); }
           if (action.dataset.action === "logs" && window._njShowLogs) window._njShowLogs(id);

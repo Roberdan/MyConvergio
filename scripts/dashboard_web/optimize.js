@@ -104,6 +104,7 @@ function openOptimizeModal() {
 }
 
 async function clearOptimizeSignals() {
+  if (!confirm('Are you sure?')) return;
   try {
     await fetch('/api/optimize/clear', { method: 'POST' });
     await fetchOptimizeSignals();

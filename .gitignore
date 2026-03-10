@@ -1,110 +1,90 @@
-# Database (local runtime data, never commit)
-*.db
-*.db-journal
-*.db-wal
-*.db-shm
-*.sqlite
-*.sqlite-journal
-*.sqlite-wal
-*.sqlite-shm
 
-# Logs
-*.log
-logs/
-
-# Secrets
-.env
-.env.local
-.env.*
-secrets/
-credentials/
-*.pem
-*.key
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Temp files
-*.tmp
-*.temp
-.cache/
-
-# Python cache
 __pycache__/
-*.pyc
-
-# Node modules
-node_modules/
-
-# Rust build artifacts
-rust/claude-core/target/
-
-# Editor files
-*.swp
-*.swo
-*~
+.anthropic/
+.cache/
+.copilot-tracking/
+.DS_Store
+.env
+.env.*
+.env.local
 .idea/
 .vscode/
-
-# ========================================
-# Claude Code Internals (DO NOT COMMIT)
-# ========================================
-
-# Session data
-projects/
-session-env/
-shell-snapshots/
-history.jsonl
-*.jsonl
-
-# Debug and cache
-debug/
-file-history/
-image-cache/
-stats-cache.json
-
-# Telemetry and analytics
-telemetry/
-statsig/
-.anthropic/
-
-# Runtime state
-todos/
-/plans/
-ide/
-/data/
-teams/
-
-# Backup files
 *.backup
-backups/
-
-# Test results and reports
-playwright-report/
-test-results/
-plugins/cache/
-plugins/blocklist.json
-paste-cache/
-tasks/
-
-# Copilot tracking (local-only, never commit)
-.copilot-tracking/
-
-# Agent-memory created by subagents in subdirectories
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.jsonl
+*.key
+*.log
+*.pem
+*.pyc
+*.sqlite
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.swo
+*.swp
+*.temp
+*.tmp
 **/.claude/
-
+*~
+/data/
+/plans/
+# ========================================
+# Agent-memory created by subagents in subdirectories
+# Backup files
+# Claude Code Internals (DO NOT COMMIT)
+# Copilot tracking (local-only, never commit)
+# Database (local runtime data, never commit)
+# Debug and cache
+# Editor files
 # Host-specific runtime configs (only .example is tracked)
-config/*.conf
-
-# Research report outputs (generated files, never commit)
-agents/research_report/Reports/
-agents/research_report/output/
-
-# Package lock (not needed for this config repo)
-package-lock.json
-
 # LaTeX build artifacts
+# Logs
+# Node modules
+# OS files
+# Package lock (not needed for this config repo)
+# Python cache
+# Research report outputs (generated files, never commit)
+# Runtime state
+# Rust build artifacts
+# Secrets
+# Session data
+# Telemetry and analytics
+# Temp files
+# Test results and reports
+agents/research_report/output/
+agents/research_report/Reports/
 agents/research_report/Reports/*.aux
 agents/research_report/Reports/*.log
 agents/research_report/Reports/*.out
+backups/
+config/*.conf
+credentials/
+debug/
+file-history/
+history.jsonl
+ide/
+image-cache/
+lib/crsqlite/
+logs/
+node_modules/
+package-lock.json
+paste-cache/
+playwright-report/
+plugins/blocklist.json
+plugins/cache/
+projects/
+rust/claude-core/target/
+secrets/
+session-env/
+shell-snapshots/
+stats-cache.json
+statsig/
+tasks/
+teams/
+telemetry/
+test-results/
+Thumbs.db
+todos/

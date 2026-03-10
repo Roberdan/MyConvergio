@@ -15,6 +15,8 @@
         <string>/Users/roberdan/.claude/data/dashboard.db</string>
         <string>--port</string>
         <string>9420</string>
+        <string>--crsqlite-path</string>
+        <string>/Users/roberdan/.claude/lib/crsqlite/crsqlite</string>
     </array>
     <key>RunAtLoad</key>
     <true/>

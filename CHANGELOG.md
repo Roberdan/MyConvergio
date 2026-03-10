@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.29.4] - 10 Mar 2026
+
+### Changed
+- ops(crdt): full CRDT replication with crsqlite v0.16.3
+
+
 ## [v11.29.3] - 10 Mar 2026
 
 ### Changed

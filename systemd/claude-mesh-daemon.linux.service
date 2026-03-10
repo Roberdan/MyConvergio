@@ -3,7 +3,7 @@ Description=Claude Mesh CRDT Daemon
 After=network-online.target tailscaled.service
 
 [Service]
-ExecStart=%h/.claude/rust/claude-core/target/release/claude-core daemon start --peers-conf %h/.claude/config/peers.conf --db-path %h/.claude/data/dashboard.db --port 9420
+ExecStart=%h/.claude/rust/claude-core/target/release/claude-core daemon start --peers-conf %h/.claude/config/peers.conf --db-path %h/.claude/data/dashboard.db --port 9420 --crsqlite-path %h/.claude/lib/crsqlite/crsqlite
 Restart=always
 RestartSec=5
 

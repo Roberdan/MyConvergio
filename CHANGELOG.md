@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.29.7] - 10 Mar 2026
+
+### Changed
+- ADR 0042-0043 (crsqlite, sync backoff) + mesh-network CRDT section
+
+
 ## [v11.29.6] - 10 Mar 2026
 
 ### Changed

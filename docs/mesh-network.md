@@ -56,7 +56,23 @@ All node colors derived from `window.brainMeshColor(peerName)` — same golden-r
 
 Peer object: `{ peer_name, role, is_online, is_local, os, cpu, mem_used_gb, mem_total_gb, active_tasks, capabilities[] }`
 
-## Sync
+## CRDT Replication
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| crsqlite v0.16.3 | `lib/crsqlite/` | SQLite extension for conflict-free replicated relations |
+| daemon_sync.rs | `rust/.../mesh/daemon_sync.rs` | Delta loop, heartbeat loop, socket handling |
+| sync.rs | `rust/.../mesh/sync.rs` | Frame protocol, change collection, delta application |
+| crdt.rs | `rust/.../db/crdt.rs` | Table marking, extension loading |
+
+**CRR Tables**: tasks, waves, plan_reviews, host_heartbeats (marked via `crsql_as_crr()`).
+
+**Sync Protocol**: TCP port 9420 over Tailscale. Frames: Heartbeat (5s), Delta (2s base + backoff), Ack.
+Only local-origin changes sent (site_id filter). Exponential backoff when idle (2s→30s max).
+
+**Provisioning**: `scripts/mesh-provision-node.sh <peer>` — automated git sync, build, crsqlite deploy, DB copy, daemon + heartbeat service install, verification.
+
+## Git Sync
 
 `mesh-sync.sh` — pushes main branch to all nodes via `myconvergio` remote + fetch/reset.
 Verifies all nodes on same commit SHA.

@@ -57,10 +57,16 @@ test.describe('Real server integration', () => {
 
   test('no widgets stuck on Loading...', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(4000);
+    await page.waitForSelector('#kpi-bar .kpi-card', { timeout: 10000 });
     const widgets = await page.$$eval('.widget-body, [id$="-content"]', (els) =>
       els
-        .filter((el) => el.textContent?.trim() === 'Loading...')
+        .filter((el) => {
+          const textIsLoading = el.textContent?.trim() === 'Loading...';
+          if (!textIsLoading) return false;
+          const section = el.closest('section');
+          const hidden = section?.getAttribute('hidden') !== null || section?.style.display === 'none';
+          return !hidden;
+        })
         .map((el) => el.id || el.parentElement?.querySelector('.widget-title')?.textContent || 'unknown'),
     );
     expect(widgets, `Widgets still loading:\n${widgets.join('\n')}`).toHaveLength(0);

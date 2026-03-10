@@ -45,19 +45,20 @@ test.describe('KPI Bar', () => {
     await expect(card).toHaveClass(/alert/);
   });
 
-  test('shows GitHub KPI cards when stats available', async ({ page }) => {
-    // Mock has githubStats with data, so GitHub KPIs should show
-    const linesCard = page.locator('.kpi-card', { hasText: 'Lines Changed' });
+  test('shows operational KPI cards', async ({ page }) => {
+    const linesCard = page.locator('.kpi-card', { hasText: 'Lines Today' });
     await expect(linesCard).toBeVisible();
-    await expect(linesCard.locator('.kpi-value')).toContainText('1.5K');
+    await expect(linesCard.locator('.kpi-value')).toHaveText('0');
 
-    const commitsCard = page.locator('.kpi-card', { hasText: 'Commits Today' });
-    await expect(commitsCard).toBeVisible();
-    await expect(commitsCard.locator('.kpi-value')).toHaveText('4');
+    const weeklyCard = page.locator('.kpi-card', { hasText: 'Lines / Week' });
+    await expect(weeklyCard).toBeVisible();
+    await expect(weeklyCard.locator('.kpi-value')).toHaveText('0');
 
-    const prsCard = page.locator('.kpi-card', { hasText: 'Open PRs' });
-    await expect(prsCard).toBeVisible();
-    await expect(prsCard.locator('.kpi-value')).toHaveText('3');
+    const costCard = page.locator('.kpi-card', { hasText: 'Cost Today' });
+    await expect(costCard).toBeVisible();
+
+    const agentsCard = page.locator('.kpi-card', { hasText: 'Agents Today' });
+    await expect(agentsCard).toBeVisible();
   });
 
   test('clicking KPI card scrolls and flashes target widget', async ({ page }) => {
@@ -68,28 +69,21 @@ test.describe('KPI Bar', () => {
   });
 });
 
-test.describe('KPI Bar — Fallback (no GitHub data)', () => {
-  test('shows fallback KPIs when GitHub stats are zero', async ({ page, mockApis }) => {
+test.describe('KPI Bar — zero line metrics', () => {
+  test('shows zero values when line metrics are not provided', async ({ page, mockApis }) => {
     await mockApis({
-      githubStats: {
-        ok: true,
-        plan_id: 300,
-        lines_changed: 0,
-        commits_today: 0,
-        open_prs: 0,
-        pr_merge_velocity: 0,
-        commit_totals: { lines_added: 0, lines_removed: 0, files_changed: 0, commit_count: 0 },
+      overview: {
+        ...MOCK.overview,
+        today_lines_changed: 0,
+        week_lines_changed: 0,
       },
     });
     await page.goto('/');
     await page.waitForSelector('.kpi-bar .kpi-card', { timeout: 5000 });
 
-    // Fallback cards: Plans Done, Cost Today, Total Cost
-    const doneCard = page.locator('.kpi-card', { hasText: 'Plans Done' });
-    await expect(doneCard).toBeVisible();
-    await expect(doneCard.locator('.kpi-value')).toHaveText('9');
-
-    const costCard = page.locator('.kpi-card', { hasText: 'Cost Today' });
-    await expect(costCard).toBeVisible();
+    const linesToday = page.locator('.kpi-card', { hasText: 'Lines Today' });
+    await expect(linesToday.locator('.kpi-value')).toHaveText('0');
+    const linesWeek = page.locator('.kpi-card', { hasText: 'Lines / Week' });
+    await expect(linesWeek.locator('.kpi-value')).toHaveText('0');
   });
 });

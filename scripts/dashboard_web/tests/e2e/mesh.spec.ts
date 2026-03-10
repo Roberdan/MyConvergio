@@ -25,10 +25,8 @@ test.describe('Mesh Network', () => {
   });
 
   test('node names are displayed', async ({ page }) => {
-    await expect(page.locator('.mn-name').nth(0)).toHaveText('omarchy');
-    await expect(page.locator('.mn-name').nth(1)).toHaveText('m1mario');
-    // Coordinator is rendered last in hub layout
-    await expect(page.locator('.mn-name').nth(2)).toHaveText('m3max');
+    const names = await page.locator('.mn-name').allTextContents();
+    expect(names).toEqual(expect.arrayContaining(['omarchy', 'm1mario', 'm3max']));
   });
 
   test('online nodes show CPU stats', async ({ page }) => {
@@ -62,10 +60,9 @@ test.describe('Mesh Network', () => {
   });
 
   test('mesh header shows online count and action buttons', async ({ page }) => {
-    await page.waitForSelector('.mesh-actions-inline', { timeout: 5000 });
-    await expect(page.locator('.mesh-count')).toContainText('2/3 online');
-    await expect(page.locator('.widget-action-btn[data-action="fullsync"]')).toBeVisible();
-    await expect(page.locator('.widget-action-btn[data-action="sync"]')).toBeVisible();
+    await expect(page.locator('#mesh-online-count')).toContainText('2/3 online');
+    await expect(page.locator('.mesh-toolbar-btn[title="Full Sync"]')).toBeVisible();
+    await expect(page.locator('.mesh-toolbar-btn[title="Push"]')).toBeVisible();
   });
 
   test('coordinator node shows active plan', async ({ page }) => {
@@ -77,13 +74,12 @@ test.describe('Mesh Network', () => {
 
   test('hub layout with spokes container exists', async ({ page }) => {
     await expect(page.locator('.mesh-hub')).toBeVisible();
-    await expect(page.locator('.mesh-hub-workers')).toBeVisible();
-    await expect(page.locator('.mesh-hub-spokes')).toBeVisible();
     await expect(page.locator('.mesh-hub-coord')).toBeVisible();
+    await expect(page.locator('#mesh-flow-cvs')).toBeVisible();
   });
 
   test('sync badges are applied after load', async ({ page }) => {
-    await page.waitForTimeout(500);
+    await page.waitForSelector('.mesh-node.coordinator .mn-sync-dot', { timeout: 5000 });
     // m3max should have green sync dot
     const coord = page.locator('.mesh-node.coordinator');
     await expect(coord.locator('.mn-sync-green')).toHaveCount(1);

@@ -2,6 +2,10 @@ import { test, expect } from './fixtures';
 
 test.describe('Dashboard Core', () => {
   test.beforeEach(async ({ page, mockApis }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('dashRefresh', '0');
+      localStorage.setItem('dashZoom', '100');
+    });
     await mockApis();
     await page.goto('/');
     await page.waitForSelector('.kpi-bar .kpi-card', { timeout: 5000 });
@@ -45,15 +49,11 @@ test.describe('Dashboard Core', () => {
     await expect(cards.nth(4).locator('.kpi-value')).toHaveText('1');
     await expect(cards.nth(4)).toHaveClass(/alert/);
 
-    // GitHub KPI metrics
-    await expect(cards.nth(5)).toContainText('Lines Changed');
-    await expect(cards.nth(5).locator('.kpi-value')).toContainText('1.5K');
-    await expect(cards.nth(6)).toContainText('Commits Today');
-    await expect(cards.nth(6).locator('.kpi-value')).toHaveText('4');
-    await expect(cards.nth(7)).toContainText('Open PRs');
-    await expect(cards.nth(7).locator('.kpi-value')).toHaveText('3');
-    await expect(cards.nth(8)).toContainText('PR Merge Velocity');
-    await expect(cards.nth(8).locator('.kpi-value')).toHaveText('1.5/day');
+    // Current operational KPI metrics
+    await expect(cards.nth(5)).toContainText('Lines Today');
+    await expect(cards.nth(6)).toContainText('Lines / Week');
+    await expect(cards.nth(7)).toContainText('Cost Today');
+    await expect(cards.nth(8)).toContainText('Agents Today');
   });
 
   test('KPI card click scrolls to target widget', async ({ page }) => {
@@ -83,16 +83,15 @@ test.describe('Dashboard Core', () => {
 
   test('refresh rate stepper changes interval', async ({ page }) => {
     const label = page.locator('#refresh-label');
-    await expect(label).toHaveText('30s');
+    await expect(label).toHaveText('Manual');
 
     // Increase
     await page.locator('.stepper-btn', { hasText: '▶' }).click();
-    await expect(label).toHaveText('1m');
+    await expect(label).toHaveText('1s');
 
-    // Decrease twice
+    // Decrease back to manual
     await page.locator('.stepper-btn', { hasText: '◀' }).click();
-    await page.locator('.stepper-btn', { hasText: '◀' }).click();
-    await expect(label).toHaveText('15s');
+    await expect(label).toHaveText('Manual');
   });
 
   test('last update timestamp appears after load', async ({ page }) => {

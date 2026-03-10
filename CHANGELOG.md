@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.3] - 10 Mar 2026
+
+### Fixed
+- Plan 601 W2 — CRDT tests, mesh proxy routes, pull-db SSE, Clippy clean, Playwright fixes (partial)
+
+
 ## [v11.36.2] - 10 Mar 2026
 
 ### Fixed

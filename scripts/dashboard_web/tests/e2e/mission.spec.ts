@@ -8,9 +8,10 @@ test.describe('Active Missions & Task Pipeline', () => {
   });
 
   test('mission panel shows active plan', async ({ page }) => {
-    await expect(page.locator('.mission-plan')).toHaveCount(1);
-    await expect(page.locator('.mission-id')).toContainText('#300');
-    await expect(page.locator('.mission-name')).toContainText('Auth refactor');
+    const missionPlans = page.locator('#mission-content .mission-plan');
+    await expect(missionPlans).toHaveCount(1);
+    await expect(missionPlans.locator('.mission-id')).toContainText('#300');
+    await expect(missionPlans.locator('.mission-name')).toContainText('Auth refactor');
   });
 
   test('mission plan shows progress ring with correct percentage', async ({ page }) => {
@@ -78,7 +79,7 @@ test.describe('Active Missions & Task Pipeline', () => {
   });
 
   test('clicking mission plan filters task pipeline', async ({ page }) => {
-    const plan = page.locator('.mission-plan');
+    const plan = page.locator('#mission-content .mission-plan').first();
     await plan.click();
     const label = page.locator('#task-filter-label');
     await expect(label).toContainText('#300');
@@ -87,7 +88,7 @@ test.describe('Active Missions & Task Pipeline', () => {
 
   test('Show All button clears filter', async ({ page }) => {
     // First filter
-    await page.locator('.mission-plan').click();
+    await page.locator('#mission-content .mission-plan').first().click();
     await expect(page.locator('#task-filter-clear')).toBeVisible();
     // Clear
     await page.locator('#task-filter-clear').click();

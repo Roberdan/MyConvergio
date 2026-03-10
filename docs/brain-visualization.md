@@ -1,103 +1,64 @@
 # Brain Visualization — Augmented Intelligence Dashboard
 
-The brain widget visualizes the entire AI system as a living organism. Human operator = consciousness (prefrontal cortex). AI agents = neurons. Plans = brain regions. Mesh nodes = organs.
+Force-directed neural graph rendering plans/tasks as neurons, mesh nodes as color-coded clusters.
 
-## Architecture
+## Architecture (consolidated v11.29)
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| brain-regions.js | ~230 | Brain anatomy: 10 regions with positions, colors, system mappings |
-| brain-organism.js | ~246 | Neuron state machine (7 states), synapse firing, organism breathing |
-| brain-consciousness.js | ~190 | Human interaction tracking, cortical impulses, event stream |
-| brain-effects.js | ~203 | Scientific rendering: heatmap, EEG trace, connectome, particles |
-| brain-canvas.js | ~250 | Main Canvas 2D renderer, 60fps animation loop |
-| brain-layout.js | ~201 | Force-directed layout engine |
-| icons.js | ~28 | SVG icon library (Lucide-style, monoline stroke) |
+| brain-canvas.js | ~900 | IIFE: force-directed layout, neurons, synapses, mesh colors, scaling |
+| websocket.js | ~400 | Mesh panel HTML, flow animation canvas, WebSocket connection |
+| mission.js | ~200 | Active missions widget (filters completed plans) |
 
-## Brain Region Mapping
+Previous multi-file arch (brain-regions/organism/consciousness/effects/layout) consolidated into single `brain-canvas.js` IIFE.
 
-| Region | System Component | Activates When |
-|--------|-----------------|----------------|
-| Prefrontal Cortex | Planner, strategy, decisions | Plan created/started, human commands |
-| Motor Cortex | Executor, agents, code generation | Tasks running, agents active |
-| Hippocampus | agent-memory, KB, session-store | Memory written, skills earned |
-| Amygdala | Thor, guardian, security | Validation, gate checks, rejections |
-| Cerebellum | Mesh coordinator, sync | Peer sync, dispatch, load balance |
-| Corpus Callosum | SSE, API, mesh-sync | Inter-region communication |
-| Brainstem | Heartbeat, DB, cron | Background processes, autonomic |
-| Visual Cortex | Dashboard, monitoring | Page load, widget refresh |
-| Left Parietal | Code review, debugging, research | Analysis tasks |
-| Right Parietal | Code generation, refactoring | Creation tasks |
+## Key Algorithms
 
-## Neuron States
+### Mesh Color — `meshColor(name)`
+Golden-ratio hash: `(Math.abs(hash) * 137.508) % 360` → maximally separated hues.
+Exported as `window.brainMeshColor` for cross-file access (websocket.js, mesh.js, mesh-animation.js).
+Colors: m3max≈blue(213°), omarchy≈purple(255°), m1mario≈gold(54°).
+
+### Scale Factor — `scaleFactor()`
+`sqrt(canvasArea / referenceArea)` where ref = 480×800. Ensures consistent sizing across displays.
+
+### Font Scale — `fontScale()`
+`pow(sf, 0.35)` clamped 0.7–1.4. Dampened scaling prevents unreadable text on small/large canvases.
+
+### Gravity — Elliptical
+Uses `spreadX`/`spreadY` independently (not circular). Plans placed in orbital ring, tasks orbit parent plan like moons.
+
+## Neuron Rendering
 
 | State | Visual | Trigger |
 |-------|--------|---------|
-| DORMANT | Faint outline, slow breathe | Task pending |
-| SPAWNING | Grows from nothing (0.3s) | Task just created |
-| PREPARING | Dim pulse, cold blue | Agent starting up |
-| FIRING | Bright glow, fast pulse, warm | Agent actively working |
-| TRANSMITTING | Trail along synapse | Passing context to next agent |
-| COOLING | Green flash → fadeout | Task just completed |
-| DEAD | Red halo, dark | Task failed/blocked |
+| pending | Faint outline, slow pulse | Task waiting |
+| in_progress | Bright glow, warm hue | Agent actively working |
+| done | Green flash → dim | Task completed |
+| failed | Red halo | Task failed/blocked |
 
-## Synapse Types
+Crisp rendering: `shadowBlur` reduced to 2–4px (was 8–12). No canvas blur filter.
 
-| Type | Fires When | Visual |
-|------|-----------|--------|
-| dependency | Task B completes → Task A starts | Particles flow B→A |
-| wave_sequence | Last task in wave N → first in N+1 | Bright cascade |
-| thor_validation | Task → Thor → back | Orange arc |
-| context_pass | Agent output → next agent input | White trail |
+## Synapses
 
-## Human Interaction (Consciousness Layer)
-
-Human commands create **cortical impulses** — expanding shockwaves from prefrontal cortex that cascade through all brain regions. Human events = warm/gold. AI events = cool/blue.
-
-| Event | Color | Source Region |
-|-------|-------|---------------|
-| Human command | Gold | Prefrontal |
-| Human decision | Orange | Prefrontal |
-| Human override | Red | Prefrontal |
-| AI response | Blue | Motor |
-| Agent spawn | Teal | Motor |
-| Agent complete | Green | Motor |
-| Thor judgment | Amber | Amygdala |
-| Memory write | Purple | Hippocampus |
-
-## Scientific Visualization Effects
-
-- **Heatmap overlay**: fMRI-style BOLD signal (blue→cyan→green→yellow→red)
-- **Connectome lines**: 15 pre-defined connections matching neuroanatomy
-- **EEG trace**: Real-time brainwave at bottom, one wave per region
-- **Particle field**: 50-80 ambient particles (cerebrospinal fluid effect)
-- **Recording indicator**: "● REC" with elapsed time
-- **Color scale bar**: Scientific heatmap legend
-
-## Agent Tracking
-
-| Command | Purpose |
-|---------|---------|
-| `agent-track.sh start <id> <type> <desc>` | Register new agent |
-| `agent-track.sh complete <id> --tokens-in N` | Mark complete with tokens |
-| `agent-track.sh list --running` | List active agents |
-| `agent-track.sh stats --plan ID` | Token/cost aggregation |
-
-API: `GET /api/agents` returns running agents, recent completions, and aggregate stats.
-
-DB table: `agent_activity` (id, agent_id, task_db_id, plan_id, agent_type, model, status, tokens_*, cost_usd, duration_s, host, region)
+Enhanced particle system: `flowRate`-based continuous spawning, 6-position trail arrays, source-node mesh color with gradient. Active connections pulse, done connections dim to 20% opacity.
 
 ## Data Flow
 
-1. Executor launches agent → `agent-track.sh start` → DB insert
-2. SSE emits `agent_update` event → brain-consciousness.js receives
-3. brain-canvas.js reads agent data every 2s from window._dashboardPlans + /api/agents
-4. RegionActivity maps tasks to brain regions, calculates activity levels
-5. Canvas renders: outline → heatmap → regions → connectome → neurons → EEG → stats
-6. Agent completes → `agent-track.sh complete` → DB update → SSE → neuron cooling animation
-7. Human types command → consciousnessTrackHumanCommand → cortical impulse → cascade
+1. `/api/agents` returns plans with `status='doing'` only (no completed)
+2. brain-canvas.js reads via `window._dashboardPlans` every 2s
+3. Force-directed layout positions neurons with elliptical gravity
+4. Canvas renders: neurons → synapses → labels → stats overlay
+5. Completed plans auto-removed from brain + active missions widget
 
-## Theme Compatibility
+## API
 
-All rendering uses CSS variables and currentColor. SVG icons adapt automatically.
-Canvas colors use HSL with dynamic lightness based on theme detection.
+| Endpoint | Returns |
+|----------|---------|
+| `GET /api/agents` | Active plans (`status='doing'`), tasks, agent stats |
+| `GET /api/mesh` | Peer array (non-deterministic order — sort client-side) |
+
+## Cache Busting
+
+`style.css` uses `@import url('css/xxx.css?v=N')` — bump ALL imports on CSS changes.
+`index.html` uses `?v=TIMESTAMP` on script tags. brain-canvas.js MUST load before websocket.js.

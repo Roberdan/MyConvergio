@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.29.6] - 10 Mar 2026
+
+### Changed
+- eliminate sync amplification + provision script
+
+
 ## [v11.29.5] - 10 Mar 2026
 
 ### Changed

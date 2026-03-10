@@ -149,11 +149,19 @@ fn spawn_delta_loop(
 ) {
     tokio::spawn(async move {
         let mut ticker = tokio::time::interval(Duration::from_secs(2));
-        let mut db_cursor = 0_i64;
+        // Start cursor at current max version — don't re-sync historical changes
+        let mut db_cursor = sync::current_db_version(&config.db_path, config.crsqlite_path.as_deref())
+            .unwrap_or(0);
         let mut batch_window = sync::SyncBatchWindow::new(50);
         let mut staged_changes = Vec::new();
+        let mut idle_ticks: u32 = 0;
         loop {
             ticker.tick().await;
+            // Exponential backoff when idle (2s, 4s, 8s, max 30s)
+            if idle_ticks > 0 {
+                let extra_wait = Duration::from_secs((2u64.pow(idle_ticks.min(4))).min(30));
+                tokio::time::sleep(extra_wait).await;
+            }
             let peer_name = sync_peer.read().await.clone();
             match sync::collect_changes_since(
                 &config.db_path,
@@ -165,6 +173,9 @@ fn spawn_delta_loop(
                         db_cursor = checkpoint;
                         batch_window.observe_change(checkpoint);
                         staged_changes.extend(changes);
+                        idle_ticks = 0;
+                    } else {
+                        idle_ticks = idle_ticks.saturating_add(1);
                     }
                     if !staged_changes.is_empty() && batch_window.should_flush(sync::current_time_ms()) {
                         let frame = MeshSyncFrame::Delta {

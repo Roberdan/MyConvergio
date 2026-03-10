@@ -86,9 +86,20 @@ pub fn collect_changes_since(
 ) -> Result<(Vec<DeltaChange>, i64), String> {
     let conn = open_sync_conn(db_path, crsqlite_ext)?;
     ensure_sync_schema(&conn).map_err(|e| e.to_string())?;
-    let changes = read_changes_since_from_conn(&conn, last_db_version).map_err(|e| e.to_string())?;
+    let changes = read_local_changes_since(&conn, last_db_version).map_err(|e| e.to_string())?;
     let max_db_version = changes.iter().map(|c| c.db_version).max().unwrap_or(last_db_version);
     Ok((changes, max_db_version))
+}
+
+/// Get the current max db_version — used to initialize cursor on startup
+pub fn current_db_version(db_path: &Path, crsqlite_ext: Option<&str>) -> Result<i64, String> {
+    let conn = open_sync_conn(db_path, crsqlite_ext)?;
+    conn.query_row(
+        "SELECT COALESCE(MAX(db_version), 0) FROM crsql_changes",
+        [],
+        |r| r.get(0),
+    )
+    .map_err(|e| e.to_string())
 }
 
 pub fn apply_delta_frame(
@@ -164,6 +175,35 @@ pub fn record_sync_error(
     )
     .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+/// Read only LOCAL changes (filtered by this node's site_id) — prevents re-broadcast loops
+fn read_local_changes_since(conn: &Connection, last_db_version: i64) -> rusqlite::Result<Vec<DeltaChange>> {
+    // Get local site_id to filter — only send OUR writes, not re-broadcast received changes
+    let local_site_id: Option<Vec<u8>> = conn
+        .query_row("SELECT site_id FROM crsql_site_id LIMIT 1", [], |r| r.get(0))
+        .ok();
+    let mut stmt = conn.prepare(
+        r#"SELECT "table", pk, cid, CAST(val AS TEXT), col_version, db_version, site_id, cl, seq
+           FROM crsql_changes
+           WHERE db_version > ?1 AND (?2 IS NULL OR site_id = ?2)
+           ORDER BY db_version ASC, seq ASC
+           LIMIT 1000"#,
+    )?;
+    let rows = stmt.query_map(params![last_db_version, local_site_id], |row| {
+        Ok(DeltaChange {
+            table_name: row.get(0)?,
+            pk: row.get(1)?,
+            cid: row.get(2)?,
+            val: row.get(3)?,
+            col_version: row.get(4)?,
+            db_version: row.get(5)?,
+            site_id: row.get(6)?,
+            cl: row.get(7)?,
+            seq: row.get(8)?,
+        })
+    })?;
+    rows.collect::<rusqlite::Result<Vec<_>>>()
 }
 
 pub fn read_changes_since_from_conn(conn: &Connection, last_db_version: i64) -> rusqlite::Result<Vec<DeltaChange>> {

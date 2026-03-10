@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.29.1] - 10 Mar 2026
+
+### Fixed
+- full-width sparklines, bigger action buttons, gauge layout
+
+
 ## [v11.29.0] - 10 Mar 2026
 
 ### Added

@@ -242,6 +242,32 @@ _Why: Plan 100028 — PR #256 failed CI 3 times because PR body was missing `che
 
 Backend migrations (Python→Rust, framework changes, API rewrites) MUST follow `rules/migration-checklist.md`. Thor rejects migration PRs without E2E Playwright audit and endpoint response verification.
 
+## Pre-Merge Quality Gate (NON-NEGOTIABLE)
+
+Before ANY push/merge to main, run `pre-merge-gate.sh`. BLOCKS on:
+1. Dirty working tree (unstaged files from other features)
+2. TypeScript errors (`tsc --noEmit` with strict config)
+3. Test failures (pytest/vitest)
+4. Version mismatch (VERSION.md vs pyproject.toml/package.json)
+
+**Cross-feature contamination**: if `git diff --name-only` shows files outside PR scope, resolve BEFORE push. `git checkout -- <file>` or `git stash push -m "other-feature" -- <files>`.
+
+**File tracking**: executors MUST call `task-file-tracker.sh track <task_id> <file> edit` after modifying files. Thor runs `task-file-tracker.sh overlap <plan_id>` to detect conflicts before wave merge.
+
+See `rules/merge-quality-gate.md` for full checklist. See `rules/zero-debt.md` for completeness enforcement.
+
+_Why: Plan v21 — 37 contaminating files, 3 blocked commits, half-day lost to manual merge cleanup._
+
+## Compaction-Safe Task Design (NON-NEGOTIABLE)
+
+Tasks MUST survive context compaction:
+1. **Planner**: every task spec is self-contained (files, actions, verify commands). No "continue from previous task".
+2. **Executor**: records modified files in `task_files` DB table via `task-file-tracker.sh`. Survives compaction.
+3. **Coordinator**: calls `plan-checkpoint.sh save` after EVERY task. DB is source of truth, not context.
+4. **Recovery**: after compaction, read checkpoint + `plan-db.sh execution-tree` — resume from DB state, not memory.
+
+_Why: Plan 382 — 13 tasks executed, 0 in DB. Compaction wiped coordinator memory._
+
 ## Guardrails
 
 Avatar WebP | EventSource .close() | Lazy-load heavy deps | No N+1 without $transaction | Same approach fails twice → different strategy | Stuck → ask user | Reject if: Errors suppressed | Steps skipped | Verification promised but not done | Orphan code (created but never wired)

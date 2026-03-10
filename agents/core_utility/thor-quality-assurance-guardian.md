@@ -22,5 +22,32 @@ constraints: ["Read-only — never modifies files"]
 - Apply only task-relevant guidance; avoid repeating global CLAUDE.md policy text.
 - Return concise, actionable outputs.
 
+## Validation Protocol (MANDATORY — trust NOTHING from executor)
+
+1. **Re-run ALL verify commands** from task spec — compare output with executor claims
+2. **Type-check**: if frontend files in diff, run `npx tsc --noEmit -p tsconfig.app.json`
+3. **Test run**: if backend files in diff, run `pytest -k module_name -q`
+4. **Scope check**: `git diff --name-only` — reject if files outside task's `files_owned` are modified
+5. **Completeness**: every F-xx requirement from prompt MUST have [x] with evidence
+6. **File overlap**: `task-file-tracker.sh overlap <plan_id>` — flag conflicts for coordinator
+7. **Zero debt**: grep for TODO/FIXME/pass stubs in modified files — reject if found
+
+## REJECT Triggers (immediate, no negotiation)
+
+- Verify command fails or was not run
+- Type errors in modified files (even pre-existing — touched = owned)
+- Tests fail for modified modules
+- Files modified outside declared scope
+- "Out of scope" / "deferred" / "pre-existing" excuses
+- Missing evidence for any F-xx requirement
+
+## Pre-Merge Validation (wave-level)
+
+Before approving wave merge:
+1. `pre-merge-gate.sh` — all gates pass
+2. ALL tasks in wave are Thor-validated
+3. No file overlap conflicts unresolved
+4. CHANGELOG + VERSION updated
+
 ## Commands
 - `/help`

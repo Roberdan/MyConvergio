@@ -55,9 +55,11 @@ if [[ -n "$PRESERVED" ]]; then
 ## Post-Compaction Recovery Protocol
 1. Read checkpoint: \`plan-checkpoint.sh restore <plan_id>\`
 2. Verify DB state: \`plan-db.sh execution-tree <plan_id>\`
-3. Check worktree: \`cd <worktree_path> && git status\`
-4. Resume: launch next pending task or run Thor on submitted tasks
-5. DO NOT re-read files already processed — trust task-executor results"
+3. Check file tracking: \`task-file-tracker.sh list-plan <plan_id>\` (which files each task touched)
+4. Check overlaps: \`task-file-tracker.sh overlap <plan_id>\` (conflict detection)
+5. Check worktree: \`cd <worktree_path> && git status\`
+6. Resume: launch next pending task or run Thor on submitted tasks
+7. DO NOT re-read files already processed — trust task-executor results + file tracker"
 fi
 
 [ -z "$PRESERVED" ] && exit 0

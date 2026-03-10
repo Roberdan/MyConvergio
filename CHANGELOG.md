@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.29.2] - 10 Mar 2026
+
+### Changed
+- sync agents, rules, hooks, and utility scripts
+
+
 ## [v11.29.1] - 10 Mar 2026
 
 ### Fixed

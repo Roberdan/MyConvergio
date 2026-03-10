@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DASHBOARD TEST</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #111; color: white; }
+        .brain-btn { padding: 10px 20px; background: #0066cc; color: white; border: none; margin: 10px; cursor: pointer; }
+        .refresh { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧠 DASHBOARD TEST - FUNZIONA!</h1>
+    
+    <div class="refresh">
+        <label>Refresh Rate:</label>
+        <button onclick="changeRate()">⬇️ Diminuisci a 0.5s</button>
+        <span id="rate">10s</span>
+    </div>
+    
+    <button class="brain-btn" onclick="showBrain()">🧠 BRAIN VIEW</button>
+    
+    <div id="brain" style="display:none; margin-top: 20px; height: 400px; background: #000; border: 2px solid #0066cc;">
+        <h2>🧠 BRAIN ATTIVO!</h2>
+        <p>Neuroni in orbita... ⚡</p>
+        <canvas width="800" height="300" style="border: 1px solid #333;"></canvas>
+    </div>
+    
+    <script>
+        function showBrain() {
+            document.getElementById('brain').style.display = 'block';
+            alert('🧠 Brain view attivata!');
+        }
+        
+        function changeRate() {
+            document.getElementById('rate').textContent = '0.5s';
+            alert('⚡ HYPERVELOCITY: Refresh rate = 0.5s!');
+        }
+        
+        console.log('✅ JavaScript caricato correttamente!');
+    </script>
+</body>
+</html>

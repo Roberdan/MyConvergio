@@ -5,8 +5,86 @@ use axum::Json;
 use rusqlite::types::ValueRef;
 use rusqlite::{Connection, Params, Row};
 use serde_json::{json, Map, Value};
+use std::collections::HashSet;
 use std::path::PathBuf;
 use tokio::sync::broadcast;
+
+const AGENT_ACTIVITY_SCHEMA: &str =
+    "CREATE TABLE IF NOT EXISTS agent_activity (id INTEGER PRIMARY KEY AUTOINCREMENT, agent_id TEXT NOT NULL, task_db_id INTEGER, plan_id INTEGER, agent_type TEXT NOT NULL, model TEXT, description TEXT, status TEXT NOT NULL DEFAULT 'running', tokens_in INTEGER DEFAULT 0, tokens_out INTEGER DEFAULT 0, tokens_total INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0, started_at TEXT NOT NULL DEFAULT (datetime('now')), completed_at TEXT, duration_s REAL, host TEXT, region TEXT, metadata TEXT, parent_session TEXT)";
+
+const AGENT_ACTIVITY_COLUMNS: &[(&str, &str)] = &[
+    ("agent_type", "TEXT NOT NULL DEFAULT 'legacy'"),
+    ("model", "TEXT"),
+    ("description", "TEXT"),
+    ("status", "TEXT NOT NULL DEFAULT 'completed'"),
+    ("tokens_in", "INTEGER DEFAULT 0"),
+    ("tokens_out", "INTEGER DEFAULT 0"),
+    ("tokens_total", "INTEGER DEFAULT 0"),
+    ("cost_usd", "REAL DEFAULT 0"),
+    ("started_at", "TEXT"),
+    ("completed_at", "TEXT"),
+    ("duration_s", "REAL"),
+    ("host", "TEXT"),
+    ("region", "TEXT"),
+    ("metadata", "TEXT"),
+    ("parent_session", "TEXT"),
+];
+
+fn table_columns(conn: &Connection, table: &str) -> Result<HashSet<String>, ApiError> {
+    let sql = format!("PRAGMA table_info({table})");
+    let mut stmt = conn
+        .prepare(&sql)
+        .map_err(|err| ApiError::internal(format!("table info prepare failed: {err}")))?;
+    let rows = stmt
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|err| ApiError::internal(format!("table info query failed: {err}")))?;
+    let columns = rows
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|err| ApiError::internal(format!("table info decode failed: {err}")))?;
+    Ok(columns.into_iter().collect())
+}
+
+fn ensure_agent_activity_schema(conn: &Connection) -> Result<(), ApiError> {
+    conn.execute_batch(AGENT_ACTIVITY_SCHEMA)
+        .map_err(|err| ApiError::internal(format!("agent_activity create failed: {err}")))?;
+
+    let mut columns = table_columns(conn, "agent_activity")?;
+    for (name, spec) in AGENT_ACTIVITY_COLUMNS {
+        if columns.contains(*name) {
+            continue;
+        }
+        conn.execute_batch(&format!(
+            "ALTER TABLE agent_activity ADD COLUMN {name} {spec}"
+        ))
+        .map_err(|err| ApiError::internal(format!("agent_activity alter failed: {err}")))?;
+        columns.insert((*name).to_string());
+    }
+
+    if columns.contains("action") {
+        conn.execute_batch("UPDATE agent_activity SET agent_type = COALESCE(NULLIF(action,''), NULLIF(agent_type,''), 'legacy') WHERE action IS NOT NULL AND action != ''")
+            .map_err(|err| ApiError::internal(format!("agent_activity type backfill failed: {err}")))?;
+    }
+    if columns.contains("details") {
+        conn.execute_batch("UPDATE agent_activity SET description = COALESCE(NULLIF(description,''), NULLIF(details,'')) WHERE (description IS NULL OR description = '') AND details IS NOT NULL")
+            .map_err(|err| ApiError::internal(format!("agent_activity description backfill failed: {err}")))?;
+    }
+    if columns.contains("created_at") {
+        conn.execute_batch("UPDATE agent_activity SET started_at = COALESCE(NULLIF(started_at,''), created_at, datetime('now')) WHERE started_at IS NULL OR started_at = ''")
+            .map_err(|err| ApiError::internal(format!("agent_activity started_at backfill failed: {err}")))?;
+    }
+    conn.execute_batch(
+        "UPDATE agent_activity SET agent_type = COALESCE(NULLIF(agent_type,''), 'legacy') WHERE COALESCE(agent_type,'') = '';
+         UPDATE agent_activity SET model = COALESCE(NULLIF(model,''), agent_type, 'unknown') WHERE COALESCE(model,'') = '';
+         UPDATE agent_activity SET status = COALESCE(NULLIF(status,''), 'completed') WHERE COALESCE(status,'') = '';
+         UPDATE agent_activity SET region = COALESCE(NULLIF(region,''), 'prefrontal') WHERE COALESCE(region,'') = '';
+         UPDATE agent_activity SET started_at = COALESCE(NULLIF(started_at,''), datetime('now')) WHERE started_at IS NULL OR started_at = '';
+         DELETE FROM agent_activity WHERE id NOT IN (SELECT MAX(id) FROM agent_activity GROUP BY agent_id);
+         CREATE UNIQUE INDEX IF NOT EXISTS uq_agent_activity_agent_id ON agent_activity(agent_id);",
+    )
+    .map_err(|err| ApiError::internal(format!("agent_activity repair failed: {err}")))?;
+
+    Ok(())
+}
 
 #[derive(Clone, Debug)]
 pub struct ServerState {
@@ -18,9 +96,11 @@ impl ServerState {
     pub fn new(db_path: PathBuf) -> Self {
         if let Ok(conn) = Connection::open(&db_path) {
             let _ = conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
+            if let Err(err) = ensure_agent_activity_schema(&conn) {
+                eprintln!("[migration] agent_activity schema repair failed: {err:?}");
+            }
             let migrations = &[
                 // Tables
-                "CREATE TABLE IF NOT EXISTS agent_activity (id INTEGER PRIMARY KEY AUTOINCREMENT, agent_id TEXT NOT NULL, task_db_id INTEGER, plan_id INTEGER, agent_type TEXT NOT NULL, model TEXT, description TEXT, status TEXT NOT NULL DEFAULT 'running', tokens_in INTEGER DEFAULT 0, tokens_out INTEGER DEFAULT 0, tokens_total INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0, started_at TEXT NOT NULL DEFAULT (datetime('now')), completed_at TEXT, duration_s REAL, host TEXT, region TEXT, metadata TEXT, parent_session TEXT)",
                 "CREATE TABLE IF NOT EXISTS agent_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, wave_id TEXT, task_id TEXT, agent_name TEXT, agent_role TEXT, model TEXT, peer_name TEXT, status TEXT DEFAULT 'running', started_at TEXT DEFAULT (datetime('now')), last_heartbeat TEXT, current_task TEXT)",
                 "CREATE TABLE IF NOT EXISTS nightly_jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT, job_name TEXT DEFAULT 'guardian', started_at DATETIME DEFAULT CURRENT_TIMESTAMP, finished_at DATETIME, host TEXT, status TEXT NOT NULL CHECK(status IN ('running','ok','action_required','failed')), sentry_unresolved INTEGER DEFAULT 0, github_open_issues INTEGER DEFAULT 0, processed_items INTEGER DEFAULT 0, fixed_items INTEGER DEFAULT 0, branch_name TEXT, pr_url TEXT, summary TEXT, report_json TEXT)",
                 "CREATE TABLE IF NOT EXISTS nightly_job_definitions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, description TEXT, schedule TEXT NOT NULL DEFAULT '0 3 * * *', script_path TEXT NOT NULL, target_host TEXT DEFAULT 'local', enabled INTEGER NOT NULL DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)",
@@ -35,7 +115,6 @@ impl ServerState {
                 "CREATE INDEX IF NOT EXISTS idx_agent_activity_status_started ON agent_activity(status, started_at DESC)",
                 "CREATE INDEX IF NOT EXISTS idx_agent_activity_status_completed ON agent_activity(status, completed_at DESC)",
                 "CREATE INDEX IF NOT EXISTS idx_agent_activity_model ON agent_activity(model)",
-                "CREATE INDEX IF NOT EXISTS idx_agent_activity_agent_id ON agent_activity(agent_id)",
                 // Performance indexes — agent_runs
                 "CREATE INDEX IF NOT EXISTS idx_agent_runs_started_at ON agent_runs(started_at DESC)",
                 "CREATE INDEX IF NOT EXISTS idx_agent_runs_status ON agent_runs(status)",
@@ -88,12 +167,19 @@ impl ServerState {
                 }
             }
             // Verify critical tables exist
-            let check = conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='agent_activity'");
-            let exists = check.map(|mut s| s.exists([])).unwrap_or(Ok(false)).unwrap_or(false);
+            let check = conn.prepare(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='agent_activity'",
+            );
+            let exists = check
+                .map(|mut s| s.exists([]))
+                .unwrap_or(Ok(false))
+                .unwrap_or(false);
             if !exists {
                 eprintln!("[migration] CRITICAL: agent_activity table missing after migration!");
             }
-            eprintln!("[migration] {ok} applied, {skip} skipped (already exist), agent_activity={exists}");
+            eprintln!(
+                "[migration] {ok} applied, {skip} skipped (already exist), agent_activity={exists}"
+            );
         }
         let (ws_tx, _) = broadcast::channel(256);
         Self { db_path, ws_tx }
@@ -129,11 +215,19 @@ impl ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        (self.status, Json(json!({"ok": false, "error": self.message}))).into_response()
+        (
+            self.status,
+            Json(json!({"ok": false, "error": self.message})),
+        )
+            .into_response()
     }
 }
 
-pub fn query_rows<P: Params>(conn: &Connection, sql: &str, params: P) -> Result<Vec<Value>, ApiError> {
+pub fn query_rows<P: Params>(
+    conn: &Connection,
+    sql: &str,
+    params: P,
+) -> Result<Vec<Value>, ApiError> {
     let mut stmt = conn
         .prepare(sql)
         .map_err(|err| ApiError::internal(format!("prepare failed: {err}")))?;
@@ -144,7 +238,11 @@ pub fn query_rows<P: Params>(conn: &Connection, sql: &str, params: P) -> Result<
         .map_err(|err| ApiError::internal(format!("row decode failed: {err}")))
 }
 
-pub fn query_one<P: Params>(conn: &Connection, sql: &str, params: P) -> Result<Option<Value>, ApiError> {
+pub fn query_one<P: Params>(
+    conn: &Connection,
+    sql: &str,
+    params: P,
+) -> Result<Option<Value>, ApiError> {
     Ok(query_rows(conn, sql, params)?.into_iter().next())
 }
 

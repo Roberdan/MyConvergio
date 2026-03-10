@@ -169,7 +169,7 @@ pub(super) fn publish_event(state: &DaemonState, kind: &str, node: &str, payload
 }
 
 pub(super) fn relay_agent_activity_changes(state: &DaemonState, node: &str, changes: &[DeltaChange]) {
-    let mut grouped: BTreeMap<String, HashMap<String, String>> = BTreeMap::new();
+    let mut grouped: BTreeMap<Vec<u8>, HashMap<String, String>> = BTreeMap::new();
     for change in changes {
         if change.table_name != "agent_activity" {
             continue;
@@ -182,6 +182,7 @@ pub(super) fn relay_agent_activity_changes(state: &DaemonState, node: &str, chan
         }
     }
     for (pk, fields) in grouped {
+        let pk_str = String::from_utf8_lossy(&pk).to_string();
         let status = fields.get("status").map_or("running", String::as_str);
         let event_type = match status {
             "running" => "start",
@@ -190,7 +191,7 @@ pub(super) fn relay_agent_activity_changes(state: &DaemonState, node: &str, chan
         };
         let payload = json!({
             "event_type": event_type,
-            "record_key": pk,
+            "record_key": pk_str,
             "agent_id": fields.get("agent_id").cloned().unwrap_or_default(),
             "status": status,
             "task_db_id": fields.get("task_db_id").cloned(),

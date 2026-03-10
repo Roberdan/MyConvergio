@@ -317,6 +317,7 @@ name = "claude-core"
 version = "11.5.0"
 dependencies = [
  "axum",
+ "base64",
  "clap",
  "libc",
  "ratatui",

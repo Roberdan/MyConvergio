@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.32.1] - 10 Mar 2026
+
+### Fixed
+- pk/site_id BLOB handling for crsqlite replication
+
+
 ## [v11.32.0] - 10 Mar 2026
 
 ### Added

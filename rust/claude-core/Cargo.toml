@@ -36,6 +36,7 @@ ssh2 = { version = "0.9", features = ["vendored-openssl"] }
 socket2 = "0.5"
 libc = "0.2"
 ratatui = "0.30"
+base64 = "0.22.1"
 
 [dev-dependencies]
 tower = "0.5"

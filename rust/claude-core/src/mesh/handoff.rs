@@ -65,6 +65,7 @@ pub fn parse_peers_conf(content: &str) -> HashMap<String, PeerConfig> {
     peers
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn detect_sync_source(
     target: &str,
     ssh_target: &str,

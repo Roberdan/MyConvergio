@@ -15,7 +15,7 @@ use crate::mesh::observability::{LogBuffer, MeshMetrics};
 /// Shared state for HTTP handlers
 #[derive(Clone)]
 pub struct HttpState {
-    pub daemon: DaemonState,
+    pub(in crate::mesh) daemon: DaemonState,
     pub db_path: std::path::PathBuf,
     pub crsqlite_path: Option<String>,
     pub start_time: std::time::Instant,

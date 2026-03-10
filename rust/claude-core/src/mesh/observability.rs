@@ -4,7 +4,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::net::IpAddr;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 /// T3-02: System metrics — lightweight counters for the daemon
@@ -157,6 +157,7 @@ impl LogBuffer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
 
     #[test]
     fn metrics_snapshot_returns_all_counters() {

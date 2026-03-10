@@ -200,7 +200,50 @@ fn db_crdt_required_tables_are_declared() {
     let tables = super::crdt::required_crdt_tables();
     assert_eq!(
         tables,
-        vec!["plan_reviews", "tasks", "waves", "host_heartbeats"]
+        vec![
+            "agent_activity",
+            "agent_runs",
+            "chat_messages",
+            "chat_requirements",
+            "chat_sessions",
+            "collector_runs",
+            "conversation_logs",
+            "debt_items",
+            "delegation_log",
+            "env_vault_log",
+            "file_locks",
+            "file_snapshots",
+            "github_events",
+            "host_heartbeats",
+            "idea_notes",
+            "ideas",
+            "knowledge_base",
+            "merge_queue",
+            "mesh_events",
+            "mesh_sync_stats",
+            "metrics_history",
+            "nightly_job_definitions",
+            "nightly_jobs",
+            "notification_triggers",
+            "notifications",
+            "peer_heartbeats",
+            "plan_actuals",
+            "plan_approvals",
+            "plan_business_assessments",
+            "plan_commits",
+            "plan_learnings",
+            "plan_reviews",
+            "plan_token_estimates",
+            "plan_versions",
+            "plans",
+            "projects",
+            "schema_metadata",
+            "session_state",
+            "snapshots",
+            "tasks",
+            "token_usage",
+            "waves"
+        ]
     );
 }
 

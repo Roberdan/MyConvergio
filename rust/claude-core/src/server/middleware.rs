@@ -77,7 +77,7 @@ fn needs_auth(method: &Method, path: &str) -> bool {
         "/api/plan/delegate",
         "/api/plan/preflight",
     ];
-    PROTECTED_GET.iter().any(|p| path == *p)
+    PROTECTED_GET.contains(&path)
 }
 
 /// Axum middleware: rejects mutable requests without a valid Bearer token.

@@ -52,7 +52,7 @@ async fn handle_chat_session_create(
 ) -> Result<Json<Value>, ApiError> {
     let db = state.open_db()?;
     ensure_chat_schema(db.connection())?;
-    let sid = payload.session_id.unwrap_or_else(|| uuid_like());
+    let sid = payload.session_id.unwrap_or_else(uuid_like);
     let title = payload.title.unwrap_or_else(|| "New chat session".to_string());
     db.connection()
         .execute(

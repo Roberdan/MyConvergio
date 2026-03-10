@@ -27,7 +27,7 @@ impl PlanDb {
                     ));
                 }
                 let task_id = parse_i64(&args[1], "task_id")?;
-                let status = TaskStatus::from_str(&args[2])
+                let status = TaskStatus::from_str_opt(&args[2])
                     .ok_or_else(|| super::service::invalid_input("invalid task status"))?;
                 let parsed = parse_update_task_args(&args[3..])?;
                 let result = self.update_task(task_id, status, &parsed)?;

@@ -32,7 +32,6 @@ fn default_peer() -> String { "local".into() }
 pub(crate) struct ResolvedPeer {
     pub ip: String,
     pub user: Option<String>,
-    pub online: bool,
     pub is_self: bool,
 }
 
@@ -106,7 +105,7 @@ pub(crate) fn ts_name_matches(node: &serde_json::Value, normalized_peer: &str) -
         if let Some(val) = node.get(field).and_then(|v| v.as_str()) {
             let norm = val.to_lowercase().replace(['-', '_', ' ', '\'', '.'], "");
             if norm.contains(normalized_peer) || normalized_peer.contains(
-                &norm.split("tail").next().unwrap_or("").trim_end_matches('.'),
+                norm.split("tail").next().unwrap_or("").trim_end_matches('.'),
             ) { return true; }
         }
     }
@@ -123,8 +122,8 @@ pub(crate) fn peer_ssh_user(peer: &str) -> Option<String> {
 }
 
 pub(crate) fn resolve_peer(_state: &ServerState, peer: &str) -> Option<ResolvedPeer> {
-    let (ip, online, is_self) = tailscale_resolve(peer)?;
-    Some(ResolvedPeer { ip, user: peer_ssh_user(peer), online, is_self })
+    let (ip, _online, is_self) = tailscale_resolve(peer)?;
+    Some(ResolvedPeer { ip, user: peer_ssh_user(peer), is_self })
 }
 
 pub(crate) fn peer_ssh_alias(state: &ServerState, peer: &str) -> Option<String> {
@@ -216,7 +215,7 @@ async fn handle_pty(mut socket: WebSocket, params: PtyParams, state: ServerState
         tokio::select! {
             Some(data) = rx.recv() => {
                 last_activity = Instant::now();
-                if socket.send(Message::Binary(data.into())).await.is_err() { break; }
+                if socket.send(Message::Binary(data)).await.is_err() { break; }
             }
             msg = socket.recv() => {
                 match msg {

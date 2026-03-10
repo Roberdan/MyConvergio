@@ -383,7 +383,7 @@ fn resolve_local_node_name(peers_conf_path: &std::path::Path, bind_ip: &str) -> 
 
 /// Cross-platform system stats via sysinfo crate (macOS/Linux/Windows).
 fn collect_system_stats() -> serde_json::Value {
-    use sysinfo::{System, Networks};
+    use sysinfo::System;
     let mut sys = System::new();
     sys.refresh_cpu_all();
     std::thread::sleep(std::time::Duration::from_millis(200));

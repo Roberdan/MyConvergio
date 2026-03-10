@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.2] - 10 Mar 2026
+
+### Fixed
+- Fix clippy warnings in claude-core (remove unused imports/fields, small refactors, FromStr impl)\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+
+
 ## [v11.36.1] - 10 Mar 2026
 
 ### Fixed

@@ -198,6 +198,10 @@ impl IntelligenceHub {
     }
 }
 
+impl Default for IntelligenceHub {
+    fn default() -> Self { Self::new() }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

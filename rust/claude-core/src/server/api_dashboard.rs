@@ -35,7 +35,7 @@ pub fn router() -> Router<ServerState> {
             "/api/nightly/config/:project_id",
             get(api_nightly_config_get).put(api_nightly_config_update),
         )
-        .route("/api/projects", get(api_projects))
+        .route("/api/projects", get(api_projects).post(api_project_create))
         .route("/api/events", get(api_events))
         .route("/api/coordinator/status", get(api_coordinator_status))
         .route("/api/coordinator/toggle", get(api_coordinator_toggle))
@@ -238,7 +238,7 @@ async fn api_organization(State(state): State<ServerState>) -> Result<Json<Value
             .filter(|a| {
                 a.get("host").and_then(Value::as_str).unwrap_or("") == name
                     || (name.contains("m3max")
-                        && a.get("host").and_then(Value::as_str).map_or(true, |h| h.is_empty()))
+                        && a.get("host").and_then(Value::as_str).map(|h| h.is_empty()).unwrap_or(true))
             })
             .map(|a| {
                 if a.get("status").and_then(Value::as_str) == Some("running") {
@@ -456,6 +456,68 @@ async fn api_projects(State(state): State<ServerState>) -> Result<Json<Value>, A
         "SELECT id,name,path FROM projects ORDER BY name COLLATE NOCASE",
         [],
     )?)))
+}
+
+#[derive(Deserialize)]
+struct ProjectCreateBody {
+    name: String,
+    description: Option<String>,
+    repo: Option<String>,
+    path: Option<String>,
+}
+
+async fn api_project_create(
+    State(state): State<ServerState>,
+    Json(body): Json<ProjectCreateBody>,
+) -> Result<Json<Value>, ApiError> {
+    let name = body.name.trim();
+    if name.is_empty() {
+        return Err(ApiError::bad_request("name is required"));
+    }
+    let path = body
+        .path
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .or_else(|| {
+            body.repo
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+        });
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0);
+    let project_id = format!(
+        "{}-{ts}",
+        name.to_lowercase()
+            .chars()
+            .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '-' })
+            .collect::<String>()
+            .trim_matches('-')
+    );
+
+    let db = state.open_db()?;
+    db.connection()
+        .execute(
+            "INSERT INTO projects(id,name,path) VALUES(?1,?2,?3)",
+            rusqlite::params![project_id, name, path],
+        )
+        .map_err(|err| ApiError::internal(format!("create project failed: {err}")))?;
+
+    Ok(Json(json!({
+        "ok": true,
+        "project": {
+            "id": project_id,
+            "name": name,
+            "path": path,
+            "description": body.description.unwrap_or_default(),
+            "repo": body.repo.unwrap_or_default()
+        }
+    })))
 }
 
 fn parse_positive_i64(qs: &HashMap<String, String>, key: &str, default_value: i64) -> Result<i64, ApiError> {

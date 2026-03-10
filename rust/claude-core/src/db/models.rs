@@ -49,7 +49,7 @@ impl TaskStatus {
         }
     }
 
-    pub fn from_str(value: &str) -> Option<Self> {
+    pub fn from_str_opt(value: &str) -> Option<Self> {
         match value {
             "pending" => Some(Self::Pending),
             "in_progress" => Some(Self::InProgress),
@@ -59,6 +59,22 @@ impl TaskStatus {
             "skipped" => Some(Self::Skipped),
             "cancelled" => Some(Self::Cancelled),
             _ => None,
+        }
+    }
+}
+
+impl std::str::FromStr for TaskStatus {
+    type Err = ();
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "pending" => Ok(Self::Pending),
+            "in_progress" => Ok(Self::InProgress),
+            "submitted" => Ok(Self::Submitted),
+            "done" => Ok(Self::Done),
+            "blocked" => Ok(Self::Blocked),
+            "skipped" => Ok(Self::Skipped),
+            "cancelled" => Ok(Self::Cancelled),
+            _ => Err(()),
         }
     }
 }

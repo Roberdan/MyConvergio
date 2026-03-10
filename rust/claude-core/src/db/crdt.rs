@@ -77,7 +77,7 @@ pub fn required_crdt_tables() -> Vec<&'static str> {
 }
 
 pub fn load_crsqlite(conn: &Connection, extension: &str) -> rusqlite::Result<()> {
-    let _guard = unsafe { conn.load_extension_enable()? };
+    unsafe { conn.load_extension_enable()? };
     unsafe { conn.load_extension(extension, None::<&str>) }?;
     Ok(())
 }
@@ -278,14 +278,17 @@ fn rebuild_crr_compatible(conn: &Connection, table: &str) -> rusqlite::Result<()
         col_defs.join(", ")
     );
     // Use SAVEPOINT for atomicity — if any step fails, rollback all changes
-    conn.execute_batch(&format!(
+    match conn.execute_batch(&format!(
         "SAVEPOINT crr_rebuild; {}; INSERT INTO \"{}\" SELECT * FROM \"{}\"; DROP TABLE \"{}\"; ALTER TABLE \"{}\" RENAME TO \"{}\"; RELEASE crr_rebuild;",
         create, tmp, table, table, tmp, table
-    )).map_err(|e| {
-        let _ = conn.execute_batch("ROLLBACK TO crr_rebuild; RELEASE crr_rebuild;");
-        let _ = conn.execute_batch(&format!("DROP TABLE IF EXISTS \"{}\"", tmp));
-        e
-    })?;
+    )) {
+        Ok(()) => {},
+        Err(e) => {
+            let _ = conn.execute_batch("ROLLBACK TO crr_rebuild; RELEASE crr_rebuild;");
+            let _ = conn.execute_batch(&format!("DROP TABLE IF EXISTS \"{}\"", tmp));
+            return Err(e);
+        }
+    };
     Ok(())
 }
 
@@ -300,8 +303,8 @@ fn default_for_type(typ: &str) -> &'static str {
 fn find_matching_paren(s: &str, open_pos: usize) -> Option<usize> {
     let bytes = s.as_bytes();
     let mut depth = 0;
-    for i in open_pos..bytes.len() {
-        match bytes[i] {
+    for (i, &b) in bytes.iter().enumerate().skip(open_pos) {
+        match b {
             b'(' => depth += 1,
             b')' => {
                 depth -= 1;
@@ -383,10 +386,7 @@ impl PlanDb {
         }
         let output = cmd.output()?;
         if !output.status.success() {
-            return Err(IoError::new(
-                ErrorKind::Other,
-                format!("remote export failed: {}", String::from_utf8_lossy(&output.stderr)),
-            ));
+            return Err(IoError::other(format!("remote export failed: {}", String::from_utf8_lossy(&output.stderr))));
         }
         serde_json::from_slice::<Vec<CrdtChange>>(&output.stdout)
             .map_err(|err| IoError::new(ErrorKind::InvalidData, err))
@@ -412,7 +412,7 @@ impl PlanDb {
         if status.success() {
             Ok(())
         } else {
-            Err(IoError::new(ErrorKind::Other, "remote apply failed"))
+            Err(IoError::other("remote apply failed"))
         }
     }
 }
@@ -452,6 +452,13 @@ mod tests {
         let conn = Connection::open_in_memory().expect("conn");
         let called = Arc::new(Mutex::new(Vec::<String>::new()));
         let sink = Arc::clone(&called);
+        for table in required_crdt_tables() {
+            conn.execute(
+                &format!("CREATE TABLE \"{table}\" (id TEXT PRIMARY KEY)"),
+                [],
+            )
+            .expect("create table");
+        }
         conn.create_scalar_function(
             "crsql_as_crr",
             1,

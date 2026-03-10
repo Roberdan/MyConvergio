@@ -340,7 +340,7 @@ fn open_sync_conn(db_path: &Path, crsqlite_ext: Option<&str>) -> Result<Connecti
          PRAGMA cache_size=-2000;"
     ).map_err(|e| e.to_string())?;
     if let Some(ext) = crsqlite_ext {
-        let _guard = unsafe { conn.load_extension_enable() }.map_err(|e| e.to_string())?;
+        unsafe { conn.load_extension_enable() }.map_err(|e| e.to_string())?;
         unsafe { conn.load_extension(ext, None::<&str>) }.map_err(|e| e.to_string())?;
         // Ensure ALL tables are CRR-enabled for automatic row-level replication
         crate::db::crdt::mark_required_tables(&conn).map_err(|e| e.to_string())?;

@@ -8,10 +8,43 @@ use std::collections::HashMap;
 pub fn router() -> Router<ServerState> {
     Router::new()
         .route("/api/mesh", get(api_mesh))
+        .route("/api/mesh/logs", get(api_mesh_logs))
+        .route("/api/mesh/metrics", get(api_mesh_metrics))
+        .route("/api/mesh/sync-stats", get(api_mesh_sync_stats))
         .route("/api/mesh/sync-status", get(api_mesh_sync_status))
         .route("/api/mesh/traffic", get(api_mesh_traffic))
         .route("/api/mesh/init", post(api_mesh_init))
         .route("/api/mesh/action", get(handle_mesh_action))
+}
+
+async fn proxy_daemon_get(endpoint: &str) -> Result<Json<Value>, ApiError> {
+    let url = format!("http://127.0.0.1:9421/api/{endpoint}");
+    let resp = reqwest::get(&url)
+        .await
+        .map_err(|err| ApiError::internal(format!("daemon request failed: {err}")))?;
+    let status = resp.status();
+    if !status.is_success() {
+        return Err(ApiError::internal(format!(
+            "daemon request failed for {endpoint}: HTTP {status}"
+        )));
+    }
+    let body = resp
+        .json::<Value>()
+        .await
+        .map_err(|err| ApiError::internal(format!("invalid daemon JSON for {endpoint}: {err}")))?;
+    Ok(Json(body))
+}
+
+async fn api_mesh_logs() -> Result<Json<Value>, ApiError> {
+    proxy_daemon_get("logs").await
+}
+
+async fn api_mesh_metrics() -> Result<Json<Value>, ApiError> {
+    proxy_daemon_get("metrics").await
+}
+
+async fn api_mesh_sync_stats() -> Result<Json<Value>, ApiError> {
+    proxy_daemon_get("sync-stats").await
 }
 
 fn parse_peers_conf(content: &str) -> HashMap<String, HashMap<String, String>> {

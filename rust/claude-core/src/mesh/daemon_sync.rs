@@ -205,9 +205,12 @@ fn spawn_heartbeat_loop(out_tx: mpsc::Sender<MeshSyncFrame>, node_id: String) {
 
 use std::sync::mpsc as std_mpsc;
 
+// Type alias to simplify complex channel types used below
+type SyncReply = std_mpsc::Sender<Result<(Vec<sync::DeltaChange>, i64, i64), String>>;
+
 /// Messages for the dedicated DB sync thread
 enum SyncDbCmd {
-    CollectChanges { cursor: i64, reply: std_mpsc::Sender<Result<(Vec<sync::DeltaChange>, i64, i64), String>> },
+    CollectChanges { cursor: i64, reply: SyncReply },
     RecordSent { peer: String, count: usize, version: i64 },
     /// T1-01: Anti-entropy — get peer's last known db_version for catch-up
     GetPeerCursor { peer: String, reply: std_mpsc::Sender<i64> },

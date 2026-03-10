@@ -46,21 +46,66 @@ function _resolveHost(host) {
   return host;
 }
 
-async function _pullRemoteDb() {
+function _pullRemoteDb() {
   if (state.pullInProgress) return;
   state.pullInProgress = true;
   try {
-    const r = await fetchJson("/api/mesh/pull-db");
-    if (r && r.count > 0) {
-      const ok = r.synced.filter((s) => s.ok).length;
-      const badge = document.getElementById("sync-badge");
-      if (ok > 0 && badge) {
-        badge.textContent = `↓ ${ok} synced`;
-        badge.style.display = "inline";
-        setTimeout(() => (badge.style.display = "none"), 3000);
+    const es = new EventSource('/api/mesh/pull-db');
+    const badge = document.getElementById('sync-badge');
+
+    // Generic message handler (server may send unnamed 'message' events)
+    es.addEventListener('message', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data && Array.isArray(data.synced) && typeof applyMeshSyncBadges === 'function') {
+          applyMeshSyncBadges(data.synced);
+        }
+      } catch (err) {
+        // ignore malformed event data
       }
-    }
-  } finally {
+    });
+
+    // Progress events sent during sync
+    es.addEventListener('progress', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data && Array.isArray(data.synced)) {
+          const ok = data.synced.filter((s) => s.ok).length;
+          if (ok > 0 && badge) {
+            badge.textContent = `↓ ${ok} synced`;
+            badge.style.display = 'inline';
+            setTimeout(() => (badge.style.display = 'none'), 3000);
+          }
+        }
+      } catch (err) {}
+    });
+
+    // Final event: close the EventSource and clear state
+    es.addEventListener('done', (e) => {
+      try {
+        const data = e.data ? JSON.parse(e.data) : null;
+        if (data && Array.isArray(data.synced)) {
+          const ok = data.synced.filter((s) => s.ok).length;
+          if (ok > 0 && badge) {
+            badge.textContent = `↓ ${ok} synced`;
+            badge.style.display = 'inline';
+            setTimeout(() => (badge.style.display = 'none'), 3000);
+          }
+        }
+      } catch (err) {}
+      try { es.close(); } catch (e) {}
+      state.pullInProgress = false;
+    });
+
+    es.addEventListener('error', (e) => {
+      // If EventSource reaches CLOSED state, ensure we clean up
+      try {
+        if (es.readyState === EventSource.CLOSED) es.close();
+      } catch (err) {}
+      console.error('[Dashboard] pull-db SSE error', e);
+      state.pullInProgress = false;
+    });
+  } catch (err) {
     state.pullInProgress = false;
   }
 }

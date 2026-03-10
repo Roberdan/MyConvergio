@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.1] - 10 Mar 2026
+
+### Fixed
+- Fix pull-db: use EventSource for SSE and parse progress events\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+
+
 ## [v11.36.0] - 10 Mar 2026
 
 ### Added

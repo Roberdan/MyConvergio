@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.7] - 10 Mar 2026
+
+### Changed
+- Plan 601 WF — running notes, ADR 0044 (auth), ADR 0045 (PTY refactor)
+
+
 ## [v11.36.6] - 10 Mar 2026
 
 ### Changed

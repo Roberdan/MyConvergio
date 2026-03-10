@@ -167,7 +167,7 @@ function applyZoom(z) {
 }
 window.dashZoom = (dir) => (dir === 0 ? applyZoom(100) : applyZoom(state.currentZoom + dir * ZOOM_STEP));
 
-const REFRESH_STEPS = [10, 15, 30, 60, 120];
+const REFRESH_STEPS = [0.5, 1, 2, 5, 10, 15, 30, 60, 120];
 state.refreshIdx = REFRESH_STEPS.indexOf(parseInt(localStorage.getItem("dashRefresh") || "30", 10));
 if (state.refreshIdx === -1) state.refreshIdx = 2;
 function applyRefresh() {
@@ -203,7 +203,7 @@ function handleHashRoute() {
   setTimeout(() => card.classList.remove("highlight-pulse"), 3000);
 }
 
-const DASH_SECTIONS = ["dashboard-main-section", "dashboard-chat-section", "dashboard-ideajar-section"];
+const DASH_SECTIONS = ["dashboard-main-section", "dashboard-chat-section", "dashboard-brain-section", "dashboard-ideajar-section"];
 function showDashboardSection(sectionId) {
   const prev = DASH_SECTIONS.find(id => { const s = document.getElementById(id); return s && !s.hidden && s.style.display !== 'none'; });
   if (prev === 'dashboard-ideajar-section' && sectionId !== 'dashboard-ideajar-section') {
@@ -214,6 +214,25 @@ function showDashboardSection(sectionId) {
     const section = document.getElementById(id);
     if (section) { section.hidden = id !== target; section.style.display = id !== target ? 'none' : ''; }
   });
+  if (target === 'dashboard-brain-section') {
+    const src = document.getElementById('brain-canvas-container');
+    const dst = document.getElementById('brain-canvas-fullscreen');
+    if (src && dst && !dst.hasChildNodes()) {
+      dst.appendChild(src);
+      src.style.height = '100%';
+      if (typeof window.resizeBrainCanvas === 'function') window.resizeBrainCanvas();
+    }
+  }
+  if (prev === 'dashboard-brain-section' && target !== 'dashboard-brain-section') {
+    const src = document.getElementById('brain-canvas-container');
+    const widget = document.getElementById('brain-widget');
+    if (src && widget) {
+      const body = widget.querySelector('.widget-body') || widget;
+      body.appendChild(src);
+      src.style.height = '480px';
+      if (typeof window.resizeBrainCanvas === 'function') window.resizeBrainCanvas();
+    }
+  }
   if (target === 'dashboard-ideajar-section' && typeof renderIdeaJarTab === 'function') {
     renderIdeaJarTab();
   }

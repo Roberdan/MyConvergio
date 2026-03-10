@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.26.1] - 10 Mar 2026
+
+### Fixed
+- mesh heartbeat threshold, brain nav tab, guardian deploy logic
+
+
 ## [v11.26.0] - 10 Mar 2026
 
 ### Added

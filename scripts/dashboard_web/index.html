@@ -46,6 +46,10 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         Planner
       </button>
+      <button class="header-nav-item" data-section="dashboard-brain-section" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a9 9 0 019 9c0 3.9-2.5 7.2-6 8.5V21h-6v-1.5C5.5 18.2 3 14.9 3 11a9 9 0 019-9z"/><path d="M9 12h6M12 9v6"/></svg>
+        Brain
+      </button>
       <button class="header-nav-item" data-section="dashboard-ideajar-section" type="button">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg>
         Idea Jar
@@ -258,6 +262,13 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
   </div>
 </section>
 
+<!-- Brain Section — fullscreen brain-canvas reuse -->
+<section id="dashboard-brain-section" class="dashboard-section" hidden>
+  <div style="width:100%;height:calc(100vh - 80px);position:relative;overflow:hidden;">
+    <div id="brain-canvas-fullscreen" style="width:100%;height:100%;"></div>
+  </div>
+</section>
+
 <!-- Plan Detail Sidebar -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 <div class="sidebar" id="sidebar">
@@ -299,8 +310,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 <script src="brain-effects.js?v=1773068775"></script>
 <script src="brain-layout.js?v=1773068775"></script>
 <script src="brain-interact.js?v=1773068775"></script>
-<script src="brain-canvas.js?v=1773078084"></script>
-<script src="app.js?v=1773258936"></script>
+<script src="brain-canvas.js?v=1773138805"></script>
+<script src="app.js?v=1773138805"></script>
 <script src="mesh.js"></script>
 <script src="mesh-animation.js"></script>
 <script src="mesh-actions.js"></script>

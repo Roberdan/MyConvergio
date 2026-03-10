@@ -675,6 +675,7 @@
     if (S.running) { S.raf = requestAnimationFrame(render); }
   };
   window.rewindBrain = function() { S.neurons.clear(); S.synapses = []; pollData(); };
+  window.resizeBrainCanvas = function() { resize(); };
 
   const _boot = () => window.initBrainCanvas('brain-canvas-container');
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _boot);

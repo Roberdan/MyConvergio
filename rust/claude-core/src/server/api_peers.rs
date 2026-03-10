@@ -28,7 +28,7 @@ async fn api_peer_list(State(state): State<ServerState>) -> Result<Json<Value>, 
         let name = row.get("peer_name").and_then(Value::as_str).unwrap_or("").to_owned();
         let seen = row.get("last_seen").and_then(Value::as_f64).unwrap_or(0.0);
         let obj = row.as_object_mut().unwrap();
-        obj.insert("is_online".to_string(), json!(now - seen < 300.0));
+        obj.insert("is_online".to_string(), json!(now - seen < 3600.0));
         obj.insert("is_local".to_string(), json!(name.contains("m3max") || name.contains("local")));
         let role = if name.contains("m3max") || name.contains("local") { "coordinator" } else { "worker" };
         obj.insert("role".to_string(), json!(role));

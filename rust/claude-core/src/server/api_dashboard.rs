@@ -182,7 +182,7 @@ async fn api_organization(State(state): State<ServerState>) -> Result<Json<Value
     for peer in &peers {
         let name = peer.get("peer_name").and_then(Value::as_str).unwrap_or("");
         let seen = peer.get("last_seen").and_then(Value::as_f64).unwrap_or(0.0);
-        let is_online = now - seen < 300.0;
+        let is_online = now - seen < 3600.0;
         if is_online {
             online_count += 1;
         }
@@ -272,7 +272,7 @@ async fn api_live_system(State(state): State<ServerState>) -> Result<Json<Value>
     for peer in &peers_raw {
         let name = peer.get("peer_name").and_then(Value::as_str).unwrap_or("");
         let seen = peer.get("last_seen").and_then(Value::as_f64).unwrap_or(0.0);
-        let is_online = now - seen < 300.0;
+        let is_online = now - seen < 3600.0;
         if is_online {
             online_peers += 1;
         }

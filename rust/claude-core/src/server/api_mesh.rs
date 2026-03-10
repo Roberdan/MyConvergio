@@ -116,7 +116,7 @@ async fn api_mesh(State(state): State<ServerState>) -> Result<Json<Value>, ApiEr
         if let Some(hb) = hb_map.remove(name) {
             let seen = hb.get("last_seen").and_then(Value::as_f64).unwrap_or(0.0);
             obj.insert("last_seen".into(), json!(seen));
-            obj.insert("is_online".into(), json!(now - seen < 300.0));
+            obj.insert("is_online".into(), json!(now - seen < 3600.0));
             if let Some(load_str) = hb.get("load_json").and_then(Value::as_str) {
                 if let Ok(load) = serde_json::from_str::<Value>(load_str) {
                     if let Some(load_obj) = load.as_object() {
@@ -147,7 +147,7 @@ async fn api_mesh(State(state): State<ServerState>) -> Result<Json<Value>, ApiEr
     for (name, mut hb) in hb_map {
         let seen = hb.get("last_seen").and_then(Value::as_f64).unwrap_or(0.0);
         let obj = hb.as_object_mut().unwrap();
-        if !obj.contains_key("is_online") { obj.insert("is_online".into(), json!(now - seen < 300.0)); }
+        if !obj.contains_key("is_online") { obj.insert("is_online".into(), json!(now - seen < 3600.0)); }
         if !obj.contains_key("is_local") { obj.insert("is_local".into(), json!(name.to_lowercase().contains(&local_host))); }
         if !obj.contains_key("os") { obj.insert("os".into(), json!("unknown")); }
         if !obj.contains_key("cpu") { obj.insert("cpu".into(), json!(0)); }

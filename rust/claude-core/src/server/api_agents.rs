@@ -81,10 +81,10 @@ async fn api_brain(State(state): State<ServerState>) -> Result<Json<Value>, ApiE
         [],
     ).unwrap_or_default();
 
-    // Pending/in-progress tasks from active plans
+    // Tasks from active plans (all statuses for brain viz)
     let tasks = query_rows(
         db.connection(),
-        "SELECT t.id, t.title, t.status, t.task_id, t.assignee, t.priority, t.type AS task_type, t.tokens, t.started_at, t.executor_session_id, p.name AS plan_name, p.id AS plan_id, w.name AS wave_name FROM tasks t JOIN plans p ON t.plan_id = p.id LEFT JOIN waves w ON t.wave_id_fk = w.id WHERE p.status = 'doing' AND t.status IN ('pending', 'in_progress') ORDER BY t.status DESC, t.priority, t.id LIMIT 30",
+        "SELECT t.id, t.title, t.status, t.task_id, t.assignee, t.priority, t.type AS task_type, t.tokens, t.started_at, t.executor_session_id, t.executor_host, t.model, t.wave_id, t.output_data, p.name AS plan_name, p.id AS plan_id, w.name AS wave_name FROM tasks t JOIN plans p ON t.plan_id = p.id LEFT JOIN waves w ON t.wave_id_fk = w.id WHERE p.status = 'doing' ORDER BY t.status DESC, t.priority, t.id LIMIT 200",
         [],
     ).unwrap_or_default();
 

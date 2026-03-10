@@ -10,6 +10,14 @@
     task: { core: '#ffd700', glow: 'rgba(255,215,0,' },
     synapse: 'rgba(0,229,255,', green: '#00ff88', dim: '#2a3456'
   };
+  // Mesh node color palette — each node gets a distinct hue
+  const MESH_PAL = {
+    m3max:   { core: '#00e5ff', glow: 'rgba(0,229,255,',   ring: '#00e5ff88', label: 'm3max' },
+    omarchy: { core: '#ff6b9d', glow: 'rgba(255,107,157,', ring: '#ff6b9d88', label: 'omarchy' },
+    m1mario: { core: '#a78bfa', glow: 'rgba(167,139,250,', ring: '#a78bfa88', label: 'm1mario' },
+    _default:{ core: '#ffd700', glow: 'rgba(255,215,0,',   ring: '#ffd70088', label: '?' },
+  };
+  function meshPal(host) { return MESH_PAL[host] || MESH_PAL._default; }
 
   /* ─── Node / Edge state ─── */
   class Neuron {
@@ -25,6 +33,7 @@
       this.fireT = 0;
     }
     get pal() {
+      if ((this.type === 'plan' || this.type === 'task') && this.meta.executor_host) return meshPal(this.meta.executor_host);
       if (this.type === 'plan') return PAL.plan;
       if (this.type === 'task') return PAL.task;
       return PAL[this.tool] || PAL.claude;
@@ -192,7 +201,6 @@
         const ly = n.y + r + 16;
         const lbl = n.label;
         const tw = c.measureText(lbl).width;
-        // Background pill
         c.fillStyle = `rgba(10,16,36,${isHover ? 0.85 : 0.65})`;
         c.beginPath();
         if (c.roundRect) c.roundRect(n.x - tw / 2 - 6, ly - 9, tw + 12, 16, 4);
@@ -200,7 +208,6 @@
         c.fill();
         c.fillStyle = isHover ? '#fff' : '#b0c4dd';
         c.fillText(lbl, n.x, ly + 3);
-        // Meta info on hover
         if (isHover && n.meta.tty) {
           const info = [n.meta.tty, `PID ${n.meta.pid || '?'}`,
             n.meta.cpu != null ? `CPU ${n.meta.cpu}%` : '',
@@ -208,6 +215,42 @@
           c.font = '9px "JetBrains Mono",monospace';
           c.fillStyle = PAL.sub.core;
           c.fillText(info, n.x, ly + 16);
+        }
+      }
+      // Plan/task labels with mesh node badge
+      if (n.type === 'plan' || (n.type === 'task' && (S.hover === n.id || n.meta.status === 'in_progress'))) {
+        const isHover = S.hover === n.id;
+        const host = n.meta.executor_host || n.meta.host || '';
+        const mp = meshPal(host);
+        c.textAlign = 'center';
+        const ly = n.y + r + 14;
+        // Main label
+        c.font = `${isHover ? 'bold ' : ''}${n.type === 'plan' ? 10 : 9}px "JetBrains Mono",monospace`;
+        const lbl = n.label.substring(0, 28);
+        const tw = c.measureText(lbl).width;
+        c.fillStyle = 'rgba(10,16,36,0.7)';
+        c.beginPath();
+        if (c.roundRect) c.roundRect(n.x - tw / 2 - 6, ly - 9, tw + 12, 16, 4);
+        else c.rect(n.x - tw / 2 - 6, ly - 9, tw + 12, 16);
+        c.fill();
+        c.fillStyle = isHover ? '#fff' : '#c8d0e8';
+        c.fillText(lbl, n.x, ly + 3);
+        // Mesh node badge below
+        if (host) {
+          c.font = 'bold 8px "JetBrains Mono",monospace';
+          const badge = host;
+          const bw = c.measureText(badge).width;
+          const bx = n.x - bw / 2 - 4, by = ly + 6;
+          c.fillStyle = `${mp.glow}0.25)`;
+          c.beginPath();
+          if (c.roundRect) c.roundRect(bx, by, bw + 8, 12, 3);
+          else c.rect(bx, by, bw + 8, 12);
+          c.fill();
+          c.strokeStyle = `${mp.glow}0.5)`;
+          c.lineWidth = 0.5;
+          c.stroke();
+          c.fillStyle = mp.core;
+          c.fillText(badge, n.x, by + 9);
         }
       }
     }
@@ -296,43 +339,79 @@
       }
     }
 
-    // Plan neurons
+    // Plan neurons — radius proportional to task count, colored by mesh node
     for (const plan of (S.brainData?.plans || [])) {
       const pid = `plan-${plan.id}`;
       activeIds.add(pid);
       if (!S.neurons.has(pid)) {
         const pn = new Neuron(pid, 'plan', `#${plan.id} ${(plan.name || '').substring(0, 20)}`, {
           name: plan.name, status: plan.status, progress: plan.progress_pct,
-          tasks_done: plan.tasks_done, tasks_total: plan.tasks_total, host: plan.execution_host
+          tasks_done: plan.tasks_done, tasks_total: plan.tasks_total,
+          host: plan.execution_host, executor_host: plan.execution_host
         });
-        pn.tool = 'claude'; pn.radius = 14;
+        pn.tool = 'claude';
+        pn.radius = Math.max(12, Math.min(28, 10 + (plan.tasks_total || 1) * 2.5));
         pn.x = S.w / 2 + (Math.random() - 0.5) * 60;
         pn.y = S.h / 2 + (Math.random() - 0.5) * 60;
         S.neurons.set(pid, pn);
       } else {
-        S.neurons.get(pid).meta = { name: plan.name, progress: plan.progress_pct, tasks_done: plan.tasks_done, tasks_total: plan.tasks_total };
+        const en = S.neurons.get(pid);
+        en.meta = { name: plan.name, progress: plan.progress_pct, tasks_done: plan.tasks_done, tasks_total: plan.tasks_total, host: plan.execution_host, executor_host: plan.execution_host };
+        en.radius = Math.max(12, Math.min(28, 10 + (plan.tasks_total || 1) * 2.5));
       }
     }
 
-    // Task neurons linked to plans
+    // Task neurons — radius proportional to tokens/lines, colored by executor_host
+    // Also connect same-wave tasks to each other (representing relationships)
+    const waveGroups = {};
     for (const task of (S.brainData?.tasks || [])) {
       const tid = `task-${task.id}`;
       activeIds.add(tid);
       const planNid = `plan-${task.plan_id}`;
+      const waveKey = `${task.plan_id}-${task.wave_id || 'W0'}`;
+      if (!waveGroups[waveKey]) waveGroups[waveKey] = [];
+      waveGroups[waveKey].push(tid);
+      // Parse lines from output_data
+      let linesAdded = 0;
+      try { const od = typeof task.output_data === 'string' ? JSON.parse(task.output_data) : task.output_data; linesAdded = od?.lines_added || 0; } catch {}
+      const tokK = (task.tokens || 0) / 1000;
+      // Radius: base 4, scale by tokens (0-40k → 4-16) and lines (0-200 → 0-6)
+      const dynRadius = Math.max(4, Math.min(18, 4 + tokK * 0.3 + linesAdded * 0.03));
       if (!S.neurons.has(tid)) {
         const tn = new Neuron(tid, 'task', (task.title || '').substring(0, 25), {
           title: task.title, status: task.status, priority: task.priority,
-          type: task.task_type, plan_name: task.plan_name, wave_name: task.wave_name
+          type: task.task_type, plan_name: task.plan_name, wave_name: task.wave_id || task.wave_name,
+          executor_host: task.executor_host, model: task.model,
+          tokens: task.tokens, lines_added: linesAdded
         });
-        tn.tool = 'claude'; tn.radius = 6;
+        tn.tool = 'claude';
+        tn.radius = task.status === 'pending' ? 4 : dynRadius;
         const planN = S.neurons.get(planNid);
         tn.x = (planN?.x || S.w / 2) + (Math.random() - 0.5) * 40;
         tn.y = (planN?.y || S.h / 2) + (Math.random() - 0.5) * 40;
         S.neurons.set(tid, tn);
         if (S.neurons.has(planNid)) S.synapses.push(new Synapse(planNid, tid));
-        // Link task to executor session if known
         if (task.executor_session_id && S.neurons.has(task.executor_session_id)) {
           S.synapses.push(new Synapse(task.executor_session_id, tid));
+        }
+      } else {
+        const en = S.neurons.get(tid);
+        en.meta = { ...en.meta, status: task.status, executor_host: task.executor_host, model: task.model, tokens: task.tokens, lines_added: linesAdded };
+        en.radius = task.status === 'pending' ? 4 : dynRadius;
+        // Fire on status transition
+        if (en.meta._prevStatus && en.meta._prevStatus !== task.status) en.fire();
+        en.meta._prevStatus = task.status;
+      }
+    }
+    // Connect tasks in same wave (task relationships)
+    for (const [, group] of Object.entries(waveGroups)) {
+      if (group.length < 2) continue;
+      for (let i = 1; i < group.length; i++) {
+        const a = group[i - 1], b = group[i];
+        if (!S.synapses.find(s => (s.from === a && s.to === b) || (s.from === b && s.to === a))) {
+          const syn = new Synapse(a, b);
+          syn.strength = 0.15;
+          S.synapses.push(syn);
         }
       }
     }
@@ -389,10 +468,14 @@
     } else if (n.type === 'plan') {
       lines.push(m.name || n.label);
       lines.push(`Progress: ${m.tasks_done || 0}/${m.tasks_total || 0} (${m.progress || 0}%)`);
-      if (m.host) lines.push(`Host: ${m.host}`);
+      if (m.host) lines.push(`🖥 Node: ${m.host}`);
     } else if (n.type === 'task') {
       lines.push(m.title || n.label);
       lines.push(`Status: ${m.status || '?'}${m.priority ? ' · ' + m.priority : ''}`);
+      if (m.executor_host) lines.push(`🖥 Node: ${m.executor_host}`);
+      if (m.model) lines.push(`Model: ${m.model}`);
+      if (m.tokens) lines.push(`Tokens: ${fmtTok(m.tokens)}`);
+      if (m.lines_added) lines.push(`Lines: +${m.lines_added}`);
       if (m.wave_name) lines.push(`Wave: ${m.wave_name}`);
       if (m.plan_name) lines.push(`Plan: ${m.plan_name.substring(0, 30)}`);
     } else {
@@ -471,9 +554,9 @@
         html += '</div>';
       }
     } else if (n.type === 'plan') {
-      html += row('Status', m.status); html += row('Host', m.host);
+      html += row('Status', m.status); html += row('🖥 Node', m.host || m.executor_host);
       html += row('Progress', `${m.tasks_done || 0}/${m.tasks_total || 0}`);
-      html += `<div style="margin:6px 0;height:4px;background:#1a2040;border-radius:2px"><div style="height:100%;width:${m.progress || 0}%;background:linear-gradient(90deg,#00e5ff,#00ff88);border-radius:2px"></div></div>`;
+      html += `<div style="margin:6px 0;height:4px;background:#1a2040;border-radius:2px"><div style="height:100%;width:${m.progress || 0}%;background:linear-gradient(90deg,${meshPal(m.host || m.executor_host).core},#00ff88);border-radius:2px"></div></div>`;
       const planTasks = (S.brainData?.tasks || []).filter(t => t.plan_id === m.id || t.plan_id == n.id.replace('plan-',''));
       if (planTasks.length) {
         html += `<div style="margin-top:8px;border-top:1px solid #1a2040;padding-top:8px"><span style="color:#5a6080">Tasks</span>`;
@@ -484,7 +567,9 @@
         html += '</div>';
       }
     } else if (n.type === 'task') {
-      html += row('Status', m.status); html += row('Priority', m.priority); html += row('Type', m.type);
+      html += row('Status', m.status); html += row('🖥 Node', m.executor_host);
+      html += row('Model', m.model); html += row('Priority', m.priority); html += row('Type', m.type);
+      html += row('Tokens', fmtTok(m.tokens)); html += row('Lines', m.lines_added ? `+${m.lines_added}` : '');
       html += row('Wave', m.wave_name); html += row('Plan', m.plan_name);
       if (m.title) html += `<div style="margin-top:6px;color:#e0e4f0">${m.title}</div>`;
     } else {

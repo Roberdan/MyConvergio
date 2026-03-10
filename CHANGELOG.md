@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.27.0] - 10 Mar 2026
+
+### Added
+- mesh-aware brain visualization with dynamic sizing
+
+
 ## [v11.26.1] - 10 Mar 2026
 
 ### Fixed

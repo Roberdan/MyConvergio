@@ -78,17 +78,19 @@ async function refreshAll() {
     fetchJson("/api/tasks/distribution"),
     fetchJson("/api/nightly/jobs"),
   ]);
-  if (ov) {
-    ov.mesh_online = mesh ? (mesh.peers || mesh).filter((p) => p.is_online).length : 0;
-    ov.mesh_total = mesh ? (mesh.peers || mesh).length : 0;
-    if (typeof renderKpi === "function") renderKpi(ov);
-  }
-  // Unwrap new {peers, daemon_ws} format
-  let meshPeers = mesh;
-  if (mesh && !Array.isArray(mesh) && Array.isArray(mesh.peers)) {
+  // Unwrap new {peers, daemon_ws} format — always normalize to array first
+  let meshPeers = [];
+  if (Array.isArray(mesh)) {
+    meshPeers = mesh;
+  } else if (mesh && Array.isArray(mesh.peers)) {
     meshPeers = mesh.peers;
     if (mesh.daemon_ws) state.daemonWsUrl = mesh.daemon_ws;
     if (mesh.local_node) state.localNodeName = mesh.local_node;
+  }
+  if (ov) {
+    ov.mesh_online = meshPeers.filter((p) => p.is_online).length;
+    ov.mesh_total = meshPeers.length;
+    if (typeof renderKpi === "function") renderKpi(ov);
   }
   if (Array.isArray(meshPeers)) {
     state.localPeerName = meshPeers.find((p) => p.is_local)?.peer_name || "local";

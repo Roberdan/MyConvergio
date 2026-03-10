@@ -83,12 +83,10 @@ window.openPlanTerminal = function (planId, peer) {
   }
 };
 window.resumePlanExecution = function (planId, peer) {
-  const planData =
-    window.DashboardState &&
-    window.DashboardState.lastMeshData &&
-    window.DashboardState.lastMeshData
-      .flatMap((n) => (n.plans || []).map((p) => ({ ...p, node: n.peer_name })))
-      .find((p) => p.id === planId);
+  const meshArr = Array.isArray(window.DashboardState?.lastMeshData) ? window.DashboardState.lastMeshData : [];
+  const planData = meshArr
+    .flatMap((n) => (n.plans || []).map((p) => ({ ...p, node: n.peer_name })))
+    .find((p) => p.id === planId);
   const assignedHost = planData ? planData.node : peer || 'local';
   const target =
     assignedHost === 'local' ||

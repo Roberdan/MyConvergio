@@ -105,7 +105,7 @@ window.showDelegatePlanDialog = async function (planId, planName) {
 
 window._showCliSelector = function (planId, peer, planName, prevOverlay) {
   if (prevOverlay) prevOverlay.remove();
-  const peers = (typeof lastMeshData !== "undefined" && lastMeshData) || [];
+  const peers = Array.isArray(lastMeshData) ? lastMeshData : [];
   const peerData = peers.find((p) => p.peer_name === peer);
   const defaultEngine = (peerData && peerData.default_engine) || "copilot";
   const overlay = document.createElement("div");

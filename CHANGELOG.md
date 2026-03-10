@@ -1,5 +1,15 @@
 # Changelog
 
+## [v11.35.1] - 10 Mar 2026
+
+### Fixed
+- safe array check for mesh API response
+- restore brain session tracking
+
+### Changed
+- Merge branch 'fix/brain-widget-session-migration'
+
+
 ## [v11.35.0] - 10 Mar 2026
 
 ### Added

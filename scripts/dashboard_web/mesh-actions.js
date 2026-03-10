@@ -5,7 +5,7 @@
 
 window.meshAction = async function (action, peer) {
   if (action === "edit") {
-    const peers = (typeof lastMeshData !== "undefined" && lastMeshData) || [];
+    const peers = Array.isArray(lastMeshData) ? lastMeshData : [];
     const peerData = peers.find((p) => p.peer_name === peer);
     if (peerData && typeof showPeerForm === "function")
       showPeerForm("edit", peerData);
@@ -17,7 +17,7 @@ window.meshAction = async function (action, peer) {
   }
   if (action === "terminal") {
     if (typeof termMgr !== "undefined") {
-      const peers = (typeof lastMeshData !== "undefined" && lastMeshData) || [];
+      const peers = Array.isArray(lastMeshData) ? lastMeshData : [];
       const peerData = peers.find((p) => p.peer_name === peer);
       const activePlan = peerData
         ? (peerData.plans || []).find(

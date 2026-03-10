@@ -2,6 +2,19 @@
 .mesh-strip {
   padding: 0;
 }
+/* Merge mesh-panel and brain-widget visually */
+#mesh-panel {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.mesh-brain-joined {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  margin-top: -16px; /* collapse the column gap */
+}
+.mesh-brain-joined::before { display: none; } /* no top glow line */
 .mesh-inner {
   padding: 0;
 }

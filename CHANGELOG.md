@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.34.0] - 10 Mar 2026
+
+### Added
+- merge brain/mesh visually, auto-heal watchdog
+
+
 ## [v11.33.1] - 10 Mar 2026
 
 ### Fixed

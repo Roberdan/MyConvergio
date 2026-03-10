@@ -3,6 +3,45 @@ use axum::extract::State;
 use axum::routing::get;
 use axum::{Json, Router};
 use serde_json::{json, Value};
+use std::env;
+use std::path::PathBuf;
+use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+static LAST_SESSION_SCAN_AT: AtomicU64 = AtomicU64::new(0);
+const SESSION_SCAN_THROTTLE_SECS: u64 = 5;
+
+fn refresh_live_sessions(state: &ServerState) {
+    if cfg!(test) || env::var_os("CLAUDE_DISABLE_SESSION_SCAN").is_some() {
+        return;
+    }
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_secs())
+        .unwrap_or(0);
+    let last = LAST_SESSION_SCAN_AT.load(Ordering::Relaxed);
+    if now.saturating_sub(last) < SESSION_SCAN_THROTTLE_SECS {
+        return;
+    }
+    if LAST_SESSION_SCAN_AT
+        .compare_exchange(last, now, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return;
+    }
+    let Some(home) = env::var_os("HOME") else {
+        return;
+    };
+    let scanner = PathBuf::from(home).join(".claude/scripts/session-scanner.sh");
+    if !scanner.is_file() {
+        return;
+    }
+    let _ = Command::new(scanner)
+        .arg("scan")
+        .env("PLAN_DB", &state.db_path)
+        .output();
+}
 
 pub fn router() -> Router<ServerState> {
     Router::new()
@@ -12,6 +51,7 @@ pub fn router() -> Router<ServerState> {
 }
 
 async fn api_agents(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
+    refresh_live_sessions(&state);
     let db = state.open_db()?;
     let running = query_rows(
         db.connection(),
@@ -39,6 +79,7 @@ async fn api_agents(State(state): State<ServerState>) -> Result<Json<Value>, Api
 }
 
 async fn api_sessions(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
+    refresh_live_sessions(&state);
     let db = state.open_db()?;
     let sessions = query_rows(
         db.connection(),
@@ -51,6 +92,7 @@ async fn api_sessions(State(state): State<ServerState>) -> Result<Json<Value>, A
 
 /// Consolidated endpoint for the neural graph: sessions + sub-agents + plans + tasks
 async fn api_brain(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
+    refresh_live_sessions(&state);
     let db = state.open_db()?;
 
     // Running sessions with full metadata

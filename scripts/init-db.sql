@@ -366,7 +366,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_activity_started_at ON agent_activity(start
 CREATE INDEX IF NOT EXISTS idx_agent_activity_status_started ON agent_activity(status, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_activity_status_completed ON agent_activity(status, completed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_activity_model ON agent_activity(model);
-CREATE INDEX IF NOT EXISTS idx_agent_activity_agent_id ON agent_activity(agent_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_agent_activity_agent_id ON agent_activity(agent_id);
 
 -- Performance indexes for agent_runs
 CREATE INDEX IF NOT EXISTS idx_agent_runs_started_at ON agent_runs(started_at DESC);

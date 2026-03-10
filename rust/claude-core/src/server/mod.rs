@@ -1,23 +1,25 @@
 pub mod api_agents;
-pub mod api_ideas;
 pub mod api_chat;
 pub mod api_dashboard;
 pub mod api_github;
+pub mod api_ideas;
 pub mod api_mesh;
 pub mod api_peers;
 pub mod api_plans;
+pub mod mesh_provision;
 pub mod middleware;
 pub mod routes;
-pub mod state;
 pub mod sse;
+pub mod state;
 pub mod ws;
 pub mod ws_pty;
-pub mod mesh_provision;
 
 #[cfg(test)]
-mod api_tests;
+mod api_agents_legacy_tests;
 #[cfg(test)]
 mod api_ideas_tests;
+#[cfg(test)]
+mod api_tests;
 #[cfg(test)]
 mod ws_pty_tests;
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.26.0] - 10 Mar 2026
+
+### Added
+- improve nightly jobs widget clarity and explanations
+
+
 ## [v11.25.1] - 09 Mar 2026
 
 ### Changed

@@ -70,35 +70,98 @@
     </div>`;
   }
   function latestSection() {
-    if (!state.latest) return `<div class="nightly-empty">No nightly runs recorded yet.</div>`;
+    if (!state.latest) return `<div class="nightly-empty">Nessun controllo nightly ancora eseguito.</div>`;
     const latest = state.latest, report = parseReport(latest.report_json), sentry = collect(report, "sentry", latest.sentry_unresolved), github = collect(report, "github", latest.github_open_issues);
     const deploy = report.deploy_status || report.deploy?.status || report.deployment?.status || "";
+    
+    // LOGICA SEMPLICE E CHIARA
+    let overallStatus = 'ok', overallIcon = '✅', overallMsg = 'Tutto OK', explanation = '';
+    
+    if (latest.status === 'failed') {
+      overallStatus = 'failed'; overallIcon = '❌'; overallMsg = 'ROTTO - Controllo fallito';
+      explanation = 'Il nightly agent non è riuscito a completare i controlli. Controlla i log e riprova manualmente.';
+    } else if (sentry.count > 0) {
+      overallStatus = 'problems'; overallIcon = '🔥'; overallMsg = `PROBLEMI SENTRY - ${sentry.count} errori attivi`;
+      explanation = `Ci sono ${sentry.count} errori attivi in produzione che richiedono la tua attenzione. Il nightly agent può creare fix automatiche se abilitate.`;
+    } else if (latest.processed_items > 0) {
+      overallStatus = 'action'; overallIcon = '⚠️'; overallMsg = `Issues processati - ${latest.processed_items} problemi gestiti`;
+      explanation = 'Il nightly agent ha trovato e processato alcuni problemi. Controlla se ha creato un PR con le fix.';
+    } else if (String(deploy).toLowerCase().includes('no_deployments') || String(deploy).toLowerCase().includes('error')) {
+      overallStatus = 'deploy'; overallIcon = '🚀'; overallMsg = 'Deploy non configurato';
+      explanation = 'MirrorBuddy funziona ma il monitoring del deploy non è configurato correttamente.';
+    } else {
+      overallStatus = 'ok'; overallIcon = '✅'; overallMsg = 'Tutto OK';
+      explanation = 'Nessun problema rilevato. Sentry pulito, GitHub issues sotto controllo, deploy funzionante.';
+    }
+    
     const actionRow = `
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-        <button class="nightly-btn" data-action="retry" data-id="${esc(latest.id)}">Retry</button>
-        <button class="nightly-btn" data-action="logs" data-id="${esc(latest.id)}">View Logs</button>
-        ${latest.pr_url ? `<button class="nightly-btn" data-action="open-pr" data-url="${esc(latest.pr_url)}">View PR</button>` : ""}
+        <button class="nightly-btn" data-action="retry" data-id="${esc(latest.id)}">Ri-controlla Ora</button>
+        ${latest.pr_url ? `<button class="nightly-btn" data-action="open-pr" data-url="${esc(latest.pr_url)}">Vai al PR Fix</button>` : ""}
+        ${sentry.count > 0 ? `<button class="nightly-btn" onclick="window.open('https://sentry.io', '_blank')">Apri Sentry</button>` : ""}
       </div>`;
-    return `<details open style="margin-top:10px"><summary style="cursor:pointer;color:var(--text);font-weight:600">Latest Run</summary>
+    return `<div style="margin-top:10px">
       <div class="nightly-latest" style="margin-top:8px">
-        <div class="nightly-summary">${esc(latest.summary || "No summary available.")}</div>
-        <div class="nightly-metrics">
-          <span title="${formatTimestamp(latest.started_at)}">Started ${formatTimestamp(latest.started_at)}</span>
-          <span title="${formatTimestamp(latest.finished_at)}">Finished ${formatTimestamp(latest.finished_at)}</span>
-          <span>${formatDuration(latest.duration_sec)}</span>
-          <span>${esc(latest.host || "unknown host")}</span>
-          ${pill(latest.trigger_source || "scheduled", "nightly-running", "border-color:color-mix(in srgb,var(--cyan) 40%,transparent)")}
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:var(--bg);border-radius:6px;border-left:4px solid ${overallStatus === 'ok' ? 'var(--green)' : overallStatus === 'failed' || overallStatus === 'problems' ? 'var(--red)' : 'var(--gold)'}">
+          <span style="font-size:24px">${overallIcon}</span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:16px;color:var(--text)">${overallMsg}</div>
+            <div style="font-size:13px;color:var(--text-dim);margin-top:2px;line-height:1.4">${explanation}</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:4px">🕐 Ultimo controllo: ${timeAgo(latest.finished_at || latest.started_at)} • 🤖 Nightly Agent</div>
+          </div>
         </div>
-        <div style="display:grid;gap:6px">
-          <div>${pill(`Sentry: ${sentry.count}`, sentry.count ? "nightly-action" : "nightly-ok")}${sentry.titles.length ? `<ul class="nightly-issues">${sentry.titles.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}</div>
-          <div>${pill(`GitHub: ${github.count}`, github.count ? "nightly-action" : "nightly-ok")}${github.titles.length ? `<ul class="nightly-issues">${github.titles.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}</div>
-          ${deploy ? `<div>${pill(`Deploy: ${deploy}`, String(deploy).toLowerCase().includes("ok") || String(deploy).toLowerCase().includes("success") ? "nightly-ok" : "nightly-action")}</div>` : ""}
+        
+        <div style="display:grid;gap:8px;margin:12px 0">
+          <div style="display:flex;gap:8px;align-items:center">
+            <strong style="font-size:12px;color:var(--text-dim);min-width:80px">CHE COSA FA:</strong>
+            <span style="font-size:12px;color:var(--text)">Controlla ogni notte Sentry + GitHub issues, crea fix automatiche se abilitato</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <strong style="font-size:12px;color:var(--text-dim);min-width:80px">AUTO-FIX:</strong>
+            <span class="nightly-badge ${latest.run_fixes !== false ? 'nightly-ok' : 'nightly-action'}">${latest.run_fixes !== false ? '✅ ABILITATO' : '❌ DISABILITATO'}</span>
+          </div>
         </div>
-        ${latest.parent_run_id ? `<div class="nightly-meta">Retry of: <span style="color:var(--cyan)">${esc(latest.parent_run_id)}</span></div>` : ""}
-        ${String(latest.status).toLowerCase() === "failed" && latest.error_detail ? `<pre style="margin:0;padding:8px;border-radius:6px;background:color-mix(in srgb,var(--red) 10%,transparent);border:1px solid color-mix(in srgb,var(--red) 40%,transparent);color:var(--red);font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap">${esc(latest.error_detail)}</pre>` : ""}
+        
+        ${sentry.count > 0 ? `<div style="margin:8px 0;padding:8px;background:color-mix(in srgb,var(--red) 10%,transparent);border-radius:4px;border-left:3px solid var(--red)">
+          <strong style="color:var(--red)">🐛 Sentry Errors (${sentry.count}):</strong>
+          ${sentry.titles.length ? `<ul class="nightly-issues">${sentry.titles.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+        </div>` : ""}
+        
+        ${latest.pr_url ? `<div style="margin:8px 0;padding:8px;background:color-mix(in srgb,var(--cyan) 10%,transparent);border-radius:4px;border-left:3px solid var(--cyan)">
+          <strong style="color:var(--cyan)">🔧 PR creato con le fix:</strong> <a href="${esc(latest.pr_url)}" target="_blank" style="color:var(--cyan)">${esc(latest.pr_url)}</a>
+        </div>` : ""}
+        
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;color:var(--text-dim);font-size:11px">📊 Statistiche dettagliate</summary>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-top:8px">
+            <div style="text-align:center;padding:8px;background:var(--bg-secondary);border-radius:4px">
+              <div style="font-size:18px;font-weight:600;color:${sentry.count === 0 ? 'var(--green)' : 'var(--red)'}">${sentry.count}</div>
+              <div style="font-size:10px;color:var(--text-dim)">SENTRY ERRORS</div>
+            </div>
+            <div style="text-align:center;padding:8px;background:var(--bg-secondary);border-radius:4px">
+              <div style="font-size:18px;font-weight:600;color:var(--text)">${github.count}</div>
+              <div style="font-size:10px;color:var(--text-dim)">GITHUB ISSUES</div>
+            </div>
+            <div style="text-align:center;padding:8px;background:var(--bg-secondary);border-radius:4px">
+              <div style="font-size:18px;font-weight:600;color:${latest.processed_items > 0 ? 'var(--gold)' : 'var(--green)'}">${latest.processed_items || 0}</div>
+              <div style="font-size:10px;color:var(--text-dim)">PROCESSATI</div>
+            </div>
+            <div style="text-align:center;padding:8px;background:var(--bg-secondary);border-radius:4px">
+              <div style="font-size:18px;font-weight:600;color:${latest.fixed_items > 0 ? 'var(--green)' : 'var(--text-dim)'}">${latest.fixed_items || 0}</div>
+              <div style="font-size:10px;color:var(--text-dim)">FIXED</div>
+            </div>
+          </div>
+          <div class="nightly-metrics" style="margin-top:8px;font-size:10px">
+            <span>⏱️ ${formatDuration(latest.duration_sec)}</span>
+            <span>🖥️ ${esc(latest.host || "unknown")}</span>
+            <span>🔄 ${latest.trigger_source || "scheduled"}</span>
+            <span>📅 ${formatTimestamp(latest.started_at)}</span>
+          </div>
+          ${String(latest.status).toLowerCase() === "failed" && latest.error_detail ? `<pre style="margin:8px 0 0 0;padding:8px;border-radius:6px;background:color-mix(in srgb,var(--red) 10%,transparent);border:1px solid color-mix(in srgb,var(--red) 40%,transparent);color:var(--red);font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap">${esc(latest.error_detail)}</pre>` : ""}
+        </details>
         ${actionRow}
       </div>
-    </details>`;
+    </div>`;
   }
   function historySection() {
     if (!state.history.length) return `<div class="nightly-history"><div class="nightly-empty">No run history yet.</div></div>`;

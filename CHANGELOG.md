@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.5] - 10 Mar 2026
+
+### Changed
+- Plan 601: T4-01/T4-02 — update .env.example, ROADMAP, README; add remediation status (Plan 601)
+
+
 ## [v11.36.4] - 10 Mar 2026
 
 ### Fixed

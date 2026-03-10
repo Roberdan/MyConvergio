@@ -81,10 +81,10 @@ graph TB
 | Capture requirements | `/prompt` | `@prompt` |
 | Create plan | `/planner` (Opus) | `@planner` |
 | Execute tasks | `/execute {id}` | `@execute {id}` |
-| Validate | Thor (9 gates) | `@validate` |
+| Validate | Thor (10 gates) | `@validate` |
 | Merge | `wave-worktree.sh merge` | same |
 
-## Thor Validation (9 Gates)
+## Thor Validation (10 Gates)
 
 Thor runs as a **separate agent with fresh context**. Tasks move `submitted` → `done` **only** through Thor. SQLite trigger `enforce_thor_done` blocks any bypass.
 

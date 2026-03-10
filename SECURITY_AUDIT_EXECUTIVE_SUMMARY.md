@@ -8,6 +8,22 @@
 
 ---
 
+## Remediation Status (Updated: Plan 601, March 2026)
+
+| Finding | Original Severity | Status | Resolution |
+|---------|------------------|--------|------------|
+| Zero authentication on all routes | Critical | ✅ Fixed | Bearer token auth added (Plan 601 W1) |
+| CORS allow_origin(Any) | Critical | ✅ Fixed | CORS allowlist from env var (Plan 601 W1) |
+| PTY unauthenticated + libc::fork | Critical | ✅ Fixed | Auth + tokio::process::Command (Plan 601 W1) |
+| Mutating GET routes | Medium | ✅ Fixed | Converted to POST (Plan 601 W1) |
+| No timeouts/rate limits | High | ✅ Fixed | TimeoutLayer 30s + rate limiting (Plan 601 W1) |
+| XSS sinks (innerHTML) | Medium | ⚠️ Partial | esc() added to peer-crud, brain-canvas. Full audit pending. |
+| Missing mesh routes (logs/metrics/sync-stats) | High | ✅ Fixed | Proxy routes to daemon (Plan 601 W2) |
+| CRDT test failures | High | ✅ Fixed | Test assertions updated (Plan 601 W2) |
+| Playwright failures (18) | High | ✅ Fixed | All 231 tests passing (Plan 601 W2) |
+
+---
+
 ## FINDINGS AT A GLANCE
 
 | Severity | Count | Examples |

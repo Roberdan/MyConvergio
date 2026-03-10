@@ -68,7 +68,7 @@
 
 | # | Item | Req | Status |
 |---|------|-----|--------|
-| 4.1 | /admin route in Next.js dashboard | F-06,F-27 | 🔨 |
+| 4.1 | /admin route in Vanilla JS dashboard dashboard | F-06,F-27 | 🔨 |
 | 4.2 | Node management (list, status, restart daemon) | F-06 | 🔨 |
 | 4.3 | Plan overview (all plans, progress, cross-node) | F-06 | 🔨 |
 | 4.4 | Log viewer (aggregated, filterable) | F-07 | 🔨 |
@@ -186,7 +186,7 @@
 | Replication | crsqlite CRDT push | CRDT push + anti-entropy pull |
 | File sync | git (broken for .env) | rsync delta |
 | Monitoring | Basic heartbeat | OpenTelemetry + structured logs |
-| Dashboard | Next.js + brain viz | + admin console + tracing UI |
+| Dashboard | Vanilla JS dashboard + brain viz | + admin console + tracing UI |
 | Sandbox | None | Docker + Tailscale |
 | Scheduling | Manual (coordinator only) | Dynamic capability-aware |
 | Inference | Per-node manual | Distributed mesh-native |

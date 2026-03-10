@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.29.3] - 10 Mar 2026
+
+### Changed
+- ops(mesh): deploy CRDT daemon services on all nodes
+
+
 ## [v11.29.2] - 10 Mar 2026
 
 ### Changed

@@ -29,10 +29,11 @@ function normalizeLogs(logPayload) {
 }
 
 async function refreshAdminNodes() {
-  const peers = await fetchJson("/api/mesh");
+  const raw = await fetchJson("/api/mesh");
+  const peers = Array.isArray(raw) ? raw : (raw && raw.peers) || [];
   const container = document.getElementById("admin-node-content");
   const summary = document.getElementById("admin-node-summary");
-  if (!Array.isArray(peers) || !container) return;
+  if (!peers.length || !container) return;
 
   const onlineCount = peers.filter((p) => p.is_online).length;
   if (summary) summary.textContent = `${onlineCount}/${peers.length} nodes in mesh`;

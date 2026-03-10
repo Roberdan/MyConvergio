@@ -31,6 +31,7 @@ pub const GET_ROUTES: &[&str] = &[
     "/api/tokens/models",
     "/api/mesh",
     "/api/mesh/sync-status",
+    "/api/mesh/traffic",
     "/api/mesh/provision",
     "/api/history",
     "/api/tasks/distribution",

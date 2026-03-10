@@ -9,6 +9,7 @@ pub fn router() -> Router<ServerState> {
     Router::new()
         .route("/api/mesh", get(api_mesh))
         .route("/api/mesh/sync-status", get(api_mesh_sync_status))
+        .route("/api/mesh/traffic", get(api_mesh_traffic))
         .route("/api/mesh/init", post(api_mesh_init))
         .route("/api/mesh/action", get(handle_mesh_action))
 }
@@ -37,16 +38,35 @@ fn parse_peers_conf(content: &str) -> HashMap<String, HashMap<String, String>> {
 }
 
 fn detect_local_identity() -> (String, String) {
-    let hostname = std::process::Command::new("hostname").arg("-s")
-        .output().ok()
-        .and_then(|o| String::from_utf8(o.stdout).ok())
-        .map(|s| s.trim().to_lowercase())
-        .unwrap_or_default();
-    let ts_ip = std::process::Command::new("tailscale").args(["ip", "-4"])
-        .output().ok()
-        .and_then(|o| String::from_utf8(o.stdout).ok())
-        .map(|s| s.trim().to_owned())
-        .unwrap_or_default();
+    // hostname: cross-platform via gethostname or fallback
+    let hostname = {
+        #[cfg(unix)]
+        { std::process::Command::new("hostname").arg("-s")
+            .output().ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_lowercase())
+            .unwrap_or_default() }
+        #[cfg(windows)]
+        { std::env::var("COMPUTERNAME").unwrap_or_default().to_lowercase() }
+        #[cfg(not(any(unix, windows)))]
+        { String::new() }
+    };
+    // Tailscale IP: try multiple binary locations
+    let ts_candidates = &[
+        "tailscale",
+        "/usr/local/bin/tailscale",
+        "/opt/homebrew/bin/tailscale",
+        "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+        "C:\\Program Files\\Tailscale\\tailscale.exe",
+    ];
+    let ts_ip = ts_candidates.iter().find_map(|cmd| {
+        std::process::Command::new(cmd).args(["ip", "-4"])
+            .output().ok()
+            .filter(|o| o.status.success())
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_owned())
+            .filter(|s| !s.is_empty())
+    }).unwrap_or_default();
     (hostname, ts_ip)
 }
 
@@ -169,7 +189,18 @@ async fn api_mesh(State(state): State<ServerState>) -> Result<Json<Value>, ApiEr
         peers.push(hb);
     }
 
-    Ok(Json(Value::Array(peers)))
+    // Include daemon WS endpoint for real-time mesh events
+    let daemon_ws = if !local_ts_ip.is_empty() {
+        format!("ws://{}:9420/ws/brain", local_ts_ip)
+    } else {
+        String::new()
+    };
+
+    Ok(Json(json!({
+        "peers": peers,
+        "daemon_ws": daemon_ws,
+        "local_node": local_host
+    })))
 }
 
 async fn api_mesh_sync_status(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
@@ -207,6 +238,97 @@ async fn api_mesh_sync_status(State(state): State<ServerState>) -> Result<Json<V
             "targets": {"lan_p50_lt_ms": 10, "wan_p99_lt_ms": 100}
         }
     })))
+}
+
+/// Real-time traffic data: per-peer sync counters + heartbeat freshness.
+/// Dashboard polls this to drive the mesh flow animation with real data.
+async fn api_mesh_traffic(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
+    let db = state.open_db()?;
+    let conf_path = std::env::var("HOME").unwrap_or_default() + "/.claude/config/peers.conf";
+    let conf = std::fs::read_to_string(&conf_path).unwrap_or_default();
+    let name_map = build_ip_name_map(&conf);
+    let local_node = detect_local_node(&conf);
+
+    let rows = query_rows(
+        db.connection(),
+        "SELECT peer_name, total_sent, total_received, total_applied, \
+         last_sent_at, last_sync_at, last_latency_ms FROM mesh_sync_stats",
+        [],
+    ).unwrap_or_default();
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+
+    let peers: Vec<Value> = rows.iter().map(|r| {
+        let raw_name = r.get("peer_name").and_then(Value::as_str).unwrap_or("");
+        let friendly = name_map.get(raw_name).cloned()
+            .unwrap_or_else(|| raw_name.replace(":9420", "").to_string());
+        let sent = r.get("total_sent").and_then(Value::as_i64).unwrap_or(0);
+        let recv = r.get("total_received").and_then(Value::as_i64).unwrap_or(0);
+        let last_sync = r.get("last_sync_at").and_then(Value::as_i64).unwrap_or(0);
+        let latency = r.get("last_latency_ms").and_then(Value::as_i64).unwrap_or(0);
+        json!({
+            "peer": friendly,
+            "total_sent": sent,
+            "total_received": recv,
+            "total_applied": r.get("total_applied").and_then(Value::as_i64).unwrap_or(0),
+            "last_sync_ago_s": if last_sync > 0 { now - last_sync } else { -1 },
+            "latency_ms": latency,
+            "active": last_sync > 0 && (now - last_sync) < 30
+        })
+    }).collect();
+
+    let hb_rows = query_rows(
+        db.connection(),
+        "SELECT peer_name, last_seen FROM peer_heartbeats WHERE peer_name IS NOT NULL AND peer_name != ''",
+        [],
+    ).unwrap_or_default();
+    let heartbeats: Vec<Value> = hb_rows.iter().map(|r| {
+        let name = r.get("peer_name").and_then(Value::as_str).unwrap_or("");
+        let last = r.get("last_seen").and_then(Value::as_i64).unwrap_or(0);
+        json!({ "peer": name, "last_seen_ago_s": if last > 0 { now - last } else { -1 } })
+    }).collect();
+
+    Ok(Json(json!({
+        "ok": true,
+        "local_node": local_node,
+        "ts": now,
+        "sync_peers": peers,
+        "heartbeats": heartbeats
+    })))
+}
+
+fn build_ip_name_map(conf: &str) -> HashMap<String, String> {
+    let mut map = HashMap::new();
+    let mut current_name = String::new();
+    for line in conf.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            current_name = trimmed[1..trimmed.len()-1].to_string();
+        } else if trimmed.starts_with("tailscale_ip=") && !current_name.is_empty() && current_name != "mesh" {
+            let ip = trimmed.trim_start_matches("tailscale_ip=").trim();
+            map.insert(format!("{ip}:9420"), current_name.clone());
+        }
+    }
+    map
+}
+
+fn detect_local_node(conf: &str) -> String {
+    // Use Tailscale IP as the most reliable cross-platform identifier
+    let (_, ts_ip) = detect_local_identity();
+    if !ts_ip.is_empty() {
+        let mut current_name = String::new();
+        for line in conf.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with('[') && trimmed.ends_with(']') {
+                current_name = trimmed[1..trimmed.len()-1].to_string();
+            } else if trimmed.starts_with("tailscale_ip=") && !current_name.is_empty() && current_name != "mesh" {
+                let ip = trimmed.trim_start_matches("tailscale_ip=").trim();
+                if ip == ts_ip { return current_name; }
+            }
+        }
+    }
+    "unknown".to_string()
 }
 
 async fn api_mesh_init() -> Json<Value> {

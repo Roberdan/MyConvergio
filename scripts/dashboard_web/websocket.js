@@ -180,9 +180,11 @@ function renderMeshStrip(peers) {
     el.innerHTML = `<div class="mesh-nodes">${peers.map(_meshNodeHtml).join("")}</div>`;
   requestAnimationFrame(() => { _drawSpokes(); _drawSparklines(); _initMeshFlow(); });
 }
-// Mesh flow animation — particles flowing between node cards
+// Mesh flow animation — real-time via daemon WebSocket + network byte counters
 let _meshFlowRAF = 0;
 const _meshFlowParticles = [];
+let _meshDaemonWs = null;
+let _meshPrevNetBytes = {};  // {peer: {rx, tx}} for delta calculation
 function _initMeshFlow() {
   const cvs = document.getElementById('mesh-flow-cvs');
   if (!cvs) return;
@@ -192,65 +194,163 @@ function _initMeshFlow() {
   const ctx = cvs.getContext('2d');
   const nodes = hub.querySelectorAll('.mesh-node');
   if (nodes.length < 2) return;
-  // Get center positions of each node card relative to hub
   function nodeCenter(el) {
     const r = el.getBoundingClientRect(), hr = hub.getBoundingClientRect();
     return {
       x: r.left - hr.left + r.width / 2,
-      y: r.top - hr.top + r.height / 2,
-      top: r.top - hr.top,
       bottom: r.top - hr.top + r.height,
-      left: r.left - hr.left,
-      right: r.left - hr.left + r.width,
       name: el.dataset.peer
     };
   }
-  const centers = Array.from(nodes).map(nodeCenter);
+  let centers = Array.from(nodes).map(nodeCenter);
+  const nodeMap = {};
+  centers.forEach(c => { nodeMap[c.name] = c; });
   const pairs = [];
   for (let i = 0; i < centers.length; i++)
     for (let j = i + 1; j < centers.length; j++)
       pairs.push([centers[i], centers[j]]);
   _meshFlowParticles.length = 0;
-  // Compute edge connection points (border midpoints facing the other node)
-  function edgePoint(from, to) {
-    const fy = from.bottom + 4;
-    const ty = to.bottom + 4;
-    return { sx: from.x, sy: fy, tx: to.x, ty: ty };
+
+  // Particle colors by event type
+  const eventColors = {
+    heartbeat:  { core: 'rgba(0,229,255,0.7)',  glow: 'rgba(0,229,255,0.3)' },
+    sync_delta: { core: 'rgba(0,255,128,0.8)',   glow: 'rgba(0,255,128,0.3)' },
+    sync_ack:   { core: 'rgba(255,200,0,0.8)',   glow: 'rgba(255,200,0,0.3)' },
+    auth_ok:    { core: 'rgba(180,100,255,0.8)',  glow: 'rgba(180,100,255,0.3)' },
+    net_burst:  { core: 'rgba(255,80,80,0.7)',    glow: 'rgba(255,80,80,0.3)' },
+  };
+
+  function spawnBetween(fromName, toName, count, eventType) {
+    const from = nodeMap[fromName], to = nodeMap[toName];
+    if (!from || !to) return;
+    const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(fromName) : null;
+    const ec = eventColors[eventType] || eventColors.heartbeat;
+    const n = Math.min(count, 10);
+    for (let k = 0; k < n; k++) {
+      const fy = from.bottom + 4, ty = to.bottom + 4;
+      const midY = Math.max(fy, ty) + 4 + Math.random() * 10;
+      _meshFlowParticles.push({
+        sx: from.x, sy: fy, tx: to.x, ty: ty,
+        cx: (from.x + to.x) / 2, cy: midY,
+        progress: -k * 0.06,
+        speed: 0.005 + Math.random() * 0.007,
+        color: mc ? mc.core : ec.core,
+        size: eventType === 'sync_delta' ? 4 + Math.random() * 3 : 2 + Math.random() * 2,
+        trail: []
+      });
+    }
   }
-  function spawnParticle() {
-    const pair = pairs[Math.floor(Math.random() * pairs.length)];
-    const rev = Math.random() > 0.5;
-    const from = rev ? pair[1] : pair[0], to = rev ? pair[0] : pair[1];
-    const ep = edgePoint(from, to);
-    const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(from.name) : null;
-    const midY = Math.max(ep.sy, ep.ty) + 4 + Math.random() * 10;
-    _meshFlowParticles.push({
-      // Bezier path: start → dip below → end
-      sx: ep.sx, sy: ep.sy, tx: ep.tx, ty: ep.ty,
-      cx: (ep.sx + ep.tx) / 2, cy: midY,
-      progress: 0, speed: 0.006 + Math.random() * 0.008,
-      color: mc ? mc.core : 'rgba(0,229,255,0.8)',
-      size: 3 + Math.random() * 4,
-      trail: []
-    });
+
+  // Resolve node name from daemon event (may be IP or hostname)
+  function resolveNode(raw) {
+    if (nodeMap[raw]) return raw;
+    // Try hostToPeer mapping from app state
+    if (typeof state !== 'undefined' && state.hostToPeer) {
+      const mapped = state.hostToPeer[raw] || state.hostToPeer[raw.replace(':9420','')];
+      if (mapped && nodeMap[mapped]) return mapped;
+    }
+    // Fuzzy match
+    for (const name of Object.keys(nodeMap)) {
+      if (raw.includes(name) || name.includes(raw.replace(':9420',''))) return name;
+    }
+    return null;
   }
+
+  // Connect to daemon WebSocket for real-time mesh events
+  function connectDaemonWs() {
+    const wsUrl = (typeof state !== 'undefined' && state.daemonWsUrl) || null;
+    if (!wsUrl) {
+      // Fallback: poll /api/mesh/traffic every 5s
+      _startTrafficPolling();
+      return;
+    }
+    if (_meshDaemonWs) { _meshDaemonWs.onclose = null; _meshDaemonWs.close(); }
+    try {
+      _meshDaemonWs = new WebSocket(wsUrl);
+    } catch { _startTrafficPolling(); return; }
+    const localNode = (typeof state !== 'undefined' && state.localPeerName) || '';
+    _meshDaemonWs.onmessage = (e) => {
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+      const kind = msg.kind || '';
+      const sourceNode = resolveNode(msg.node || '');
+      if (!sourceNode) return;
+      // Refresh node positions on each event (cheap)
+      const fresh = hub.querySelectorAll('.mesh-node');
+      if (fresh.length >= 2) {
+        Array.from(fresh).forEach(el => { nodeMap[el.dataset.peer] = nodeCenter(el); });
+      }
+      if (kind === 'heartbeat' && localNode && sourceNode !== localNode) {
+        spawnBetween(sourceNode, localNode, 1, 'heartbeat');
+      } else if (kind === 'sync_delta') {
+        const count = Math.ceil(Math.min((msg.payload?.received || 1), 50) / 5);
+        if (localNode) spawnBetween(sourceNode, localNode, count, 'sync_delta');
+      } else if (kind === 'sync_ack') {
+        if (localNode) spawnBetween(localNode, sourceNode, 1, 'sync_ack');
+      } else if (kind === 'auth_ok') {
+        if (localNode) spawnBetween(sourceNode, localNode, 1, 'auth_ok');
+      } else if (kind === 'agent_heartbeat') {
+        if (localNode && sourceNode !== localNode)
+          spawnBetween(sourceNode, localNode, 1, 'heartbeat');
+      }
+    };
+    _meshDaemonWs.onclose = () => { setTimeout(connectDaemonWs, 5000); };
+    _meshDaemonWs.onerror = () => { _meshDaemonWs.close(); };
+  }
+
+  // Fallback: poll /api/mesh/traffic for sync counters
+  let _trafficPollTimer = null;
+  let _trafficPrev = {};
+  function _startTrafficPolling() {
+    if (_trafficPollTimer) return;
+    const localNode = (typeof state !== 'undefined' && state.localPeerName) || '';
+    async function poll() {
+      try {
+        const r = await fetch('/api/mesh/traffic');
+        const d = await r.json();
+        if (!d.ok) return;
+        const ln = d.local_node || localNode;
+        const fresh = hub.querySelectorAll('.mesh-node');
+        if (fresh.length >= 2) {
+          Array.from(fresh).forEach(el => { nodeMap[el.dataset.peer] = nodeCenter(el); });
+        }
+        (d.sync_peers || []).forEach(p => {
+          const prev = _trafficPrev[p.peer] || { sent: 0, recv: 0 };
+          const dS = Math.max(0, p.total_sent - prev.sent);
+          const dR = Math.max(0, p.total_received - prev.recv);
+          _trafficPrev[p.peer] = { sent: p.total_sent, recv: p.total_received };
+          if (prev.sent === 0) return;
+          if (dS > 0 && ln) spawnBetween(ln, p.peer, Math.ceil(Math.min(dS,200)/25), 'sync_delta');
+          if (dR > 0 && ln) spawnBetween(p.peer, ln, Math.ceil(Math.min(dR,200)/25), 'sync_delta');
+        });
+      } catch { /* silent */ }
+    }
+    poll();
+    _trafficPollTimer = setInterval(poll, 5000);
+  }
+
+  // Delayed connect: wait for state.daemonWsUrl to be populated from /api/mesh
+  setTimeout(connectDaemonWs, 2000);
+
   if (_meshFlowRAF) cancelAnimationFrame(_meshFlowRAF);
-  let lastSpawn = 0;
   function animate(ts) {
-    if (!document.getElementById('mesh-flow-cvs')) return;
+    if (!document.getElementById('mesh-flow-cvs')) {
+      if (_trafficPollTimer) clearInterval(_trafficPollTimer);
+      if (_meshDaemonWs) { _meshDaemonWs.onclose = null; _meshDaemonWs.close(); }
+      return;
+    }
     if (document.hidden) { _meshFlowRAF = requestAnimationFrame(animate); return; }
     if (cvs.width !== hub.offsetWidth || cvs.height !== hub.offsetHeight) {
       cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
     }
     ctx.clearRect(0, 0, cvs.width, cvs.height);
-    // Draw bold connection curves below nodes
+    // Draw connection curves between all pairs
     pairs.forEach(([a, b]) => {
       const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(a.name) : null;
       const col = mc ? mc.core : '#00e5ff';
       const glowCol = mc ? mc.glow + '0.3)' : 'rgba(0,229,255,0.3)';
       const ay = a.bottom + 15, by = b.bottom + 15;
       const midY = Math.max(ay, by) + 25;
-      // Glow layer
       ctx.globalAlpha = 0.25;
       ctx.strokeStyle = glowCol;
       ctx.lineWidth = 6;
@@ -259,7 +359,6 @@ function _initMeshFlow() {
       ctx.moveTo(a.x, ay);
       ctx.quadraticCurveTo((a.x + b.x) / 2, midY, b.x, by);
       ctx.stroke();
-      // Main line
       ctx.globalAlpha = 0.5;
       ctx.strokeStyle = col;
       ctx.lineWidth = 2;
@@ -271,20 +370,16 @@ function _initMeshFlow() {
     });
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
-    // Spawn particles more frequently
-    if (ts - lastSpawn > 60) { spawnParticle(); lastSpawn = ts; }
-    // Cap particles
-    while (_meshFlowParticles.length > 60) _meshFlowParticles.shift();
-    // Draw particles along bezier curves
+    while (_meshFlowParticles.length > 100) _meshFlowParticles.shift();
     for (let i = _meshFlowParticles.length - 1; i >= 0; i--) {
       const p = _meshFlowParticles[i];
       p.progress += p.speed;
+      if (p.progress < 0) continue;
       const t2 = p.progress, it = 1 - t2;
       p.x = it * it * p.sx + 2 * it * t2 * p.cx + t2 * t2 * p.tx;
       p.y = it * it * p.sy + 2 * it * t2 * p.cy + t2 * t2 * p.ty;
       p.trail.push({ x: p.x, y: p.y });
       if (p.trail.length > 12) p.trail.shift();
-      // Draw trail with glow
       for (let t = 0; t < p.trail.length; t++) {
         const alpha = (t / p.trail.length) * 0.6;
         const sz = p.size * 0.4 + p.size * 0.6 * (t / p.trail.length);
@@ -292,7 +387,6 @@ function _initMeshFlow() {
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(p.trail[t].x, p.trail[t].y, sz, 0, Math.PI * 2); ctx.fill();
       }
-      // Draw bright head with glow
       ctx.globalAlpha = 0.3;
       ctx.fillStyle = p.color;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2); ctx.fill();

@@ -55,6 +55,9 @@ pub fn load_tailscale_peer_ips() -> HashMap<String, String> {
         "/usr/local/bin/tailscale",
         "/opt/homebrew/bin/tailscale",
         "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+        // Windows
+        "C:\\Program Files\\Tailscale\\tailscale.exe",
+        "C:\\Program Files (x86)\\Tailscale\\tailscale.exe",
     ];
     let output = match CANDIDATES.iter().find_map(|cmd| {
         std::process::Command::new(cmd).arg("status").arg("--json").output().ok().filter(|o| o.status.success())

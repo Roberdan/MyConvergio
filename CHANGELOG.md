@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.35.0] - 10 Mar 2026
+
+### Added
+- cross-platform daemon (Windows), real-time traffic viz, sysinfo
+
+
 ## [v11.34.0] - 10 Mar 2026
 
 ### Added

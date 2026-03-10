@@ -61,8 +61,9 @@ window.movePlan = async function (planId, target, overlay) {
  * Triggered from the rocket icon on active mission cards.
  */
 window.showDelegatePlanDialog = async function (planId, planName) {
-  const peers = await fetchJson("/api/mesh");
-  if (!peers || !peers.length) {
+  const raw = await fetchJson("/api/mesh");
+  const peers = Array.isArray(raw) ? raw : (raw && raw.peers) || [];
+  if (!peers.length) {
     showOutputModal("Delegate Plan", "No mesh nodes configured");
     return;
   }

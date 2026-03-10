@@ -381,66 +381,48 @@ fn resolve_local_node_name(peers_conf_path: &std::path::Path, bind_ip: &str) -> 
     bind_ip.to_string()
 }
 
-/// Collect CPU and memory stats for local heartbeat
+/// Cross-platform system stats via sysinfo crate (macOS/Linux/Windows).
 fn collect_system_stats() -> serde_json::Value {
-    #[cfg(target_os = "macos")]
-    {
-        let cpu = std::process::Command::new("sh")
-            .args(["-c", "ps -A -o %cpu | awk '{s+=$1} END {printf \"%.1f\", s}'"])
-            .output().ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .and_then(|s| s.trim().parse::<f64>().ok())
-            .unwrap_or(0.0);
-        let mem_total = std::process::Command::new("sysctl")
-            .args(["-n", "hw.memsize"])
-            .output().ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .and_then(|s| s.trim().parse::<f64>().ok())
-            .map(|b| b / 1073741824.0) // bytes to GB
-            .unwrap_or(0.0);
-        let mem_used = std::process::Command::new("sh")
-            .args(["-c", "vm_stat | awk '/Pages active/ {a=$3} /Pages wired/ {w=$4} END {gsub(/\\./,\"\",a); gsub(/\\./,\"\",w); printf \"%.1f\", (a+w)*4096/1073741824}'"])
-            .output().ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .and_then(|s| s.trim().parse::<f64>().ok())
-            .unwrap_or(0.0);
-        json!({ "cpu": cpu.min(100.0), "mem_total_gb": mem_total, "mem_used_gb": mem_used })
-    }
-    #[cfg(target_os = "linux")]
-    {
-        let cpu = std::fs::read_to_string("/proc/loadavg").ok()
-            .and_then(|s| s.split_whitespace().next().and_then(|v| v.parse::<f64>().ok()))
-            .map(|load| (load * 100.0 / num_cpus()).min(100.0))
-            .unwrap_or(0.0);
-        let (mem_total, mem_used) = linux_mem_info();
-        json!({ "cpu": cpu, "mem_total_gb": mem_total, "mem_used_gb": mem_used })
-    }
-    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    {
-        json!({ "cpu": 0.0, "mem_total_gb": 0.0, "mem_used_gb": 0.0 })
-    }
+    use sysinfo::{System, Networks};
+    let mut sys = System::new();
+    sys.refresh_cpu_all();
+    std::thread::sleep(std::time::Duration::from_millis(200));
+    sys.refresh_cpu_all();
+    sys.refresh_memory();
+    let cpu = sys.global_cpu_usage() as f64;
+    let mem_total_gb = sys.total_memory() as f64 / 1073741824.0;
+    let mem_used_gb = sys.used_memory() as f64 / 1073741824.0;
+    let (net_rx, net_tx) = collect_net_bytes();
+    json!({
+        "cpu": (cpu * 10.0).round() / 10.0,
+        "mem_total_gb": (mem_total_gb * 10.0).round() / 10.0,
+        "mem_used_gb": (mem_used_gb * 10.0).round() / 10.0,
+        "net_rx_bytes": net_rx,
+        "net_tx_bytes": net_tx
+    })
 }
 
-#[cfg(target_os = "linux")]
-fn num_cpus() -> f64 {
-    std::fs::read_to_string("/proc/cpuinfo").ok()
-        .map(|s| s.matches("processor").count().max(1) as f64)
-        .unwrap_or(1.0)
-}
-
-#[cfg(target_os = "linux")]
-fn linux_mem_info() -> (f64, f64) {
-    let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
-    let mut total_kb = 0u64;
-    let mut available_kb = 0u64;
-    for line in content.lines() {
-        if line.starts_with("MemTotal:") {
-            total_kb = line.split_whitespace().nth(1).and_then(|v| v.parse().ok()).unwrap_or(0);
-        } else if line.starts_with("MemAvailable:") {
-            available_kb = line.split_whitespace().nth(1).and_then(|v| v.parse().ok()).unwrap_or(0);
+/// Cross-platform Tailscale interface byte counters via sysinfo::Networks.
+/// Interface names: macOS=utun*, Linux=tailscale0, Windows=Tailscale
+fn collect_net_bytes() -> (u64, u64) {
+    use sysinfo::Networks;
+    let networks = Networks::new_with_refreshed_list();
+    for (name, data) in &networks {
+        let n = name.to_lowercase();
+        if n == "tailscale0" || n.contains("tailscale") {
+            return (data.total_received(), data.total_transmitted());
         }
     }
-    let total_gb = total_kb as f64 / 1048576.0;
-    let used_gb = (total_kb.saturating_sub(available_kb)) as f64 / 1048576.0;
-    (total_gb, used_gb)
+    // macOS: utun interfaces — pick highest-traffic one (likely Tailscale)
+    let mut best = (0u64, 0u64, 0u64);
+    for (name, data) in &networks {
+        if name.starts_with("utun") {
+            let total = data.total_received() + data.total_transmitted();
+            if total > best.2 {
+                best = (data.total_received(), data.total_transmitted(), total);
+            }
+        }
+    }
+    if best.2 > 0 { return (best.0, best.1); }
+    (0, 0)
 }

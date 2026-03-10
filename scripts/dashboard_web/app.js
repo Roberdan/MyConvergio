@@ -79,14 +79,21 @@ async function refreshAll() {
     fetchJson("/api/nightly/jobs"),
   ]);
   if (ov) {
-    ov.mesh_online = mesh ? mesh.filter((p) => p.is_online).length : 0;
-    ov.mesh_total = mesh ? mesh.length : 0;
+    ov.mesh_online = mesh ? (mesh.peers || mesh).filter((p) => p.is_online).length : 0;
+    ov.mesh_total = mesh ? (mesh.peers || mesh).length : 0;
     if (typeof renderKpi === "function") renderKpi(ov);
   }
-  if (Array.isArray(mesh)) {
-    state.localPeerName = mesh.find((p) => p.is_local)?.peer_name || "local";
+  // Unwrap new {peers, daemon_ws} format
+  let meshPeers = mesh;
+  if (mesh && !Array.isArray(mesh) && Array.isArray(mesh.peers)) {
+    meshPeers = mesh.peers;
+    if (mesh.daemon_ws) state.daemonWsUrl = mesh.daemon_ws;
+    if (mesh.local_node) state.localNodeName = mesh.local_node;
+  }
+  if (Array.isArray(meshPeers)) {
+    state.localPeerName = meshPeers.find((p) => p.is_local)?.peer_name || "local";
     state.hostToPeer = {};
-    mesh.forEach((p) => {
+    meshPeers.forEach((p) => {
       const name = p.peer_name || p.name;
       if (name) {
         state.hostToPeer[name] = name;
@@ -109,9 +116,10 @@ async function refreshAll() {
   _safe("kanban", () => { if (typeof renderKanban === "function") renderKanban(); });
   _safe("tokenChart", () => { if (daily && typeof renderTokenChart === "function") renderTokenChart(daily); });
   _safe("modelChart", () => { if (models && typeof renderModelChart === "function") renderModelChart(models); });
-  if (mesh && typeof renderMeshStrip === "function") {
+  if (meshPeers && typeof renderMeshStrip === "function") {
     _safe("meshStrip", () => {
-      renderMeshStrip(mesh);
+      renderMeshStrip(meshPeers);
+      lastMeshData = meshPeers;
       if (typeof renderGitHubActivity === "function") renderGitHubActivity();
       else if (typeof renderEventFeed === "function") renderEventFeed();
     });

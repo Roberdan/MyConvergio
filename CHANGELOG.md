@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.41.0] - 11 Mar 2026
+
+### Added
+- 30s demo traffic — random particles between all nodes to preview animation
+
+
 ## [v11.40.5] - 11 Mar 2026
 
 ### Fixed

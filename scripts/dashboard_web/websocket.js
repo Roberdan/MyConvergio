@@ -190,15 +190,19 @@ function _initMeshFlow() {
   if (!cvs) return;
   const hub = cvs.parentElement;
   if (!hub) return;
-  cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
+  cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight + 70;
   const ctx = cvs.getContext('2d');
+  // Canvas is offset -50px top in CSS, so shift coordinate system
+  const canvasOffsetY = 50;
   const nodes = hub.querySelectorAll('.mesh-node');
   if (nodes.length < 2) return;
   function nodeCenter(el) {
     const r = el.getBoundingClientRect(), hr = hub.getBoundingClientRect();
     return {
       x: r.left - hr.left + r.width / 2,
-      bottom: r.top - hr.top + r.height,
+      top: r.top - hr.top + canvasOffsetY,
+      cy: r.top - hr.top + r.height * 0.5 + canvasOffsetY,
+      bottom: r.top - hr.top + r.height + canvasOffsetY,
       name: el.dataset.peer
     };
   }
@@ -227,8 +231,8 @@ function _initMeshFlow() {
     const ec = eventColors[eventType] || eventColors.heartbeat;
     const n = Math.min(count, 10);
     for (let k = 0; k < n; k++) {
-      const fy = from.bottom + 4, ty = to.bottom + 4;
-      const midY = Math.max(fy, ty) + 4 + Math.random() * 10;
+      const fy = from.cy, ty = to.cy;
+      const midY = Math.min(from.top, to.top) - 20 - Math.random() * 15;
       _meshFlowParticles.push({
         sx: from.x, sy: fy, tx: to.x, ty: ty,
         cx: (from.x + to.x) / 2, cy: midY,
@@ -356,8 +360,8 @@ function _initMeshFlow() {
       return;
     }
     if (document.hidden) { _meshFlowRAF = requestAnimationFrame(animate); return; }
-    if (cvs.width !== hub.offsetWidth || cvs.height !== hub.offsetHeight) {
-      cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
+    if (cvs.width !== hub.offsetWidth || cvs.height !== hub.offsetHeight + 70) {
+      cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight + 70;
     }
     ctx.clearRect(0, 0, cvs.width, cvs.height);
     // Draw connection curves between all pairs
@@ -365,19 +369,19 @@ function _initMeshFlow() {
       const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(a.name) : null;
       const col = mc ? mc.core : '#00e5ff';
       const glowCol = mc ? mc.glow + '0.3)' : 'rgba(0,229,255,0.3)';
-      const ay = a.bottom + 15, by = b.bottom + 15;
-      const midY = Math.max(ay, by) + 25;
-      ctx.globalAlpha = 0.25;
+      const ay = a.cy, by = b.cy;
+      const midY = Math.min(a.top, b.top) - 30;
+      ctx.globalAlpha = 0.35;
       ctx.strokeStyle = glowCol;
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 8;
       ctx.setLineDash([]);
       ctx.beginPath();
       ctx.moveTo(a.x, ay);
       ctx.quadraticCurveTo((a.x + b.x) / 2, midY, b.x, by);
       ctx.stroke();
-      ctx.globalAlpha = 0.5;
+      ctx.globalAlpha = 0.6;
       ctx.strokeStyle = col;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.setLineDash([6, 4]);
       ctx.beginPath();
       ctx.moveTo(a.x, ay);
@@ -397,15 +401,15 @@ function _initMeshFlow() {
       p.trail.push({ x: p.x, y: p.y });
       if (p.trail.length > 12) p.trail.shift();
       for (let t = 0; t < p.trail.length; t++) {
-        const alpha = (t / p.trail.length) * 0.6;
-        const sz = p.size * 0.4 + p.size * 0.6 * (t / p.trail.length);
+        const alpha = (t / p.trail.length) * 0.8;
+        const sz = p.size * 0.5 + p.size * 0.7 * (t / p.trail.length);
         ctx.globalAlpha = alpha;
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(p.trail[t].x, p.trail[t].y, sz, 0, Math.PI * 2); ctx.fill();
       }
-      ctx.globalAlpha = 0.3;
+      ctx.globalAlpha = 0.4;
       ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
       ctx.fillStyle = '#fff';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 0.6, 0, Math.PI * 2); ctx.fill();

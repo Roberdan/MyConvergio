@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.37.0] - 11 Mar 2026
+
+### Added
+- traffic animations arc above nodes — more visible, particles behind cards
+
+
 ## [v11.36.11] - 11 Mar 2026
 
 ### Fixed

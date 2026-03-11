@@ -53,12 +53,14 @@
   gap: 32px;
   position: relative;
   width: 100%;
-  padding: 12px 16px 20px 16px;
+  padding: 50px 16px 20px 16px;
   overflow: visible;
 }
 .mesh-hub > .mesh-node {
   flex: 1 1 0;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 .mesh-hub-workers {
   display: contents;
@@ -81,14 +83,14 @@
 .mesh-hub-coord .mn-name { font-size: 28px; }
 .mesh-hub-coord .mn-role { font-size: 16px; letter-spacing: 3px; }
 .mesh-hub-coord .mn-stats { font-size: 14px; }
-/* Flow canvas overlay — extends below nodes for curves */
+/* Flow canvas overlay — extends above nodes for arc curves */
 .mesh-flow-canvas {
   position: absolute;
-  top: 0; left: 0;
+  top: -50px; left: 0;
   width: 100%;
-  height: calc(100% + 20px);
+  height: calc(100% + 70px);
   pointer-events: none;
-  z-index: 2;
+  z-index: 0;
 }
 /* Sync All button */
 .mesh-sync-all {

@@ -1,9 +1,20 @@
 # Changelog
 
+## [v11.42.3] - 11 Mar 2026
+
+### Changed
+- document omarchy fix, FD exhaustion, and mesh learnings
+
+
 ## [v11.42.2] - 11 Mar 2026
 
 ### Changed
 - remove dead /api/organization and /api/live-system routes
+
+### Fixed
+- **omarchy node offline**: FD exhaustion (ulimit 1024, 374 restart loop), fixed with systemd LimitNOFILE=65536
+- **omarchy git remote**: was pointing to MyConvergio instead of dotclaude, fixed and force-synced
+- **mesh traffic lanes**: widened from 14px to 60px offset for better visibility
 
 
 ## [v11.42.1] - 11 Mar 2026

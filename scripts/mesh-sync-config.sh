@@ -28,13 +28,18 @@ done
 
 # Files to sync to peers
 SYNC_FILES=(
+	"shell-aliases.sh"
 	"config/models.yaml"
 	"config/peers.conf"
 	"config/repos.conf"
+	"scripts/shell-aliases.sh"
 	"scripts/model-update.sh"
 	"scripts/mesh-discover.sh"
+	"scripts/mesh-sync.sh"
 	"scripts/mesh-sync-config.sh"
 	"scripts/mesh-sync-all.sh"
+	"scripts/peer-sync.sh"
+	"scripts/sync-dashboard-db.sh"
 	"scripts/lib/peers.sh"
 )
 

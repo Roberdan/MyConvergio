@@ -190,19 +190,17 @@ function _initMeshFlow() {
   if (!cvs) return;
   const hub = cvs.parentElement;
   if (!hub) return;
-  cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight + 70;
+  cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
   const ctx = cvs.getContext('2d');
-  // Canvas is offset -50px top in CSS, so shift coordinate system
-  const canvasOffsetY = 50;
   const nodes = hub.querySelectorAll('.mesh-node');
   if (nodes.length < 2) return;
   function nodeCenter(el) {
     const r = el.getBoundingClientRect(), hr = hub.getBoundingClientRect();
     return {
       x: r.left - hr.left + r.width / 2,
-      top: r.top - hr.top + canvasOffsetY,
-      cy: r.top - hr.top + r.height * 0.5 + canvasOffsetY,
-      bottom: r.top - hr.top + r.height + canvasOffsetY,
+      cy: r.top - hr.top + r.height * 0.5,
+      top: r.top - hr.top,
+      bottom: r.top - hr.top + r.height,
       name: el.dataset.peer
     };
   }
@@ -232,7 +230,7 @@ function _initMeshFlow() {
     const n = Math.min(count, 10);
     for (let k = 0; k < n; k++) {
       const fy = from.cy, ty = to.cy;
-      const midY = Math.min(from.top, to.top) - 20 - Math.random() * 15;
+      const midY = (fy + ty) / 2 + (Math.random() - 0.5) * 20;
       _meshFlowParticles.push({
         sx: from.x, sy: fy, tx: to.x, ty: ty,
         cx: (from.x + to.x) / 2, cy: midY,
@@ -360,8 +358,8 @@ function _initMeshFlow() {
       return;
     }
     if (document.hidden) { _meshFlowRAF = requestAnimationFrame(animate); return; }
-    if (cvs.width !== hub.offsetWidth || cvs.height !== hub.offsetHeight + 70) {
-      cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight + 70;
+    if (cvs.width !== hub.offsetWidth || cvs.height !== hub.offsetHeight) {
+      cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
     }
     ctx.clearRect(0, 0, cvs.width, cvs.height);
     // Draw connection curves between all pairs
@@ -370,18 +368,18 @@ function _initMeshFlow() {
       const col = mc ? mc.core : '#00e5ff';
       const glowCol = mc ? mc.glow + '0.3)' : 'rgba(0,229,255,0.3)';
       const ay = a.cy, by = b.cy;
-      const midY = Math.min(a.top, b.top) - 30;
-      ctx.globalAlpha = 0.35;
+      const midY = (ay + by) / 2;
+      ctx.globalAlpha = 0.5;
       ctx.strokeStyle = glowCol;
-      ctx.lineWidth = 8;
+      ctx.lineWidth = 12;
       ctx.setLineDash([]);
       ctx.beginPath();
       ctx.moveTo(a.x, ay);
       ctx.quadraticCurveTo((a.x + b.x) / 2, midY, b.x, by);
       ctx.stroke();
-      ctx.globalAlpha = 0.6;
+      ctx.globalAlpha = 0.8;
       ctx.strokeStyle = col;
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 3;
       ctx.setLineDash([6, 4]);
       ctx.beginPath();
       ctx.moveTo(a.x, ay);

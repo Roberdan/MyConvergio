@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Shell aliases for optimal CLI workflow
 # Sourced from ~/.zshrc
 
 # Skip shadow aliases in non-interactive shells (Claude Code, scripts)
 # Claude Code uses its own Grep/Glob/Read tools, these aliases only
 # cause flag incompatibility errors when Bash tool falls back to grep/find
-if [[ ! -o interactive ]]; then
+if [[ $- != *i* ]]; then
 	return 0 2>/dev/null || exit 0
 fi
 
@@ -104,6 +104,7 @@ alias vercel-wrap='~/.claude/scripts/vercel-helper.sh'
 alias psync='~/.claude/scripts/peer-sync.sh'
 alias csync='~/.claude/scripts/sync-claude-config.sh'
 alias dbsync='~/.claude/scripts/sync-dashboard-db.sh'
+alias bg='buongiorno'
 
 # === Convergio sessions — auto-attach via .zshrc, aliases as shortcuts ===
 # With auto-tmux-attach in each node's .zshrc, plain `ssh <node>` already
@@ -150,4 +151,196 @@ ghs() {
 # Show current active GH account
 ghw() {
 	gh auth status 2>&1 | grep "Active account: true" -B3 | grep "account "
+}
+
+_buongiorno_mesh_sync() {
+	local sync_script="$HOME/.claude/scripts/mesh-sync.sh"
+
+	if [[ ! -x "$sync_script" ]]; then
+		echo "    ⚠ mesh-sync.sh non trovato, skip"
+		return 1
+	fi
+
+	"$sync_script" 2>&1 | tail -5
+}
+
+claude_buongiorno() {
+	local G='\033[0;32m' Y='\033[1;33m' R='\033[0;31m' C='\033[0;36m' B='\033[1m' N='\033[0m'
+	local start
+	start=$(date +%s)
+	local -a news=()
+
+	echo ""
+	echo -e "${B}☀️  Buongiorno! Aggiorno tutto...${N}"
+	echo ""
+
+	echo -e "${C}[1/5]${N} 🤖 Claude Code..."
+	if command -v claude >/dev/null 2>&1; then
+		local claude_before claude_after
+		claude_before=$(claude --version 2>/dev/null)
+		if claude update 2>&1 | tail -3; then
+			claude_after=$(claude --version 2>/dev/null)
+			if [[ "$claude_before" != "$claude_after" ]]; then
+				news+=("🤖 Claude Code: ${claude_before} → ${claude_after}")
+			else
+				echo -e "  ${G}✓${N} già aggiornato (${claude_after})"
+			fi
+		else
+			echo -e "  ${R}✗${N} aggiornamento fallito"
+		fi
+	else
+		echo -e "  ${Y}⚠${N} claude non trovato"
+	fi
+
+	echo -e "${C}[2/5]${N} 🐙 GitHub Copilot CLI..."
+	if command -v gh >/dev/null 2>&1; then
+		local copilot_before copilot_after
+		copilot_before=$(gh extension list 2>/dev/null | awk '/copilot/ {print $3; exit}')
+		if gh extension upgrade gh-copilot 2>&1 | tail -2; then
+			copilot_after=$(gh extension list 2>/dev/null | awk '/copilot/ {print $3; exit}')
+			if [[ "$copilot_before" != "$copilot_after" ]]; then
+				news+=("🐙 GH Copilot: ${copilot_before} → ${copilot_after}")
+			else
+				echo -e "  ${G}✓${N} già aggiornato (${copilot_after})"
+			fi
+		else
+			echo -e "  ${R}✗${N} aggiornamento fallito"
+		fi
+	else
+		echo -e "  ${Y}⚠${N} gh non trovato"
+	fi
+
+	echo -e "${C}[3/5]${N} 🍺 Homebrew..."
+	if command -v brew >/dev/null 2>&1; then
+		local outdated
+		brew update --quiet 2>/dev/null
+		outdated=$(brew outdated 2>/dev/null)
+		if [[ -n "$outdated" ]]; then
+			local count
+			count=$(echo "$outdated" | wc -l | tr -d ' ')
+			echo -e "  Aggiorno ${Y}${count}${N} pacchetti..."
+			brew upgrade --quiet 2>&1 | tail -5
+			news+=("🍺 Homebrew: aggiornati ${count} pacchetti")
+		else
+			echo -e "  ${G}✓${N} tutto aggiornato"
+		fi
+		brew cleanup --quiet 2>/dev/null
+	else
+		echo -e "  ${Y}⚠${N} brew non disponibile su questo host, skip"
+	fi
+
+	echo -e "${C}[4/5]${N} 🔧 GitHub CLI & estensioni..."
+	if command -v gh >/dev/null 2>&1; then
+		gh extension upgrade --all 2>&1 | grep -v "already up to date" | tail -5
+		echo -e "  ${G}✓${N} fatto"
+	else
+		echo -e "  ${Y}⚠${N} gh non trovato"
+	fi
+
+	echo -e "${C}[5/5]${N} 🌐 .claude Mesh Sync + aggiornamento peer..."
+	_buongiorno_mesh_sync
+
+	if [[ -f "$HOME/.claude/scripts/lib/peers.sh" ]]; then
+		# shellcheck source=/dev/null
+		source "$HOME/.claude/scripts/lib/peers.sh"
+		peers_load 2>/dev/null || true
+
+		local local_peer peer_num peer_total
+		local_peer="${CLAUDE_LOCAL_PEER:-$(peers_self 2>/dev/null)}"
+		peer_num=0
+		peer_total=0
+
+		local _p
+		for _p in ${_PEERS_ACTIVE:-}; do
+			[[ -n "$local_peer" && "$_p" == "$local_peer" ]] && continue
+			peer_total=$((peer_total + 1))
+		done
+
+		for _p in ${_PEERS_ACTIVE:-}; do
+			[[ -n "$local_peer" && "$_p" == "$local_peer" ]] && continue
+			peer_num=$((peer_num + 1))
+
+			local p_route p_user p_dest p_os p_icon
+			p_route="$(peers_best_route "$_p" 2>/dev/null || peers_get "$_p" ssh_alias 2>/dev/null)"
+			p_user="$(peers_get "$_p" user 2>/dev/null || echo "")"
+			p_dest="${p_user:+${p_user}@}${p_route}"
+			p_os="$(peers_get "$_p" os 2>/dev/null || echo "linux")"
+			p_icon="🐧"
+			[[ "$p_os" == "macos" ]] && p_icon="🍎"
+
+			[[ -z "$p_route" ]] && {
+				echo -e "  ${C}[${peer_num}/${peer_total}]${N} ${p_icon} ${_p}: ${Y}route mancante, skip${N}"
+				continue
+			}
+
+			echo -e "  ${C}[${peer_num}/${peer_total}]${N} ${p_icon} ${_p} (${p_os})..."
+			if ! ssh -n -o ConnectTimeout=4 -o BatchMode=yes "$p_dest" true 2>/dev/null; then
+				echo -e "    ${Y}⚠${N} ${_p} non raggiungibile, skip"
+				continue
+			fi
+			echo -e "    Connesso via ${Y}${p_dest}${N}"
+
+			local RPATH r_claude_ver r_claude_after r_copilot_ver r_copilot_after
+			RPATH='export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH";'
+
+			r_claude_ver=$(ssh -n "$p_dest" "${RPATH} claude --version 2>/dev/null" 2>/dev/null)
+			if [[ -n "$r_claude_ver" ]]; then
+				echo -e "    Claude: ${r_claude_ver}"
+				if [[ "$p_os" == "linux" ]]; then
+					ssh -n "$p_dest" "${RPATH} command -v npm >/dev/null 2>&1 && sudo npm install -g --force @anthropic-ai/claude-code@latest 2>&1 || echo 'npm missing'" 2>/dev/null | tail -2
+				else
+					ssh -n "$p_dest" "${RPATH} claude update 2>&1" 2>/dev/null | tail -2
+				fi
+				r_claude_after=$(ssh -n "$p_dest" "${RPATH} claude --version 2>/dev/null" 2>/dev/null)
+				if [[ "$r_claude_ver" != "$r_claude_after" ]]; then
+					news+=("${p_icon} Claude ${_p}: ${r_claude_ver} → ${r_claude_after}")
+				else
+					echo -e "    ${G}✓${N} Claude già aggiornato (${r_claude_after})"
+				fi
+			fi
+
+			r_copilot_ver=$(ssh -n "$p_dest" "${RPATH} gh extension list 2>/dev/null | awk '/copilot/ {print \\$3; exit}'" 2>/dev/null)
+			if [[ -n "$r_copilot_ver" ]]; then
+				echo -e "    Copilot: ${r_copilot_ver}"
+				ssh -n "$p_dest" "${RPATH} gh extension upgrade gh-copilot 2>&1" 2>/dev/null | tail -2
+				r_copilot_after=$(ssh -n "$p_dest" "${RPATH} gh extension list 2>/dev/null | awk '/copilot/ {print \\$3; exit}'" 2>/dev/null)
+				if [[ "$r_copilot_ver" != "$r_copilot_after" ]]; then
+					news+=("${p_icon} Copilot ${_p}: ${r_copilot_ver} → ${r_copilot_after}")
+				else
+					echo -e "    ${G}✓${N} Copilot già aggiornato (${r_copilot_after})"
+				fi
+			fi
+
+			if [[ "$p_os" == "macos" ]]; then
+				echo -e "    Homebrew..."
+				ssh -n "$p_dest" "${RPATH} command -v brew >/dev/null 2>&1 && brew update --quiet && brew upgrade --quiet && brew cleanup --quiet 2>&1 || echo 'brew missing'" 2>/dev/null | tail -3
+				echo -e "    ${G}✓${N} Homebrew aggiornato"
+			fi
+
+			news+=("${p_icon} ${_p} allineato")
+		done
+	fi
+
+	local elapsed
+	elapsed=$(( $(date +%s) - start ))
+	echo ""
+	echo -e "${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}"
+	if [[ ${#news[@]} -gt 0 ]]; then
+		echo -e "${B}📰 Novità di oggi:${N}"
+		local item
+		for item in "${news[@]}"; do
+			echo -e "  • ${item}"
+		done
+	else
+		echo -e "${G}✨ Tutto era già aggiornato!${N}"
+	fi
+	echo -e "${B}⏱  Completato in ${elapsed}s${N}"
+	echo -e "${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}"
+	echo ""
+	echo -e "${G}☕ Buon lavoro, Roberto!${N}"
+	echo ""
+}
+
+buongiorno() {
+	claude_buongiorno "$@"
 }

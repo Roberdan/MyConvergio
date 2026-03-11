@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
-# tlx-presync.sh - Pre-sync Mac -> omarchy before connecting
-# Usage: tlx-presync.sh <host>  (omarchy-local or omarchy-ts)
+# tlx-presync.sh - Pre-sync local config + DB before connecting to a peer
+# Usage: tlx-presync.sh <host-or-peer>
 # Version: 1.0.0
 set -euo pipefail
 
 HOST="${1:?Usage: tlx-presync.sh <host>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REMOTE_SYNC_SCRIPT="$SCRIPT_DIR/remote-repo-sync.sh"
+source "$SCRIPT_DIR/lib/peers.sh"
+peers_load 2>/dev/null || true
+
+if peers_get "$HOST" ssh_alias >/dev/null 2>&1; then
+  peers_check "$HOST" >/dev/null 2>&1 || warn "Peer $HOST non raggiungibile via peers.conf"
+  HOST="$(peers_best_route "$HOST" 2>/dev/null || echo "$HOST")"
+fi
 
 # --- Output helpers ---
 G='\033[0;32m' Y='\033[1;33m' R='\033[0;31m' C='\033[0;36m' N='\033[0m'

@@ -6,6 +6,9 @@ set -euo pipefail
 # Version: 1.1.0
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/peers.sh"
+
 # --- Configuration ---
 CONFIG_FILE="$HOME/.claude/config/sync-db.conf"
 if [[ -f "$CONFIG_FILE" ]]; then
@@ -15,17 +18,10 @@ else
 	exit 1
 fi
 
-REMOTE_HOST="${REMOTE_HOST:-omarchy-ts}"
+REMOTE_HOST="${REMOTE_HOST:-}"
 LOCAL_REPO="$HOME/.claude"
 REMOTE_REPO="~/.claude"
 BUNDLE="/tmp/claude-config-sync.bundle"
-
-# Runs from Mac only (Linux cannot SSH back to Mac)
-CURRENT_HOST=$(hostname -s 2>/dev/null || hostname)
-if [[ "$CURRENT_HOST" == "omarchy" && "${ALLOW_LINUX_SYNC:-0}" != "1" ]]; then
-	echo -e "\033[0;31m[sync]\033[0m Run from Mac, not Linux. Set ALLOW_LINUX_SYNC=1 to override."
-	exit 1
-fi
 
 # --- Output helpers ---
 G='\033[0;32m' Y='\033[1;33m' R='\033[0;31m' C='\033[0;36m' N='\033[0m'
@@ -51,12 +47,57 @@ check_clean() {
 
 cleanup() {
 	rm -f "$BUNDLE"
-	ssh "$REMOTE_HOST" "rm -f $BUNDLE" 2>/dev/null || true
 }
 trap cleanup EXIT
 
+peers_load 2>/dev/null || true
+
+require_remote_host() {
+	[[ -n "$REMOTE_HOST" ]] && return 0
+	err "REMOTE_HOST non impostato e nessun peer specificato"
+	return 1
+}
+
+peer_dest() {
+	local peer="$1" route user
+	route="$(peers_best_route "$peer" 2>/dev/null)" || return 1
+	user="$(peers_get "$peer" "user" 2>/dev/null || echo "")"
+	echo "${user:+${user}@}${route}"
+}
+
+run_all_peers() {
+	local subcmd="$1" failed=0 peer dest old_remote
+
+	peers_load 2>/dev/null || true
+	while IFS= read -r peer; do
+		[[ -z "$peer" ]] && continue
+		dest="$(peer_dest "$peer" 2>/dev/null)" || {
+			warn "$peer: route mancante"
+			failed=$((failed + 1))
+			continue
+		}
+		if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "$dest" true 2>/dev/null; then
+			warn "$peer: offline"
+			failed=$((failed + 1))
+			continue
+		fi
+		info "${subcmd}-all ${peer} (${dest})"
+		old_remote="${REMOTE_HOST:-}"
+		REMOTE_HOST="$dest"
+		case "$subcmd" in
+		push) cmd_push || failed=$((failed + 1)) ;;
+		pull) cmd_pull || failed=$((failed + 1)) ;;
+		status) cmd_status || failed=$((failed + 1)) ;;
+		esac
+		REMOTE_HOST="$old_remote"
+	done < <(peers_others 2>/dev/null)
+
+	return "$failed"
+}
+
 # --- Status ---
 cmd_status() {
+	require_remote_host || return 1
 	info "Comparing local vs remote ($REMOTE_HOST)..."
 	local lh rh
 	lh=$(local_head)
@@ -90,6 +131,7 @@ cmd_status() {
 
 # --- Push (local → remote) ---
 cmd_push() {
+	require_remote_host || return 1
 	info "Pushing local -> $REMOTE_HOST..."
 	local lh rh
 	lh=$(local_head)
@@ -139,10 +181,12 @@ cmd_push() {
 		err "Verification failed. Remote: ${new_rh:0:7}, expected: ${lh:0:7}"
 		return 1
 	fi
+	ssh "$REMOTE_HOST" "rm -f $BUNDLE" 2>/dev/null || true
 }
 
 # --- Pull (remote → local) ---
 cmd_pull() {
+	require_remote_host || return 1
 	info "Pulling $REMOTE_HOST -> local..."
 	local lh rh
 	lh=$(local_head)
@@ -178,6 +222,7 @@ cmd_pull() {
 		err "Verification failed. Local: ${new_lh:0:7}, expected: ${rh:0:7}"
 		return 1
 	fi
+	ssh "$REMOTE_HOST" "rm -f $BUNDLE" 2>/dev/null || true
 }
 
 # --- Main ---
@@ -185,11 +230,15 @@ case "${1:-status}" in
 push) cmd_push ;;
 pull) cmd_pull ;;
 status) cmd_status ;;
+push-all) run_all_peers push ;;
+pull-all) run_all_peers pull ;;
+status-all) run_all_peers status ;;
 -h | --help | help)
-	echo "Usage: $(basename "$0") [push|pull|status]"
+	echo "Usage: $(basename "$0") [push|pull|status|push-all|pull-all|status-all]"
 	echo "  push   - Send local commits to $REMOTE_HOST"
 	echo "  pull   - Fetch remote commits from $REMOTE_HOST"
 	echo "  status - Compare both machines (default)"
+	echo "  push-all/pull-all/status-all - Iterate active peers from peers.conf"
 	;;
 *)
 	err "Unknown: $1. Use push|pull|status"

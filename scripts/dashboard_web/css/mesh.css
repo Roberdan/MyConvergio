@@ -50,10 +50,10 @@
   flex-direction: row;
   align-items: stretch;
   justify-content: center;
-  gap: 32px;
+  gap: 40px;
   position: relative;
   width: 100%;
-  padding: 50px 16px 20px 16px;
+  padding: 12px 16px 20px 16px;
   overflow: visible;
 }
 .mesh-hub > .mesh-node {
@@ -83,12 +83,12 @@
 .mesh-hub-coord .mn-name { font-size: 28px; }
 .mesh-hub-coord .mn-role { font-size: 16px; letter-spacing: 3px; }
 .mesh-hub-coord .mn-stats { font-size: 14px; }
-/* Flow canvas overlay — extends above nodes for arc curves */
+/* Flow canvas overlay — behind node cards for through-card particle effect */
 .mesh-flow-canvas {
   position: absolute;
-  top: -50px; left: 0;
+  top: 0; left: 0;
   width: 100%;
-  height: calc(100% + 70px);
+  height: 100%;
   pointer-events: none;
   z-index: 0;
 }

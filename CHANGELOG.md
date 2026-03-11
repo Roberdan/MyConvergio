@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.37.1] - 11 Mar 2026
+
+### Fixed
+- traffic lines through card centers — visible in gaps between nodes
+
+
 ## [v11.37.0] - 11 Mar 2026
 
 ### Added

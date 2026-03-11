@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.42.1] - 11 Mar 2026
+
+### Fixed
+- remove demo traffic, use real daemon WS/polling only
+
+
 ## [v11.42.0] - 11 Mar 2026
 
 ### Added

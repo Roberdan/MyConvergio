@@ -374,25 +374,7 @@ function _initMeshFlow() {
   // Delayed connect: wait for state.daemonWsUrl to be populated from /api/mesh
   setTimeout(connectDaemonWs, 2000);
 
-  // Demo traffic: 30 seconds of random traffic between all node pairs
-  const _demoEnd = Date.now() + 30000;
-  const _nodeNames = centers.map(c => c.name);
-  const _demoTypes = ['heartbeat', 'sync_delta', 'sync_ack', 'auth_ok', 'net_burst'];
-  const _demoTimer = setInterval(() => {
-    if (Date.now() > _demoEnd || !document.getElementById('mesh-flow-cvs')) {
-      clearInterval(_demoTimer);
-      return;
-    }
-    // Pick two random different nodes
-    const a = _nodeNames[Math.floor(Math.random() * _nodeNames.length)];
-    let b = a;
-    while (b === a && _nodeNames.length > 1) b = _nodeNames[Math.floor(Math.random() * _nodeNames.length)];
-    const evType = _demoTypes[Math.floor(Math.random() * _demoTypes.length)];
-    const count = evType === 'sync_delta' ? 3 + Math.floor(Math.random() * 8) :
-                  evType === 'net_burst' ? 5 + Math.floor(Math.random() * 7) :
-                  1 + Math.floor(Math.random() * 3);
-    spawnBetween(a, b, count, evType);
-  }, 200);
+  // Demo traffic removed — real traffic comes from daemon WS or /api/mesh/traffic polling
 
   if (_meshFlowRAF) cancelAnimationFrame(_meshFlowRAF);
   function animate(ts) {

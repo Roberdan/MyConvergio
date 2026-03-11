@@ -228,22 +228,42 @@ function _initMeshFlow() {
     net_burst:  { core: 'rgba(255,80,80,0.7)',    glow: 'rgba(255,80,80,0.3)' },
   };
 
+  // Get the ordered list of node names by X position for hop routing
+  function getOrderedNames() {
+    const sorted = [...centers].sort((a, b) => a.x - b.x);
+    return sorted.map(c => c.name);
+  }
+
   function spawnBetween(fromName, toName, count, eventType) {
     if (!nodeMap[fromName] || !nodeMap[toName]) return;
+    if (fromName === toName) return;
     const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(fromName) : null;
     const ec = eventColors[eventType] || eventColors.heartbeat;
     const n = Math.min(count, 12);
     const dataScale = eventType === 'sync_delta' ? 1.8 : (eventType === 'net_burst' ? 2.0 : 0.9);
+    // Build hop route: break into adjacent segments
+    const ordered = getOrderedNames();
+    const fi = ordered.indexOf(fromName), ti = ordered.indexOf(toName);
+    if (fi < 0 || ti < 0) return;
+    const hops = [];
+    if (fi < ti) {
+      for (let h = fi; h < ti; h++) hops.push([ordered[h], ordered[h + 1]]);
+    } else {
+      for (let h = fi; h > ti; h--) hops.push([ordered[h], ordered[h - 1]]);
+    }
+    // Spawn particles for each hop segment with staggered delay
     for (let k = 0; k < n; k++) {
-      _meshFlowParticles.push({
-        fromName, toName,
-        progress: -k * 0.04,
-        speed: 0.012 + Math.random() * 0.014,
-        color: mc ? mc.core : ec.core,
-        size: (3 + Math.random() * 3) * dataScale,
-        jitterY: (Math.random() - 0.5) * 4,
-        trail: []
-      });
+      for (let h = 0; h < hops.length; h++) {
+        _meshFlowParticles.push({
+          fromName: hops[h][0], toName: hops[h][1],
+          progress: -k * 0.04 - h * 0.4,
+          speed: 0.012 + Math.random() * 0.014,
+          color: mc ? mc.core : ec.core,
+          size: (3 + Math.random() * 3) * dataScale,
+          jitterY: (Math.random() - 0.5) * 4,
+          trail: []
+        });
+      }
     }
   }
 

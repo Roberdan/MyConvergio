@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.41.1] - 11 Mar 2026
+
+### Fixed
+- hop routing — non-adjacent traffic hops gap-by-gap, never behind cards
+
+
 ## [v11.41.0] - 11 Mar 2026
 
 ### Added

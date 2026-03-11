@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.37.4] - 11 Mar 2026
+
+### Changed
+- debug: add console.log to mesh-flow init + cache-bust v=1773215821
+
+
 ## [v11.37.3] - 11 Mar 2026
 
 ### Fixed

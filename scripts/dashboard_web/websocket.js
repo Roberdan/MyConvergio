@@ -187,12 +187,14 @@ let _meshDaemonWs = null;
 let _meshPrevNetBytes = {};  // {peer: {rx, tx}} for delta calculation
 function _initMeshFlow() {
   const cvs = document.getElementById('mesh-flow-cvs');
-  if (!cvs) return;
+  if (!cvs) { console.warn('[mesh-flow] no canvas'); return; }
   const hub = cvs.parentElement;
   if (!hub) return;
   cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
+  console.log('[mesh-flow] canvas', cvs.width, 'x', cvs.height);
   const ctx = cvs.getContext('2d');
   const nodes = hub.querySelectorAll('.mesh-node');
+  console.log('[mesh-flow] nodes found:', nodes.length);
   if (nodes.length < 2) return;
   function nodeCenter(el) {
     const r = el.getBoundingClientRect(), hr = hub.getBoundingClientRect();
@@ -205,12 +207,14 @@ function _initMeshFlow() {
     };
   }
   let centers = Array.from(nodes).map(nodeCenter);
+  console.log('[mesh-flow] centers:', JSON.stringify(centers.map(c => ({name:c.name, x:Math.round(c.x), cy:Math.round(c.cy)}))));
   const nodeMap = {};
   centers.forEach(c => { nodeMap[c.name] = c; });
   const pairs = [];
   for (let i = 0; i < centers.length; i++)
     for (let j = i + 1; j < centers.length; j++)
       pairs.push([centers[i], centers[j]]);
+  console.log('[mesh-flow] pairs:', pairs.length);
   _meshFlowParticles.length = 0;
 
   // Particle colors by event type

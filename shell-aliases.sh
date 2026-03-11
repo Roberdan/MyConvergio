@@ -204,11 +204,22 @@ claude_buongiorno() {
 	fi
 
 	local start
+	local master_peer local_peer execution_mode
 	start=$(date +%s)
 	local -a news=()
+	master_peer="$(_buongiorno_master_peer)"
+	if [[ -f "$HOME/.claude/scripts/lib/peers.sh" ]]; then
+		# shellcheck source=/dev/null
+		source "$HOME/.claude/scripts/lib/peers.sh"
+		peers_load 2>/dev/null || true
+		local_peer="${CLAUDE_LOCAL_PEER:-$(peers_self 2>/dev/null)}"
+	fi
+	execution_mode="MASTER"
+	[[ "$no_master_redirect" -eq 1 ]] && execution_mode="REMOTE-RUN"
 
 	echo ""
 	echo -e "${B}☀️  Buongiorno! Aggiorno tutto...${N}"
+	echo -e "   Nodo: ${C}${local_peer:-unknown}${N} | Master: ${C}${master_peer}${N} | Mode: ${B}${execution_mode}${N}"
 	echo ""
 
 	echo -e "${C}[1/5]${N} 🤖 Claude Code..."

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.37.3] - 11 Mar 2026
+
+### Fixed
+- cache-bust all JS script tags to force browser reload
+
+
 ## [v11.37.2] - 11 Mar 2026
 
 ### Fixed

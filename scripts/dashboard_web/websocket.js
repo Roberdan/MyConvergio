@@ -229,30 +229,19 @@ function _initMeshFlow() {
   };
 
   function spawnBetween(fromName, toName, count, eventType) {
-    const from = nodeMap[fromName], to = nodeMap[toName];
-    if (!from || !to) return;
+    if (!nodeMap[fromName] || !nodeMap[toName]) return;
     const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(fromName) : null;
     const ec = eventColors[eventType] || eventColors.heartbeat;
     const n = Math.min(count, 12);
-    const goingRight = from.x < to.x;
-    const laneOffset = 14;
-    // Pick the correct lane: going right = upper lane, going left = lower lane
-    const lane = goingRight ? -laneOffset : laneOffset;
-    // Start/end at visible card edges with 4px padding into the gap
-    const fromEdge = goingRight ? from.right + 4 : from.left - 4;
-    const toEdge = goingRight ? to.left - 4 : to.right + 4;
     const dataScale = eventType === 'sync_delta' ? 1.8 : (eventType === 'net_burst' ? 2.0 : 0.9);
     for (let k = 0; k < n; k++) {
-      const fy = from.cy + lane + (Math.random() - 0.5) * 4;
-      const ty = to.cy + lane + (Math.random() - 0.5) * 4;
       _meshFlowParticles.push({
-        sx: fromEdge, sy: fy,
-        tx: toEdge, ty: ty,
-        cx: (fromEdge + toEdge) / 2, cy: (fy + ty) / 2,
+        fromName, toName,
         progress: -k * 0.04,
         speed: 0.012 + Math.random() * 0.014,
         color: mc ? mc.core : ec.core,
         size: (3 + Math.random() * 3) * dataScale,
+        jitterY: (Math.random() - 0.5) * 4,
         trail: []
       });
     }
@@ -409,15 +398,26 @@ function _initMeshFlow() {
     });
     ctx.setLineDash([]);
 
-    // Draw particles with direction-showing comet tails + arrowheads
+    // Draw particles — resolve positions dynamically from current nodeMap
     while (_meshFlowParticles.length > 120) _meshFlowParticles.shift();
+    const laneOff2 = 14;
     for (let i = _meshFlowParticles.length - 1; i >= 0; i--) {
       const p = _meshFlowParticles[i];
+      const from = nodeMap[p.fromName], to = nodeMap[p.toName];
+      if (!from || !to) { _meshFlowParticles.splice(i, 1); continue; }
       p.progress += p.speed;
       if (p.progress < 0) continue;
-      const t2 = Math.min(p.progress, 1), it = 1 - t2;
-      p.x = it * it * p.sx + 2 * it * t2 * p.cx + t2 * t2 * p.tx;
-      p.y = it * it * p.sy + 2 * it * t2 * p.cy + t2 * t2 * p.ty;
+      // Resolve live positions: edge-to-edge in the gap
+      const goingRight = from.x < to.x;
+      const lane = goingRight ? -laneOff2 : laneOff2;
+      const sx = goingRight ? from.right + 4 : from.left - 4;
+      const tx = goingRight ? to.left - 4 : to.right + 4;
+      const sy = from.cy + lane + p.jitterY;
+      const ty = to.cy + lane + p.jitterY;
+      // Linear interpolation (straight line in the gap)
+      const t2 = Math.min(p.progress, 1);
+      p.x = sx + (tx - sx) * t2;
+      p.y = sy + (ty - sy) * t2;
       p.trail.push({ x: p.x, y: p.y });
       if (p.trail.length > 16) p.trail.shift();
 

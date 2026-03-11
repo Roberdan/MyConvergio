@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.40.4] - 11 Mar 2026
+
+### Fixed
+- particles resolve positions live from nodeMap — edge-to-edge in gaps
+
+
 ## [v11.40.3] - 11 Mar 2026
 
 ### Fixed

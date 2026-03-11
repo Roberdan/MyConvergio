@@ -7,6 +7,26 @@ set -euo pipefail
 DB="${PLAN_DB:-$HOME/.claude/data/dashboard.db}"
 HOST="$(hostname -s 2>/dev/null || echo local)"
 
+# CRR tables need crsqlite loaded for trigger functions
+CRSQL=""
+for p in "$HOME/.claude/lib/crsqlite/crsqlite" "/opt/homebrew/lib/crsqlite/crsqlite" "/usr/local/lib/crsqlite/crsqlite"; do
+  [ -f "$p.dylib" ] || [ -f "$p.so" ] || [ -f "$p" ] && { CRSQL="$p"; break; }
+done
+LOAD_EXT=""
+[ -n "$CRSQL" ] && LOAD_EXT=".load $CRSQL"
+
+# macOS system sqlite3 has .load disabled; prefer homebrew
+SQLITE3="sqlite3"
+[ -x /opt/homebrew/opt/sqlite/bin/sqlite3 ] && SQLITE3="/opt/homebrew/opt/sqlite/bin/sqlite3"
+
+_sql() {
+  if [ -n "$CRSQL" ]; then
+    "$SQLITE3" -cmd ".load $CRSQL" "$DB" "$@"
+  else
+    "$SQLITE3" "$DB" "$@"
+  fi
+}
+
 sanitize() { echo "$1" | tr "'" "_" | cut -c1-200; }
 
 scan_sessions() {
@@ -40,7 +60,7 @@ scan_sessions() {
     SAFE_CWD=$(sanitize "$CWD")
     SAFE_TTY=$(sanitize "$TTY")
 
-    sqlite3 "$DB" <<-SQL 2>/dev/null || true
+    _sql <<-SQL 2>/dev/null || true
 INSERT INTO agent_activity (agent_id, agent_type, description, model, host, status, region, metadata)
 VALUES ('${SESSION_ID}', '${TYPE}', '${SAFE_CMD}', '${TYPE}', '${HOST}', 'running', 'prefrontal',
   '{"pid":${PID},"tty":"${SAFE_TTY}","cpu":${CPU},"mem":${MEM},"cwd":"${SAFE_CWD}"}')
@@ -53,10 +73,10 @@ SQL
 }
 
 cleanup_stale() {
-  sqlite3 "$DB" "SELECT agent_id FROM agent_activity WHERE agent_id LIKE 'session-%' AND status='running';" 2>/dev/null | while read -r sid; do
+  _sql "SELECT agent_id FROM agent_activity WHERE agent_id LIKE 'session-%' AND status='running';" 2>/dev/null | while read -r sid; do
     PID="${sid##*-}"
     if ! ps -p "$PID" > /dev/null 2>&1; then
-      sqlite3 "$DB" "UPDATE agent_activity SET status='completed', completed_at=datetime('now'), \
+      _sql "UPDATE agent_activity SET status='completed', completed_at=datetime('now'), \
         duration_s=CAST((julianday('now')-julianday(started_at))*86400 AS REAL) WHERE agent_id='${sid}';" 2>/dev/null || true
     fi
   done
@@ -64,7 +84,11 @@ cleanup_stale() {
 
 case "${1:-scan}" in
   scan) scan_sessions; cleanup_stale ;;
-  list) sqlite3 -json "$DB" "SELECT agent_id, agent_type AS type, description, status, metadata \
-    FROM agent_activity WHERE agent_id LIKE 'session-%' AND status='running';" 2>/dev/null || echo '[]' ;;
+  list)
+    if [ -n "$CRSQL" ]; then
+      "$SQLITE3" -json -cmd ".load $CRSQL" "$DB" "SELECT agent_id, agent_type AS type, description, status, metadata FROM agent_activity WHERE agent_id LIKE 'session-%' AND status='running';" 2>/dev/null || echo '[]'
+    else
+      "$SQLITE3" -json "$DB" "SELECT agent_id, agent_type AS type, description, status, metadata FROM agent_activity WHERE agent_id LIKE 'session-%' AND status='running';" 2>/dev/null || echo '[]'
+    fi ;;
   *) echo "Usage: session-scanner.sh [scan|list]"; exit 2 ;;
 esac

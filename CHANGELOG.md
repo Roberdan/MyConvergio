@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.9] - 11 Mar 2026
+
+### Fixed
+- session-scanner loads crsqlite + UNIQUE index on agent_id
+
+
 ## [v11.36.8] - 11 Mar 2026
 
 ### Fixed

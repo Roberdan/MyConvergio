@@ -83,15 +83,14 @@
 .mesh-hub-coord .mn-name { font-size: 24px; }
 .mesh-hub-coord .mn-role { font-size: 14px; letter-spacing: 3px; }
 .mesh-hub-coord .mn-stats { font-size: 12px; }
-/* Flow canvas overlay — above cards with additive blend for neon glow effect */
+/* Flow canvas overlay — behind cards, visible only in gaps */
 .mesh-flow-canvas {
   position: absolute;
   top: 0; left: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 2;
-  mix-blend-mode: screen;
+  z-index: 0;
 }
 /* Sync All button */
 .mesh-sync-all {

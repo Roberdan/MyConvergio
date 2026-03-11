@@ -393,9 +393,11 @@ async fn api_recent_missions(State(state): State<ServerState>) -> Result<Json<Va
         "SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.execution_host,p.human_summary,p.completed_at,p.cancelled_at,COALESCE(p.completed_at,p.cancelled_at) AS finished_at,pr.name AS project_name
          FROM plans p
          LEFT JOIN projects pr ON p.project_id=pr.id
-         WHERE p.status IN ('done','cancelled')
-           AND datetime(COALESCE(p.completed_at,p.cancelled_at)) >= datetime('now','-1 day')
-         ORDER BY datetime(COALESCE(p.completed_at,p.cancelled_at)) DESC, p.id DESC",
+         WHERE p.status = 'done'
+           AND datetime(p.completed_at) >= datetime('now','-1 day')
+           AND LOWER(COALESCE(p.name,'')) NOT LIKE '%test%'
+           AND LOWER(COALESCE(pr.name,'')) NOT LIKE '%test%'
+         ORDER BY datetime(p.completed_at) DESC, p.id DESC",
         [],
     )?;
     let mut result = Vec::new();

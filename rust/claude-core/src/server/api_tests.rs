@@ -137,6 +137,10 @@ INSERT INTO plans(id,project_id,name,status,tasks_done,tasks_total,completed_at,
 INSERT INTO waves(id,plan_id,project_id,wave_id,name,status,tasks_done,tasks_total,position,completed_at)
   VALUES(20,2,'proj2','W0','All work','done',10,10,1,datetime('now','-3 hours'));
 
+-- Done test plan (must be excluded from recent missions)
+INSERT INTO plans(id,project_id,name,status,tasks_done,tasks_total,completed_at)
+  VALUES(6,'proj1','Test Mission Zeta','done',1,1,datetime('now','-2 hours'));
+
 -- Cancelled plan (parking lot)
 INSERT INTO plans(id,project_id,name,status,tasks_done,tasks_total,cancelled_at)
   VALUES(3,'proj1','Cancelled Plan Gamma','cancelled',0,8,datetime('now','-12 hours'));
@@ -327,7 +331,12 @@ async fn recent_missions_returns_last_day_with_nested_shape() {
     assert!(plans[0]["plan"].get("finished_at").is_some());
     assert!(plans[0]["waves"].is_array());
     assert!(plans[0]["tasks"].is_array());
-    assert!(plans.iter().any(|m| m["plan"]["status"] == "cancelled"));
+    assert!(plans.iter().all(|m| m["plan"]["status"] == "done"));
+    assert!(plans.iter().all(|m| {
+        let name = m["plan"]["name"].as_str().unwrap_or("").to_ascii_lowercase();
+        !name.contains("test")
+    }));
+    assert!(plans.iter().all(|m| m["plan"]["id"] != 6));
 }
 
 #[tokio::test]

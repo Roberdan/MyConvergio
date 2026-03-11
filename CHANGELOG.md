@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.38.1] - 11 Mar 2026
+
+### Fixed
+- canvas behind cards (z-index 0), no mix-blend — particles visible only in gaps
+
+
 ## [v11.38.0] - 11 Mar 2026
 
 ### Added

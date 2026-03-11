@@ -234,23 +234,23 @@ function _initMeshFlow() {
     const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(fromName) : null;
     const ec = eventColors[eventType] || eventColors.heartbeat;
     const n = Math.min(count, 12);
-    // Two lanes: TX flows on upper path, RX on lower path
     const goingRight = from.x < to.x;
-    const laneOffset = 12; // px offset from center line
+    const laneOffset = 14;
+    // Pick the correct lane: going right = upper lane, going left = lower lane
+    const lane = goingRight ? -laneOffset : laneOffset;
+    // Start/end at visible card edges with 4px padding into the gap
+    const fromEdge = goingRight ? from.right + 4 : from.left - 4;
+    const toEdge = goingRight ? to.left - 4 : to.right + 4;
+    const dataScale = eventType === 'sync_delta' ? 1.8 : (eventType === 'net_burst' ? 2.0 : 0.9);
     for (let k = 0; k < n; k++) {
-      const fromEdge = goingRight ? from.right : from.left;
-      const toEdge = goingRight ? to.left : to.right;
-      const fy = from.cy - laneOffset;
-      const ty = to.cy - laneOffset;
-      const midX = (fromEdge + toEdge) / 2;
-      const midY = (fy + ty) / 2 + (Math.random() - 0.5) * 6;
-      const dataScale = eventType === 'sync_delta' ? 1.5 : 0.8;
+      const fy = from.cy + lane + (Math.random() - 0.5) * 4;
+      const ty = to.cy + lane + (Math.random() - 0.5) * 4;
       _meshFlowParticles.push({
-        sx: fromEdge, sy: fy + (Math.random() - 0.5) * 4,
-        tx: toEdge, ty: ty + (Math.random() - 0.5) * 4,
-        cx: midX, cy: midY,
+        sx: fromEdge, sy: fy,
+        tx: toEdge, ty: ty,
+        cx: (fromEdge + toEdge) / 2, cy: (fy + ty) / 2,
         progress: -k * 0.04,
-        speed: 0.010 + Math.random() * 0.012,
+        speed: 0.012 + Math.random() * 0.014,
         color: mc ? mc.core : ec.core,
         size: (3 + Math.random() * 3) * dataScale,
         trail: []
@@ -377,24 +377,24 @@ function _initMeshFlow() {
       cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
     }
     ctx.clearRect(0, 0, cvs.width, cvs.height);
-    const laneOff = 12;
-    // Draw two-lane connection lines between adjacent pairs
+    const laneOff = 14;
+    // Draw two-lane guide lines between adjacent node edges
     pairs.forEach(([a, b]) => {
       const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(a.name) : null;
-      const col = mc ? mc.core : 'rgba(0,229,255,0.25)';
+      const col = mc ? mc.core : 'rgba(0,229,255,0.2)';
       const leftNode = a.x < b.x ? a : b;
       const rightNode = a.x < b.x ? b : a;
-      const x1 = leftNode.right, x2 = rightNode.left;
-      // Upper lane (TX)
+      const x1 = leftNode.right + 4, x2 = rightNode.left - 4;
       ctx.globalAlpha = 1;
       ctx.strokeStyle = col;
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 5]);
+      // Upper lane: left→right flow
       ctx.beginPath();
       ctx.moveTo(x1, leftNode.cy - laneOff);
       ctx.lineTo(x2, rightNode.cy - laneOff);
       ctx.stroke();
-      // Lower lane (RX)
+      // Lower lane: right→left flow
       ctx.beginPath();
       ctx.moveTo(x1, leftNode.cy + laneOff);
       ctx.lineTo(x2, rightNode.cy + laneOff);

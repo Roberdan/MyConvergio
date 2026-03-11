@@ -397,6 +397,8 @@ async fn api_recent_missions(State(state): State<ServerState>) -> Result<Json<Va
            AND datetime(p.completed_at) >= datetime('now','-1 day')
            AND LOWER(COALESCE(p.name,'')) NOT LIKE '%test%'
            AND LOWER(COALESCE(pr.name,'')) NOT LIKE '%test%'
+           AND LOWER(COALESCE(p.name,'')) NOT LIKE '%hyperdemo%'
+           AND LOWER(COALESCE(pr.name,'')) NOT LIKE '%hyperdemo%'
          ORDER BY datetime(p.completed_at) DESC, p.id DESC",
         [],
     )?;

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.39.1] - 11 Mar 2026
+
+### Fixed
+- proper dual-lane flow — TX upper→right, RX lower→left, edge-to-edge in gaps
+
+
 ## [v11.39.0] - 11 Mar 2026
 
 ### Added

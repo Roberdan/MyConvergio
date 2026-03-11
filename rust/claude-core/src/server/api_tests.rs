@@ -141,6 +141,10 @@ INSERT INTO waves(id,plan_id,project_id,wave_id,name,status,tasks_done,tasks_tot
 INSERT INTO plans(id,project_id,name,status,tasks_done,tasks_total,completed_at)
   VALUES(6,'proj1','Test Mission Zeta','done',1,1,datetime('now','-2 hours'));
 
+INSERT INTO projects(id,name,path) VALUES('proj3','HyperDemo','/tmp/hyperdemo');
+INSERT INTO plans(id,project_id,name,status,tasks_done,tasks_total,completed_at)
+  VALUES(7,'proj3','HyperDemo Launch','done',3,3,datetime('now','-1 hours'));
+
 -- Cancelled plan (parking lot)
 INSERT INTO plans(id,project_id,name,status,tasks_done,tasks_total,cancelled_at)
   VALUES(3,'proj1','Cancelled Plan Gamma','cancelled',0,8,datetime('now','-12 hours'));
@@ -336,7 +340,13 @@ async fn recent_missions_returns_last_day_with_nested_shape() {
         let name = m["plan"]["name"].as_str().unwrap_or("").to_ascii_lowercase();
         !name.contains("test")
     }));
+    assert!(plans.iter().all(|m| {
+        let name = m["plan"]["name"].as_str().unwrap_or("").to_ascii_lowercase();
+        let project = m["plan"]["project_name"].as_str().unwrap_or("").to_ascii_lowercase();
+        !name.contains("hyperdemo") && !project.contains("hyperdemo")
+    }));
     assert!(plans.iter().all(|m| m["plan"]["id"] != 6));
+    assert!(plans.iter().all(|m| m["plan"]["id"] != 7));
 }
 
 #[tokio::test]

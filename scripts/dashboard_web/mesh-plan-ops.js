@@ -255,61 +255,6 @@ window.runFullSync = function (peer) {
     }
   })();
 };
-  const target = peer || 'all nodes';
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = `<div class="modal-box" style="max-width:650px">
-    <div class="modal-title">Full Sync — ${esc(target)}<span class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</span></div>
-    <pre class="modal-output" id="fullsync-output" style="min-height:200px;max-height:500px;overflow:auto"></pre>
-  </div>`;
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.remove();
-  });
-
-  const output = document.getElementById('fullsync-output');
-  let url = `/api/mesh/fullsync?`;
-  if (peer) url += `peer=${encodeURIComponent(peer)}&`;
-  const es = new EventSource(url);
-
-  es.addEventListener('log', (e) => {
-    const line = e.data || '';
-    const hasAnsi = /\x1b\[/.test(line);
-    let html;
-    if (hasAnsi) {
-      html = ansiToHtml(line);
-    } else if (line.startsWith('▶') || line.startsWith('===')) {
-      html = `<span style="color:var(--cyan);font-weight:600">${esc(line)}</span>`;
-    } else if (/^(OK|✓|SYNC_OK|→.*OK|local is newest)/i.test(line.trim())) {
-      html = `<span style="color:var(--green)">${esc(line)}</span>`;
-    } else if (/PULL from|⟵/.test(line)) {
-      html = `<span style="color:var(--gold);font-weight:600">${esc(line)}</span>`;
-    } else if (/^(ERROR|FAIL|✗)/i.test(line.trim())) {
-      html = `<span style="color:var(--red)">${esc(line)}</span>`;
-    } else {
-      html = esc(line);
-    }
-    output.innerHTML += html + '\n';
-    output.scrollTop = output.scrollHeight;
-  });
-
-  es.addEventListener('done', (e) => {
-    es.close();
-    const data = JSON.parse(e.data);
-    if (data.ok) {
-      output.innerHTML += `\n<span style="color:var(--green);font-weight:600">${Icons.checkCircle(14)} Full sync completed</span>\n`;
-    } else {
-      output.innerHTML += `\n<span style="color:var(--red);font-weight:600">${Icons.xCircle(14)} Sync failed</span>\n`;
-    }
-    output.scrollTop = output.scrollHeight;
-    if (typeof refreshAll === 'function') refreshAll();
-  });
-
-  es.onerror = () => {
-    es.close();
-    output.innerHTML += `\n<span style="color:var(--red)">${Icons.x(14)} Connection lost</span>\n`;
-  };
-};
 
 /**
  * Stop a plan — sets plan back to "todo", halts execution.

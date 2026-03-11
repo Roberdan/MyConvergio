@@ -164,8 +164,45 @@ _buongiorno_mesh_sync() {
 	"$sync_script" 2>&1 | tail -5
 }
 
+_buongiorno_master_peer() {
+	echo "${BUONGIORNO_MASTER_PEER:-m3max}"
+}
+
+_buongiorno_redirect_to_master() {
+	local master_peer local_peer
+	master_peer="$(_buongiorno_master_peer)"
+
+	[[ -f "$HOME/.claude/scripts/lib/peers.sh" ]] || return 1
+	# shellcheck source=/dev/null
+	source "$HOME/.claude/scripts/lib/peers.sh"
+	peers_load 2>/dev/null || return 1
+
+	local_peer="${CLAUDE_LOCAL_PEER:-$(peers_self 2>/dev/null)}"
+	[[ "$local_peer" == "$master_peer" ]] && return 1
+
+	local master_route master_user master_dest
+	master_route="$(peers_best_route "$master_peer" 2>/dev/null || peers_get "$master_peer" ssh_alias 2>/dev/null)" || return 1
+	master_user="$(peers_get "$master_peer" user 2>/dev/null || echo "")"
+	master_dest="${master_user:+${master_user}@}${master_route}"
+	[[ -n "$master_dest" ]] || return 1
+
+	echo "↪ questo nodo non è il master (${local_peer:-unknown}). Reindirizzo a ${master_peer}..."
+	ssh -t -o BatchMode=yes "$master_dest" "zsh -ic 'buongiorno --no-master-redirect'"
+	return $?
+}
+
 claude_buongiorno() {
 	local G='\033[0;32m' Y='\033[1;33m' R='\033[0;31m' C='\033[0;36m' B='\033[1m' N='\033[0m'
+	local no_master_redirect=0
+	if [[ "${1:-}" == "--no-master-redirect" ]]; then
+		no_master_redirect=1
+		shift
+	fi
+
+	if [[ "$no_master_redirect" -eq 0 ]] && _buongiorno_redirect_to_master; then
+		return 0
+	fi
+
 	local start
 	start=$(date +%s)
 	local -a news=()

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.37.2] - 11 Mar 2026
+
+### Fixed
+- remove duplicated runFullSync body (syntax error at line 312)
+
+
 ## [v11.37.1] - 11 Mar 2026
 
 ### Fixed

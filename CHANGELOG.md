@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.10] - 11 Mar 2026
+
+### Fixed
+- compat with Vercel CLI v50+
+
+
 ## [v11.36.9] - 11 Mar 2026
 
 ### Fixed

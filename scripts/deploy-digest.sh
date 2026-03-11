@@ -3,7 +3,7 @@ set -euo pipefail
 # Deploy Digest - Compact Vercel deployment status as JSON
 # Extracts status + errors only. No raw build logs.
 # Usage: deploy-digest.sh [deployment-url] [--no-cache]
-# Version: 1.2.0
+# Version: 1.3.0
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,7 +32,8 @@ fi
 # Get latest deployment if not specified
 if [[ -z "$DEPLOYMENT" ]]; then
 	# Parse vercel ls output for latest deployment URL
-	DEPLOYMENT=$(vercel ls --limit 1 2>/dev/null |
+	# Note: Vercel CLI v50+ removed --limit flag
+	DEPLOYMENT=$(vercel ls 2>/dev/null |
 		grep -oE 'https://[^ ]+\.vercel\.app' | head -1 || echo "")
 fi
 
@@ -55,21 +56,23 @@ trap "rm -f '$TMPINSPECT'" EXIT INT TERM
 vercel inspect "$DEPLOYMENT" >"$TMPINSPECT" 2>&1 || true
 
 # Parse inspect output (unstructured text, extract key fields)
+# Vercel CLI v50 format: "    status\t● Ready" (with tab, bullet character, ANSI codes)
 DEPLOY_STATUS=$(grep -iE '^\s*(status|state)' "$TMPINSPECT" | head -1 |
-	sed 's/.*:\s*//' | tr -d '[:space:]' || echo "unknown")
+	sed 's/.*[[:space:]]//' | sed 's/[●○◉•]//g' | tr -d '[:space:]' || echo "unknown")
 DEPLOY_URL=$(grep -iE '^\s*url' "$TMPINSPECT" | head -1 |
-	sed 's/.*:\s*//' | tr -d '[:space:]' || echo "$DEPLOYMENT")
+	sed 's/.*[[:space:]]https/https/' | tr -d '[:space:]' || echo "$DEPLOYMENT")
 DEPLOY_CREATED=$(grep -iE '^\s*created' "$TMPINSPECT" | head -1 |
-	sed 's/.*:\s*//' || echo "")
+	sed 's/.*created[[:space:]]*//' | sed 's/[[:space:]]*$//' || echo "")
 
-# Normalize status
-case "$DEPLOY_STATUS" in
-READY | ready) STATUS="ready" ;;
-ERROR | error | FAILED | failed) STATUS="error" ;;
-BUILDING | building) STATUS="building" ;;
-QUEUED | queued) STATUS="queued" ;;
-CANCELED | canceled | cancelled) STATUS="canceled" ;;
-*) STATUS="$DEPLOY_STATUS" ;;
+# Normalize status (case-insensitive)
+DEPLOY_STATUS_LOWER=$(echo "$DEPLOY_STATUS" | tr '[:upper:]' '[:lower:]')
+case "$DEPLOY_STATUS_LOWER" in
+ready) STATUS="ready" ;;
+error | failed) STATUS="error" ;;
+building) STATUS="building" ;;
+queued) STATUS="queued" ;;
+canceled | cancelled) STATUS="canceled" ;;
+*) STATUS="$DEPLOY_STATUS_LOWER" ;;
 esac
 
 # Extract errors: fetch logs only if deployment failed
@@ -77,7 +80,8 @@ ERRORS="[]"
 WARNINGS="[]"
 if [[ "$STATUS" == "error" ]]; then
 	TMPLOG=$(mktemp)
-	vercel logs "$DEPLOYMENT" --limit 100 >"$TMPLOG" 2>/dev/null || true
+	# Vercel CLI v50+ logs are real-time streaming; use --json and timeout
+	timeout 10 vercel logs "$DEPLOYMENT" --json >"$TMPLOG" 2>/dev/null || true
 
 	if [[ -s "$TMPLOG" ]]; then
 		ERRORS=$(cat "$TMPLOG" |

@@ -156,7 +156,7 @@ scripts/dashboard_web/
 ├── Ideas & Creativity:
 │   ├── idea-jar.js, idea-jar-canvas.js, idea-jar-physics.js
 ├── Visualization:
-│   ├── org-chart.js, charts.js
+│   ├── charts.js
 │   ├── github-panel.js, github-activity.js
 ├── UI/UX:
 │   ├── theme-switcher.js, widget-drag.js
@@ -488,4 +488,3 @@ SQLite + CRSQLite Database
 **Network:** Tailscale private mesh, TCP sockets, WebSocket
 **Serialization:** MessagePack (binary), JSON (config)
 **Testing:** Playwright, Rust #[test]
-

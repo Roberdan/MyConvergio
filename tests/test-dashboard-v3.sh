@@ -12,11 +12,13 @@ fail() { FAIL=$((FAIL + 1)); printf "  FAIL: %s\n" "$1"; }
 
 echo "=== WEB DASHBOARD V3 ==="
 grep -q 'Convergio Control Room v3.0' "$WEB/index.html" && pass "v3 footer present" || fail "v3 footer missing"
-grep -q 'AI Organization' "$WEB/index.html" && pass "AI Organization widget present" || fail "AI Organization widget missing"
 grep -q 'Mesh Network' "$WEB/index.html" && pass "Mesh widget present" || fail "Mesh widget missing"
-grep -q '/api/organization' "$WEB/app.js" && pass "organization API wired" || fail "organization API missing"
+! grep -q 'AI Organization' "$WEB/index.html" && pass "AI Organization widget removed" || fail "AI Organization widget still present"
+! grep -q 'Live Neural System' "$WEB/index.html" && pass "Live Neural System widget removed" || fail "Live Neural System widget still present"
+! grep -q '/api/organization' "$WEB/app.js" && pass "organization API removed from app" || fail "organization API still wired"
+! grep -q '/api/live-system' "$WEB/app.js" && pass "live-system API removed from app" || fail "live-system API still wired"
 
-for f in "$WEB/app.js" "$WEB/mission.js" "$WEB/org-chart.js" "$WEB/mesh.js" "$WEB/task-pipeline.js"; do
+for f in "$WEB/app.js" "$WEB/mission.js" "$WEB/mesh.js" "$WEB/task-pipeline.js" "$WEB/widget-drag.js"; do
   node --check "$f" >/dev/null 2>&1 && pass "$(basename "$f") syntax OK" || fail "$(basename "$f") syntax error"
 done
 

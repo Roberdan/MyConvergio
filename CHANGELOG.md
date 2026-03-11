@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.42.4] - 11 Mar 2026
+
+### Changed
+- align cleanup checks
+
+
 ## [v11.42.3] - 11 Mar 2026
 
 ### Changed

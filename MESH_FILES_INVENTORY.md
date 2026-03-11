@@ -83,7 +83,6 @@ task-pipeline.js             99 LOC Task pipeline visualization
 
 ### Visualization & Analysis
 ```
-org-chart.js                207 LOC Organizational chart visualization
 charts.js                     8 LOC Chart rendering utilities
 github-panel.js             179 LOC GitHub integration UI
 github-activity.js          175 LOC GitHub event tracking
@@ -102,7 +101,6 @@ icons.js                     28 LOC Icon definitions
 formatters.js                53 LOC Data formatting utilities
 optimize.js                 122 LOC Performance optimization
 utils.js                     11 LOC Utility functions
-live-system.js               95 LOC Live system monitoring
 ```
 
 ### Configuration & Testing
@@ -388,4 +386,3 @@ For 28 requirements across 7 phases:
 | **3-4: Sync Engine** | sync.rs, sync_batch.rs, sync_tests.rs, mesh_sync_stats table |
 | **5-6: Delegation** | handoff.rs, handoff_ssh.rs, handoff_tests.rs, delegation_log table |
 | **7: UI & Monitoring** | mesh.js, mesh-actions.js, websocket.js, E2E specs |
-

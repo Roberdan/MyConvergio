@@ -5,8 +5,8 @@
  */
 
 (function () {
-  const STORAGE_KEY = "dashWidgetLayoutV2";
-  const LEGACY_STORAGE_KEY = "dashWidgetLayout";
+  const STORAGE_KEY = "dashWidgetLayoutV3";
+  const LEGACY_STORAGE_KEYS = ["dashWidgetLayoutV2", "dashWidgetLayout"];
   let dragging = null; // { el, ghost, startX, startY, offsetX, offsetY }
   let placeholder = null;
 
@@ -199,7 +199,7 @@
   window.enableWidgetDrag = function () {}; // no-op, always active
   window.resetWidgetLayout = function () {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    LEGACY_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
     location.reload();
   };
 })();

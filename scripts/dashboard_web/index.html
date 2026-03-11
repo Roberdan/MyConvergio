@@ -145,28 +145,12 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
       <div class="widget-header"><span class="widget-title">Cost by Model</span></div>
       <div class="widget-body"><div class="chart-container chart-container-sm"><canvas id="model-chart"></canvas></div></div>
     </div>
-    <div class="widget" id="plan-kanban-widget">
-      <div class="widget-header"><span class="widget-title">Plan Pipeline</span></div>
-      <div class="widget-body" style="padding:8px">
-        <div class="kanban-board" id="kanban-board">
-          <div class="kanban-col" data-status="todo" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'todo')">
-            <div class="kanban-col-header"><span class="kanban-dot todo"></span>Pipeline</div>
-            <div class="kanban-cards" id="kanban-todo"></div>
-          </div>
-          <div class="kanban-col" data-status="doing" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'doing')">
-            <div class="kanban-col-header"><span class="kanban-dot doing"></span>Executing</div>
-            <div class="kanban-cards" id="kanban-doing"></div>
-          </div>
-          <div class="kanban-col" data-status="done" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'done')">
-            <div class="kanban-col-header"><span class="kanban-dot done"></span>Done</div>
-            <div class="kanban-cards" id="kanban-done"></div>
-          </div>
-          <div class="kanban-col cancelled" data-status="cancelled" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'cancelled')">
-            <div class="kanban-col-header"><span class="kanban-dot cancelled"></span>Parking Lot</div>
-            <div class="kanban-cards" id="kanban-cancelled"></div>
-          </div>
-        </div>
+    <div class="widget" id="widget-tokens">
+      <div class="widget-header">
+        <span class="widget-title">Token Burn</span>
+        <div class="widget-actions"><button class="widget-action-btn" onclick="resetTokenZoom()" title="Reset zoom"><svg viewBox="0 0 16 16" width="12" height="12"><path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/></svg></button></div>
       </div>
+      <div class="widget-body"><div class="chart-container"><canvas id="token-chart"></canvas></div></div>
     </div>
     <div class="widget" id="ideajar-widget">
       <div class="widget-header"><span class="widget-title">Idea Jar</span>
@@ -213,12 +197,28 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
       <div class="widget-header"><span class="widget-title">Nightly Jobs</span></div>
       <div class="widget-body" id="nightly-jobs-content"><span style="color:var(--text-dim)">Loading...</span></div>
     </div>
-    <div class="widget" id="widget-tokens">
-      <div class="widget-header">
-        <span class="widget-title">Token Burn</span>
-        <div class="widget-actions"><button class="widget-action-btn" onclick="resetTokenZoom()" title="Reset zoom"><svg viewBox="0 0 16 16" width="12" height="12"><path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/></svg></button></div>
+    <div class="widget" id="plan-kanban-widget">
+      <div class="widget-header"><span class="widget-title">Plan Pipeline</span></div>
+      <div class="widget-body" style="padding:8px">
+        <div class="kanban-board" id="kanban-board">
+          <div class="kanban-col" data-status="todo" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'todo')">
+            <div class="kanban-col-header"><span class="kanban-dot todo"></span>Pipeline</div>
+            <div class="kanban-cards" id="kanban-todo"></div>
+          </div>
+          <div class="kanban-col" data-status="doing" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'doing')">
+            <div class="kanban-col-header"><span class="kanban-dot doing"></span>Executing</div>
+            <div class="kanban-cards" id="kanban-doing"></div>
+          </div>
+          <div class="kanban-col" data-status="done" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'done')">
+            <div class="kanban-col-header"><span class="kanban-dot done"></span>Done</div>
+            <div class="kanban-cards" id="kanban-done"></div>
+          </div>
+          <div class="kanban-col cancelled" data-status="cancelled" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="kanbanDrop(event,'cancelled')">
+            <div class="kanban-col-header"><span class="kanban-dot cancelled"></span>Parking Lot</div>
+            <div class="kanban-cards" id="kanban-cancelled"></div>
+          </div>
+        </div>
       </div>
-      <div class="widget-body"><div class="chart-container"><canvas id="token-chart"></canvas></div></div>
     </div>
   </div>
 </div>
@@ -366,7 +366,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 <script src="mesh-plan-ops.js?v=1773218572"></script>
 <script src="peer-crud.js?v=1773218572"></script>
 <script src="admin.js?v=1773218572"></script>
-<script src="widget-drag.js?v=1773218572"></script>
+<script src="widget-drag.js?v=1773219042"></script>
 <script src="terminal.js?v=1773218572"></script>
 <script src="chat-tabs.js?v=1773218572"></script>
 <script src="chat-panel.js?v=1773218572"></script>

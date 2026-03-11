@@ -420,7 +420,7 @@ function _initMeshFlow() {
     for (let i = 0; i < centers.length - 1; i++)
       pairs.push([centers[i], centers[i + 1]]);
     ctx.clearRect(0, 0, cvs.width, cvs.height);
-    const laneOff = 14;
+    const laneOff = 60;
     // Draw two-lane guide lines between adjacent node edges
     pairs.forEach(([a, b]) => {
       const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(a.name) : null;
@@ -447,7 +447,7 @@ function _initMeshFlow() {
 
     // Draw particles — resolve positions dynamically from current nodeMap
     while (_meshFlowParticles.length > 120) _meshFlowParticles.shift();
-    const laneOff2 = 14;
+    const laneOff2 = 60;
     for (let i = _meshFlowParticles.length - 1; i >= 0; i--) {
       const p = _meshFlowParticles[i];
       const from = nodeMap[p.fromName], to = nodeMap[p.toName];

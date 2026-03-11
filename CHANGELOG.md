@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.42.0] - 11 Mar 2026
+
+### Added
+- rebalance widget layout
+
+
 ## [v11.41.1] - 11 Mar 2026
 
 ### Fixed

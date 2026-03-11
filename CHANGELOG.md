@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.40.2] - 11 Mar 2026
+
+### Fixed
+- justify space-between — nodes spread to fill full width dynamically
+
+
 ## [v11.40.1] - 11 Mar 2026
 
 ### Fixed

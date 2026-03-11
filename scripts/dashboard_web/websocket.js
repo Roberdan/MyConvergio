@@ -362,16 +362,23 @@ function _initMeshFlow() {
       return;
     }
     if (document.hidden) { _meshFlowRAF = requestAnimationFrame(animate); return; }
-    if (cvs.width !== hub.offsetWidth || cvs.height !== hub.offsetHeight) {
-      cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
+    // Re-query DOM every frame: nodes may be added/removed, zoom may change sizes
+    const liveNodes = hub.querySelectorAll('.mesh-node');
+    if (liveNodes.length < 2) { _meshFlowRAF = requestAnimationFrame(animate); return; }
+    // Adapt canvas to current hub size (zoom-aware)
+    const hubW = hub.offsetWidth, hubH = hub.offsetHeight;
+    if (cvs.width !== hubW || cvs.height !== hubH) {
+      cvs.width = hubW; cvs.height = hubH;
     }
-    // Recalculate node positions every frame (layout may change with space-between)
-    centers = Array.from(nodes).map(nodeCenter);
+    // Recalculate all positions from live DOM
+    centers = Array.from(liveNodes).map(nodeCenter);
+    Object.keys(nodeMap).forEach(k => delete nodeMap[k]);
     centers.forEach(c => { nodeMap[c.name] = c; });
+    // Build pairs only between adjacent nodes (sorted by X)
+    centers.sort((a, b) => a.x - b.x);
     pairs.length = 0;
-    for (let i = 0; i < centers.length; i++)
-      for (let j = i + 1; j < centers.length; j++)
-        pairs.push([centers[i], centers[j]]);
+    for (let i = 0; i < centers.length - 1; i++)
+      pairs.push([centers[i], centers[i + 1]]);
     ctx.clearRect(0, 0, cvs.width, cvs.height);
     const laneOff = 14;
     // Draw two-lane guide lines between adjacent node edges

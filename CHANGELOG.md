@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.40.5] - 11 Mar 2026
+
+### Fixed
+- fully dynamic flow — re-query DOM every frame, adapt to zoom/nodes/resize
+
+
 ## [v11.40.4] - 11 Mar 2026
 
 ### Fixed

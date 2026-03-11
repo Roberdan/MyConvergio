@@ -57,8 +57,9 @@
   overflow: visible;
 }
 .mesh-hub > .mesh-node {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 1 220px;
+  max-width: 220px;
+  min-width: 160px;
   position: relative;
   z-index: 1;
 }
@@ -71,8 +72,9 @@
 .mesh-hub-coord {
   position: relative;
   z-index: 1;
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 1 260px;
+  max-width: 260px;
+  min-width: 180px;
   display: flex;
 }
 .mesh-hub-coord .mesh-node {

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.40.1] - 11 Mar 2026
+
+### Fixed
+- narrower nodes — workers 220px, coordinator 260px, more gap space
+
+
 ## [v11.40.0] - 11 Mar 2026
 
 ### Added

@@ -376,6 +376,13 @@ function _initMeshFlow() {
     if (cvs.width !== hub.offsetWidth || cvs.height !== hub.offsetHeight) {
       cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
     }
+    // Recalculate node positions every frame (layout may change with space-between)
+    centers = Array.from(nodes).map(nodeCenter);
+    centers.forEach(c => { nodeMap[c.name] = c; });
+    pairs.length = 0;
+    for (let i = 0; i < centers.length; i++)
+      for (let j = i + 1; j < centers.length; j++)
+        pairs.push([centers[i], centers[j]]);
     ctx.clearRect(0, 0, cvs.width, cvs.height);
     const laneOff = 14;
     // Draw two-lane guide lines between adjacent node edges

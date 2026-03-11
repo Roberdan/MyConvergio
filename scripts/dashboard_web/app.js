@@ -4,7 +4,6 @@ const state = (window.DashboardState = window.DashboardState || {
   localPeerName: "local",
   lastMissionData: null,
   lastMeshData: null,
-  lastOrganizationData: null,
   lastLiveSystemData: null,
   allMissionPlans: [],
   filteredPlanId: null,
@@ -111,10 +110,9 @@ function _pullRemoteDb() {
 }
 
 async function refreshAll() {
-  const [ov, mission, organization, liveSystem, daily, models, mesh, history, recent, dist, nightly] = await Promise.all([
+  const [ov, mission, liveSystem, daily, models, mesh, history, recent, dist, nightly] = await Promise.all([
     fetchJson("/api/overview"),
     fetchJson("/api/mission"),
-    fetchJson("/api/organization"),
     fetchJson("/api/live-system"),
     fetchJson("/api/tokens/daily"),
     fetchJson("/api/tokens/models"),
@@ -176,8 +174,6 @@ async function refreshAll() {
       .then((items) => typeof applyMeshSyncBadges === "function" && applyMeshSyncBadges(items))
       .catch(() => null);
   }
-  if (organization) state.lastOrganizationData = organization;
-  _safe("organization", () => { if (typeof renderAgentOrganization === "function") renderAgentOrganization(organization); });
   if (liveSystem) state.lastLiveSystemData = liveSystem;
   _safe("liveSystem", () => { if (typeof renderLiveSystem === "function") renderLiveSystem(liveSystem); });
   _safe("history", () => { if (history && typeof renderHistory === "function") renderHistory(history); });

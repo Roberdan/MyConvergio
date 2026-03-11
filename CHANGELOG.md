@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.40.3] - 11 Mar 2026
+
+### Fixed
+- recalculate node positions every frame — lanes track dynamic layout
+
+
 ## [v11.40.2] - 11 Mar 2026
 
 ### Fixed

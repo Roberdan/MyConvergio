@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.42.2] - 11 Mar 2026
+
+### Changed
+- remove dead /api/organization and /api/live-system routes
+
+
 ## [v11.42.1] - 11 Mar 2026
 
 ### Fixed

@@ -16,8 +16,6 @@ macro_rules! get_route_case {
 
 get_route_case!(has_overview, shape_overview, "/api/overview");
 get_route_case!(has_mission, shape_mission, "/api/mission");
-get_route_case!(has_organization, shape_organization, "/api/organization");
-get_route_case!(has_live_system, shape_live_system, "/api/live-system");
 get_route_case!(has_tokens_daily, shape_tokens_daily, "/api/tokens/daily");
 get_route_case!(has_tokens_models, shape_tokens_models, "/api/tokens/models");
 get_route_case!(has_mesh, shape_mesh, "/api/mesh");

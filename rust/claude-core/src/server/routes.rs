@@ -35,8 +35,6 @@ pub const GET_ROUTES: &[&str] = &[
     "/api/ideas/:id/notes",
     "/api/overview",
     "/api/mission",
-    "/api/organization",
-    "/api/live-system",
     "/api/tokens/daily",
     "/api/tokens/models",
     "/api/mesh",

@@ -8,8 +8,6 @@ import { test, expect } from '@playwright/test';
 const API_ENDPOINTS = [
   '/api/overview',
   '/api/mission',
-  '/api/organization',
-  '/api/live-system',
   '/api/tokens/daily',
   '/api/tokens/models',
   '/api/mesh',
@@ -109,12 +107,6 @@ test.describe('Real server integration', () => {
     if (Array.isArray(mission.plans) && mission.plans.length > 0) {
       check('mission.plans[0]', mission.plans[0], ['plan', 'waves', 'tasks']);
     }
-
-    const org = await (await request.get('/api/organization')).json();
-    check('organization', org, ['units', 'summary']);
-
-    const live = await (await request.get('/api/live-system')).json();
-    check('live-system', live, ['peer_nodes', 'run_nodes', 'summary']);
 
     const mesh = await (await request.get('/api/mesh')).json();
     if (Array.isArray(mesh) && mesh.length > 0) {

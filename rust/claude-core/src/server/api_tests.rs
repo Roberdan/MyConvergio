@@ -413,15 +413,6 @@ async fn tokens_models_returns_array() {
 }
 
 #[tokio::test]
-async fn organization_returns_structure() {
-    let r = test_router();
-    let (s, j) = get(&r, "/api/organization").await;
-    assert_eq!(s, StatusCode::OK);
-    assert!(j["units"].is_array());
-    assert!(j["summary"]["nodes_total"].is_number());
-}
-
-#[tokio::test]
 async fn tasks_distribution_returns_counts() {
     let r = test_router();
     let (s, j) = get(&r, "/api/tasks/distribution").await;

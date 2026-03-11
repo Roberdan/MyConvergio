@@ -111,7 +111,7 @@ function _pullRemoteDb() {
 }
 
 async function refreshAll() {
-  const [ov, mission, organization, liveSystem, daily, models, mesh, history, dist, nightly] = await Promise.all([
+  const [ov, mission, organization, liveSystem, daily, models, mesh, history, recent, dist, nightly] = await Promise.all([
     fetchJson("/api/overview"),
     fetchJson("/api/mission"),
     fetchJson("/api/organization"),
@@ -120,6 +120,7 @@ async function refreshAll() {
     fetchJson("/api/tokens/models"),
     fetchJson("/api/mesh"),
     fetchJson("/api/history"),
+    fetchJson("/api/missions/recent"),
     fetchJson("/api/tasks/distribution"),
     fetchJson("/api/nightly/jobs"),
   ]);
@@ -180,6 +181,7 @@ async function refreshAll() {
   if (liveSystem) state.lastLiveSystemData = liveSystem;
   _safe("liveSystem", () => { if (typeof renderLiveSystem === "function") renderLiveSystem(liveSystem); });
   _safe("history", () => { if (history && typeof renderHistory === "function") renderHistory(history); });
+  _safe("recentMissions", () => { if (recent && typeof renderLastMissions === "function") renderLastMissions(recent); });
   _safe("dist", () => { if (dist && typeof renderDist === "function") renderDist(dist); });
   _safe("nightlyJobs", () => { if (typeof renderNightlyJobs === "function") renderNightlyJobs(nightly); });
   _safe("ideaJarWidget", () => { if (typeof renderIdeaJarWidget === "function") renderIdeaJarWidget(); });

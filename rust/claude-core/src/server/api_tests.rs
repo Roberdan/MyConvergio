@@ -133,13 +133,13 @@ INSERT INTO tasks(id,project_id,plan_id,wave_id_fk,wave_id,task_id,title,status,
 
 -- Done plan
 INSERT INTO plans(id,project_id,name,status,tasks_done,tasks_total,completed_at,lines_added,lines_removed)
-  VALUES(2,'proj2','Completed Plan Beta','done',10,10,'2026-02-28 18:00:00',500,120);
+  VALUES(2,'proj2','Completed Plan Beta','done',10,10,datetime('now','-3 hours'),500,120);
 INSERT INTO waves(id,plan_id,project_id,wave_id,name,status,tasks_done,tasks_total,position,completed_at)
-  VALUES(20,2,'proj2','W0','All work','done',10,10,1,'2026-02-28 18:00:00');
+  VALUES(20,2,'proj2','W0','All work','done',10,10,1,datetime('now','-3 hours'));
 
 -- Cancelled plan (parking lot)
 INSERT INTO plans(id,project_id,name,status,tasks_done,tasks_total,cancelled_at)
-  VALUES(3,'proj1','Cancelled Plan Gamma','cancelled',0,8,'2026-03-02 10:00:00');
+  VALUES(3,'proj1','Cancelled Plan Gamma','cancelled',0,8,datetime('now','-12 hours'));
 INSERT INTO waves(id,plan_id,project_id,wave_id,name,status,tasks_done,tasks_total,position)
   VALUES(30,3,'proj1','W0','Never started','cancelled',0,4,1);
 INSERT INTO tasks(id,project_id,plan_id,wave_id_fk,wave_id,task_id,title,status)
@@ -314,6 +314,20 @@ async fn history_returns_done_plans() {
     assert!(!arr.is_empty());
     assert!(arr[0].get("project_name").is_some());
     assert!(arr[0].get("lines_added").is_some());
+}
+
+#[tokio::test]
+async fn recent_missions_returns_last_day_with_nested_shape() {
+    let r = test_router();
+    let (s, j) = get(&r, "/api/missions/recent").await;
+    assert_eq!(s, StatusCode::OK);
+    let plans = j["plans"].as_array().expect("plans array");
+    assert!(!plans.is_empty());
+    assert_eq!(plans[0]["plan"]["id"], 2);
+    assert!(plans[0]["plan"].get("finished_at").is_some());
+    assert!(plans[0]["waves"].is_array());
+    assert!(plans[0]["tasks"].is_array());
+    assert!(plans.iter().any(|m| m["plan"]["status"] == "cancelled"));
 }
 
 #[tokio::test]

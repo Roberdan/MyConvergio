@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.38.0] - 11 Mar 2026
+
+### Added
+- wider gaps, smaller nodes, directional comet-tail particles with arrowheads
+
+
 ## [v11.37.4] - 11 Mar 2026
 
 ### Changed

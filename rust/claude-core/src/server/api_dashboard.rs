@@ -18,6 +18,7 @@ pub fn router() -> Router<ServerState> {
         .route("/api/tokens/daily", get(api_tokens_daily))
         .route("/api/tokens/models", get(api_tokens_models))
         .route("/api/history", get(api_history))
+        .route("/api/missions/recent", get(api_recent_missions))
         .route("/api/tasks/distribution", get(api_tasks_distribution))
         .route("/api/tasks/blocked", get(api_tasks_blocked))
         .route("/api/plans/assignable", get(api_plans_assignable))
@@ -383,6 +384,38 @@ async fn api_history(State(state): State<ServerState>) -> Result<Json<Value>, Ap
         "SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.started_at,p.completed_at,p.human_summary,p.lines_added,p.lines_removed,pr.name AS project_name FROM plans p LEFT JOIN projects pr ON p.project_id=pr.id WHERE p.status IN ('done','cancelled') ORDER BY p.id DESC LIMIT 20",
         [],
     )?)))
+}
+
+async fn api_recent_missions(State(state): State<ServerState>) -> Result<Json<Value>, ApiError> {
+    let db = state.open_db()?;
+    let plans = query_rows(
+        db.connection(),
+        "SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.execution_host,p.human_summary,p.completed_at,p.cancelled_at,COALESCE(p.completed_at,p.cancelled_at) AS finished_at,pr.name AS project_name
+         FROM plans p
+         LEFT JOIN projects pr ON p.project_id=pr.id
+         WHERE p.status IN ('done','cancelled')
+           AND datetime(COALESCE(p.completed_at,p.cancelled_at)) >= datetime('now','-1 day')
+         ORDER BY datetime(COALESCE(p.completed_at,p.cancelled_at)) DESC, p.id DESC",
+        [],
+    )?;
+    let mut result = Vec::new();
+    for plan in plans {
+        let plan_id = plan.get("id").and_then(Value::as_i64).unwrap_or(0);
+        let waves = query_rows(
+            db.connection(),
+            "SELECT wave_id,name,status,tasks_done,tasks_total,position,completed_at AS validated_at,pr_number,pr_url FROM waves WHERE plan_id=?1 ORDER BY position",
+            rusqlite::params![plan_id],
+        )
+        .unwrap_or_default();
+        let tasks = query_rows(
+            db.connection(),
+            "SELECT task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id FROM tasks WHERE plan_id=?1 ORDER BY id",
+            rusqlite::params![plan_id],
+        )
+        .unwrap_or_default();
+        result.push(json!({"plan": plan, "waves": waves, "tasks": tasks}));
+    }
+    Ok(Json(json!({"plans": result})))
 }
 
 async fn api_plan_detail(

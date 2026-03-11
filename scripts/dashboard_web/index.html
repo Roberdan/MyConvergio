@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Convergio Control Room</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js?v=1773215821"></script>
-<script src="https://cdn.jsdelivr.net/npm/hammerjs@2/hammer.min.js?v=1773215821"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js?v=1773215821"></script>
-<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js?v=1773215821"></script>
-<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js?v=1773215821"></script>
-<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11.0/lib/addon-web-links.min.js?v=1773215821"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js?v=1773216411"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2/hammer.min.js?v=1773216411"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js?v=1773216411"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js?v=1773216411"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js?v=1773216411"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11.0/lib/addon-web-links.min.js?v=1773216411"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -125,6 +125,13 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
           <tbody></tbody>
         </table>
       </div>
+    </div>
+    <div class="widget" id="widget-last-missions">
+      <div class="widget-header">
+        <span class="widget-title">Last Missions</span>
+        <div class="widget-actions"><span class="task-filter-label">Last 24h</span></div>
+      </div>
+      <div class="widget-body" id="last-missions-content"><span style="color:var(--text-dim)">Loading...</span></div>
     </div>
     <div class="widget" id="widget-dist">
       <div class="widget-header"><span class="widget-title">Task Distribution</span></div>
@@ -341,53 +348,53 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
 </div>
 
 <script>window.onerror=function(m,s,l,c,e){if(typeof m==='string'&&m.indexOf('ResizeObserver')!==-1)return;console.error('JS ERROR:',m,s,l,c,e);var d=document.getElementById('js-errors');if(!d){d=document.createElement('div');d.id='js-errors';d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1a0000;color:#ff3355;font:11px monospace;padding:8px;z-index:99999;max-height:120px;overflow:auto';document.body.appendChild(d)}d.innerHTML+='<div>'+s.split('/').pop()+':'+l+' '+m+'</div>';};window.onunhandledrejection=function(ev){console.error('UNHANDLED REJECTION:',ev.reason);var d=document.getElementById('js-errors');if(!d){d=document.createElement('div');d.id='js-errors';d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1a0000;color:#ff3355;font:11px monospace;padding:8px;z-index:99999;max-height:120px;overflow:auto';document.body.appendChild(d)}d.innerHTML+='<div>Promise: '+(ev.reason&&ev.reason.message||ev.reason)+'</div>';};</script>
-<script src="icons.js?v=1773215821"></script>
-<script src="theme-switcher.js?v=1773215821"></script>
-<script src="utils.js?v=1773215821"></script>
-<script src="formatters.js?v=1773215821"></script>
-<script src="kpi.js?v=1773215821"></script>
-<script src="mission.js?v=1773215821"></script>
-<script src="mission-details.js?v=1773215821"></script>
-<script src="org-chart.js?v=1773215821"></script>
-<script src="live-system.js?v=1773215821"></script>
-<script src="task-pipeline.js?v=1773215821"></script>
-<script src="plan-kanban.js?v=1773215821"></script>
-<script src="charts.js?v=1773215821"></script>
-<script src="activity.js?v=1773215821"></script>
-<script src="github-activity.js?v=1773215821"></script>
-<script src="nightly-jobs-detail.js?v=1773215821"></script>
-<script src="nightly-jobs.js?v=1773215821"></script>
-<script src="kpi-modals.js?v=1773215821"></script>
-<script src="brain-canvas.js?v=1773215821"></script>
-<script src="scheduler.js?v=1773215821"></script>
-<script src="websocket.js?v=1773215821"></script>
-<script src="brain-regions.js?v=1773215821"></script>
-<script src="brain-organism.js?v=1773215821"></script>
-<script src="brain-sessions.js?v=1773215821"></script>
-<script src="brain-consciousness.js?v=1773215821"></script>
-<script src="brain-effects.js?v=1773215821"></script>
-<script src="brain-layout.js?v=1773215821"></script>
-<script src="brain-interact.js?v=1773215821"></script>
-<script src="app.js?v=1773215821"></script>
-<script src="mesh.js?v=1773215821"></script>
-<script src="mesh-animation.js?v=1773215821"></script>
-<script src="mesh-actions.js?v=1773215821"></script>
-<script src="mesh-delegate.js?v=1773215821"></script>
-<script src="mesh-preflight.js?v=1773215821"></script>
-<script src="mesh-plan-ops.js?v=1773215821"></script>
-<script src="peer-crud.js?v=1773215821"></script>
-<script src="admin.js?v=1773215821"></script>
-<script src="widget-drag.js?v=1773215821"></script>
-<script src="terminal.js?v=1773215821"></script>
-<script src="chat-tabs.js?v=1773215821"></script>
-<script src="chat-panel.js?v=1773215821"></script>
-<script src="repo-selector.js?v=1773215821"></script>
-<script src="chat-context.js?v=1773215821"></script>
-<script src="chat-monitor.js?v=1773215821"></script>
-<script src="github-panel.js?v=1773215821"></script>
-<script src="idea-jar-physics.js?v=1773215821"></script>
-<script src="idea-jar-canvas.js?v=1773215821"></script>
-<script src="idea-jar.js?v=1773215821"></script>
-<script src="optimize.js?v=1773215821"></script>
+<script src="icons.js?v=1773216411"></script>
+<script src="theme-switcher.js?v=1773216411"></script>
+<script src="utils.js?v=1773216411"></script>
+<script src="formatters.js?v=1773216411"></script>
+<script src="kpi.js?v=1773216411"></script>
+<script src="mission.js?v=1773216411"></script>
+<script src="mission-details.js?v=1773216411"></script>
+<script src="org-chart.js?v=1773216411"></script>
+<script src="live-system.js?v=1773216411"></script>
+<script src="task-pipeline.js?v=1773216411"></script>
+<script src="plan-kanban.js?v=1773216411"></script>
+<script src="charts.js?v=1773216411"></script>
+<script src="activity.js?v=1773216411"></script>
+<script src="github-activity.js?v=1773216411"></script>
+<script src="nightly-jobs-detail.js?v=1773216411"></script>
+<script src="nightly-jobs.js?v=1773216411"></script>
+<script src="kpi-modals.js?v=1773216411"></script>
+<script src="brain-canvas.js?v=1773216411"></script>
+<script src="scheduler.js?v=1773216411"></script>
+<script src="websocket.js?v=1773216411"></script>
+<script src="brain-regions.js?v=1773216411"></script>
+<script src="brain-organism.js?v=1773216411"></script>
+<script src="brain-sessions.js?v=1773216411"></script>
+<script src="brain-consciousness.js?v=1773216411"></script>
+<script src="brain-effects.js?v=1773216411"></script>
+<script src="brain-layout.js?v=1773216411"></script>
+<script src="brain-interact.js?v=1773216411"></script>
+<script src="app.js?v=1773216411"></script>
+<script src="mesh.js?v=1773216411"></script>
+<script src="mesh-animation.js?v=1773216411"></script>
+<script src="mesh-actions.js?v=1773216411"></script>
+<script src="mesh-delegate.js?v=1773216411"></script>
+<script src="mesh-preflight.js?v=1773216411"></script>
+<script src="mesh-plan-ops.js?v=1773216411"></script>
+<script src="peer-crud.js?v=1773216411"></script>
+<script src="admin.js?v=1773216411"></script>
+<script src="widget-drag.js?v=1773216411"></script>
+<script src="terminal.js?v=1773216411"></script>
+<script src="chat-tabs.js?v=1773216411"></script>
+<script src="chat-panel.js?v=1773216411"></script>
+<script src="repo-selector.js?v=1773216411"></script>
+<script src="chat-context.js?v=1773216411"></script>
+<script src="chat-monitor.js?v=1773216411"></script>
+<script src="github-panel.js?v=1773216411"></script>
+<script src="idea-jar-physics.js?v=1773216411"></script>
+<script src="idea-jar-canvas.js?v=1773216411"></script>
+<script src="idea-jar.js?v=1773216411"></script>
+<script src="optimize.js?v=1773216411"></script>
 </body>
 </html>

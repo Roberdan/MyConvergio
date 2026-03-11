@@ -239,9 +239,9 @@ function _initMeshFlow() {
         sx: from.x, sy: fy, tx: to.x, ty: ty,
         cx: (from.x + to.x) / 2, cy: midY,
         progress: -k * 0.06,
-        speed: 0.005 + Math.random() * 0.007,
+        speed: 0.008 + Math.random() * 0.010,
         color: mc ? mc.core : ec.core,
-        size: eventType === 'sync_delta' ? 4 + Math.random() * 3 : 2 + Math.random() * 2,
+        size: eventType === 'sync_delta' ? 5 + Math.random() * 4 : 3 + Math.random() * 3,
         trail: []
       });
     }
@@ -366,57 +366,77 @@ function _initMeshFlow() {
       cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
     }
     ctx.clearRect(0, 0, cvs.width, cvs.height);
-    // Draw connection curves between all pairs
+    // Draw connection lines — subtle permanent links
     pairs.forEach(([a, b]) => {
       const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(a.name) : null;
-      const col = mc ? mc.core : '#00e5ff';
-      const glowCol = mc ? mc.glow + '0.3)' : 'rgba(0,229,255,0.3)';
-      const ay = a.cy, by = b.cy;
-      const midY = (ay + by) / 2;
-      ctx.globalAlpha = 0.5;
-      ctx.strokeStyle = glowCol;
-      ctx.lineWidth = 12;
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.moveTo(a.x, ay);
-      ctx.quadraticCurveTo((a.x + b.x) / 2, midY, b.x, by);
-      ctx.stroke();
-      ctx.globalAlpha = 0.8;
+      const col = mc ? mc.core : 'rgba(0,229,255,0.15)';
+      ctx.globalAlpha = 1;
       ctx.strokeStyle = col;
-      ctx.lineWidth = 3;
-      ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 6]);
       ctx.beginPath();
-      ctx.moveTo(a.x, ay);
-      ctx.quadraticCurveTo((a.x + b.x) / 2, midY, b.x, by);
+      ctx.moveTo(a.x, a.cy);
+      ctx.lineTo(b.x, b.cy);
       ctx.stroke();
     });
     ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
-    while (_meshFlowParticles.length > 100) _meshFlowParticles.shift();
+
+    // Draw particles with direction-showing comet tails + arrowheads
+    while (_meshFlowParticles.length > 120) _meshFlowParticles.shift();
     for (let i = _meshFlowParticles.length - 1; i >= 0; i--) {
       const p = _meshFlowParticles[i];
       p.progress += p.speed;
       if (p.progress < 0) continue;
-      const t2 = p.progress, it = 1 - t2;
+      const t2 = Math.min(p.progress, 1), it = 1 - t2;
       p.x = it * it * p.sx + 2 * it * t2 * p.cx + t2 * t2 * p.tx;
       p.y = it * it * p.sy + 2 * it * t2 * p.cy + t2 * t2 * p.ty;
       p.trail.push({ x: p.x, y: p.y });
-      if (p.trail.length > 12) p.trail.shift();
-      for (let t = 0; t < p.trail.length; t++) {
-        const alpha = (t / p.trail.length) * 0.8;
-        const sz = p.size * 0.5 + p.size * 0.7 * (t / p.trail.length);
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = p.color;
-        ctx.beginPath(); ctx.arc(p.trail[t].x, p.trail[t].y, sz, 0, Math.PI * 2); ctx.fill();
+      if (p.trail.length > 16) p.trail.shift();
+
+      // Comet tail — long fading trail showing direction
+      if (p.trail.length > 1) {
+        ctx.lineCap = 'round';
+        for (let t = 1; t < p.trail.length; t++) {
+          const frac = t / p.trail.length;
+          ctx.globalAlpha = frac * 0.7;
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.size * frac * 1.8;
+          ctx.beginPath();
+          ctx.moveTo(p.trail[t - 1].x, p.trail[t - 1].y);
+          ctx.lineTo(p.trail[t].x, p.trail[t].y);
+          ctx.stroke();
+        }
       }
-      ctx.globalAlpha = 0.4;
+
+      // Outer glow halo
+      ctx.globalAlpha = 0.5;
       ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 3.5, 0, Math.PI * 2); ctx.fill();
+
+      // Bright core
       ctx.globalAlpha = 1;
       ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 0.8, 0, Math.PI * 2); ctx.fill();
+
+      // Colored ring
       ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 1.2, 0, Math.PI * 2); ctx.fill();
+
+      // Direction arrowhead at particle head
+      if (p.trail.length > 2) {
+        const prev = p.trail[p.trail.length - 2];
+        const angle = Math.atan2(p.y - prev.y, p.x - prev.x);
+        const arrLen = p.size * 3;
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.moveTo(p.x + Math.cos(angle) * arrLen, p.y + Math.sin(angle) * arrLen);
+        ctx.lineTo(p.x + Math.cos(angle + 2.5) * arrLen * 0.6, p.y + Math.sin(angle + 2.5) * arrLen * 0.6);
+        ctx.lineTo(p.x + Math.cos(angle - 2.5) * arrLen * 0.6, p.y + Math.sin(angle - 2.5) * arrLen * 0.6);
+        ctx.closePath();
+        ctx.fill();
+      }
+
       ctx.globalAlpha = 1;
       if (p.progress >= 1) _meshFlowParticles.splice(i, 1);
     }

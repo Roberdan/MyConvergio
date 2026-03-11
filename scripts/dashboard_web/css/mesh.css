@@ -50,7 +50,7 @@
   flex-direction: row;
   align-items: stretch;
   justify-content: center;
-  gap: 40px;
+  gap: 80px;
   position: relative;
   width: 100%;
   padding: 12px 16px 20px 16px;
@@ -77,20 +77,21 @@
 }
 .mesh-hub-coord .mesh-node {
   flex: 1;
-  border-width: 10px;
-  padding: 20px 24px;
+  border-width: 6px;
+  padding: 14px 18px;
 }
-.mesh-hub-coord .mn-name { font-size: 28px; }
-.mesh-hub-coord .mn-role { font-size: 16px; letter-spacing: 3px; }
-.mesh-hub-coord .mn-stats { font-size: 14px; }
-/* Flow canvas overlay — behind node cards for through-card particle effect */
+.mesh-hub-coord .mn-name { font-size: 24px; }
+.mesh-hub-coord .mn-role { font-size: 14px; letter-spacing: 3px; }
+.mesh-hub-coord .mn-stats { font-size: 12px; }
+/* Flow canvas overlay — above cards with additive blend for neon glow effect */
 .mesh-flow-canvas {
   position: absolute;
   top: 0; left: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 0;
+  z-index: 2;
+  mix-blend-mode: screen;
 }
 /* Sync All button */
 .mesh-sync-all {
@@ -120,12 +121,13 @@
 }
 .mesh-node {
   background: var(--bg-card);
-  border: 4px solid var(--border);
+  border: 3px solid var(--border);
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 10px 12px;
   min-width: 0;
   flex: 1 1 0;
   text-align: center;
+  font-size: 0.9em;
   transition:
     border-color 0.3s,
     box-shadow 0.3s;

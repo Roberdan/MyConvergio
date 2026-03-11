@@ -164,6 +164,37 @@ function _renderOnePlan(m) {
   html += typeof renderTaskFlow === 'function' ? renderTaskFlow(m.tasks, p) : '';
   return html + '</div>';
 }
+function _formatLastMissionTs(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return esc(String(ts).replace('T', ' ').slice(0, 16));
+  return d.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+function _renderLastMission(m) {
+  const p = m.plan || {},
+    pct = p.tasks_total > 0 ? Math.round((100 * p.tasks_done) / p.tasks_total) : 0,
+    pg = _progressGradient(pct),
+    hostName = p.execution_peer || _resolveHost(p.execution_host),
+    isRemote =
+      hostName &&
+      hostName !== 'local' &&
+      hostName !== ((window.DashboardState && window.DashboardState.localPeerName) || 'local'),
+    nodeLabel = isRemote
+      ? `<span class="host-badge-prominent">${esc(hostName)}</span>`
+      : hostName && hostName !== 'local'
+        ? `<span class="host-badge-local">${esc(hostName)}</span>`
+        : '',
+    finishedAt = p.finished_at || p.completed_at || p.cancelled_at || '',
+    statusCls = p.status === 'done' ? 'badge badge-done' : p.status === 'cancelled' ? 'badge badge-blocked' : 'badge badge-pending';
+  let html = `<div class="mission-plan" onclick="openPlanSidebar(${p.id})"><div style="margin-bottom:6px"><span class="mission-id">#${p.id}</span><span class="mission-name">&nbsp;${esc(p.name || '')}</span>${statusDot(p.status)}${nodeLabel}${p.project_name ? `<span class="badge badge-project">${esc(p.project_name)}</span>` : ''}<span class="${statusCls}">${esc((p.status || '').replace(/_/g, ' '))}</span></div>${p.human_summary ? `<div class="mission-summary">${esc(p.human_summary)}</div>` : ''}<div class="mission-progress">${_progressRing(pct, 56, pg.color)}<div class="mission-progress-bars"><div class="mission-progress-label"><span>Done ${p.tasks_done || 0}/${p.tasks_total || 0}</span><span style="color:var(--cyan)">${pct}%</span></div><div class="mission-progress-track"><div class="mission-progress-fill" style="width:${pct}%;background:${pg.gradient}"></div></div><div style="display:flex;gap:8px;font-size:9px;color:var(--text-dim);margin-top:4px;flex-wrap:wrap"><span>${finishedAt ? `Finished ${_formatLastMissionTs(finishedAt)}` : ''}</span><span>${m.waves && m.waves.length ? `${m.waves.length} waves` : ''}</span></div></div></div>`;
+  html += typeof renderWaveGantt === 'function' ? renderWaveGantt(m.waves || [], p) : '';
+  return html + '</div>';
+}
 function renderMission(data) {
   const st = window.DashboardState;
   st.lastMissionData = data;
@@ -183,6 +214,16 @@ function renderMission(data) {
   $('#mission-content').innerHTML = html;
   renderTaskPipeline();
 }
+function renderLastMissions(data) {
+  const el = $('#last-missions-content');
+  const plans = data && data.plans ? data.plans : [];
+  if (!el) return;
+  if (!plans.length) {
+    el.innerHTML = '<span style="color:#5a6080">No missions completed in the last 24 hours</span>';
+    return;
+  }
+  el.innerHTML = plans.map(_renderLastMission).join('');
+}
 
 window.runThorValidation = async function (planId) {
   try {
@@ -200,3 +241,4 @@ window.runThorValidation = async function (planId) {
 };
 
 window.renderMission = renderMission;
+window.renderLastMissions = renderLastMissions;

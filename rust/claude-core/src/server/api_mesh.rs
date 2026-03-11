@@ -126,7 +126,7 @@ async fn api_mesh(State(state): State<ServerState>) -> Result<Json<Value>, ApiEr
     let db = state.open_db()?;
     let rows = query_rows(
         db.connection(),
-        "SELECT peer_name, last_seen, load_json, capabilities FROM peer_heartbeats WHERE peer_name IS NOT NULL AND peer_name != ''",
+        "SELECT peer_name, last_seen, load_json, capabilities FROM peer_heartbeats WHERE peer_name IS NOT NULL AND peer_name != '' AND peer_name NOT LIKE '%.%.%.%:%'",
         [],
     )?;
     // Load peers.conf for static enrichment
@@ -313,7 +313,7 @@ async fn api_mesh_traffic(State(state): State<ServerState>) -> Result<Json<Value
 
     let hb_rows = query_rows(
         db.connection(),
-        "SELECT peer_name, last_seen FROM peer_heartbeats WHERE peer_name IS NOT NULL AND peer_name != ''",
+        "SELECT peer_name, last_seen FROM peer_heartbeats WHERE peer_name IS NOT NULL AND peer_name != '' AND peer_name NOT LIKE '%.%.%.%:%'",
         [],
     ).unwrap_or_default();
     let heartbeats: Vec<Value> = hb_rows.iter().map(|r| {

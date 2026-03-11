@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.8] - 11 Mar 2026
+
+### Fixed
+- filter ghost raw-IP entries from peer_heartbeats
+
+
 ## [v11.36.7] - 10 Mar 2026
 
 ### Changed

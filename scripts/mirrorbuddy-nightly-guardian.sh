@@ -13,10 +13,27 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 # MirrorBuddy nightly guardian: triage Sentry + GitHub issues and run safe auto-remediation.
-# Version: 2.0.0
+# Version: 2.1.0
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 CONFIG_FILE="${MIRRORBUDDY_NIGHTLY_CONFIG:-$CLAUDE_HOME/config/mirrorbuddy-nightly.conf}"
 [[ -f "$CONFIG_FILE" ]] && source "$CONFIG_FILE"
+
+# ── CRR-aware SQLite wrapper (dashboard.db uses crsqlite triggers) ──
+_CRSQLITE_EXT="${CLAUDE_HOME}/lib/crsqlite/crsqlite"
+_find_capable_sqlite3() {
+  for p in /opt/homebrew/opt/sqlite/bin/sqlite3 /usr/local/opt/sqlite/bin/sqlite3; do
+    [[ -x "$p" ]] && echo "$p" && return
+  done
+  echo "$(command -v sqlite3 2>/dev/null || echo sqlite3)"
+}
+_REAL_SQLITE3="$(_find_capable_sqlite3)"
+sqlite3() {
+  if [[ -f "$_CRSQLITE_EXT.dylib" || -f "$_CRSQLITE_EXT.so" || -f "$_CRSQLITE_EXT" ]]; then
+    "$_REAL_SQLITE3" -cmd ".load $_CRSQLITE_EXT" "$@" 2>/dev/null
+  else
+    "$_REAL_SQLITE3" "$@"
+  fi
+}
 CONFIG_SNAPSHOT=$({ env | grep "^MIRRORBUDDY_" || true; } | sort | jq -Rs 'split("\n") | map(select(length>0)) | map(split("=") | {(.[0]): (.[1:] | join("="))}) | add // {}')
 REPO_PATH="${MIRRORBUDDY_REPO_PATH:-$HOME/GitHub/MirrorBuddy}"
 DEFAULT_BRANCH="${MIRRORBUDDY_DEFAULT_BRANCH:-main}"

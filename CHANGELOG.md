@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.36.11] - 11 Mar 2026
+
+### Fixed
+- load crsqlite extension for dashboard.db
+
+
 ## [v11.36.10] - 11 Mar 2026
 
 ### Fixed

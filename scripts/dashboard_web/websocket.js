@@ -200,6 +200,8 @@ function _initMeshFlow() {
     const r = el.getBoundingClientRect(), hr = hub.getBoundingClientRect();
     return {
       x: r.left - hr.left + r.width / 2,
+      left: r.left - hr.left,
+      right: r.left - hr.left + r.width,
       cy: r.top - hr.top + r.height * 0.5,
       top: r.top - hr.top,
       bottom: r.top - hr.top + r.height,
@@ -231,17 +233,26 @@ function _initMeshFlow() {
     if (!from || !to) return;
     const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(fromName) : null;
     const ec = eventColors[eventType] || eventColors.heartbeat;
-    const n = Math.min(count, 10);
+    const n = Math.min(count, 12);
+    // Two lanes: TX flows on upper path, RX on lower path
+    const goingRight = from.x < to.x;
+    const laneOffset = 12; // px offset from center line
     for (let k = 0; k < n; k++) {
-      const fy = from.cy, ty = to.cy;
-      const midY = (fy + ty) / 2 + (Math.random() - 0.5) * 20;
+      const fromEdge = goingRight ? from.right : from.left;
+      const toEdge = goingRight ? to.left : to.right;
+      const fy = from.cy - laneOffset;
+      const ty = to.cy - laneOffset;
+      const midX = (fromEdge + toEdge) / 2;
+      const midY = (fy + ty) / 2 + (Math.random() - 0.5) * 6;
+      const dataScale = eventType === 'sync_delta' ? 1.5 : 0.8;
       _meshFlowParticles.push({
-        sx: from.x, sy: fy, tx: to.x, ty: ty,
-        cx: (from.x + to.x) / 2, cy: midY,
-        progress: -k * 0.06,
-        speed: 0.008 + Math.random() * 0.010,
+        sx: fromEdge, sy: fy + (Math.random() - 0.5) * 4,
+        tx: toEdge, ty: ty + (Math.random() - 0.5) * 4,
+        cx: midX, cy: midY,
+        progress: -k * 0.04,
+        speed: 0.010 + Math.random() * 0.012,
         color: mc ? mc.core : ec.core,
-        size: eventType === 'sync_delta' ? 5 + Math.random() * 4 : 3 + Math.random() * 3,
+        size: (3 + Math.random() * 3) * dataScale,
         trail: []
       });
     }
@@ -366,17 +377,27 @@ function _initMeshFlow() {
       cvs.width = hub.offsetWidth; cvs.height = hub.offsetHeight;
     }
     ctx.clearRect(0, 0, cvs.width, cvs.height);
-    // Draw connection lines — subtle permanent links
+    const laneOff = 12;
+    // Draw two-lane connection lines between adjacent pairs
     pairs.forEach(([a, b]) => {
       const mc = (typeof brainMeshColor === 'function') ? brainMeshColor(a.name) : null;
-      const col = mc ? mc.core : 'rgba(0,229,255,0.15)';
+      const col = mc ? mc.core : 'rgba(0,229,255,0.25)';
+      const leftNode = a.x < b.x ? a : b;
+      const rightNode = a.x < b.x ? b : a;
+      const x1 = leftNode.right, x2 = rightNode.left;
+      // Upper lane (TX)
       ctx.globalAlpha = 1;
       ctx.strokeStyle = col;
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 6]);
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 5]);
       ctx.beginPath();
-      ctx.moveTo(a.x, a.cy);
-      ctx.lineTo(b.x, b.cy);
+      ctx.moveTo(x1, leftNode.cy - laneOff);
+      ctx.lineTo(x2, rightNode.cy - laneOff);
+      ctx.stroke();
+      // Lower lane (RX)
+      ctx.beginPath();
+      ctx.moveTo(x1, leftNode.cy + laneOff);
+      ctx.lineTo(x2, rightNode.cy + laneOff);
       ctx.stroke();
     });
     ctx.setLineDash([]);

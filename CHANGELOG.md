@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.39.0] - 11 Mar 2026
+
+### Added
+- narrow nodes, 100px gaps, dual-lane TX/RX traffic flows in gap space
+
+
 ## [v11.38.1] - 11 Mar 2026
 
 ### Fixed

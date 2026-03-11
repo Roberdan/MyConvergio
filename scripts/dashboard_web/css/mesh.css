@@ -50,15 +50,16 @@
   flex-direction: row;
   align-items: stretch;
   justify-content: center;
-  gap: 80px;
+  gap: 100px;
   position: relative;
   width: 100%;
   padding: 12px 16px 20px 16px;
   overflow: visible;
 }
 .mesh-hub > .mesh-node {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 1 260px;
+  max-width: 260px;
+  min-width: 180px;
   position: relative;
   z-index: 1;
 }
@@ -71,8 +72,9 @@
 .mesh-hub-coord {
   position: relative;
   z-index: 1;
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 1 300px;
+  max-width: 300px;
+  min-width: 200px;
   display: flex;
 }
 .mesh-hub-coord .mesh-node {

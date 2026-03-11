@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.40.0] - 11 Mar 2026
+
+### Added
+- rebalance column widgets
+
+
 ## [v11.39.1] - 11 Mar 2026
 
 ### Fixed

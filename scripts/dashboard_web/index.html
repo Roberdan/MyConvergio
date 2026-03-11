@@ -133,9 +133,17 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
       </div>
       <div class="widget-body" id="last-missions-content"><span style="color:var(--text-dim)">Loading...</span></div>
     </div>
+    <div class="widget" id="history-widget" style="max-height:280px; overflow-y:auto">
+      <div class="widget-header"><span class="widget-title">History</span></div>
+      <div class="widget-body" id="history-list"></div>
+    </div>
     <div class="widget" id="widget-dist">
       <div class="widget-header"><span class="widget-title">Task Distribution</span></div>
       <div class="widget-body"><div class="chart-container chart-container-sm"><canvas id="dist-chart"></canvas></div></div>
+    </div>
+    <div class="widget" id="widget-cost">
+      <div class="widget-header"><span class="widget-title">Cost by Model</span></div>
+      <div class="widget-body"><div class="chart-container chart-container-sm"><canvas id="model-chart"></canvas></div></div>
     </div>
     <div class="widget" id="plan-kanban-widget">
       <div class="widget-header"><span class="widget-title">Plan Pipeline</span></div>
@@ -227,14 +235,6 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan,#00e5ff)}
         <div class="widget-actions"><button class="widget-action-btn" onclick="resetTokenZoom()" title="Reset zoom"><svg viewBox="0 0 16 16" width="12" height="12"><path d="M1.5 8a6.5 6.5 0 0112.4-2.5M14.5 8a6.5 6.5 0 01-12.4 2.5"/><path d="M13 2.5v3h-3M3 13.5v-3h3"/></svg></button></div>
       </div>
       <div class="widget-body"><div class="chart-container"><canvas id="token-chart"></canvas></div></div>
-    </div>
-    <div class="widget" id="widget-cost">
-      <div class="widget-header"><span class="widget-title">Cost by Model</span></div>
-      <div class="widget-body"><div class="chart-container chart-container-sm"><canvas id="model-chart"></canvas></div></div>
-    </div>
-    <div class="widget" id="history-widget" style="max-height:280px; overflow-y:auto">
-      <div class="widget-header"><span class="widget-title">History</span></div>
-      <div class="widget-body" id="history-list"></div>
     </div>
   </div>
 </div>

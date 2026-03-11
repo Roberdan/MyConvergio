@@ -5,7 +5,8 @@
  */
 
 (function () {
-  const STORAGE_KEY = "dashWidgetLayout";
+  const STORAGE_KEY = "dashWidgetLayoutV2";
+  const LEGACY_STORAGE_KEY = "dashWidgetLayout";
   let dragging = null; // { el, ghost, startX, startY, offsetX, offsetY }
   let placeholder = null;
 
@@ -198,6 +199,7 @@
   window.enableWidgetDrag = function () {}; // no-op, always active
   window.resetWidgetLayout = function () {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
     location.reload();
   };
 })();

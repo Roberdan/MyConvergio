@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.42.5] - 12 Mar 2026
+
+### Fixed
+- resolve peer name to tailscale_ip for TCP reachability test
+
+
 ## [v11.42.4] - 11 Mar 2026
 
 ### Changed

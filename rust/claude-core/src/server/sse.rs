@@ -64,15 +64,20 @@ pub async fn mesh_action_sse(
                 lines.push("ERROR Cannot open dashboard.db".into());
                 ok = false;
             }
-            // TCP reachability test (cross-platform)
+            // TCP reachability test — resolve peer name to tailscale_ip via peers.conf
             lines.push("---".into());
-            lines.push(format!("▶ TCP reachability test ({peer}:9420)..."));
-            match std::net::TcpStream::connect_timeout(
-                &format!("{peer}:9420").parse().unwrap_or_else(|_| "0.0.0.0:9420".parse().unwrap()),
-                std::time::Duration::from_secs(3)
-            ) {
-                Ok(_) => lines.push(format!("OK {peer}:9420 reachable")),
-                Err(e) => { lines.push(format!("ERROR {peer}:9420 unreachable: {e}")); }
+            let peer_ip = resolve_peer_ip(&home, &peer);
+            let connect_addr = peer_ip.as_deref().unwrap_or(&peer);
+            lines.push(format!("▶ TCP reachability test ({peer}:{connect_addr}:9420)..."));
+            match format!("{connect_addr}:9420").parse::<std::net::SocketAddr>() {
+                Ok(addr) => match std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_secs(3)) {
+                    Ok(_) => lines.push(format!("OK {peer} ({connect_addr}:9420) reachable")),
+                    Err(e) => { lines.push(format!("ERROR {peer} ({connect_addr}:9420) unreachable: {e}")); }
+                },
+                Err(_) => {
+                    lines.push(format!("ERROR cannot resolve {peer} to IP (check peers.conf)"));
+                    ok = false;
+                }
             }
         }
         "sync" => {
@@ -225,6 +230,29 @@ pub async fn plan_start_sse(
     }
     events.push(Event::default().event("done").data(json!({"ok": true, "plan_id": plan_id}).to_string()));
     Ok(Sse::new(iter(events.into_iter().map(Ok::<Event, Infallible>))))
+}
+
+/// Resolve peer name to tailscale_ip from peers.conf
+fn resolve_peer_ip(home: &str, peer: &str) -> Option<String> {
+    let path = format!("{home}/.claude/config/peers.conf");
+    let content = std::fs::read_to_string(path).ok()?;
+    let mut in_section = false;
+    for line in content.lines() {
+        let trimmed = line.split('#').next().unwrap_or("").trim();
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            let section = trimmed.trim_start_matches('[').trim_end_matches(']');
+            in_section = section == peer;
+            continue;
+        }
+        if in_section {
+            if let Some((k, v)) = trimmed.split_once('=') {
+                if k.trim() == "tailscale_ip" {
+                    return Some(v.trim().to_string());
+                }
+            }
+        }
+    }
+    None
 }
 
 fn required(qs: &HashMap<String, String>, name: &str) -> Result<String, ApiError> {

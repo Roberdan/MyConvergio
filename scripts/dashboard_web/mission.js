@@ -120,6 +120,30 @@ window.resumePlanExecution = function (planId, peer) {
     }
   }, 100);
 };
+function _elapsedTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts.endsWith('Z') || ts.includes('+') ? ts : ts + 'Z');
+  if (Number.isNaN(d.getTime())) return '';
+  const ms = Date.now() - d.getTime();
+  if (ms < 0) return '';
+  const s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60), days = Math.floor(h / 24);
+  if (days > 0) return `${days}d ${h % 24}h`;
+  if (h > 0) return `${h}h ${m % 60}m`;
+  if (m > 0) return `${m}m`;
+  return `${s}s`;
+}
+function _elapsedBetween(start, end) {
+  if (!start || !end) return '';
+  const d1 = new Date(start.endsWith('Z') || start.includes('+') ? start : start + 'Z');
+  const d2 = new Date(end.endsWith('Z') || end.includes('+') ? end : end + 'Z');
+  if (Number.isNaN(d1.getTime()) || Number.isNaN(d2.getTime())) return '';
+  const ms = d2.getTime() - d1.getTime();
+  if (ms < 0) return '';
+  const s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60);
+  if (h > 0) return `${h}h ${m % 60}m`;
+  if (m > 0) return `${m}m ${s % 60}s`;
+  return `${s}s`;
+}
 function _renderOnePlan(m) {
   const p = m.plan,
     health = m.health || [],
@@ -136,32 +160,78 @@ function _renderOnePlan(m) {
       hostName !== ((window.DashboardState && window.DashboardState.localPeerName) || 'local'),
     blocked = (m.tasks || []).filter((t) => t.status === 'blocked').length,
     running = (m.tasks || []).filter((t) => t.status === 'in_progress').length,
-    waitingCi = (m.tasks || []).filter((t) => t.substatus === 'waiting_ci').length,
-    waitingReview = (m.tasks || []).filter((t) => t.substatus === 'waiting_review').length,
-    waitingMerge = (m.tasks || []).filter((t) => t.substatus === 'waiting_merge').length,
-    waitingThor = (m.tasks || []).filter((t) => t.substatus === 'waiting_thor').length,
-    agentRunning = (m.tasks || []).filter((t) => t.substatus === 'agent_running').length,
+    submitted = (m.tasks || []).filter((t) => t.status === 'submitted').length,
     hasCritical = health.some((h) => h.severity === 'critical'),
     nodeLabel = isRemote
       ? `<span class="host-badge-prominent">${esc(hostName)}</span>`
       : hostName && hostName !== 'local'
         ? `<span class="host-badge-local">${esc(hostName)}</span>`
         : '';
-  const stopBtn =
-    p.status === 'doing'
-      ? `<button class="mission-stop-btn" onclick="event.stopPropagation();stopPlan(${p.id})" title="Stop execution"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></button>`
-      : '';
-  const resetBtn =
-    p.status !== 'done'
-      ? `<button class="mission-reset-btn" onclick="event.stopPropagation();resetPlan(${p.id})" title="Reset to todo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 105.64-11.36L3 10"/></svg></button>`
-      : '';
-  const cancelBtn =
-    p.status !== 'done'
-      ? `<button class="mission-cancel-btn" onclick="event.stopPropagation();cancelPlan(${p.id})" title="Cancel plan"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>`
-      : '';
-  let html = `<div class="mission-plan${hasCritical ? ' mission-plan-critical' : health.length ? ' mission-plan-warning' : ''}" onclick="filterTasks(${p.id})"><div style="margin-bottom:6px"><span class="mission-id">#${p.id}</span><span class="mission-name">&nbsp;${esc(p.name)}</span>${statusDot(p.status === 'doing' ? 'in_progress' : p.status)}${health.length ? `<span class="health-badge health-badge-${hasCritical ? 'critical' : 'warning'}" title="${health.map((h) => h.message).join('; ')}">${hasCritical ? 'ALERT' : 'WARN'}</span>` : ''}${nodeLabel}${p.project_name ? `<span class="badge badge-project">${esc(p.project_name)}</span>` : ''}<button class="mission-delegate-btn" onclick="event.stopPropagation();showDelegatePlanDialog(${p.id},'${esc(p.name)}')" title="Delegate to mesh node"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg></button>${p.status === 'todo' ? `<button class="mission-start-btn" onclick="event.stopPropagation();showStartPlanDialog(${p.id},'${esc(p.name)}')" title="Start plan execution"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>` : ''}${stopBtn}${resetBtn}${cancelBtn}</div>${_renderHealthAlerts(health, p.id, hostName)}${p.human_summary ? `<div class="mission-summary">${esc(p.human_summary)}</div>` : ''}<div class="mission-progress">${_progressRing(pct, 56, ringColor)}<div class="mission-progress-bars"><div class="mission-progress-label"><span>Done ${p.tasks_done || 0}/${p.tasks_total || 0}</span><span style="color:var(--cyan)">${pct}%</span></div><div class="mission-progress-track"><div class="mission-progress-fill" style="width:${pct}%;background:${pg.gradient}"></div></div><div style="display:flex;gap:6px;font-size:9px;color:var(--text-dim);margin-top:4px;flex-wrap:wrap"><span>${running > 0 ? `<span style="color:var(--gold)">${running} running</span>` : ''}</span><span>${blocked > 0 ? `<span style="color:var(--red)">${blocked} blocked</span>` : ''}</span>${waitingCi > 0 ? _substatusBadge('waiting_ci') : ''}${waitingReview > 0 ? _substatusBadge('waiting_review') : ''}${waitingMerge > 0 ? _substatusBadge('waiting_merge') : ''}${waitingThor > 0 ? _substatusBadge('waiting_thor') : ''}${agentRunning > 0 ? _substatusBadge('agent_running') : ''}</div></div></div>`;
+
+  // --- HEADER: ID + Name + Status ---
+  let html = `<div class="mission-plan${hasCritical ? ' mission-plan-critical' : health.length ? ' mission-plan-warning' : ''}" onclick="filterTasks(${p.id})">`;
+  html += `<div class="mission-header">`;
+  html += `<span class="mission-id">#${p.id}</span>`;
+  html += `<span class="mission-name">${esc(p.name)}</span>`;
+  html += statusDot(p.status === 'doing' ? 'in_progress' : p.status);
+  if (health.length) {
+    html += `<span class="health-badge health-badge-${hasCritical ? 'critical' : 'warning'}" title="${health.map((h) => h.message).join('; ')}">${hasCritical ? 'ALERT' : 'WARN'}</span>`;
+  }
+  html += `</div>`;
+
+  // --- META ROW: project, host, elapsed, lines ---
+  html += `<div class="mission-meta">`;
+  if (p.project_name) html += `<span class="badge badge-project">${esc(p.project_name)}</span>`;
+  html += nodeLabel;
+  const elapsed = p.status === 'doing' ? _elapsedTime(p.started_at) : '';
+  if (elapsed) html += `<span class="mission-elapsed" title="Started ${esc(p.started_at || '')}">⏱ ${elapsed}</span>`;
+  if (p.lines_added || p.lines_removed) {
+    html += `<span class="mission-lines">`;
+    if (p.lines_added) html += `<span class="lines-added">+${p.lines_added}</span>`;
+    if (p.lines_removed) html += `<span class="lines-removed"> −${p.lines_removed}</span>`;
+    html += `</span>`;
+  }
+  html += `</div>`;
+
+  // --- HEALTH ALERTS ---
+  html += _renderHealthAlerts(health, p.id, hostName);
+
+  // --- SUMMARY ---
+  if (p.human_summary) html += `<div class="mission-summary">${esc(p.human_summary)}</div>`;
+
+  // --- PROGRESS: ring + bar + status badges ---
+  html += `<div class="mission-progress">`;
+  html += _progressRing(pct, 56, ringColor);
+  html += `<div class="mission-progress-bars">`;
+  html += `<div class="mission-progress-label"><span>Tasks ${p.tasks_done || 0}/${p.tasks_total || 0}</span><span style="color:var(--cyan)">${pct}%</span></div>`;
+  html += `<div class="mission-progress-track"><div class="mission-progress-fill" style="width:${pct}%;background:${pg.gradient}"></div></div>`;
+  html += `<div class="mission-status-tags">`;
+  if (running > 0) html += `<span class="mtag mtag-running">${running} running</span>`;
+  if (blocked > 0) html += `<span class="mtag mtag-blocked">${blocked} blocked</span>`;
+  if (submitted > 0) html += `<span class="mtag mtag-submitted">${submitted} submitted</span>`;
+  html += `</div></div></div>`;
+
+  // --- WAVES ---
   html += typeof renderWaveGantt === 'function' ? renderWaveGantt(m.waves, p) : '';
+
+  // --- TASK FLOW ---
   html += typeof renderTaskFlow === 'function' ? renderTaskFlow(m.tasks, p) : '';
+
+  // --- ACTION BUTTONS (bottom) ---
+  html += `<div class="mission-actions">`;
+  html += `<button class="mission-delegate-btn" onclick="event.stopPropagation();showDelegatePlanDialog(${p.id},'${esc(p.name)}')" title="Delegate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg> Delegate</button>`;
+  if (p.status === 'todo') {
+    html += `<button class="mission-start-btn" onclick="event.stopPropagation();showStartPlanDialog(${p.id},'${esc(p.name)}')" title="Start"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Start</button>`;
+  }
+  if (p.status === 'doing') {
+    html += `<button class="mission-stop-btn" onclick="event.stopPropagation();stopPlan(${p.id})" title="Stop"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg> Stop</button>`;
+  }
+  if (p.status !== 'done') {
+    html += `<button class="mission-reset-btn" onclick="event.stopPropagation();resetPlan(${p.id})" title="Reset"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 105.64-11.36L3 10"/></svg> Reset</button>`;
+    html += `<button class="mission-cancel-btn" onclick="event.stopPropagation();cancelPlan(${p.id})" title="Cancel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Cancel</button>`;
+  }
+  html += `</div>`;
+
   return html + '</div>';
 }
 function _formatLastMissionTs(ts) {

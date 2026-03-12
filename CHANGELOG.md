@@ -1,5 +1,11 @@
 # Changelog
 
+## [v11.43.0] - 12 Mar 2026
+
+### Added
+- reorganize active missions layout
+
+
 ## [v11.42.5] - 12 Mar 2026
 
 ### Fixed

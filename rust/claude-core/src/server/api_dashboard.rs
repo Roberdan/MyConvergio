@@ -168,7 +168,7 @@ async fn api_mission(State(state): State<ServerState>) -> Result<Json<Value>, Ap
     let db = state.open_db()?;
     let plans = query_rows(
         db.connection(),
-        "SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.execution_host,p.human_summary,pr.name AS project_name FROM plans p LEFT JOIN projects pr ON p.project_id=pr.id WHERE p.status IN ('todo','doing') UNION ALL SELECT * FROM (SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.execution_host,p.human_summary,pr.name AS project_name FROM plans p LEFT JOIN projects pr ON p.project_id=pr.id WHERE p.status='cancelled' ORDER BY p.id DESC LIMIT 10)",
+        "SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.execution_host,p.human_summary,p.started_at,p.created_at,p.lines_added,p.lines_removed,p.description,pr.name AS project_name FROM plans p LEFT JOIN projects pr ON p.project_id=pr.id WHERE p.status IN ('todo','doing') UNION ALL SELECT * FROM (SELECT p.id,p.name,p.status,p.tasks_done,p.tasks_total,p.project_id,p.execution_host,p.human_summary,p.started_at,p.created_at,p.lines_added,p.lines_removed,p.description,pr.name AS project_name FROM plans p LEFT JOIN projects pr ON p.project_id=pr.id WHERE p.status='cancelled' ORDER BY p.id DESC LIMIT 10)",
         [],
     )?;
     let mut result = Vec::new();
@@ -176,12 +176,12 @@ async fn api_mission(State(state): State<ServerState>) -> Result<Json<Value>, Ap
         let plan_id = plan.get("id").and_then(Value::as_i64).unwrap_or(0);
         let waves = query_rows(
             db.connection(),
-            "SELECT wave_id,name,status,tasks_done,tasks_total,position,completed_at AS validated_at,pr_number,pr_url FROM waves WHERE plan_id=?1 ORDER BY position",
+            "SELECT wave_id,name,status,tasks_done,tasks_total,position,completed_at AS validated_at,pr_number,pr_url,started_at,completed_at,theme,depends_on FROM waves WHERE plan_id=?1 ORDER BY position",
             rusqlite::params![plan_id],
         ).unwrap_or_default();
         let tasks = query_rows(
             db.connection(),
-            "SELECT task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id FROM tasks WHERE plan_id=?1 ORDER BY id",
+            "SELECT task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id,started_at,completed_at,duration_minutes FROM tasks WHERE plan_id=?1 ORDER BY id",
             rusqlite::params![plan_id],
         ).unwrap_or_default();
         result.push(json!({"plan": plan, "waves": waves, "tasks": tasks}));
@@ -237,13 +237,13 @@ async fn api_recent_missions(State(state): State<ServerState>) -> Result<Json<Va
         let plan_id = plan.get("id").and_then(Value::as_i64).unwrap_or(0);
         let waves = query_rows(
             db.connection(),
-            "SELECT wave_id,name,status,tasks_done,tasks_total,position,completed_at AS validated_at,pr_number,pr_url FROM waves WHERE plan_id=?1 ORDER BY position",
+            "SELECT wave_id,name,status,tasks_done,tasks_total,position,completed_at AS validated_at,pr_number,pr_url,started_at,completed_at,theme,depends_on FROM waves WHERE plan_id=?1 ORDER BY position",
             rusqlite::params![plan_id],
         )
         .unwrap_or_default();
         let tasks = query_rows(
             db.connection(),
-            "SELECT task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id FROM tasks WHERE plan_id=?1 ORDER BY id",
+            "SELECT task_id,title,status,executor_agent,executor_host,tokens,validated_at,model,wave_id,started_at,completed_at,duration_minutes FROM tasks WHERE plan_id=?1 ORDER BY id",
             rusqlite::params![plan_id],
         )
         .unwrap_or_default();
@@ -416,10 +416,10 @@ fn parse_json_text_field(row: &mut Value, field: &str) -> Result<(), ApiError> {
     Ok(())
 }
 
-fn spawn_nightly_guardian(trigger_source: &str, parent_run_id: Option<&str>) {
+fn spawn_nightly_guardian(project_id: &str, trigger_source: &str, parent_run_id: Option<&str>) {
     #[cfg(test)]
     {
-        let _ = (trigger_source, parent_run_id);
+        let _ = (project_id, trigger_source, parent_run_id);
         return;
     }
 
@@ -433,11 +433,12 @@ fn spawn_nightly_guardian(trigger_source: &str, parent_run_id: Option<&str>) {
                 .unwrap_or_else(|_| std::path::PathBuf::from("."))
                 .join(".claude")
         });
-    let script_path = claude_home.join("scripts/mirrorbuddy-nightly-guardian.sh");
+    let script_name = format!("{project_id}-nightly-guardian.sh");
+    let script_path = claude_home.join(format!("scripts/{script_name}"));
     if !script_path.exists() {
         eprintln!(
-            "[api_dashboard] nightly guardian script not found: {}",
-            script_path.display()
+            "[api_dashboard] nightly guardian script not found: {} (project: {})",
+            script_path.display(), project_id
         );
         return;
     }
@@ -452,7 +453,7 @@ fn spawn_nightly_guardian(trigger_source: &str, parent_run_id: Option<&str>) {
         command.arg(format!("--parent-run-id={parent_run_id}"));
     }
     if let Err(err) = command.spawn() {
-        eprintln!("[api_dashboard] failed to spawn nightly guardian: {err}");
+        eprintln!("[api_dashboard] failed to spawn nightly guardian for {project_id}: {err}");
     }
     }
 }
@@ -514,7 +515,7 @@ async fn api_nightly_jobs(
         .unwrap_or(0);
     let definitions = query_rows(
         db.connection(),
-        "SELECT id,name,description,schedule,script_path,target_host,enabled,created_at FROM nightly_job_definitions ORDER BY name",
+        "SELECT id,name,description,schedule,script_path,target_host,enabled,created_at,project_id,run_fixes,timeout_sec FROM nightly_job_definitions ORDER BY name",
         [],
     ).unwrap_or_default();
     Ok(Json(json!({
@@ -592,9 +593,12 @@ struct NightlyJobCreatePayload {
     description: String,
     #[serde(default = "default_host")]
     target_host: String,
+    #[serde(default = "default_project")]
+    project_id: String,
 }
 fn default_schedule() -> String { "0 3 * * *".to_string() }
 fn default_host() -> String { "local".to_string() }
+fn default_project() -> String { "mirrorbuddy".to_string() }
 
 async fn api_nightly_job_retry(
     State(state): State<ServerState>,
@@ -603,7 +607,7 @@ async fn api_nightly_job_retry(
     let db = state.open_db()?;
     let original = query_one(
         db.connection(),
-        "SELECT run_id FROM nightly_jobs WHERE id=?1",
+        "SELECT run_id, job_name FROM nightly_jobs WHERE id=?1",
         rusqlite::params![id],
     )?
     .ok_or_else(|| ApiError::bad_request(format!("nightly job {id} not found")))?;
@@ -612,8 +616,11 @@ async fn api_nightly_job_retry(
         .and_then(Value::as_str)
         .filter(|value| !value.is_empty())
         .map(str::to_owned);
-    spawn_nightly_guardian("retry", parent_run_id.as_deref());
-    Ok(Json(json!({"ok": true, "triggered": true, "parent_run_id": parent_run_id})))
+    let project_id = original.get("job_name").and_then(Value::as_str)
+        .and_then(|name| name.split('-').next())
+        .unwrap_or("mirrorbuddy");
+    spawn_nightly_guardian(project_id, "retry", parent_run_id.as_deref());
+    Ok(Json(json!({"ok": true, "triggered": true, "parent_run_id": parent_run_id, "project_id": project_id})))
 }
 
 async fn api_nightly_job_trigger(
@@ -624,7 +631,7 @@ async fn api_nightly_job_trigger(
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| "mirrorbuddy".to_string());
-    spawn_nightly_guardian("manual", None);
+    spawn_nightly_guardian(&project_id, "manual", None);
     Ok(Json(json!({"ok": true, "triggered": true, "project_id": project_id})))
 }
 
@@ -724,8 +731,8 @@ async fn api_nightly_job_create(
     let db = state.open_db()?;
     db.connection()
         .execute(
-            "INSERT INTO nightly_job_definitions (name,description,schedule,script_path,target_host) VALUES (?1,?2,?3,?4,?5)",
-            rusqlite::params![name, payload.description, payload.schedule, script, payload.target_host],
+            "INSERT INTO nightly_job_definitions (name,description,schedule,script_path,target_host,project_id) VALUES (?1,?2,?3,?4,?5,?6)",
+            rusqlite::params![name, payload.description, payload.schedule, script, payload.target_host, payload.project_id],
         )
         .map_err(|err| ApiError::internal(format!("create job failed: {err}")))?;
     Ok(Json(json!({"ok": true, "name": name})))

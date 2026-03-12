@@ -179,9 +179,9 @@
 
 .mission-plan {
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
   background: rgba(10, 14, 26, 0.6);
   cursor: pointer;
   overflow: hidden;
@@ -199,14 +199,14 @@
 }
 .mission-id {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 20px;
   color: var(--cyan);
   font-weight: 700;
 }
 .mission-name {
   font-weight: 600;
   color: #e0e4f0;
-  font-size: 14px;
+  font-size: 17px;
 }
 .mission-meta {
   font-size: 11px;
@@ -219,11 +219,10 @@
   color: #ffb700;
   border: 1px solid rgba(255,160,0,0.4);
   border-radius: 4px;
-  padding: 1px 8px;
+  padding: 3px 10px;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.5px;
-  margin-left: 6px;
 }
 .host-badge-local {
   display: inline-block;

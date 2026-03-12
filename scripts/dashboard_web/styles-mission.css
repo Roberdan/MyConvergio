@@ -4,7 +4,7 @@
   font-size: 11px;
 }
 .wave-gantt-container {
-  margin-top: 8px;
+  margin-top: 12px;
   position: relative;
 }
 .wave-gantt-bar {
@@ -66,37 +66,111 @@
 .mission-reset-btn,
 .mission-cancel-btn {
   background: none;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
-  padding: 2px 4px;
-  opacity: 0.5;
+  padding: 5px 12px;
+  border-radius: 4px;
+  opacity: 0.7;
   transition:
     opacity 0.15s,
     color 0.15s,
-    transform 0.1s;
+    background 0.15s;
   vertical-align: middle;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .mission-stop-btn {
   color: var(--gold, #ffd700);
+  border-color: rgba(255, 215, 0, 0.25);
 }
 .mission-stop-btn:hover {
   opacity: 1;
-  color: #ffaa00;
-  transform: scale(1.2);
+  background: rgba(255, 215, 0, 0.1);
 }
 .mission-reset-btn {
   color: var(--cyan, #00e5ff);
+  border-color: rgba(0, 229, 255, 0.25);
 }
 .mission-reset-btn:hover {
   opacity: 1;
-  color: #00ccee;
-  transform: scale(1.2);
+  background: rgba(0, 229, 255, 0.1);
 }
 .mission-cancel-btn {
   color: #ee3344;
+  border-color: rgba(238, 51, 68, 0.25);
 }
 .mission-cancel-btn:hover {
   opacity: 1;
-  color: #ff1133;
-  transform: scale(1.2);
+  background: rgba(238, 51, 68, 0.1);
+}
+
+/* Mission card layout */
+.mission-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.mission-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.mission-elapsed {
+  color: var(--text-dim);
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.mission-lines {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.lines-added { color: var(--green, #00ff88); }
+.lines-removed { color: var(--red, #ee3344); }
+.mission-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.mission-status-tags {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.mtag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.mtag-running { color: var(--gold); background: rgba(255, 215, 0, 0.1); }
+.mtag-blocked { color: var(--red); background: rgba(238, 51, 68, 0.1); }
+.mtag-submitted { color: var(--cyan); background: rgba(0, 229, 255, 0.1); }
+.wave-elapsed {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.wave-theme {
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.7;
+  font-style: italic;
 }

@@ -171,8 +171,9 @@
 .mission-progress {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 8px 0;
+  gap: 14px;
+  margin: 14px 0;
+  padding: 10px 0;
 }
 .mission-ring {
   position: relative;
@@ -210,9 +211,9 @@
   min-width: 0;
 }
 .mission-progress-label {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   display: flex;
   justify-content: space-between;
 }

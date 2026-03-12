@@ -136,7 +136,13 @@ function renderWaveGantt(waves, p) {
           : w.status === "in_progress"
             ? "in_progress"
             : "pending";
-    html += `<div class="wave-row"><div class="wave-label">${statusDot(w.status)} <strong>${esc(w.wave_id)}</strong><span class="wave-name">${esc(wName)}</span></div><div class="wave-bar"><div class="wave-fill ${cls}" style="width:${wPct}%;background:${wg.gradient}"></div></div><div class="wave-pct" style="color:${wg.color}">${wPct}%</div><div style="margin-left:4px">${thorIcon(w.validated_at)}</div></div>`;
+    const wElapsed = w.completed_at && w.started_at
+      ? (typeof _elapsedBetween === 'function' ? _elapsedBetween(w.started_at, w.completed_at) : '')
+      : w.started_at && (w.status === 'in_progress')
+        ? (typeof _elapsedTime === 'function' ? _elapsedTime(w.started_at) : '')
+        : '';
+    const wTheme = w.theme ? ` <span class="wave-theme">${esc(w.theme.substring(0, 30))}</span>` : '';
+    html += `<div class="wave-row"><div class="wave-label">${statusDot(w.status)} <strong>${esc(w.wave_id)}</strong><span class="wave-name">${esc(wName)}</span>${wTheme}</div><div class="wave-bar"><div class="wave-fill ${cls}" style="width:${wPct}%;background:${wg.gradient}"></div></div><div class="wave-pct" style="color:${wg.color}">${wPct}%</div>${wElapsed ? `<div class="wave-elapsed">${wElapsed}</div>` : '<div class="wave-elapsed"></div>'}<div style="margin-left:4px">${thorIcon(w.validated_at)}</div></div>`;
   });
   if (pendingWaves.length > 0) {
     const cid = `pending-waves-${p.id}`;
